@@ -6,3 +6,4 @@ dist/
 npm-debug.log*
 docs/
 _tmp_*
+.cursor/
