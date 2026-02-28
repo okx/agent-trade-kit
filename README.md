@@ -67,7 +67,7 @@ demo = true
   "mcpServers": {
     "okx-live": {
       "command": "node",
-      "args": ["/path/to/okx_hub/packages/mcp/dist/index.js", "--profile", "live"]
+      "args": ["/path/to/okx_hub/packages/mcp/dist/index.js", "--profile", "live", "--modules", "all"]
     },
     "okx-demo": {
       "command": "node",
