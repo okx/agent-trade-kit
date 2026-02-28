@@ -8,5 +8,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   dts: false,
+  noExternal: ["@okx-hub/core"],
   banner: { js: "#!/usr/bin/env node" },
 });

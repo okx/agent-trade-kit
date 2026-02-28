@@ -1,6 +1,6 @@
 {
   "name": "okx-trade-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OKX MCP Server - Model Context Protocol server for OKX exchange",
   "type": "module",
   "license": "MIT",
@@ -19,10 +19,10 @@
   "engines": { "node": ">=18" },
   "keywords": ["okx", "mcp", "model-context-protocol", "trading"],
   "dependencies": {
-    "@okx-hub/core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.26.0"
   },
   "devDependencies": {
+    "@okx-hub/core": "workspace:*",
     "@types/node": "^25.2.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
