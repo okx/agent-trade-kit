@@ -443,5 +443,171 @@ export function registerSwapTradeTools(): ToolSpec[] {
         return normalize(response);
       },
     },
+    {
+      name: "swap_close_position",
+      module: "swap",
+      description:
+        "[CAUTION] Close an entire SWAP/FUTURES position at market. Simpler than swap_place_order with reduceOnly when closing the full position. Private. Rate limit: 20 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+            description: "Margin mode of the position to close.",
+          },
+          posSide: {
+            type: "string",
+            enum: ["long", "short", "net"],
+            description:
+              "Position side. Required in hedge mode (long/short). Omit for one-way mode (net).",
+          },
+          autoCxl: {
+            type: "boolean",
+            description:
+              "Whether to cancel pending orders for the instrument when closing. Default false.",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client-supplied order ID for the close order.",
+          },
+          tag: {
+            type: "string",
+            description: "Order tag.",
+          },
+        },
+        required: ["instId", "mgnMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const autoCxl = args.autoCxl;
+        const response = await context.client.privatePost(
+          "/api/v5/trade/close-position",
+          compactObject({
+            instId: requireString(args, "instId"),
+            mgnMode: requireString(args, "mgnMode"),
+            posSide: readString(args, "posSide"),
+            autoCxl: typeof autoCxl === "boolean" ? String(autoCxl) : undefined,
+            clOrdId: readString(args, "clOrdId"),
+            tag: readString(args, "tag"),
+          }),
+          privateRateLimit("swap_close_position", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "swap_batch_orders",
+      module: "swap",
+      description:
+        "[CAUTION] Batch place/cancel/amend up to 20 SWAP/FUTURES orders in one request. Use action='place'/'cancel'/'amend'. Private. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          action: {
+            type: "string",
+            enum: ["place", "cancel", "amend"],
+            description:
+              "Operation type. 'place': batch place orders. 'cancel': batch cancel by ordId/clOrdId. 'amend': batch modify newSz/newPx.",
+          },
+          orders: {
+            type: "array",
+            description:
+              "Array of order objects (max 20). For 'place': {instId, tdMode, side, ordType, sz, px?, posSide?, reduceOnly?, clOrdId?, tpTriggerPx?, tpOrdPx?, slTriggerPx?, slOrdPx?}. For 'cancel': {instId, ordId} or {instId, clOrdId}. For 'amend': {instId, ordId or clOrdId, newSz?, newPx?}.",
+            items: {
+              type: "object",
+            },
+          },
+        },
+        required: ["action", "orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const action = requireString(args, "action");
+        assertEnum(action, "action", ["place", "cancel", "amend"]);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const endpointMap: Record<string, string> = {
+          place: "/api/v5/trade/batch-orders",
+          cancel: "/api/v5/trade/cancel-batch-orders",
+          amend: "/api/v5/trade/amend-batch-orders",
+        };
+        const body: Record<string, unknown>[] =
+          action === "place"
+            ? orders.map((order: unknown) => {
+                const o = asRecord(order);
+                const tpTriggerPx = readString(o, "tpTriggerPx");
+                const tpOrdPx = readString(o, "tpOrdPx");
+                const slTriggerPx = readString(o, "slTriggerPx");
+                const slOrdPx = readString(o, "slOrdPx");
+                const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
+                const attachAlgoOrds =
+                  Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+                const reduceOnly = o.reduceOnly;
+                return compactObject({
+                  instId: requireString(o, "instId"),
+                  tdMode: requireString(o, "tdMode"),
+                  side: requireString(o, "side"),
+                  ordType: requireString(o, "ordType"),
+                  sz: requireString(o, "sz"),
+                  px: readString(o, "px"),
+                  posSide: readString(o, "posSide"),
+                  reduceOnly:
+                    typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
+                  clOrdId: readString(o, "clOrdId"),
+                  attachAlgoOrds,
+                });
+              })
+            : (orders as Record<string, unknown>[]);
+        const response = await context.client.privatePost(
+          endpointMap[action],
+          body,
+          privateRateLimit("swap_batch_orders", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "swap_get_leverage",
+      module: "swap",
+      description:
+        "Get current leverage for a SWAP/FUTURES instrument. Call before swap_place_order to verify leverage. Private. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+            description: "Margin mode.",
+          },
+        },
+        required: ["instId", "mgnMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/leverage-info",
+          compactObject({
+            instId: requireString(args, "instId"),
+            mgnMode: requireString(args, "mgnMode"),
+          }),
+          privateRateLimit("swap_get_leverage", 20),
+        );
+        return normalize(response);
+      },
+    },
   ];
 }

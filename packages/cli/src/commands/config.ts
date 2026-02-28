@@ -9,7 +9,7 @@ function readFullConfig(): OkxTomlConfig {
   const path = configFilePath();
   if (!existsSync(path)) return { profiles: {} };
   const raw = readFileSync(path, "utf-8");
-  return parse(raw) as OkxTomlConfig;
+  return parse(raw) as unknown as OkxTomlConfig;
 }
 
 export function cmdConfigShow(json: boolean): void {

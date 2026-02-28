@@ -120,7 +120,6 @@ async function main(): Promise<void> {
       newSlOrdPx: { type: "string" },
     },
     allowPositionals: true,
-    strict: false,
   });
 
   if (values.help || positionals.length === 0) {

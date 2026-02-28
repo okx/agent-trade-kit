@@ -16,5 +16,5 @@ export function writeCliConfig(config: OkxTomlConfig): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(configFilePath(), stringify(config as Record<string, unknown>), "utf-8");
+  writeFileSync(configFilePath(), stringify(config as unknown as Record<string, unknown>), "utf-8");
 }
