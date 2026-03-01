@@ -71,12 +71,12 @@ Credentials are read from `~/.okx/config.toml`; only profile is needed in JSON:
 {
   "mcpServers": {
     "okx-live": {
-      "command": "node",
-      "args": ["/path/to/okx_hub/packages/mcp/dist/index.js", "--profile", "live", "--modules", "all"]
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp", "--profile", "live", "--modules", "all"]
     },
     "okx-demo": {
-      "command": "node",
-      "args": ["/path/to/okx_hub/packages/mcp/dist/index.js", "--profile", "demo"]
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp", "--profile", "demo"]
     }
   }
 }
@@ -271,12 +271,12 @@ demo = true
 {
   "mcpServers": {
     "okx-live": {
-      "command": "node",
-      "args": ["/path/to/okx_hub/packages/mcp/dist/index.js", "--profile", "live", "--modules", "all"]
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp", "--profile", "live", "--modules", "all"]
     },
     "okx-demo": {
-      "command": "node",
-      "args": ["/path/to/okx_hub/packages/mcp/dist/index.js", "--profile", "demo"]
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp", "--profile", "demo"]
     }
   }
 }
