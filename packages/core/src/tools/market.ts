@@ -1,5 +1,5 @@
 import type { ToolSpec } from "./types.js";
-import { asRecord, compactObject, readNumber, readString, requireString } from "./helpers.js";
+import { asRecord, compactObject, readBoolean, readNumber, readString, requireString } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
 
 function normalize(response: {
@@ -118,7 +118,10 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_candles",
       module: "market",
       description:
-        "Get candlestick (OHLCV) data for an instrument. Public endpoint, no authentication required. Rate limit: 40 req/s.",
+        "Get candlestick (OHLCV) data for an instrument. " +
+        "history=false (default): recent candles up to 1440 bars. " +
+        "history=true: older historical data beyond the recent window. " +
+        "Public endpoint, no authentication required. Rate limit: 40 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -142,15 +145,23 @@ export function registerMarketTools(): ToolSpec[] {
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 300.",
+            description: "Number of results, default 100, max 100.",
+          },
+          history: {
+            type: "boolean",
+            description: "Set true to query historical candles older than the recent window.",
           },
         },
         required: ["instId"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const isHistory = readBoolean(args, "history") ?? false;
+        const path = isHistory
+          ? "/api/v5/market/history-candles"
+          : "/api/v5/market/candles";
         const response = await context.client.publicGet(
-          "/api/v5/market/candles",
+          path,
           compactObject({
             instId: requireString(args, "instId"),
             bar: readString(args, "bar"),
@@ -159,6 +170,235 @@ export function registerMarketTools(): ToolSpec[] {
             limit: readNumber(args, "limit"),
           }),
           publicRateLimit("market_get_candles", 40),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "market_get_instruments",
+      module: "market",
+      description:
+        "Get tradable instruments for a given type. Returns contract specs: min order size, lot size, tick size, contract value, settlement currency, listing/expiry time. Essential before placing orders. Public endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: [...OKX_INST_TYPES],
+            description: "Instrument type: SPOT, SWAP, FUTURES, OPTION, MARGIN.",
+          },
+          instId: {
+            type: "string",
+            description: "Filter by specific instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          uly: {
+            type: "string",
+            description: "Underlying filter, e.g. BTC-USD. Required for OPTION.",
+          },
+          instFamily: {
+            type: "string",
+            description: "Instrument family filter, e.g. BTC-USD.",
+          },
+        },
+        required: ["instType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.publicGet(
+          "/api/v5/public/instruments",
+          compactObject({
+            instType: requireString(args, "instType"),
+            instId: readString(args, "instId"),
+            uly: readString(args, "uly"),
+            instFamily: readString(args, "instFamily"),
+          }),
+          publicRateLimit("market_get_instruments", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "market_get_funding_rate",
+      module: "market",
+      description:
+        "Get funding rate for a SWAP instrument. " +
+        "history=false (default): current rate and estimated next rate + settlement time. " +
+        "history=true: historical rates, default 20 records, max 100. " +
+        "Public endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "SWAP instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          history: {
+            type: "boolean",
+            description: "Set true to fetch historical funding rates.",
+          },
+          after: {
+            type: "string",
+            description: "Pagination (history only): records earlier than this timestamp (ms).",
+          },
+          before: {
+            type: "string",
+            description: "Pagination (history only): records newer than this timestamp (ms).",
+          },
+          limit: {
+            type: "number",
+            description: "Number of records (history only). Default 20, max 100.",
+          },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const isHistory = readBoolean(args, "history") ?? false;
+        if (isHistory) {
+          const response = await context.client.publicGet(
+            "/api/v5/public/funding-rate-history",
+            compactObject({
+              instId: requireString(args, "instId"),
+              after: readString(args, "after"),
+              before: readString(args, "before"),
+              limit: readNumber(args, "limit") ?? 20,
+            }),
+            publicRateLimit("market_get_funding_rate", 20),
+          );
+          return normalize(response);
+        }
+        const response = await context.client.publicGet(
+          "/api/v5/public/funding-rate",
+          { instId: requireString(args, "instId") },
+          publicRateLimit("market_get_funding_rate", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "market_get_mark_price",
+      module: "market",
+      description:
+        "Get mark price for SWAP, FUTURES, or MARGIN instruments. " +
+        "Mark price is used for liquidation calculations and unrealized PnL. " +
+        "Public endpoint. Rate limit: 10 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["MARGIN", "SWAP", "FUTURES", "OPTION"],
+            description: "Instrument type.",
+          },
+          instId: {
+            type: "string",
+            description: "Filter by specific instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          uly: {
+            type: "string",
+            description: "Underlying filter, e.g. BTC-USD.",
+          },
+          instFamily: {
+            type: "string",
+            description: "Instrument family filter.",
+          },
+        },
+        required: ["instType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.publicGet(
+          "/api/v5/public/mark-price",
+          compactObject({
+            instType: requireString(args, "instType"),
+            instId: readString(args, "instId"),
+            uly: readString(args, "uly"),
+            instFamily: readString(args, "instFamily"),
+          }),
+          publicRateLimit("market_get_mark_price", 10),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "market_get_trades",
+      module: "market",
+      description:
+        "Get recent trades for an instrument. Default 20 records, max 500. " +
+        "Public endpoint, no authentication required. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT.",
+          },
+          limit: {
+            type: "number",
+            description: "Number of results. Default 20, max 500.",
+          },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.publicGet(
+          "/api/v5/market/trades",
+          compactObject({
+            instId: requireString(args, "instId"),
+            limit: readNumber(args, "limit") ?? 20,
+          }),
+          publicRateLimit("market_get_trades", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "market_get_open_interest",
+      module: "market",
+      description:
+        "Get open interest for SWAP, FUTURES, or OPTION instruments. " +
+        "Useful for gauging market sentiment and positioning. " +
+        "Public endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SWAP", "FUTURES", "OPTION"],
+            description: "Instrument type.",
+          },
+          instId: {
+            type: "string",
+            description: "Filter by specific instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          uly: {
+            type: "string",
+            description: "Underlying filter, e.g. BTC-USD.",
+          },
+          instFamily: {
+            type: "string",
+            description: "Instrument family filter.",
+          },
+        },
+        required: ["instType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.publicGet(
+          "/api/v5/public/open-interest",
+          compactObject({
+            instType: requireString(args, "instType"),
+            instId: readString(args, "instId"),
+            uly: readString(args, "uly"),
+            instFamily: readString(args, "instFamily"),
+          }),
+          publicRateLimit("market_get_open_interest", 20),
         );
         return normalize(response);
       },

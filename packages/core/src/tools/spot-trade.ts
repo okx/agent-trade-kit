@@ -2,6 +2,7 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
+  readBoolean,
   readNumber,
   readString,
   requireString,
@@ -485,11 +486,18 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_fills",
       module: "spot",
       description:
-        "Get spot transaction fill details. Private endpoint. Rate limit: 20 req/s.",
+        "Get spot transaction fill details. " +
+        "archive=false (default): last 3 days. " +
+        "archive=true: up to 3 months, default limit 20. " +
+        "Private endpoint. Rate limit: 20 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
+          archive: {
+            type: "boolean",
+            description: "Set true to query fills history up to 3 months. Default false (last 3 days).",
+          },
           instId: {
             type: "string",
             description: "Instrument ID filter, e.g. BTC-USDT.",
@@ -516,14 +524,16 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Number of results, max 100. Defaults to 100 (recent) or 20 (archive).",
           },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const archive = readBoolean(args, "archive") ?? false;
+        const path = archive ? "/api/v5/trade/fills-history" : "/api/v5/trade/fills";
         const response = await context.client.privateGet(
-          "/api/v5/trade/fills",
+          path,
           compactObject({
             instType: "SPOT",
             instId: readString(args, "instId"),
@@ -532,9 +542,47 @@ export function registerSpotTradeTools(): ToolSpec[] {
             before: readString(args, "before"),
             begin: readString(args, "begin"),
             end: readString(args, "end"),
-            limit: readNumber(args, "limit"),
+            limit: readNumber(args, "limit") ?? (archive ? 20 : undefined),
           }),
           privateRateLimit("spot_get_fills", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "spot_get_order",
+      module: "spot",
+      description:
+        "Get details of a single spot order by order ID or client order ID. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT.",
+          },
+          ordId: {
+            type: "string",
+            description: "Order ID. Provide either ordId or clOrdId.",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client-supplied order ID. Provide either ordId or clOrdId.",
+          },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/trade/order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+          }),
+          privateRateLimit("spot_get_order", 60),
         );
         return normalize(response);
       },
