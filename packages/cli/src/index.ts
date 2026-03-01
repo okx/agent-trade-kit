@@ -1,5 +1,9 @@
 import { parseArgs } from "node:util";
-import { OkxRestClient, toToolErrorPayload } from "@okx-hub/core";
+import { createRequire } from "node:module";
+import { OkxRestClient, toToolErrorPayload, checkForUpdates } from "@okx-hub/core";
+
+const _require = createRequire(import.meta.url);
+const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 import { loadProfileConfig } from "./config/loader.js";
 import {
   cmdMarketTicker,
@@ -82,6 +86,8 @@ Commands:
 }
 
 async function main(): Promise<void> {
+  checkForUpdates("okx-cli", CLI_VERSION);
+
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {

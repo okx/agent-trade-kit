@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig, toToolErrorPayload } from "@okx-hub/core";
+import { loadConfig, toToolErrorPayload, checkForUpdates } from "@okx-hub/core";
 import { SERVER_VERSION } from "./constants.js";
 import { createServer } from "./server.js";
 
@@ -64,6 +64,8 @@ function parseCli(): {
 }
 
 export async function main(): Promise<void> {
+  checkForUpdates("okx-mcp-server", SERVER_VERSION);
+
   const cli = parseCli();
 
   if (cli.help) {

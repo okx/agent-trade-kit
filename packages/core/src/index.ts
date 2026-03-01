@@ -10,3 +10,4 @@ export type { ToolSpec, ToolContext, ToolArgs } from "./tools/types.js";
 export type { RequestResult } from "./client/types.js";
 export { readTomlProfile, configFilePath } from "./config/toml.js";
 export type { OkxProfile, OkxTomlConfig } from "./config/toml.js";
+export { checkForUpdates } from "./utils/update-check.js";
