@@ -1,77 +1,90 @@
-# OKX MCP Server 架构文档
+# OKX MCP Server — Architecture
 
-## 1. 项目概述
+## 1. Overview
 
-OKX MCP Server 是一个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 的 OKX 交易所接入层，允许 AI Agent（Claude Desktop 等）直接调用 OKX API 完成行情查询、下单、持仓管理等操作。
+OKX MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) integration layer for the OKX exchange, allowing AI agents (Claude Desktop, Cursor, etc.) to query market data, place orders, and manage positions by calling OKX REST API v5 directly.
 
-- **协议传输**：标准输入/输出（stdio），与宿主进程通过 JSON-RPC 通信
-- **运行时**：Node.js ≥ 18
-- **语言**：TypeScript（ESM 模块）
-- **构建工具**：tsup（基于 esbuild）
-
----
-
-## 2. 目录结构
-
-```
-okx_hub/
-├── src/
-│   ├── client/
-│   │   ├── rest-client.ts   # HTTP 客户端：签名、请求、响应解析
-│   │   └── types.ts         # 请求/响应 TypeScript 类型
-│   ├── utils/
-│   │   ├── signature.ts     # ISO 时间戳 + HMAC-SHA256 签名
-│   │   ├── rate-limiter.ts  # Token Bucket 限速器
-│   │   └── errors.ts        # 错误类层级 + toToolErrorPayload
-│   ├── tools/
-│   │   ├── types.ts         # ToolSpec 接口 + toMcpTool 转换
-│   │   ├── helpers.ts       # 参数读取/校验工具函数
-│   │   ├── common.ts        # 限速配置工厂函数 + 常量
-│   │   ├── market.ts        # market 模块（公共接口）
-│   │   ├── spot-trade.ts    # spot 模块（现货交易）
-│   │   ├── swap-trade.ts    # swap 模块（合约/永续）
-│   │   ├── account.ts       # account 模块（账户资产）
-│   │   └── index.ts         # buildTools()：模块过滤 + 只读过滤
-│   ├── config.ts            # 配置加载（环境变量 + CLI flags）
-│   ├── constants.ts         # 模块 ID、API 地址、版本号
-│   ├── server.ts            # MCP Server：注册 ListTools/CallTool Handler
-│   └── index.ts             # CLI 入口：解析参数 → 加载配置 → 启动服务
-├── package.json
-├── tsconfig.json
-└── tsup.config.ts
-```
+- **Transport**: stdio — JSON-RPC communication with the host process via standard input/output
+- **Runtime**: Node.js >= 18
+- **Language**: TypeScript (ESM modules)
+- **Build tool**: tsup (esbuild-based)
 
 ---
 
-## 3. 分层架构
+## 2. Directory Structure
+
+```
+okx-hub/
+├── packages/
+│   ├── core/                        # @okx-hub/core — shared library (private)
+│   │   └── src/
+│   │       ├── client/
+│   │       │   ├── rest-client.ts   # HTTP client: signing, requests, response parsing
+│   │       │   └── types.ts         # Request/response TypeScript types
+│   │       ├── utils/
+│   │       │   ├── signature.ts     # ISO timestamp + HMAC-SHA256 signing
+│   │       │   ├── rate-limiter.ts  # Token bucket rate limiter
+│   │       │   ├── errors.ts        # Error class hierarchy + toToolErrorPayload
+│   │       │   └── update-check.ts  # npm update notifier (stderr, cached)
+│   │       ├── tools/
+│   │       │   ├── types.ts         # ToolSpec interface + toMcpTool conversion
+│   │       │   ├── helpers.ts       # Parameter reading/validation utilities
+│   │       │   ├── common.ts        # Rate limit config factories + constants
+│   │       │   ├── market.ts        # market module (public endpoints)
+│   │       │   ├── spot-trade.ts    # spot module (spot trading)
+│   │       │   ├── swap-trade.ts    # swap module (perpetual/futures)
+│   │       │   ├── account.ts       # account module (balances, transfers)
+│   │       │   └── index.ts         # buildTools(): module + read-only filtering
+│   │       ├── config/              # Configuration loading (env vars + CLI flags)
+│   │       ├── config.ts
+│   │       ├── constants.ts         # Module IDs, API base URL, version
+│   │       └── index.ts             # Public re-exports
+│   ├── mcp/                         # okx-trade-mcp
+│   │   └── src/
+│   │       ├── server.ts            # MCP Server: ListTools/CallTool handlers
+│   │       └── index.ts             # CLI entry: parse args → load config → start server
+│   └── cli/                         # okx-trade-cli
+│       └── src/
+│           └── index.ts             # CLI entry point
+├── test/
+│   ├── smoke.sh                     # Integration smoke tests (requires credentials)
+│   └── mcp-e2e.mjs                  # MCP end-to-end tests (requires credentials)
+├── package.json                     # Workspace root
+├── pnpm-workspace.yaml
+└── tsconfig.base.json
+```
+
+---
+
+## 3. Layered Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   MCP 宿主进程                        │
-│         (Claude Desktop / Claude Code / SDK)          │
+│               MCP Host Process                        │
+│      (Claude Desktop / Claude Code / SDK)             │
 └──────────────────────┬──────────────────────────────┘
                        │ stdio JSON-RPC
 ┌──────────────────────▼──────────────────────────────┐
-│                    index.ts (CLI)                     │
+│               index.ts (CLI entry)                    │
 │   parseArgs → loadConfig → createServer → connect    │
 └──────────────────────┬──────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────┐
-│                   server.ts (MCP Server)              │
-│  ListToolsHandler  │  CallToolHandler                 │
-│  buildCapabilitySnapshot  │  errorResult / successResult │
+│               server.ts (MCP Server)                  │
+│   ListToolsHandler  │  CallToolHandler                │
+│   buildCapabilitySnapshot  │  errorResult / successResult │
 └──────────────────────┬──────────────────────────────┘
                        │
 ┌──────────────────────▼──────────────────────────────┐
-│              tools/ (工具注册层)                       │
-│  buildTools(config) → ToolSpec[]                      │
-│  market / spot-trade / swap-trade / account           │
+│           tools/ (Tool Registration Layer)            │
+│   buildTools(config) → ToolSpec[]                     │
+│   market / spot-trade / swap-trade / account          │
 └──────────────────────┬──────────────────────────────┘
                        │ context.client.*
 ┌──────────────────────▼──────────────────────────────┐
-│             client/rest-client.ts (HTTP 层)           │
-│  publicGet / privateGet / privatePost                 │
-│  → 签名 → fetch → 解析 → 错误处理                      │
+│           client/rest-client.ts (HTTP Layer)          │
+│   publicGet / privateGet / privatePost                │
+│   → sign → fetch → parse → error handling            │
 └──────────────────────┬──────────────────────────────┘
                        │ HTTPS
 ┌──────────────────────▼──────────────────────────────┐
@@ -82,22 +95,22 @@ okx_hub/
 
 ---
 
-## 4. 核心模块详解
+## 4. Core Modules
 
-### 4.1 签名机制（utils/signature.ts）
+### 4.1 Signature (`utils/signature.ts`)
 
-OKX 使用 **ISO 8601 时间戳** + **HMAC-SHA256** 签名，与 Bitget（毫秒时间戳）不同：
+OKX uses an **ISO 8601 timestamp** + **HMAC-SHA256** signature. This differs from Bitget (millisecond timestamp):
 
 ```
-签名内容 = timestamp + METHOD + requestPath + body
+payload = timestamp + METHOD + requestPath + body
 ```
 
-- `timestamp`：`new Date().toISOString()` → `"2024-01-01T00:00:00.000Z"`
-- `METHOD`：大写，如 `"GET"` / `"POST"`
-- `requestPath`：含 query string，如 `/api/v5/market/ticker?instId=BTC-USDT`
-- `body`：POST 请求的 JSON 字符串，GET 为空字符串
+- `timestamp`: `new Date().toISOString()` → `"2024-01-01T00:00:00.000Z"`
+- `METHOD`: uppercase, e.g. `"GET"` / `"POST"`
+- `requestPath`: includes query string, e.g. `/api/v5/market/ticker?instId=BTC-USDT`
+- `body`: JSON string for POST requests; empty string for GET
 
-请求头：
+Request headers:
 ```
 OK-ACCESS-KEY:        <apiKey>
 OK-ACCESS-SIGN:       <base64(hmac-sha256(payload, secretKey))>
@@ -105,166 +118,184 @@ OK-ACCESS-PASSPHRASE: <passphrase>
 OK-ACCESS-TIMESTAMP:  <isoTimestamp>
 ```
 
-模拟盘额外加：
+Demo trading adds:
 ```
 x-simulated-trading: 1
 ```
 
-### 4.2 REST 客户端（client/rest-client.ts）
+### 4.2 REST Client (`client/rest-client.ts`)
 
-提供三个公共方法：
+Three public methods:
 
-| 方法 | 鉴权 | 用途 |
-|------|------|------|
-| `publicGet(path, query, rateLimit)` | 无 | 公共行情接口 |
-| `privateGet(path, query, rateLimit)` | 有 | 私有查询接口 |
-| `privatePost(path, body, rateLimit)` | 有 | 私有写操作接口 |
+| Method | Auth | Purpose |
+|--------|------|---------|
+| `publicGet(path, query, rateLimit)` | None | Public market endpoints |
+| `privateGet(path, query, rateLimit)` | Yes | Private read endpoints |
+| `privatePost(path, body, rateLimit)` | Yes | Private write endpoints |
 
-**错误处理流程**：
+**Error handling flow:**
 ```
-fetch 网络错误 → NetworkError
-HTTP 非 200    → OkxApiError (code=HTTP状态码)
-JSON 解析失败  → NetworkError
-code !== "0"   → OkxApiError / AuthenticationError
-code === "0"   → 返回 RequestResult<TData>
+Network error (fetch throws) → NetworkError
+HTTP non-200              → OkxApiError (code = HTTP status)
+JSON parse failure         → NetworkError
+code !== "0"              → OkxApiError / AuthenticationError
+code === "0"              → return RequestResult<TData>
 ```
 
-### 4.3 限速器（utils/rate-limiter.ts）
+### 4.3 Rate Limiter (`utils/rate-limiter.ts`)
 
-Token Bucket 算法实现客户端限速：
+Token bucket algorithm for client-side rate limiting:
 
-- 每个 `key` 对应一个独立的 Bucket
-- `capacity`：桶容量（最大并发 token 数）
-- `refillPerSecond`：每秒补充速率
-- `maxWaitMs`：最大等待时长（默认 30s），超出则抛 `RateLimitError`
-- 自动等待 + 重试，调用方无感知
+- Each `key` has its own independent bucket
+- `capacity`: maximum burst token count
+- `refillPerSecond`: steady-state token refill rate
+- `maxWaitMs`: maximum wait before throwing `RateLimitError` (default 30s)
+- Callers block transparently — automatic sleep + retry
 
-使用示例（tools/common.ts）：
+Usage (from `tools/common.ts`):
 ```typescript
 privateRateLimit("spot_place_order", 60)
 // → { key: "private:spot_place_order", capacity: 60, refillPerSecond: 60 }
 ```
 
-### 4.4 工具注册层（tools/）
+### 4.4 Tool Registry (`tools/`)
 
-每个模块导出一个 `register*Tools(): ToolSpec[]` 函数，`ToolSpec` 结构：
+Each module exports a `register*Tools(): ToolSpec[]` function. The `ToolSpec` structure:
 
 ```typescript
 interface ToolSpec {
-  name: string;           // 工具名，如 "spot_place_order"
-  module: ModuleId;       // 所属模块，用于过滤
-  description: string;    // MCP 工具描述（供 AI 理解）
-  inputSchema: JsonSchema;// JSON Schema，定义参数结构
-  isWrite: boolean;       // true=写操作，只读模式下被过滤
-  handler: (args, context) => Promise<unknown>;  // 执行逻辑
+  name: string;            // Tool name, e.g. "spot_place_order"
+  module: ModuleId;        // Owning module, used for filtering
+  description: string;     // MCP tool description (for AI understanding)
+  inputSchema: JsonSchema; // JSON Schema defining parameter structure
+  isWrite: boolean;        // true = write operation, filtered in read-only mode
+  handler: (args, context) => Promise<unknown>;
 }
 ```
 
-`buildTools(config)` 在启动时做两层过滤：
-1. **模块过滤**：仅加载 `config.modules` 指定的模块
-2. **只读过滤**：若 `config.readOnly=true`，移除所有 `isWrite=true` 的工具
+`buildTools(config)` applies two filter passes at startup:
+1. **Module filter**: only load modules listed in `config.modules`
+2. **Read-only filter**: if `config.readOnly=true`, remove all `isWrite=true` tools
 
-### 4.5 MCP Server（server.ts）
+### 4.5 MCP Server (`server.ts`)
 
-注册两个 Handler：
+Registers two handlers:
 
-**ListToolsHandler**：返回当前可用工具列表 + `system_get_capabilities` 元工具。
+**ListToolsHandler**: returns the current tool list plus the `system_get_capabilities` meta-tool.
 
-**CallToolHandler**：
-1. 特殊处理 `system_get_capabilities` → 返回能力快照
-2. 从 `toolMap` 查找工具
-3. 调用 `tool.handler(args, { config, client })`
-4. 成功返回 `successResult`，异常返回 `errorResult`
+**CallToolHandler**:
+1. Special-cases `system_get_capabilities` → returns capability snapshot
+2. Looks up the tool in `toolMap`
+3. Calls `tool.handler(args, { config, client })`
+4. Returns `successResult` on success; `errorResult` on exception
 
-每次调用都附带 `CapabilitySnapshot`，便于 Agent 了解当前服务状态（哪些模块可用、是否只读、是否模拟盘）。
+Each response includes a `CapabilitySnapshot` so the AI agent always knows which modules are active, whether write operations are enabled, and whether demo mode is on.
 
 ---
 
-## 5. 模块与工具清单
+## 5. Modules & Tools Inventory
 
-### market 模块（公共，无需鉴权）
+### market module (public — no credentials required)
 
-| 工具 | API 接口 | 说明 |
-|------|---------|------|
-| `market_get_ticker` | `GET /api/v5/market/ticker` | 单个标的 Ticker |
-| `market_get_tickers` | `GET /api/v5/market/tickers` | 按类型批量 Ticker |
-| `market_get_orderbook` | `GET /api/v5/market/books` | 订单簿（买卖盘） |
-| `market_get_candles` | `GET /api/v5/market/candles` | K 线数据 |
+| Tool | API Endpoint | Description |
+|------|-------------|-------------|
+| `market_get_ticker` | `GET /api/v5/market/ticker` | Single instrument ticker |
+| `market_get_tickers` | `GET /api/v5/market/tickers` | Batch tickers by type |
+| `market_get_orderbook` | `GET /api/v5/market/books` | Order book (bids/asks) |
+| `market_get_candles` | `GET /api/v5/market/candles` | Candlestick (OHLCV) data |
 
-### spot 模块（现货，需鉴权）
+### spot module (credentials required)
 
-| 工具 | API 接口 | 写操作 |
-|------|---------|-------|
+| Tool | API Endpoint | Write |
+|------|-------------|-------|
 | `spot_place_order` | `POST /api/v5/trade/order` | ✅ |
 | `spot_cancel_order` | `POST /api/v5/trade/cancel-order` | ✅ |
 | `spot_amend_order` | `POST /api/v5/trade/amend-order` | ✅ |
-| `spot_get_orders` | `GET /api/v5/trade/orders-pending` 或 `orders-history` | ❌ |
+| `spot_get_orders` | `GET /api/v5/trade/orders-pending` or `orders-history` | ❌ |
 | `spot_get_fills` | `GET /api/v5/trade/fills` | ❌ |
 
-### swap 模块（合约/永续，需鉴权）
+### swap module (credentials required)
 
-| 工具 | API 接口 | 写操作 |
-|------|---------|-------|
+| Tool | API Endpoint | Write |
+|------|-------------|-------|
 | `swap_place_order` | `POST /api/v5/trade/order` | ✅ |
 | `swap_cancel_order` | `POST /api/v5/trade/cancel-order` | ✅ |
-| `swap_get_orders` | `GET /api/v5/trade/orders-pending` 或 `orders-history` | ❌ |
+| `swap_get_orders` | `GET /api/v5/trade/orders-pending` or `orders-history` | ❌ |
 | `swap_get_positions` | `GET /api/v5/account/positions` | ❌ |
 | `swap_set_leverage` | `POST /api/v5/account/set-leverage` | ✅ |
 | `swap_get_fills` | `GET /api/v5/trade/fills` | ❌ |
+| `move_order_stop` | `POST /api/v5/trade/order-algo` | ✅ |
 
-### account 模块（账户，需鉴权）
+### account module (credentials required)
 
-| 工具 | API 接口 | 写操作 |
-|------|---------|-------|
+| Tool | API Endpoint | Write |
+|------|-------------|-------|
 | `account_get_balance` | `GET /api/v5/account/balance` | ❌ |
 | `account_transfer` | `POST /api/v5/asset/transfer` | ✅ |
 
 ---
 
-## 6. 配置系统
+## 6. Configuration System
 
-### 环境变量
+### Environment Variables
 
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `OKX_API_KEY` | 私有接口必填 | — | API Key |
-| `OKX_SECRET_KEY` | 私有接口必填 | — | Secret Key |
-| `OKX_PASSPHRASE` | 私有接口必填 | — | Passphrase |
-| `OKX_API_BASE_URL` | 否 | `https://www.okx.com` | API 基础 URL |
-| `OKX_TIMEOUT_MS` | 否 | `15000` | 请求超时（毫秒） |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OKX_API_KEY` | For private endpoints | — | API Key |
+| `OKX_SECRET_KEY` | For private endpoints | — | Secret Key |
+| `OKX_PASSPHRASE` | For private endpoints | — | Passphrase |
+| `OKX_API_BASE_URL` | No | `https://www.okx.com` | API base URL |
+| `OKX_TIMEOUT_MS` | No | `15000` | Request timeout (ms) |
 
-> `market` 模块（行情）为公共接口，无需任何 key 即可使用。
-> 三个 key 必须同时提供或同时不提供，部分提供会报 `ConfigError`。
+> The `market` module uses public endpoints — no credentials needed.
+> All three keys must be provided together or not at all; partial config throws `ConfigError`.
 
-### CLI 参数
+### TOML Profile File (`~/.okx/config.toml`)
+
+```toml
+default_profile = "demo"
+
+[profiles.live]
+api_key    = "..."
+secret_key = "..."
+passphrase = "..."
+
+[profiles.demo]
+api_key    = "..."
+secret_key = "..."
+passphrase = "..."
+demo       = true
+```
+
+### CLI Flags
 
 ```
 okx-trade-mcp [options]
 
-  --modules <list>   逗号分隔模块名，或 "all"（默认：spot,swap,account）
-  --read-only        禁用所有写操作
-  --demo             启用模拟盘（注入 x-simulated-trading: 1）
+  --modules <list>   Comma-separated module names, or "all" (default: spot,swap,account)
+  --read-only        Disable all write operations
+  --demo             Enable demo trading (inject x-simulated-trading: 1)
   --help
   --version
 ```
 
 ---
 
-## 7. 错误处理体系
+## 7. Error Handling
 
-所有错误继承自 `OkxMcpError`，统一由 `toToolErrorPayload()` 序列化后返回给 MCP 宿主：
+All errors extend `OkxMcpError` and are serialized by `toToolErrorPayload()` before being returned to the MCP host:
 
 ```
 OkxMcpError
-├── ConfigError          # 配置缺失或格式错误
-├── ValidationError      # 工具参数校验失败
-├── AuthenticationError  # API Key/签名鉴权失败（OKX code 50111-50113）
-├── RateLimitError       # 客户端限速超出等待上限
-├── OkxApiError          # OKX 返回 code !== "0"
-└── NetworkError         # 网络连接/超时/非 JSON 响应
+├── ConfigError          # Missing or malformed configuration
+├── ValidationError      # Tool parameter validation failure
+├── AuthenticationError  # API key / signature auth failure (OKX codes 50111-50113)
+├── RateLimitError       # Client-side rate limit exceeded
+├── OkxApiError          # OKX returned code !== "0"
+└── NetworkError         # Network failure, timeout, or non-JSON response
 ```
 
-工具调用失败时，响应格式：
+Failed tool call response format:
 ```json
 {
   "tool": "spot_place_order",
@@ -279,18 +310,17 @@ OkxMcpError
 
 ---
 
-## 8. Claude Desktop 配置示例
+## 8. Claude Desktop Configuration Examples
 
-编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`：
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
+**Standard (npx — always latest version):**
 ```json
 {
   "mcpServers": {
     "okx": {
-      "command": "node",
-      "args": [
-        "/Users/fanqi/MyApp/okx_hub/dist/index.js"
-      ],
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp"],
       "env": {
         "OKX_API_KEY": "your-api-key",
         "OKX_SECRET_KEY": "your-secret-key",
@@ -301,37 +331,30 @@ OkxMcpError
 }
 ```
 
-模拟盘测试：
+**Demo trading:**
 ```json
 {
   "mcpServers": {
     "okx-demo": {
-      "command": "node",
-      "args": [
-        "/Users/fanqi/MyApp/okx_hub/dist/index.js",
-        "--demo"
-      ],
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp", "--demo"],
       "env": {
-        "OKX_API_KEY": "your-api-key",
-        "OKX_SECRET_KEY": "your-secret-key",
-        "OKX_PASSPHRASE": "your-passphrase"
+        "OKX_API_KEY": "your-demo-api-key",
+        "OKX_SECRET_KEY": "your-demo-secret-key",
+        "OKX_PASSPHRASE": "your-demo-passphrase"
       }
     }
   }
 }
 ```
 
-只读只开行情：
+**Read-only market data (no credentials required):**
 ```json
 {
   "mcpServers": {
     "okx-readonly": {
-      "command": "node",
-      "args": [
-        "/Users/fanqi/MyApp/okx_hub/dist/index.js",
-        "--modules", "market",
-        "--read-only"
-      ]
+      "command": "npx",
+      "args": ["-y", "okx-trade-mcp", "--modules", "market", "--read-only"]
     }
   }
 }
@@ -339,52 +362,52 @@ OkxMcpError
 
 ---
 
-## 9. 与 Bitget MCP Server 的核心差异
+## 9. Key Differences from Other Exchanges
 
-| 项目 | Bitget（agent_hub） | OKX（okx_hub） |
-|------|---------------------|----------------|
-| 鉴权 Header 前缀 | `ACCESS-*` | `OK-ACCESS-*` |
-| 时间戳格式 | 毫秒字符串 `"1699000000000"` | ISO 格式 `"2024-01-01T00:00:00.000Z"` |
-| 签名内容 | `ts + METHOD + path?query + body` | `ts + METHOD + requestPath + body` |
-| 成功 code | `"00000"` | `"0"` |
-| API 路径前缀 | `/api/v2/` | `/api/v5/` |
-| 模拟盘 | 不支持 | `--demo` → `x-simulated-trading: 1` |
-| 合约模块 | `futures`（含市场+交易） | `swap`（SWAP+FUTURES 统一） |
-| 市场模块 | `spot` 和 `futures` 分开 | 独立 `market` 模块 |
+| Aspect | Bitget (`agent_hub`) | OKX (`okx-hub`) |
+|--------|---------------------|-----------------|
+| Auth header prefix | `ACCESS-*` | `OK-ACCESS-*` |
+| Timestamp format | Millisecond string `"1699000000000"` | ISO format `"2024-01-01T00:00:00.000Z"` |
+| Signature payload | `ts + METHOD + path?query + body` | `ts + METHOD + requestPath + body` |
+| Success code | `"00000"` | `"0"` |
+| API path prefix | `/api/v2/` | `/api/v5/` |
+| Demo trading | Not supported | `--demo` → `x-simulated-trading: 1` |
+| Futures module | `futures` (market + trading combined) | `swap` (SWAP + FUTURES unified) |
+| Market module | Split between `spot` and `futures` | Standalone `market` module |
 
 ---
 
-## 10. 开发指南
+## 10. Development Guide
 
 ```bash
-# 安装依赖
-npm install
+# Install dependencies
+pnpm install
 
-# 类型检查
-npm run typecheck
+# Type check
+pnpm typecheck
 
-# 构建
-npm run build
+# Build all packages
+pnpm build
 
-# 直接运行（开发）
-node dist/index.js --help
-node dist/index.js --modules market   # 无需 key，测试行情
-node dist/index.js --demo             # 模拟盘模式
+# Run unit tests (no credentials required)
+pnpm test:unit
 
-# 发布前检查
-npm run release:check
+# Run directly (development)
+node packages/mcp/dist/index.js --help
+node packages/mcp/dist/index.js --modules market   # no key needed for market data
+node packages/mcp/dist/index.js --demo             # demo trading mode
 ```
 
-### 添加新工具
+### Adding a New Tool
 
-1. 在对应的 `tools/*.ts` 文件中添加新的 `ToolSpec` 对象
-2. 设置 `module` 为对应模块 ID，`isWrite` 是否为写操作
-3. 在 `inputSchema` 中定义参数（标准 JSON Schema）
-4. 在 `handler` 中调用 `context.client.privateGet/Post` 或 `publicGet`
-5. 无需修改 `server.ts` 或 `index.ts`
+1. Add a new `ToolSpec` object to the appropriate `packages/core/src/tools/*.ts` file
+2. Set `module` to the corresponding module ID and `isWrite` appropriately
+3. Define parameters in `inputSchema` (standard JSON Schema)
+4. Call `context.client.privateGet/Post` or `publicGet` in the `handler`
+5. No changes needed to `server.ts` or `index.ts`
 
-### 添加新模块
+### Adding a New Module
 
-1. 在 `constants.ts` 的 `MODULES` 数组中加入新模块 ID
-2. 创建 `tools/new-module.ts` 并实现 `registerNewModuleTools()`
-3. 在 `tools/index.ts` 的 `allToolSpecs()` 中引入并调用
+1. Add the new module ID to the `MODULES` array in `packages/core/src/constants.ts`
+2. Create `packages/core/src/tools/new-module.ts` and implement `registerNewModuleTools()`
+3. Import and call it in `packages/core/src/tools/index.ts` inside `allToolSpecs()`

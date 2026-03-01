@@ -6,7 +6,8 @@
   "scripts": {
     "build": "pnpm --filter @okx-hub/core build && pnpm --filter okx-trade-mcp build && pnpm --filter okx-trade-cli build",
     "typecheck": "pnpm -r typecheck",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r clean",
+    "test:unit": "pnpm --filter @okx-hub/core test:unit"
   },
   "engines": {
     "node": ">=18",
