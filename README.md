@@ -23,9 +23,7 @@ OKX toolkit with two standalone packages:
 npm install -g okx-trade-mcp okx-trade-cli
 
 # 2. Configure API credentials
-mkdir -p ~/.okx && curl -fsSL https://raw.githubusercontent.com/USER/REPO/master/config.toml.example -o ~/.okx/config.toml
-# or: copy config.toml.example manually
-vim ~/.okx/config.toml
+mkdir -p ~/.okx && vim ~/.okx/config.toml
 ```
 
 Fill live and demo keys in `~/.okx/config.toml`:
