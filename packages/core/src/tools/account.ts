@@ -2,6 +2,7 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
+  readNumber,
   readString,
   requireString,
 } from "./helpers.js";
@@ -180,6 +181,225 @@ export function registerAccountTools(): ToolSpec[] {
           "/api/v5/asset/balances",
           compactObject({ ccy: readString(args, "ccy") }),
           privateRateLimit("account_get_asset_balance", 6),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_bills",
+      module: "account",
+      description:
+        "Get account ledger: fees paid, funding charges, realized PnL, transfers, etc. " +
+        "Default 20 records (last 7 days), max 100. Private endpoint. Rate limit: 6 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
+            description: "Filter by instrument type.",
+          },
+          ccy: {
+            type: "string",
+            description: "Currency filter, e.g. USDT.",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["isolated", "cross"],
+            description: "Margin mode filter.",
+          },
+          type: {
+            type: "string",
+            description:
+              "Bill type filter. 1=transfer, 2=trade, 3=delivery, 4=auto token convert, 5=liquidation, 6=margin transfer, 7=interest deduction, 8=funding fee, 9=adl, 10=clawback, 11=system token convert, 12=strategy transfer, 13=ddh.",
+          },
+          after: {
+            type: "string",
+            description: "Pagination: records earlier than this bill ID.",
+          },
+          before: {
+            type: "string",
+            description: "Pagination: records newer than this bill ID.",
+          },
+          begin: {
+            type: "string",
+            description: "Start time in milliseconds.",
+          },
+          end: {
+            type: "string",
+            description: "End time in milliseconds.",
+          },
+          limit: {
+            type: "number",
+            description: "Number of results. Default 20, max 100.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/bills",
+          compactObject({
+            instType: readString(args, "instType"),
+            ccy: readString(args, "ccy"),
+            mgnMode: readString(args, "mgnMode"),
+            type: readString(args, "type"),
+            after: readString(args, "after"),
+            before: readString(args, "before"),
+            begin: readString(args, "begin"),
+            end: readString(args, "end"),
+            limit: readNumber(args, "limit") ?? 20,
+          }),
+          privateRateLimit("account_get_bills", 6),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_positions_history",
+      module: "account",
+      description:
+        "Get closed position history for SWAP or FUTURES. " +
+        "Default 20 records, max 100. Private endpoint. Rate limit: 1 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SWAP", "FUTURES", "MARGIN", "OPTION"],
+            description: "Instrument type filter. Default SWAP.",
+          },
+          instId: {
+            type: "string",
+            description: "Instrument ID filter, e.g. BTC-USDT-SWAP.",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+            description: "Margin mode filter.",
+          },
+          type: {
+            type: "string",
+            description: "Close type filter. 1=close long, 2=close short, 3=liquidation long, 4=liquidation short, 5=ADL long, 6=ADL short.",
+          },
+          posId: {
+            type: "string",
+            description: "Position ID filter.",
+          },
+          after: {
+            type: "string",
+            description: "Pagination: records earlier than this timestamp (ms).",
+          },
+          before: {
+            type: "string",
+            description: "Pagination: records newer than this timestamp (ms).",
+          },
+          limit: {
+            type: "number",
+            description: "Number of results. Default 20, max 100.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/positions-history",
+          compactObject({
+            instType: readString(args, "instType") ?? "SWAP",
+            instId: readString(args, "instId"),
+            mgnMode: readString(args, "mgnMode"),
+            type: readString(args, "type"),
+            posId: readString(args, "posId"),
+            after: readString(args, "after"),
+            before: readString(args, "before"),
+            limit: readNumber(args, "limit") ?? 20,
+          }),
+          privateRateLimit("account_get_positions_history", 1),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_trade_fee",
+      module: "account",
+      description:
+        "Get maker/taker fee rates for the account. Useful to understand your fee tier before trading. Private endpoint. Rate limit: 5 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
+            description: "Instrument type to query fee tier for.",
+          },
+          instId: {
+            type: "string",
+            description: "Instrument ID for instrument-specific fee. Optional.",
+          },
+        },
+        required: ["instType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/trade-fee",
+          compactObject({
+            instType: requireString(args, "instType"),
+            instId: readString(args, "instId"),
+          }),
+          privateRateLimit("account_get_trade_fee", 5),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_config",
+      module: "account",
+      description:
+        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc. Private endpoint. Rate limit: 5 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+      handler: async (_rawArgs, context) => {
+        const response = await context.client.privateGet(
+          "/api/v5/account/config",
+          {},
+          privateRateLimit("account_get_config", 5),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_set_position_mode",
+      module: "account",
+      description:
+        "Switch between net position mode and long/short hedge mode. " +
+        "net: one position per instrument (default for most accounts). " +
+        "long_short_mode: separate long and short positions. " +
+        "[CAUTION] Requires no open positions or pending orders. Private endpoint. Rate limit: 5 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          posMode: {
+            type: "string",
+            enum: ["long_short_mode", "net_mode"],
+            description: "Position mode: 'long_short_mode' for hedge mode, 'net_mode' for one-way mode.",
+          },
+        },
+        required: ["posMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privatePost(
+          "/api/v5/account/set-position-mode",
+          { posMode: requireString(args, "posMode") },
+          privateRateLimit("account_set_position_mode", 5),
         );
         return normalize(response);
       },

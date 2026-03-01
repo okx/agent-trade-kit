@@ -3,6 +3,7 @@ import {
   asRecord,
   assertEnum,
   compactObject,
+  readBoolean,
   readNumber,
   readString,
   requireString,
@@ -382,11 +383,18 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_fills",
       module: "swap",
       description:
-        "Get SWAP or FUTURES transaction fill details. Private endpoint. Rate limit: 20 req/s.",
+        "Get SWAP or FUTURES transaction fill details. " +
+        "archive=false (default): last 3 days. " +
+        "archive=true: up to 3 months, default limit 20. " +
+        "Private endpoint. Rate limit: 20 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
+          archive: {
+            type: "boolean",
+            description: "Set true to query fills history up to 3 months. Default false (last 3 days).",
+          },
           instType: {
             type: "string",
             enum: [...SWAP_INST_TYPES],
@@ -418,16 +426,18 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Number of results, max 100. Defaults to 100 (recent) or 20 (archive).",
           },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const archive = readBoolean(args, "archive") ?? false;
         const instType = readString(args, "instType") ?? "SWAP";
         assertEnum(instType, "instType", SWAP_INST_TYPES);
+        const path = archive ? "/api/v5/trade/fills-history" : "/api/v5/trade/fills";
         const response = await context.client.privateGet(
-          "/api/v5/trade/fills",
+          path,
           compactObject({
             instType,
             instId: readString(args, "instId"),
@@ -436,9 +446,47 @@ export function registerSwapTradeTools(): ToolSpec[] {
             before: readString(args, "before"),
             begin: readString(args, "begin"),
             end: readString(args, "end"),
-            limit: readNumber(args, "limit"),
+            limit: readNumber(args, "limit") ?? (archive ? 20 : undefined),
           }),
           privateRateLimit("swap_get_fills", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "swap_get_order",
+      module: "swap",
+      description:
+        "Get details of a single SWAP or FUTURES order by order ID or client order ID. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          ordId: {
+            type: "string",
+            description: "Order ID. Provide either ordId or clOrdId.",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client-supplied order ID. Provide either ordId or clOrdId.",
+          },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/trade/order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+          }),
+          privateRateLimit("swap_get_order", 60),
         );
         return normalize(response);
       },
