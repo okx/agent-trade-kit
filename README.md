@@ -70,13 +70,13 @@ Credentials are read from `~/.okx/config.toml`; only profile is needed in JSON:
 ```json
 {
   "mcpServers": {
-    "okx-live": {
-      "command": "npx",
-      "args": ["-y", "okx-trade-mcp", "--profile", "live", "--modules", "all"]
+    "okx-LIVE-real-money": {
+      "command": "okx-trade-mcp",
+      "args": ["--profile", "live", "--modules", "all"]
     },
-    "okx-demo": {
-      "command": "npx",
-      "args": ["-y", "okx-trade-mcp", "--profile", "demo"]
+    "okx-DEMO-simulated-trading": {
+      "command": "okx-trade-mcp",
+      "args": ["--profile", "demo", "--modules", "all"]
     }
   }
 }
@@ -169,11 +169,6 @@ okx config set default_profile live
 ```bash
 # Use with jq
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
-
-# With analysis script + Claude
-okx market candles BTC-USDT --bar 1H --limit 200 --json \
-  | python3 demo/cli/analyze.py --inst BTC-USDT \
-  | claude -p "基于以上技术分析，现在值得做多吗？给出简短建议"
 ```
 
 ---
@@ -196,10 +191,6 @@ packages/
 ├── core/    # shared client & tools
 ├── mcp/     # MCP Server
 └── cli/     # CLI tool
-demo/
-└── cli/     # analysis example (analyze.py + run.sh)
-docs/
-└── tech-design-phase1.md   # design doc
 ```
 
 ---
@@ -270,13 +261,13 @@ demo = true
 ```json
 {
   "mcpServers": {
-    "okx-live": {
-      "command": "npx",
-      "args": ["-y", "okx-trade-mcp", "--profile", "live", "--modules", "all"]
+    "okx-LIVE-real-money": {
+      "command": "okx-trade-mcp",
+      "args": ["--profile", "live", "--modules", "all"]
     },
-    "okx-demo": {
-      "command": "npx",
-      "args": ["-y", "okx-trade-mcp", "--profile", "demo"]
+    "okx-DEMO-simulated-trading": {
+      "command": "okx-trade-mcp",
+      "args": ["--profile", "demo", "--modules", "all"]
     }
   }
 }
@@ -369,11 +360,6 @@ okx config set default_profile live
 ```bash
 # 结合 jq 使用
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
-
-# 结合技术分析脚本 + Claude
-okx market candles BTC-USDT --bar 1H --limit 200 --json \
-  | python3 demo/cli/analyze.py --inst BTC-USDT \
-  | claude -p "基于以上技术分析，现在值得做多吗？给出简短建议"
 ```
 
 ---
@@ -396,8 +382,4 @@ packages/
 ├── core/    # 共享 OKX client、tools、工具函数
 ├── mcp/     # MCP Server
 └── cli/     # CLI 工具
-demo/
-└── cli/     # 技术分析示例（analyze.py + run.sh）
-docs/
-└── tech-design-phase1.md   # 技术设计文档
 ```
