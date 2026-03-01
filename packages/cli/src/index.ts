@@ -32,6 +32,7 @@ import {
   cmdSwapAlgoAmend,
   cmdSwapAlgoCancel,
   cmdSwapAlgoOrders,
+  cmdSwapAlgoTrailPlace,
 } from "./commands/swap.js";
 import { cmdConfigShow, cmdConfigSet } from "./commands/config.js";
 
@@ -71,6 +72,8 @@ Commands:
   swap cancel <instId> --ordId <id>
   swap leverage --instId <id> --lever <n> --mgnMode <cross|isolated> [--posSide <side>]
   swap algo orders [--instId <id>] [--history] [--ordType <conditional|oco>]
+  swap algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>
+                  [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]
   swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]
                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]
                   [--slTriggerPx <price>] [--slOrdPx <price|-1>]
@@ -124,6 +127,10 @@ async function main(): Promise<void> {
       newTpOrdPx: { type: "string" },
       newSlTriggerPx: { type: "string" },
       newSlOrdPx: { type: "string" },
+      // trailing stop
+      callbackRatio: { type: "string" },
+      callbackSpread: { type: "string" },
+      activePx: { type: "string" },
     },
     allowPositionals: true,
   });
@@ -254,6 +261,19 @@ async function main(): Promise<void> {
       });
     if (action === "algo") {
       const subAction = rest[0];
+      if (subAction === "trail")
+        return cmdSwapAlgoTrailPlace(client, {
+          instId: values.instId!,
+          side: values.side!,
+          sz: values.sz!,
+          callbackRatio: values.callbackRatio,
+          callbackSpread: values.callbackSpread,
+          activePx: values.activePx,
+          posSide: values.posSide,
+          tdMode: values.tdMode ?? "cross",
+          reduceOnly: values.reduceOnly,
+          json,
+        });
       if (subAction === "place")
         return cmdSwapAlgoPlace(client, {
           instId: values.instId!,

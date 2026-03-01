@@ -139,6 +139,94 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       },
     },
     {
+      name: "swap_place_move_stop_order",
+      module: "swap",
+      description:
+        "Place a SWAP/FUTURES trailing stop order (move_order_stop). [CAUTION] Executes real trades. " +
+        "The order tracks the market price and triggers when the price reverses by the callback amount. " +
+        "Specify either callbackRatio (e.g. '0.01' for 1%) or callbackSpread (fixed price distance), not both. " +
+        "Optionally set activePx so tracking only starts once the market reaches that price. " +
+        "Private endpoint. Rate limit: 20 req/s per UID.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+          },
+          tdMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+            description: "Trade mode: cross or isolated margin.",
+          },
+          side: {
+            type: "string",
+            enum: ["buy", "sell"],
+            description:
+              "Closing side: use 'sell' to close a long position, 'buy' to close a short position.",
+          },
+          posSide: {
+            type: "string",
+            enum: ["long", "short", "net"],
+            description:
+              "Position side. Use 'net' for one-way mode (default). Use 'long' or 'short' only in hedge mode.",
+          },
+          sz: {
+            type: "string",
+            description: "Number of contracts (e.g. '1').",
+          },
+          callbackRatio: {
+            type: "string",
+            description:
+              "Callback ratio as a decimal (e.g. '0.01' for 1%). Provide either callbackRatio or callbackSpread, not both.",
+          },
+          callbackSpread: {
+            type: "string",
+            description:
+              "Callback spread in quote-currency price units. Provide either callbackRatio or callbackSpread, not both.",
+          },
+          activePx: {
+            type: "string",
+            description:
+              "Optional activation price. Trailing only starts after the market reaches this level.",
+          },
+          reduceOnly: {
+            type: "boolean",
+            description: "Set true to ensure the order only reduces an existing position.",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client-supplied order ID. Up to 32 characters.",
+          },
+        },
+        required: ["instId", "tdMode", "side", "sz"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const reduceOnly = args.reduceOnly;
+        const response = await context.client.privatePost(
+          "/api/v5/trade/order-algo",
+          compactObject({
+            instId: requireString(args, "instId"),
+            tdMode: requireString(args, "tdMode"),
+            side: requireString(args, "side"),
+            posSide: readString(args, "posSide"),
+            ordType: "move_order_stop",
+            sz: requireString(args, "sz"),
+            callbackRatio: readString(args, "callbackRatio"),
+            callbackSpread: readString(args, "callbackSpread"),
+            activePx: readString(args, "activePx"),
+            reduceOnly:
+              typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
+            clOrdId: readString(args, "clOrdId"),
+          }),
+          privateRateLimit("swap_place_move_stop_order", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
       name: "swap_cancel_algo_orders",
       module: "swap",
       description:
@@ -188,7 +276,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       name: "swap_get_algo_orders",
       module: "swap",
       description:
-        "Query pending or completed SWAP/FUTURES algo orders (TP/SL, OCO). Private endpoint. Rate limit: 20 req/s.",
+        "Query pending or completed SWAP/FUTURES algo orders (TP/SL, OCO, trailing stop). Private endpoint. Rate limit: 20 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -201,8 +289,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           ordType: {
             type: "string",
-            enum: ["conditional", "oco"],
-            description: "Filter by algo order type.",
+            enum: ["conditional", "oco", "move_order_stop"],
+            description:
+              "Filter by algo order type. Omit to return all types (conditional + oco + move_order_stop).",
           },
           instId: {
             type: "string",
@@ -233,20 +322,37 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           status === "history"
             ? "/api/v5/trade/orders-algo-history"
             : "/api/v5/trade/orders-algo-pending";
-        const response = await context.client.privateGet(
-          path,
-          compactObject({
-            instType: "SWAP",
-            ordType: readString(args, "ordType"),
-            instId: readString(args, "instId"),
-            algoId: readString(args, "algoId"),
-            after: readString(args, "after"),
-            before: readString(args, "before"),
-            limit: readNumber(args, "limit"),
-          }),
-          privateRateLimit("swap_get_algo_orders", 20),
-        );
-        return normalize(response);
+        const ordType = readString(args, "ordType");
+        const baseParams = compactObject({
+          instType: "SWAP",
+          instId: readString(args, "instId"),
+          algoId: readString(args, "algoId"),
+          after: readString(args, "after"),
+          before: readString(args, "before"),
+          limit: readNumber(args, "limit"),
+        });
+
+        if (ordType) {
+          const response = await context.client.privateGet(
+            path,
+            { ...baseParams, ordType },
+            privateRateLimit("swap_get_algo_orders", 20),
+          );
+          return normalize(response);
+        }
+
+        // No filter: fetch all three types in parallel and merge
+        const [r1, r2, r3] = await Promise.all([
+          context.client.privateGet(path, { ...baseParams, ordType: "conditional" }, privateRateLimit("swap_get_algo_orders", 20)),
+          context.client.privateGet(path, { ...baseParams, ordType: "oco" }, privateRateLimit("swap_get_algo_orders", 20)),
+          context.client.privateGet(path, { ...baseParams, ordType: "move_order_stop" }, privateRateLimit("swap_get_algo_orders", 20)),
+        ]);
+        const merged = [
+          ...((r1.data as unknown[]) ?? []),
+          ...((r2.data as unknown[]) ?? []),
+          ...((r3.data as unknown[]) ?? []),
+        ];
+        return { endpoint: r1.endpoint, requestTime: r1.requestTime, data: merged };
       },
     },
   ];

@@ -161,6 +161,41 @@ export async function cmdSwapAlgoAmend(
   );
 }
 
+export async function cmdSwapAlgoTrailPlace(
+  client: OkxRestClient,
+  opts: {
+    instId: string;
+    side: string;
+    sz: string;
+    callbackRatio?: string;
+    callbackSpread?: string;
+    activePx?: string;
+    posSide?: string;
+    tdMode: string;
+    reduceOnly?: boolean;
+    json: boolean;
+  },
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    instId: opts.instId,
+    tdMode: opts.tdMode,
+    side: opts.side,
+    ordType: "move_order_stop",
+    sz: opts.sz,
+  };
+  if (opts.posSide) body["posSide"] = opts.posSide;
+  if (opts.callbackRatio) body["callbackRatio"] = opts.callbackRatio;
+  if (opts.callbackSpread) body["callbackSpread"] = opts.callbackSpread;
+  if (opts.activePx) body["activePx"] = opts.activePx;
+  if (opts.reduceOnly !== undefined) body["reduceOnly"] = String(opts.reduceOnly);
+  const res = await client.privatePost("/api/v5/trade/order-algo", body);
+  if (opts.json) return printJson(res.data);
+  const order = (res.data as Record<string, unknown>[])[0];
+  process.stdout.write(
+    `Trailing stop placed: ${order?.["algoId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`,
+  );
+}
+
 export async function cmdSwapAlgoCancel(
   client: OkxRestClient,
   instId: string,
@@ -193,13 +228,15 @@ export async function cmdSwapAlgoOrders(
     const res = await client.privateGet(endpoint, { ...baseParams, ordType: opts.ordType });
     orders = (res.data as Record<string, unknown>[]) ?? [];
   } else {
-    const [r1, r2] = await Promise.all([
+    const [r1, r2, r3] = await Promise.all([
       client.privateGet(endpoint, { ...baseParams, ordType: "conditional" }),
       client.privateGet(endpoint, { ...baseParams, ordType: "oco" }),
+      client.privateGet(endpoint, { ...baseParams, ordType: "move_order_stop" }),
     ]);
     orders = [
       ...((r1.data as Record<string, unknown>[]) ?? []),
       ...((r2.data as Record<string, unknown>[]) ?? []),
+      ...((r3.data as Record<string, unknown>[]) ?? []),
     ];
   }
 

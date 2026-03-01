@@ -511,6 +511,33 @@ try {
       });
     }
 
+    // ── Trailing stop ─────────────────────────────────────────────────────
+    let trailAlgoId = null;
+
+    await test("swap_place_move_stop_order 1% trailing stop", async () => {
+      const parsed = assertOk(await client.callTool("swap_place_move_stop_order", {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "sell",
+        sz: "1",
+        callbackRatio: "0.01",
+        reduceOnly: true,
+      }));
+      trailAlgoId = parsed.data?.data?.[0]?.algoId;
+      if (!trailAlgoId) throw new Error(`Expected algoId, got: ${JSON.stringify(parsed.data?.data)}`);
+      console.log(`      algoId: ${trailAlgoId}`);
+    });
+
+    if (trailAlgoId) {
+      await test("swap_cancel_algo_orders (trailing stop)", async () => {
+        const parsed = assertOk(await client.callTool("swap_cancel_algo_orders", {
+          orders: [{ algoId: trailAlgoId, instId: "BTC-USDT-SWAP" }],
+        }));
+        if (parsed.data?.data?.[0]?.sCode !== "0")
+          throw new Error(`Cancel failed: ${JSON.stringify(parsed.data?.data?.[0])}`);
+      });
+    }
+
     await test("swap_close_position (cleanup)", async () => {
       assertOk(await client.callTool("swap_close_position", {
         instId: "BTC-USDT-SWAP",
