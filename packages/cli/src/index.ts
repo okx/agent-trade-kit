@@ -89,7 +89,7 @@ Commands:
 }
 
 async function main(): Promise<void> {
-  checkForUpdates("okx-cli", CLI_VERSION);
+  checkForUpdates("okx-trade-cli", CLI_VERSION);
 
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),

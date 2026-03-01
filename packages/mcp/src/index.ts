@@ -64,7 +64,7 @@ function parseCli(): {
 }
 
 export async function main(): Promise<void> {
-  checkForUpdates("okx-mcp-server", SERVER_VERSION);
+  checkForUpdates("okx-trade-mcp", SERVER_VERSION);
 
   const cli = parseCli();
 
