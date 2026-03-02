@@ -216,6 +216,86 @@ describe("spot_get_fills", () => {
   });
 });
 
+describe("spot_get_orders archive", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_get_orders")!;
+
+  it("calls /trade/orders-pending by default (status omitted)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-pending");
+  });
+
+  it("calls /trade/orders-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history");
+  });
+
+  it("calls /trade/orders-history-archive when status=archive", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "archive" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history-archive");
+  });
+});
+
+describe("spot_batch_orders", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_batch_orders")!;
+
+  it("calls /trade/batch-orders for action=place via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "place", orders: [{ instId: "BTC-USDT", side: "buy", ordType: "market", sz: "10" }] },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/batch-orders");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("calls /trade/cancel-batch-orders for action=cancel", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "cancel", orders: [{ instId: "BTC-USDT", ordId: "123" }] },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-batch-orders");
+  });
+
+  it("defaults tdMode to cash for place orders", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "place", orders: [{ instId: "BTC-USDT", side: "buy", ordType: "market", sz: "10" }] },
+      makeContext(client),
+    );
+    const body = getLastCall()?.params as unknown[];
+    assert.equal((body[0] as Record<string, unknown>).tdMode, "cash");
+  });
+});
+
+describe("swap_get_orders archive", () => {
+  const tools = registerSwapTradeTools();
+  const tool = tools.find((t) => t.name === "swap_get_orders")!;
+
+  it("calls /trade/orders-pending by default", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-pending");
+  });
+
+  it("calls /trade/orders-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history");
+  });
+
+  it("calls /trade/orders-history-archive when status=archive", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "archive" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history-archive");
+  });
+});
+
 describe("spot_get_order", () => {
   const tools = registerSpotTradeTools();
   const tool = tools.find((t) => t.name === "spot_get_order")!;
@@ -347,6 +427,59 @@ describe("account_get_config", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/account/config");
+  });
+});
+
+describe("account_get_max_withdrawal", () => {
+  const tools = registerAccountTools();
+  const tool = tools.find((t) => t.name === "account_get_max_withdrawal")!;
+
+  it("calls /account/max-withdrawal", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/max-withdrawal");
+  });
+
+  it("passes ccy filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ccy: "USDT" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ccy, "USDT");
+  });
+
+  it("omits ccy when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.params.ccy, undefined);
+  });
+});
+
+describe("account_get_max_avail_size", () => {
+  const tools = registerAccountTools();
+  const tool = tools.find((t) => t.name === "account_get_max_avail_size")!;
+
+  it("calls /account/max-avail-size", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", tdMode: "cross" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/max-avail-size");
+  });
+
+  it("passes instId and tdMode", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", tdMode: "isolated" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instId, "BTC-USDT-SWAP");
+    assert.equal(getLastCall()?.params.tdMode, "isolated");
+  });
+
+  it("serializes reduceOnly=true as string 'true'", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", tdMode: "cross", reduceOnly: true }, makeContext(client));
+    assert.equal(getLastCall()?.params.reduceOnly, "true");
+  });
+
+  it("omits reduceOnly when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", tdMode: "cross" }, makeContext(client));
+    assert.equal(getLastCall()?.params.reduceOnly, undefined);
   });
 });
 

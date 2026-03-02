@@ -180,15 +180,16 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_orders",
       module: "swap",
       description:
-        "Query SWAP or FUTURES open orders or order history. Private endpoint. Rate limit: 20 req/s.",
+        "Query SWAP or FUTURES open orders, order history (last 7 days), or order archive (up to 3 months). Private endpoint. Rate limit: 20 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           status: {
             type: "string",
-            enum: ["open", "history"],
-            description: "Query open orders (default) or history.",
+            enum: ["open", "history", "archive"],
+            description:
+              "Query open orders (default), history of last 7 days, or archive of up to 3 months.",
           },
           instType: {
             type: "string",
@@ -235,9 +236,11 @@ export function registerSwapTradeTools(): ToolSpec[] {
         const instType = readString(args, "instType") ?? "SWAP";
         assertEnum(instType, "instType", SWAP_INST_TYPES);
         const path =
-          status === "history"
-            ? "/api/v5/trade/orders-history"
-            : "/api/v5/trade/orders-pending";
+          status === "archive"
+            ? "/api/v5/trade/orders-history-archive"
+            : status === "history"
+              ? "/api/v5/trade/orders-history"
+              : "/api/v5/trade/orders-pending";
         const response = await context.client.privateGet(
           path,
           compactObject({

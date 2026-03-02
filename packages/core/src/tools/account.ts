@@ -2,6 +2,7 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
+  readBoolean,
   readNumber,
   readString,
   requireString,
@@ -370,6 +371,80 @@ export function registerAccountTools(): ToolSpec[] {
           "/api/v5/account/config",
           {},
           privateRateLimit("account_get_config", 5),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_max_withdrawal",
+      module: "account",
+      description:
+        "Get maximum withdrawable amount for a currency from the trading account. " +
+        "Useful before initiating a transfer or withdrawal. Private endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          ccy: {
+            type: "string",
+            description:
+              "Currency to query, e.g. USDT. Comma-separated for multiple, e.g. BTC,ETH. Omit for all.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/max-withdrawal",
+          compactObject({ ccy: readString(args, "ccy") }),
+          privateRateLimit("account_get_max_withdrawal", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_max_avail_size",
+      module: "account",
+      description:
+        "Get maximum available size for opening or reducing a position. " +
+        "Different from account_get_max_size which calculates new order size. " +
+        "Private endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Instrument ID, e.g. BTC-USDT-SWAP or BTC-USDT.",
+          },
+          tdMode: {
+            type: "string",
+            enum: ["cross", "isolated", "cash"],
+            description: "Trade mode: cross, isolated, or cash (spot).",
+          },
+          ccy: {
+            type: "string",
+            description: "Margin currency. Required for isolated MARGIN mode.",
+          },
+          reduceOnly: {
+            type: "boolean",
+            description: "Set true to calculate max size for closing/reducing a position.",
+          },
+        },
+        required: ["instId", "tdMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const reduceOnly = readBoolean(args, "reduceOnly");
+        const response = await context.client.privateGet(
+          "/api/v5/account/max-avail-size",
+          compactObject({
+            instId: requireString(args, "instId"),
+            tdMode: requireString(args, "tdMode"),
+            ccy: readString(args, "ccy"),
+            reduceOnly: reduceOnly !== undefined ? String(reduceOnly) : undefined,
+          }),
+          privateRateLimit("account_get_max_avail_size", 20),
         );
         return normalize(response);
       },

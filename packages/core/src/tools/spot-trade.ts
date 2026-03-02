@@ -1,6 +1,7 @@
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,
+  assertEnum,
   compactObject,
   readBoolean,
   readNumber,
@@ -215,15 +216,16 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_orders",
       module: "spot",
       description:
-        "Query spot open orders or order history. Private endpoint. Rate limit: 20 req/s.",
+        "Query spot open orders, order history (last 7 days), or order archive (up to 3 months). Private endpoint. Rate limit: 20 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           status: {
             type: "string",
-            enum: ["open", "history"],
-            description: "Query open orders (default) or history.",
+            enum: ["open", "history", "archive"],
+            description:
+              "Query open orders (default), history of last 7 days, or archive of up to 3 months.",
           },
           instId: {
             type: "string",
@@ -263,9 +265,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const status = readString(args, "status") ?? "open";
         const path =
-          status === "history"
-            ? "/api/v5/trade/orders-history"
-            : "/api/v5/trade/orders-pending";
+          status === "archive"
+            ? "/api/v5/trade/orders-history-archive"
+            : status === "history"
+              ? "/api/v5/trade/orders-history"
+              : "/api/v5/trade/orders-pending";
         const response = await context.client.privateGet(
           path,
           compactObject({
@@ -545,6 +549,76 @@ export function registerSpotTradeTools(): ToolSpec[] {
             limit: readNumber(args, "limit") ?? (archive ? 20 : undefined),
           }),
           privateRateLimit("spot_get_fills", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "spot_batch_orders",
+      module: "spot",
+      description:
+        "[CAUTION] Batch place/cancel/amend up to 20 spot orders in one request. Use action='place'/'cancel'/'amend'. Private. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          action: {
+            type: "string",
+            enum: ["place", "cancel", "amend"],
+            description:
+              "Operation type. 'place': batch place orders. 'cancel': batch cancel by ordId/clOrdId. 'amend': batch modify newSz/newPx.",
+          },
+          orders: {
+            type: "array",
+            description:
+              "Array of order objects (max 20). For 'place': {instId, side, ordType, sz, tdMode?, px?, clOrdId?, tpTriggerPx?, tpOrdPx?, slTriggerPx?, slOrdPx?}. tdMode defaults to 'cash'. For 'cancel': {instId, ordId} or {instId, clOrdId}. For 'amend': {instId, ordId or clOrdId, newSz?, newPx?}.",
+            items: {
+              type: "object",
+            },
+          },
+        },
+        required: ["action", "orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const action = requireString(args, "action");
+        assertEnum(action, "action", ["place", "cancel", "amend"]);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const endpointMap: Record<string, string> = {
+          place: "/api/v5/trade/batch-orders",
+          cancel: "/api/v5/trade/cancel-batch-orders",
+          amend: "/api/v5/trade/amend-batch-orders",
+        };
+        const body: Record<string, unknown>[] =
+          action === "place"
+            ? orders.map((order: unknown) => {
+                const o = asRecord(order);
+                const tpTriggerPx = readString(o, "tpTriggerPx");
+                const tpOrdPx = readString(o, "tpOrdPx");
+                const slTriggerPx = readString(o, "slTriggerPx");
+                const slOrdPx = readString(o, "slOrdPx");
+                const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
+                const attachAlgoOrds =
+                  Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+                return compactObject({
+                  instId: requireString(o, "instId"),
+                  tdMode: readString(o, "tdMode") ?? "cash",
+                  side: requireString(o, "side"),
+                  ordType: requireString(o, "ordType"),
+                  sz: requireString(o, "sz"),
+                  px: readString(o, "px"),
+                  clOrdId: readString(o, "clOrdId"),
+                  attachAlgoOrds,
+                });
+              })
+            : (orders as Record<string, unknown>[]);
+        const response = await context.client.privatePost(
+          endpointMap[action],
+          body,
+          privateRateLimit("spot_batch_orders", 60),
         );
         return normalize(response);
       },

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // test/mcp-e2e.mjs — Full E2E tests via MCP stdio JSON-RPC (demo mode)
 //
-// Covers all 45 tools (account_transfer skipped — moves real funds).
+// Covers all 48 tools (account_transfer skipped — moves real funds).
 //
 // Usage:
 //   OKX_API_KEY=xxx OKX_SECRET_KEY=xxx OKX_PASSPHRASE=xxx node test/mcp-e2e.mjs
@@ -270,6 +270,10 @@ try {
       assertOk(await client.callTool("spot_get_orders", { status: "history", limit: 5 }));
     });
 
+    await test("spot_get_orders archive", async () => {
+      assertOk(await client.callTool("spot_get_orders", { status: "archive", limit: 5 }));
+    });
+
     await test("spot_get_fills", async () => {
       assertOk(await client.callTool("spot_get_fills", { limit: 5 }));
     });
@@ -280,6 +284,10 @@ try {
 
     await test("swap_get_orders open", async () => {
       assertOk(await client.callTool("swap_get_orders", { status: "open" }));
+    });
+
+    await test("swap_get_orders archive", async () => {
+      assertOk(await client.callTool("swap_get_orders", { status: "archive", limit: 5 }));
     });
 
     await test("swap_get_positions", async () => {
@@ -320,6 +328,17 @@ try {
 
     await test("account_get_positions_history", async () => {
       assertOk(await client.callTool("account_get_positions_history", { limit: 5 }));
+    });
+
+    await test("account_get_max_withdrawal", async () => {
+      assertOk(await client.callTool("account_get_max_withdrawal", {}));
+    });
+
+    await test("account_get_max_avail_size SWAP cross", async () => {
+      assertOk(await client.callTool("account_get_max_avail_size", {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+      }));
     });
 
     await test("account_get_trade_fee SWAP", async () => {
