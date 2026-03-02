@@ -19,6 +19,15 @@ function isDefined(value: unknown): boolean {
   return value !== undefined && value !== null;
 }
 
+function extractTraceId(headers: Headers): string | undefined {
+  return (
+    headers.get("x-trace-id") ??
+    headers.get("x-request-id") ??
+    headers.get("traceid") ??
+    undefined
+  );
+}
+
 function stringifyQueryValue(value: QueryValue): string {
   if (Array.isArray(value)) {
     return value.map((item) => String(item)).join(",");
@@ -156,6 +165,7 @@ export class OkxRestClient {
     }
 
     const rawText = await response.text();
+    const traceId = extractTraceId(response.headers);
     let parsed: OkxApiResponse<TData>;
     try {
       parsed = (rawText ? JSON.parse(rawText) : {}) as OkxApiResponse<TData>;
@@ -168,6 +178,7 @@ export class OkxRestClient {
             code: String(response.status),
             endpoint: `${config.method} ${config.path}`,
             suggestion: "Verify endpoint path and request parameters.",
+            traceId,
           },
         );
       }
@@ -185,6 +196,7 @@ export class OkxRestClient {
           code: String(response.status),
           endpoint: `${config.method} ${config.path}`,
           suggestion: "Retry later or verify endpoint parameters.",
+          traceId,
         },
       );
     }
@@ -201,12 +213,14 @@ export class OkxRestClient {
           message,
           "Check API key, secret, passphrase and permissions.",
           `${config.method} ${config.path}`,
+          traceId,
         );
       }
 
       throw new OkxApiError(message, {
         code: responseCode,
         endpoint: `${config.method} ${config.path}`,
+        traceId,
       });
     }
 

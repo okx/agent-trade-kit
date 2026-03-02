@@ -112,6 +112,7 @@ function errorResult(
   const structured: Record<string, unknown> = {
     tool: toolName,
     ...payload,
+    serverVersion: SERVER_VERSION,
     capabilities: capabilitySnapshot,
   };
   return {
