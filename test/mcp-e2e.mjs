@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // test/mcp-e2e.mjs — Full E2E tests via MCP stdio JSON-RPC (demo mode)
 //
-// Covers all 43 tools (account_transfer skipped — moves real funds).
+// Covers all 45 tools (account_transfer skipped — moves real funds).
 //
 // Usage:
 //   OKX_API_KEY=xxx OKX_SECRET_KEY=xxx OKX_PASSPHRASE=xxx node test/mcp-e2e.mjs
@@ -304,6 +304,18 @@ try {
 
     await test("account_get_bills", async () => {
       assertOk(await client.callTool("account_get_bills", { limit: 5 }));
+    });
+
+    await test("account_get_bills_archive", async () => {
+      assertOk(await client.callTool("account_get_bills_archive", { limit: 5 }));
+    });
+
+    await test("account_get_positions (all types)", async () => {
+      assertOk(await client.callTool("account_get_positions", {}));
+    });
+
+    await test("account_get_positions (SWAP only)", async () => {
+      assertOk(await client.callTool("account_get_positions", { instType: "SWAP" }));
     });
 
     await test("account_get_positions_history", async () => {
