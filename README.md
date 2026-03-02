@@ -294,6 +294,39 @@ okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
 
 ---
 
+## Reporting Issues
+
+If a tool call or CLI command fails and you can't resolve it from the error message, please open an issue and include the full error output — it contains everything needed to diagnose the problem.
+
+**MCP** — the AI client shows a structured error block. Copy it in full:
+
+```json
+{
+  "tool": "swap_place_order",
+  "error": true,
+  "type": "OkxApiError",
+  "code": "51020",
+  "message": "Order quantity invalid",
+  "endpoint": "POST /api/v5/trade/order",
+  "traceId": "abc123def456",
+  "timestamp": "2026-03-03T10:00:00.000Z",
+  "serverVersion": "1.0.2"
+}
+```
+
+**CLI** — paste the full stderr output:
+
+```
+Error: Order quantity invalid
+TraceId: abc123def456
+Hint: Check order size against instrument minSz.
+Version: okx-trade-cli@1.0.2
+```
+
+`traceId` (when present) lets OKX support trace the server-side request. `serverVersion` / `Version` tells us which release you're on. Both fields appear automatically — no extra steps needed.
+
+---
+
 ## Build from Source
 
 ```bash
@@ -609,6 +642,39 @@ okx config set default_profile live
 # 结合 jq 使用
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
 ```
+
+---
+
+## 报错反馈
+
+如果工具调用或 CLI 命令失败，且错误信息不足以自行排查，欢迎提 Issue，请将完整报错内容一并贴出——它包含了定位问题所需的全部信息。
+
+**MCP** — AI 客户端会展示结构化错误块，完整复制即可：
+
+```json
+{
+  "tool": "swap_place_order",
+  "error": true,
+  "type": "OkxApiError",
+  "code": "51020",
+  "message": "Order quantity invalid",
+  "endpoint": "POST /api/v5/trade/order",
+  "traceId": "abc123def456",
+  "timestamp": "2026-03-03T10:00:00.000Z",
+  "serverVersion": "1.0.2"
+}
+```
+
+**CLI** — 贴出完整的 stderr 输出：
+
+```
+Error: Order quantity invalid
+TraceId: abc123def456
+Hint: Check order size against instrument minSz.
+Version: okx-trade-cli@1.0.2
+```
+
+`traceId`（如有）可用于联系 OKX 支持在服务端定位请求；`serverVersion` / `Version` 告诉我们你当前跑的版本。两个字段均自动生成，无需额外操作。
 
 ---
 

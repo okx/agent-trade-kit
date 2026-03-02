@@ -47,11 +47,15 @@ async function withFetch(
 }
 
 /** Build a mock fetch that returns a JSON body with the given HTTP status. */
-function jsonFetch(body: unknown, status = 200): typeof globalThis.fetch {
+function jsonFetch(
+  body: unknown,
+  status = 200,
+  extraHeaders?: Record<string, string>,
+): typeof globalThis.fetch {
   return async () =>
     new Response(JSON.stringify(body), {
       status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...extraHeaders },
     });
 }
 
@@ -317,5 +321,115 @@ describe("OkxRestClient — graceful degradation (missing/unexpected fields)", (
       assert.ok(typeof result.endpoint === "string" && result.endpoint.length > 0);
       assert.ok(typeof result.requestTime === "string" && result.requestTime.length > 0);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Trace ID extraction from response headers
+// ---------------------------------------------------------------------------
+
+describe("OkxRestClient — trace ID extraction", () => {
+  it("populates traceId from x-trace-id header on API error", async () => {
+    await withFetch(
+      jsonFetch(
+        { code: "51008", msg: "Insufficient margin balance", data: [] },
+        200,
+        { "x-trace-id": "abc123def456" },
+      ),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError && err.traceId === "abc123def456",
+        );
+      },
+    );
+  });
+
+  it("populates traceId from x-request-id header when x-trace-id absent", async () => {
+    await withFetch(
+      jsonFetch(
+        { code: "51008", msg: "error", data: [] },
+        200,
+        { "x-request-id": "req-999" },
+      ),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError && err.traceId === "req-999",
+        );
+      },
+    );
+  });
+
+  it("x-trace-id takes precedence over x-request-id", async () => {
+    await withFetch(
+      jsonFetch(
+        { code: "51008", msg: "error", data: [] },
+        200,
+        { "x-trace-id": "trace-first", "x-request-id": "req-second" },
+      ),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError && err.traceId === "trace-first",
+        );
+      },
+    );
+  });
+
+  it("traceId is undefined when no trace header present", async () => {
+    await withFetch(
+      jsonFetch({ code: "51008", msg: "error", data: [] }),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError && err.traceId === undefined,
+        );
+      },
+    );
+  });
+
+  it("populates traceId on HTTP 500 error", async () => {
+    await withFetch(
+      jsonFetch(
+        { code: "1", msg: "Internal Server Error", data: [] },
+        500,
+        { "x-trace-id": "http-err-trace" },
+      ),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError && err.traceId === "http-err-trace",
+        );
+      },
+    );
+  });
+
+  it("populates traceId on AuthenticationError", async () => {
+    await withFetch(
+      jsonFetch(
+        { code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] },
+        200,
+        { "x-trace-id": "auth-trace-42" },
+      ),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/account/balance"),
+          (err: unknown) =>
+            err instanceof AuthenticationError && err.traceId === "auth-trace-42",
+        );
+      },
+    );
   });
 });

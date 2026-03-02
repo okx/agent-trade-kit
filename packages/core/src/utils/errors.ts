@@ -14,6 +14,7 @@ export interface ToolErrorPayload {
   message: string;
   suggestion?: string;
   endpoint?: string;
+  traceId?: string;
   timestamp: string;
 }
 
@@ -22,6 +23,7 @@ export class OkxMcpError extends Error {
   public readonly code?: string;
   public readonly suggestion?: string;
   public readonly endpoint?: string;
+  public readonly traceId?: string;
 
   public constructor(
     type: ErrorType,
@@ -30,6 +32,7 @@ export class OkxMcpError extends Error {
       code?: string;
       suggestion?: string;
       endpoint?: string;
+      traceId?: string;
       cause?: unknown;
     },
   ) {
@@ -39,6 +42,7 @@ export class OkxMcpError extends Error {
     this.code = options?.code;
     this.suggestion = options?.suggestion;
     this.endpoint = options?.endpoint;
+    this.traceId = options?.traceId;
   }
 }
 
@@ -55,14 +59,24 @@ export class ValidationError extends OkxMcpError {
 }
 
 export class RateLimitError extends OkxMcpError {
-  public constructor(message: string, suggestion?: string, endpoint?: string) {
-    super("RateLimitError", message, { suggestion, endpoint });
+  public constructor(
+    message: string,
+    suggestion?: string,
+    endpoint?: string,
+    traceId?: string,
+  ) {
+    super("RateLimitError", message, { suggestion, endpoint, traceId });
   }
 }
 
 export class AuthenticationError extends OkxMcpError {
-  public constructor(message: string, suggestion?: string, endpoint?: string) {
-    super("AuthenticationError", message, { suggestion, endpoint });
+  public constructor(
+    message: string,
+    suggestion?: string,
+    endpoint?: string,
+    traceId?: string,
+  ) {
+    super("AuthenticationError", message, { suggestion, endpoint, traceId });
   }
 }
 
@@ -73,6 +87,7 @@ export class OkxApiError extends OkxMcpError {
       code?: string;
       suggestion?: string;
       endpoint?: string;
+      traceId?: string;
       cause?: unknown;
     },
   ) {
@@ -103,6 +118,7 @@ export function toToolErrorPayload(
       message: error.message,
       suggestion: error.suggestion,
       endpoint: error.endpoint ?? fallbackEndpoint,
+      traceId: error.traceId,
       timestamp: new Date().toISOString(),
     };
   }

@@ -44,6 +44,16 @@ describe("Error classes", () => {
     assert.equal(err.endpoint, "POST /api/v5/trade/order");
   });
 
+  it("OkxApiError carries traceId", () => {
+    const err = new OkxApiError("order failed", { traceId: "abc123def456" });
+    assert.equal(err.traceId, "abc123def456");
+  });
+
+  it("AuthenticationError carries traceId", () => {
+    const err = new AuthenticationError("invalid key", undefined, undefined, "trace-xyz");
+    assert.equal(err.traceId, "trace-xyz");
+  });
+
   it("NetworkError sets suggestion automatically", () => {
     const err = new NetworkError("connection refused", "/api/v5/market/ticker");
     assert.equal(err.type, "NetworkError");
@@ -62,6 +72,21 @@ describe("toToolErrorPayload", () => {
     assert.equal(payload.message, "rate exceeded");
     assert.equal(payload.endpoint, "GET /api/v5/market/ticker");
     assert.match(payload.timestamp, /^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("serializes traceId when present", () => {
+    const err = new OkxApiError("order failed", { traceId: "abc123def456" });
+    const payload = toToolErrorPayload(err);
+    assert.equal(payload.traceId, "abc123def456");
+  });
+
+  it("omits traceId when not set", () => {
+    const err = new OkxApiError("order failed");
+    const payload = toToolErrorPayload(err);
+    assert.equal(payload.traceId, undefined);
+    // traceId should not appear in JSON when undefined
+    const json = JSON.stringify(payload);
+    assert.ok(!json.includes("traceId"));
   });
 
   it("uses fallbackEndpoint when error has none", () => {
