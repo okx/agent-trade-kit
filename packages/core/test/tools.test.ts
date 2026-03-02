@@ -350,6 +350,64 @@ describe("account_get_config", () => {
   });
 });
 
+describe("account_get_positions", () => {
+  const tools = registerAccountTools();
+  const tool = tools.find((t) => t.name === "account_get_positions")!;
+
+  it("calls /account/positions", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/positions");
+  });
+
+  it("passes instType when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instType: "SWAP" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "SWAP");
+  });
+
+  it("omits instType when not provided (returns all positions)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, undefined);
+  });
+
+  it("passes instId filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instId, "BTC-USDT-SWAP");
+  });
+});
+
+describe("account_get_bills_archive", () => {
+  const tools = registerAccountTools();
+  const tool = tools.find((t) => t.name === "account_get_bills_archive")!;
+
+  it("calls /account/bills-archive", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/bills-archive");
+  });
+
+  it("defaults limit to 20", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.params.limit, 20);
+  });
+
+  it("respects explicit limit", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ limit: 50 }, makeContext(client));
+    assert.equal(getLastCall()?.params.limit, 50);
+  });
+
+  it("passes ccy filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ccy: "USDT" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ccy, "USDT");
+  });
+});
+
 describe("account_set_position_mode", () => {
   const tools = registerAccountTools();
   const tool = tools.find((t) => t.name === "account_set_position_mode")!;

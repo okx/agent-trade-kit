@@ -375,6 +375,118 @@ export function registerAccountTools(): ToolSpec[] {
       },
     },
     {
+      name: "account_get_positions",
+      module: "account",
+      description:
+        "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION). " +
+        "Use swap_get_positions for SWAP/FUTURES-only queries when the swap module is loaded. " +
+        "Private endpoint. Rate limit: 10 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["MARGIN", "SWAP", "FUTURES", "OPTION"],
+            description: "Filter by instrument type. Omit to return all open positions.",
+          },
+          instId: {
+            type: "string",
+            description: "Instrument ID filter, e.g. BTC-USDT-SWAP. Omit for all instruments.",
+          },
+          posId: {
+            type: "string",
+            description: "Position ID filter.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/positions",
+          compactObject({
+            instType: readString(args, "instType"),
+            instId: readString(args, "instId"),
+            posId: readString(args, "posId"),
+          }),
+          privateRateLimit("account_get_positions", 10),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "account_get_bills_archive",
+      module: "account",
+      description:
+        "Get archived account ledger (bills older than 7 days, up to 3 months). " +
+        "Use account_get_bills for recent 7-day records. " +
+        "Default 20 records, max 100. Private endpoint. Rate limit: 6 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
+            description: "Filter by instrument type.",
+          },
+          ccy: {
+            type: "string",
+            description: "Currency filter, e.g. USDT.",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["isolated", "cross"],
+            description: "Margin mode filter.",
+          },
+          type: {
+            type: "string",
+            description:
+              "Bill type filter. 1=transfer, 2=trade, 3=delivery, 4=auto token convert, 5=liquidation, 6=margin transfer, 7=interest deduction, 8=funding fee, 9=adl, 10=clawback, 11=system token convert, 12=strategy transfer, 13=ddh.",
+          },
+          after: {
+            type: "string",
+            description: "Pagination: records earlier than this bill ID.",
+          },
+          before: {
+            type: "string",
+            description: "Pagination: records newer than this bill ID.",
+          },
+          begin: {
+            type: "string",
+            description: "Start time in milliseconds.",
+          },
+          end: {
+            type: "string",
+            description: "End time in milliseconds.",
+          },
+          limit: {
+            type: "number",
+            description: "Number of results. Default 20, max 100.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/bills-archive",
+          compactObject({
+            instType: readString(args, "instType"),
+            ccy: readString(args, "ccy"),
+            mgnMode: readString(args, "mgnMode"),
+            type: readString(args, "type"),
+            after: readString(args, "after"),
+            before: readString(args, "before"),
+            begin: readString(args, "begin"),
+            end: readString(args, "end"),
+            limit: readNumber(args, "limit") ?? 20,
+          }),
+          privateRateLimit("account_get_bills_archive", 6),
+        );
+        return normalize(response);
+      },
+    },
+    {
       name: "account_set_position_mode",
       module: "account",
       description:
