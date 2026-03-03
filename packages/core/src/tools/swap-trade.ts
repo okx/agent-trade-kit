@@ -660,5 +660,37 @@ export function registerSwapTradeTools(): ToolSpec[] {
         return normalize(response);
       },
     },
+    {
+      name: "swap_batch_amend",
+      module: "swap",
+      description:
+        "[CAUTION] Batch amend up to 20 unfilled SWAP/FUTURES orders in one request. Modify price and/or size per order. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          orders: {
+            type: "array",
+            description:
+              "Array of orders to amend (max 20). Each item: {instId: string, ordId?: string, clOrdId?: string, newSz?: string, newPx?: string}.",
+            items: { type: "object" },
+          },
+        },
+        required: ["orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const response = await context.client.privatePost(
+          "/api/v5/trade/amend-batch-orders",
+          orders as Record<string, unknown>[],
+          privateRateLimit("swap_batch_amend", 60),
+        );
+        return normalize(response);
+      },
+    },
   ];
 }
