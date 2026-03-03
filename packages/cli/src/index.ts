@@ -35,6 +35,7 @@ import {
   cmdSwapAlgoTrailPlace,
 } from "./commands/swap.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
+import { cmdSetupClients } from "./commands/client-setup.js";
 
 function printHelp(): void {
   process.stdout.write(`
@@ -86,6 +87,7 @@ Commands:
   config init
   config show
   config set <key> <value>
+  config setup-clients
 `);
 }
 
@@ -149,6 +151,7 @@ async function main(): Promise<void> {
     if (action === "init") return cmdConfigInit();
     if (action === "show") return cmdConfigShow(json);
     if (action === "set") return cmdConfigSet(rest[0], rest[1]);
+    if (action === "setup-clients") return cmdSetupClients();
     process.stderr.write(`Unknown config command: ${action}\n`);
     process.exitCode = 1;
     return;
