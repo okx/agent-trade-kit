@@ -7,3 +7,7 @@ npm-debug.log*
 docs/
 _tmp_*
 .cursor/
+scripts/idea-agent/*.log
+scripts/idea-agent/work-log.md
+scripts/smoke-test/report.md
+scripts/idea-agent/__pycache__/
