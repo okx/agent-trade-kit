@@ -1,5 +1,5 @@
 import type { OkxRestClient } from "@okx-hub/core";
-import { printJson, printTable } from "../formatter.js";
+import { printJson, printKv, printTable } from "../formatter.js";
 
 export async function cmdSwapPositions(
   client: OkxRestClient,
@@ -252,6 +252,92 @@ export async function cmdSwapAlgoOrders(
       tpTrigger: o["tpTriggerPx"],
       slTrigger: o["slTriggerPx"],
       state: o["state"],
+    })),
+  );
+}
+
+export async function cmdSwapFills(
+  client: OkxRestClient,
+  opts: { instId?: string; ordId?: string; archive: boolean; json: boolean },
+): Promise<void> {
+  const path = opts.archive ? "/api/v5/trade/fills-history" : "/api/v5/trade/fills";
+  const params: Record<string, unknown> = { instType: "SWAP" };
+  if (opts.instId) params["instId"] = opts.instId;
+  if (opts.ordId) params["ordId"] = opts.ordId;
+  const res = await client.privateGet(path, params);
+  const fills = res.data as Record<string, unknown>[];
+  if (opts.json) return printJson(fills);
+  printTable(
+    (fills ?? []).map((f) => ({
+      instId: f["instId"],
+      side: f["side"],
+      fillPx: f["fillPx"],
+      fillSz: f["fillSz"],
+      fee: f["fee"],
+      ts: new Date(Number(f["ts"])).toLocaleString(),
+    })),
+  );
+}
+
+export async function cmdSwapGet(
+  client: OkxRestClient,
+  opts: { instId: string; ordId?: string; clOrdId?: string; json: boolean },
+): Promise<void> {
+  const params: Record<string, unknown> = { instId: opts.instId };
+  if (opts.ordId) params["ordId"] = opts.ordId;
+  if (opts.clOrdId) params["clOrdId"] = opts.clOrdId;
+  const res = await client.privateGet("/api/v5/trade/order", params);
+  const data = res.data as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const o = data?.[0];
+  if (!o) { process.stdout.write("No data\n"); return; }
+  printKv({
+    ordId: o["ordId"],
+    instId: o["instId"],
+    side: o["side"],
+    posSide: o["posSide"],
+    ordType: o["ordType"],
+    px: o["px"],
+    sz: o["sz"],
+    fillSz: o["fillSz"],
+    avgPx: o["avgPx"],
+    state: o["state"],
+    cTime: new Date(Number(o["cTime"])).toLocaleString(),
+  });
+}
+
+export async function cmdSwapClose(
+  client: OkxRestClient,
+  opts: { instId: string; mgnMode: string; posSide?: string; autoCxl?: boolean; json: boolean },
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    instId: opts.instId,
+    mgnMode: opts.mgnMode,
+  };
+  if (opts.posSide) body["posSide"] = opts.posSide;
+  if (opts.autoCxl !== undefined) body["autoCxl"] = String(opts.autoCxl);
+  const res = await client.privatePost("/api/v5/trade/close-position", body);
+  if (opts.json) return printJson(res.data);
+  const r = (res.data as Record<string, unknown>[])[0];
+  process.stdout.write(`Position closed: ${r?.["instId"]} ${r?.["posSide"] ?? ""}\n`);
+}
+
+export async function cmdSwapGetLeverage(
+  client: OkxRestClient,
+  opts: { instId: string; mgnMode: string; json: boolean },
+): Promise<void> {
+  const res = await client.privateGet("/api/v5/account/leverage-info", {
+    instId: opts.instId,
+    mgnMode: opts.mgnMode,
+  });
+  const data = res.data as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  printTable(
+    (data ?? []).map((r) => ({
+      instId: r["instId"],
+      mgnMode: r["mgnMode"],
+      posSide: r["posSide"],
+      lever: r["lever"],
     })),
   );
 }

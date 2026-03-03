@@ -1,5 +1,5 @@
 import type { OkxRestClient } from "@okx-hub/core";
-import { printJson, printTable } from "../formatter.js";
+import { printJson, printKv, printTable } from "../formatter.js";
 
 export async function cmdSpotOrders(
   client: OkxRestClient,
@@ -142,6 +142,54 @@ export async function cmdSpotAlgoCancel(
   process.stdout.write(
     `Algo order cancelled: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
   );
+}
+
+export async function cmdSpotGet(
+  client: OkxRestClient,
+  opts: { instId: string; ordId?: string; clOrdId?: string; json: boolean },
+): Promise<void> {
+  const params: Record<string, unknown> = { instId: opts.instId };
+  if (opts.ordId) params["ordId"] = opts.ordId;
+  if (opts.clOrdId) params["clOrdId"] = opts.clOrdId;
+  const res = await client.privateGet("/api/v5/trade/order", params);
+  const data = res.data as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const o = data?.[0];
+  if (!o) { process.stdout.write("No data\n"); return; }
+  printKv({
+    ordId: o["ordId"],
+    instId: o["instId"],
+    side: o["side"],
+    ordType: o["ordType"],
+    px: o["px"],
+    sz: o["sz"],
+    fillSz: o["fillSz"],
+    avgPx: o["avgPx"],
+    state: o["state"],
+    cTime: new Date(Number(o["cTime"])).toLocaleString(),
+  });
+}
+
+export async function cmdSpotAmend(
+  client: OkxRestClient,
+  opts: {
+    instId: string;
+    ordId?: string;
+    clOrdId?: string;
+    newSz?: string;
+    newPx?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const body: Record<string, unknown> = { instId: opts.instId };
+  if (opts.ordId) body["ordId"] = opts.ordId;
+  if (opts.clOrdId) body["clOrdId"] = opts.clOrdId;
+  if (opts.newSz) body["newSz"] = opts.newSz;
+  if (opts.newPx) body["newPx"] = opts.newPx;
+  const res = await client.privatePost("/api/v5/trade/amend-order", body);
+  if (opts.json) return printJson(res.data);
+  const r = (res.data as Record<string, unknown>[])[0];
+  process.stdout.write(`Order amended: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
 }
 
 export async function cmdSpotAlgoOrders(

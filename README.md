@@ -240,6 +240,14 @@ okx market ticker BTC-USDT
 okx market tickers SPOT
 okx market orderbook BTC-USDT --sz 5
 okx market candles BTC-USDT --bar 1H --limit 10
+okx market instruments --instType SWAP
+okx market funding-rate BTC-USDT-SWAP
+okx market funding-rate BTC-USDT-SWAP --history --limit 10
+okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
+okx market trades BTC-USDT --limit 20
+okx market index-ticker --instId BTC-USD
+okx market price-limit BTC-USDT-SWAP
+okx market open-interest --instType SWAP
 ```
 
 Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
@@ -249,6 +257,16 @@ Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H`
 ```bash
 okx account balance
 okx account balance BTC,ETH
+okx account asset-balance              # funding account balance
+okx account positions
+okx account bills
+okx account bills --archive            # bills older than 7 days
+okx account fees --instType SPOT
+okx account config
+okx account max-size --instId BTC-USDT-SWAP --tdMode cross
+okx account max-withdrawal
+okx account positions-history
+okx account set-position-mode --posMode net_mode
 ```
 
 #### Spot Trading
@@ -256,9 +274,11 @@ okx account balance BTC,ETH
 ```bash
 okx spot orders
 okx spot orders --instId BTC-USDT --history
+okx spot get --instId BTC-USDT --ordId 123456
 okx spot fills --instId BTC-USDT
 okx spot place --instId BTC-USDT --side buy --ordType market --sz 100
 okx spot place --instId BTC-USDT --side sell --ordType limit --sz 0.001 --px 70000
+okx spot amend --instId BTC-USDT --ordId 123456 --newPx 68000
 okx spot cancel BTC-USDT --ordId 123456
 ```
 
@@ -267,10 +287,25 @@ okx spot cancel BTC-USDT --ordId 123456
 ```bash
 okx swap positions
 okx swap orders --history
+okx swap get --instId BTC-USDT-SWAP --ordId 123456
+okx swap fills --instId BTC-USDT-SWAP
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 --posSide long --tdMode cross
-okx swap place --instId BTC-USDT-SWAP --side sell --ordType market --sz 1 --posSide long --tdMode cross
 okx swap cancel BTC-USDT-SWAP --ordId 123456
+okx swap close --instId BTC-USDT-SWAP --mgnMode cross
 okx swap leverage --instId BTC-USDT-SWAP --lever 10 --mgnMode cross
+okx swap get-leverage --instId BTC-USDT-SWAP --mgnMode cross
+```
+
+#### Futures Trading
+
+```bash
+okx futures orders
+okx futures orders --history
+okx futures positions
+okx futures fills
+okx futures place --instId BTC-USDT-250328 --side buy --ordType market --sz 1 --tdMode cross
+okx futures cancel BTC-USDT-250328 --ordId 123456
+okx futures get --instId BTC-USDT-250328 --ordId 123456
 ```
 
 #### Grid Bot Trading
@@ -612,6 +647,14 @@ okx market ticker BTC-USDT
 okx market tickers SPOT
 okx market orderbook BTC-USDT --sz 5
 okx market candles BTC-USDT --bar 1H --limit 10
+okx market instruments --instType SWAP
+okx market funding-rate BTC-USDT-SWAP
+okx market funding-rate BTC-USDT-SWAP --history --limit 10
+okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
+okx market trades BTC-USDT --limit 20
+okx market index-ticker --instId BTC-USD
+okx market price-limit BTC-USDT-SWAP
+okx market open-interest --instType SWAP
 ```
 
 支持的 K 线周期：`1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
@@ -621,6 +664,16 @@ okx market candles BTC-USDT --bar 1H --limit 10
 ```bash
 okx account balance
 okx account balance BTC,ETH
+okx account asset-balance              # 资金账户余额
+okx account positions
+okx account bills
+okx account bills --archive            # 7 天前的账单（最长 3 个月）
+okx account fees --instType SPOT
+okx account config
+okx account max-size --instId BTC-USDT-SWAP --tdMode cross
+okx account max-withdrawal
+okx account positions-history
+okx account set-position-mode --posMode net_mode
 ```
 
 #### 现货交易
@@ -628,21 +681,38 @@ okx account balance BTC,ETH
 ```bash
 okx spot orders
 okx spot orders --instId BTC-USDT --history
+okx spot get --instId BTC-USDT --ordId 123456
 okx spot fills --instId BTC-USDT
 okx spot place --instId BTC-USDT --side buy --ordType market --sz 100
 okx spot place --instId BTC-USDT --side sell --ordType limit --sz 0.001 --px 70000
+okx spot amend --instId BTC-USDT --ordId 123456 --newPx 68000
 okx spot cancel BTC-USDT --ordId 123456
 ```
 
-#### 合约交易
+#### 永续合约
 
 ```bash
 okx swap positions
 okx swap orders --history
+okx swap get --instId BTC-USDT-SWAP --ordId 123456
+okx swap fills --instId BTC-USDT-SWAP
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 --posSide long --tdMode cross
-okx swap place --instId BTC-USDT-SWAP --side sell --ordType market --sz 1 --posSide long --tdMode cross
 okx swap cancel BTC-USDT-SWAP --ordId 123456
+okx swap close --instId BTC-USDT-SWAP --mgnMode cross
 okx swap leverage --instId BTC-USDT-SWAP --lever 10 --mgnMode cross
+okx swap get-leverage --instId BTC-USDT-SWAP --mgnMode cross
+```
+
+#### 交割合约
+
+```bash
+okx futures orders
+okx futures orders --history
+okx futures positions
+okx futures fills
+okx futures place --instId BTC-USDT-250328 --side buy --ordType market --sz 1 --tdMode cross
+okx futures cancel BTC-USDT-250328 --ordId 123456
+okx futures get --instId BTC-USDT-250328 --ordId 123456
 ```
 
 #### 网格机器人
