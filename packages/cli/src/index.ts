@@ -34,7 +34,7 @@ import {
   cmdSwapAlgoOrders,
   cmdSwapAlgoTrailPlace,
 } from "./commands/swap.js";
-import { cmdConfigShow, cmdConfigSet } from "./commands/config.js";
+import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
 
 function printHelp(): void {
   process.stdout.write(`
@@ -83,6 +83,7 @@ Commands:
                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]
   swap algo cancel --instId <id> --algoId <id>
 
+  config init
   config show
   config set <key> <value>
 `);
@@ -145,6 +146,7 @@ async function main(): Promise<void> {
 
   // config commands don't need a client
   if (module === "config") {
+    if (action === "init") return cmdConfigInit();
     if (action === "show") return cmdConfigShow(json);
     if (action === "set") return cmdConfigSet(rest[0], rest[1]);
     process.stderr.write(`Unknown config command: ${action}\n`);
