@@ -21,10 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Account — bills archive**: `account_get_bills_archive` — archived ledger up to 3 months
 - **Account — sizing**: `account_get_max_withdrawal`, `account_get_max_avail_size`
 - **README**: "Reporting Issues / 报错反馈" section with example error payloads
+- **Grid Bot (module: `bot`)**: 5 new tools for OKX Trading Bot grid strategies — `grid_get_orders`, `grid_get_order_details`, `grid_get_sub_orders` (read), `grid_create_order`, `grid_stop_order` (write). Covers Spot Grid, Contract Grid, and Moon Grid.
 
 ### Changed
 
-- Total tools: 48 → 51
+- Total tools: 48 → 56
 
 ---
 

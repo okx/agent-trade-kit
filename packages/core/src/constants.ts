@@ -6,6 +6,7 @@ export const MODULES = [
   "swap",
   "futures",
   "account",
+  "bot",
 ] as const;
 
 export type ModuleId = (typeof MODULES)[number];
