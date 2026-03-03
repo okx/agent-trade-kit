@@ -194,8 +194,8 @@ export function registerGridTools(): ToolSpec[] {
       module: "bot",
       description:
         "Create a new grid trading bot. [CAUTION] Executes real trades and locks funds. " +
-        "Supports Spot Grid ('grid'), Contract Grid ('contract_grid'), and Moon Grid ('moon_grid'). " +
-        "For spot/moon grids, provide quoteSz (invest in quote currency) or baseSz (invest in base currency). " +
+        "Supports Spot Grid ('grid') and Contract Grid ('contract_grid'). " +
+        "For spot grid, provide quoteSz (invest in quote currency) or baseSz (invest in base currency). " +
         "For contract grids, provide direction, lever, and sz (number of contracts). " +
         "Private endpoint. Rate limit: 20 req/2s per UID.",
       isWrite: true,
@@ -208,9 +208,9 @@ export function registerGridTools(): ToolSpec[] {
           },
           algoOrdType: {
             type: "string",
-            enum: ["grid", "contract_grid", "moon_grid"],
+            enum: ["grid", "contract_grid"],
             description:
-              "Grid type. 'grid': Spot Grid. 'contract_grid': Contract Grid. 'moon_grid': Moon Grid (minPx must be '0').",
+              "Grid type. 'grid': Spot Grid. 'contract_grid': Contract Grid.",
           },
           maxPx: {
             type: "string",
@@ -218,18 +218,11 @@ export function registerGridTools(): ToolSpec[] {
           },
           minPx: {
             type: "string",
-            description:
-              "Lower price boundary of the grid range. Set to '0' for moon_grid.",
+            description: "Lower price boundary of the grid range.",
           },
           gridNum: {
             type: "string",
             description: "Number of grid levels (integer as string, e.g. '10').",
-          },
-          tdMode: {
-            type: "string",
-            enum: ["cash", "cross", "isolated"],
-            description:
-              "Trade mode. 'cash' for spot/moon grid. 'cross' or 'isolated' for contract grid.",
           },
           runType: {
             type: "string",
@@ -240,12 +233,12 @@ export function registerGridTools(): ToolSpec[] {
           quoteSz: {
             type: "string",
             description:
-              "Investment amount in quote currency (e.g. USDT). For spot/moon grid only. Provide quoteSz or baseSz, not both.",
+              "Investment amount in quote currency (e.g. USDT). For spot grid only. Provide quoteSz or baseSz, not both.",
           },
           baseSz: {
             type: "string",
             description:
-              "Investment amount in base currency (e.g. BTC). For spot/moon grid only. Provide quoteSz or baseSz, not both.",
+              "Investment amount in base currency (e.g. BTC). For spot grid only. Provide quoteSz or baseSz, not both.",
           },
           direction: {
             type: "string",
@@ -264,7 +257,7 @@ export function registerGridTools(): ToolSpec[] {
               "Number of contracts to invest for contract grid. Required for contract_grid.",
           },
         },
-        required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum", "tdMode"],
+        required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -276,7 +269,6 @@ export function registerGridTools(): ToolSpec[] {
             maxPx: requireString(args, "maxPx"),
             minPx: requireString(args, "minPx"),
             gridNum: requireString(args, "gridNum"),
-            tdMode: requireString(args, "tdMode"),
             runType: readString(args, "runType"),
             quoteSz: readString(args, "quoteSz"),
             baseSz: readString(args, "baseSz"),
@@ -315,9 +307,11 @@ export function registerGridTools(): ToolSpec[] {
           },
           stopType: {
             type: "string",
-            enum: ["1", "2"],
+            enum: ["1", "2", "3", "5", "6"],
             description:
-              "Stop type for contract grid only. '1': close position and cancel orders. '2': cancel orders only (default).",
+              "Stop behavior. '1': stop and sell/close position (spot: sell quote; contract: market close all). " +
+              "'2': stop but keep position/assets (default). '3': stop and close at limit price. " +
+              "'5': stop and partially close. '6': stop without selling spot (smart arbitrage).",
           },
         },
         required: ["algoId", "algoOrdType", "instId"],
