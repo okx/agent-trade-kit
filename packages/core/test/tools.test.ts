@@ -10,6 +10,7 @@ import { registerMarketTools } from "../src/tools/market.js";
 import { registerSpotTradeTools } from "../src/tools/spot-trade.js";
 import { registerSwapTradeTools } from "../src/tools/swap-trade.js";
 import { registerAccountTools } from "../src/tools/account.js";
+import { registerFuturesTools } from "../src/tools/futures-trade.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -695,5 +696,52 @@ describe("swap_batch_cancel", () => {
     );
     assert.equal(getLastCall()?.method, "POST");
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-batch-orders");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Futures trade tools
+// ---------------------------------------------------------------------------
+
+describe("futures_place_order", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_place_order")!;
+
+  it("calls /trade/order via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-240329", tdMode: "cross", side: "buy", ordType: "market", sz: "1" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.method, "POST");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order");
+  });
+});
+
+describe("futures_get_orders", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_get_orders")!;
+
+  it("defaults instType to FUTURES", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)?.instType, "FUTURES");
+  });
+
+  it("calls /trade/orders-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history");
+  });
+});
+
+describe("futures_get_positions", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_get_positions")!;
+
+  it("defaults instType to FUTURES", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)?.instType, "FUTURES");
   });
 });
