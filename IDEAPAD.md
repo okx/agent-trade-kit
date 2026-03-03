@@ -86,4 +86,3 @@ Claude 每半天自动扫描所有 open idea issues，对评估为 ✅ 的 issue
 以下方向不在 ideapad 收录范围内：
 - Asset 充提币（链上操作风险高）
 - Convert 一键兑换
-- Options 期权
