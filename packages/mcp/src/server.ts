@@ -14,6 +14,7 @@ import {
   toMcpTool,
 } from "@okx-hub/core";
 import type { OkxConfig, ModuleId, ToolSpec } from "@okx-hub/core";
+import type { TradeLogger } from "@okx-hub/core";
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 
 const SYSTEM_CAPABILITIES_TOOL_NAME = "system_get_capabilities";
@@ -136,7 +137,7 @@ function unknownToolResult(
   );
 }
 
-export function createServer(config: OkxConfig): Server {
+export function createServer(config: OkxConfig, logger?: TradeLogger): Server {
   const client = new OkxRestClient(config);
   const tools = buildTools(config);
   const toolMap = new Map<string, ToolSpec>(tools.map((tool) => [tool.name, tool]));
@@ -180,13 +181,17 @@ export function createServer(config: OkxConfig): Server {
       return unknownToolResult(toolName, buildCapabilitySnapshot(config));
     }
 
+    const startTime = Date.now();
     try {
       const response = await tool.handler(request.params.arguments ?? {}, {
         config,
         client,
       });
+      logger?.log("info", toolName, request.params.arguments ?? {}, response, Date.now() - startTime);
       return successResult(toolName, response, buildCapabilitySnapshot(config));
     } catch (error) {
+      const level = error instanceof OkxApiError ? "warn" : "error";
+      logger?.log(level, toolName, request.params.arguments ?? {}, error, Date.now() - startTime);
       return errorResult(toolName, error, buildCapabilitySnapshot(config));
     }
   });

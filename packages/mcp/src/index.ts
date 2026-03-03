@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig, toToolErrorPayload, checkForUpdates } from "@okx-hub/core";
+import { loadConfig, toToolErrorPayload, checkForUpdates, TradeLogger } from "@okx-hub/core";
+import type { LogLevel } from "@okx-hub/core";
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import { createServer } from "./server.js";
 
@@ -18,6 +19,8 @@ Options:
                        Falls back to default_profile in config, then "default"
   --read-only          Expose only read/query tools and disable write operations
   --demo               Enable simulated trading (injects x-simulated-trading: 1)
+  --no-log             Disable audit logging (default: logging enabled)
+  --log-level <level>  Minimum log level to write: error, warn, info, debug (default: info)
   --help               Show this help message
   --version            Show version
 
@@ -38,6 +41,8 @@ function parseCli(): {
   profile?: string;
   readOnly: boolean;
   demo: boolean;
+  noLog: boolean;
+  logLevel: string;
   help: boolean;
   version: boolean;
 } {
@@ -47,6 +52,8 @@ function parseCli(): {
       profile: { type: "string" },
       "read-only": { type: "boolean", default: false },
       demo: { type: "boolean", default: false },
+      "no-log": { type: "boolean", default: false },
+      "log-level": { type: "string", default: "info" },
       help: { type: "boolean", default: false },
       version: { type: "boolean", default: false },
     },
@@ -58,6 +65,8 @@ function parseCli(): {
     profile: parsed.values.profile,
     readOnly: parsed.values["read-only"] ?? false,
     demo: parsed.values.demo ?? false,
+    noLog: parsed.values["no-log"] ?? false,
+    logLevel: parsed.values["log-level"] ?? "info",
     help: parsed.values.help ?? false,
     version: parsed.values.version ?? false,
   };
@@ -85,7 +94,8 @@ export async function main(): Promise<void> {
     demo: cli.demo,
     userAgent: `${SERVER_NAME}/${SERVER_VERSION}`,
   });
-  const server = createServer(config);
+  const logger = cli.noLog ? undefined : new TradeLogger(cli.logLevel as LogLevel);
+  const server = createServer(config, logger);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

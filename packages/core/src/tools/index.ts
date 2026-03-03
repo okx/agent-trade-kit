@@ -1,6 +1,7 @@
 import type { OkxConfig } from "../config.js";
 import { registerAccountTools } from "./account.js";
 import { registerAlgoTradeTools } from "./algo-trade.js";
+import { registerAuditTools } from "./audit.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerMarketTools } from "./market.js";
@@ -17,6 +18,7 @@ function allToolSpecs(): ToolSpec[] {
     ...registerAlgoTradeTools(),
     ...registerAccountTools(),
     ...registerBotTools(),
+    ...registerAuditTools(),
   ];
 }
 

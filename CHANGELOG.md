@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Audit log — `trade_get_history`**: query the local NDJSON audit log of all MCP tool calls; supports `limit`, `tool`, `level`, and `since` filters
+- **Audit logging**: MCP server automatically writes NDJSON entries to `~/.okx/logs/trade-YYYY-MM-DD.log`; `--no-log` disables logging, `--log-level` sets the minimum level (default `info`); sensitive fields (apiKey, secretKey, passphrase) are automatically redacted
+
 - **Error tracing**: `traceId` field added to `ToolErrorPayload` and all error classes — populated from `x-trace-id` / `x-request-id` response headers when OKX returns them
 - **Server version in MCP errors**: `serverVersion` injected into MCP error payloads for easier bug reporting
 - **CLI version in errors**: `Version: okx-trade-cli@x.x.x` always printed to stderr on error; `TraceId:` printed when available
@@ -25,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Total tools: 48 → 56
+- Total tools: 48 → 57
 
 ---
 

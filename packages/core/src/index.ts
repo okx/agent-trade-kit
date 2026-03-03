@@ -11,3 +11,5 @@ export type { RequestResult } from "./client/types.js";
 export { readTomlProfile, configFilePath } from "./config/toml.js";
 export type { OkxProfile, OkxTomlConfig } from "./config/toml.js";
 export { checkForUpdates } from "./utils/update-check.js";
+export { TradeLogger } from "./utils/logger.js";
+export type { LogLevel, LogEntry } from "./utils/logger.js";
