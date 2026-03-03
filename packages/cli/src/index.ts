@@ -36,6 +36,13 @@ import {
 } from "./commands/swap.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
 import { cmdSetupClients } from "./commands/client-setup.js";
+import {
+  cmdGridOrders,
+  cmdGridDetails,
+  cmdGridSubOrders,
+  cmdGridCreate,
+  cmdGridStop,
+} from "./commands/bot.js";
 
 function printHelp(): void {
   process.stdout.write(`
@@ -43,6 +50,7 @@ Usage: okx [--profile <name>] [--json] <command> [args]
 
 Global Options:
   --profile <name>   Use a named profile from ~/.okx/config.toml
+  --demo             Use simulated trading (demo) mode
   --json             Output raw JSON
   --help             Show this help
 
@@ -84,6 +92,14 @@ Commands:
                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]
   swap algo cancel --instId <id> --algoId <id>
 
+  bot grid orders --algoOrdType <grid|contract_grid|moon_grid> [--instId <id>] [--algoId <id>] [--history]
+  bot grid details --algoOrdType <type> --algoId <id>
+  bot grid sub-orders --algoOrdType <type> --algoId <id> [--live]
+  bot grid create --instId <id> --algoOrdType <type> --maxPx <px> --minPx <px> --gridNum <n> --tdMode <cash|cross|isolated>
+                  [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]
+                  [--direction <long|short|neutral>] [--lever <n>] [--sz <n>]
+  bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2>]
+
   config init
   config show
   config set <key> <value>
@@ -98,6 +114,7 @@ async function main(): Promise<void> {
     args: process.argv.slice(2),
     options: {
       profile: { type: "string" },
+      demo: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
       // market candles
@@ -134,6 +151,17 @@ async function main(): Promise<void> {
       callbackRatio: { type: "string" },
       callbackSpread: { type: "string" },
       activePx: { type: "string" },
+      // grid bot
+      algoOrdType: { type: "string" },
+      gridNum: { type: "string" },
+      maxPx: { type: "string" },
+      minPx: { type: "string" },
+      runType: { type: "string" },
+      quoteSz: { type: "string" },
+      baseSz: { type: "string" },
+      direction: { type: "string" },
+      stopType: { type: "string" },
+      live: { type: "boolean", default: false },
     },
     allowPositionals: true,
   });
@@ -157,7 +185,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const config = loadProfileConfig({ profile: values.profile, userAgent: `okx-trade-cli/${CLI_VERSION}` });
+  const config = loadProfileConfig({ profile: values.profile, demo: values.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });
   const client = new OkxRestClient(config);
 
   if (module === "market") {
@@ -312,6 +340,57 @@ async function main(): Promise<void> {
           instId: values.instId,
           status: values.history ? "history" : "pending",
           ordType: values.ordType,
+          json,
+        });
+    }
+  }
+
+  if (module === "bot") {
+    const subAction = rest[0]; // e.g. "orders", "details", "sub-orders", "create", "stop"
+    if (action === "grid") {
+      if (subAction === "orders")
+        return cmdGridOrders(client, {
+          algoOrdType: values.algoOrdType!,
+          instId: values.instId,
+          algoId: values.algoId,
+          status: values.history ? "history" : "active",
+          json,
+        });
+      if (subAction === "details")
+        return cmdGridDetails(client, {
+          algoOrdType: values.algoOrdType!,
+          algoId: values.algoId!,
+          json,
+        });
+      if (subAction === "sub-orders")
+        return cmdGridSubOrders(client, {
+          algoOrdType: values.algoOrdType!,
+          algoId: values.algoId!,
+          type: values.live ? "live" : "filled",
+          json,
+        });
+      if (subAction === "create")
+        return cmdGridCreate(client, {
+          instId: values.instId!,
+          algoOrdType: values.algoOrdType!,
+          maxPx: values.maxPx!,
+          minPx: values.minPx!,
+          gridNum: values.gridNum!,
+          tdMode: values.tdMode ?? "cash",
+          runType: values.runType,
+          quoteSz: values.quoteSz,
+          baseSz: values.baseSz,
+          direction: values.direction,
+          lever: values.lever,
+          sz: values.sz,
+          json,
+        });
+      if (subAction === "stop")
+        return cmdGridStop(client, {
+          algoId: values.algoId!,
+          algoOrdType: values.algoOrdType!,
+          instId: values.instId!,
+          stopType: values.stopType,
           json,
         });
     }

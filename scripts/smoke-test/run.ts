@@ -20,12 +20,13 @@
  *   1  — at least one ❌ FAIL
  *
  * Status legend:
- *   ✅ PASS  HTTP 200 + OKX code 0 (success)
- *   ⚠️  WARN  HTTP 200 + OKX business error (endpoint exists, args/state issue)
- *   ⛔ DEMO  assertNotDemo threw — endpoint not supported in simulated trading
- *   🔑 AUTH  AuthenticationError — credentials problem
- *   ❌ FAIL  HTTP 404 / NetworkError / unexpected throw
- *   ⏭️  SKIP  Skipped (write in read-only mode, or manual skip)
+ *   ✅ PASS   HTTP 200 + OKX code 0 (success)
+ *   🔵 PROBE  Endpoint reachable; intentional biz error (fake/invalid args used to probe)
+ *   ⚠️  WARN   HTTP 200 + OKX business error due to account state (unexpected)
+ *   ⛔ DEMO   assertNotDemo threw — endpoint not supported in simulated trading
+ *   🔑 AUTH   AuthenticationError — credentials problem
+ *   ❌ FAIL   HTTP 404 / NetworkError / unexpected throw
+ *   ⏭️  SKIP   Skipped (write in read-only mode, or manual skip)
  */
 
 import { writeFileSync } from "node:fs";
@@ -49,16 +50,28 @@ const SPOT = "BTC-USDT";
 const SWAP = "BTC-USDT-SWAP";
 const FAKE = "999999999999"; // guaranteed "not found" for cancel/amend cases
 
-// ─── test cases ──────────────────────────────────────────────────────────────
-// Each entry is either:
-//   Record<string, unknown>  → args passed to handler
-//   "SKIP"                   → always skipped, with a note
-//
-// Write tools use args that will reach the endpoint but fail at business-logic
-// level (wrong price, non-existent ordId) — confirming the endpoint is reachable
-// without actually executing a trade.
+// ─── probe helper ────────────────────────────────────────────────────────────
+// Marks a test case as intentional: args are fake/invalid on purpose.
+// A biz error from OKX is expected and shown as 🔵 PROBE (endpoint reachable).
 
-const BASE_CASES: Record<string, Record<string, unknown> | "SKIP"> = {
+interface ProbeCase {
+  readonly _probe: true;
+  readonly args: Record<string, unknown>;
+}
+
+function probe(args: Record<string, unknown>): ProbeCase {
+  return { _probe: true, args };
+}
+
+// ─── test cases ──────────────────────────────────────────────────────────────
+// Each entry is one of:
+//   Record<string, unknown>  → real args; success = PASS, biz error = WARN
+//   probe({...})             → fake/invalid args; biz error expected = PROBE
+//   "SKIP"                   → always skipped
+
+type TestCase = Record<string, unknown> | ProbeCase | "SKIP";
+
+const BASE_CASES: Record<string, TestCase> = {
   // ── market (public) ───────────────────────────────────────────────────────
   market_get_ticker:        { instId: SPOT },
   market_get_tickers:       { instType: "SPOT" },
@@ -100,16 +113,15 @@ const BASE_CASES: Record<string, Record<string, unknown> | "SKIP"> = {
   spot_get_algo_orders: {},
 
   // ── spot (private, write) ─────────────────────────────────────────────────
-  // Prices/sizes are intentionally invalid → endpoint reachable, OKX biz error
-  spot_place_order:      { instId: SPOT, tdMode: "cash", side: "buy", ordType: "limit", sz: "0.00001", px: "1" },
-  spot_cancel_order:     { instId: SPOT, ordId: FAKE },
-  spot_amend_order:      { instId: SPOT, ordId: FAKE, newSz: "0.001" },
-  spot_place_algo_order: { instId: SPOT, tdMode: "cash", side: "sell", ordType: "conditional", sz: "0.001", tpTriggerPx: "999999", tpOrdPx: "-1" },
-  spot_amend_algo_order: { algoId: FAKE, instId: SPOT, newSz: "0.001" },
-  spot_cancel_algo_order:{ algoId: FAKE, instId: SPOT },
-  spot_batch_orders:     { action: "cancel", orders: [{ instId: SPOT, ordId: FAKE }] },
-  spot_batch_amend:      { orders: [{ instId: SPOT, ordId: FAKE, newSz: "0.001" }] },
-  spot_batch_cancel:     { orders: [{ instId: SPOT, ordId: FAKE }] },
+  spot_place_order:       { instId: SPOT, tdMode: "cash", side: "buy", ordType: "limit", sz: "0.00001", px: "1" },
+  spot_cancel_order:      probe({ instId: SPOT, ordId: FAKE }),
+  spot_amend_order:       probe({ instId: SPOT, ordId: FAKE, newSz: "0.001" }),
+  spot_place_algo_order:  { instId: SPOT, tdMode: "cash", side: "sell", ordType: "conditional", sz: "0.001", tpTriggerPx: "999999", tpOrdPx: "-1" },
+  spot_amend_algo_order:  probe({ algoId: FAKE, instId: SPOT, newSz: "0.001" }),
+  spot_cancel_algo_order: probe({ algoId: FAKE, instId: SPOT }),
+  spot_batch_orders:      probe({ action: "cancel", orders: [{ instId: SPOT, ordId: FAKE }] }),
+  spot_batch_amend:       probe({ orders: [{ instId: SPOT, ordId: FAKE, newSz: "0.001" }] }),
+  spot_batch_cancel:      probe({ orders: [{ instId: SPOT, ordId: FAKE }] }),
 
   // ── swap (private, read) ──────────────────────────────────────────────────
   swap_get_orders:    {},
@@ -120,17 +132,17 @@ const BASE_CASES: Record<string, Record<string, unknown> | "SKIP"> = {
   swap_get_algo_orders: {},
 
   // ── swap (private, write) ─────────────────────────────────────────────────
-  swap_place_order:          { instId: SWAP, tdMode: "cross", side: "buy", ordType: "limit", sz: "1", px: "1", posSide: "net" },
-  swap_cancel_order:         { instId: SWAP, ordId: FAKE },
-  swap_set_leverage:         { instId: SWAP, lever: "5", mgnMode: "cross" },
-  swap_close_position:       { instId: SWAP, mgnMode: "cross" }, // no position → biz error
-  swap_amend_algo_order:     { algoId: FAKE, instId: SWAP, newSz: "1" },
-  swap_place_algo_order:     { instId: SWAP, tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", tpTriggerPx: "999999", tpOrdPx: "-1" },
-  swap_place_move_stop_order:{ instId: SWAP, tdMode: "cross", side: "sell", sz: "1", callbackRatio: "0.01" },
-  swap_cancel_algo_orders:   { orders: [{ algoId: FAKE, instId: SWAP }] },
-  swap_batch_orders:         { action: "cancel", orders: [{ instId: SWAP, ordId: FAKE }] },
-  swap_batch_amend:          { orders: [{ instId: SWAP, ordId: FAKE, newSz: "1" }] },
-  swap_batch_cancel:         { orders: [{ instId: SWAP, ordId: FAKE }] },
+  swap_place_order:           { instId: SWAP, tdMode: "cross", side: "buy", ordType: "limit", sz: "1", px: "1", posSide: "net" },
+  swap_cancel_order:          probe({ instId: SWAP, ordId: FAKE }),
+  swap_set_leverage:          { instId: SWAP, lever: "5", mgnMode: "cross" },
+  swap_close_position:        { instId: SWAP, mgnMode: "cross" }, // no position → biz error
+  swap_amend_algo_order:      probe({ algoId: FAKE, instId: SWAP, newSz: "1" }),
+  swap_place_algo_order:      { instId: SWAP, tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", tpTriggerPx: "999999", tpOrdPx: "-1" },
+  swap_place_move_stop_order: { instId: SWAP, tdMode: "cross", side: "sell", sz: "1", callbackRatio: "0.01" },
+  swap_cancel_algo_orders:    probe({ orders: [{ algoId: FAKE, instId: SWAP }] }),
+  swap_batch_orders:          probe({ action: "cancel", orders: [{ instId: SWAP, ordId: FAKE }] }),
+  swap_batch_amend:           probe({ orders: [{ instId: SWAP, ordId: FAKE, newSz: "1" }] }),
+  swap_batch_cancel:          probe({ orders: [{ instId: SWAP, ordId: FAKE }] }),
 
   // ── futures (private) ─────────────────────────────────────────────────────
   // Write tools and get_order need a valid expiry-dated instId.
@@ -143,22 +155,23 @@ const BASE_CASES: Record<string, Record<string, unknown> | "SKIP"> = {
   futures_get_fills:    {},
 
   // ── bot (private) ─────────────────────────────────────────────────────────
-  grid_get_orders:       { algoOrdType: "grid" },
-  grid_get_order_details:{ algoOrdType: "grid", algoId: FAKE },
-  grid_get_sub_orders:   { algoOrdType: "grid", algoId: FAKE },
-  grid_create_order:     "SKIP", // assertNotDemo
-  grid_stop_order:       "SKIP", // assertNotDemo
+  grid_get_orders:        { algoOrdType: "grid" },
+  grid_get_order_details: { algoOrdType: "grid", algoId: FAKE },
+  grid_get_sub_orders:    { algoOrdType: "grid", algoId: FAKE },
+  grid_create_order:      probe({ instId: SPOT, algoOrdType: "grid", maxPx: "100000", minPx: "1", gridNum: "2", tdMode: "cash", quoteSz: "1" }),
+  grid_stop_order:        probe({ algoId: FAKE, algoOrdType: "grid", instId: SPOT }),
 };
 
 // ─── status ───────────────────────────────────────────────────────────────────
 
 const STATUS = {
-  PASS: "✅ PASS",
-  WARN: "⚠️  WARN",
-  DEMO: "⛔ DEMO",
-  AUTH: "🔑 AUTH",
-  FAIL: "❌ FAIL",
-  SKIP: "⏭️  SKIP",
+  PASS:  "✅ PASS ",
+  PROBE: "🔵 PROBE",
+  WARN:  "⚠️  WARN ",
+  DEMO:  "⛔ DEMO ",
+  AUTH:  "🔑 AUTH ",
+  FAIL:  "❌ FAIL ",
+  SKIP:  "⏭️  SKIP ",
 } as const;
 
 type Status = (typeof STATUS)[keyof typeof STATUS];
@@ -172,7 +185,7 @@ interface Result {
   ms: number;
 }
 
-function classify(err: unknown): [Status, string] {
+function classify(err: unknown, isProbe = false): [Status, string] {
   if (err instanceof ConfigError && err.message.includes("simulated trading")) {
     return [STATUS.DEMO, err.message.slice(0, 80)];
   }
@@ -181,6 +194,7 @@ function classify(err: unknown): [Status, string] {
   }
   if (err instanceof OkxApiError) {
     if (err.code === "404") return [STATUS.FAIL, `HTTP 404`];
+    if (isProbe) return [STATUS.PROBE, `code=${err.code ?? "?"}: ${err.message.slice(0, 60)}`];
     return [STATUS.WARN, `code=${err.code ?? "?"}: ${err.message.slice(0, 60)}`];
   }
   if (err instanceof NetworkError) {
@@ -220,7 +234,8 @@ function writeReport(results: Result[], path: string): void {
     `| | Count |`,
     `|---|---|`,
     `| ✅ PASS | ${counts.pass} |`,
-    `| ⚠️ WARN (endpoint OK, biz error) | ${counts.warn} |`,
+    `| 🔵 PROBE (endpoint reachable, expected biz error) | ${counts.probe} |`,
+    `| ⚠️ WARN (endpoint OK, unexpected biz error) | ${counts.warn} |`,
     `| ⛔ DEMO (not supported in demo) | ${counts.demo} |`,
     `| 🔑 AUTH | ${counts.auth} |`,
     `| ❌ FAIL | ${counts.fail} |`,
@@ -240,12 +255,13 @@ function writeReport(results: Result[], path: string): void {
 
 function tally(results: Result[]) {
   return {
-    pass: results.filter((r) => r.status === STATUS.PASS).length,
-    warn: results.filter((r) => r.status === STATUS.WARN).length,
-    demo: results.filter((r) => r.status === STATUS.DEMO).length,
-    auth: results.filter((r) => r.status === STATUS.AUTH).length,
-    fail: results.filter((r) => r.status === STATUS.FAIL).length,
-    skip: results.filter((r) => r.status === STATUS.SKIP).length,
+    pass:  results.filter((r) => r.status === STATUS.PASS).length,
+    probe: results.filter((r) => r.status === STATUS.PROBE).length,
+    warn:  results.filter((r) => r.status === STATUS.WARN).length,
+    demo:  results.filter((r) => r.status === STATUS.DEMO).length,
+    auth:  results.filter((r) => r.status === STATUS.AUTH).length,
+    fail:  results.filter((r) => r.status === STATUS.FAIL).length,
+    skip:  results.filter((r) => r.status === STATUS.SKIP).length,
   };
 }
 
@@ -271,10 +287,10 @@ async function main() {
   }
 
   // Inject live futures instId if provided
-  const cases = { ...BASE_CASES };
+  const cases: Record<string, TestCase> = { ...BASE_CASES };
   if (futuresInst) {
-    cases.futures_place_order  = { instId: futuresInst, tdMode: "cross", side: "buy", ordType: "limit", sz: "1", px: "1", posSide: "net" };
-    cases.futures_cancel_order = { instId: futuresInst, ordId: FAKE };
+    cases.futures_place_order  = probe({ instId: futuresInst, tdMode: "cross", side: "buy", ordType: "limit", sz: "1", px: "1", posSide: "net" });
+    cases.futures_cancel_order = probe({ instId: futuresInst, ordId: FAKE });
     cases.futures_get_order    = { instId: futuresInst, ordId: FAKE };
   }
 
@@ -288,7 +304,7 @@ async function main() {
   const results: Result[] = [];
 
   for (const tool of tools) {
-    const testArgs = cases[tool.name];
+    const testCase = cases[tool.name];
     const pad = tool.name.padEnd(38);
 
     // Skip write tools in read-only mode
@@ -299,29 +315,32 @@ async function main() {
     }
 
     // No test case defined for this tool
-    if (testArgs === undefined) {
+    if (testCase === undefined) {
       results.push({ name: tool.name, module: tool.module, isWrite: tool.isWrite, status: STATUS.SKIP, note: "no test case defined", ms: 0 });
       console.log(`${STATUS.SKIP}  ${pad} (no test case)`);
       continue;
     }
 
     // Explicitly skipped
-    if (testArgs === "SKIP") {
+    if (testCase === "SKIP") {
       results.push({ name: tool.name, module: tool.module, isWrite: tool.isWrite, status: STATUS.SKIP, note: "manual skip", ms: 0 });
       console.log(`${STATUS.SKIP}  ${pad}`);
       continue;
     }
 
+    const isProbe = "_probe" in testCase && testCase._probe === true;
+    const args = isProbe ? (testCase as ProbeCase).args : (testCase as Record<string, unknown>);
+
     // Run
     const t0 = Date.now();
     try {
-      await tool.handler(testArgs, { client, config });
+      await tool.handler(args, { client, config });
       const ms = Date.now() - t0;
       results.push({ name: tool.name, module: tool.module, isWrite: tool.isWrite, status: STATUS.PASS, note: "", ms });
       console.log(`${STATUS.PASS}  ${pad} ${ms}ms`);
     } catch (err) {
       const ms = Date.now() - t0;
-      const [status, note] = classify(err);
+      const [status, note] = classify(err, isProbe);
       results.push({ name: tool.name, module: tool.module, isWrite: tool.isWrite, status, note, ms });
       console.log(`${status}  ${pad} ${note}`);
     }
@@ -334,7 +353,7 @@ async function main() {
   const counts = tally(results);
   console.log("\n" + "─".repeat(76));
   console.log(
-    `Summary:  ✅ ${counts.pass}  ⚠️  ${counts.warn}  ⛔ ${counts.demo}  🔑 ${counts.auth}  ❌ ${counts.fail}  ⏭️  ${counts.skip}`,
+    `Summary:  ✅ ${counts.pass}  🔵 ${counts.probe}  ⚠️  ${counts.warn}  ⛔ ${counts.demo}  🔑 ${counts.auth}  ❌ ${counts.fail}  ⏭️  ${counts.skip}`,
   );
 
   // Write markdown report

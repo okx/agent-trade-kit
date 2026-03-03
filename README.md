@@ -273,6 +273,25 @@ okx swap cancel BTC-USDT-SWAP --ordId 123456
 okx swap leverage --instId BTC-USDT-SWAP --lever 10 --mgnMode cross
 ```
 
+#### Grid Bot Trading
+
+```bash
+# List running grid bots
+okx bot grid orders --algoOrdType grid
+okx bot grid orders --algoOrdType grid --history
+
+# Create a spot grid bot (invest 100 USDT, 10 grids, price range 80000–100000)
+okx --demo bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --tdMode cash --quoteSz 100
+
+# View bot details and filled sub-orders
+okx bot grid details --algoOrdType grid --algoId <algoId>
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId>
+
+# Stop a bot
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
+```
+
 #### Config
 
 ```bash
@@ -285,6 +304,7 @@ okx config set default_profile live
 | Option | Description |
 |---|---|
 | `--profile <name>` | choose profile |
+| `--demo` | use simulated trading (demo) mode |
 | `--json` | raw JSON output |
 | `--help` | show help |
 
@@ -625,6 +645,25 @@ okx swap cancel BTC-USDT-SWAP --ordId 123456
 okx swap leverage --instId BTC-USDT-SWAP --lever 10 --mgnMode cross
 ```
 
+#### 网格机器人
+
+```bash
+# 查看运行中的网格 bot
+okx bot grid orders --algoOrdType grid
+okx bot grid orders --algoOrdType grid --history
+
+# 创建现货网格 bot（投入 100 USDT，10 格，价格区间 80000–100000，模拟盘）
+okx --demo bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --tdMode cash --quoteSz 100
+
+# 查看 bot 详情和成交子订单
+okx bot grid details --algoOrdType grid --algoId <algoId>
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId>
+
+# 停止 bot
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
+```
+
 #### 配置管理
 
 ```bash
@@ -637,6 +676,7 @@ okx config set default_profile live
 | 选项 | 说明 |
 |---|---|
 | `--profile <name>` | 指定 profile |
+| `--demo` | 使用模拟盘（simulated trading）模式 |
 | `--json` | 输出原始 JSON（适合脚本/管道处理） |
 | `--help` | 显示帮助 |
 

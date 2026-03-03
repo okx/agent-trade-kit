@@ -73,8 +73,8 @@ export function registerGridTools(): ToolSpec[] {
         const status = readString(args, "status") ?? "active";
         const path =
           status === "history"
-            ? "/api/v5/tradingBot/grid/orders-history"
-            : "/api/v5/tradingBot/grid/orders";
+            ? "/api/v5/tradingBot/grid/orders-algo-history"
+            : "/api/v5/tradingBot/grid/orders-algo-pending";
         const response = await context.client.privateGet(
           path,
           compactObject({
@@ -269,7 +269,7 @@ export function registerGridTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
-          "/api/v5/tradingBot/grid/order-create",
+          "/api/v5/tradingBot/grid/order-algo",
           compactObject({
             instId: requireString(args, "instId"),
             algoOrdType: requireString(args, "algoOrdType"),
@@ -325,13 +325,13 @@ export function registerGridTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
-          "/api/v5/tradingBot/grid/order-stop",
-          compactObject({
+          "/api/v5/tradingBot/grid/stop-order-algo",
+          [compactObject({
             algoId: requireString(args, "algoId"),
             algoOrdType: requireString(args, "algoOrdType"),
             instId: requireString(args, "instId"),
             stopType: readString(args, "stopType"),
-          }),
+          })],
           privateRateLimit("grid_stop_order", 20),
         );
         return normalize(response);

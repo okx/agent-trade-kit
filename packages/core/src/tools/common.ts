@@ -1,4 +1,6 @@
 import type { RateLimitConfig } from "../utils/rate-limiter.js";
+import { ConfigError } from "../utils/errors.js";
+import type { OkxConfig } from "../config.js";
 
 export const OKX_CANDLE_BARS = [
   "1m", "3m", "5m", "15m", "30m",
@@ -24,4 +26,17 @@ export function privateRateLimit(key: string, rps = 10): RateLimitConfig {
     capacity: rps,
     refillPerSecond: rps,
   };
+}
+
+/**
+ * Throw a ConfigError if demo/simulated trading mode is active.
+ * Use this for endpoints that OKX does not support in simulated trading.
+ */
+export function assertNotDemo(config: OkxConfig, endpoint: string): void {
+  if (config.demo) {
+    throw new ConfigError(
+      `"${endpoint}" is not supported in simulated trading mode.`,
+      "Disable demo mode (remove OKX_DEMO=1 or --demo flag) to use this endpoint.",
+    );
+  }
 }
