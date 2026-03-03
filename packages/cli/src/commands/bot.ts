@@ -112,7 +112,6 @@ export async function cmdGridCreate(
     maxPx: string;
     minPx: string;
     gridNum: string;
-    tdMode: string;
     runType?: string;
     quoteSz?: string;
     baseSz?: string;
@@ -128,7 +127,6 @@ export async function cmdGridCreate(
     maxPx:       opts.maxPx,
     minPx:       opts.minPx,
     gridNum:     opts.gridNum,
-    tdMode:      opts.tdMode,
   };
   if (opts.runType)   body["runType"]   = opts.runType;
   if (opts.quoteSz)   body["quoteSz"]   = opts.quoteSz;

@@ -163,10 +163,10 @@ Commands:
   bot grid orders --algoOrdType <grid|contract_grid|moon_grid> [--instId <id>] [--algoId <id>] [--history]
   bot grid details --algoOrdType <type> --algoId <id>
   bot grid sub-orders --algoOrdType <type> --algoId <id> [--live]
-  bot grid create --instId <id> --algoOrdType <type> --maxPx <px> --minPx <px> --gridNum <n> --tdMode <cash|cross|isolated>
+  bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>
                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]
                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>]
-  bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2>]
+  bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2|3|5|6>]
 
   config init
   config show
@@ -583,7 +583,6 @@ async function main(): Promise<void> {
           maxPx: values.maxPx!,
           minPx: values.minPx!,
           gridNum: values.gridNum!,
-          tdMode: values.tdMode ?? "cash",
           runType: values.runType,
           quoteSz: values.quoteSz,
           baseSz: values.baseSz,
