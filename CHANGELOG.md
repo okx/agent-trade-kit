@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Total tools: 48 → 57
+- **Error handling — actionable suggestions**: `OkxRestClient` now maps ~20 OKX error codes to retry guidance; rate-limit codes (`50011`, `50061`) throw `RateLimitError`; server-busy codes carry "Retry after X seconds"; region/compliance and account-issue codes carry "Do not retry" advice
+- **Test coverage**: function coverage raised from 76.5% → 93.4% (199 → 243 tests); every source file now exceeds 80% function coverage
 
 ---
 
