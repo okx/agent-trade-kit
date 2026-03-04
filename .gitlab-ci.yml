@@ -1,0 +1,35 @@
+default:
+  image: node:22
+
+stages:
+  - test
+  - integration
+
+# ── shared setup ──────────────────────────────────────────────────────────────
+
+.pnpm-setup: &pnpm-setup
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+
+# ── unit tests (always, all branches) ────────────────────────────────────────
+
+unit-test:
+  stage: test
+  <<: *pnpm-setup
+  script:
+    - node --import tsx/esm --test-coverage packages/core/test/*.test.ts
+  coverage: '/all files\s*\|\s*([\d.]+)/'
+
+# ── smoke test (demo API, master only) ───────────────────────────────────────
+
+smoke-test:
+  stage: integration
+  <<: *pnpm-setup
+  variables:
+    OKX_DEMO: "1"
+  script:
+    - node --import tsx/esm scripts/smoke-test/run.ts --read-only
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  allow_failure: false
