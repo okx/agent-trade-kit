@@ -23,7 +23,7 @@ unit-test:
   coverage: '/All files\s*\|\s*([\d.]+)/'
   artifacts:
     paths:
-      - packages/core/coverage/lcov.info
+      - coverage/lcov.info
     expire_in: 1 day
 
 # ── sonar scan (master only) ──────────────────────────────────────────────────
