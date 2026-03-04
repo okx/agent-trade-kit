@@ -9,7 +9,7 @@
     "clean": "pnpm -r clean",
     "test:unit": "pnpm --filter @okx-hub/core test:unit",
     "test:coverage": "pnpm --filter @okx-hub/core test:coverage",
-    "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src node_modules/.bin/tsx --test 'packages/core/test/*.test.ts'"
+    "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src node_modules/.bin/tsx --test packages/core/test/*.test.ts"
   },
   "engines": {
     "node": ">=18",
