@@ -1,4 +1,4 @@
-# okx-trade-cli
+# agent-tradekit-cli
 
 ## English
 
@@ -8,7 +8,7 @@ trading, and configuration management.
 ### Install
 
 ```bash
-npm install -g okx-trade-cli
+npm install -g agent-tradekit-cli
 ```
 
 ### Configure credentials
@@ -60,7 +60,7 @@ OKX 命令行工具，支持行情、账户查询、现货与合约交易，以�
 ### 安装
 
 ```bash
-npm install -g okx-trade-cli
+npm install -g agent-tradekit-cli
 ```
 
 ### 配置凭证

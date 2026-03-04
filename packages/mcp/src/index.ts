@@ -8,14 +8,14 @@ import {
   runSetup,
   printSetupUsage,
   SUPPORTED_CLIENTS,
-} from "@okx-hub/core";
-import type { LogLevel, ClientId } from "@okx-hub/core";
+} from "@agent-tradekit/core";
+import type { LogLevel, ClientId } from "@agent-tradekit/core";
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import { createServer } from "./server.js";
 
 function printHelp(): void {
   const help = `
-Usage: okx-trade-mcp [options]
+Usage: agent-tradekit-mcp [options]
 
 Options:
   --modules <list>     Comma-separated list of modules to load
@@ -117,7 +117,7 @@ export async function main(): Promise<void> {
     return;
   }
 
-  checkForUpdates("okx-trade-mcp", SERVER_VERSION);
+  checkForUpdates("agent-tradekit-mcp", SERVER_VERSION);
 
   const cli = parseCli();
 

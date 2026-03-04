@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { stringify } from "smol-toml";
-import { configFilePath } from "@okx-hub/core";
-import type { OkxTomlConfig } from "@okx-hub/core";
+import { configFilePath } from "@agent-tradekit/core";
+import type { OkxTomlConfig } from "@agent-tradekit/core";
 
 // Re-export for backward compat within CLI
 export type { OkxTomlConfig as CliConfig };

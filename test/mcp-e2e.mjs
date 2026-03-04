@@ -162,7 +162,7 @@ proc.on("error", (err) => { console.error("Failed to start server:", err.message
 const client = new McpClient(proc);
 
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-console.log("  okx-trade-mcp E2E tests (demo)");
+console.log("  agent-tradekit-mcp E2E tests (demo)");
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
 try {

@@ -1,5 +1,5 @@
 {
-  "name": "okx-trade-cli",
+  "name": "agent-tradekit-cli",
   "version": "1.0.5",
   "description": "OKX CLI - Command line tool for OKX exchange",
   "type": "module",
@@ -21,7 +21,7 @@
     "smol-toml": "^1.3.4"
   },
   "devDependencies": {
-    "@okx-hub/core": "workspace:*",
+    "@agent-tradekit/core": "workspace:*",
     "@types/node": "^25.2.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"

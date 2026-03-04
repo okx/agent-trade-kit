@@ -1,4 +1,4 @@
-"""glab CLI wrapper for okx-trade-mcp idea-agent."""
+"""glab CLI wrapper for agent-tradekit idea-agent."""
 
 import json
 import os
@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = "retail-ai/okx-trade-mcp"
+REPO = "retail-ai/agent-tradekit"
 GLAB_CONFIG_DIR = str(Path.home() / "meili/jay.fan_dacs_at_okg.com/113/.config/glab-cli")
 
 GLAB_ENV = {

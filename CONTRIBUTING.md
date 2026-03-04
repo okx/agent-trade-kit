@@ -1,4 +1,4 @@
-# Contributing to okx-hub
+# Contributing to agent-tradekit
 
 Thank you for your interest in contributing! This guide covers everything you need to get started.
 
@@ -17,7 +17,7 @@ npm install -g pnpm
 
 # Clone the repository
 git clone https://github.com/USER/REPO.git   # replace with actual URL
-cd okx-hub
+cd agent-tradekit
 
 # Install dependencies
 pnpm install

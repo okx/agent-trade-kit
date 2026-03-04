@@ -123,7 +123,7 @@ Title: {title}
 Body:
 {body}
 
-项目：okx-trade-mcp（OKX MCP server，TypeScript monorepo，packages/core + packages/mcp + packages/cli）
+项目：agent-tradekit（OKX MCP server，TypeScript monorepo，packages/core + packages/mcp + packages/cli）
 
 若可实现，输出：
 {CLAUDE_PREFIX} ({today}):

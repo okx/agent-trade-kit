@@ -1,4 +1,4 @@
-import type { OkxRestClient } from "@okx-hub/core";
+import type { OkxRestClient } from "@agent-tradekit/core";
 import { printJson, printTable, printKv } from "../formatter.js";
 
 // ─── grid orders ─────────────────────────────────────────────────────────────

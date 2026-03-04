@@ -1,5 +1,5 @@
-import type { OkxConfig } from "@okx-hub/core";
-import { loadConfig } from "@okx-hub/core";
+import type { OkxConfig } from "@agent-tradekit/core";
+import { loadConfig } from "@agent-tradekit/core";
 
 export interface LoadProfileOptions {
   profile?: string;

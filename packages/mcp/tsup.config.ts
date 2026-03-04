@@ -8,6 +8,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   dts: true,
-  noExternal: ["@okx-hub/core"],
+  noExternal: ["@agent-tradekit/core"],
   banner: { js: "#!/usr/bin/env node" },
 });

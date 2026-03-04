@@ -12,9 +12,9 @@ import {
   OkxApiError,
   toToolErrorPayload,
   toMcpTool,
-} from "@okx-hub/core";
-import type { OkxConfig, ModuleId, ToolSpec } from "@okx-hub/core";
-import type { TradeLogger } from "@okx-hub/core";
+} from "@agent-tradekit/core";
+import type { OkxConfig, ModuleId, ToolSpec } from "@agent-tradekit/core";
+import type { TradeLogger } from "@agent-tradekit/core";
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 
 const SYSTEM_CAPABILITIES_TOOL_NAME = "system_get_capabilities";

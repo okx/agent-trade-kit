@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Audit logging**: MCP server automatically writes NDJSON entries to `~/.okx/logs/trade-YYYY-MM-DD.log`; `--no-log` disables logging, `--log-level` sets the minimum level (default `info`); sensitive fields (apiKey, secretKey, passphrase) are automatically redacted
 - **Error tracing**: `traceId` field added to `ToolErrorPayload` and all error classes — populated from `x-trace-id` / `x-request-id` response headers when OKX returns them
 - **Server version in MCP errors**: `serverVersion` injected into MCP error payloads for easier bug reporting
-- **CLI version in errors**: `Version: okx-trade-cli@x.x.x` always printed to stderr on error; `TraceId:` printed when available
+- **CLI version in errors**: `Version: agent-tradekit-cli@x.x.x` always printed to stderr on error; `TraceId:` printed when available
 - **Market — index data**: `market_get_index_ticker`, `market_get_index_candles` (+ history), `market_get_price_limit` (3 new tools)
 - **Spot — batch orders**: `spot_batch_orders` — batch place/cancel/amend up to 20 spot orders in one request
 - **Spot/Swap — order archive**: `status="archive"` on `spot_get_orders` / `swap_get_orders` → `/trade/orders-history-archive` (up to 3 months)
@@ -56,8 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Grid Bot (module: `bot`)**: 5 new tools for OKX Trading Bot grid strategies — `grid_get_orders`, `grid_get_order_details`, `grid_get_sub_orders` (read), `grid_create_order`, `grid_stop_order` (write). Covers Spot Grid, Contract Grid, and Moon Grid.
 - **CLI `--demo` flag**: global `--demo` option to enable simulated trading mode directly from the command line (alternative to `OKX_DEMO=1` env var or profile config)
 - **CLI bot grid commands**: `bot grid orders`, `bot grid details`, `bot grid sub-orders`, `bot grid create`, `bot grid stop` — full grid bot lifecycle management via CLI
-- **CLI full coverage**: extended `okx-trade-cli` to cover all 57 MCP tools — new commands across `market` (`instruments`, `funding-rate`, `mark-price`, `trades`, `index-ticker`, `index-candles`, `price-limit`, `open-interest`), `account` (`positions`, `bills`, `fees`, `config`, `set-position-mode`, `max-size`, `max-avail-size`, `max-withdrawal`, `positions-history`, `asset-balance`, `transfer`), `spot` (`get`, `amend`), `swap` (`get`, `fills`, `close`, `get-leverage`), and new `futures` module (`orders`, `positions`, `fills`, `place`, `cancel`, `get`)
-- **CLI/MCP entry tests**: new unit tests for `okx` and `okx-trade-mcp` entrypoints to exercise help/setup flows and keep coverage accurate
+- **CLI full coverage**: extended `agent-tradekit-cli` to cover all 57 MCP tools — new commands across `market` (`instruments`, `funding-rate`, `mark-price`, `trades`, `index-ticker`, `index-candles`, `price-limit`, `open-interest`), `account` (`positions`, `bills`, `fees`, `config`, `set-position-mode`, `max-size`, `max-avail-size`, `max-withdrawal`, `positions-history`, `asset-balance`, `transfer`), `spot` (`get`, `amend`), `swap` (`get`, `fills`, `close`, `get-leverage`), and new `futures` module (`orders`, `positions`, `fills`, `place`, `cancel`, `get`)
+- **CLI/MCP entry tests**: new unit tests for `okx` and `agent-tradekit-mcp` entrypoints to exercise help/setup flows and keep coverage accurate
 
 ### Fixed
 
@@ -91,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Update notifier package names corrected (`okx-trade-mcp`, `okx-trade-cli`)
+- Update notifier package names corrected (`agent-tradekit-mcp`, `agent-tradekit-cli`)
 - CLI typecheck errors resolved (strict `parseArgs` types, `smol-toml` interop)
 
 ### Changed
@@ -113,8 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **MCP server** (`okx-trade-mcp`): OKX REST API v5 integration via the Model Context Protocol
-- **CLI** (`okx-trade-cli`): command-line trading interface for OKX
+- **MCP server** (`agent-tradekit-mcp`): OKX REST API v5 integration via the Model Context Protocol
+- **CLI** (`agent-tradekit-cli`): command-line trading interface for OKX
 - **Modules**:
   - `market` — ticker, orderbook, candles (no credentials required)
   - `spot` — place/cancel/amend orders, algo orders (conditional, OCO), fills, order history

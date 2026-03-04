@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
-import { runSetup, printSetupUsage, SUPPORTED_CLIENTS } from "@okx-hub/core";
-import type { ClientId, SetupOptions } from "@okx-hub/core";
+import { runSetup, printSetupUsage, SUPPORTED_CLIENTS } from "@agent-tradekit/core";
+import type { ClientId, SetupOptions } from "@agent-tradekit/core";
 
 export type { ClientId, SetupOptions };
 export { runSetup, printSetupUsage, SUPPORTED_CLIENTS };

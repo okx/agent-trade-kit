@@ -60,7 +60,7 @@ rm ~/.okx/idea-agent.disabled
 工作时间（周一至周五 9:00–18:00）每小时运行一次：
 
 ```cron
-0 9-18 * * 1-5 GLAB_CONFIG_DIR=/Users/fanqi/meili/jay.fan_dacs_at_okg.com/113/.config/glab-cli /usr/bin/python3 /Users/fanqi/meili/jay.fan_dacs_at_okg.com/113/Documents/MyApp/okx-trade-mcp/scripts/idea-agent/agent.py >> ~/.okx/idea-agent.log 2>&1
+0 9-18 * * 1-5 GLAB_CONFIG_DIR=/Users/fanqi/meili/jay.fan_dacs_at_okg.com/113/.config/glab-cli /usr/bin/python3 /Users/fanqi/meili/jay.fan_dacs_at_okg.com/113/Documents/MyApp/agent-tradekit/scripts/idea-agent/agent.py >> ~/.okx/idea-agent.log 2>&1
 ```
 
 添加到 crontab：
