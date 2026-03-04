@@ -584,3 +584,95 @@ describe("OkxRestClient — User-Agent header", () => {
     assert.equal(captured.req?.headers.get("User-Agent"), null);
   });
 });
+
+// ---------------------------------------------------------------------------
+// privateGet / privatePost — authenticated requests
+// ---------------------------------------------------------------------------
+
+const AUTH_CONFIG: OkxConfig = {
+  ...BASE_CONFIG,
+  hasAuth: true,
+  apiKey: "test-api-key",
+  secretKey: "test-secret-key",
+  passphrase: "test-passphrase",
+};
+
+describe("OkxRestClient — privateGet / privatePost", () => {
+  it("privateGet completes successfully with auth credentials", async () => {
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+      const client = new OkxRestClient(AUTH_CONFIG);
+      const result = await client.privateGet("/api/v5/account/balance");
+      assert.ok(result.data !== undefined);
+    });
+  });
+
+  it("privatePost completes successfully with auth credentials", async () => {
+    await withFetch(
+      jsonFetch({ code: "0", msg: "", data: [{ ordId: "123" }] }),
+      async () => {
+        const client = new OkxRestClient(AUTH_CONFIG);
+        const result = await client.privatePost("/api/v5/trade/order", {
+          instId: "BTC-USDT",
+          side: "buy",
+        });
+        assert.ok(result.data !== undefined);
+      },
+    );
+  });
+
+  it("privateGet sets OK-ACCESS-KEY header", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(AUTH_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.privateGet("/api/v5/account/balance"),
+    );
+    assert.equal(captured.req?.headers.get("OK-ACCESS-KEY"), "test-api-key");
+  });
+
+  it("privatePost sets OK-ACCESS-PASSPHRASE header", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(AUTH_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+    );
+    assert.equal(captured.req?.headers.get("OK-ACCESS-PASSPHRASE"), "test-passphrase");
+  });
+
+  it("throws ConfigError when private endpoint called without credentials", async () => {
+    const { ConfigError } = await import("../src/utils/errors.js");
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+      const client = new OkxRestClient(BASE_CONFIG); // no auth
+      await assert.rejects(
+        () => client.privateGet("/api/v5/account/balance"),
+        (err: unknown) => err instanceof ConfigError,
+      );
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Query string building edge cases
+// ---------------------------------------------------------------------------
+
+describe("OkxRestClient — query string building", () => {
+  it("omits '?' when query object is empty", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/market/ticker", {}),
+    );
+    assert.ok(!captured.req?.url.includes("?"), "URL should not contain '?'");
+  });
+
+  it("joins array query values with commas", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/market/tickers", {
+        instId: ["BTC-USDT", "ETH-USDT"] as unknown as string,
+      }),
+    );
+    const url = new URL(captured.req?.url ?? "");
+    assert.equal(url.searchParams.get("instId"), "BTC-USDT,ETH-USDT");
+  });
+});
