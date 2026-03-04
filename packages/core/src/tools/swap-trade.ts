@@ -37,74 +37,62 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description:
-              "Instrument ID, e.g. BTC-USDT-SWAP for perpetual, BTC-USD-240329 for delivery futures.",
+            description: "e.g. BTC-USDT-SWAP (perp) or BTC-USD-240329 (delivery)",
           },
           tdMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Trade mode: cross or isolated margin.",
+            description: "cross|isolated margin",
           },
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description:
-              "Order side. In one-way mode: buy=open/add long, sell=open/add short. To close: sell with reduceOnly=true (long) or buy with reduceOnly=true (short). In hedge mode: buy+long=open long, sell+long=close long, sell+short=open short, buy+short=close short.",
+            description: "one-way: buy=open long, sell=open short (use reduceOnly=true to close); hedge: combined with posSide",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description:
-              "Position side. IMPORTANT: Most OKX accounts use one-way mode — use 'net' in that case. Only use 'long' or 'short' if your account is configured for hedge mode (双向持仓). If you get an error like 'posSide is not valid', switch to 'net'.",
+            description: "net=one-way mode (default for most accounts); long/short=hedge mode only. Error 'posSide not valid' → use net",
           },
           ordType: {
             type: "string",
             enum: ["market", "limit", "post_only", "fok", "ioc"],
-            description:
-              "Order type. 'market': execute immediately at market price, no px needed. 'limit': execute at px or better, px required. 'post_only': maker-only limit order, px required. 'fok': fill entire order immediately or cancel, px required. 'ioc': fill as much as possible immediately, cancel rest, px required.",
+            description: "market(no px)|limit(px req)|post_only(maker)|fok(all-or-cancel)|ioc(partial fill)",
           },
           sz: {
             type: "string",
-            description:
-              "Quantity in number of contracts (e.g. '1' = 1 contract). For BTC-USDT-SWAP, 1 contract = 0.01 BTC.",
+            description: "Contracts (e.g. '1'; BTC-USDT-SWAP: 1ct=0.01 BTC)",
           },
           px: {
             type: "string",
-            description:
-              "Order price. Required for limit, post_only, fok, ioc orders. Omit for market orders.",
+            description: "Required for limit/post_only/fok/ioc",
           },
           reduceOnly: {
             type: "boolean",
-            description:
-              "Set true to close/reduce an existing position without opening a new one. Use this in one-way mode to close positions instead of posSide.",
+            description: "Close/reduce only, no new position (one-way mode)",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Up to 32 characters.",
+            description: "Client order ID (max 32 chars)",
           },
           tag: {
             type: "string",
-            description: "Order tag.",
           },
           tpTriggerPx: {
             type: "string",
-            description:
-              "Take-profit trigger price. When triggered, places a TP order at tpOrdPx. Assembled into attachAlgoOrds automatically.",
+            description: "TP trigger price; places TP at tpOrdPx",
           },
           tpOrdPx: {
             type: "string",
-            description:
-              "Take-profit order price. Use '-1' for market order. Required when tpTriggerPx is set.",
+            description: "TP order price; -1=market",
           },
           slTriggerPx: {
             type: "string",
-            description:
-              "Stop-loss trigger price. When triggered, places a SL order at slOrdPx. Assembled into attachAlgoOrds automatically.",
+            description: "SL trigger price; places SL at slOrdPx",
           },
           slOrdPx: {
             type: "string",
-            description:
-              "Stop-loss order price. Use '-1' for market order. Required when slTriggerPx is set.",
+            description: "SL order price; -1=market",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -149,15 +137,14 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           ordId: {
             type: "string",
-            description: "Order ID.",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID.",
+            description: "Client order ID",
           },
         },
         required: ["instId"],
@@ -188,45 +175,44 @@ export function registerSwapTradeTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["open", "history", "archive"],
-            description:
-              "Query open orders (default), history of last 7 days, or archive of up to 3 months.",
+            description: "open=active, history=7d, archive=3mo",
           },
           instType: {
             type: "string",
             enum: [...SWAP_INST_TYPES],
-            description: "Instrument type: SWAP (default) or FUTURES.",
+            description: "SWAP (default) or FUTURES",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter.",
+            description: "Instrument ID filter",
           },
           ordType: {
             type: "string",
-            description: "Order type filter.",
+            description: "Order type filter",
           },
           state: {
             type: "string",
-            description: "Order state filter (for history): canceled, filled.",
+            description: "canceled|filled",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: orders earlier than this order ID.",
+            description: "Pagination: before this order ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: orders newer than this order ID.",
+            description: "Pagination: after this order ID",
           },
           begin: {
             type: "string",
-            description: "Start time filter in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time filter in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
       },
@@ -271,15 +257,14 @@ export function registerSwapTradeTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: [...SWAP_INST_TYPES],
-            description: "Instrument type: SWAP (default) or FUTURES.",
+            description: "SWAP (default) or FUTURES",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           posId: {
             type: "string",
-            description: "Position ID filter.",
           },
         },
       },
@@ -310,22 +295,20 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           lever: {
             type: "string",
-            description: "Leverage value, e.g. '10'.",
+            description: "Leverage, e.g. '10'",
           },
           mgnMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Margin mode.",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description:
-              "Position side. Required for isolated margin in hedge mode.",
+            description: "Required for isolated margin in hedge mode",
           },
         },
         required: ["instId", "lever", "mgnMode"],
@@ -354,13 +337,13 @@ export function registerSwapTradeTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          instId: { type: "string", description: "Instrument ID, e.g. BTC-USDT-SWAP." },
-          algoId: { type: "string", description: "Algo order ID to amend." },
-          newSz: { type: "string", description: "New quantity in number of contracts." },
-          newTpTriggerPx: { type: "string", description: "New take-profit trigger price." },
-          newTpOrdPx: { type: "string", description: "New take-profit order price. Use '-1' for market." },
-          newSlTriggerPx: { type: "string", description: "New stop-loss trigger price." },
-          newSlOrdPx: { type: "string", description: "New stop-loss order price. Use '-1' for market." },
+          instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
+          algoId: { type: "string", description: "Algo order ID" },
+          newSz: { type: "string", description: "New quantity (contracts)" },
+          newTpTriggerPx: { type: "string", description: "New TP trigger price" },
+          newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
+          newSlTriggerPx: { type: "string", description: "New SL trigger price" },
+          newSlOrdPx: { type: "string", description: "New SL order price; -1=market" },
         },
         required: ["instId", "algoId"],
       },
@@ -396,40 +379,40 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           archive: {
             type: "boolean",
-            description: "Set true to query fills history up to 3 months. Default false (last 3 days).",
+            description: "true=up to 3 months; false=last 3 days (default)",
           },
           instType: {
             type: "string",
             enum: [...SWAP_INST_TYPES],
-            description: "Instrument type: SWAP (default) or FUTURES.",
+            description: "SWAP (default) or FUTURES",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter.",
+            description: "Instrument ID filter",
           },
           ordId: {
             type: "string",
-            description: "Order ID filter.",
+            description: "Order ID filter",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: fills earlier than this bill ID.",
+            description: "Pagination: before this bill ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: fills newer than this bill ID.",
+            description: "Pagination: after this bill ID",
           },
           begin: {
             type: "string",
-            description: "Start time filter in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time filter in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, max 100. Defaults to 100 (recent) or 20 (archive).",
+            description: "Max results (default 100 or 20 for archive)",
           },
         },
       },
@@ -467,15 +450,15 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           ordId: {
             type: "string",
-            description: "Order ID. Provide either ordId or clOrdId.",
+            description: "Provide ordId or clOrdId",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Provide either ordId or clOrdId.",
+            description: "Provide ordId or clOrdId",
           },
         },
         required: ["instId"],
@@ -505,31 +488,27 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           mgnMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Margin mode of the position to close.",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description:
-              "Position side. Required in hedge mode (long/short). Omit for one-way mode (net).",
+            description: "long/short=hedge mode; omit for one-way (net)",
           },
           autoCxl: {
             type: "boolean",
-            description:
-              "Whether to cancel pending orders for the instrument when closing. Default false.",
+            description: "Cancel pending orders for this instrument on close",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID for the close order.",
+            description: "Client order ID for close order",
           },
           tag: {
             type: "string",
-            description: "Order tag.",
           },
         },
         required: ["instId", "mgnMode"],
@@ -564,13 +543,11 @@ export function registerSwapTradeTools(): ToolSpec[] {
           action: {
             type: "string",
             enum: ["place", "cancel", "amend"],
-            description:
-              "Operation type. 'place': batch place orders. 'cancel': batch cancel by ordId/clOrdId. 'amend': batch modify newSz/newPx.",
           },
           orders: {
             type: "array",
             description:
-              "Array of order objects (max 20). For 'place': {instId, tdMode, side, ordType, sz, px?, posSide?, reduceOnly?, clOrdId?, tpTriggerPx?, tpOrdPx?, slTriggerPx?, slOrdPx?}. For 'cancel': {instId, ordId} or {instId, clOrdId}. For 'amend': {instId, ordId or clOrdId, newSz?, newPx?}.",
+              "Array (max 20). place: {instId,tdMode,side,ordType,sz,px?,posSide?,reduceOnly?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?}. cancel: {instId,ordId|clOrdId}. amend: {instId,ordId|clOrdId,newSz?,newPx?}.",
             items: {
               type: "object",
             },
@@ -637,12 +614,11 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           mgnMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Margin mode.",
           },
         },
         required: ["instId", "mgnMode"],
@@ -671,8 +647,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           orders: {
             type: "array",
-            description:
-              "Array of orders to amend (max 20). Each item: {instId: string, ordId?: string, clOrdId?: string, newSz?: string, newPx?: string}.",
+            description: "Array (max 20): {instId, ordId?, clOrdId?, newSz?, newPx?}",
             items: { type: "object" },
           },
         },
@@ -703,8 +678,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           orders: {
             type: "array",
-            description:
-              "Array of orders to cancel (max 20). Each item: {instId: string, ordId?: string, clOrdId?: string}.",
+            description: "Array (max 20): {instId, ordId?, clOrdId?}",
             items: { type: "object" },
           },
         },

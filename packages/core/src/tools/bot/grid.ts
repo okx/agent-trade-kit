@@ -35,34 +35,31 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description:
-              "Grid type. 'grid': Spot Grid. 'contract_grid': Contract Grid. 'moon_grid': Moon Grid.",
+            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
           },
           status: {
             type: "string",
             enum: ["active", "history"],
-            description:
-              "Query active (running) bots or history (stopped/completed). Default: 'active'.",
+            description: "active=running (default); history=stopped",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. 'BTC-USDT'.",
+            description: "e.g. BTC-USDT",
           },
           algoId: {
             type: "string",
-            description: "Filter by specific bot algo ID.",
           },
           after: {
             type: "string",
-            description: "Pagination: bots created earlier than this algo ID.",
+            description: "Pagination: before this algo ID",
           },
           before: {
             type: "string",
-            description: "Pagination: bots created later than this algo ID.",
+            description: "Pagination: after this algo ID",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
         required: ["algoOrdType"],
@@ -104,11 +101,10 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "Grid type of the bot.",
+            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
           },
           algoId: {
             type: "string",
-            description: "Bot algo ID to query.",
           },
         },
         required: ["algoOrdType", "algoId"],
@@ -140,33 +136,30 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "Grid type of the bot.",
+            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
           },
           algoId: {
             type: "string",
-            description: "Bot algo ID whose sub-orders to query.",
           },
           type: {
             type: "string",
             enum: ["filled", "live"],
-            description:
-              "Sub-order type. 'filled': executed grid trades. 'live': pending open orders. Default: 'filled'.",
+            description: "filled=executed trades (default); live=pending orders",
           },
           groupId: {
             type: "string",
-            description: "Filter by sub-order group ID.",
           },
           after: {
             type: "string",
-            description: "Pagination: sub-orders earlier than this order ID.",
+            description: "Pagination: before this order ID",
           },
           before: {
             type: "string",
-            description: "Pagination: sub-orders newer than this order ID.",
+            description: "Pagination: after this order ID",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
         required: ["algoOrdType", "algoId"],
@@ -204,57 +197,50 @@ export function registerGridTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. 'BTC-USDT'.",
+            description: "e.g. BTC-USDT",
           },
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid"],
-            description:
-              "Grid type. 'grid': Spot Grid. 'contract_grid': Contract Grid.",
+            description: "grid=Spot, contract_grid=Contract",
           },
           maxPx: {
             type: "string",
-            description: "Upper price boundary of the grid range.",
+            description: "Upper price boundary",
           },
           minPx: {
             type: "string",
-            description: "Lower price boundary of the grid range.",
+            description: "Lower price boundary",
           },
           gridNum: {
             type: "string",
-            description: "Number of grid levels (integer as string, e.g. '10').",
+            description: "Grid levels (e.g. '10')",
           },
           runType: {
             type: "string",
             enum: ["1", "2"],
-            description:
-              "Grid spacing type. '1': arithmetic (equal price intervals, default). '2': geometric (equal ratio intervals).",
+            description: "1=arithmetic (default); 2=geometric",
           },
           quoteSz: {
             type: "string",
-            description:
-              "Investment amount in quote currency (e.g. USDT). For spot grid only. Provide quoteSz or baseSz, not both.",
+            description: "Spot grid: invest in quote (e.g. USDT). Provide quoteSz or baseSz.",
           },
           baseSz: {
             type: "string",
-            description:
-              "Investment amount in base currency (e.g. BTC). For spot grid only. Provide quoteSz or baseSz, not both.",
+            description: "Spot grid: invest in base (e.g. BTC). Provide quoteSz or baseSz.",
           },
           direction: {
             type: "string",
             enum: ["long", "short", "neutral"],
-            description:
-              "Position direction for contract grid. Required for contract_grid.",
+            description: "Required for contract_grid",
           },
           lever: {
             type: "string",
-            description:
-              "Leverage multiplier for contract grid (e.g. '5'). Required for contract_grid.",
+            description: "Leverage (e.g. '5'). Required for contract_grid.",
           },
           sz: {
             type: "string",
-            description:
-              "Number of contracts to invest for contract grid. Required for contract_grid.",
+            description: "Contracts to invest. Required for contract_grid.",
           },
         },
         required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
@@ -294,24 +280,20 @@ export function registerGridTools(): ToolSpec[] {
         properties: {
           algoId: {
             type: "string",
-            description: "Bot algo ID to stop.",
           },
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "Grid type of the bot.",
+            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
           },
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. 'BTC-USDT'.",
+            description: "e.g. BTC-USDT",
           },
           stopType: {
             type: "string",
             enum: ["1", "2", "3", "5", "6"],
-            description:
-              "Stop behavior. '1': stop and sell/close position (spot: sell quote; contract: market close all). " +
-              "'2': stop but keep position/assets (default). '3': stop and close at limit price. " +
-              "'5': stop and partially close. '6': stop without selling spot (smart arbitrage).",
+            description: "1=stop+sell/close all; 2=stop+keep assets (default); 3=close at limit; 5=partial close; 6=stop without selling (smart arb)",
           },
         },
         required: ["algoId", "algoOrdType", "instId"],

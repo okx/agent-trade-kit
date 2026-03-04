@@ -35,62 +35,52 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           tdMode: {
             type: "string",
             enum: ["cash", "cross", "isolated"],
-            description:
-              "Trade mode. Use 'cash' for regular spot trading. Use 'cross' or 'isolated' only for margin trading.",
+            description: "cash=regular spot; cross/isolated=margin",
           },
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description: "Order side: 'buy' to purchase, 'sell' to sell.",
           },
           ordType: {
             type: "string",
             enum: ["market", "limit", "post_only", "fok", "ioc"],
-            description:
-              "Order type. 'market': execute immediately at market price, no px needed. 'limit': execute at px or better, px required. 'post_only': maker-only limit order, px required. 'fok': fill entire order immediately or cancel, px required. 'ioc': fill as much as possible immediately, cancel rest, px required.",
+            description: "market(no px)|limit(px req)|post_only(maker)|fok(all-or-cancel)|ioc(partial fill)",
           },
           sz: {
             type: "string",
-            description:
-              "Quantity. For market BUY: amount in quote currency (e.g. '100' means spend 100 USDT). For all other order types: amount in base currency (e.g. '0.001' means 0.001 BTC). For limit orders, always use base currency.",
+            description: "Buy market: quote amount; all others: base amount",
           },
           px: {
             type: "string",
-            description:
-              "Order price in quote currency. Required for limit, post_only, fok, ioc orders. Omit for market orders.",
+            description: "Required for limit/post_only/fok/ioc",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Up to 32 characters.",
+            description: "Client order ID (max 32 chars)",
           },
           tag: {
             type: "string",
-            description: "Order tag.",
           },
           tpTriggerPx: {
             type: "string",
-            description:
-              "Take-profit trigger price. When triggered, places a TP order at tpOrdPx. Assembled into attachAlgoOrds automatically.",
+            description: "TP trigger price; places TP at tpOrdPx",
           },
           tpOrdPx: {
             type: "string",
-            description:
-              "Take-profit order price. Use '-1' for market order. Required when tpTriggerPx is set.",
+            description: "TP order price; -1=market",
           },
           slTriggerPx: {
             type: "string",
-            description:
-              "Stop-loss trigger price. When triggered, places a SL order at slOrdPx. Assembled into attachAlgoOrds automatically.",
+            description: "SL trigger price; places SL at slOrdPx",
           },
           slOrdPx: {
             type: "string",
-            description:
-              "Stop-loss order price. Use '-1' for market order. Required when slTriggerPx is set.",
+            description: "SL order price; -1=market",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -132,15 +122,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           ordId: {
             type: "string",
-            description: "Order ID.",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID.",
+            description: "Client order ID",
           },
         },
         required: ["instId"],
@@ -170,27 +159,24 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           ordId: {
             type: "string",
-            description: "Order ID.",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID.",
+            description: "Client order ID",
           },
           newSz: {
             type: "string",
-            description: "New quantity.",
           },
           newPx: {
             type: "string",
-            description: "New price.",
           },
           newClOrdId: {
             type: "string",
-            description: "New client order ID after amendment.",
+            description: "New client order ID after amendment",
           },
         },
         required: ["instId"],
@@ -224,40 +210,39 @@ export function registerSpotTradeTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["open", "history", "archive"],
-            description:
-              "Query open orders (default), history of last 7 days, or archive of up to 3 months.",
+            description: "open=active, history=7d, archive=3mo",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT.",
+            description: "Instrument ID filter",
           },
           ordType: {
             type: "string",
-            description: "Order type filter.",
+            description: "Order type filter",
           },
           state: {
             type: "string",
-            description: "Order state filter (for history): canceled, filled.",
+            description: "canceled|filled",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: orders earlier than this order ID.",
+            description: "Pagination: before this order ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: orders newer than this order ID.",
+            description: "Pagination: after this order ID",
           },
           begin: {
             type: "string",
-            description: "Start time filter in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time filter in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
       },
@@ -299,38 +284,36 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description: "Order side.",
           },
           ordType: {
             type: "string",
             enum: ["conditional", "oco"],
-            description:
-              "'conditional': single TP or SL. 'oco': both TP and SL in one order (one-cancels-the-other).",
+            description: "conditional=single TP/SL; oco=TP+SL pair (one-cancels-other)",
           },
           sz: {
             type: "string",
-            description: "Quantity in base currency, e.g. '0.001' for 0.001 BTC.",
+            description: "Quantity in base currency",
           },
           tpTriggerPx: {
             type: "string",
-            description: "Take-profit trigger price.",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
-            description: "Take-profit order price. Use '-1' for market order.",
+            description: "TP order price; -1=market",
           },
           slTriggerPx: {
             type: "string",
-            description: "Stop-loss trigger price.",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
-            description: "Stop-loss order price. Use '-1' for market order.",
+            description: "SL order price; -1=market",
           },
         },
         required: ["instId", "side", "ordType", "sz"],
@@ -364,13 +347,13 @@ export function registerSpotTradeTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          instId: { type: "string", description: "Instrument ID, e.g. BTC-USDT." },
-          algoId: { type: "string", description: "Algo order ID to amend." },
-          newSz: { type: "string", description: "New quantity in base currency." },
-          newTpTriggerPx: { type: "string", description: "New take-profit trigger price." },
-          newTpOrdPx: { type: "string", description: "New take-profit order price. Use '-1' for market." },
-          newSlTriggerPx: { type: "string", description: "New stop-loss trigger price." },
-          newSlOrdPx: { type: "string", description: "New stop-loss order price. Use '-1' for market." },
+          instId: { type: "string", description: "e.g. BTC-USDT" },
+          algoId: { type: "string", description: "Algo order ID" },
+          newSz: { type: "string" },
+          newTpTriggerPx: { type: "string", description: "New TP trigger price" },
+          newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
+          newSlTriggerPx: { type: "string", description: "New SL trigger price" },
+          newSlOrdPx: { type: "string", description: "New SL order price; -1=market" },
         },
         required: ["instId", "algoId"],
       },
@@ -403,11 +386,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           algoId: {
             type: "string",
-            description: "Algo order ID.",
+            description: "Algo order ID",
           },
         },
         required: ["instId", "algoId"],
@@ -439,28 +422,28 @@ export function registerSpotTradeTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["pending", "history"],
-            description: "Query pending algo orders (default) or history.",
+            description: "pending=active (default); history=completed",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT.",
+            description: "Instrument ID filter",
           },
           ordType: {
             type: "string",
             enum: ["conditional", "oco"],
-            description: "Filter by algo order type.",
+            description: "Filter by type; omit for all",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: orders earlier than this algo ID.",
+            description: "Pagination: before this algo ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: orders newer than this algo ID.",
+            description: "Pagination: after this algo ID",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
       },
@@ -515,35 +498,35 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           archive: {
             type: "boolean",
-            description: "Set true to query fills history up to 3 months. Default false (last 3 days).",
+            description: "true=up to 3 months; false=last 3 days (default)",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT.",
+            description: "Instrument ID filter",
           },
           ordId: {
             type: "string",
-            description: "Order ID filter.",
+            description: "Order ID filter",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: fills earlier than this bill ID.",
+            description: "Pagination: before this bill ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: fills newer than this bill ID.",
+            description: "Pagination: after this bill ID",
           },
           begin: {
             type: "string",
-            description: "Start time filter in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time filter in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, max 100. Defaults to 100 (recent) or 20 (archive).",
+            description: "Max results (default 100 or 20 for archive)",
           },
         },
       },
@@ -580,13 +563,12 @@ export function registerSpotTradeTools(): ToolSpec[] {
           action: {
             type: "string",
             enum: ["place", "cancel", "amend"],
-            description:
-              "Operation type. 'place': batch place orders. 'cancel': batch cancel by ordId/clOrdId. 'amend': batch modify newSz/newPx.",
+            description: "place|cancel|amend",
           },
           orders: {
             type: "array",
             description:
-              "Array of order objects (max 20). For 'place': {instId, side, ordType, sz, tdMode?, px?, clOrdId?, tpTriggerPx?, tpOrdPx?, slTriggerPx?, slOrdPx?}. tdMode defaults to 'cash'. For 'cancel': {instId, ordId} or {instId, clOrdId}. For 'amend': {instId, ordId or clOrdId, newSz?, newPx?}.",
+              "Array (max 20). place: {instId,side,ordType,sz,tdMode?,px?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?} (tdMode defaults to cash). cancel: {instId,ordId|clOrdId}. amend: {instId,ordId|clOrdId,newSz?,newPx?}.",
             items: {
               type: "object",
             },
@@ -649,15 +631,15 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           ordId: {
             type: "string",
-            description: "Order ID. Provide either ordId or clOrdId.",
+            description: "Provide ordId or clOrdId",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Provide either ordId or clOrdId.",
+            description: "Provide ordId or clOrdId",
           },
         },
         required: ["instId"],
@@ -687,8 +669,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           orders: {
             type: "array",
-            description:
-              "Array of orders to amend (max 20). Each item: {instId: string, ordId?: string, clOrdId?: string, newSz?: string, newPx?: string}.",
+            description: "Array (max 20): {instId, ordId?, clOrdId?, newSz?, newPx?}",
             items: { type: "object" },
           },
         },
@@ -719,8 +700,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           orders: {
             type: "array",
-            description:
-              "Array of orders to cancel (max 20). Each item: {instId: string, ordId?: string, clOrdId?: string}.",
+            description: "Array (max 20): {instId, ordId?, clOrdId?}",
             items: { type: "object" },
           },
         },

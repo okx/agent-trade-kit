@@ -34,8 +34,7 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           ccy: {
             type: "string",
-            description:
-              "Currency, e.g. BTC. Comma-separated for multiple, e.g. BTC,ETH. Omit for all.",
+            description: "e.g. BTC or BTC,ETH. Omit for all.",
           },
         },
       },
@@ -60,34 +59,31 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           ccy: {
             type: "string",
-            description: "Currency to transfer, e.g. USDT.",
+            description: "e.g. USDT",
           },
           amt: {
             type: "string",
-            description: "Transfer amount.",
+            description: "Transfer amount",
           },
           from: {
             type: "string",
-            description:
-              "Transfer source account type. 6=funding, 18=trading (unified).",
+            description: "Source account: 6=funding, 18=trading (unified)",
           },
           to: {
             type: "string",
-            description:
-              "Transfer destination account type. 6=funding, 18=trading (unified).",
+            description: "Destination account: 6=funding, 18=trading (unified)",
           },
           type: {
             type: "string",
-            description:
-              "Transfer type. 0=master account transfer (default), 1=master to sub-account, 2=sub-account to master, 3=sub-account to sub-account.",
+            description: "0=main account (default), 1=main→sub, 2=sub→main, 3=sub→sub",
           },
           subAcct: {
             type: "string",
-            description: "Sub-account name. Required when type is 1, 2, or 3.",
+            description: "Sub-account name. Required when type=1/2/3",
           },
           clientId: {
             type: "string",
-            description: "Client-supplied ID. Up to 32 characters.",
+            description: "Client ID (max 32 chars)",
           },
         },
         required: ["ccy", "amt", "from", "to"],
@@ -121,25 +117,23 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           tdMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Trade mode: cross or isolated margin.",
           },
           px: {
             type: "string",
-            description:
-              "Order price for limit order calculation. Affects the max size result. Omit for market orders.",
+            description: "Limit order price (omit for market)",
           },
           leverage: {
             type: "string",
-            description: "Leverage to use for calculation. Defaults to current account leverage.",
+            description: "Leverage (defaults to account setting)",
           },
           ccy: {
             type: "string",
-            description: "Margin currency. Required for isolated margin mode.",
+            description: "Margin currency. Required for isolated mode.",
           },
         },
         required: ["instId", "tdMode"],
@@ -171,8 +165,7 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           ccy: {
             type: "string",
-            description:
-              "Currency filter, e.g. BTC or BTC,ETH for multiple. Omit to return all currencies.",
+            description: "e.g. BTC or BTC,ETH. Omit for all.",
           },
         },
       },
@@ -199,41 +192,38 @@ export function registerAccountTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
-            description: "Filter by instrument type.",
           },
           ccy: {
             type: "string",
-            description: "Currency filter, e.g. USDT.",
+            description: "e.g. USDT",
           },
           mgnMode: {
             type: "string",
             enum: ["isolated", "cross"],
-            description: "Margin mode filter.",
           },
           type: {
             type: "string",
-            description:
-              "Bill type filter. 1=transfer, 2=trade, 3=delivery, 4=auto token convert, 5=liquidation, 6=margin transfer, 7=interest deduction, 8=funding fee, 9=adl, 10=clawback, 11=system token convert, 12=strategy transfer, 13=ddh.",
+            description: "1=transfer,2=trade,3=delivery,4=auto convert,5=liquidation,6=margin transfer,7=interest,8=funding fee,9=adl,10=clawback,11=sys convert,12=strategy transfer,13=ddh",
           },
           after: {
             type: "string",
-            description: "Pagination: records earlier than this bill ID.",
+            description: "Pagination: before this bill ID",
           },
           before: {
             type: "string",
-            description: "Pagination: records newer than this bill ID.",
+            description: "Pagination: after this bill ID",
           },
           begin: {
             type: "string",
-            description: "Start time in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results. Default 20, max 100.",
+            description: "Max results (default 20)",
           },
         },
       },
@@ -270,36 +260,34 @@ export function registerAccountTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["SWAP", "FUTURES", "MARGIN", "OPTION"],
-            description: "Instrument type filter. Default SWAP.",
+            description: "Default SWAP",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           mgnMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Margin mode filter.",
           },
           type: {
             type: "string",
-            description: "Close type filter. 1=close long, 2=close short, 3=liquidation long, 4=liquidation short, 5=ADL long, 6=ADL short.",
+            description: "1=close long,2=close short,3=liq long,4=liq short,5=ADL long,6=ADL short",
           },
           posId: {
             type: "string",
-            description: "Position ID filter.",
           },
           after: {
             type: "string",
-            description: "Pagination: records earlier than this timestamp (ms).",
+            description: "Pagination: before this timestamp (ms)",
           },
           before: {
             type: "string",
-            description: "Pagination: records newer than this timestamp (ms).",
+            description: "Pagination: after this timestamp (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results. Default 20, max 100.",
+            description: "Max results (default 20)",
           },
         },
       },
@@ -334,11 +322,10 @@ export function registerAccountTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
-            description: "Instrument type to query fee tier for.",
           },
           instId: {
             type: "string",
-            description: "Instrument ID for instrument-specific fee. Optional.",
+            description: "e.g. BTC-USDT-SWAP",
           },
         },
         required: ["instType"],
@@ -387,8 +374,7 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           ccy: {
             type: "string",
-            description:
-              "Currency to query, e.g. USDT. Comma-separated for multiple, e.g. BTC,ETH. Omit for all.",
+            description: "e.g. USDT or BTC,ETH. Omit for all.",
           },
         },
       },
@@ -415,12 +401,12 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP or BTC-USDT.",
+            description: "e.g. BTC-USDT-SWAP or BTC-USDT",
           },
           tdMode: {
             type: "string",
             enum: ["cross", "isolated", "cash"],
-            description: "Trade mode: cross, isolated, or cash (spot).",
+            description: "cash=spot",
           },
           ccy: {
             type: "string",
@@ -428,7 +414,7 @@ export function registerAccountTools(): ToolSpec[] {
           },
           reduceOnly: {
             type: "boolean",
-            description: "Set true to calculate max size for closing/reducing a position.",
+            description: "true=calculate max size for closing position",
           },
         },
         required: ["instId", "tdMode"],
@@ -463,15 +449,13 @@ export function registerAccountTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["MARGIN", "SWAP", "FUTURES", "OPTION"],
-            description: "Filter by instrument type. Omit to return all open positions.",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-SWAP. Omit for all instruments.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           posId: {
             type: "string",
-            description: "Position ID filter.",
           },
         },
       },
@@ -503,41 +487,38 @@ export function registerAccountTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
-            description: "Filter by instrument type.",
           },
           ccy: {
             type: "string",
-            description: "Currency filter, e.g. USDT.",
+            description: "e.g. USDT",
           },
           mgnMode: {
             type: "string",
             enum: ["isolated", "cross"],
-            description: "Margin mode filter.",
           },
           type: {
             type: "string",
-            description:
-              "Bill type filter. 1=transfer, 2=trade, 3=delivery, 4=auto token convert, 5=liquidation, 6=margin transfer, 7=interest deduction, 8=funding fee, 9=adl, 10=clawback, 11=system token convert, 12=strategy transfer, 13=ddh.",
+            description: "1=transfer,2=trade,3=delivery,4=auto convert,5=liquidation,6=margin transfer,7=interest,8=funding fee,9=adl,10=clawback,11=sys convert,12=strategy transfer,13=ddh",
           },
           after: {
             type: "string",
-            description: "Pagination: records earlier than this bill ID.",
+            description: "Pagination: before this bill ID",
           },
           before: {
             type: "string",
-            description: "Pagination: records newer than this bill ID.",
+            description: "Pagination: after this bill ID",
           },
           begin: {
             type: "string",
-            description: "Start time in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results. Default 20, max 100.",
+            description: "Max results (default 20)",
           },
         },
       },
@@ -576,7 +557,7 @@ export function registerAccountTools(): ToolSpec[] {
           posMode: {
             type: "string",
             enum: ["long_short_mode", "net_mode"],
-            description: "Position mode: 'long_short_mode' for hedge mode, 'net_mode' for one-way mode.",
+            description: "long_short_mode=hedge; net_mode=one-way",
           },
         },
         required: ["posMode"],
