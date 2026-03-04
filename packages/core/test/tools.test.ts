@@ -11,6 +11,7 @@ import { registerSpotTradeTools } from "../src/tools/spot-trade.js";
 import { registerSwapTradeTools } from "../src/tools/swap-trade.js";
 import { registerAccountTools } from "../src/tools/account.js";
 import { registerFuturesTools } from "../src/tools/futures-trade.js";
+import { registerOptionTools } from "../src/tools/option-trade.js";
 import { assertNotDemo } from "../src/tools/common.js";
 import { ConfigError } from "../src/utils/errors.js";
 
@@ -1085,5 +1086,314 @@ describe("futures_get_fills", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.params.instType, "FUTURES");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Option trade tools
+// ---------------------------------------------------------------------------
+
+describe("option_place_order", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_place_order")!;
+
+  it("calls /trade/order via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-C", tdMode: "cash", side: "buy", ordType: "limit", sz: "1", px: "500" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes required fields", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-P", tdMode: "cross", side: "sell", ordType: "market", sz: "2" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.instId, "BTC-USD-241227-50000-P");
+    assert.equal(params.tdMode, "cross");
+    assert.equal(params.side, "sell");
+    assert.equal(params.sz, "2");
+  });
+
+  it("serializes reduceOnly=true as string 'true'", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-C", tdMode: "cash", side: "sell", ordType: "market", sz: "1", reduceOnly: true },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).reduceOnly, "true");
+  });
+
+  it("omits reduceOnly when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-C", tdMode: "cash", side: "buy", ordType: "market", sz: "1" },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).reduceOnly, undefined);
+  });
+});
+
+describe("option_cancel_order", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_cancel_order")!;
+
+  it("calls /trade/cancel-order via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USD-241227-50000-C", ordId: "123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-order");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes instId and ordId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USD-241227-50000-C", ordId: "456" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instId, "BTC-USD-241227-50000-C");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).ordId, "456");
+  });
+});
+
+describe("option_batch_cancel", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_batch_cancel")!;
+
+  it("calls /trade/cancel-batch-orders via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { orders: [{ instId: "BTC-USD-241227-50000-C", ordId: "123" }] },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-batch-orders");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("throws when orders is empty", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ orders: [] }, makeContext(client)),
+      (err: unknown) => err instanceof Error,
+    );
+  });
+});
+
+describe("option_amend_order", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_amend_order")!;
+
+  it("calls /trade/amend-order via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-C", ordId: "123", newPx: "600" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/amend-order");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes newPx and newSz", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-C", ordId: "123", newPx: "700", newSz: "2" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.newPx, "700");
+    assert.equal(params.newSz, "2");
+  });
+});
+
+describe("option_get_order", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_get_order")!;
+
+  it("calls /trade/order via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USD-241227-50000-C", ordId: "789" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes instId and ordId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USD-241227-50000-P", clOrdId: "myOrd1" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.instId, "BTC-USD-241227-50000-P");
+    assert.equal(params.clOrdId, "myOrd1");
+  });
+});
+
+describe("option_get_orders", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_get_orders")!;
+
+  it("calls /trade/orders-pending by default (status omitted)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-pending");
+  });
+
+  it("calls /trade/orders-pending when status=live", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "live" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-pending");
+  });
+
+  it("calls /trade/orders-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history");
+  });
+
+  it("calls /trade/orders-history-archive when status=archive", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "archive" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history-archive");
+  });
+
+  it("always passes instType=OPTION", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instType, "OPTION");
+  });
+
+  it("passes uly filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).uly, "BTC-USD");
+  });
+});
+
+describe("option_get_positions", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_get_positions")!;
+
+  it("calls /account/positions", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/positions");
+  });
+
+  it("always passes instType=OPTION", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instType, "OPTION");
+  });
+
+  it("passes instId filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USD-241227-50000-C" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instId, "BTC-USD-241227-50000-C");
+  });
+
+  it("passes uly filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "ETH-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).uly, "ETH-USD");
+  });
+});
+
+describe("option_get_fills", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_get_fills")!;
+
+  it("calls /trade/fills by default", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/fills");
+  });
+
+  it("calls /trade/fills-history when archive=true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ archive: true }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/fills-history");
+  });
+
+  it("always passes instType=OPTION", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instType, "OPTION");
+  });
+
+  it("defaults limit to 20 for archive query", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ archive: true }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).limit, 20);
+  });
+
+  it("does not set default limit for recent fills", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).limit, undefined);
+  });
+});
+
+describe("option_get_instruments", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_get_instruments")!;
+
+  it("calls /public/instruments via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/public/instruments");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("always passes instType=OPTION", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instType, "OPTION");
+  });
+
+  it("passes uly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "ETH-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).uly, "ETH-USD");
+  });
+
+  it("passes expTime filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD", expTime: "241227" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).expTime, "241227");
+  });
+
+  it("omits expTime when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).expTime, undefined);
+  });
+});
+
+describe("option_get_greeks", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_get_greeks")!;
+
+  it("calls /public/opt-summary via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/public/opt-summary");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes uly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "ETH-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).uly, "ETH-USD");
+  });
+
+  it("passes expTime filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD", expTime: "250328" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).expTime, "250328");
+  });
+
+  it("omits expTime when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uly: "BTC-USD" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).expTime, undefined);
   });
 });

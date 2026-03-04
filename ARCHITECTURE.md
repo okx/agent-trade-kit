@@ -312,7 +312,7 @@ Failed tool call response format:
 
 ## 8. Claude Desktop Configuration Examples
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
+Edit `~/Library/Application\ Support/Claude/claude_desktop_config.json` (macOS):
 
 Credentials are read from `~/.okx/config.toml` — only the profile name is needed here.
 

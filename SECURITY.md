@@ -1,13 +1,23 @@
 # Security Policy
 
+## Supported Versions
+
+| Version | Supported |
+|---------|-----------|
+| Latest release | ✅ |
+| Previous minor | ✅ security fixes only |
+| Older versions | ❌ |
+
+We recommend always running the latest published version.
+
 ## Reporting a Vulnerability
 
 **Please do NOT open a public GitHub issue for security vulnerabilities.**
 
 Report security issues privately via:
 
-- **Email**: [your-security-email@example.com] *(replace with actual contact)*
-- **Direct message**: [@your-handle] *(replace with actual handle)*
+- **GitHub Private Advisory:** Use the [Report a vulnerability](../../security/advisories/new) button on the Security tab of this repository.
+- **Email:** security@okx.com
 
 Include as much detail as possible: description of the issue, steps to reproduce, potential impact, and any suggested mitigations.
 
@@ -32,9 +42,10 @@ The following vulnerability types are treated as **highest priority** due to the
 
 This project is a thin API integration layer. The primary attack surfaces are:
 
-1. **Credential handling** — API keys read from environment variables or `~/.okx/config.toml`
+1. **Credential handling** — API keys read from `~/.okx/config.toml`
 2. **Network requests** — HTTPS calls to `https://www.okx.com`
 3. **MCP tool input** — parameters passed by AI agents to trading tools
+4. **Audit log** — written to `~/.okx/logs/`; API keys are automatically redacted before writing
 
 Out of scope: vulnerabilities in OKX's own platform, third-party dependencies (report those upstream), or issues requiring physical access to the machine.
 

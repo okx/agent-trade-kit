@@ -5,6 +5,7 @@ export const MODULES = [
   "spot",
   "swap",
   "futures",
+  "option",
   "account",
   "bot",
 ] as const;

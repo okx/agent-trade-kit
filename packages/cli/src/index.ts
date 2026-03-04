@@ -70,7 +70,8 @@ import {
   cmdFuturesGet,
 } from "./commands/futures.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
-import { cmdSetupClients } from "./commands/client-setup.js";
+import { cmdSetupClients, cmdSetupClient, SUPPORTED_CLIENTS } from "./commands/client-setup.js";
+import type { ClientId } from "./commands/client-setup.js";
 import {
   cmdGridOrders,
   cmdGridDetails,
@@ -172,6 +173,10 @@ Commands:
   config show
   config set <key> <value>
   config setup-clients
+
+  setup --client <client> [--profile <name>] [--modules <list>]
+
+  Clients: ${SUPPORTED_CLIENTS.join(", ")}
 `);
 }
 
@@ -185,6 +190,9 @@ async function main(): Promise<void> {
       demo: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
+      // setup command
+      client: { type: "string" },
+      modules: { type: "string" },
       // market candles
       bar: { type: "string" },
       limit: { type: "string" },
@@ -267,6 +275,26 @@ async function main(): Promise<void> {
     process.stderr.write(`Unknown config command: ${action}\n`);
     process.exitCode = 1;
     return;
+  }
+
+  if (module === "setup") {
+    if (!values.client) {
+      const { printSetupUsage } = await import("./commands/client-setup.js");
+      printSetupUsage();
+      return;
+    }
+    if (!SUPPORTED_CLIENTS.includes(values.client as ClientId)) {
+      process.stderr.write(
+        `Unknown client: "${values.client}"\nSupported: ${SUPPORTED_CLIENTS.join(", ")}\n`
+      );
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSetupClient({
+      client: values.client as ClientId,
+      profile: values.profile,
+      modules: values.modules,
+    });
   }
 
   const config = loadProfileConfig({ profile: values.profile, demo: values.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });

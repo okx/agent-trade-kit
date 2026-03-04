@@ -1,7 +1,15 @@
 import { parseArgs } from "node:util";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig, toToolErrorPayload, checkForUpdates, TradeLogger } from "@okx-hub/core";
-import type { LogLevel } from "@okx-hub/core";
+import {
+  loadConfig,
+  toToolErrorPayload,
+  checkForUpdates,
+  TradeLogger,
+  runSetup,
+  printSetupUsage,
+  SUPPORTED_CLIENTS,
+} from "@okx-hub/core";
+import type { LogLevel, ClientId } from "@okx-hub/core";
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import { createServer } from "./server.js";
 
@@ -72,7 +80,43 @@ function parseCli(): {
   };
 }
 
+function handleSetup(): void {
+  const { values } = parseArgs({
+    args: process.argv.slice(3),
+    options: {
+      client: { type: "string" },
+      profile: { type: "string" },
+      modules: { type: "string" },
+    },
+    allowPositionals: false,
+  });
+
+  if (!values.client) {
+    printSetupUsage();
+    return;
+  }
+
+  if (!SUPPORTED_CLIENTS.includes(values.client as ClientId)) {
+    process.stderr.write(
+      `Unknown client: "${values.client}"\nSupported: ${SUPPORTED_CLIENTS.join(", ")}\n`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  runSetup({
+    client: values.client as ClientId,
+    profile: values.profile,
+    modules: values.modules,
+  });
+}
+
 export async function main(): Promise<void> {
+  if (process.argv[2] === "setup") {
+    handleSetup();
+    return;
+  }
+
   checkForUpdates("okx-trade-mcp", SERVER_VERSION);
 
   const cli = parseCli();

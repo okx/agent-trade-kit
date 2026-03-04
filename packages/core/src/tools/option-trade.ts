@@ -1,0 +1,409 @@
+import type { ToolSpec } from "./types.js";
+import {
+  asRecord,
+  compactObject,
+  readBoolean,
+  readNumber,
+  readString,
+  requireString,
+} from "./helpers.js";
+import { privateRateLimit } from "./common.js";
+
+function normalize(response: {
+  endpoint: string;
+  requestTime: string;
+  data: unknown;
+}): Record<string, unknown> {
+  return {
+    endpoint: response.endpoint,
+    requestTime: response.requestTime,
+    data: response.data,
+  };
+}
+
+export function registerOptionTools(): ToolSpec[] {
+  return [
+    {
+      name: "option_place_order",
+      module: "option",
+      description:
+        "Place an OPTION order (buy/sell call or put). instId format: {uly}-{expiry}-{strike}-{C|P}, e.g. BTC-USD-241227-50000-C. tdMode: cash (buyer) or cross/isolated (seller). [CAUTION] Executes real trades. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USD-241227-50000-C (call) or BTC-USD-241227-50000-P (put)",
+          },
+          tdMode: {
+            type: "string",
+            enum: ["cash", "cross", "isolated"],
+            description: "cash=buyer full premium; cross/isolated=seller margin",
+          },
+          side: {
+            type: "string",
+            enum: ["buy", "sell"],
+          },
+          ordType: {
+            type: "string",
+            enum: ["market", "limit", "post_only", "fok", "ioc"],
+            description: "market(no px)|limit(px req)|post_only(maker)|fok|ioc",
+          },
+          sz: {
+            type: "string",
+            description: "Number of contracts",
+          },
+          px: {
+            type: "string",
+            description: "Required for limit/post_only/fok/ioc",
+          },
+          reduceOnly: {
+            type: "boolean",
+            description: "Reduce/close only",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client order ID (max 32 chars)",
+          },
+          tag: {
+            type: "string",
+          },
+        },
+        required: ["instId", "tdMode", "side", "ordType", "sz"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const reduceOnly = args.reduceOnly;
+        const response = await context.client.privatePost(
+          "/api/v5/trade/order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            tdMode: requireString(args, "tdMode"),
+            side: requireString(args, "side"),
+            ordType: requireString(args, "ordType"),
+            sz: requireString(args, "sz"),
+            px: readString(args, "px"),
+            reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
+            clOrdId: readString(args, "clOrdId"),
+            tag: readString(args, "tag"),
+          }),
+          privateRateLimit("option_place_order", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_cancel_order",
+      module: "option",
+      description:
+        "Cancel an unfilled OPTION order. Provide ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
+          ordId: { type: "string" },
+          clOrdId: { type: "string" },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privatePost(
+          "/api/v5/trade/cancel-order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+          }),
+          privateRateLimit("option_cancel_order", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_batch_cancel",
+      module: "option",
+      description:
+        "[CAUTION] Batch cancel up to 20 OPTION orders. Each item: {instId, ordId?, clOrdId?}. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          orders: {
+            type: "array",
+            description: "Array (max 20): {instId, ordId?, clOrdId?}",
+            items: { type: "object" },
+          },
+        },
+        required: ["orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const response = await context.client.privatePost(
+          "/api/v5/trade/cancel-batch-orders",
+          orders as Record<string, unknown>[],
+          privateRateLimit("option_batch_cancel", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_amend_order",
+      module: "option",
+      description:
+        "Amend an unfilled OPTION order (price and/or size). Provide ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
+          ordId: { type: "string" },
+          clOrdId: { type: "string" },
+          newSz: { type: "string", description: "New quantity (contracts)" },
+          newPx: { type: "string", description: "New price" },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privatePost(
+          "/api/v5/trade/amend-order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+            newSz: readString(args, "newSz"),
+            newPx: readString(args, "newPx"),
+          }),
+          privateRateLimit("option_amend_order", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_get_order",
+      module: "option",
+      description:
+        "Get details of a single OPTION order by ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
+          ordId: { type: "string", description: "Provide ordId or clOrdId" },
+          clOrdId: { type: "string", description: "Provide ordId or clOrdId" },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/trade/order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+          }),
+          privateRateLimit("option_get_order", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_get_orders",
+      module: "option",
+      description:
+        "List OPTION orders. status: live=pending (default), history=7d, archive=3mo. Private endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          status: {
+            type: "string",
+            enum: ["live", "history", "archive"],
+            description: "live=pending (default), history=7d, archive=3mo",
+          },
+          uly: { type: "string", description: "Underlying filter, e.g. BTC-USD" },
+          instId: { type: "string", description: "Instrument filter" },
+          ordType: { type: "string", description: "Order type filter" },
+          state: { type: "string", description: "canceled|filled" },
+          after: { type: "string", description: "Pagination: before this order ID" },
+          before: { type: "string", description: "Pagination: after this order ID" },
+          begin: { type: "string", description: "Start time (ms)" },
+          end: { type: "string", description: "End time (ms)" },
+          limit: { type: "number", description: "Max results (default 100)" },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const status = readString(args, "status") ?? "live";
+        const path =
+          status === "archive"
+            ? "/api/v5/trade/orders-history-archive"
+            : status === "history"
+              ? "/api/v5/trade/orders-history"
+              : "/api/v5/trade/orders-pending";
+        const response = await context.client.privateGet(
+          path,
+          compactObject({
+            instType: "OPTION",
+            uly: readString(args, "uly"),
+            instId: readString(args, "instId"),
+            ordType: readString(args, "ordType"),
+            state: readString(args, "state"),
+            after: readString(args, "after"),
+            before: readString(args, "before"),
+            begin: readString(args, "begin"),
+            end: readString(args, "end"),
+            limit: readNumber(args, "limit"),
+          }),
+          privateRateLimit("option_get_orders", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_get_positions",
+      module: "option",
+      description:
+        "Get current OPTION positions including Greeks (delta, gamma, theta, vega). Private endpoint. Rate limit: 10 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "Filter by specific contract" },
+          uly: { type: "string", description: "Filter by underlying, e.g. BTC-USD" },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/positions",
+          compactObject({
+            instType: "OPTION",
+            instId: readString(args, "instId"),
+            uly: readString(args, "uly"),
+          }),
+          privateRateLimit("option_get_positions", 10),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_get_fills",
+      module: "option",
+      description:
+        "Get OPTION fill history. archive=false: last 3 days (default). archive=true: up to 3 months. Private endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          archive: {
+            type: "boolean",
+            description: "true=up to 3 months; false=last 3 days (default)",
+          },
+          instId: { type: "string", description: "Instrument filter" },
+          ordId: { type: "string", description: "Order ID filter" },
+          after: { type: "string", description: "Pagination: before this bill ID" },
+          before: { type: "string", description: "Pagination: after this bill ID" },
+          begin: { type: "string", description: "Start time (ms)" },
+          end: { type: "string", description: "End time (ms)" },
+          limit: { type: "number", description: "Max results" },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const archive = readBoolean(args, "archive") ?? false;
+        const path = archive ? "/api/v5/trade/fills-history" : "/api/v5/trade/fills";
+        const response = await context.client.privateGet(
+          path,
+          compactObject({
+            instType: "OPTION",
+            instId: readString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            after: readString(args, "after"),
+            before: readString(args, "before"),
+            begin: readString(args, "begin"),
+            end: readString(args, "end"),
+            limit: readNumber(args, "limit") ?? (archive ? 20 : undefined),
+          }),
+          privateRateLimit("option_get_fills", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_get_instruments",
+      module: "option",
+      description:
+        "List available OPTION contracts for a given underlying (option chain). Use to find valid instIds before placing orders. Public endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          uly: {
+            type: "string",
+            description: "Underlying, e.g. BTC-USD or ETH-USD",
+          },
+          expTime: {
+            type: "string",
+            description: "Filter by expiry date, e.g. 241227",
+          },
+        },
+        required: ["uly"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.publicGet(
+          "/api/v5/public/instruments",
+          compactObject({
+            instType: "OPTION",
+            uly: requireString(args, "uly"),
+            expTime: readString(args, "expTime"),
+          }),
+          privateRateLimit("option_get_instruments", 20),
+        );
+        return normalize(response);
+      },
+    },
+    {
+      name: "option_get_greeks",
+      module: "option",
+      description:
+        "Get implied volatility and Greeks (delta, gamma, theta, vega) for OPTION contracts by underlying. Public endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          uly: {
+            type: "string",
+            description: "Underlying, e.g. BTC-USD or ETH-USD",
+          },
+          expTime: {
+            type: "string",
+            description: "Filter by expiry date, e.g. 241227",
+          },
+        },
+        required: ["uly"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.publicGet(
+          "/api/v5/public/opt-summary",
+          compactObject({
+            uly: requireString(args, "uly"),
+            expTime: readString(args, "expTime"),
+          }),
+          privateRateLimit("option_get_greeks", 20),
+        );
+        return normalize(response);
+      },
+    },
+  ];
+}
