@@ -87,51 +87,18 @@ demo = true
 
 ## okx-trade-mcp
 
-<details>
-<summary>Claude Desktop</summary>
+```bash
+# Claude Desktop
+okx-trade-mcp setup --client claude-desktop
 
-配置文件路径：
-- macOS：`~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows：`%APPDATA%\Claude\claude_desktop_config.json`
+# Cursor
+okx-trade-mcp setup --client cursor
 
-```json
-{
-  "mcpServers": {
-    "okx-DEMO-simulated-trading": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "demo", "--modules", "all"]
-    },
-    "okx-LIVE-real-money": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "live", "--modules", "all"]
-    }
-  }
-}
+# Claude Code CLI
+okx-trade-mcp setup --client claude-code
 ```
 
-修改配置后重启 Claude Desktop 生效。
-
-</details>
-
-<details>
-<summary>Cursor</summary>
-
-配置文件：`~/.cursor/mcp.json`（全局）或 `.cursor/mcp.json`（项目级）
-
-```json
-{
-  "mcpServers": {
-    "okx-trade": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "demo", "--modules", "all"]
-    }
-  }
-}
-```
-
-</details>
-
-[VS Code · Windsurf · openCxxW · Claude Code CLI →](docs/configuration.md) — [启动场景说明 →](docs/configuration.md#startup-scenarios)（纯行情、只读、仅现货等）
+[VS Code · Windsurf · openCxxW →](docs/configuration.md) — [启动场景说明 →](docs/configuration.md#startup-scenarios)（纯行情、只读、仅现货等）
 
 ---
 

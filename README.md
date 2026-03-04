@@ -87,51 +87,18 @@ For live trading or multiple profiles, see [configuration →](docs/configuratio
 
 ## okx-trade-mcp
 
-<details>
-<summary>Claude Desktop</summary>
+```bash
+# Claude Desktop
+okx-trade-mcp setup --client claude-desktop
 
-Config file:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+# Cursor
+okx-trade-mcp setup --client cursor
 
-```json
-{
-  "mcpServers": {
-    "okx-DEMO-simulated-trading": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "demo", "--modules", "all"]
-    },
-    "okx-LIVE-real-money": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "live", "--modules", "all"]
-    }
-  }
-}
+# Claude Code CLI
+okx-trade-mcp setup --client claude-code
 ```
 
-Restart Claude Desktop after updating the config.
-
-</details>
-
-<details>
-<summary>Cursor</summary>
-
-Config file: `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project-level)
-
-```json
-{
-  "mcpServers": {
-    "okx-trade": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "demo", "--modules", "all"]
-    }
-  }
-}
-```
-
-</details>
-
-[VS Code · Windsurf · openCxxW · Claude Code CLI →](docs/configuration.md) — [Startup scenarios →](docs/configuration.md#startup-scenarios) (market-only, read-only, spot-only, etc.)
+[VS Code · Windsurf · openCxxW →](docs/configuration.md) — [Startup scenarios →](docs/configuration.md#startup-scenarios) (market-only, read-only, spot-only, etc.)
 
 ---
 
