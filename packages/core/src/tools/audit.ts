@@ -58,20 +58,19 @@ export function registerAuditTools(): ToolSpec[] {
         properties: {
           limit: {
             type: "number",
-            description: "Maximum number of entries to return. Default 20, max 100.",
+            description: "Max results (default 20)",
           },
           tool: {
             type: "string",
-            description: "Filter by tool name, e.g. swap_place_order.",
+            description: "e.g. swap_place_order",
           },
           level: {
             type: "string",
             enum: ["INFO", "WARN", "ERROR", "DEBUG"],
-            description: "Filter by log level.",
           },
           since: {
             type: "string",
-            description: "Return entries at or after this ISO 8601 timestamp.",
+            description: "ISO 8601 timestamp lower bound",
           },
         },
       },

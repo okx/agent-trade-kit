@@ -27,7 +27,7 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT, BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT, BTC-USDT-SWAP",
           },
         },
         required: ["instId"],
@@ -54,15 +54,14 @@ export function registerMarketTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: [...OKX_INST_TYPES],
-            description: "Instrument type: SPOT, SWAP, FUTURES, OPTION, MARGIN.",
           },
           uly: {
             type: "string",
-            description: "Underlying, e.g. BTC-USD. Required for OPTION.",
+            description: "Underlying, e.g. BTC-USD. Required for OPTION",
           },
           instFamily: {
             type: "string",
-            description: "Instrument family, e.g. BTC-USD.",
+            description: "e.g. BTC-USD",
           },
         },
         required: ["instType"],
@@ -92,11 +91,11 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           sz: {
             type: "number",
-            description: "Order book depth per side. Default 1, max 400.",
+            description: "Depth per side, default 1, max 400",
           },
         },
         required: ["instId"],
@@ -128,28 +127,28 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           bar: {
             type: "string",
             enum: [...OKX_CANDLE_BARS],
-            description: "Bar size. Default 1m.",
+            description: "Default 1m",
           },
           after: {
             type: "string",
-            description: "Pagination: return records earlier than this timestamp (ms).",
+            description: "Pagination: before this timestamp (ms)",
           },
           before: {
             type: "string",
-            description: "Pagination: return records newer than this timestamp (ms).",
+            description: "Pagination: after this timestamp (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
           history: {
             type: "boolean",
-            description: "Set true to query historical candles older than the recent window.",
+            description: "true=older historical data beyond recent window",
           },
         },
         required: ["instId"],
@@ -186,19 +185,18 @@ export function registerMarketTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: [...OKX_INST_TYPES],
-            description: "Instrument type: SPOT, SWAP, FUTURES, OPTION, MARGIN.",
           },
           instId: {
             type: "string",
-            description: "Filter by specific instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "Filter by ID, e.g. BTC-USDT-SWAP",
           },
           uly: {
             type: "string",
-            description: "Underlying filter, e.g. BTC-USD. Required for OPTION.",
+            description: "Required for OPTION, e.g. BTC-USD",
           },
           instFamily: {
             type: "string",
-            description: "Instrument family filter, e.g. BTC-USD.",
+            description: "e.g. BTC-USD",
           },
         },
         required: ["instType"],
@@ -232,23 +230,23 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "SWAP instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "SWAP instrument, e.g. BTC-USDT-SWAP",
           },
           history: {
             type: "boolean",
-            description: "Set true to fetch historical funding rates.",
+            description: "true=fetch historical rates",
           },
           after: {
             type: "string",
-            description: "Pagination (history only): records earlier than this timestamp (ms).",
+            description: "Pagination (history): before this timestamp (ms)",
           },
           before: {
             type: "string",
-            description: "Pagination (history only): records newer than this timestamp (ms).",
+            description: "Pagination (history): after this timestamp (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of records (history only). Default 20, max 100.",
+            description: "History records (default 20, max 100)",
           },
         },
         required: ["instId"],
@@ -291,19 +289,17 @@ export function registerMarketTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["MARGIN", "SWAP", "FUTURES", "OPTION"],
-            description: "Instrument type.",
           },
           instId: {
             type: "string",
-            description: "Filter by specific instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           uly: {
             type: "string",
-            description: "Underlying filter, e.g. BTC-USD.",
+            description: "e.g. BTC-USD",
           },
           instFamily: {
             type: "string",
-            description: "Instrument family filter.",
           },
         },
         required: ["instType"],
@@ -335,11 +331,11 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT.",
+            description: "e.g. BTC-USDT",
           },
           limit: {
             type: "number",
-            description: "Number of results. Default 20, max 500.",
+            description: "Default 20, max 500",
           },
         },
         required: ["instId"],
@@ -370,11 +366,11 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Index instrument ID, e.g. BTC-USD, ETH-USDT. Omit to return all indices.",
+            description: "e.g. BTC-USD. Omit for all indices",
           },
           quoteCcy: {
             type: "string",
-            description: "Quote currency filter, e.g. USD or USDT.",
+            description: "e.g. USD or USDT",
           },
         },
       },
@@ -405,28 +401,28 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Index instrument ID, e.g. BTC-USD.",
+            description: "Index ID, e.g. BTC-USD",
           },
           bar: {
             type: "string",
             enum: [...OKX_CANDLE_BARS],
-            description: "Bar size. Default 1m.",
+            description: "Default 1m",
           },
           after: {
             type: "string",
-            description: "Pagination: records earlier than this timestamp (ms).",
+            description: "Pagination: before this timestamp (ms)",
           },
           before: {
             type: "string",
-            description: "Pagination: records newer than this timestamp (ms).",
+            description: "Pagination: after this timestamp (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results. Default 100, max 100.",
+            description: "Max results (default 100)",
           },
           history: {
             type: "boolean",
-            description: "Set true to query historical index candles older than the recent window.",
+            description: "true=older historical data",
           },
         },
         required: ["instId"],
@@ -464,7 +460,7 @@ export function registerMarketTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "SWAP or FUTURES instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "SWAP or FUTURES ID, e.g. BTC-USDT-SWAP",
           },
         },
         required: ["instId"],
@@ -493,19 +489,17 @@ export function registerMarketTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: ["SWAP", "FUTURES", "OPTION"],
-            description: "Instrument type.",
           },
           instId: {
             type: "string",
-            description: "Filter by specific instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           uly: {
             type: "string",
-            description: "Underlying filter, e.g. BTC-USD.",
+            description: "e.g. BTC-USD",
           },
           instFamily: {
             type: "string",
-            description: "Instrument family filter.",
           },
         },
         required: ["instType"],

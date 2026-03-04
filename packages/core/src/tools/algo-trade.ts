@@ -37,76 +37,65 @@ export function registerAlgoTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           tdMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Trade mode: cross or isolated margin.",
+            description: "cross|isolated margin",
           },
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description:
-              "Closing side: use 'sell' to close a long position, 'buy' to close a short position.",
+            description: "sell=close long, buy=close short",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description:
-              "Position side. Use 'net' for one-way mode (default for most accounts). Use 'long' or 'short' only in hedge mode.",
+            description: "net=one-way (default); long/short=hedge mode",
           },
           ordType: {
             type: "string",
             enum: ["conditional", "oco"],
-            description:
-              "Algo order type. 'conditional': set TP only, SL only, or both TP+SL together. 'oco': set TP and SL as a pair — the first to trigger cancels the other.",
+            description: "conditional=single TP/SL or both; oco=TP+SL pair (first trigger cancels other)",
           },
           sz: {
             type: "string",
-            description:
-              "Number of contracts to close (e.g. '1'). Should match your open position size.",
+            description: "Contracts to close",
           },
           tpTriggerPx: {
             type: "string",
-            description:
-              "Take-profit trigger price. When market reaches this price, the TP order is submitted. Required if setting a take-profit.",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
-            description:
-              "Take-profit order price. Set to '-1' for a market order when triggered. Required if tpTriggerPx is set.",
+            description: "TP order price; -1=market",
           },
           tpTriggerPxType: {
             type: "string",
             enum: ["last", "index", "mark"],
-            description:
-              "Price type for tpTriggerPx. 'last': last traded price (default). 'index': index price. 'mark': mark price.",
+            description: "last(default)|index|mark",
           },
           slTriggerPx: {
             type: "string",
-            description:
-              "Stop-loss trigger price. When market reaches this price, the SL order is submitted. Required if setting a stop-loss.",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
-            description:
-              "Stop-loss order price. Set to '-1' for a market order when triggered (recommended to ensure execution). Required if slTriggerPx is set.",
+            description: "SL order price; -1=market (recommended)",
           },
           slTriggerPxType: {
             type: "string",
             enum: ["last", "index", "mark"],
-            description:
-              "Price type for slTriggerPx. 'last': last traded price (default). 'index': index price. 'mark': mark price.",
+            description: "last(default)|index|mark",
           },
           reduceOnly: {
             type: "boolean",
-            description:
-              "Set true to ensure this order only reduces an existing position. Recommended for TP/SL orders.",
+            description: "Ensure order only reduces position",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Up to 32 characters.",
+            description: "Client order ID (max 32 chars)",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -153,51 +142,46 @@ export function registerAlgoTradeTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+            description: "e.g. BTC-USDT-SWAP",
           },
           tdMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Trade mode: cross or isolated margin.",
+            description: "cross|isolated margin",
           },
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description:
-              "Closing side: use 'sell' to close a long position, 'buy' to close a short position.",
+            description: "sell=close long, buy=close short",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description:
-              "Position side. Use 'net' for one-way mode (default). Use 'long' or 'short' only in hedge mode.",
+            description: "net=one-way (default); long/short=hedge mode",
           },
           sz: {
             type: "string",
-            description: "Number of contracts (e.g. '1').",
+            description: "Contracts",
           },
           callbackRatio: {
             type: "string",
-            description:
-              "Callback ratio as a decimal (e.g. '0.01' for 1%). Provide either callbackRatio or callbackSpread, not both.",
+            description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread",
           },
           callbackSpread: {
             type: "string",
-            description:
-              "Callback spread in quote-currency price units. Provide either callbackRatio or callbackSpread, not both.",
+            description: "Callback spread in price units; provide either ratio or spread",
           },
           activePx: {
             type: "string",
-            description:
-              "Optional activation price. Trailing only starts after the market reaches this level.",
+            description: "Activation price; tracking starts after market reaches this level",
           },
           reduceOnly: {
             type: "boolean",
-            description: "Set true to ensure the order only reduces an existing position.",
+            description: "Ensure order only reduces position",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Up to 32 characters.",
+            description: "Client order ID (max 32 chars)",
           },
         },
         required: ["instId", "tdMode", "side", "sz"],
@@ -238,18 +222,17 @@ export function registerAlgoTradeTools(): ToolSpec[] {
         properties: {
           orders: {
             type: "array",
-            description:
-              "List of algo orders to cancel. Each item must have algoId and instId.",
+            description: "List of algo orders to cancel. Each item: {algoId, instId}.",
             items: {
               type: "object",
               properties: {
                 algoId: {
                   type: "string",
-                  description: "Algo order ID to cancel.",
+                  description: "Algo order ID",
                 },
                 instId: {
                   type: "string",
-                  description: "Instrument ID, e.g. BTC-USDT-SWAP.",
+                  description: "e.g. BTC-USDT-SWAP",
                 },
               },
               required: ["algoId", "instId"],
@@ -284,34 +267,32 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["pending", "history"],
-            description:
-              "Query pending (active) algo orders or completed history. Default: 'pending'.",
+            description: "pending=active (default); history=completed",
           },
           ordType: {
             type: "string",
             enum: ["conditional", "oco", "move_order_stop"],
-            description:
-              "Filter by algo order type. Omit to return all types (conditional + oco + move_order_stop).",
+            description: "Filter by type; omit for all",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-SWAP.",
+            description: "Instrument ID filter",
           },
           algoId: {
             type: "string",
-            description: "Filter by specific algo order ID.",
+            description: "Filter by algo order ID",
           },
           after: {
             type: "string",
-            description: "Pagination: orders earlier than this algo order ID.",
+            description: "Pagination: before this algo ID",
           },
           before: {
             type: "string",
-            description: "Pagination: orders newer than this algo order ID.",
+            description: "Pagination: after this algo ID",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
       },

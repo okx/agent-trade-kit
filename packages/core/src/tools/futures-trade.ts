@@ -37,74 +37,62 @@ export function registerFuturesTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description:
-              "Instrument ID, e.g. BTC-USDT-240329 for quarterly delivery futures.",
+            description: "e.g. BTC-USDT-240329",
           },
           tdMode: {
             type: "string",
             enum: ["cross", "isolated"],
-            description: "Trade mode: cross or isolated margin.",
+            description: "cross|isolated margin",
           },
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description:
-              "Order side. In one-way mode: buy=open/add long, sell=open/add short. To close: sell with reduceOnly=true (long) or buy with reduceOnly=true (short). In hedge mode: buy+long=open long, sell+long=close long, sell+short=open short, buy+short=close short.",
+            description: "one-way: buy=open long, sell=open short (use reduceOnly=true to close); hedge: combined with posSide",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description:
-              "Position side. IMPORTANT: Most OKX accounts use one-way mode — use 'net' in that case. Only use 'long' or 'short' if your account is configured for hedge mode (双向持仓). If you get an error like 'posSide is not valid', switch to 'net'.",
+            description: "net=one-way mode (default); long/short=hedge mode only",
           },
           ordType: {
             type: "string",
             enum: ["market", "limit", "post_only", "fok", "ioc"],
-            description:
-              "Order type. 'market': execute immediately at market price, no px needed. 'limit': execute at px or better, px required. 'post_only': maker-only limit order, px required. 'fok': fill entire order immediately or cancel, px required. 'ioc': fill as much as possible immediately, cancel rest, px required.",
+            description: "market(no px)|limit(px req)|post_only(maker)|fok(all-or-cancel)|ioc(partial fill)",
           },
           sz: {
             type: "string",
-            description:
-              "Quantity in number of contracts (e.g. '1' = 1 contract).",
+            description: "Contracts",
           },
           px: {
             type: "string",
-            description:
-              "Order price. Required for limit, post_only, fok, ioc orders. Omit for market orders.",
+            description: "Required for limit/post_only/fok/ioc",
           },
           reduceOnly: {
             type: "boolean",
-            description:
-              "Set true to close/reduce an existing position without opening a new one. Use this in one-way mode to close positions instead of posSide.",
+            description: "Close/reduce only, no new position (one-way mode)",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Up to 32 characters.",
+            description: "Client order ID (max 32 chars)",
           },
           tag: {
             type: "string",
-            description: "Order tag.",
           },
           tpTriggerPx: {
             type: "string",
-            description:
-              "Take-profit trigger price. When triggered, places a TP order at tpOrdPx. Assembled into attachAlgoOrds automatically.",
+            description: "TP trigger price; places TP at tpOrdPx",
           },
           tpOrdPx: {
             type: "string",
-            description:
-              "Take-profit order price. Use '-1' for market order. Required when tpTriggerPx is set.",
+            description: "TP order price; -1=market",
           },
           slTriggerPx: {
             type: "string",
-            description:
-              "Stop-loss trigger price. When triggered, places a SL order at slOrdPx. Assembled into attachAlgoOrds automatically.",
+            description: "SL trigger price; places SL at slOrdPx",
           },
           slOrdPx: {
             type: "string",
-            description:
-              "Stop-loss order price. Use '-1' for market order. Required when slTriggerPx is set.",
+            description: "SL order price; -1=market",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -149,15 +137,14 @@ export function registerFuturesTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-240329.",
+            description: "e.g. BTC-USDT-240329",
           },
           ordId: {
             type: "string",
-            description: "Order ID.",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID.",
+            description: "Client order ID",
           },
         },
         required: ["instId"],
@@ -187,15 +174,15 @@ export function registerFuturesTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "Instrument ID, e.g. BTC-USDT-240329.",
+            description: "e.g. BTC-USDT-240329",
           },
           ordId: {
             type: "string",
-            description: "Order ID. Provide either ordId or clOrdId.",
+            description: "Provide ordId or clOrdId",
           },
           clOrdId: {
             type: "string",
-            description: "Client-supplied order ID. Provide either ordId or clOrdId.",
+            description: "Provide ordId or clOrdId",
           },
         },
         required: ["instId"],
@@ -226,45 +213,44 @@ export function registerFuturesTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["open", "history", "archive"],
-            description:
-              "Query open orders (default), history of last 7 days, or archive of up to 3 months.",
+            description: "open=active, history=7d, archive=3mo",
           },
           instType: {
             type: "string",
             enum: [...FUTURES_INST_TYPES],
-            description: "Instrument type: FUTURES (default) or SWAP.",
+            description: "FUTURES (default) or SWAP",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-240329.",
+            description: "e.g. BTC-USDT-240329",
           },
           ordType: {
             type: "string",
-            description: "Order type filter.",
+            description: "Order type filter",
           },
           state: {
             type: "string",
-            description: "Order state filter (for history): canceled, filled.",
+            description: "canceled|filled",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: orders earlier than this order ID.",
+            description: "Pagination: before this order ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: orders newer than this order ID.",
+            description: "Pagination: after this order ID",
           },
           begin: {
             type: "string",
-            description: "Start time filter in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time filter in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, default 100, max 100.",
+            description: "Max results (default 100)",
           },
         },
       },
@@ -309,15 +295,14 @@ export function registerFuturesTools(): ToolSpec[] {
           instType: {
             type: "string",
             enum: [...FUTURES_INST_TYPES],
-            description: "Instrument type: FUTURES (default) or SWAP.",
+            description: "FUTURES (default) or SWAP",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-240329.",
+            description: "e.g. BTC-USDT-240329",
           },
           posId: {
             type: "string",
-            description: "Position ID filter.",
           },
         },
       },
@@ -348,40 +333,40 @@ export function registerFuturesTools(): ToolSpec[] {
         properties: {
           archive: {
             type: "boolean",
-            description: "Set true to query fills history up to 3 months. Default false (last 3 days).",
+            description: "true=up to 3 months; false=last 3 days (default)",
           },
           instType: {
             type: "string",
             enum: [...FUTURES_INST_TYPES],
-            description: "Instrument type: FUTURES (default) or SWAP.",
+            description: "FUTURES (default) or SWAP",
           },
           instId: {
             type: "string",
-            description: "Instrument ID filter, e.g. BTC-USDT-240329.",
+            description: "Instrument ID filter",
           },
           ordId: {
             type: "string",
-            description: "Order ID filter.",
+            description: "Order ID filter",
           },
           after: {
             type: "string",
-            description: "Pagination cursor: fills earlier than this bill ID.",
+            description: "Pagination: before this bill ID",
           },
           before: {
             type: "string",
-            description: "Pagination cursor: fills newer than this bill ID.",
+            description: "Pagination: after this bill ID",
           },
           begin: {
             type: "string",
-            description: "Start time filter in milliseconds.",
+            description: "Start time (ms)",
           },
           end: {
             type: "string",
-            description: "End time filter in milliseconds.",
+            description: "End time (ms)",
           },
           limit: {
             type: "number",
-            description: "Number of results, max 100. Defaults to 100 (recent) or 20 (archive).",
+            description: "Max results (default 100 or 20 for archive)",
           },
         },
       },
