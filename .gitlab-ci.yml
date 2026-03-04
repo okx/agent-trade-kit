@@ -4,6 +4,7 @@ default:
 stages:
   - test
   - integration
+  - quality
 
 # ── shared setup ──────────────────────────────────────────────────────────────
 
@@ -12,14 +13,32 @@ stages:
     - corepack enable
     - pnpm install --frozen-lockfile
 
-# ── unit tests (always, all branches) ────────────────────────────────────────
+# ── unit tests + lcov coverage (always, all branches) ────────────────────────
 
 unit-test:
   stage: test
   <<: *pnpm-setup
   script:
-    - node --import tsx/esm --test-coverage packages/core/test/*.test.ts
-  coverage: '/all files\s*\|\s*([\d.]+)/'
+    - pnpm test:coverage
+  coverage: '/All files\s*\|\s*([\d.]+)/'
+  artifacts:
+    paths:
+      - coverage/lcov.info
+    expire_in: 1 day
+
+# ── sonar scan (master only) ──────────────────────────────────────────────────
+
+sonar:
+  stage: quality
+  image: sonarsource/sonar-scanner-cli:latest
+  dependencies:
+    - unit-test
+  script:
+    - sonar-scanner
+        -Dsonar.host.url=$SONAR_HOST_URL
+        -Dsonar.token=$SONAR_TOKEN
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
 
 # ── smoke test (demo API, master only) ───────────────────────────────────────
 

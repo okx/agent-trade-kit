@@ -7,15 +7,20 @@
     "build": "pnpm --filter @okx-hub/core build && pnpm --filter okx-trade-mcp build && pnpm --filter okx-trade-cli build",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
-    "test:unit": "pnpm --filter @okx-hub/core test:unit"
+    "test:unit": "pnpm --filter @okx-hub/core test:unit",
+    "test:coverage": "pnpm --filter @okx-hub/core test:coverage",
+    "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src node_modules/.bin/tsx --test packages/core/test/*.test.ts"
   },
   "engines": {
     "node": ">=18",
     "pnpm": ">=9"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@types/node": "^25.2.2",
+    "c8": "^10.1.3",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.9.3"
   }
 }
