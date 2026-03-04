@@ -386,7 +386,7 @@ Version: okx-trade-cli@1.0.2
 ## Build from Source
 
 ```bash
-git clone https://github.com/USER/REPO.git && cd okx-hub
+git clone https://github.com/okx/agent-tools.git && cd agent-tools
 pnpm install && pnpm build
 ```
 
@@ -794,7 +794,7 @@ Version: okx-trade-cli@1.0.2
 ## 从源码构建
 
 ```bash
-git clone https://github.com/USER/REPO.git && cd okx-hub
+git clone https://github.com/okx/agent-tools.git && cd agent-tools
 pnpm install && pnpm build
 ```
 详细开发指引见 [CONTRIBUTING.md](CONTRIBUTING.md)。
