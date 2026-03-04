@@ -16,8 +16,8 @@ Thank you for your interest in contributing! This guide covers everything you ne
 npm install -g pnpm
 
 # Clone the repository
-git clone https://github.com/USER/REPO.git   # replace with actual URL
-cd agent-tools
+git clone https://github.com/okx/agent-tradekit.git   # replace with actual URL
+cd agent-tradekit
 
 # Install dependencies
 pnpm install
@@ -173,4 +173,4 @@ Fill in the pull request template — describe what changed, how it was tested, 
 
 ## Questions?
 
-Open a [GitHub Discussion](https://github.com/USER/REPO/discussions) or file an issue with the `question` label.
+Open a [GitHub Discussion](https://github.com/okx/agent-tradekit/discussions) or file an issue with the `question` label.

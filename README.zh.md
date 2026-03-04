@@ -1,7 +1,7 @@
 # OKX Trade MCP 工具集
 
-[![CI](https://github.com/okx/agent-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tools/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/okx/agent-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tools)
+[![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
 [![npm: mcp](https://img.shields.io/npm/v/agent-tradekit-mcp?label=agent-tradekit-mcp)](https://www.npmjs.com/package/agent-tradekit-mcp)
 [![npm downloads: mcp](https://img.shields.io/npm/dm/agent-tradekit-mcp?label=mcp+downloads)](https://www.npmjs.com/package/agent-tradekit-mcp)
 [![npm: cli](https://img.shields.io/npm/v/agent-tradekit-cli?label=agent-tradekit-cli)](https://www.npmjs.com/package/agent-tradekit-cli)
@@ -151,7 +151,7 @@ Version: agent-tradekit-cli@1.0.4
 ## 从源码构建
 
 ```bash
-git clone https://github.com/okx/agent-tools.git && cd agent-tools
+git clone https://github.com/okx/agent-tradekit.git && cd agent-tradekit
 pnpm install && pnpm build
 ```
 
