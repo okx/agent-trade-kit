@@ -11,11 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+---
+
+## [1.0.5] - 2026-03-04
+
+### Added
+
 - **Option module (10 tools)**: new `option` module for options trading — `option_place_order`, `option_cancel_order`, `option_batch_cancel`, `option_amend_order` (write); `option_get_order`, `option_get_orders`, `option_get_positions` (with Greeks), `option_get_fills`, `option_get_instruments` (option chain), `option_get_greeks` (IV + Delta/Gamma/Theta/Vega) (read)
+
+### Fixed
+
+### Changed
+
+- Total tools: 48 → 57 → 67
+- **Documentation restructure**: split single `README.md` into `README.md` (EN) + `README.zh.md` (ZH) with language toggle; added `docs/configuration.md` (all client setups + startup scenarios), `docs/faq.md`, `docs/cli-reference.md`, and per-module references under `docs/modules/`
+- **GitHub issue templates**: added `bug_report.md` and `feature_request.md` under `.github/ISSUE_TEMPLATE/`
+- **`SECURITY.md`**: added supported versions table and GitHub Private Security Advisory link
+- **Error handling — actionable suggestions**: `OkxRestClient` now maps ~20 OKX error codes to retry guidance; rate-limit codes (`50011`, `50061`) throw `RateLimitError`; server-busy codes carry "Retry after X seconds"; region/compliance and account-issue codes carry "Do not retry" advice
+- **Test coverage**: function coverage raised from 76.5% → 93.4% (199 → 243 tests); every source file now exceeds 80% function coverage
+- **Coverage scripts**: c8 now includes `packages/cli/src` and `packages/mcp/src` in coverage collection and runs all package tests
+
+---
+
+## [1.0.4] - 2026-03-03
+
+### Added
 
 - **Audit log — `trade_get_history`**: query the local NDJSON audit log of all MCP tool calls; supports `limit`, `tool`, `level`, and `since` filters
 - **Audit logging**: MCP server automatically writes NDJSON entries to `~/.okx/logs/trade-YYYY-MM-DD.log`; `--no-log` disables logging, `--log-level` sets the minimum level (default `info`); sensitive fields (apiKey, secretKey, passphrase) are automatically redacted
-
 - **Error tracing**: `traceId` field added to `ToolErrorPayload` and all error classes — populated from `x-trace-id` / `x-request-id` response headers when OKX returns them
 - **Server version in MCP errors**: `serverVersion` injected into MCP error payloads for easier bug reporting
 - **CLI version in errors**: `Version: okx-trade-cli@x.x.x` always printed to stderr on error; `TraceId:` printed when available
@@ -30,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI `--demo` flag**: global `--demo` option to enable simulated trading mode directly from the command line (alternative to `OKX_DEMO=1` env var or profile config)
 - **CLI bot grid commands**: `bot grid orders`, `bot grid details`, `bot grid sub-orders`, `bot grid create`, `bot grid stop` — full grid bot lifecycle management via CLI
 - **CLI full coverage**: extended `okx-trade-cli` to cover all 57 MCP tools — new commands across `market` (`instruments`, `funding-rate`, `mark-price`, `trades`, `index-ticker`, `index-candles`, `price-limit`, `open-interest`), `account` (`positions`, `bills`, `fees`, `config`, `set-position-mode`, `max-size`, `max-avail-size`, `max-withdrawal`, `positions-history`, `asset-balance`, `transfer`), `spot` (`get`, `amend`), `swap` (`get`, `fills`, `close`, `get-leverage`), and new `futures` module (`orders`, `positions`, `fills`, `place`, `cancel`, `get`)
+- **CLI/MCP entry tests**: new unit tests for `okx` and `okx-trade-mcp` entrypoints to exercise help/setup flows and keep coverage accurate
 
 ### Fixed
 
@@ -43,13 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`spot_get_algo_orders`**: fixed `400 Parameter ordType error` when called without an `ordType` filter — now fetches `conditional` and `oco` types in parallel and merges results, matching the behaviour of `swap_get_algo_orders`
 
 ### Changed
-
-- Total tools: 48 → 57 → 67
-- **Documentation restructure**: split single `README.md` into `README.md` (EN) + `README.zh.md` (ZH) with language toggle; added `docs/configuration.md` (all client setups + startup scenarios), `docs/faq.md`, `docs/cli-reference.md`, and per-module references under `docs/modules/`
-- **GitHub issue templates**: added `bug_report.md` and `feature_request.md` under `.github/ISSUE_TEMPLATE/`
-- **`SECURITY.md`**: added supported versions table and GitHub Private Security Advisory link
-- **Error handling — actionable suggestions**: `OkxRestClient` now maps ~20 OKX error codes to retry guidance; rate-limit codes (`50011`, `50061`) throw `RateLimitError`; server-busy codes carry "Retry after X seconds"; region/compliance and account-issue codes carry "Do not retry" advice
-- **Test coverage**: function coverage raised from 76.5% → 93.4% (199 → 243 tests); every source file now exceeds 80% function coverage
 
 ---
 
