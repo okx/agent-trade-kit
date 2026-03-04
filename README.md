@@ -797,7 +797,6 @@ Version: okx-trade-cli@1.0.2
 git clone https://github.com/USER/REPO.git && cd okx-hub
 pnpm install && pnpm build
 ```
-
 详细开发指引见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ### 项目结构
