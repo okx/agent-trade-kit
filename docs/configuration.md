@@ -97,7 +97,7 @@ Also available as `okx setup --client <client>` if `okx-trade-cli` is installed.
 
 | `--client` | Target |
 |------------|--------|
-| `claude-desktop` | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\...` (Windows) |
+| `claude-desktop` | `~/Library/Application\ Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\...` (Windows) |
 | `cursor` | `~/.cursor/mcp.json` |
 | `windsurf` | `~/.codeium/windsurf/mcp_config.json` |
 | `vscode` | `.mcp.json` in current directory |
@@ -112,7 +112,7 @@ The command reads existing config and merges the new entry — it will not overw
 ### Claude Desktop
 
 Config file:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- macOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
@@ -417,7 +417,7 @@ okx-trade-mcp setup --client claude-desktop --profile live --modules market,spot
 
 | `--client` | 目标 |
 |------------|------|
-| `claude-desktop` | macOS: `~/Library/Application Support/Claude/...` / Windows: `%APPDATA%\Claude\...` |
+| `claude-desktop` | macOS: `~/Library/Application\ Support/Claude/...` / Windows: `%APPDATA%\Claude\...` |
 | `cursor` | `~/.cursor/mcp.json` |
 | `windsurf` | `~/.codeium/windsurf/mcp_config.json` |
 | `vscode` | 当前目录下的 `.mcp.json` |
@@ -432,7 +432,7 @@ okx-trade-mcp setup --client claude-desktop --profile live --modules market,spot
 ### Claude Desktop
 
 配置文件路径：
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- macOS: `~/Library/Application\ Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
