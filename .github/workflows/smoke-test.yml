@@ -1,0 +1,89 @@
+name: Smoke Test (Demo)
+
+# Runs against the real OKX demo API for all three sites.
+# Requires per-site secrets (see README for setup instructions):
+#   OKX_GLOBAL_API_KEY / OKX_GLOBAL_SECRET_KEY / OKX_GLOBAL_PASSPHRASE
+#   OKX_EEA_API_KEY    / OKX_EEA_SECRET_KEY    / OKX_EEA_PASSPHRASE
+#   OKX_US_API_KEY     / OKX_US_SECRET_KEY      / OKX_US_PASSPHRASE
+# Sites with missing credentials are skipped automatically.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+jobs:
+  smoke:
+    name: "${{ matrix.site }} (demo)"
+    runs-on: ubuntu-latest
+    continue-on-error: true  # one site failing doesn't block the others
+
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [global, eea, us]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Set credentials for ${{ matrix.site }}
+        run: |
+          case "${{ matrix.site }}" in
+            global)
+              echo "OKX_API_KEY=${{ secrets.OKX_GLOBAL_API_KEY }}"     >> $GITHUB_ENV
+              echo "OKX_SECRET_KEY=${{ secrets.OKX_GLOBAL_SECRET_KEY }}" >> $GITHUB_ENV
+              echo "OKX_PASSPHRASE=${{ secrets.OKX_GLOBAL_PASSPHRASE }}" >> $GITHUB_ENV
+              ;;
+            eea)
+              echo "OKX_API_KEY=${{ secrets.OKX_EEA_API_KEY }}"        >> $GITHUB_ENV
+              echo "OKX_SECRET_KEY=${{ secrets.OKX_EEA_SECRET_KEY }}"   >> $GITHUB_ENV
+              echo "OKX_PASSPHRASE=${{ secrets.OKX_EEA_PASSPHRASE }}"   >> $GITHUB_ENV
+              ;;
+            us)
+              echo "OKX_API_KEY=${{ secrets.OKX_US_API_KEY }}"         >> $GITHUB_ENV
+              echo "OKX_SECRET_KEY=${{ secrets.OKX_US_SECRET_KEY }}"    >> $GITHUB_ENV
+              echo "OKX_PASSPHRASE=${{ secrets.OKX_US_PASSPHRASE }}"    >> $GITHUB_ENV
+              ;;
+          esac
+
+      - name: Check credentials
+        id: check
+        run: |
+          if [ -z "$OKX_API_KEY" ]; then
+            echo "⚠️  No credentials configured for site=${{ matrix.site }} — skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run smoke test — ${{ matrix.site }}
+        if: steps.check.outputs.skip == 'false'
+        env:
+          OKX_SITE: ${{ matrix.site }}
+          OKX_DEMO: "true"
+        run: pnpm tsx scripts/smoke-test/run.ts
+
+      - name: Upload report
+        if: always() && steps.check.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report-${{ matrix.site }}
+          path: scripts/smoke-test/report.md
