@@ -22,6 +22,40 @@ demo = true
 
 **Required API permissions:** Read + Trade. Withdraw permission is not required or recommended.
 
+### Site Configuration
+
+OKX operates independent regional sites. Users must use the API of the site where their account is registered.
+
+| Site | User URL | API Base URL |
+|------|----------|-------------|
+| `global` (default) | `www.okx.com` | `https://www.okx.com` |
+| `eea` | `my.okx.com` | `https://eea.okx.com` |
+| `us` | `app.okx.com` | `https://app.okx.com` |
+
+Set the site in your profile:
+
+```toml
+[profiles.main]
+site = "global"          # global | eea | us  (default: global)
+api_key = "your-api-key"
+secret_key = "your-secret-key"
+passphrase = "your-passphrase"
+```
+
+Or override at startup via flag or env var:
+
+```bash
+# Flag
+agent-tradekit-mcp --site eea
+
+# Environment variable (useful in Docker / CI)
+OKX_SITE=us agent-tradekit-mcp
+```
+
+Priority: `--site` flag > `OKX_SITE` env var > `site` in toml > default `global`
+
+> **Note:** `OKX_API_BASE_URL` / `base_url` in toml still override the site mapping entirely — useful for testing against a custom endpoint.
+
 ### Multiple profiles
 
 You can define as many profiles as you like. Each MCP server instance uses one profile, so you can run demo and live side by side:
@@ -341,6 +375,40 @@ demo = true
 > **实盘 Key：** OKX 官网 → 个人中心 → API → 创建 API Key
 
 **所需 API 权限：** 读取 + 交易。无需也不建议开启提币权限。
+
+### 站点配置
+
+OKX 运营多个独立的区域站点，用户需要使用其账号所在站点的 API。
+
+| 站点 | 用户网址 | API Base URL |
+|------|----------|-------------|
+| `global`（默认） | `www.okx.com` | `https://www.okx.com` |
+| `eea` | `my.okx.com` | `https://eea.okx.com` |
+| `us` | `app.okx.com` | `https://app.okx.com` |
+
+在 Profile 中指定站点：
+
+```toml
+[profiles.main]
+site = "global"          # global | eea | us（默认：global）
+api_key = "your-api-key"
+secret_key = "your-secret-key"
+passphrase = "your-passphrase"
+```
+
+也可以通过命令行参数或环境变量覆盖：
+
+```bash
+# 命令行参数
+agent-tradekit-mcp --site eea
+
+# 环境变量（适用于 Docker / CI）
+OKX_SITE=us agent-tradekit-mcp
+```
+
+优先级：`--site` 参数 > `OKX_SITE` 环境变量 > toml 中的 `site` > 默认 `global`
+
+> **注意：** `OKX_API_BASE_URL` 环境变量 / toml 中的 `base_url` 仍然优先级最高，会完全覆盖站点映射——适合高级用户或自定义测试场景。
 
 ### 多账号配置
 

@@ -210,6 +210,7 @@ function parseArgs() {
   const readOnly = argv.includes("--read-only");
   const moduleFilter: string[] = [];
   let futuresInst: string | undefined;
+  let profile: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--module" && argv[i + 1]) {
@@ -218,9 +219,12 @@ function parseArgs() {
     if (argv[i] === "--futures-inst" && argv[i + 1]) {
       futuresInst = argv[++i];
     }
+    if (argv[i] === "--profile" && argv[i + 1]) {
+      profile = argv[++i];
+    }
   }
 
-  return { readOnly, moduleFilter, futuresInst };
+  return { readOnly, moduleFilter, futuresInst, profile };
 }
 
 // ─── report ───────────────────────────────────────────────────────────────────
@@ -268,12 +272,13 @@ function tally(results: Result[]) {
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const { readOnly, moduleFilter, futuresInst } = parseArgs();
+  const { readOnly, moduleFilter, futuresInst, profile } = parseArgs();
 
   const config = loadConfig({
     readOnly: false,
     demo: true,
     modules: moduleFilter.length > 0 ? moduleFilter.join(",") : "all",
+    profile,
     userAgent: "okx-smoke-test/1.0",
   });
 
@@ -298,7 +303,8 @@ async function main() {
   const tools = buildTools(config);
 
   const label = readOnly ? "read-only" : "all tools";
-  console.log(`\n🧪  OKX Demo Smoke Test — ${tools.length} tools | ${label}${futuresInst ? ` | futures: ${futuresInst}` : ""}\n`);
+  const profileLabel = profile ? ` | profile: ${profile}` : "";
+  console.log(`\n🧪  OKX Demo Smoke Test — ${tools.length} tools | ${label} | site: ${config.site}${profileLabel}${futuresInst ? ` | futures: ${futuresInst}` : ""}\n`);
   console.log("─".repeat(76));
 
   const results: Result[] = [];

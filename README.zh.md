@@ -74,6 +74,7 @@ mkdir -p ~/.okx && vim ~/.okx/config.toml
 default_profile = "demo"
 
 [profiles.demo]
+site = "global"          # global | eea | us（默认：global）
 api_key = "your-demo-api-key"
 secret_key = "your-demo-secret-key"
 passphrase = "your-demo-passphrase"
@@ -81,6 +82,8 @@ demo = true
 ```
 
 > 模拟盘 Key：OKX 官网 → 交易 → 模拟交易 → API 管理
+
+**多站点用户：** OKX 运营多个区域站点——EEA 用户（`my.okx.com`）请设置 `site = "eea"`，美国用户（`app.okx.com`）请设置 `site = "us"`。详见 [配置说明 →](docs/configuration.md#站点配置)。
 
 真实盘或多账户配置，见 [配置说明 →](docs/configuration.md)。
 

@@ -11,7 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Scenario tests**: added `scripts/scenario-test/` with multi-step integration tests covering stateless read flows (account balance, market data, swap leverage) and stateful write flows (Spot place→query→cancel, Swap set-leverage→place→query→cancel). Stateless scenarios are CI-safe; stateful scenarios require `OKX_DEMO=1`.
+
+- **Multi-site support**: users on OKX Global (`www.okx.com`), EEA (`my.okx.com`), and US (`app.okx.com`) can now configure their site via `--site <global|eea|us>` CLI flag, `OKX_SITE` env var, or `site` field in `~/.okx/config.toml`. The API base URL is automatically derived from the site; explicit `OKX_API_BASE_URL` / `base_url` overrides remain supported for advanced use.
+- **`config init` site selection**: the interactive wizard now prompts for site before asking for API key, and opens the correct API management URL for the chosen site.
+- **`config show` site display**: the `site` field is now shown for each profile.
+- **Region error context**: error suggestions for OKX region-restriction codes (51155, 51734) now include the currently configured site to help users diagnose misconfigured site settings.
+- **docs/faq.md**: added "General" section with 3 new Q&As — "What is OKX Trade MCP?", "What trading pairs are supported?", and "What risks should I understand?" (bilingual EN + ZH)
+- **docs/faq.md**: added "API Coverage" section explaining which OKX REST API modules are supported vs. not yet supported by the MCP server and CLI (bilingual EN + ZH)
+
 ### Fixed
+
+- **CLI**: ensure `main()` is always invoked when executed via npm global symlink; add defensive comment and symlink regression test to prevent future regressions (#21)
 
 ### Changed
 

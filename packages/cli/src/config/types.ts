@@ -5,6 +5,7 @@ export interface CliProfile {
   base_url?: string;
   timeout_ms?: number;
   demo?: boolean;
+  site?: string;
 }
 
 export interface CliConfig {

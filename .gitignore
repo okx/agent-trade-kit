@@ -8,5 +8,8 @@ _tmp_*
 .cursor/
 scripts/idea-agent/*.log
 scripts/idea-agent/work-log.md
+scripts/idea-agent/.pid
+scripts/idea-agent/.disabled
+scripts/idea-agent/agent-state.json
 scripts/smoke-test/report.md
 scripts/idea-agent/__pycache__/

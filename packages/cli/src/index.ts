@@ -187,6 +187,7 @@ async function main(): Promise<void> {
     args: process.argv.slice(2),
     options: {
       profile: { type: "string" },
+      site: { type: "string" },
       demo: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
@@ -634,6 +635,9 @@ async function main(): Promise<void> {
   process.exitCode = 1;
 }
 
+// IMPORTANT: Do NOT add an `import.meta.url === pathToFileURL(process.argv[1]).href`
+// guard here. npm global install creates a symlink, and the symlink path differs from
+// the real file path, which would silently skip main(). See: issue #21
 main().catch((error: unknown) => {
   const payload = toToolErrorPayload(error);
   process.stderr.write(`Error: ${payload.message}\n`);

@@ -1,4 +1,4 @@
-"""glab CLI wrapper for agent-tradekit idea-agent."""
+"""glab CLI wrapper for okx-trade-mcp idea-agent."""
 
 import json
 import os
@@ -6,8 +6,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = "retail-ai/agent-tradekit"
+REPO = "retail-ai/okx-trade-mcp"
 GLAB_CONFIG_DIR = str(Path.home() / "meili/jay.fan_dacs_at_okg.com/113/.config/glab-cli")
+
+# Issues with any of these labels will be picked up by the agent
+IDEA_LABELS = ["idea", "bug", "enhancement"]
 
 GLAB_ENV = {
     "GLAB_CONFIG_DIR": GLAB_CONFIG_DIR,
@@ -16,37 +19,47 @@ GLAB_ENV = {
 
 
 def _run(args: list[str], check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(
+    result = subprocess.run(
         args,
         capture_output=True,
         text=True,
         env=GLAB_ENV,
-        check=check,
+        check=False,
     )
+    if result.returncode != 0 and check:
+        print(f"[gitlab] CMD: {args}", file=sys.stderr)
+        print(f"[gitlab] STDERR: {result.stderr.strip()}", file=sys.stderr)
+        print(f"[gitlab] STDOUT: {result.stdout.strip()}", file=sys.stderr)
+        raise subprocess.CalledProcessError(result.returncode, args, result.stdout, result.stderr)
+    return result
 
 
 def list_open_ideas() -> list[dict]:
-    """Return open issues with label 'idea'."""
-    result = _run([
-        "glab", "issue", "list",
-        "--label", "idea",
-        "--state", "opened",
-        "--output", "json",
-        "--repo", REPO,
-    ])
-    return json.loads(result.stdout)
+    """Return open issues with any of IDEA_LABELS, deduped by iid."""
+    seen_iids: set[int] = set()
+    issues: list[dict] = []
+    for label in IDEA_LABELS:
+        result = _run([
+            "glab", "issue", "list",
+            "--label", label,
+            "-O", "json",
+            "--repo", REPO,
+        ])
+        for issue in json.loads(result.stdout):
+            if issue["iid"] not in seen_iids:
+                seen_iids.add(issue["iid"])
+                issues.append(issue)
+    return issues
 
 
 def get_notes(iid: int) -> list[dict]:
     """Return all notes (comments) for an issue, oldest first."""
+    project = REPO.replace("/", "%2F")
     result = _run([
-        "glab", "issue", "note", "list", str(iid),
-        "--output", "json",
-        "--repo", REPO,
+        "glab", "api",
+        f"projects/{project}/issues/{iid}/notes?order_by=created_at&sort=asc&per_page=100",
     ])
-    notes = json.loads(result.stdout)
-    # glab returns newest-first; reverse to get chronological order
-    return list(reversed(notes))
+    return json.loads(result.stdout)
 
 
 def post_note(iid: int, message: str, dry_run: bool = False) -> None:

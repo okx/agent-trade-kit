@@ -31,6 +31,7 @@ const BASE_CONFIG: OkxConfig = {
   modules: ["market"] as ModuleId[],
   readOnly: false,
   demo: false,
+  site: "global",
 };
 
 /** Mock globalThis.fetch for the duration of a single test. */
@@ -280,7 +281,7 @@ describe("OkxRestClient — OKX error code behaviors", () => {
     );
   });
 
-  it("OkxApiError for region restriction (51155) carries 'Do not retry' suggestion", async () => {
+  it("OkxApiError for region restriction (51155) carries 'Do not retry' suggestion with site context", async () => {
     await withFetch(
       jsonFetch({ code: "51155", msg: "Requests from restricted location", data: [] }),
       async () => {
@@ -291,7 +292,26 @@ describe("OkxRestClient — OKX error code behaviors", () => {
             err instanceof OkxApiError &&
             err.code === "51155" &&
             typeof err.suggestion === "string" &&
-            err.suggestion.includes("Do not retry"),
+            err.suggestion.includes("Do not retry") &&
+            err.suggestion.includes("global"),
+        );
+      },
+    );
+  });
+
+  it("OkxApiError for KYC restriction (51734) carries 'Do not retry' suggestion with site context", async () => {
+    await withFetch(
+      jsonFetch({ code: "51734", msg: "Feature not supported for your KYC country", data: [] }),
+      async () => {
+        const client = new OkxRestClient({ ...BASE_CONFIG, site: "eea" });
+        await assert.rejects(
+          () => client.publicGet("/api/v5/trade/order"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "51734" &&
+            typeof err.suggestion === "string" &&
+            err.suggestion.includes("Do not retry") &&
+            err.suggestion.includes("eea"),
         );
       },
     );

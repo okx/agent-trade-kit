@@ -74,6 +74,7 @@ Fill in `~/.okx/config.toml`:
 default_profile = "demo"
 
 [profiles.demo]
+site = "global"          # global | eea | us  (default: global)
 api_key = "your-demo-api-key"
 secret_key = "your-demo-secret-key"
 passphrase = "your-demo-passphrase"
@@ -81,6 +82,8 @@ demo = true
 ```
 
 > Demo key: OKX website → Trading → Demo Trading → API Management
+
+**Multi-site users:** OKX operates regional sites — set `site = "eea"` for EEA (`my.okx.com`) or `site = "us"` for US (`app.okx.com`). See [configuration →](docs/configuration.md#site-configuration) for details.
 
 For live trading or multiple profiles, see [configuration →](docs/configuration.md).
 

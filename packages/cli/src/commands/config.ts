@@ -1,4 +1,5 @@
-import { readTomlProfile, configFilePath } from "@agent-tradekit/core";
+import { readTomlProfile, configFilePath, OKX_SITES, SITE_IDS } from "@agent-tradekit/core";
+import type { SiteId } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { printJson, printKv } from "../formatter.js";
 import { existsSync, readFileSync } from "node:fs";
@@ -26,6 +27,7 @@ export function cmdConfigShow(json: boolean): void {
   for (const [name, profile] of Object.entries(config.profiles)) {
     process.stdout.write(`[${name}]\n`);
     printKv({
+      site: profile.site ?? "global",
       api_key: profile.api_key ? "***" + profile.api_key.slice(-4) : "(not set)",
       demo: profile.demo ?? false,
       base_url: profile.base_url ?? "(default)",
@@ -47,24 +49,37 @@ export function cmdConfigSet(key: string, value: string): void {
 }
 
 export async function cmdConfigInit(): Promise<void> {
-  const apiUrl = "https://www.okx.com/account/my-api";
-
   process.stdout.write("OKX Trade CLI — 配置向导\n\n");
-  process.stdout.write(`请前往 ${apiUrl} 创建 API Key（需要 trade 权限）\n\n`);
-
-  // Try to open the URL; silently ignore failures
-  try {
-    const opener = process.platform === "darwin" ? "open" : "xdg-open";
-    spawnSync(opener, [apiUrl], { stdio: "ignore" });
-  } catch {
-    // silently ignore
-  }
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
   try {
     const profileNameRaw = await prompt(rl, "Profile 名称 (默认: default): ");
     const profileName = profileNameRaw.trim() || "default";
+
+    // Site selection
+    process.stdout.write("\n选择站点 / Select site:\n");
+    const siteEntries = SITE_IDS.map((id, i) => {
+      const site = OKX_SITES[id];
+      const defaultMark = id === "global" ? " [默认]" : "";
+      return `  ${i + 1}. ${site.label} (${site.webUrl})${defaultMark}`;
+    });
+    process.stdout.write(siteEntries.join("\n") + "\n");
+    const siteChoiceRaw = (await prompt(rl, "站点编号 (默认: 1): ")).trim();
+    const siteIdx = siteChoiceRaw ? Number(siteChoiceRaw) - 1 : 0;
+    const site: SiteId = SITE_IDS[siteIdx] ?? "global";
+    const siteInfo = OKX_SITES[site];
+
+    const apiUrl = `${siteInfo.webUrl}/account/my-api`;
+    process.stdout.write(`\n请前往 ${apiUrl} 创建 API Key（需要 trade 权限）\n\n`);
+
+    // Try to open the URL; silently ignore failures
+    try {
+      const opener = process.platform === "darwin" ? "open" : "xdg-open";
+      spawnSync(opener, [apiUrl], { stdio: "ignore" });
+    } catch {
+      // silently ignore
+    }
 
     const apiKey = (await prompt(rl, "API Key: ")).trim();
     if (!apiKey) {
@@ -94,7 +109,7 @@ export async function cmdConfigInit(): Promise<void> {
     }
 
     const config = readFullConfig();
-    config.profiles[profileName] = { api_key: apiKey, secret_key: secretKey, passphrase, demo };
+    config.profiles[profileName] = { site, api_key: apiKey, secret_key: secretKey, passphrase, demo };
 
     const configPath = configFilePath();
     try {

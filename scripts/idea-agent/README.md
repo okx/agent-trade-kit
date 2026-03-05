@@ -1,105 +1,118 @@
-# Idea Agent
+# Idea Agent v2
 
-自动处理 GitLab `idea` issues：评估 → 等待批准 → 自主实现 → 提 MR。
+自动处理 GitLab `idea` issues：webhook 事件驱动，两个 human-in-the-loop checkpoint。
 
 ## 状态机
 
 ```
-open + 无 Claude 评论
-        ↓ evaluate()
-open + 最新评论是 💬 Claude（计划）
-        ↓ 等人回复（同意 / go / ok / lgtm / approve / 开始 / 执行…）
-open + Claude 评论之后有人类回复含批准关键词
-        ↓ implement()
-MR 提出 → issue 关闭
+unevaluated
+    ↓ triage()  [Sonnet — 判断信息是否充足]
+    │
+    ├── needs_clarification
+    │       ↓ 贴 ❓ 问题到 issue，等人补充
+    │       ↓ 人回复后 → unevaluated（重新 triage）
+    │
+    └── planning  [Opus — 制定实现方案]
+            ↓ 贴 📋 方案到 issue
+            ↓ ← checkpoint 1：人回复 ok/approve/同意…
+        implementing  [Sonnet + --dangerously-skip-permissions]
+            ↓ 创建 worktree → 实现 → push → 提 MR
+            ↓ ← checkpoint 2：正常 code review / merge
+        done  ← MR merge webhook → 清理 worktree & 本地分支
 ```
 
-状态完全依赖 issue 评论本身，无外部状态文件。
+状态完全从 issue 评论派生，本地状态文件只存运行时信息（pid、worktree 路径）。
+
+## 文件结构
+
+```
+scripts/idea-agent/
+├── webhook.py   # HTTP server，接收 GitLab webhook 事件
+├── agent.py     # 状态机逻辑，triage / process_issue
+├── worker.py    # worktree 管理，run_planning / run_implementing
+├── state.py     # 本地运行时状态（~/.okx/idea-agent-state.json）
+├── gitlab.py    # glab CLI wrapper
+└── README.md
+```
 
 ## 依赖
 
 - Python 3.11+
 - `glab` CLI（`brew install glab`，`glab auth login --hostname gitlab.okg.com`）
-- `claude` CLI（已登录）
+- `claude` CLI（已登录，claude-opus-4-6 和 claude-sonnet-4-6 可用）
 
-## 手动运行
+## 模型分配
+
+| 阶段 | 模型 | 说明 |
+|------|------|------|
+| triage | claude-sonnet-4-6 | 判断信息是否充足，快速便宜 |
+| planning | claude-opus-4-6 | 制定详细方案，最需要深度思考 |
+| implementing | claude-sonnet-4-6 | 按 plan 执行，速度优先 |
+
+## 启动 Webhook Server
 
 ```bash
-# 正常跑一次（处理所有 idea issues）
+# 基础启动
+python3 scripts/idea-agent/webhook.py
+
+# 指定端口
+python3 scripts/idea-agent/webhook.py --port 9090
+
+# 带 secret（推荐）
+WEBHOOK_SECRET=mysecret python3 scripts/idea-agent/webhook.py
+```
+
+### GitLab 配置
+
+项目 → Settings → Webhooks：
+- URL: `http://<your-machine>:8080`
+- Secret Token: 与 `WEBHOOK_SECRET` 一致
+- Trigger: ✅ Comments，✅ Merge request events，✅ Issue events
+
+## 手动触发
+
+```bash
+# 处理所有 open idea issues
 python3 scripts/idea-agent/agent.py
 
-# dry-run：只打印，不真正发评论
+# 只处理指定 issue
+python3 scripts/idea-agent/agent.py --issue 8
+
+# dry-run（不发评论，不改文件）
 python3 scripts/idea-agent/agent.py --dry-run
 
-# 只处理指定 issue（评估模式）
-python3 scripts/idea-agent/agent.py --issue 8 --mode evaluate
+# 强制指定阶段
+python3 scripts/idea-agent/agent.py --issue 8 --mode unevaluated   # 重新 triage
+python3 scripts/idea-agent/agent.py --issue 8 --mode approved       # 直接 implement
 
-# 只处理指定 issue（实现模式）
-python3 scripts/idea-agent/agent.py --issue 8 --mode implement
-
-# 查看运行日志
-tail -f ~/.okx/idea-agent.log
+# 手动清理 merged branch
+python3 scripts/idea-agent/agent.py --cleanup feat/my-feature
 ```
 
 ## 暂停 / 恢复
 
 ```bash
-# 暂停
 python3 scripts/idea-agent/agent.py --stop
-# 或
-touch ~/.okx/idea-agent.disabled
-
-# 恢复
 python3 scripts/idea-agent/agent.py --start
-# 或
-rm ~/.okx/idea-agent.disabled
 ```
 
-## cron 配置
+## 限频
 
-工作时间（周一至周五 9:00–18:00）每小时运行一次：
+- **per-issue debounce**：同一 issue 在 30 秒内多次触发，只处理第一次
+- **单 worker 限制**：implement 阶段同时只跑 1 个任务，busy 时跳过（不排队）
+- **bot 自身评论**：webhook 自动忽略以 `💬 Claude` 开头的 note，避免循环触发
 
-```cron
-0 9-18 * * 1-5 GLAB_CONFIG_DIR=/Users/fanqi/meili/jay.fan_dacs_at_okg.com/113/.config/glab-cli /usr/bin/python3 /Users/fanqi/meili/jay.fan_dacs_at_okg.com/113/Documents/MyApp/agent-tradekit/scripts/idea-agent/agent.py >> ~/.okx/idea-agent.log 2>&1
-```
-
-添加到 crontab：
-
-```bash
-crontab -e
-```
-
-确保 `~/.okx/` 目录存在：
-
-```bash
-mkdir -p ~/.okx
-```
-
-## 输出文件
+## 本地状态文件
 
 | 文件 | 说明 |
 |------|------|
-| `~/.okx/idea-agent.log` | cron 运行日志（stdout + stderr） |
-| `scripts/idea-agent/work-log.md` | 运行摘要（gitignored） |
-| `~/.okx/idea-agent.lock` | 并发锁（运行结束自动删除） |
-| `~/.okx/idea-agent.disabled` | 暂停标志（手动管理） |
+| `~/.okx/idea-agent-state.json` | 运行时状态（worker pid / worktree） |
+| `~/.okx/idea-agent.disabled` | 暂停标志 |
+| `.worktrees/` | git worktrees（implement 结束后自动清理） |
 
-## 工作原理
+## 多 Worker 扩展（预留）
 
-### evaluate()
-
-调用 `claude -p <prompt>` 分析 issue，生成带 `💬 Claude` 前缀的评论，贴到 issue 上。
-每次运行最多评估 1 个新 issue，避免刷屏。
-
-### implement()
-
-检测到人类在 Claude 计划评论之后回复了批准关键词，自动：
-
-1. 贴评论 `🔵 开始实现，分支：feat/xxx`
-2. 调用 `claude --dangerously-skip-permissions -p <prompt>` 自主完成：
-   - 创建分支
-   - 实现功能
-   - 跑测试（`pnpm test:unit`）
-   - 执行 `/ship` checklist
-   - 用 `glab mr create` 提 MR
-   - 关闭 issue
+当前为单 worker。扩展步骤：
+1. `state.py`: `worker: WorkerTask | None` → `workers: list[WorkerTask]`
+2. `agent.py`: `is_busy()` 改为检查 `len(workers) < MAX_WORKERS`
+3. `worker.py`: `run_implementing()` 用 `threading.Thread` 并发启动
