@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.6] - 2026-03-04
+
+### Added
+
+### Fixed
+
+### Changed
+
+- **Package rename**: `okx-trade-mcp` → `agent-tradekit-mcp`, `okx-trade-cli` → `agent-tradekit-cli`. The old npm packages are no longer maintained. Please uninstall the old packages and install the new ones:
+  ```
+  npm uninstall -g okx-trade-mcp okx-trade-cli
+  npm install -g agent-tradekit-mcp agent-tradekit-cli
+  ```
+- **Project rename**: workspace root renamed from `okx-hub` to `agent-tradekit`; internal package `@okx-hub/core` renamed to `@agent-tradekit/core`
+
+---
+
 ## [1.0.5] - 2026-03-04
 
 ### Added

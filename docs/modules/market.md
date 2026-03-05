@@ -34,7 +34,7 @@ Market data tools. **No API key required.**
 {
   "mcpServers": {
     "okx-market": {
-      "command": "okx-trade-mcp",
+      "command": "agent-tradekit-mcp",
       "args": ["--modules", "market"]
     }
   }
@@ -98,7 +98,7 @@ Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H`
 {
   "mcpServers": {
     "okx-market": {
-      "command": "okx-trade-mcp",
+      "command": "agent-tradekit-mcp",
       "args": ["--modules", "market"]
     }
   }

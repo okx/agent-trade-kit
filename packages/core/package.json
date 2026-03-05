@@ -1,5 +1,5 @@
 {
-  "name": "@okx-hub/core",
+  "name": "@agent-tradekit/core",
   "version": "1.0.0",
   "private": true,
   "type": "module",

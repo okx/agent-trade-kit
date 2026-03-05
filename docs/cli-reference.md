@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-npm install -g okx-trade-cli
+npm install -g agent-tradekit-cli
 ```
 
 ## Global Options
@@ -155,7 +155,7 @@ okx setup --client claude-desktop --profile live --modules market,spot,account
 
 Supported clients: `claude-desktop` `cursor` `windsurf` `vscode` `claude-code`
 
-Also available directly as `okx-trade-mcp setup --client <client>` without installing the CLI.
+Also available directly as `agent-tradekit-mcp setup --client <client>` without installing the CLI.
 
 ---
 
@@ -164,7 +164,7 @@ Also available directly as `okx-trade-mcp setup --client <client>` without insta
 ## 安装
 
 ```bash
-npm install -g okx-trade-cli
+npm install -g agent-tradekit-cli
 ```
 
 ## 全局选项
@@ -316,4 +316,4 @@ okx setup --client claude-desktop --profile live --modules market,spot,account
 
 支持的客户端：`claude-desktop` `cursor` `windsurf` `vscode` `claude-code`
 
-不安装 CLI 也可以直接用 `okx-trade-mcp setup --client <client>`。
+不安装 CLI 也可以直接用 `agent-tradekit-mcp setup --client <client>`。

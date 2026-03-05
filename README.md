@@ -1,11 +1,11 @@
 # OKX Trade MCP Tools
 
-[![CI](https://github.com/okx/agent-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tools/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/okx/agent-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tools)
-[![npm: mcp](https://img.shields.io/npm/v/okx-trade-mcp?label=okx-trade-mcp)](https://www.npmjs.com/package/okx-trade-mcp)
-[![npm downloads: mcp](https://img.shields.io/npm/dm/okx-trade-mcp?label=mcp+downloads)](https://www.npmjs.com/package/okx-trade-mcp)
-[![npm: cli](https://img.shields.io/npm/v/okx-trade-cli?label=okx-trade-cli)](https://www.npmjs.com/package/okx-trade-cli)
-[![npm downloads: cli](https://img.shields.io/npm/dm/okx-trade-cli?label=cli+downloads)](https://www.npmjs.com/package/okx-trade-cli)
+[![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
+[![npm: mcp](https://img.shields.io/npm/v/agent-tradekit-mcp?label=agent-tradekit-mcp)](https://www.npmjs.com/package/agent-tradekit-mcp)
+[![npm downloads: mcp](https://img.shields.io/npm/dm/agent-tradekit-mcp?label=mcp+downloads)](https://www.npmjs.com/package/agent-tradekit-mcp)
+[![npm: cli](https://img.shields.io/npm/v/agent-tradekit-cli?label=agent-tradekit-cli)](https://www.npmjs.com/package/agent-tradekit-cli)
+[![npm downloads: cli](https://img.shields.io/npm/dm/agent-tradekit-cli?label=cli+downloads)](https://www.npmjs.com/package/agent-tradekit-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) | [中文](README.zh.md)
@@ -14,8 +14,8 @@ OKX toolkit with two standalone packages:
 
 | Package | Description |
 |---|---|
-| `okx-trade-mcp` | MCP server for Claude / Cursor and any MCP-compatible AI client |
-| `okx-trade-cli` | CLI for operating OKX from terminal |
+| `agent-tradekit-mcp` | MCP server for Claude / Cursor and any MCP-compatible AI client |
+| `agent-tradekit-cli` | CLI for operating OKX from terminal |
 
 ---
 
@@ -56,10 +56,10 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 ```bash
 # 1. Install packages
-npm install -g okx-trade-mcp okx-trade-cli
+npm install -g agent-tradekit-mcp agent-tradekit-cli
 
 # 2. Register the MCP server with your AI client
-okx-trade-mcp setup --client claude-desktop   # or: cursor / vscode / claude-code
+agent-tradekit-mcp setup --client claude-desktop   # or: cursor / vscode / claude-code
 ```
 
 Then add your OKX API credentials (separate from the above — only needed for authenticated tools):
@@ -86,24 +86,24 @@ For live trading or multiple profiles, see [configuration →](docs/configuratio
 
 ---
 
-## okx-trade-mcp
+## agent-tradekit-mcp
 
 ```bash
 # Claude Desktop
-okx-trade-mcp setup --client claude-desktop
+agent-tradekit-mcp setup --client claude-desktop
 
 # Cursor
-okx-trade-mcp setup --client cursor
+agent-tradekit-mcp setup --client cursor
 
 # Claude Code CLI
-okx-trade-mcp setup --client claude-code
+agent-tradekit-mcp setup --client claude-code
 ```
 
 [VS Code · Windsurf · openCxxW →](docs/configuration.md) — [Startup scenarios →](docs/configuration.md#startup-scenarios) (market-only, read-only, spot-only, etc.)
 
 ---
 
-## okx-trade-cli
+## agent-tradekit-cli
 
 ```bash
 okx market ticker BTC-USDT
@@ -141,7 +141,7 @@ If a tool call or CLI command fails, open an issue and include the full error ou
 Error: Order quantity invalid
 TraceId: abc123def456
 Hint: Check order size against instrument minSz.
-Version: okx-trade-cli@1.0.4
+Version: agent-tradekit-cli@1.0.4
 ```
 
 See **[FAQ →](docs/faq.md)** for common issues.
@@ -151,7 +151,7 @@ See **[FAQ →](docs/faq.md)** for common issues.
 ## Build from Source
 
 ```bash
-git clone https://github.com/okx/agent-tools.git && cd agent-tools
+git clone https://github.com/okx/agent-tradekit.git && cd agent-tradekit
 pnpm install && pnpm build
 ```
 

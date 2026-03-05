@@ -1,13 +1,13 @@
 {
-  "name": "okx-trade-mcp",
-  "version": "1.0.5",
+  "name": "agent-tradekit-mcp",
+  "version": "1.0.6",
   "description": "OKX MCP Server - Model Context Protocol server for OKX exchange",
   "type": "module",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "okx-trade-mcp": "dist/index.js"
+    "agent-tradekit-mcp": "dist/index.js"
   },
   "files": ["dist", "README.md"],
   "publishConfig": { "access": "public" },
@@ -22,7 +22,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0"
   },
   "devDependencies": {
-    "@okx-hub/core": "workspace:*",
+    "@agent-tradekit/core": "workspace:*",
     "@types/node": "^25.2.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"

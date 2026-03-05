@@ -1,11 +1,11 @@
 # OKX Trade MCP 工具集
 
-[![CI](https://github.com/okx/agent-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tools/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/okx/agent-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tools)
-[![npm: mcp](https://img.shields.io/npm/v/okx-trade-mcp?label=okx-trade-mcp)](https://www.npmjs.com/package/okx-trade-mcp)
-[![npm downloads: mcp](https://img.shields.io/npm/dm/okx-trade-mcp?label=mcp+downloads)](https://www.npmjs.com/package/okx-trade-mcp)
-[![npm: cli](https://img.shields.io/npm/v/okx-trade-cli?label=okx-trade-cli)](https://www.npmjs.com/package/okx-trade-cli)
-[![npm downloads: cli](https://img.shields.io/npm/dm/okx-trade-cli?label=cli+downloads)](https://www.npmjs.com/package/okx-trade-cli)
+[![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
+[![npm: mcp](https://img.shields.io/npm/v/agent-tradekit-mcp?label=agent-tradekit-mcp)](https://www.npmjs.com/package/agent-tradekit-mcp)
+[![npm downloads: mcp](https://img.shields.io/npm/dm/agent-tradekit-mcp?label=mcp+downloads)](https://www.npmjs.com/package/agent-tradekit-mcp)
+[![npm: cli](https://img.shields.io/npm/v/agent-tradekit-cli?label=agent-tradekit-cli)](https://www.npmjs.com/package/agent-tradekit-cli)
+[![npm downloads: cli](https://img.shields.io/npm/dm/agent-tradekit-cli?label=cli+downloads)](https://www.npmjs.com/package/agent-tradekit-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) | [中文](README.zh.md)
@@ -14,8 +14,8 @@ OKX 工具集，包含两个独立包：
 
 | 包 | 说明 |
 |---|---|
-| `okx-trade-mcp` | MCP Server，供 Claude / Cursor 等 AI 工具调用 |
-| `okx-trade-cli` | 命令行工具，直接在终端操作 OKX |
+| `agent-tradekit-mcp` | MCP Server，供 Claude / Cursor 等 AI 工具调用 |
+| `agent-tradekit-cli` | 命令行工具，直接在终端操作 OKX |
 
 ---
 
@@ -56,10 +56,10 @@ OKX Trade MCP 通过 [Model Context Protocol](https://modelcontextprotocol.io) �
 
 ```bash
 # 1. 安装
-npm install -g okx-trade-mcp okx-trade-cli
+npm install -g agent-tradekit-mcp agent-tradekit-cli
 
 # 2. 将 MCP Server 注册到 AI 客户端
-okx-trade-mcp setup --client claude-desktop   # 或：cursor / vscode / claude-code
+agent-tradekit-mcp setup --client claude-desktop   # 或：cursor / vscode / claude-code
 ```
 
 然后配置 OKX API 凭证（与上面独立，仅需要鉴权接口时才必填）：
@@ -86,24 +86,24 @@ demo = true
 
 ---
 
-## okx-trade-mcp
+## agent-tradekit-mcp
 
 ```bash
 # Claude Desktop
-okx-trade-mcp setup --client claude-desktop
+agent-tradekit-mcp setup --client claude-desktop
 
 # Cursor
-okx-trade-mcp setup --client cursor
+agent-tradekit-mcp setup --client cursor
 
 # Claude Code CLI
-okx-trade-mcp setup --client claude-code
+agent-tradekit-mcp setup --client claude-code
 ```
 
 [VS Code · Windsurf · openCxxW →](docs/configuration.md) — [启动场景说明 →](docs/configuration.md#startup-scenarios)（纯行情、只读、仅现货等）
 
 ---
 
-## okx-trade-cli
+## agent-tradekit-cli
 
 ```bash
 okx market ticker BTC-USDT
@@ -141,7 +141,7 @@ okx account balance
 Error: Order quantity invalid
 TraceId: abc123def456
 Hint: Check order size against instrument minSz.
-Version: okx-trade-cli@1.0.4
+Version: agent-tradekit-cli@1.0.4
 ```
 
 常见问题见 **[FAQ →](docs/faq.md)**。
@@ -151,7 +151,7 @@ Version: okx-trade-cli@1.0.4
 ## 从源码构建
 
 ```bash
-git clone https://github.com/okx/agent-tools.git && cd agent-tools
+git clone https://github.com/okx/agent-tradekit.git && cd agent-tradekit
 pnpm install && pnpm build
 ```
 

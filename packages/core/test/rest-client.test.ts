@@ -568,11 +568,11 @@ function capturingFetch(capture: { req?: Request }): typeof globalThis.fetch {
 describe("OkxRestClient — User-Agent header", () => {
   it("sets User-Agent when userAgent is configured", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient({ ...BASE_CONFIG, userAgent: "okx-trade-mcp/1.0.2" });
+    const client = new OkxRestClient({ ...BASE_CONFIG, userAgent: "agent-tradekit-mcp/1.0.2" });
     await withFetch(capturingFetch(captured), () =>
       client.publicGet("/api/v5/market/ticker"),
     );
-    assert.equal(captured.req?.headers.get("User-Agent"), "okx-trade-mcp/1.0.2");
+    assert.equal(captured.req?.headers.get("User-Agent"), "agent-tradekit-mcp/1.0.2");
   });
 
   it("does not set User-Agent when userAgent is not configured", async () => {

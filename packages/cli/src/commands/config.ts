@@ -1,9 +1,9 @@
-import { readTomlProfile, configFilePath } from "@okx-hub/core";
+import { readTomlProfile, configFilePath } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { printJson, printKv } from "../formatter.js";
 import { existsSync, readFileSync } from "node:fs";
 import { parse, stringify } from "smol-toml";
-import type { OkxTomlConfig } from "@okx-hub/core";
+import type { OkxTomlConfig } from "@agent-tradekit/core";
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
 

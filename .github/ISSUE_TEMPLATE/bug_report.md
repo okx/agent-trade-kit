@@ -32,7 +32,7 @@ labels: bug
 
 ## Environment
 
-- Package: `okx-trade-mcp` / `okx-trade-cli` (delete as appropriate)
+- Package: `agent-tradekit-mcp` / `agent-tradekit-cli` (delete as appropriate)
 - Version: <!-- e.g. 1.0.4 — shown in the error as serverVersion/Version -->
 - OS: <!-- e.g. macOS 14, Windows 11, Ubuntu 22 -->
 - AI client (if MCP): <!-- e.g. Claude Desktop, Cursor, VS Code -->

@@ -51,9 +51,9 @@ function buildEntry(
   args: string[]
 ): Record<string, unknown> {
   if (client === "vscode") {
-    return { type: "stdio", command: "okx-trade-mcp", args };
+    return { type: "stdio", command: "agent-tradekit-mcp", args };
   }
-  return { command: "okx-trade-mcp", args };
+  return { command: "agent-tradekit-mcp", args };
 }
 
 function buildArgs(options: SetupOptions): string[] {
@@ -95,7 +95,7 @@ function mergeJsonConfig(
 
 export function printSetupUsage(): void {
   process.stdout.write(
-    `Usage: okx-trade-mcp setup --client <client> [--profile <name>] [--modules <list>]\n\n` +
+    `Usage: agent-tradekit-mcp setup --client <client> [--profile <name>] [--modules <list>]\n\n` +
       `Clients:\n` +
       SUPPORTED_CLIENTS.map((id) => `  ${id.padEnd(16)} ${CLIENT_NAMES[id]}`).join("\n") +
       `\n\nOptions:\n` +
@@ -108,7 +108,7 @@ export function runSetup(options: SetupOptions): void {
   const { client } = options;
   const name = CLIENT_NAMES[client];
   const args = buildArgs(options);
-  const serverName = options.profile ? `okx-trade-mcp-${options.profile}` : "okx-trade-mcp";
+  const serverName = options.profile ? `agent-tradekit-mcp-${options.profile}` : "agent-tradekit-mcp";
 
   if (client === "claude-code") {
     const claudeArgs = [
@@ -118,7 +118,7 @@ export function runSetup(options: SetupOptions): void {
       "stdio",
       serverName,
       "--",
-      "okx-trade-mcp",
+      "agent-tradekit-mcp",
       ...args,
     ];
     process.stdout.write(`Running: claude ${claudeArgs.join(" ")}\n`);
