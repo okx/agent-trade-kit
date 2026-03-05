@@ -1,4 +1,4 @@
-# Contributing to agent-tradekit
+# Contributing to okx-trade-mcp
 
 Thank you for your interest in contributing! This guide covers everything you need to get started.
 
@@ -17,7 +17,7 @@ npm install -g pnpm
 
 # Clone the repository
 git clone https://github.com/okx/agent-tradekit.git
-cd agent-tradekit
+cd okx-trade-mcp
 
 # Install dependencies
 pnpm install

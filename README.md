@@ -2,10 +2,10 @@
 
 [![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
-[![npm: mcp](https://img.shields.io/npm/v/agent-tradekit-mcp?label=agent-tradekit-mcp)](https://www.npmjs.com/package/agent-tradekit-mcp)
-[![npm downloads: mcp](https://img.shields.io/npm/dm/agent-tradekit-mcp?label=mcp+downloads)](https://www.npmjs.com/package/agent-tradekit-mcp)
-[![npm: cli](https://img.shields.io/npm/v/agent-tradekit-cli?label=agent-tradekit-cli)](https://www.npmjs.com/package/agent-tradekit-cli)
-[![npm downloads: cli](https://img.shields.io/npm/dm/agent-tradekit-cli?label=cli+downloads)](https://www.npmjs.com/package/agent-tradekit-cli)
+[![npm: mcp](https://img.shields.io/npm/v/okx-trade-mcp?label=okx-trade-mcp)](https://www.npmjs.com/package/okx-trade-mcp)
+[![npm downloads: mcp](https://img.shields.io/npm/dm/okx-trade-mcp?label=mcp+downloads)](https://www.npmjs.com/package/okx-trade-mcp)
+[![npm: cli](https://img.shields.io/npm/v/okx-trade-cli?label=okx-trade-cli)](https://www.npmjs.com/package/okx-trade-cli)
+[![npm downloads: cli](https://img.shields.io/npm/dm/okx-trade-cli?label=cli+downloads)](https://www.npmjs.com/package/okx-trade-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) | [中文](README.zh.md)
@@ -14,8 +14,8 @@ OKX toolkit with two standalone packages:
 
 | Package | Description |
 |---|---|
-| `agent-tradekit-mcp` | MCP server for Claude / Cursor and any MCP-compatible AI client |
-| `agent-tradekit-cli` | CLI for operating OKX from terminal |
+| `okx-trade-mcp` | MCP server for Claude / Cursor and any MCP-compatible AI client |
+| `okx-trade-cli` | CLI for operating OKX from terminal |
 
 ---
 
@@ -56,10 +56,10 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 ```bash
 # 1. Install packages
-npm install -g agent-tradekit-mcp agent-tradekit-cli
+npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
 
 # 2. Register the MCP server with your AI client
-agent-tradekit-mcp setup --client claude-desktop   # or: cursor / vscode / claude-code
+okx-trade-mcp setup --client claude-desktop   # or: cursor / vscode / claude-code
 ```
 
 Then add your OKX API credentials (separate from the above — only needed for authenticated tools):
@@ -86,24 +86,24 @@ For live trading or multiple profiles, see [configuration →](docs/configuratio
 
 ---
 
-## agent-tradekit-mcp
+## okx-trade-mcp
 
 ```bash
 # Claude Desktop
-agent-tradekit-mcp setup --client claude-desktop
+okx-trade-mcp setup --client claude-desktop
 
 # Cursor
-agent-tradekit-mcp setup --client cursor
+okx-trade-mcp setup --client cursor
 
 # Claude Code CLI
-agent-tradekit-mcp setup --client claude-code
+okx-trade-mcp setup --client claude-code
 ```
 
 [VS Code · Windsurf · openCxxW →](docs/configuration.md) — [Startup scenarios →](docs/configuration.md#startup-scenarios) (market-only, read-only, spot-only, etc.)
 
 ---
 
-## agent-tradekit-cli
+## okx-trade-cli
 
 ```bash
 okx market ticker BTC-USDT
@@ -141,7 +141,7 @@ If a tool call or CLI command fails, open an issue and include the full error ou
 Error: Order quantity invalid
 TraceId: abc123def456
 Hint: Check order size against instrument minSz.
-Version: agent-tradekit-cli@1.0.4
+Version: okx-trade-cli@1.0.4
 ```
 
 See **[FAQ →](docs/faq.md)** for common issues.
@@ -151,7 +151,7 @@ See **[FAQ →](docs/faq.md)** for common issues.
 ## Build from Source
 
 ```bash
-git clone https://github.com/okx/agent-tradekit.git && cd agent-tradekit
+git clone https://github.com/okx/agent-tradekit.git && cd okx-trade-mcp
 pnpm install && pnpm build
 ```
 

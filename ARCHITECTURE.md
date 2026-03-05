@@ -14,7 +14,7 @@ OKX MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.
 ## 2. Directory Structure
 
 ```
-agent-tradekit/
+okx-trade-mcp/
 ├── packages/
 │   ├── core/                        # @agent-tradekit/core — shared library (private)
 │   │   └── src/
@@ -39,11 +39,11 @@ agent-tradekit/
 │   │       ├── config.ts
 │   │       ├── constants.ts         # Module IDs, API base URL, version
 │   │       └── index.ts             # Public re-exports
-│   ├── mcp/                         # agent-tradekit-mcp
+│   ├── mcp/                         # okx-trade-mcp
 │   │   └── src/
 │   │       ├── server.ts            # MCP Server: ListTools/CallTool handlers
 │   │       └── index.ts             # CLI entry: parse args → load config → start server
-│   └── cli/                         # agent-tradekit-cli
+│   └── cli/                         # okx-trade-cli
 │       └── src/
 │           └── index.ts             # CLI entry point
 ├── test/
@@ -270,7 +270,7 @@ demo       = true
 ### CLI Flags
 
 ```
-agent-tradekit-mcp [options]
+okx-trade-mcp [options]
 
   --modules <list>   Comma-separated module names, or "all" (default: spot,swap,account)
   --read-only        Disable all write operations
@@ -321,11 +321,11 @@ Credentials are read from `~/.okx/config.toml` — only the profile name is need
 {
   "mcpServers": {
     "okx-LIVE-real-money": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all"]
     },
     "okx-DEMO-simulated-trading": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -337,7 +337,7 @@ Credentials are read from `~/.okx/config.toml` — only the profile name is need
 {
   "mcpServers": {
     "okx-readonly": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--modules", "market", "--read-only"]
     }
   }
@@ -348,7 +348,7 @@ Credentials are read from `~/.okx/config.toml` — only the profile name is need
 
 ## 9. Key Differences from Other Exchanges
 
-| Aspect | Bitget (`agent_hub`) | OKX (`agent-tradekit`) |
+| Aspect | Bitget (`agent_hub`) | OKX (`okx-trade-mcp`) |
 |--------|---------------------|-----------------|
 | Auth header prefix | `ACCESS-*` | `OK-ACCESS-*` |
 | Timestamp format | Millisecond string `"1699000000000"` | ISO format `"2024-01-01T00:00:00.000Z"` |

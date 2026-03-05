@@ -1,10 +1,10 @@
 {
-  "name": "agent-tradekit",
+  "name": "okx-trade-mcp",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @agent-tradekit/core build && pnpm --filter agent-tradekit-mcp build && pnpm --filter agent-tradekit-cli build",
+    "build": "pnpm --filter @agent-tradekit/core build && pnpm --filter @okx_retail/okx-trade-mcp build && pnpm --filter @okx_retail/okx-trade-cli build",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
     "test:unit": "pnpm --filter @agent-tradekit/core test:unit",
