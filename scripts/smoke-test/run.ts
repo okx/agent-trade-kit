@@ -208,8 +208,10 @@ function classify(err: unknown, isProbe = false): [Status, string] {
 function parseArgs() {
   const argv = process.argv.slice(2);
   const readOnly = argv.includes("--read-only");
+  const live = argv.includes("--live");
   const moduleFilter: string[] = [];
   let futuresInst: string | undefined;
+  let profile: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--module" && argv[i + 1]) {
@@ -218,9 +220,12 @@ function parseArgs() {
     if (argv[i] === "--futures-inst" && argv[i + 1]) {
       futuresInst = argv[++i];
     }
+    if (argv[i] === "--profile" && argv[i + 1]) {
+      profile = argv[++i];
+    }
   }
 
-  return { readOnly, moduleFilter, futuresInst };
+  return { readOnly, live, moduleFilter, futuresInst, profile };
 }
 
 // ─── report ───────────────────────────────────────────────────────────────────
@@ -268,17 +273,18 @@ function tally(results: Result[]) {
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const { readOnly, moduleFilter, futuresInst } = parseArgs();
+  const { readOnly, live, moduleFilter, futuresInst, profile } = parseArgs();
 
   const config = loadConfig({
     readOnly: false,
-    demo: true,
+    demo: !live,
     modules: moduleFilter.length > 0 ? moduleFilter.join(",") : "all",
+    profile,
     userAgent: "okx-smoke-test/1.0",
   });
 
-  if (!config.demo) {
-    console.error("⚠️  Not in demo mode. Set OKX_DEMO=1. Refusing to run against live API.");
+  if (!config.demo && !live) {
+    console.error("⚠️  Not in demo mode. Set OKX_DEMO=1 or pass --live to confirm live API. Refusing to run.");
     process.exit(1);
   }
   if (!config.hasAuth) {
@@ -298,7 +304,8 @@ async function main() {
   const tools = buildTools(config);
 
   const label = readOnly ? "read-only" : "all tools";
-  console.log(`\n🧪  OKX Demo Smoke Test — ${tools.length} tools | ${label}${futuresInst ? ` | futures: ${futuresInst}` : ""}\n`);
+  const profileLabel = profile ? ` | profile: ${profile}` : "";
+  console.log(`\n🧪  OKX Demo Smoke Test — ${tools.length} tools | ${label} | site: ${config.site}${profileLabel}${futuresInst ? ` | futures: ${futuresInst}` : ""}\n`);
   console.log("─".repeat(76));
 
   const results: Result[] = [];
