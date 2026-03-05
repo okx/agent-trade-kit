@@ -161,7 +161,12 @@ SUFFICIENT
 若信息不足，输出（只输出以下格式，不要其他内容）：
 {CLAUDE_PREFIX} ({today}): ❓ 需要补充信息
 
-（列出具体缺失的信息，每条一行）"""
+请补充以下信息才能开始设计：
+- （具体问题1，说明为什么需要）
+- （具体问题2，说明为什么需要）
+...
+
+问题要具体，帮助作者知道该怎么补充。"""
 
     if dry_run:
         print(f"[dry-run] Would run triage for #{iid} with {MODEL_TRIAGE}")
