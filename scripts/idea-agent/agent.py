@@ -132,7 +132,7 @@ def get_issue_state(notes: list[dict]) -> str:
 # ─── triage ───────────────────────────────────────────────────────────────────
 
 
-def triage(issue: dict, dry_run: bool = False) -> None:
+def triage(issue: dict, notes: list[dict], dry_run: bool = False) -> None:
     """
     Step 1: determine if the issue has enough info to plan.
     If not, post clarifying questions (❓).
@@ -143,12 +143,20 @@ def triage(issue: dict, dry_run: bool = False) -> None:
     title = issue["title"]
     body = issue.get("description") or issue.get("body") or ""
 
+    # Include human comments so multi-round clarification is taken into account
+    human_notes = [n for n in notes if not is_claude_note(n)]
+    comments_text = ""
+    if human_notes:
+        comments_text = "\n\n### 补充评论\n" + "\n".join(
+            f"- {n.get('body', '').strip()}" for n in human_notes
+        )
+
     prompt = f"""分析以下 GitLab issue，判断信息是否充足以制定实现方案。
 
 项目：okx-trade-mcp（OKX MCP server，TypeScript monorepo，packages/core + packages/mcp + packages/cli）
 
 Issue #{iid}: {title}
-{body}
+{body}{comments_text}
 
 判断标准：
 - 有明确的功能目标
@@ -208,7 +216,7 @@ def process_issue(issue: dict, dry_run: bool = False, force_mode: str | None = N
     print(f"[agent] #{iid} 「{title}」state={state}")
 
     if state == "unevaluated":
-        triage(issue, dry_run=dry_run)
+        triage(issue, notes, dry_run=dry_run)
 
     elif state == "approved":
         if is_busy():
