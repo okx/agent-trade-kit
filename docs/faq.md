@@ -1,5 +1,29 @@
 # FAQ
 
+## General
+
+### What is OKX Trade MCP?
+
+OKX Trade MCP is a local MCP server that connects AI assistants (Claude Desktop, Cursor, VS Code, Windsurf, etc.) to the [OKX REST API](https://www.okx.com/docs-v5/en/). It runs entirely on your machine as a stdio process — no cloud service, no third-party relay. Your API credentials never leave your device.
+
+### What trading pairs / symbols are supported?
+
+All symbols currently tradable through OKX APIs and your account permissions. You are not limited to BTC/ETH examples. Use valid instrument IDs — for example `BTC-USDT` for spot, `BTC-USDT-SWAP` for perpetual swaps, or `BTC-USD-250328` for futures. Call `market_get_instruments` first to query available instruments for a given market before placing orders.
+
+### What risks should I understand before using MCP for trading?
+
+**Disclaimer**: OKX Trade MCP is a technical interface and does not constitute financial or investment advice. AI-generated actions can trigger real trades and may cause losses due to model errors, network latency, market volatility, or incorrect parameters.
+
+Recommended precautions:
+
+- **Protect API credentials**: store keys only in `~/.okx/config.toml` with restricted file permissions.
+- **Least-privilege permissions**: enable only Read and Trade — never enable Withdraw unless explicitly required.
+- **Bind trusted IPs**: restrict your API key to known IP addresses in OKX account settings.
+- **Use `--read-only` mode** while exploring or debugging to prevent accidental write operations.
+- **Test with demo mode first**: create a demo API key on OKX and use `--profile demo` before going live.
+
+---
+
 ## Setup
 
 ### What API key permissions do I need?
@@ -139,6 +163,30 @@ Open a GitHub issue and include the full error block (for MCP) or full stderr ou
 ---
 
 # 常见问题（中文）
+
+## 概述
+
+### OKX Trade MCP 是什么？
+
+OKX Trade MCP 是一个本地 MCP Server，将 AI 助手（Claude Desktop、Cursor、VS Code、Windsurf 等）连接到 [OKX REST API](https://www.okx.com/docs-v5/zh/)。它完全运行在你的本机，作为 stdio 进程启动——无云端服务，无第三方中转，API 凭证不会离开你的设备。
+
+### 支持哪些交易对/品种？
+
+支持所有通过 OKX API 可交易、且你账户权限范围内的品种，不限于 BTC/ETH 示例。请使用有效的 Instrument ID——例如现货用 `BTC-USDT`，永续合约用 `BTC-USDT-SWAP`，交割合约用 `BTC-USD-250328`。下单前建议先调用 `market_get_instruments` 查询目标市场的可用合约。
+
+### 使用 MCP 进行交易前需要了解哪些风险？
+
+**免责声明**：OKX Trade MCP 是技术接口，不构成投资建议或财务建议。AI 生成的操作可触发真实交易，并可能因模型错误、网络延迟、市场波动或参数有误而造成损失。
+
+建议注意事项：
+
+- **保护 API 凭证**：Key 仅存于 `~/.okx/config.toml`，并限制文件权限。
+- **最小权限原则**：仅开启读取和交易权限，除非明确需要，不要开启提币权限。
+- **绑定可信 IP**：在 OKX 账户设置中将 API Key 限制为已知 IP 地址。
+- **使用 `--read-only` 模式**：探索或调试时启用，防止意外写操作。
+- **先用模拟盘测试**：在 OKX 创建模拟盘 API Key，使用 `--profile demo` 验证逻辑后再切换实盘。
+
+---
 
 ## 设置
 
