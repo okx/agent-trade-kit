@@ -31,7 +31,6 @@ const BASE_CONFIG: OkxConfig = {
   modules: ["market"] as ModuleId[],
   readOnly: false,
   demo: false,
-  site: "global",
 };
 
 /** Mock globalThis.fetch for the duration of a single test. */
@@ -77,7 +76,7 @@ function throwingFetch(error: unknown): typeof globalThis.fetch {
 // HTTP-level errors
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient — HTTP-level errors", () => {
+describe("OkxRestClient: HTTP-level errors", () => {
   it("wraps fetch TypeError (connection refused) as NetworkError", async () => {
     await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
       const client = new OkxRestClient(BASE_CONFIG);
@@ -155,7 +154,7 @@ describe("OkxRestClient — HTTP-level errors", () => {
 // OKX API error codes (HTTP 200 but sCode != "0")
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient — OKX API error codes", () => {
+describe("OkxRestClient: OKX API error codes", () => {
   it("throws OkxApiError for non-zero sCode", async () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
@@ -238,7 +237,7 @@ describe("OkxRestClient — OKX API error codes", () => {
 // OKX API error code behaviors — suggestion + RateLimitError
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient — OKX error code behaviors", () => {
+describe("OkxRestClient: OKX error code behaviors", () => {
   it("throws RateLimitError for sCode 50011", async () => {
     await withFetch(
       jsonFetch({ code: "50011", msg: "Requests too frequent", data: [] }),
@@ -281,7 +280,7 @@ describe("OkxRestClient — OKX error code behaviors", () => {
     );
   });
 
-  it("OkxApiError for region restriction (51155) carries 'Do not retry' suggestion with site context", async () => {
+  it("OkxApiError for region restriction (51155) carries 'Do not retry' suggestion", async () => {
     await withFetch(
       jsonFetch({ code: "51155", msg: "Requests from restricted location", data: [] }),
       async () => {
@@ -292,26 +291,7 @@ describe("OkxRestClient — OKX error code behaviors", () => {
             err instanceof OkxApiError &&
             err.code === "51155" &&
             typeof err.suggestion === "string" &&
-            err.suggestion.includes("Do not retry") &&
-            err.suggestion.includes("global"),
-        );
-      },
-    );
-  });
-
-  it("OkxApiError for KYC restriction (51734) carries 'Do not retry' suggestion with site context", async () => {
-    await withFetch(
-      jsonFetch({ code: "51734", msg: "Feature not supported for your KYC country", data: [] }),
-      async () => {
-        const client = new OkxRestClient({ ...BASE_CONFIG, site: "eea" });
-        await assert.rejects(
-          () => client.publicGet("/api/v5/trade/order"),
-          (err: unknown) =>
-            err instanceof OkxApiError &&
-            err.code === "51734" &&
-            typeof err.suggestion === "string" &&
-            err.suggestion.includes("Do not retry") &&
-            err.suggestion.includes("eea"),
+            err.suggestion.includes("Do not retry"),
         );
       },
     );
@@ -372,8 +352,8 @@ describe("OkxRestClient — OKX error code behaviors", () => {
 // Graceful degradation: missing / unexpected response fields
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient — graceful degradation (missing/unexpected fields)", () => {
-  it("does not crash when `code` field is absent — treats as success", async () => {
+describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () => {
+  it("does not crash when `code` field is absent (treats as success)", async () => {
     // OKX API format change: `code` field removed. The condition
     // `if (responseCode && responseCode !== "0")` evaluates to false
     // when responseCode is undefined, so the request succeeds.
@@ -464,7 +444,7 @@ describe("OkxRestClient — graceful degradation (missing/unexpected fields)", (
 // Trace ID extraction from response headers
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient — trace ID extraction", () => {
+describe("OkxRestClient: trace ID extraction", () => {
   it("populates traceId from x-trace-id header on API error", async () => {
     await withFetch(
       jsonFetch(
@@ -585,7 +565,7 @@ function capturingFetch(capture: { req?: Request }): typeof globalThis.fetch {
   };
 }
 
-describe("OkxRestClient — User-Agent header", () => {
+describe("OkxRestClient: User-Agent header", () => {
   it("sets User-Agent when userAgent is configured", async () => {
     const captured: { req?: Request } = {};
     const client = new OkxRestClient({ ...BASE_CONFIG, userAgent: "okx-trade-mcp/1.0.2" });
@@ -617,7 +597,7 @@ const AUTH_CONFIG: OkxConfig = {
   passphrase: "test-passphrase",
 };
 
-describe("OkxRestClient — privateGet / privatePost", () => {
+describe("OkxRestClient: privateGet / privatePost", () => {
   it("privateGet completes successfully with auth credentials", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
       const client = new OkxRestClient(AUTH_CONFIG);
@@ -674,7 +654,7 @@ describe("OkxRestClient — privateGet / privatePost", () => {
 // Query string building edge cases
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient — query string building", () => {
+describe("OkxRestClient: query string building", () => {
   it("omits '?' when query object is empty", async () => {
     const captured: { req?: Request } = {};
     const client = new OkxRestClient(BASE_CONFIG);

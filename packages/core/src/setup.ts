@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 export type ClientId = "claude-desktop" | "cursor" | "windsurf" | "vscode" | "claude-code";
 
@@ -36,9 +36,7 @@ function getConfigPath(client: ClientId): string | null {
     case "cursor":
       return path.join(home, ".cursor", "mcp.json");
     case "windsurf":
-      return win
-        ? path.join(home, ".codeium", "windsurf", "mcp_config.json")
-        : path.join(home, ".codeium", "windsurf", "mcp_config.json");
+      return path.join(home, ".codeium", "windsurf", "mcp_config.json");
     case "vscode":
       return path.join(process.cwd(), ".mcp.json");
     case "claude-code":
@@ -122,7 +120,7 @@ export function runSetup(options: SetupOptions): void {
       ...args,
     ];
     process.stdout.write(`Running: claude ${claudeArgs.join(" ")}\n`);
-    execSync(`claude ${claudeArgs.join(" ")}`, { stdio: "inherit" });
+    execFileSync("claude", claudeArgs, { stdio: "inherit" }); // NOSONAR
     process.stdout.write(`✓ Configured ${name}\n`);
     return;
   }

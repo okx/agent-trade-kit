@@ -34,7 +34,7 @@ describe("signOkxPayload", () => {
     assert.match(sig, /^[A-Za-z0-9+/]+=*$/);
   });
 
-  it("is deterministic — same inputs yield same output", () => {
+  it("is deterministic: same inputs yield same output", () => {
     const payload = "2024-06-01T12:00:00.000ZPOST/api/v5/trade/order{\"instId\":\"BTC-USDT\"}";
     const secret = "stable-secret";
     assert.equal(signOkxPayload(payload, secret), signOkxPayload(payload, secret));
