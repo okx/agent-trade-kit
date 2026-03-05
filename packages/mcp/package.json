@@ -1,5 +1,5 @@
 {
-  "name": "agent-tradekit-mcp",
+  "name": "okx-trade-mcp",
   "version": "1.0.6",
   "description": "OKX MCP Server - Model Context Protocol server for OKX exchange",
   "type": "module",
@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "agent-tradekit-mcp": "dist/index.js"
+    "okx-trade-mcp": "dist/index.js"
   },
   "files": ["dist", "README.md"],
   "publishConfig": { "access": "public" },

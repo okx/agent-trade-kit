@@ -90,16 +90,16 @@ describe("runSetup — cursor", () => {
     const configPath = path.join(tmpDir, ".cursor", "mcp.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
-    assert.ok(servers?.["agent-tradekit-mcp"], "entry 'agent-tradekit-mcp' should exist");
-    assert.equal(servers["agent-tradekit-mcp"].command, "agent-tradekit-mcp");
-    assert.ok(Array.isArray(servers["agent-tradekit-mcp"].args), "args should be an array");
+    assert.ok(servers?.["okx-trade-mcp"], "entry 'okx-trade-mcp' should exist");
+    assert.equal(servers["okx-trade-mcp"].command, "okx-trade-mcp");
+    assert.ok(Array.isArray(servers["okx-trade-mcp"].args), "args should be an array");
   });
 
   it("cursor entry does not include a 'type' field", () => {
     const configPath = path.join(tmpDir, ".cursor", "mcp.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
-    assert.equal(servers["agent-tradekit-mcp"].type, undefined);
+    assert.equal(servers["okx-trade-mcp"].type, undefined);
   });
 
   it("default modules arg is 'all'", () => {
@@ -112,7 +112,7 @@ describe("runSetup — cursor", () => {
     const configPath = path.join(tmpDir, ".cursor", "mcp.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, unknown>;
-    assert.ok(servers["agent-tradekit-mcp-live"], "server name should be suffixed with profile");
+    assert.ok(servers["okx-trade-mcp-live"], "server name should be suffixed with profile");
   });
 
   it("output shows server args (profile + modules)", () => {
@@ -131,7 +131,7 @@ describe("runSetup — cursor", () => {
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, unknown>;
     assert.ok(servers["other-server"], "pre-existing server should be preserved");
-    assert.ok(servers["agent-tradekit-mcp"], "new server should be added");
+    assert.ok(servers["okx-trade-mcp"], "new server should be added");
   });
 
   it("creates a .bak backup when config file already exists", () => {
@@ -204,7 +204,7 @@ describe("runSetup — vscode", () => {
     const configPath = path.join(tmpDir, ".mcp.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
-    assert.equal(servers["agent-tradekit-mcp"]?.type, "stdio");
+    assert.equal(servers["okx-trade-mcp"]?.type, "stdio");
   });
 
   it("does not print 'Restart' hint for vscode", () => {
@@ -243,7 +243,7 @@ describe("runSetup — claude-desktop", () => {
     );
     assert.ok(fs.existsSync(configPath), "config file should be created");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
-    assert.ok((data.mcpServers as Record<string, unknown>)?.["agent-tradekit-mcp"]);
+    assert.ok((data.mcpServers as Record<string, unknown>)?.["okx-trade-mcp"]);
   });
 
   it("prints 'Restart Claude Desktop' hint", () => {
@@ -276,13 +276,13 @@ describe("runSetup — windsurf", () => {
     const configPath = path.join(tmpDir, ".codeium", "windsurf", "mcp_config.json");
     assert.ok(fs.existsSync(configPath), "windsurf config should be created");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
-    assert.ok((data.mcpServers as Record<string, unknown>)?.["agent-tradekit-mcp"]);
+    assert.ok((data.mcpServers as Record<string, unknown>)?.["okx-trade-mcp"]);
   });
 
   it("windsurf entry does not include 'type' field", () => {
     const configPath = path.join(tmpDir, ".codeium", "windsurf", "mcp_config.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
-    assert.equal(servers["agent-tradekit-mcp"].type, undefined);
+    assert.equal(servers["okx-trade-mcp"].type, undefined);
   });
 });

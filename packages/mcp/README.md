@@ -1,4 +1,4 @@
-# agent-tradekit-mcp
+# okx-trade-mcp
 
 ## English
 
@@ -8,7 +8,7 @@ market, account, spot, and swap tools via Model Context Protocol (stdio).
 ### Install
 
 ```bash
-npm install -g agent-tradekit-mcp
+npm install -g okx-trade-mcp
 ```
 
 ### Configure credentials
@@ -33,10 +33,10 @@ demo = true
 ### Run
 
 ```bash
-agent-tradekit-mcp --profile live         # specify profile
-agent-tradekit-mcp --modules market       # market only (no key)
-agent-tradekit-mcp --read-only            # read-only, no trades
-agent-tradekit-mcp --modules all          # all modules
+okx-trade-mcp --profile live         # specify profile
+okx-trade-mcp --modules market       # market only (no key)
+okx-trade-mcp --read-only            # read-only, no trades
+okx-trade-mcp --modules all          # all modules
 ```
 
 ### Claude Desktop config
@@ -47,11 +47,11 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "okx-live": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all"]
     },
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo"]
     }
   }
@@ -70,7 +70,7 @@ OKX 的 MCP Server，供 Claude/Cursor 等 AI 工具调用，通过 MCP 协议�
 ### 安装
 
 ```bash
-npm install -g agent-tradekit-mcp
+npm install -g okx-trade-mcp
 ```
 
 ### 配置凭证
@@ -95,10 +95,10 @@ demo = true
 ### 启动
 
 ```bash
-agent-tradekit-mcp --profile live         # 指定 profile
-agent-tradekit-mcp --modules market       # 只加载行情（无需 Key）
-agent-tradekit-mcp --read-only            # 只读模式，禁止下单
-agent-tradekit-mcp --modules all          # 加载所有模块
+okx-trade-mcp --profile live         # 指定 profile
+okx-trade-mcp --modules market       # 只加载行情（无需 Key）
+okx-trade-mcp --read-only            # 只读模式，禁止下单
+okx-trade-mcp --modules all          # 加载所有模块
 ```
 
 ### Claude Desktop 配置
@@ -109,11 +109,11 @@ agent-tradekit-mcp --modules all          # 加载所有模块
 {
   "mcpServers": {
     "okx-live": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all"]
     },
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo"]
     }
   }

@@ -181,7 +181,7 @@ Commands:
 }
 
 async function main(): Promise<void> {
-  checkForUpdates("agent-tradekit-cli", CLI_VERSION);
+  checkForUpdates("okx-trade-cli", CLI_VERSION);
 
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
@@ -297,7 +297,7 @@ async function main(): Promise<void> {
     });
   }
 
-  const config = loadProfileConfig({ profile: values.profile, demo: values.demo, userAgent: `agent-tradekit-cli/${CLI_VERSION}` });
+  const config = loadProfileConfig({ profile: values.profile, demo: values.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });
   const client = new OkxRestClient(config);
 
   if (module === "market") {
@@ -642,6 +642,6 @@ main().catch((error: unknown) => {
   process.stderr.write(`Error: ${payload.message}\n`);
   if (payload.traceId) process.stderr.write(`TraceId: ${payload.traceId}\n`);
   if (payload.suggestion) process.stderr.write(`Hint: ${payload.suggestion}\n`);
-  process.stderr.write(`Version: agent-tradekit-cli@${CLI_VERSION}\n`);
+  process.stderr.write(`Version: okx-trade-cli@${CLI_VERSION}\n`);
   process.exitCode = 1;
 });
