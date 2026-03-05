@@ -81,7 +81,7 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-> Demo key: OKX website → Trading → Demo Trading → API Management
+> Demo key: [Create API Key (Demo Trading)](https://www.okx.com/account/my-api?go-demo-trading=1) · Live key: [Create API Key (Live Trading)](https://www.okx.com/account/my-api?go-live-trading=1)
 
 **Multi-site users:** OKX operates regional sites — set `site = "eea"` for EEA (`my.okx.com`) or `site = "us"` for US (`app.okx.com`). See [configuration →](docs/configuration.md#site-configuration) for details.
 

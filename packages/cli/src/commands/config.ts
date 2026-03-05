@@ -1,10 +1,9 @@
-import { readTomlProfile, configFilePath, OKX_SITES, SITE_IDS } from "@agent-tradekit/core";
-import type { SiteId } from "@agent-tradekit/core";
+import { readTomlProfile, configFilePath } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { printJson, printKv } from "../formatter.js";
 import { existsSync, readFileSync } from "node:fs";
 import { parse, stringify } from "smol-toml";
-import type { OkxTomlConfig } from "@agent-tradekit/core";
+import type { OkxTomlConfig, OkxProfile } from "@agent-tradekit/core";
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
 
@@ -27,7 +26,6 @@ export function cmdConfigShow(json: boolean): void {
   for (const [name, profile] of Object.entries(config.profiles)) {
     process.stdout.write(`[${name}]\n`);
     printKv({
-      site: profile.site ?? "global",
       api_key: profile.api_key ? "***" + profile.api_key.slice(-4) : "(not set)",
       demo: profile.demo ?? false,
       base_url: profile.base_url ?? "(default)",
@@ -48,38 +46,76 @@ export function cmdConfigSet(key: string, value: string): void {
   }
 }
 
+export const SITES = {
+  global: { label: "Global (www.okx.com)", webUrl: "https://www.okx.com" },
+  eea: { label: "EEA (my.okx.com)", webUrl: "https://my.okx.com" },
+  us: { label: "US (app.okx.com)", webUrl: "https://app.okx.com" },
+} as const;
+
+export type SiteKey = keyof typeof SITES;
+
+/** Maps raw user input ("1"/"2"/"3" or empty) to a site key. */
+export function parseSiteKey(raw: string): SiteKey {
+  if (raw === "2") return "eea";
+  if (raw === "3") return "us";
+  return "global";
+}
+
+/** Builds the targeted API creation URL for the given site and trading mode. */
+export function buildApiUrl(siteKey: SiteKey, demo: boolean): string {
+  const query = demo ? "?go-demo-trading=1" : "?go-live-trading=1";
+  return `${SITES[siteKey].webUrl}/account/my-api${query}`;
+}
+
+/** Builds a profile entry, omitting base_url for the global site. */
+export function buildProfileEntry(
+  siteKey: SiteKey,
+  apiKey: string,
+  secretKey: string,
+  passphrase: string,
+  demo: boolean,
+): OkxProfile {
+  const entry: OkxProfile = { api_key: apiKey, secret_key: secretKey, passphrase, demo };
+  if (siteKey !== "global") {
+    entry.base_url = SITES[siteKey].webUrl;
+  }
+  return entry;
+}
+
 export async function cmdConfigInit(): Promise<void> {
   process.stdout.write("OKX Trade CLI — 配置向导\n\n");
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
   try {
-    const profileNameRaw = await prompt(rl, "Profile 名称 (默认: default): ");
-    const profileName = profileNameRaw.trim() || "default";
+    // Step 1: site selection
+    process.stdout.write("请选择站点:\n");
+    process.stdout.write("  1) Global (www.okx.com)  [默认]\n");
+    process.stdout.write("  2) EEA   (my.okx.com)\n");
+    process.stdout.write("  3) US    (app.okx.com)\n");
+    const siteRaw = (await prompt(rl, "站点 (1/2/3, 默认: 1): ")).trim();
+    const siteKey = parseSiteKey(siteRaw);
 
-    // Site selection
-    process.stdout.write("\n选择站点 / Select site:\n");
-    const siteEntries = SITE_IDS.map((id, i) => {
-      const site = OKX_SITES[id];
-      const defaultMark = id === "global" ? " [默认]" : "";
-      return `  ${i + 1}. ${site.label} (${site.webUrl})${defaultMark}`;
-    });
-    process.stdout.write(siteEntries.join("\n") + "\n");
-    const siteChoiceRaw = (await prompt(rl, "站点编号 (默认: 1): ")).trim();
-    const siteIdx = siteChoiceRaw ? Number(siteChoiceRaw) - 1 : 0;
-    const site: SiteId = SITE_IDS[siteIdx] ?? "global";
-    const siteInfo = OKX_SITES[site];
+    // Step 2: demo / live selection — must happen before URL construction
+    const demoRaw = (await prompt(rl, "使用模拟盘？(Y/n) ")).trim().toLowerCase();
+    const demo = demoRaw !== "n";
 
-    const apiUrl = `${siteInfo.webUrl}/account/my-api`;
-    process.stdout.write(`\n请前往 ${apiUrl} 创建 API Key（需要 trade 权限）\n\n`);
+    // Step 3: open targeted API creation page
+    const apiUrl = buildApiUrl(siteKey, demo);
+    const hint = demo ? "页面会自动跳转到模拟盘 API 管理" : "页面会自动跳转到实盘 API 管理";
+    process.stdout.write(`\n请前往 ${apiUrl} 创建 API Key（需要 trade 权限）\n`);
+    process.stdout.write(`提示：${hint}\n\n`);
 
     // Try to open the URL; silently ignore failures
     try {
-      const opener = process.platform === "darwin" ? "open" : "xdg-open";
-      spawnSync(opener, [apiUrl], { stdio: "ignore" });
+      const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+      spawnSync(opener, [apiUrl], { stdio: "ignore", shell: process.platform === "win32" });
     } catch {
       // silently ignore
     }
+
+    const profileNameRaw = await prompt(rl, "Profile 名称 (默认: default): ");
+    const profileName = profileNameRaw.trim() || "default";
 
     const apiKey = (await prompt(rl, "API Key: ")).trim();
     if (!apiKey) {
@@ -102,14 +138,13 @@ export async function cmdConfigInit(): Promise<void> {
       return;
     }
 
-    const demoRaw = (await prompt(rl, "使用模拟盘？(Y/n) ")).trim().toLowerCase();
-    const demo = demoRaw !== "n";
     if (demo) {
       process.stdout.write("已选择模拟盘模式，可随时通过 okx config set 切换为实盘。\n");
     }
 
     const config = readFullConfig();
-    config.profiles[profileName] = { site, api_key: apiKey, secret_key: secretKey, passphrase, demo };
+    const profileEntry = buildProfileEntry(siteKey, apiKey, secretKey, passphrase, demo);
+    config.profiles[profileName] = profileEntry;
 
     const configPath = configFilePath();
     try {

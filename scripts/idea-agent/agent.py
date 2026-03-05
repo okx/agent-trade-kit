@@ -48,6 +48,8 @@ from worker import (
     run_planning,
     slug,
 )
+from log import log, log_err
+import re as _re
 
 # ─── constants ────────────────────────────────────────────────────────────────
 
@@ -190,7 +192,7 @@ SUFFICIENT
 
     if output.startswith("SUFFICIENT"):
         # Enough info — proceed to planning immediately
-        print(f"[agent] #{iid} triage passed, starting planning")
+        log(f"[agent] #{iid} triage passed, starting planning")
         run_planning(issue, dry_run=dry_run)
     else:
         # Post clarification request
@@ -198,7 +200,7 @@ SUFFICIENT
             f"{CLAUDE_PREFIX} ({today}): ❓ 需要补充信息\n\n{output}"
         )
         post_note(iid, comment)
-        print(f"[agent] #{iid} needs clarification, posted questions")
+        log(f"[agent] #{iid} needs clarification, posted questions")
 
 
 # ─── main processing ──────────────────────────────────────────────────────────
@@ -213,27 +215,43 @@ def process_issue(issue: dict, dry_run: bool = False, force_mode: str | None = N
     if force_mode:
         state = force_mode
 
-    print(f"[agent] #{iid} 「{title}」state={state}")
+    log(f"[agent] #{iid} 「{title}」state={state}")
 
     if state == "unevaluated":
         triage(issue, notes, dry_run=dry_run)
 
     elif state == "approved":
         if is_busy():
-            print(f"[agent] Worker busy, skipping #{iid} (consider queuing)")
+            log(f"[agent] Worker busy, skipping #{iid} (consider queuing)")
             return
         plan_note = get_last_claude_note(notes)
         plan_text = plan_note["body"] if plan_note else ""
         run_implementing(issue, plan_text, dry_run=dry_run)
 
     elif state == "implementing":
-        print(f"[agent] #{iid} already implementing, skip")
+        # Check if MR is merged → trigger post-merge
+        last_claude = get_last_claude_note(notes)
+        branch = None
+        if last_claude:
+            m = _re.search(r"分支[：:]\s*(\S+)", last_claude.get("body", ""))
+            if m:
+                branch = m.group(1)
+        if branch:
+            from gitlab import get_mr_for_branch
+            from worker import run_post_merge
+            mr = get_mr_for_branch(branch)
+            if mr and mr.get("state") == "merged":
+                log(f"[agent] #{iid} MR merged, running post-merge for branch '{branch}'")
+                if not dry_run:
+                    run_post_merge(branch, iid)
+                return
+        log(f"[agent] #{iid} implementing in progress, skip")
 
     elif state == "needs_clarification":
-        print(f"[agent] #{iid} waiting for clarification")
+        log(f"[agent] #{iid} waiting for clarification")
 
     elif state == "planning":
-        print(f"[agent] #{iid} waiting for plan approval")
+        log(f"[agent] #{iid} waiting for plan approval")
 
 
 # ─── CLI ──────────────────────────────────────────────────────────────────────
@@ -264,7 +282,7 @@ def run_once(dry_run: bool = False, issue_filter: int | None = None, force_mode:
     try:
         issues = list_open_ideas()
     except Exception as e:
-        print(f"[agent] Failed to list issues (network?): {e}")
+        log(f"[agent] Failed to list issues (network?): {e}")
         return
 
     if issue_filter:
@@ -282,10 +300,38 @@ def run_once(dry_run: bool = False, issue_filter: int | None = None, force_mode:
         try:
             process_issue(issue, dry_run=dry_run, force_mode=force_mode)
         except Exception as e:
-            print(f"[agent] Error processing #{iid}: {e}")
+            log(f"[agent] Error processing #{iid}: {e}")
             continue
         if not dry_run:
             mark_seen(iid, updated_at)
+
+
+def cmd_status() -> None:
+    """Print current agent status: running worker and polling loop."""
+    import json
+    from state import load, is_process_alive
+
+    # Polling loop
+    pid_file = Path(__file__).parent / ".pid"
+    if pid_file.exists():
+        pid = int(pid_file.read_text().strip())
+        alive = is_process_alive(pid)
+        print(f"Polling loop: {'🟢 running' if alive else '🔴 dead'} (pid={pid})")
+    else:
+        print("Polling loop: ⚪ not started")
+
+    # Worker
+    state = load()
+    worker = state.get("worker")
+    if worker:
+        pid = worker.get("pid", -1)
+        alive = is_process_alive(pid)
+        print(f"Worker:       {'🟢 running' if alive else '🔴 dead'} (pid={pid})")
+        print(f"  Issue:      #{worker.get('iid')} — phase={worker.get('phase')}")
+        print(f"  Branch:     {worker.get('branch')}")
+        print(f"  Worktree:   {worker.get('worktree')}")
+    else:
+        print("Worker:       ⚪ idle")
 
 
 def main() -> None:
@@ -300,6 +346,7 @@ def main() -> None:
     parser.add_argument("--stop", action="store_true")
     parser.add_argument("--start", action="store_true")
     parser.add_argument("--cleanup", metavar="BRANCH", help="Cleanup worktree for merged branch")
+    parser.add_argument("--status", action="store_true", help="Show current agent status")
     parser.add_argument(
         "--daemon",
         action="store_true",
@@ -314,6 +361,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.status:
+        cmd_status()
+        return
     if args.stop:
         cmd_stop()
         return
@@ -325,7 +375,7 @@ def main() -> None:
         return
 
     if args.daemon:
-        print(f"[agent] Daemon mode, polling every {args.interval}s (Ctrl-C to stop)")
+        log(f"[agent] Daemon mode, polling every {args.interval}s (Ctrl-C to stop)")
         while True:
             run_once(dry_run=args.dry_run, issue_filter=args.issue, force_mode=args.mode)
             time.sleep(args.interval)

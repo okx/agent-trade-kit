@@ -13,6 +13,7 @@ from pathlib import Path
 
 from gitlab import GLAB_CONFIG_DIR, REPO, post_note
 from state import WorkerTask, clear_worker, set_worker
+from log import log, log_err
 
 REPO_PATH = Path(__file__).parent.parent.parent
 WORKTREES_DIR = REPO_PATH / ".worktrees"
@@ -121,7 +122,7 @@ Issue #{iid}: {title}
 ## 注意事项
 （edge case、风险点）"""
 
-    print(f"[worker] Planning #{iid} with {MODEL_PLANNING} ...")
+    log(f"[worker] Planning #{iid} with {MODEL_PLANNING} ...")
 
     if dry_run:
         print(f"[dry-run] Would run claude --plan -p <prompt> --model {MODEL_PLANNING}")
@@ -149,10 +150,27 @@ Issue #{iid}: {title}
         plan_text = f"💬 Claude ({today}): 📋 实现方案\n\n{plan_text}"
 
     post_note(iid, plan_text)
-    print(f"[worker] Plan posted for #{iid}")
+    log(f"[worker] Plan posted for #{iid}")
 
 
 # ─── implementing ─────────────────────────────────────────────────────────────
+
+
+
+def _make_branch(iid: int, title: str) -> str:
+    """Generate a short English branch name using Sonnet."""
+    import subprocess as _sp
+    result = _sp.run(
+        ["claude", "--model", MODEL_TRIAGE, "-p",
+         f"Convert this issue title to a short English git branch slug (max 30 chars, lowercase, hyphens only, no special chars). Output ONLY the slug, nothing else.\n\nTitle: {title}"],
+        capture_output=True, text=True, cwd=REPO_PATH,
+    )
+    raw = result.stdout.strip().lower()
+    raw = re.sub(r"[^a-z0-9-]", "-", raw)
+    raw = re.sub(r"-+", "-", raw).strip("-")[:30]
+    if not raw:
+        raw = f"issue-{iid}"
+    return f"feat/{raw}"
 
 
 def run_implementing(issue: dict, plan_text: str, dry_run: bool = False) -> None:
@@ -162,7 +180,7 @@ def run_implementing(issue: dict, plan_text: str, dry_run: bool = False) -> None
     """
     iid = issue["iid"]
     title = issue["title"]
-    branch = f"feat/{slug(title)}"
+    branch = _make_branch(iid, title)
     wt_path = create_worktree(branch)
 
     task: WorkerTask = {
@@ -174,7 +192,7 @@ def run_implementing(issue: dict, plan_text: str, dry_run: bool = False) -> None
     }
 
     post_note(iid, f"💬 Claude ({today}): 🔵 开始实现，分支：{branch}")
-    print(f"[worker] Implementing #{iid} in {wt_path} ...")
+    log(f"[worker] Implementing #{iid} in {wt_path} ...")
 
     if dry_run:
         print(f"[dry-run] Would run claude --dangerously-skip-permissions in {wt_path}")
@@ -214,9 +232,9 @@ GitLab repo: {REPO}
     task["pid"] = proc.pid
     set_worker(task)
 
-    print(f"[worker] claude pid={proc.pid}, waiting for completion ...")
+    log(f"[worker] claude pid={proc.pid}, waiting for completion ...")
     proc.wait()
-    print(f"[worker] claude finished (exit={proc.returncode}) for #{iid}")
+    log(f"[worker] claude finished (exit={proc.returncode}) for #{iid}")
 
     clear_worker()
     # worktree cleanup happens on MR merge via webhook (see webhook.py)
@@ -228,5 +246,76 @@ GitLab repo: {REPO}
 
 def cleanup_after_merge(branch: str) -> None:
     """Called when a MR for the given branch is merged."""
-    print(f"[worker] Cleaning up branch '{branch}' after merge")
+    log(f"[worker] Cleaning up branch '{branch}' after merge")
     remove_worktree(branch)
+
+
+# ─── post-merge ───────────────────────────────────────────────────────────────
+
+
+def run_post_merge(branch: str, issue_iid: int) -> None:
+    """
+    After MR is merged: open a temp worktree on master, run checks,
+    then clean up branch + worktree and close the issue.
+    """
+    from gitlab import post_note, close_issue
+    from datetime import date
+    today = date.today().isoformat()
+
+    pm_path = WORKTREES_DIR / "post-merge"
+
+    # Clean up any stale post-merge worktree
+    if pm_path.exists():
+        import shutil
+        shutil.rmtree(pm_path)
+        subprocess.run(["git", "worktree", "prune"], cwd=REPO_PATH)
+
+    log(f"[worker] Post-merge: opening master worktree at {pm_path}")
+    subprocess.run(
+        ["git", "worktree", "add", str(pm_path), "master"],
+        cwd=REPO_PATH, check=True,
+    )
+
+    try:
+        # Pull latest master
+        subprocess.run(["git", "pull", "origin", "master"],
+                       cwd=pm_path, check=True)
+
+        # pnpm install (relink workspace packages)
+        subprocess.run(["pnpm", "install"], cwd=REPO_PATH, check=False)
+
+        # Run checks
+        checks = [
+            (["pnpm", "build"], "Build"),
+            (["pnpm", "typecheck"], "Typecheck"),
+            (["pnpm", "test:unit"], "Tests"),
+        ]
+        results = []
+        all_pass = True
+        for cmd, name in checks:
+            r = subprocess.run(cmd, cwd=REPO_PATH, capture_output=True, text=True)
+            status = "✅" if r.returncode == 0 else "❌"
+            results.append(f"{status} {name}")
+            if r.returncode != 0:
+                all_pass = False
+                log(f"[worker] {name} FAILED:\n{r.stdout[-500:]}\n{r.stderr[-500:]}")
+
+        summary = " · ".join(results)
+        if all_pass:
+            comment = f"💬 Claude ({today}): ✅ MR merged, post-merge checks passed\n\n{summary}"
+        else:
+            comment = f"💬 Claude ({today}): ⚠️ MR merged, some checks failed\n\n{summary}\n\n请手动检查。"
+
+        post_note(issue_iid, comment)
+        if all_pass:
+            close_issue(issue_iid)
+            log(f"[worker] Issue #{issue_iid} closed")
+
+    finally:
+        # Cleanup worktree and branch
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(pm_path)],
+            cwd=REPO_PATH, check=False,
+        )
+        subprocess.run(["git", "branch", "-D", branch], cwd=REPO_PATH, check=False)
+        log(f"[worker] Cleaned up worktree and branch '{branch}'")

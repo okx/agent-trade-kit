@@ -16,9 +16,11 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-> **Demo key:** OKX website → Trading → Demo Trading → API Management
+> **Demo key:** [Create API Key (Demo Trading)](https://www.okx.com/account/my-api?go-demo-trading=1)
 >
-> **Live key:** OKX website → Profile → API → Create API Key
+> **Live key:** [Create API Key (Live Trading)](https://www.okx.com/account/my-api?go-live-trading=1)
+>
+> EEA users: replace `www.okx.com` with `my.okx.com` · US users: use `app.okx.com`
 
 **Required API permissions:** Read + Trade. Withdraw permission is not required or recommended.
 
@@ -370,9 +372,11 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-> **模拟盘 Key：** OKX 官网 → 交易 → 模拟交易 → API 管理
+> **模拟盘 Key：** [创建 API Key（模拟盘）](https://www.okx.com/zh-hans/account/my-api?go-demo-trading=1)
 >
-> **实盘 Key：** OKX 官网 → 个人中心 → API → 创建 API Key
+> **实盘 Key：** [创建 API Key（实盘）](https://www.okx.com/zh-hans/account/my-api?go-live-trading=1)
+>
+> EEA 用户：将 `www.okx.com` 替换为 `my.okx.com`；US 用户：使用 `app.okx.com`
 
 **所需 API 权限：** 读取 + 交易。无需也不建议开启提币权限。
 

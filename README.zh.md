@@ -81,7 +81,7 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-> 模拟盘 Key：OKX 官网 → 交易 → 模拟交易 → API 管理
+> 模拟盘 Key：[创建 API Key（模拟盘）](https://www.okx.com/zh-hans/account/my-api?go-demo-trading=1) · 实盘 Key：[创建 API Key（实盘）](https://www.okx.com/zh-hans/account/my-api?go-live-trading=1)
 
 **多站点用户：** OKX 运营多个区域站点——EEA 用户（`my.okx.com`）请设置 `site = "eea"`，美国用户（`app.okx.com`）请设置 `site = "us"`。详见 [配置说明 →](docs/configuration.md#站点配置)。
 

@@ -13,6 +13,7 @@ import json
 import os
 from pathlib import Path
 from typing import TypedDict
+from log import log, log_err
 
 STATE_FILE = Path(__file__).parent / "agent-state.json"
 
@@ -70,7 +71,7 @@ def reconcile() -> AgentState:
         state["seen"] = {}
     worker = state.get("worker")
     if worker and not is_process_alive(worker["pid"]):
-        print(f"[state] Worker pid {worker['pid']} (issue #{worker['iid']}) is gone — clearing slot")
+        log(f"[state] Worker pid {worker['pid']} (issue #{worker['iid']}) is gone — clearing slot")
         state["worker"] = None
         save(state)
     return state

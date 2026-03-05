@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test:unit": "node --import tsx/esm --test --test-reporter=spec test/*.test.ts"
   },
   "engines": { "node": ">=18" },
   "keywords": ["okx", "cli", "trading"],

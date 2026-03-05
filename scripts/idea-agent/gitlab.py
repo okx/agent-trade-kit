@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from log import log, log_err
 
 REPO = "retail-ai/okx-trade-mcp"
 GLAB_CONFIG_DIR = str(Path.home() / "meili/jay.fan_dacs_at_okg.com/113/.config/glab-cli")
@@ -27,9 +28,9 @@ def _run(args: list[str], check: bool = True) -> subprocess.CompletedProcess:
         check=False,
     )
     if result.returncode != 0 and check:
-        print(f"[gitlab] CMD: {args}", file=sys.stderr)
-        print(f"[gitlab] STDERR: {result.stderr.strip()}", file=sys.stderr)
-        print(f"[gitlab] STDOUT: {result.stdout.strip()}", file=sys.stderr)
+        log_err(f"[gitlab] CMD: {args}")
+        log_err(f"[gitlab] STDERR: {result.stderr.strip()}")
+        log_err(f"[gitlab] STDOUT: {result.stdout.strip()}")
         raise subprocess.CalledProcessError(result.returncode, args, result.stdout, result.stderr)
     return result
 
@@ -83,3 +84,16 @@ def close_issue(iid: int, dry_run: bool = False) -> None:
         "glab", "issue", "close", str(iid),
         "--repo", REPO,
     ])
+
+
+def get_mr_for_branch(branch: str) -> dict | None:
+    """Return the MR dict for the given source branch, or None if not found."""
+    project = REPO.replace("/", "%2F")
+    result = _run([
+        "glab", "api",
+        f"projects/{project}/merge_requests?source_branch={branch}&per_page=5",
+    ], check=False)
+    if result.returncode != 0:
+        return None
+    mrs = json.loads(result.stdout)
+    return mrs[0] if mrs else None
