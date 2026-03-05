@@ -64,7 +64,7 @@ describe("printSetupUsage", () => {
 // ---------------------------------------------------------------------------
 // runSetup — cursor
 // ---------------------------------------------------------------------------
-describe("runSetup — cursor", () => {
+describe("runSetup: cursor", () => {
   let tmpDir: string;
   let origHome: string | undefined;
 
@@ -179,7 +179,7 @@ describe("runSetup — cursor", () => {
 // ---------------------------------------------------------------------------
 // runSetup — vscode (writes to cwd)
 // ---------------------------------------------------------------------------
-describe("runSetup — vscode", () => {
+describe("runSetup: vscode", () => {
   let tmpDir: string;
   let origCwd: string;
 
@@ -216,7 +216,7 @@ describe("runSetup — vscode", () => {
 // ---------------------------------------------------------------------------
 // runSetup — claude-desktop (macOS path)
 // ---------------------------------------------------------------------------
-describe("runSetup — claude-desktop", () => {
+describe("runSetup: claude-desktop", () => {
   let tmpDir: string;
   let origHome: string | undefined;
 
@@ -256,7 +256,7 @@ describe("runSetup — claude-desktop", () => {
 // ---------------------------------------------------------------------------
 // runSetup — windsurf
 // ---------------------------------------------------------------------------
-describe("runSetup — windsurf", () => {
+describe("runSetup: windsurf", () => {
   let tmpDir: string;
   let origHome: string | undefined;
 

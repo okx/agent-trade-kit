@@ -55,54 +55,34 @@ It runs as a **local process** with your API keys stored only on your machine. N
 **Prerequisites:** Node.js >= 18
 
 ```bash
-# 1. Install packages
+# 1. Install
 npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
 
-# 2. Register the MCP server with your AI client
-okx-trade-mcp setup --client claude-desktop   # or: cursor / vscode / claude-code
+# 2. Configure OKX API credentials (interactive wizard)
+okx config init
+
+# 3. Register the MCP server with your AI client
+okx-trade-mcp setup --client claude-desktop
+okx-trade-mcp setup --client cursor
+okx-trade-mcp setup --client claude-code
+okx-trade-mcp setup --client vscode          # writes .mcp.json in current directory
 ```
 
-Then add your OKX API credentials (separate from the above — only needed for authenticated tools):
-
-```bash
-mkdir -p ~/.okx && vim ~/.okx/config.toml
-```
-
-Fill in `~/.okx/config.toml`:
-
-```toml
-default_profile = "demo"
-
-[profiles.demo]
-site = "global"          # global | eea | us  (default: global)
-api_key = "your-demo-api-key"
-secret_key = "your-demo-secret-key"
-passphrase = "your-demo-passphrase"
-demo = true
-```
-
-> Demo key: [Create API Key (Demo Trading)](https://www.okx.com/account/my-api?go-demo-trading=1) · Live key: [Create API Key (Live Trading)](https://www.okx.com/account/my-api?go-live-trading=1)
-
-**Multi-site users:** OKX operates regional sites — set `site = "eea"` for EEA (`my.okx.com`) or `site = "us"` for US (`app.okx.com`). See [configuration →](docs/configuration.md#site-configuration) for details.
-
-For live trading or multiple profiles, see [configuration →](docs/configuration.md).
+> For live trading, multiple profiles, or other clients, see [configuration →](docs/configuration.md).
 
 ---
 
 ## okx-trade-mcp
 
 ```bash
-# Claude Desktop
-okx-trade-mcp setup --client claude-desktop
-
-# Cursor
-okx-trade-mcp setup --client cursor
-
-# Claude Code CLI
-okx-trade-mcp setup --client claude-code
+okx-trade-mcp                                        # default: spot, swap, account
+okx-trade-mcp --modules market                       # market data only (no auth needed)
+okx-trade-mcp --modules spot,account                 # spot trading + account
+okx-trade-mcp --profile live --modules all           # all modules, specific profile
+okx-trade-mcp --read-only                            # query tools only, no writes
 ```
 
-[VS Code · Windsurf · openCxxW →](docs/configuration.md) — [Startup scenarios →](docs/configuration.md#startup-scenarios) (market-only, read-only, spot-only, etc.)
+[Startup scenarios →](docs/configuration.md#startup-scenarios) — [VS Code · Windsurf →](docs/configuration.md)
 
 ---
 

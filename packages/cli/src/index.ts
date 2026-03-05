@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { createRequire } from "node:module";
-import { OkxRestClient, toToolErrorPayload, checkForUpdates } from "@agent-tradekit/core";
+import { pathToFileURL } from "node:url";
+import { OkxRestClient, toToolErrorPayload, checkForUpdates } from "@okx-hub/core";
 
 const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
@@ -70,7 +71,12 @@ import {
   cmdFuturesGet,
 } from "./commands/futures.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
-import { cmdSetupClients, cmdSetupClient, SUPPORTED_CLIENTS } from "./commands/client-setup.js";
+import {
+  cmdSetupClients,
+  cmdSetupClient,
+  printSetupUsage,
+  SUPPORTED_CLIENTS,
+} from "./commands/client-setup.js";
 import type { ClientId } from "./commands/client-setup.js";
 import {
   cmdGridOrders,
@@ -80,7 +86,7 @@ import {
   cmdGridStop,
 } from "./commands/bot.js";
 
-function printHelp(): void {
+export function printHelp(): void {
   process.stdout.write(`
 Usage: okx [--profile <name>] [--json] <command> [args]
 
@@ -180,14 +186,509 @@ Commands:
 `);
 }
 
+export interface CliValues {
+  profile?: string;
+  demo?: boolean;
+  json?: boolean;
+  help?: boolean;
+  client?: string;
+  modules?: string;
+  bar?: string;
+  limit?: string;
+  sz?: string;
+  instId?: string;
+  history?: boolean;
+  ordId?: string;
+  side?: string;
+  ordType?: string;
+  px?: string;
+  posSide?: string;
+  tdMode?: string;
+  lever?: string;
+  mgnMode?: string;
+  tpTriggerPx?: string;
+  tpOrdPx?: string;
+  slTriggerPx?: string;
+  slOrdPx?: string;
+  algoId?: string;
+  reduceOnly?: boolean;
+  newSz?: string;
+  newTpTriggerPx?: string;
+  newTpOrdPx?: string;
+  newSlTriggerPx?: string;
+  newSlOrdPx?: string;
+  callbackRatio?: string;
+  callbackSpread?: string;
+  activePx?: string;
+  algoOrdType?: string;
+  gridNum?: string;
+  maxPx?: string;
+  minPx?: string;
+  runType?: string;
+  quoteSz?: string;
+  baseSz?: string;
+  direction?: string;
+  stopType?: string;
+  live?: boolean;
+  instType?: string;
+  quoteCcy?: string;
+  archive?: boolean;
+  posMode?: string;
+  ccy?: string;
+  from?: string;
+  to?: string;
+  transferType?: string;
+  subAcct?: string;
+  amt?: string;
+  autoCxl?: boolean;
+  clOrdId?: string;
+  newPx?: string;
+}
+
+export function handleConfigCommand(action: string, rest: string[], json: boolean): Promise<void> | void {
+  if (action === "init") return cmdConfigInit();
+  if (action === "show") return cmdConfigShow(json);
+  if (action === "set") return cmdConfigSet(rest[0], rest[1]);
+  if (action === "setup-clients") return cmdSetupClients();
+  process.stderr.write(`Unknown config command: ${action}\n`);
+  process.exitCode = 1;
+}
+
+export function handleSetupCommand(v: CliValues): void {
+  if (!v.client) {
+    printSetupUsage();
+    return;
+  }
+  if (!SUPPORTED_CLIENTS.includes(v.client as ClientId)) {
+    process.stderr.write(
+      `Unknown client: "${v.client}"\nSupported: ${SUPPORTED_CLIENTS.join(", ")}\n`
+    );
+    process.exitCode = 1;
+    return;
+  }
+  cmdSetupClient({
+    client: v.client as ClientId,
+    profile: v.profile,
+    modules: v.modules,
+  });
+}
+
+export function handleMarketPublicCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "ticker") return cmdMarketTicker(client, rest[0], json);
+  if (action === "tickers") return cmdMarketTickers(client, rest[0], json);
+  if (action === "instruments")
+    return cmdMarketInstruments(client, { instType: v.instType!, instId: v.instId, json });
+  if (action === "mark-price")
+    return cmdMarketMarkPrice(client, { instType: v.instType!, instId: v.instId, json });
+  if (action === "index-ticker")
+    return cmdMarketIndexTicker(client, { instId: v.instId, quoteCcy: v.quoteCcy, json });
+  if (action === "price-limit") return cmdMarketPriceLimit(client, rest[0], json);
+  if (action === "open-interest")
+    return cmdMarketOpenInterest(client, { instType: v.instType!, instId: v.instId, json });
+}
+
+export function handleMarketDataCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  if (action === "orderbook")
+    return cmdMarketOrderbook(client, rest[0], v.sz !== undefined ? Number(v.sz) : undefined, json);
+  if (action === "candles")
+    return cmdMarketCandles(client, rest[0], { bar: v.bar, limit, json });
+  if (action === "funding-rate")
+    return cmdMarketFundingRate(client, rest[0], { history: v.history ?? false, limit, json });
+  if (action === "trades")
+    return cmdMarketTrades(client, rest[0], { limit, json });
+  if (action === "index-candles")
+    return cmdMarketIndexCandles(client, rest[0], { bar: v.bar, limit, history: v.history ?? false, json });
+}
+
+export function handleMarketCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  return (
+    handleMarketPublicCommand(client, action, rest, v, json) ??
+    handleMarketDataCommand(client, action, rest, v, json)
+  );
+}
+
+export function handleAccountWriteCommand(
+  client: OkxRestClient,
+  action: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "set-position-mode")
+    return cmdAccountSetPositionMode(client, v.posMode!, json);
+  if (action === "max-size")
+    return cmdAccountMaxSize(client, { instId: v.instId!, tdMode: v.tdMode!, px: v.px, json });
+  if (action === "max-avail-size")
+    return cmdAccountMaxAvailSize(client, { instId: v.instId!, tdMode: v.tdMode!, json });
+  if (action === "max-withdrawal") return cmdAccountMaxWithdrawal(client, v.ccy, json);
+  if (action === "transfer")
+    return cmdAccountTransfer(client, {
+      ccy: v.ccy!,
+      amt: v.amt!,
+      from: v.from!,
+      to: v.to!,
+      transferType: v.transferType,
+      subAcct: v.subAcct,
+      json,
+    });
+}
+
+function handleAccountCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  if (action === "balance") return cmdAccountBalance(client, rest[0], json);
+  if (action === "asset-balance") return cmdAccountAssetBalance(client, v.ccy, json);
+  if (action === "positions")
+    return cmdAccountPositions(client, { instType: v.instType, instId: v.instId, json });
+  if (action === "positions-history")
+    return cmdAccountPositionsHistory(client, {
+      instType: v.instType,
+      instId: v.instId,
+      limit,
+      json,
+    });
+  if (action === "bills")
+    return cmdAccountBills(client, {
+      archive: v.archive ?? false,
+      instType: v.instType,
+      ccy: v.ccy,
+      limit,
+      json,
+    });
+  if (action === "fees")
+    return cmdAccountFees(client, { instType: v.instType!, instId: v.instId, json });
+  if (action === "config") return cmdAccountConfig(client, json);
+  return handleAccountWriteCommand(client, action, v, json);
+}
+
+function handleSpotAlgoCommand(
+  client: OkxRestClient,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "place")
+    return cmdSpotAlgoPlace(client, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdSpotAlgoAmend(client, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdSpotAlgoCancel(client, v.instId!, v.algoId!, json);
+  if (subAction === "orders")
+    return cmdSpotAlgoOrders(client, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
+}
+
+function handleSpotCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "orders")
+    return cmdSpotOrders(client, {
+      instId: v.instId,
+      status: v.history ? "history" : "open",
+      json,
+    });
+  if (action === "get")
+    return cmdSpotGet(client, { instId: v.instId!, ordId: v.ordId, clOrdId: v.clOrdId, json });
+  if (action === "fills")
+    return cmdSpotFills(client, { instId: v.instId, ordId: v.ordId, json });
+  if (action === "amend")
+    return cmdSpotAmend(client, {
+      instId: v.instId!,
+      ordId: v.ordId,
+      clOrdId: v.clOrdId,
+      newSz: v.newSz,
+      newPx: v.newPx,
+      json,
+    });
+  if (action === "place")
+    return cmdSpotPlace(client, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType!,
+      sz: v.sz!,
+      px: v.px,
+      json,
+    });
+  if (action === "cancel")
+    return cmdSpotCancel(client, rest[0], v.ordId!, json);
+  if (action === "algo")
+    return handleSpotAlgoCommand(client, rest[0], v, json);
+}
+
+function handleSwapAlgoCommand(
+  client: OkxRestClient,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "trail")
+    return cmdSwapAlgoTrailPlace(client, {
+      instId: v.instId!,
+      side: v.side!,
+      sz: v.sz!,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
+      posSide: v.posSide,
+      tdMode: v.tdMode ?? "cross",
+      reduceOnly: v.reduceOnly,
+      json,
+    });
+  if (subAction === "place")
+    return cmdSwapAlgoPlace(client, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      posSide: v.posSide,
+      tdMode: v.tdMode ?? "cross",
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      reduceOnly: v.reduceOnly,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdSwapAlgoAmend(client, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdSwapAlgoCancel(client, v.instId!, v.algoId!, json);
+  if (subAction === "orders")
+    return cmdSwapAlgoOrders(client, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
+}
+
+function handleSwapCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "positions")
+    return cmdSwapPositions(client, rest[0] ?? v.instId, json);
+  if (action === "orders")
+    return cmdSwapOrders(client, {
+      instId: v.instId,
+      status: v.history ? "history" : "open",
+      json,
+    });
+  if (action === "get")
+    return cmdSwapGet(client, { instId: v.instId!, ordId: v.ordId, clOrdId: v.clOrdId, json });
+  if (action === "fills")
+    return cmdSwapFills(client, {
+      instId: v.instId,
+      ordId: v.ordId,
+      archive: v.archive ?? false,
+      json,
+    });
+  if (action === "close")
+    return cmdSwapClose(client, {
+      instId: v.instId!,
+      mgnMode: v.mgnMode!,
+      posSide: v.posSide,
+      autoCxl: v.autoCxl,
+      json,
+    });
+  if (action === "get-leverage")
+    return cmdSwapGetLeverage(client, { instId: v.instId!, mgnMode: v.mgnMode!, json });
+  if (action === "place")
+    return cmdSwapPlace(client, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType!,
+      sz: v.sz!,
+      posSide: v.posSide,
+      px: v.px,
+      tdMode: v.tdMode ?? "cross",
+      json,
+    });
+  if (action === "cancel")
+    return cmdSwapCancel(client, rest[0], v.ordId!, json);
+  if (action === "leverage")
+    return cmdSwapSetLeverage(client, {
+      instId: v.instId!,
+      lever: v.lever!,
+      mgnMode: v.mgnMode!,
+      posSide: v.posSide,
+      json,
+    });
+  if (action === "algo")
+    return handleSwapAlgoCommand(client, rest[0], v, json);
+}
+
+function handleFuturesCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "orders") {
+    let status: "archive" | "history" | "open" = "open";
+    if (v.archive) status = "archive";
+    else if (v.history) status = "history";
+    return cmdFuturesOrders(client, { instId: v.instId, status, json });
+  }
+  if (action === "positions") return cmdFuturesPositions(client, v.instId, json);
+  if (action === "fills")
+    return cmdFuturesFills(client, {
+      instId: v.instId,
+      ordId: v.ordId,
+      archive: v.archive ?? false,
+      json,
+    });
+  if (action === "place")
+    return cmdFuturesPlace(client, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType!,
+      sz: v.sz!,
+      tdMode: v.tdMode ?? "cross",
+      posSide: v.posSide,
+      px: v.px,
+      reduceOnly: v.reduceOnly,
+      json,
+    });
+  if (action === "cancel")
+    return cmdFuturesCancel(client, rest[0] ?? v.instId!, v.ordId!, json);
+  if (action === "get")
+    return cmdFuturesGet(client, { instId: rest[0] ?? v.instId!, ordId: v.ordId, json });
+}
+
+export function handleBotGridCommand(
+  client: OkxRestClient,
+  v: CliValues,
+  rest: string[],
+  json: boolean
+): Promise<void> | void {
+  const subAction = rest[0];
+  if (subAction === "orders")
+    return cmdGridOrders(client, {
+      algoOrdType: v.algoOrdType!,
+      instId: v.instId,
+      algoId: v.algoId,
+      status: v.history ? "history" : "active",
+      json,
+    });
+  if (subAction === "details")
+    return cmdGridDetails(client, {
+      algoOrdType: v.algoOrdType!,
+      algoId: v.algoId!,
+      json,
+    });
+  if (subAction === "sub-orders")
+    return cmdGridSubOrders(client, {
+      algoOrdType: v.algoOrdType!,
+      algoId: v.algoId!,
+      type: v.live ? "live" : "filled",
+      json,
+    });
+  if (subAction === "create")
+    return cmdGridCreate(client, {
+      instId: v.instId!,
+      algoOrdType: v.algoOrdType!,
+      maxPx: v.maxPx!,
+      minPx: v.minPx!,
+      gridNum: v.gridNum!,
+      runType: v.runType,
+      quoteSz: v.quoteSz,
+      baseSz: v.baseSz,
+      direction: v.direction,
+      lever: v.lever,
+      sz: v.sz,
+      json,
+    });
+  if (subAction === "stop")
+    return cmdGridStop(client, {
+      algoId: v.algoId!,
+      algoOrdType: v.algoOrdType!,
+      instId: v.instId!,
+      stopType: v.stopType,
+      json,
+    });
+}
+
+export function handleBotCommand(
+  client: OkxRestClient,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "grid") return handleBotGridCommand(client, v, rest, json);
+}
+
 async function main(): Promise<void> {
-  checkForUpdates("@okx_retail/okx-trade-cli", CLI_VERSION);
+  checkForUpdates("okx-trade-cli", CLI_VERSION);
 
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
     options: {
       profile: { type: "string" },
-      site: { type: "string" },
       demo: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
@@ -265,384 +766,33 @@ async function main(): Promise<void> {
   }
 
   const [module, action, ...rest] = positionals;
-  const json = values.json ?? false;
+  const v = values as CliValues;
+  const json = v.json ?? false;
 
-  // config commands don't need a client
-  if (module === "config") {
-    if (action === "init") return cmdConfigInit();
-    if (action === "show") return cmdConfigShow(json);
-    if (action === "set") return cmdConfigSet(rest[0], rest[1]);
-    if (action === "setup-clients") return cmdSetupClients();
-    process.stderr.write(`Unknown config command: ${action}\n`);
-    process.exitCode = 1;
-    return;
-  }
+  if (module === "config") return handleConfigCommand(action, rest, json);
+  if (module === "setup") return handleSetupCommand(v);
 
-  if (module === "setup") {
-    if (!values.client) {
-      const { printSetupUsage } = await import("./commands/client-setup.js");
-      printSetupUsage();
-      return;
-    }
-    if (!SUPPORTED_CLIENTS.includes(values.client as ClientId)) {
-      process.stderr.write(
-        `Unknown client: "${values.client}"\nSupported: ${SUPPORTED_CLIENTS.join(", ")}\n`
-      );
-      process.exitCode = 1;
-      return;
-    }
-    return cmdSetupClient({
-      client: values.client as ClientId,
-      profile: values.profile,
-      modules: values.modules,
-    });
-  }
-
-  const config = loadProfileConfig({ profile: values.profile, demo: values.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });
+  const config = loadProfileConfig({ profile: v.profile, demo: v.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });
   const client = new OkxRestClient(config);
 
-  if (module === "market") {
-    if (action === "ticker") return cmdMarketTicker(client, rest[0], json);
-    if (action === "tickers") return cmdMarketTickers(client, rest[0], json);
-    if (action === "orderbook")
-      return cmdMarketOrderbook(client, rest[0], values.sz ? Number(values.sz) : undefined, json);
-    if (action === "candles")
-      return cmdMarketCandles(client, rest[0], {
-        bar: values.bar,
-        limit: values.limit ? Number(values.limit) : undefined,
-        json,
-      });
-    if (action === "instruments")
-      return cmdMarketInstruments(client, { instType: values.instType!, instId: values.instId, json });
-    if (action === "funding-rate")
-      return cmdMarketFundingRate(client, rest[0], {
-        history: values.history,
-        limit: values.limit ? Number(values.limit) : undefined,
-        json,
-      });
-    if (action === "mark-price")
-      return cmdMarketMarkPrice(client, { instType: values.instType!, instId: values.instId, json });
-    if (action === "trades")
-      return cmdMarketTrades(client, rest[0], {
-        limit: values.limit ? Number(values.limit) : undefined,
-        json,
-      });
-    if (action === "index-ticker")
-      return cmdMarketIndexTicker(client, { instId: values.instId, quoteCcy: values.quoteCcy, json });
-    if (action === "index-candles")
-      return cmdMarketIndexCandles(client, rest[0], {
-        bar: values.bar,
-        limit: values.limit ? Number(values.limit) : undefined,
-        history: values.history,
-        json,
-      });
-    if (action === "price-limit") return cmdMarketPriceLimit(client, rest[0], json);
-    if (action === "open-interest")
-      return cmdMarketOpenInterest(client, { instType: values.instType!, instId: values.instId, json });
-  }
-
-  if (module === "account") {
-    if (action === "balance") return cmdAccountBalance(client, rest[0], json);
-    if (action === "asset-balance") return cmdAccountAssetBalance(client, values.ccy, json);
-    if (action === "positions")
-      return cmdAccountPositions(client, { instType: values.instType, instId: values.instId, json });
-    if (action === "positions-history")
-      return cmdAccountPositionsHistory(client, {
-        instType: values.instType,
-        instId: values.instId,
-        limit: values.limit ? Number(values.limit) : undefined,
-        json,
-      });
-    if (action === "bills")
-      return cmdAccountBills(client, {
-        archive: values.archive,
-        instType: values.instType,
-        ccy: values.ccy,
-        limit: values.limit ? Number(values.limit) : undefined,
-        json,
-      });
-    if (action === "fees")
-      return cmdAccountFees(client, { instType: values.instType!, instId: values.instId, json });
-    if (action === "config") return cmdAccountConfig(client, json);
-    if (action === "set-position-mode")
-      return cmdAccountSetPositionMode(client, values.posMode!, json);
-    if (action === "max-size")
-      return cmdAccountMaxSize(client, { instId: values.instId!, tdMode: values.tdMode!, px: values.px, json });
-    if (action === "max-avail-size")
-      return cmdAccountMaxAvailSize(client, { instId: values.instId!, tdMode: values.tdMode!, json });
-    if (action === "max-withdrawal") return cmdAccountMaxWithdrawal(client, values.ccy, json);
-    if (action === "transfer")
-      return cmdAccountTransfer(client, {
-        ccy: values.ccy!,
-        amt: values.amt!,
-        from: values.from!,
-        to: values.to!,
-        transferType: values.transferType,
-        subAcct: values.subAcct,
-        json,
-      });
-  }
-
-  if (module === "spot") {
-    if (action === "orders")
-      return cmdSpotOrders(client, {
-        instId: values.instId,
-        status: values.history ? "history" : "open",
-        json,
-      });
-    if (action === "get")
-      return cmdSpotGet(client, { instId: values.instId!, ordId: values.ordId, clOrdId: values.clOrdId, json });
-    if (action === "fills")
-      return cmdSpotFills(client, { instId: values.instId, ordId: values.ordId, json });
-    if (action === "amend")
-      return cmdSpotAmend(client, {
-        instId: values.instId!,
-        ordId: values.ordId,
-        clOrdId: values.clOrdId,
-        newSz: values.newSz,
-        newPx: values.newPx,
-        json,
-      });
-    if (action === "place")
-      return cmdSpotPlace(client, {
-        instId: values.instId!,
-        side: values.side!,
-        ordType: values.ordType!,
-        sz: values.sz!,
-        px: values.px,
-        json,
-      });
-    if (action === "cancel")
-      return cmdSpotCancel(client, rest[0], values.ordId!, json);
-    if (action === "algo") {
-      const subAction = rest[0];
-      if (subAction === "place")
-        return cmdSpotAlgoPlace(client, {
-          instId: values.instId!,
-          side: values.side!,
-          ordType: values.ordType ?? "conditional",
-          sz: values.sz!,
-          tpTriggerPx: values.tpTriggerPx,
-          tpOrdPx: values.tpOrdPx,
-          slTriggerPx: values.slTriggerPx,
-          slOrdPx: values.slOrdPx,
-          json,
-        });
-      if (subAction === "amend")
-        return cmdSpotAlgoAmend(client, {
-          instId: values.instId!,
-          algoId: values.algoId!,
-          newSz: values.newSz,
-          newTpTriggerPx: values.newTpTriggerPx,
-          newTpOrdPx: values.newTpOrdPx,
-          newSlTriggerPx: values.newSlTriggerPx,
-          newSlOrdPx: values.newSlOrdPx,
-          json,
-        });
-      if (subAction === "cancel")
-        return cmdSpotAlgoCancel(client, values.instId!, values.algoId!, json);
-      if (subAction === "orders")
-        return cmdSpotAlgoOrders(client, {
-          instId: values.instId,
-          status: values.history ? "history" : "pending",
-          ordType: values.ordType,
-          json,
-        });
-    }
-  }
-
-  if (module === "swap") {
-    if (action === "positions")
-      return cmdSwapPositions(client, rest[0] ?? values.instId, json);
-    if (action === "orders")
-      return cmdSwapOrders(client, {
-        instId: values.instId,
-        status: values.history ? "history" : "open",
-        json,
-      });
-    if (action === "get")
-      return cmdSwapGet(client, { instId: values.instId!, ordId: values.ordId, clOrdId: values.clOrdId, json });
-    if (action === "fills")
-      return cmdSwapFills(client, { instId: values.instId, ordId: values.ordId, archive: values.archive, json });
-    if (action === "close")
-      return cmdSwapClose(client, {
-        instId: values.instId!,
-        mgnMode: values.mgnMode!,
-        posSide: values.posSide,
-        autoCxl: values.autoCxl,
-        json,
-      });
-    if (action === "get-leverage")
-      return cmdSwapGetLeverage(client, { instId: values.instId!, mgnMode: values.mgnMode!, json });
-    if (action === "place")
-      return cmdSwapPlace(client, {
-        instId: values.instId!,
-        side: values.side!,
-        ordType: values.ordType!,
-        sz: values.sz!,
-        posSide: values.posSide,
-        px: values.px,
-        tdMode: values.tdMode ?? "cross",
-        json,
-      });
-    if (action === "cancel")
-      return cmdSwapCancel(client, rest[0], values.ordId!, json);
-    if (action === "leverage")
-      return cmdSwapSetLeverage(client, {
-        instId: values.instId!,
-        lever: values.lever!,
-        mgnMode: values.mgnMode!,
-        posSide: values.posSide,
-        json,
-      });
-    if (action === "algo") {
-      const subAction = rest[0];
-      if (subAction === "trail")
-        return cmdSwapAlgoTrailPlace(client, {
-          instId: values.instId!,
-          side: values.side!,
-          sz: values.sz!,
-          callbackRatio: values.callbackRatio,
-          callbackSpread: values.callbackSpread,
-          activePx: values.activePx,
-          posSide: values.posSide,
-          tdMode: values.tdMode ?? "cross",
-          reduceOnly: values.reduceOnly,
-          json,
-        });
-      if (subAction === "place")
-        return cmdSwapAlgoPlace(client, {
-          instId: values.instId!,
-          side: values.side!,
-          ordType: values.ordType ?? "conditional",
-          sz: values.sz!,
-          posSide: values.posSide,
-          tdMode: values.tdMode ?? "cross",
-          tpTriggerPx: values.tpTriggerPx,
-          tpOrdPx: values.tpOrdPx,
-          slTriggerPx: values.slTriggerPx,
-          slOrdPx: values.slOrdPx,
-          reduceOnly: values.reduceOnly,
-          json,
-        });
-      if (subAction === "amend")
-        return cmdSwapAlgoAmend(client, {
-          instId: values.instId!,
-          algoId: values.algoId!,
-          newSz: values.newSz,
-          newTpTriggerPx: values.newTpTriggerPx,
-          newTpOrdPx: values.newTpOrdPx,
-          newSlTriggerPx: values.newSlTriggerPx,
-          newSlOrdPx: values.newSlOrdPx,
-          json,
-        });
-      if (subAction === "cancel")
-        return cmdSwapAlgoCancel(client, values.instId!, values.algoId!, json);
-      if (subAction === "orders")
-        return cmdSwapAlgoOrders(client, {
-          instId: values.instId,
-          status: values.history ? "history" : "pending",
-          ordType: values.ordType,
-          json,
-        });
-    }
-  }
-
-  if (module === "futures") {
-    if (action === "orders")
-      return cmdFuturesOrders(client, {
-        instId: values.instId,
-        status: values.archive ? "archive" : values.history ? "history" : "open",
-        json,
-      });
-    if (action === "positions") return cmdFuturesPositions(client, values.instId, json);
-    if (action === "fills")
-      return cmdFuturesFills(client, {
-        instId: values.instId,
-        ordId: values.ordId,
-        archive: values.archive,
-        json,
-      });
-    if (action === "place")
-      return cmdFuturesPlace(client, {
-        instId: values.instId!,
-        side: values.side!,
-        ordType: values.ordType!,
-        sz: values.sz!,
-        tdMode: values.tdMode ?? "cross",
-        posSide: values.posSide,
-        px: values.px,
-        reduceOnly: values.reduceOnly,
-        json,
-      });
-    if (action === "cancel")
-      return cmdFuturesCancel(client, rest[0] ?? values.instId!, values.ordId!, json);
-    if (action === "get")
-      return cmdFuturesGet(client, { instId: rest[0] ?? values.instId!, ordId: values.ordId, json });
-  }
-
-  if (module === "bot") {
-    const subAction = rest[0]; // e.g. "orders", "details", "sub-orders", "create", "stop"
-    if (action === "grid") {
-      if (subAction === "orders")
-        return cmdGridOrders(client, {
-          algoOrdType: values.algoOrdType!,
-          instId: values.instId,
-          algoId: values.algoId,
-          status: values.history ? "history" : "active",
-          json,
-        });
-      if (subAction === "details")
-        return cmdGridDetails(client, {
-          algoOrdType: values.algoOrdType!,
-          algoId: values.algoId!,
-          json,
-        });
-      if (subAction === "sub-orders")
-        return cmdGridSubOrders(client, {
-          algoOrdType: values.algoOrdType!,
-          algoId: values.algoId!,
-          type: values.live ? "live" : "filled",
-          json,
-        });
-      if (subAction === "create")
-        return cmdGridCreate(client, {
-          instId: values.instId!,
-          algoOrdType: values.algoOrdType!,
-          maxPx: values.maxPx!,
-          minPx: values.minPx!,
-          gridNum: values.gridNum!,
-          runType: values.runType,
-          quoteSz: values.quoteSz,
-          baseSz: values.baseSz,
-          direction: values.direction,
-          lever: values.lever,
-          sz: values.sz,
-          json,
-        });
-      if (subAction === "stop")
-        return cmdGridStop(client, {
-          algoId: values.algoId!,
-          algoOrdType: values.algoOrdType!,
-          instId: values.instId!,
-          stopType: values.stopType,
-          json,
-        });
-    }
-  }
+  if (module === "market") return handleMarketCommand(client, action, rest, v, json);
+  if (module === "account") return handleAccountCommand(client, action, rest, v, json);
+  if (module === "spot") return handleSpotCommand(client, action, rest, v, json);
+  if (module === "swap") return handleSwapCommand(client, action, rest, v, json);
+  if (module === "futures") return handleFuturesCommand(client, action, rest, v, json);
+  if (module === "bot") return handleBotCommand(client, action, rest, v, json);
 
   process.stderr.write(`Unknown command: ${module} ${action ?? ""}\n`);
   process.exitCode = 1;
 }
 
-// IMPORTANT: Do NOT add an `import.meta.url === pathToFileURL(process.argv[1]).href`
-// guard here. npm global install creates a symlink, and the symlink path differs from
-// the real file path, which would silently skip main(). See: issue #21
-main().catch((error: unknown) => {
-  const payload = toToolErrorPayload(error);
-  process.stderr.write(`Error: ${payload.message}\n`);
-  if (payload.traceId) process.stderr.write(`TraceId: ${payload.traceId}\n`);
-  if (payload.suggestion) process.stderr.write(`Hint: ${payload.suggestion}\n`);
-  process.stderr.write(`Version: okx-trade-cli@${CLI_VERSION}\n`);
-  process.exitCode = 1;
-});
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error: unknown) => {
+    const payload = toToolErrorPayload(error);
+    process.stderr.write(`Error: ${payload.message}\n`);
+    if (payload.traceId) process.stderr.write(`TraceId: ${payload.traceId}\n`);
+    if (payload.suggestion) process.stderr.write(`Hint: ${payload.suggestion}\n`);
+    process.stderr.write(`Version: okx-trade-cli@${CLI_VERSION}\n`);
+    process.exitCode = 1;
+  });
+}

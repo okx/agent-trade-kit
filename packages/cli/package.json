@@ -14,7 +14,8 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "test:unit": "node --import tsx/esm --test --test-reporter=spec test/*.test.ts"
+    "test:unit": "node --import tsx/esm --test test/*.test.ts",
+    "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
   "engines": { "node": ">=18" },
   "keywords": ["okx", "cli", "trading"],
@@ -22,9 +23,11 @@
     "smol-toml": "^1.3.4"
   },
   "devDependencies": {
-    "@agent-tradekit/core": "workspace:*",
+    "@okx-hub/core": "workspace:*",
     "@types/node": "^25.2.2",
+    "c8": "^10.1.3",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.9.3"
   }
 }

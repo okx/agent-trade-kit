@@ -4,7 +4,13 @@
 
 All credentials are stored in `~/.okx/config.toml`. The client config only needs the profile name.
 
-A minimal single-profile setup:
+The easiest way to set this up is the interactive wizard:
+
+```bash
+okx config init
+```
+
+Or configure manually with a minimal single-profile setup:
 
 ```toml
 default_profile = "demo"
