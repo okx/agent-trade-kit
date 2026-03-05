@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-npm install -g okx-trade-cli
+npm install -g @okx_retail/okx-trade-cli
 ```
 
 ## Global Options
@@ -164,7 +164,7 @@ Also available directly as `okx-trade-mcp setup --client <client>` without insta
 ## 安装
 
 ```bash
-npm install -g okx-trade-cli
+npm install -g @okx_retail/okx-trade-cli
 ```
 
 ## 全局选项

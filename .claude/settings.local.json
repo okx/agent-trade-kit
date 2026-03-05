@@ -4,9 +4,7 @@
       "WebFetch(domain:www.okx.com)",
       "WebFetch(domain:okg-block.sg.larksuite.com)",
       "Bash(source:*)",
-      "Bash(__NEW_LINE_fec84f6243917df9__ echo:*)",
-      "Bash(OKX_API_KEY=\"648c8aea-e372-4597-b3b9-5af244aa16d1\" OKX_SECRET_KEY=\"5CC96A09A24F3D7788F7905924760A86\" OKX_PASSPHRASE=\"@Mcp9000433\" OKX_DEMO=1 bash:*)",
-      "Bash(OKX_API_KEY=\"648c8aea-e372-4597-b3b9-5af244aa16d1\" OKX_SECRET_KEY=\"5CC96A09A24F3D7788F7905924760A86\" OKX_PASSPHRASE=\"@Mcp9000433\" OKX_DEMO=1 node:*)"
+      "Bash(pnpm test:unit:*)"
     ]
   }
 }

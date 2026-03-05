@@ -56,7 +56,7 @@ OKX Trade MCP 通过 [Model Context Protocol](https://modelcontextprotocol.io) �
 
 ```bash
 # 1. 安装
-npm install -g okx-trade-mcp okx-trade-cli
+npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
 
 # 2. 将 MCP Server 注册到 AI 客户端
 okx-trade-mcp setup --client claude-desktop   # 或：cursor / vscode / claude-code

@@ -143,7 +143,7 @@ okx-trade-mcp --help
 **Fix**: Reinstall using the system Node's npm:
 
 ```bash
-/usr/local/bin/npm install -g okx-trade-mcp
+/usr/local/bin/npm install -g @okx_retail/okx-trade-mcp
 ```
 
 Then restart Claude Desktop.
@@ -341,7 +341,7 @@ okx-trade-mcp --help
 **解法**：用系统 Node 对应的 npm 重新安装一次：
 
 ```bash
-/usr/local/bin/npm install -g okx-trade-mcp
+/usr/local/bin/npm install -g @okx_retail/okx-trade-mcp
 ```
 
 安装完成后重启 Claude Desktop 即可。

@@ -56,7 +56,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 ```bash
 # 1. Install packages
-npm install -g okx-trade-mcp okx-trade-cli
+npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
 
 # 2. Register the MCP server with your AI client
 okx-trade-mcp setup --client claude-desktop   # or: cursor / vscode / claude-code

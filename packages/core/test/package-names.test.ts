@@ -9,21 +9,21 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 describe("package name consistency", () => {
-  it("okx-trade-mcp package.json name matches checkForUpdates call", () => {
+  it("@okx_retail/okx-trade-mcp package.json name matches checkForUpdates call", () => {
     const pkg = require("../../mcp/package.json") as { name: string };
     assert.equal(
       pkg.name,
-      "okx-trade-mcp",
-      `packages/mcp/package.json name is "${pkg.name}" but checkForUpdates is called with "okx-trade-mcp"`,
+      "@okx_retail/okx-trade-mcp",
+      `packages/mcp/package.json name is "${pkg.name}" but checkForUpdates is called with "@okx_retail/okx-trade-mcp"`,
     );
   });
 
-  it("okx-trade-cli package.json name matches checkForUpdates call", () => {
+  it("@okx_retail/okx-trade-cli package.json name matches checkForUpdates call", () => {
     const pkg = require("../../cli/package.json") as { name: string };
     assert.equal(
       pkg.name,
-      "okx-trade-cli",
-      `packages/cli/package.json name is "${pkg.name}" but checkForUpdates is called with "okx-trade-cli"`,
+      "@okx_retail/okx-trade-cli",
+      `packages/cli/package.json name is "${pkg.name}" but checkForUpdates is called with "@okx_retail/okx-trade-cli"`,
     );
   });
 });

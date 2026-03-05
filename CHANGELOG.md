@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **npm scope**: packages are now published under the `@okx_retail` organisation. Please reinstall:
+  ```
+  npm uninstall -g okx-trade-mcp okx-trade-cli
+  npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
+  ```
+  Binary names are unchanged — `okx-trade-mcp` and `okx` still work after reinstall.
+
 ---
 
 ## [1.0.6] - 2026-03-04
