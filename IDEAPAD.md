@@ -1,3 +1,5 @@
+[English](IDEAPAD.md) | [中文](IDEAPAD.zh-CN.md)
+
 # Ideapad — 想法收集与处理流程
 
 ## 什么是 Ideapad？

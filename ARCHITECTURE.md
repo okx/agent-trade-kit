@@ -1,8 +1,10 @@
-# OKX MCP Server — Architecture
+[English](ARCHITECTURE.md) | [中文](ARCHITECTURE.zh-CN.md)
+
+# OKX Agent TradeKit — Architecture
 
 ## 1. Overview
 
-OKX MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) integration layer for the OKX exchange, allowing AI agents (Claude Desktop, Cursor, etc.) to query market data, place orders, and manage positions by calling OKX REST API v5 directly.
+OKX Agent TradeKit is an AI-powered trading toolkit for the OKX exchange. It includes an MCP server (`okx-trade-mcp`) and a CLI tool (`okx-trade-cli`), allowing AI agents (Claude Desktop, Cursor, etc.) and developers to query market data, place orders, and manage positions by calling OKX REST API v5 directly.
 
 - **Transport**: stdio — JSON-RPC communication with the host process via standard input/output
 - **Runtime**: Node.js >= 18
@@ -99,29 +101,20 @@ okx-trade-mcp/
 
 ### 4.1 Signature (`utils/signature.ts`)
 
-OKX uses an **ISO 8601 timestamp** + **HMAC-SHA256** signature. This differs from Bitget (millisecond timestamp):
+OKX uses an **ISO 8601 timestamp** + **HMAC-SHA256** signature. The signature payload is constructed as:
 
 ```
 payload = timestamp + METHOD + requestPath + body
 ```
 
-- `timestamp`: `new Date().toISOString()` → `"2024-01-01T00:00:00.000Z"`
+- `timestamp`: ISO format, e.g. `"2024-01-01T00:00:00.000Z"`
 - `METHOD`: uppercase, e.g. `"GET"` / `"POST"`
 - `requestPath`: includes query string, e.g. `/api/v5/market/ticker?instId=BTC-USDT`
 - `body`: JSON string for POST requests; empty string for GET
 
-Request headers:
-```
-OK-ACCESS-KEY:        <apiKey>
-OK-ACCESS-SIGN:       <base64(hmac-sha256(payload, secretKey))>
-OK-ACCESS-PASSPHRASE: <passphrase>
-OK-ACCESS-TIMESTAMP:  <isoTimestamp>
-```
+Required request headers: `OK-ACCESS-KEY`, `OK-ACCESS-SIGN`, `OK-ACCESS-PASSPHRASE`, `OK-ACCESS-TIMESTAMP`. Demo trading additionally requires the `x-simulated-trading: 1` header.
 
-Demo trading adds:
-```
-x-simulated-trading: 1
-```
+See `packages/core/src/utils/signature.ts` for implementation details.
 
 ### 4.2 REST Client (`client/rest-client.ts`)
 
@@ -134,6 +127,7 @@ Three public methods:
 | `privatePost(path, body, rateLimit)` | Yes | Private write endpoints |
 
 **Error handling flow:**
+
 ```
 Network error (fetch throws) → NetworkError
 HTTP non-200              → OkxApiError (code = HTTP status)
@@ -141,6 +135,8 @@ JSON parse failure         → NetworkError
 code !== "0"              → OkxApiError / AuthenticationError
 code === "0"              → return RequestResult<TData>
 ```
+
+See `packages/core/src/client/rest-client.ts` for implementation details.
 
 ### 4.3 Rate Limiter (`utils/rate-limiter.ts`)
 
@@ -152,26 +148,13 @@ Token bucket algorithm for client-side rate limiting:
 - `maxWaitMs`: maximum wait before throwing `RateLimitError` (default 30s)
 - Callers block transparently — automatic sleep + retry
 
-Usage (from `tools/common.ts`):
-```typescript
-privateRateLimit("spot_place_order", 60)
-// → { key: "private:spot_place_order", capacity: 60, refillPerSecond: 60 }
-```
+See `packages/core/src/utils/rate-limiter.ts` and `packages/core/src/tools/common.ts` for rate limit configuration factories.
 
 ### 4.4 Tool Registry (`tools/`)
 
-Each module exports a `register*Tools(): ToolSpec[]` function. The `ToolSpec` structure:
+Each module exports a `register*Tools(): ToolSpec[]` function. The `ToolSpec` interface defines: tool name, owning module ID (for filtering), description (for AI understanding), JSON Schema input parameters, a write flag (`isWrite`), and an async handler function.
 
-```typescript
-interface ToolSpec {
-  name: string;            // Tool name, e.g. "spot_place_order"
-  module: ModuleId;        // Owning module, used for filtering
-  description: string;     // MCP tool description (for AI understanding)
-  inputSchema: JsonSchema; // JSON Schema defining parameter structure
-  isWrite: boolean;        // true = write operation, filtered in read-only mode
-  handler: (args, context) => Promise<unknown>;
-}
-```
+See `packages/core/src/tools/types.ts` for the `ToolSpec` interface definition.
 
 `buildTools(config)` applies two filter passes at startup:
 1. **Module filter**: only load modules listed in `config.modules`
@@ -191,6 +174,8 @@ Registers two handlers:
 
 Each response includes a `CapabilitySnapshot` so the AI agent always knows which modules are active, whether write operations are enabled, and whether demo mode is on.
 
+See `packages/mcp/src/server.ts` for implementation details.
+
 ---
 
 ## 5. Modules & Tools Inventory
@@ -208,30 +193,30 @@ Each response includes a `CapabilitySnapshot` so the AI agent always knows which
 
 | Tool | API Endpoint | Write |
 |------|-------------|-------|
-| `spot_place_order` | `POST /api/v5/trade/order` | ✅ |
-| `spot_cancel_order` | `POST /api/v5/trade/cancel-order` | ✅ |
-| `spot_amend_order` | `POST /api/v5/trade/amend-order` | ✅ |
-| `spot_get_orders` | `GET /api/v5/trade/orders-pending` or `orders-history` | ❌ |
-| `spot_get_fills` | `GET /api/v5/trade/fills` | ❌ |
+| `spot_place_order` | `POST /api/v5/trade/order` | Yes |
+| `spot_cancel_order` | `POST /api/v5/trade/cancel-order` | Yes |
+| `spot_amend_order` | `POST /api/v5/trade/amend-order` | Yes |
+| `spot_get_orders` | `GET /api/v5/trade/orders-pending` or `orders-history` | No |
+| `spot_get_fills` | `GET /api/v5/trade/fills` | No |
 
 ### swap module (credentials required)
 
 | Tool | API Endpoint | Write |
 |------|-------------|-------|
-| `swap_place_order` | `POST /api/v5/trade/order` | ✅ |
-| `swap_cancel_order` | `POST /api/v5/trade/cancel-order` | ✅ |
-| `swap_get_orders` | `GET /api/v5/trade/orders-pending` or `orders-history` | ❌ |
-| `swap_get_positions` | `GET /api/v5/account/positions` | ❌ |
-| `swap_set_leverage` | `POST /api/v5/account/set-leverage` | ✅ |
-| `swap_get_fills` | `GET /api/v5/trade/fills` | ❌ |
-| `move_order_stop` | `POST /api/v5/trade/order-algo` | ✅ |
+| `swap_place_order` | `POST /api/v5/trade/order` | Yes |
+| `swap_cancel_order` | `POST /api/v5/trade/cancel-order` | Yes |
+| `swap_get_orders` | `GET /api/v5/trade/orders-pending` or `orders-history` | No |
+| `swap_get_positions` | `GET /api/v5/account/positions` | No |
+| `swap_set_leverage` | `POST /api/v5/account/set-leverage` | Yes |
+| `swap_get_fills` | `GET /api/v5/trade/fills` | No |
+| `move_order_stop` | `POST /api/v5/trade/order-algo` | Yes |
 
 ### account module (credentials required)
 
 | Tool | API Endpoint | Write |
 |------|-------------|-------|
-| `account_get_balance` | `GET /api/v5/account/balance` | ❌ |
-| `account_transfer` | `POST /api/v5/asset/transfer` | ✅ |
+| `account_get_balance` | `GET /api/v5/account/balance` | No |
+| `account_transfer` | `POST /api/v5/asset/transfer` | Yes |
 
 ---
 
@@ -252,32 +237,15 @@ Each response includes a `CapabilitySnapshot` so the AI agent always knows which
 
 ### TOML Profile File (`~/.okx/config.toml`)
 
-```toml
-default_profile = "demo"
+Credentials are organized by named profiles. Each profile contains `api_key`, `secret_key`, `passphrase`, and an optional `demo` flag. A `default_profile` key at the top level selects which profile to use by default.
 
-[profiles.live]
-api_key    = "..."
-secret_key = "..."
-passphrase = "..."
-
-[profiles.demo]
-api_key    = "..."
-secret_key = "..."
-passphrase = "..."
-demo       = true
-```
+See `packages/core/src/config/` for configuration loading implementation.
 
 ### CLI Flags
 
-```
-okx-trade-mcp [options]
+The MCP server binary accepts the following flags: `--modules <list>` (comma-separated module names or "all", default: spot,swap,account), `--read-only` (disable all write operations), `--demo` (enable demo trading), `--help`, and `--version`.
 
-  --modules <list>   Comma-separated module names, or "all" (default: spot,swap,account)
-  --read-only        Disable all write operations
-  --demo             Enable demo trading (inject x-simulated-trading: 1)
-  --help
-  --version
-```
+See `packages/mcp/src/index.ts` for CLI argument parsing.
 
 ---
 
@@ -295,60 +263,29 @@ OkxMcpError
 └── NetworkError         # Network failure, timeout, or non-JSON response
 ```
 
-Failed tool call response format:
-```json
-{
-  "tool": "spot_place_order",
-  "error": true,
-  "type": "OkxApiError",
-  "code": "51008",
-  "message": "Order amount exceeded",
-  "endpoint": "POST /api/v5/trade/order",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
+Failed tool call responses include the tool name, error flag, error type, OKX error code, human-readable message, the endpoint that failed, and a timestamp.
+
+See `packages/core/src/utils/errors.ts` for the error class hierarchy and serialization logic.
 
 ---
 
-## 8. Claude Desktop Configuration Examples
+## 8. Claude Desktop Configuration
 
-Edit `~/Library/Application\ Support/Claude/claude_desktop_config.json` (macOS):
+Edit `~/Library/Application\ Support/Claude/claude_desktop_config.json` (macOS) to register MCP servers.
 
-Credentials are read from `~/.okx/config.toml` — only the profile name is needed here.
+Credentials are read from `~/.okx/config.toml` — only the profile name is needed in the configuration file. Typical setups include:
 
-**Standard (live + demo profiles):**
-```json
-{
-  "mcpServers": {
-    "okx-LIVE-real-money": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "live", "--modules", "all"]
-    },
-    "okx-DEMO-simulated-trading": {
-      "command": "okx-trade-mcp",
-      "args": ["--profile", "demo", "--modules", "all"]
-    }
-  }
-}
-```
+- **Live trading**: use `--profile live --modules all`
+- **Demo trading**: use `--profile demo --modules all`
+- **Read-only market data** (no credentials): use `--modules market --read-only`
 
-**Read-only market data (no credentials required):**
-```json
-{
-  "mcpServers": {
-    "okx-readonly": {
-      "command": "okx-trade-mcp",
-      "args": ["--modules", "market", "--read-only"]
-    }
-  }
-}
-```
+See the project README for full configuration examples.
 
 ---
 
 ## 9. Key Differences from Other Exchanges
 
-| Aspect | Bitget (`agent_hub`) | OKX (`okx-trade-mcp`) |
+| Aspect | Bitget (`agent_hub`) | OKX (`agent-tradekit`) |
 |--------|---------------------|-----------------|
 | Auth header prefix | `ACCESS-*` | `OK-ACCESS-*` |
 | Timestamp format | Millisecond string `"1699000000000"` | ISO format `"2024-01-01T00:00:00.000Z"` |
@@ -363,35 +300,6 @@ Credentials are read from `~/.okx/config.toml` — only the profile name is need
 
 ## 10. Development Guide
 
-```bash
-# Install dependencies
-pnpm install
+To install dependencies, type-check, build, and run tests, use the standard pnpm commands: `pnpm install`, `pnpm typecheck`, `pnpm build`, and `pnpm test:unit`. For development, run the server directly via `node packages/mcp/dist/index.js`.
 
-# Type check
-pnpm typecheck
-
-# Build all packages
-pnpm build
-
-# Run unit tests (no credentials required)
-pnpm test:unit
-
-# Run directly (development)
-node packages/mcp/dist/index.js --help
-node packages/mcp/dist/index.js --modules market   # no key needed for market data
-node packages/mcp/dist/index.js --demo             # demo trading mode
-```
-
-### Adding a New Tool
-
-1. Add a new `ToolSpec` object to the appropriate `packages/core/src/tools/*.ts` file
-2. Set `module` to the corresponding module ID and `isWrite` appropriately
-3. Define parameters in `inputSchema` (standard JSON Schema)
-4. Call `context.client.privateGet/Post` or `publicGet` in the `handler`
-5. No changes needed to `server.ts` or `index.ts`
-
-### Adding a New Module
-
-1. Add the new module ID to the `MODULES` array in `packages/core/src/constants.ts`
-2. Create `packages/core/src/tools/new-module.ts` and implement `registerNewModuleTools()`
-3. Import and call it in `packages/core/src/tools/index.ts` inside `allToolSpecs()`
+See [CONTRIBUTING.md](CONTRIBUTING.md) for adding new tools and modules.

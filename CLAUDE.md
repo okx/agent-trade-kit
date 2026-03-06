@@ -1,17 +1,6 @@
 # Development Rules
 
-## Branch Workflow (MANDATORY)
-1. **开始任何功能前**，先拉取最新 master：
-   - `git checkout master && git pull origin master`
-2. **从最新 master 创建分支**，分支命名：`feat/<描述>` 或 `fix/<描述>`
-3. **提交 MR 前**，必须 rebase master：
-   - `git fetch origin master && git rebase origin/master`
-   - 解决冲突后再推送
-
-## Testing (MANDATORY)
-- 每个新功能或 bug 修复**必须包含对应的测试用例**
-- 提交前运行 `pnpm test` 确保所有测试通过
-- 不允许跳过测试或提交未通过测试的代码
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branch workflow, testing, commit conventions, and code style.
 
 ## Module Design (MANDATORY)
 - 制定方案（plan）时，**必须考虑模块的颗粒度**
@@ -27,6 +16,10 @@
 - 修改公开 API、类型定义、配置格式时，确保不会破坏现有用户的使用
 - 如果必须引入 breaking change，需要明确说明影响范围和迁移方案
 
-## Code Quality
-- 提交前运行 `pnpm lint` 确保无 lint 错误
-- commit message 遵循 conventional commits 格式
+## Documentation (MANDATORY)
+- 所有面向用户的文档必须提供双语版本：`.md`（英文）+ `.zh-CN.md`（中文）
+- 每个双语文档顶部加语言切换链接：`[English](./FILE.md) | [中文](./FILE.zh-CN.md)`
+- 新增功能时**必须同步更新**相关文档（README、CHANGELOG 等）
+- CHANGELOG 遵循 [Keep a Changelog](https://keepachangelog.com/) 格式
+- `docs/` 目录下的技术设计文档为内部文档，不要求双语
+- 文档间使用相对链接交叉引用，避免内容重复

@@ -2,9 +2,9 @@
 
 ## General
 
-### What is OKX Trade MCP?
+### What is OKX Agent TradeKit?
 
-OKX Trade MCP is a local MCP server that connects AI assistants (Claude Desktop, Cursor, VS Code, Windsurf, etc.) to the [OKX REST API](https://www.okx.com/docs-v5/en/). It runs entirely on your machine as a stdio process — no cloud service, no third-party relay. Your API credentials never leave your device.
+OKX Agent TradeKit is a local MCP server that connects AI assistants (Claude Desktop, Cursor, VS Code, Windsurf, etc.) to the [OKX REST API](https://www.okx.com/docs-v5/en/). It runs entirely on your machine as a stdio process — no cloud service, no third-party relay. Your API credentials never leave your device.
 
 ### What trading pairs / symbols are supported?
 
@@ -12,7 +12,7 @@ All symbols currently tradable through OKX APIs and your account permissions. Yo
 
 ### What risks should I understand before using MCP for trading?
 
-**Disclaimer**: OKX Trade MCP is a technical interface and does not constitute financial or investment advice. AI-generated actions can trigger real trades and may cause losses due to model errors, network latency, market volatility, or incorrect parameters.
+**Disclaimer**: OKX Agent TradeKit is a technical interface and does not constitute financial or investment advice. AI-generated actions can trigger real trades and may cause losses due to model errors, network latency, market volatility, or incorrect parameters.
 
 Recommended precautions:
 
@@ -200,9 +200,9 @@ The following OKX REST API modules are **not yet supported**:
 
 ## 概述
 
-### OKX Trade MCP 是什么？
+### OKX Agent TradeKit 是什么？
 
-OKX Trade MCP 是一个本地 MCP Server，将 AI 助手（Claude Desktop、Cursor、VS Code、Windsurf 等）连接到 [OKX REST API](https://www.okx.com/docs-v5/zh/)。它完全运行在你的本机，作为 stdio 进程启动——无云端服务，无第三方中转，API 凭证不会离开你的设备。
+OKX Agent TradeKit 是一个本地 MCP Server，将 AI 助手（Claude Desktop、Cursor、VS Code、Windsurf 等）连接到 [OKX REST API](https://www.okx.com/docs-v5/zh/)。它完全运行在你的本机，作为 stdio 进程启动——无云端服务，无第三方中转，API 凭证不会离开你的设备。
 
 ### 支持哪些交易对/品种？
 
@@ -210,7 +210,7 @@ OKX Trade MCP 是一个本地 MCP Server，将 AI 助手（Claude Desktop、Curs
 
 ### 使用 MCP 进行交易前需要了解哪些风险？
 
-**免责声明**：OKX Trade MCP 是技术接口，不构成投资建议或财务建议。AI 生成的操作可触发真实交易，并可能因模型错误、网络延迟、市场波动或参数有误而造成损失。
+**免责声明**：OKX Agent TradeKit 是技术接口，不构成投资建议或财务建议。AI 生成的操作可触发真实交易，并可能因模型错误、网络延迟、市场波动或参数有误而造成损失。
 
 建议注意事项：
 

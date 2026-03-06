@@ -1,4 +1,6 @@
-# Contributing to okx-trade-mcp
+[English](CONTRIBUTING.md) | [中文](CONTRIBUTING.zh-CN.md)
+
+# Contributing to OKX Agent TradeKit
 
 Thank you for your interest in contributing! This guide covers everything you need to get started.
 

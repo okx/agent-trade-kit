@@ -2,18 +2,18 @@
 
 # okx-trade-mcp
 
-MCP server for OKX, designed for AI tools like Claude/Cursor. It exposes OKX
-market, account, spot, and swap tools via Model Context Protocol (stdio).
+OKX 的 MCP Server，供 Claude/Cursor 等 AI 工具调用，通过 MCP 协议（stdio）
+暴露 OKX 的行情、账户、现货、合约工具。
 
-### Install
+### 安装
 
 ```bash
 npm install -g @okx_ai/okx-trade-mcp
 ```
 
-### Configure credentials
+### 配置凭证
 
-Create `~/.okx/config.toml`:
+创建 `~/.okx/config.toml`：
 
 ```toml
 default_profile = "demo"
@@ -30,18 +30,18 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-### Run
+### 启动
 
 ```bash
-okx-trade-mcp --profile live         # specify profile
-okx-trade-mcp --modules market       # market only (no key)
-okx-trade-mcp --read-only            # read-only, no trades
-okx-trade-mcp --modules all          # all modules
+okx-trade-mcp --profile live         # 指定 profile
+okx-trade-mcp --modules market       # 只加载行情（无需 Key）
+okx-trade-mcp --read-only            # 只读模式，禁止下单
+okx-trade-mcp --modules all          # 加载所有模块
 ```
 
-### Claude Desktop config
+### Claude Desktop 配置
 
-Add to `claude_desktop_config.json`:
+在 `claude_desktop_config.json` 中新增：
 
 ```json
 {
@@ -58,4 +58,4 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
-For more details, see the [repository README](../../README.md).
+更多说明请参考[仓库根目录 README](../../README.zh-CN.md)。

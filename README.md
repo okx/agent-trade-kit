@@ -1,4 +1,4 @@
-# OKX Trade MCP Tools
+# OKX Agent TradeKit
 
 [![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
@@ -8,9 +8,9 @@
 [![npm downloads: cli](https://img.shields.io/npm/dm/okx-trade-cli?label=cli+downloads)](https://www.npmjs.com/package/okx-trade-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[English](README.md) | [中文](README.zh.md)
+[English](README.md) | [中文](README.zh-CN.md)
 
-OKX toolkit with two standalone packages:
+OKX Agent TradeKit — an AI-powered trading toolkit with two standalone packages:
 
 | Package | Description |
 |---|---|
@@ -21,14 +21,14 @@ OKX toolkit with two standalone packages:
 
 ## What is this?
 
-OKX Trade MCP connects AI assistants directly to your OKX account via the [Model Context Protocol](https://modelcontextprotocol.io). Instead of switching between your AI and the exchange UI, you describe what you want — the AI calls the right tools and executes it.
+OKX Agent TradeKit connects AI assistants directly to your OKX account via the [Model Context Protocol](https://modelcontextprotocol.io). Instead of switching between your AI and the exchange UI, you describe what you want — the AI calls the right tools and executes it.
 
 It runs as a **local process** with your API keys stored only on your machine. No cloud services, no data leaving your device.
 
 ## Features
 
-| | |
-|---|---|
+| Feature | Description |
+|---------|-------------|
 | **77 tools across 7 modules** | Full trading lifecycle: market data → orders → algo orders → account management → trading bots |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
@@ -146,3 +146,14 @@ packages/
 ├── mcp/     # MCP Server
 └── cli/     # CLI tool
 ```
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](ARCHITECTURE.md) | System design and module overview |
+| [Contributing](CONTRIBUTING.md) | Development setup and PR guidelines |
+| [Changelog](CHANGELOG.md) | Version history |
+| [Security](SECURITY.md) | Vulnerability reporting |
