@@ -8,7 +8,8 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseSiteKey, buildApiUrl, buildProfileEntry, SITES } from "../src/commands/config.js";
+import { parseSiteKey, buildApiUrl, buildProfileEntry } from "../src/commands/config.js";
+import { OKX_SITES as SITES } from "@agent-tradekit/core";
 
 describe("parseSiteKey", () => {
   it('returns "global" for empty input', () => {

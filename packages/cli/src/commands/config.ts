@@ -1,18 +1,10 @@
-import { readTomlProfile, configFilePath } from "@agent-tradekit/core";
+import { readFullConfig, configFilePath, OKX_SITES, tomlStringify } from "@agent-tradekit/core";
+import type { SiteId } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { printJson, printKv } from "../formatter.js";
-import { existsSync, readFileSync } from "node:fs";
-import { parse, stringify } from "smol-toml";
 import type { OkxTomlConfig, OkxProfile } from "@agent-tradekit/core";
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
-
-function readFullConfig(): OkxTomlConfig {
-  const path = configFilePath();
-  if (!existsSync(path)) return { profiles: {} };
-  const raw = readFileSync(path, "utf-8");
-  return parse(raw) as unknown as OkxTomlConfig;
-}
 
 function prompt(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
   return new Promise((resolve) => rl.question(question, resolve));
@@ -46,13 +38,7 @@ export function cmdConfigSet(key: string, value: string): void {
   }
 }
 
-export const SITES = {
-  global: { label: "Global (www.okx.com)", webUrl: "https://www.okx.com" },
-  eea: { label: "EEA (my.okx.com)", webUrl: "https://my.okx.com" },
-  us: { label: "US (app.okx.com)", webUrl: "https://app.okx.com" },
-} as const;
-
-export type SiteKey = keyof typeof SITES;
+export type SiteKey = SiteId;
 
 /** Maps raw user input ("1"/"2"/"3" or empty) to a site key. */
 export function parseSiteKey(raw: string): SiteKey {
@@ -64,7 +50,7 @@ export function parseSiteKey(raw: string): SiteKey {
 /** Builds the targeted API creation URL for the given site and trading mode. */
 export function buildApiUrl(siteKey: SiteKey, demo: boolean): string {
   const query = demo ? "?go-demo-trading=1" : "?go-live-trading=1";
-  return `${SITES[siteKey].webUrl}/account/my-api${query}`;
+  return `${OKX_SITES[siteKey].webUrl}/account/my-api${query}`;
 }
 
 /** Builds a profile entry, omitting base_url for the global site. */
@@ -77,7 +63,7 @@ export function buildProfileEntry(
 ): OkxProfile {
   const entry: OkxProfile = { api_key: apiKey, secret_key: secretKey, passphrase, demo };
   if (siteKey !== "global") {
-    entry.base_url = SITES[siteKey].webUrl;
+    entry.base_url = OKX_SITES[siteKey].webUrl;
   }
   return entry;
 }
@@ -162,7 +148,7 @@ export async function cmdConfigInit(): Promise<void> {
         process.stderr.write(`权限不足，请检查 ${configPath} 及其父目录的读写权限。\n`);
       }
       process.stderr.write("请手动将以下内容写入 " + configPath + ":\n\n");
-      process.stdout.write(stringify(config as unknown as Record<string, unknown>) + "\n");
+      process.stdout.write(tomlStringify(config as unknown as Record<string, unknown>) + "\n");
       process.exitCode = 1;
     }
   } finally {

@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test:unit": "node --import tsx/esm --test test/*.test.ts"
   },
   "engines": { "node": ">=18" },
   "keywords": ["okx", "mcp", "model-context-protocol", "trading"],
@@ -25,6 +26,7 @@
     "@agent-tradekit/core": "workspace:*",
     "@types/node": "^25.2.2",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.9.3"
   }
 }

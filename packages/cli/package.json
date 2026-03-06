@@ -19,9 +19,6 @@
   },
   "engines": { "node": ">=18" },
   "keywords": ["okx", "cli", "trading"],
-  "dependencies": {
-    "smol-toml": "^1.3.4"
-  },
   "devDependencies": {
     "@agent-tradekit/core": "workspace:*",
     "@types/node": "^25.2.2",

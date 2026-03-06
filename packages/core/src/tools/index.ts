@@ -1,4 +1,6 @@
 import type { OkxConfig } from "../config.js";
+import type { OkxRestClient } from "../client/rest-client.js";
+import { MODULES, type ModuleId } from "../constants.js";
 import { registerAccountTools } from "./account.js";
 import { registerAlgoTradeTools } from "./algo-trade.js";
 import { registerAuditTools } from "./audit.js";
@@ -8,7 +10,7 @@ import { registerMarketTools } from "./market.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
 import { registerSwapTradeTools } from "./swap-trade.js";
-import type { ToolSpec } from "./types.js";
+import type { ToolSpec, ToolArgs } from "./types.js";
 
 function allToolSpecs(): ToolSpec[] {
   return [
@@ -31,4 +33,30 @@ export function buildTools(config: OkxConfig): ToolSpec[] {
     return tools;
   }
   return tools.filter((tool) => !tool.isWrite);
+}
+
+export interface ToolResult {
+  endpoint: string;
+  requestTime: string;
+  data: unknown;
+}
+
+export type ToolRunner = (toolName: string, args: ToolArgs) => Promise<ToolResult>;
+
+/**
+ * Create a function that can call any registered tool by name.
+ * All modules are enabled regardless of config.modules, since CLI
+ * controls which commands to expose at the routing level.
+ */
+export function createToolRunner(client: OkxRestClient, config: OkxConfig): ToolRunner {
+  const fullConfig: OkxConfig = { ...config, modules: [...MODULES] as ModuleId[], readOnly: false };
+  const tools = allToolSpecs();
+  const toolMap = new Map<string, ToolSpec>(tools.map((t) => [t.name, t]));
+
+  return async (toolName: string, args: ToolArgs): Promise<ToolResult> => {
+    const tool = toolMap.get(toolName);
+    if (!tool) throw new Error(`Unknown tool: ${toolName}`);
+    const result = await tool.handler(args, { config: fullConfig, client });
+    return result as ToolResult;
+  };
 }

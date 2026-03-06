@@ -1,15 +1,17 @@
-import type { OkxRestClient } from "@agent-tradekit/core";
+import type { ToolRunner } from "@agent-tradekit/core";
 import { printJson, printKv, printTable } from "../formatter.js";
 
+function getData(result: unknown): unknown {
+  return (result as Record<string, unknown>).data;
+}
+
 export async function cmdAccountBalance(
-  client: OkxRestClient,
+  run: ToolRunner,
   ccy: string | undefined,
   json: boolean,
 ): Promise<void> {
-  const params: Record<string, unknown> = {};
-  if (ccy) params["ccy"] = ccy;
-  const res = await client.privateGet("/api/v5/account/balance", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_balance", { ccy });
+  const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const details = (data?.[0]?.["details"] as Record<string, unknown>[]) ?? [];
   printTable(
@@ -25,14 +27,12 @@ export async function cmdAccountBalance(
 }
 
 export async function cmdAccountAssetBalance(
-  client: OkxRestClient,
+  run: ToolRunner,
   ccy: string | undefined,
   json: boolean,
 ): Promise<void> {
-  const params: Record<string, unknown> = {};
-  if (ccy) params["ccy"] = ccy;
-  const res = await client.privateGet("/api/v5/asset/balances", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_asset_balance", { ccy });
+  const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   printTable(
     (data ?? [])
@@ -47,14 +47,11 @@ export async function cmdAccountAssetBalance(
 }
 
 export async function cmdAccountPositions(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instType?: string; instId?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = {};
-  if (opts.instType) params["instType"] = opts.instType;
-  if (opts.instId) params["instId"] = opts.instId;
-  const res = await client.privateGet("/api/v5/account/positions", params);
-  const positions = res.data as Record<string, unknown>[];
+  const result = await run("account_get_positions", { instType: opts.instType, instId: opts.instId });
+  const positions = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(positions);
   const open = (positions ?? []).filter((p) => Number(p["pos"]) !== 0);
   if (!open.length) { process.stdout.write("No open positions\n"); return; }
@@ -72,16 +69,12 @@ export async function cmdAccountPositions(
 }
 
 export async function cmdAccountBills(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { archive: boolean; instType?: string; ccy?: string; limit?: number; json: boolean },
 ): Promise<void> {
-  const endpoint = opts.archive ? "/api/v5/account/bills-archive" : "/api/v5/account/bills";
-  const params: Record<string, unknown> = {};
-  if (opts.instType) params["instType"] = opts.instType;
-  if (opts.ccy) params["ccy"] = opts.ccy;
-  if (opts.limit) params["limit"] = String(opts.limit);
-  const res = await client.privateGet(endpoint, params);
-  const bills = res.data as Record<string, unknown>[];
+  const toolName = opts.archive ? "account_get_bills_archive" : "account_get_bills";
+  const result = await run(toolName, { instType: opts.instType, ccy: opts.ccy, limit: opts.limit });
+  const bills = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(bills);
   printTable(
     (bills ?? []).map((b) => ({
@@ -97,13 +90,11 @@ export async function cmdAccountBills(
 }
 
 export async function cmdAccountFees(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instType: string; instId?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instType: opts.instType };
-  if (opts.instId) params["instId"] = opts.instId;
-  const res = await client.privateGet("/api/v5/account/trade-fee", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_trade_fee", { instType: opts.instType, instId: opts.instId });
+  const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const fee = data?.[0];
   if (!fee) { process.stdout.write("No data\n"); return; }
@@ -118,11 +109,11 @@ export async function cmdAccountFees(
 }
 
 export async function cmdAccountConfig(
-  client: OkxRestClient,
+  run: ToolRunner,
   json: boolean,
 ): Promise<void> {
-  const res = await client.privateGet("/api/v5/account/config", {});
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_config", {});
+  const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const cfg = data?.[0];
   if (!cfg) { process.stdout.write("No data\n"); return; }
@@ -138,24 +129,23 @@ export async function cmdAccountConfig(
 }
 
 export async function cmdAccountSetPositionMode(
-  client: OkxRestClient,
+  run: ToolRunner,
   posMode: string,
   json: boolean,
 ): Promise<void> {
-  const res = await client.privatePost("/api/v5/account/set-position-mode", { posMode });
-  if (json) return printJson(res.data);
-  const r = (res.data as Record<string, unknown>[])[0];
+  const result = await run("account_set_position_mode", { posMode });
+  const data = getData(result) as Record<string, unknown>[];
+  if (json) return printJson(data);
+  const r = data?.[0];
   process.stdout.write(`Position mode set: ${r?.["posMode"]}\n`);
 }
 
 export async function cmdAccountMaxSize(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instId: string; tdMode: string; px?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instId: opts.instId, tdMode: opts.tdMode };
-  if (opts.px) params["px"] = opts.px;
-  const res = await client.privateGet("/api/v5/account/max-size", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_max_size", { instId: opts.instId, tdMode: opts.tdMode, px: opts.px });
+  const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
   if (!r) { process.stdout.write("No data\n"); return; }
@@ -163,14 +153,11 @@ export async function cmdAccountMaxSize(
 }
 
 export async function cmdAccountMaxAvailSize(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instId: string; tdMode: string; json: boolean },
 ): Promise<void> {
-  const res = await client.privateGet("/api/v5/account/max-avail-size", {
-    instId: opts.instId,
-    tdMode: opts.tdMode,
-  });
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_max_avail_size", { instId: opts.instId, tdMode: opts.tdMode });
+  const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
   if (!r) { process.stdout.write("No data\n"); return; }
@@ -178,14 +165,12 @@ export async function cmdAccountMaxAvailSize(
 }
 
 export async function cmdAccountMaxWithdrawal(
-  client: OkxRestClient,
+  run: ToolRunner,
   ccy: string | undefined,
   json: boolean,
 ): Promise<void> {
-  const params: Record<string, unknown> = {};
-  if (ccy) params["ccy"] = ccy;
-  const res = await client.privateGet("/api/v5/account/max-withdrawal", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_max_withdrawal", { ccy });
+  const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   printTable(
     (data ?? []).map((r) => ({
@@ -197,15 +182,11 @@ export async function cmdAccountMaxWithdrawal(
 }
 
 export async function cmdAccountPositionsHistory(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instType?: string; instId?: string; limit?: number; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = {};
-  if (opts.instType) params["instType"] = opts.instType;
-  if (opts.instId) params["instId"] = opts.instId;
-  if (opts.limit) params["limit"] = String(opts.limit);
-  const res = await client.privateGet("/api/v5/account/positions-history", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("account_get_positions_history", { instType: opts.instType, instId: opts.instId, limit: opts.limit });
+  const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   printTable(
     (data ?? []).map((p) => ({
@@ -220,7 +201,7 @@ export async function cmdAccountPositionsHistory(
 }
 
 export async function cmdAccountTransfer(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: {
     ccy: string;
     amt: string;
@@ -231,16 +212,16 @@ export async function cmdAccountTransfer(
     json: boolean;
   },
 ): Promise<void> {
-  const body: Record<string, unknown> = {
+  const result = await run("account_transfer", {
     ccy: opts.ccy,
     amt: opts.amt,
     from: opts.from,
     to: opts.to,
-  };
-  if (opts.transferType) body["type"] = opts.transferType;
-  if (opts.subAcct) body["subAcct"] = opts.subAcct;
-  const res = await client.privatePost("/api/v5/asset/transfer", body);
-  if (opts.json) return printJson(res.data);
-  const r = (res.data as Record<string, unknown>[])[0];
+    type: opts.transferType,
+    subAcct: opts.subAcct,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
   process.stdout.write(`Transfer: ${r?.["transId"]} (${r?.["ccy"]} ${r?.["amt"]})\n`);
 }

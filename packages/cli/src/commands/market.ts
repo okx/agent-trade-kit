@@ -1,14 +1,16 @@
-import type { OkxRestClient } from "@agent-tradekit/core";
+import type { ToolRunner } from "@agent-tradekit/core";
 import { printJson, printKv, printTable } from "../formatter.js";
 
+function getData(result: unknown): unknown {
+  return (result as Record<string, unknown>).data;
+}
+
 export async function cmdMarketInstruments(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instType: string; instId?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instType: opts.instType };
-  if (opts.instId) params["instId"] = opts.instId;
-  const res = await client.publicGet("/api/v5/public/instruments", params);
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_instruments", { instType: opts.instType, instId: opts.instId });
+  const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
     (items ?? []).slice(0, 50).map((t) => ({
@@ -23,16 +25,14 @@ export async function cmdMarketInstruments(
 }
 
 export async function cmdMarketFundingRate(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   opts: { history: boolean; limit?: number; json: boolean },
 ): Promise<void> {
+  const result = await run("market_get_funding_rate", { instId, history: opts.history, limit: opts.limit });
+  const items = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(items);
   if (opts.history) {
-    const params: Record<string, unknown> = { instId };
-    if (opts.limit) params["limit"] = String(opts.limit);
-    const res = await client.publicGet("/api/v5/public/funding-rate-history", params);
-    const items = res.data as Record<string, unknown>[];
-    if (opts.json) return printJson(items);
     printTable(
       (items ?? []).map((r) => ({
         instId: r["instId"],
@@ -42,9 +42,6 @@ export async function cmdMarketFundingRate(
       })),
     );
   } else {
-    const res = await client.publicGet("/api/v5/public/funding-rate", { instId });
-    const items = res.data as Record<string, unknown>[];
-    if (opts.json) return printJson(items);
     const r = items?.[0];
     if (!r) { process.stdout.write("No data\n"); return; }
     printKv({
@@ -58,13 +55,11 @@ export async function cmdMarketFundingRate(
 }
 
 export async function cmdMarketMarkPrice(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instType: string; instId?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instType: opts.instType };
-  if (opts.instId) params["instId"] = opts.instId;
-  const res = await client.publicGet("/api/v5/public/mark-price", params);
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_mark_price", { instType: opts.instType, instId: opts.instId });
+  const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
     (items ?? []).map((r) => ({
@@ -77,14 +72,12 @@ export async function cmdMarketMarkPrice(
 }
 
 export async function cmdMarketTrades(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   opts: { limit?: number; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instId };
-  if (opts.limit) params["limit"] = String(opts.limit);
-  const res = await client.publicGet("/api/v5/market/trades", params);
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_trades", { instId, limit: opts.limit });
+  const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
     (items ?? []).map((t) => ({
@@ -98,14 +91,11 @@ export async function cmdMarketTrades(
 }
 
 export async function cmdMarketIndexTicker(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instId?: string; quoteCcy?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = {};
-  if (opts.instId) params["instId"] = opts.instId;
-  if (opts.quoteCcy) params["quoteCcy"] = opts.quoteCcy;
-  const res = await client.publicGet("/api/v5/market/index-tickers", params);
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_index_ticker", { instId: opts.instId, quoteCcy: opts.quoteCcy });
+  const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
     (items ?? []).map((t) => ({
@@ -119,18 +109,12 @@ export async function cmdMarketIndexTicker(
 }
 
 export async function cmdMarketIndexCandles(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   opts: { bar?: string; limit?: number; history: boolean; json: boolean },
 ): Promise<void> {
-  const path = opts.history
-    ? "/api/v5/market/history-index-candles"
-    : "/api/v5/market/index-candles";
-  const params: Record<string, unknown> = { instId };
-  if (opts.bar) params["bar"] = opts.bar;
-  if (opts.limit) params["limit"] = String(opts.limit);
-  const res = await client.publicGet(path, params);
-  const candles = res.data as string[][];
+  const result = await run("market_get_index_candles", { instId, bar: opts.bar, limit: opts.limit, history: opts.history });
+  const candles = getData(result) as string[][];
   if (opts.json) return printJson(candles);
   printTable(
     (candles ?? []).map(([ts, o, h, l, c]) => ({
@@ -141,12 +125,12 @@ export async function cmdMarketIndexCandles(
 }
 
 export async function cmdMarketPriceLimit(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   json: boolean,
 ): Promise<void> {
-  const res = await client.publicGet("/api/v5/public/price-limit", { instId });
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_price_limit", { instId });
+  const items = getData(result) as Record<string, unknown>[];
   if (json) return printJson(items);
   const r = items?.[0];
   if (!r) { process.stdout.write("No data\n"); return; }
@@ -159,13 +143,11 @@ export async function cmdMarketPriceLimit(
 }
 
 export async function cmdMarketOpenInterest(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instType: string; instId?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instType: opts.instType };
-  if (opts.instId) params["instId"] = opts.instId;
-  const res = await client.publicGet("/api/v5/public/open-interest", params);
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_open_interest", { instType: opts.instType, instId: opts.instId });
+  const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
     (items ?? []).map((r) => ({
@@ -178,12 +160,12 @@ export async function cmdMarketOpenInterest(
 }
 
 export async function cmdMarketTicker(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   json: boolean,
 ): Promise<void> {
-  const res = await client.publicGet("/api/v5/market/ticker", { instId });
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_ticker", { instId });
+  const items = getData(result) as Record<string, unknown>[];
   if (json) return printJson(items);
   if (!items?.length) { process.stdout.write("No data\n"); return; }
   const t = items[0];
@@ -199,12 +181,12 @@ export async function cmdMarketTicker(
 }
 
 export async function cmdMarketTickers(
-  client: OkxRestClient,
+  run: ToolRunner,
   instType: string,
   json: boolean,
 ): Promise<void> {
-  const res = await client.publicGet("/api/v5/market/tickers", { instType });
-  const items = res.data as Record<string, unknown>[];
+  const result = await run("market_get_tickers", { instType });
+  const items = getData(result) as Record<string, unknown>[];
   if (json) return printJson(items);
   printTable(
     (items ?? []).map((t) => ({
@@ -218,16 +200,15 @@ export async function cmdMarketTickers(
 }
 
 export async function cmdMarketOrderbook(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   sz: number | undefined,
   json: boolean,
 ): Promise<void> {
-  const params: Record<string, unknown> = { instId };
-  if (sz !== undefined) params["sz"] = String(sz);
-  const res = await client.publicGet("/api/v5/market/books", params);
-  if (json) return printJson(res.data);
-  const book = (res.data as Record<string, unknown>[])[0];
+  const result = await run("market_get_orderbook", { instId, sz });
+  const data = getData(result);
+  if (json) return printJson(data);
+  const book = (data as Record<string, unknown>[])[0];
   if (!book) { process.stdout.write("No data\n"); return; }
   const asks = (book["asks"] as string[][]).slice(0, 5);
   const bids = (book["bids"] as string[][]).slice(0, 5);
@@ -238,15 +219,12 @@ export async function cmdMarketOrderbook(
 }
 
 export async function cmdMarketCandles(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   opts: { bar?: string; limit?: number; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instId };
-  if (opts.bar) params["bar"] = opts.bar;
-  if (opts.limit) params["limit"] = String(opts.limit);
-  const res = await client.publicGet("/api/v5/market/candles", params);
-  const candles = res.data as string[][];
+  const result = await run("market_get_candles", { instId, bar: opts.bar, limit: opts.limit });
+  const candles = getData(result) as string[][];
   if (opts.json) return printJson(candles);
   printTable(
     (candles ?? []).map(([ts, o, h, l, c, vol]) => ({

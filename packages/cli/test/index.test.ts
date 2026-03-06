@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import type { OkxRestClient } from "@agent-tradekit/core";
+import type { ToolRunner } from "@agent-tradekit/core";
 import {
   printHelp,
   handleConfigCommand,
@@ -60,8 +60,15 @@ function captureStderr(fn: () => void): string {
   return chunks.join("");
 }
 
-// Null client: safe to pass when action never matches (falls through all ifs)
-const noopClient = null as unknown as OkxRestClient;
+// Noop runner: safe to pass when action never matches (falls through all ifs)
+const noopRunner = null as unknown as ToolRunner;
+
+// Mock runner that returns fake tool results
+const mockRunner: ToolRunner = async () => ({
+  endpoint: "POST /api/v5/trade/amend-order",
+  requestTime: new Date().toISOString(),
+  data: [{ ordId: "123", sCode: "0" }],
+});
 
 // ---------------------------------------------------------------------------
 // printHelp
@@ -152,11 +159,11 @@ describe("handleConfigCommand", () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleMarketPublicCommand — dispatch coverage (noop client, no action match)
+// handleMarketPublicCommand — dispatch coverage (noop runner, no action match)
 // ---------------------------------------------------------------------------
 describe("handleMarketPublicCommand", () => {
   it("returns undefined for unknown action (covers all if-check lines)", () => {
-    const result = handleMarketPublicCommand(noopClient, "noop", [], {}, false);
+    const result = handleMarketPublicCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
 });
@@ -166,12 +173,12 @@ describe("handleMarketPublicCommand", () => {
 // ---------------------------------------------------------------------------
 describe("handleMarketDataCommand", () => {
   it("returns undefined for unknown action", () => {
-    const result = handleMarketDataCommand(noopClient, "noop", [], {}, false);
+    const result = handleMarketDataCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
 
   it("evaluates limit from v.limit when set", () => {
-    const result = handleMarketDataCommand(noopClient, "noop", [], { limit: "50" }, false);
+    const result = handleMarketDataCommand(noopRunner, "noop", [], { limit: "50" }, false);
     assert.equal(result, undefined);
   });
 });
@@ -181,7 +188,7 @@ describe("handleMarketDataCommand", () => {
 // ---------------------------------------------------------------------------
 describe("handleMarketCommand", () => {
   it("returns undefined for unknown action", () => {
-    const result = handleMarketCommand(noopClient, "noop", [], {}, false);
+    const result = handleMarketCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
 });
@@ -191,7 +198,7 @@ describe("handleMarketCommand", () => {
 // ---------------------------------------------------------------------------
 describe("handleAccountWriteCommand", () => {
   it("returns undefined for unknown action", () => {
-    const result = handleAccountWriteCommand(noopClient, "noop", {}, false);
+    const result = handleAccountWriteCommand(noopRunner, "noop", {}, false);
     assert.equal(result, undefined);
   });
 });
@@ -201,12 +208,12 @@ describe("handleAccountWriteCommand", () => {
 // ---------------------------------------------------------------------------
 describe("handleBotGridCommand", () => {
   it("returns undefined when rest[0] is undefined (no subAction match)", () => {
-    const result = handleBotGridCommand(noopClient, {}, [], false);
+    const result = handleBotGridCommand(noopRunner, {}, [], false);
     assert.equal(result, undefined);
   });
 
   it("returns undefined for unknown subAction", () => {
-    const result = handleBotGridCommand(noopClient, {}, ["noop"], false);
+    const result = handleBotGridCommand(noopRunner, {}, ["noop"], false);
     assert.equal(result, undefined);
   });
 });
@@ -216,7 +223,7 @@ describe("handleBotGridCommand", () => {
 // ---------------------------------------------------------------------------
 describe("handleBotCommand", () => {
   it("returns undefined for unknown action", () => {
-    const result = handleBotCommand(noopClient, "noop", [], {}, false);
+    const result = handleBotCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
 });
@@ -226,15 +233,12 @@ describe("handleBotCommand", () => {
 // ---------------------------------------------------------------------------
 describe("handleSwapCommand", () => {
   it("returns undefined for unknown action", () => {
-    const result = handleSwapCommand(noopClient, "noop", [], {}, false);
+    const result = handleSwapCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
 
   it("dispatches amend action (returns a Promise)", () => {
-    const mockClient = {
-      privatePost: () => Promise.resolve({ data: [{ ordId: "123", sCode: "0" }] }),
-    } as unknown as OkxRestClient;
-    const result = handleSwapCommand(mockClient, "amend", [], { instId: "BTC-USDT-SWAP", ordId: "123", newPx: "50000", json: false } as never, false);
+    const result = handleSwapCommand(mockRunner, "amend", [], { instId: "BTC-USDT-SWAP", ordId: "123", newPx: "50000", json: false } as never, false);
     assert.ok(result instanceof Promise, "amend should return a Promise");
   });
 });

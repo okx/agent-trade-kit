@@ -164,6 +164,51 @@ export function registerSwapTradeTools(): ToolSpec[] {
       },
     },
     {
+      name: "swap_amend_order",
+      module: "swap",
+      description:
+        "Amend an unfilled SWAP/FUTURES order (modify price or size). Private endpoint. Rate limit: 60 req/s per UID.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USDT-SWAP",
+          },
+          ordId: {
+            type: "string",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client order ID",
+          },
+          newSz: {
+            type: "string",
+          },
+          newPx: {
+            type: "string",
+          },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privatePost(
+          "/api/v5/trade/amend-order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+            newSz: readString(args, "newSz"),
+            newPx: readString(args, "newPx"),
+          }),
+          privateRateLimit("swap_amend_order", 60),
+        );
+        return normalize(response);
+      },
+    },
+    {
       name: "swap_get_orders",
       module: "swap",
       description:
