@@ -32,6 +32,13 @@ export const OKX_SITES = {
 export type SiteId = keyof typeof OKX_SITES;
 export const SITE_IDS = Object.keys(OKX_SITES) as SiteId[];
 
+export const BOT_MODULE_IDS = [
+  "bot-grid",
+  "bot-dca",
+  "bot-contract-dca",
+  "bot-recurring",
+] as const;
+
 export const MODULES = [
   "market",
   "spot",
@@ -39,9 +46,9 @@ export const MODULES = [
   "futures",
   "option",
   "account",
-  "bot",
+  ...BOT_MODULE_IDS,
 ] as const;
 
 export type ModuleId = (typeof MODULES)[number];
 
-export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "account"];
+export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "account", "bot-grid"];
