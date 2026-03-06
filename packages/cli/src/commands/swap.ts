@@ -342,6 +342,28 @@ export async function cmdSwapGetLeverage(
   );
 }
 
+export async function cmdSwapAmend(
+  client: OkxRestClient,
+  opts: {
+    instId: string;
+    ordId?: string;
+    clOrdId?: string;
+    newSz?: string;
+    newPx?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const body: Record<string, unknown> = { instId: opts.instId };
+  if (opts.ordId) body["ordId"] = opts.ordId;
+  if (opts.clOrdId) body["clOrdId"] = opts.clOrdId;
+  if (opts.newSz) body["newSz"] = opts.newSz;
+  if (opts.newPx) body["newPx"] = opts.newPx;
+  const res = await client.privatePost("/api/v5/trade/amend-order", body);
+  if (opts.json) return printJson(res.data);
+  const r = (res.data as Record<string, unknown>[])[0];
+  process.stdout.write(`Order amended: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
+}
+
 export async function cmdSwapSetLeverage(
   client: OkxRestClient,
   opts: { instId: string; lever: string; mgnMode: string; posSide?: string; json: boolean },

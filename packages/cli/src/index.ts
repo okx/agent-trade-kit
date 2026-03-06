@@ -60,6 +60,7 @@ import {
   cmdSwapAlgoCancel,
   cmdSwapAlgoOrders,
   cmdSwapAlgoTrailPlace,
+  cmdSwapAmend,
 } from "./commands/swap.js";
 import {
   cmdFuturesOrders,
@@ -569,7 +570,7 @@ export function handleSwapCommand(
   if (action === "cancel")
     return cmdSwapCancel(client, rest[0], v.ordId!, json);
   if (action === "amend")
-    return cmdSpotAmend(client, {
+    return cmdSwapAmend(client, {
       instId: v.instId!,
       ordId: v.ordId,
       clOrdId: v.clOrdId,
