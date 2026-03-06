@@ -83,6 +83,28 @@ import {
   cmdGridSubOrders,
   cmdGridCreate,
   cmdGridStop,
+  cmdDcaCreate,
+  cmdDcaStop,
+  cmdDcaOrders,
+  cmdDcaDetails,
+  cmdDcaSubOrders,
+  cmdDcaAiParam,
+  cmdContractDcaCreate,
+  cmdContractDcaStop,
+  cmdContractDcaManualBuy,
+  cmdContractDcaMargin,
+  cmdContractDcaSetTp,
+  cmdContractDcaSetReinvest,
+  cmdContractDcaPositions,
+  cmdContractDcaCycles,
+  cmdContractDcaOrders,
+  cmdContractDcaList,
+  cmdRecurringCreate,
+  cmdRecurringAmend,
+  cmdRecurringStop,
+  cmdRecurringOrders,
+  cmdRecurringDetails,
+  cmdRecurringSubOrders,
 } from "./commands/bot.js";
 
 export function printHelp(): void {
@@ -174,6 +196,38 @@ Commands:
                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>]
   bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2|3|5|6>]
 
+  bot dca orders [--history]
+  bot dca details --algoId <id>
+  bot dca sub-orders --algoId <id> [--live]
+  bot dca ai-param --instId <id> --userRiskMode <conservative|moderate|aggressive>
+  bot dca create --instId <id> --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>
+                 --pxSteps <pct> --pxStepsMult <mult> --volMult <mult> --tpPct <pct> --slPct <pct>
+                 [--reserveFunds <true|false>] [--triggerType <1|2>]
+  bot dca stop --algoId <id> --instId <id> --stopType <1|2>
+
+  bot contract-dca list [--history]
+  bot contract-dca positions --algoId <id>
+  bot contract-dca cycles --algoId <id>
+  bot contract-dca orders --algoId <id> --cycleId <id>
+  bot contract-dca create --instId <id> --lever <n> --side <buy|sell>
+                          --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>
+                          --pxSteps <pct> --pxStepsMult <mult> --volMult <mult> --tpPct <pct>
+                          [--direction <long|short>] [--reserveFunds <true|false>]
+  bot contract-dca stop --algoId <id>
+  bot contract-dca manual-buy --algoId <id> --amt <n> [--px <price>]
+  bot contract-dca margin-add --algoId <id> --amt <n>
+  bot contract-dca margin-reduce --algoId <id> --amt <n>
+  bot contract-dca set-tp --algoId <id> --tpPrice <price>
+  bot contract-dca set-reinvest --algoId <id> --allowReinvest <true|false>
+
+  bot recurring orders [--history]
+  bot recurring details --algoId <id>
+  bot recurring sub-orders --algoId <id>
+  bot recurring create --stgyName <name> --recurringList <json> --amt <n> --period <hourly|daily|weekly|monthly>
+                       [--recurringDay <n>] [--recurringTime <0-23>] [--timeZone <offset>] [--tdMode <cash|cross>]
+  bot recurring amend --algoId <id> --stgyName <name>
+  bot recurring stop --algoId <id>
+
   config init
   config show
   config set <key> <value>
@@ -242,6 +296,28 @@ export interface CliValues {
   autoCxl?: boolean;
   clOrdId?: string;
   newPx?: string;
+  // dca / contract-dca
+  initOrdAmt?: string;
+  safetyOrdAmt?: string;
+  maxSafetyOrds?: string;
+  pxSteps?: string;
+  pxStepsMult?: string;
+  volMult?: string;
+  tpPct?: string;
+  slPct?: string;
+  reserveFunds?: string;
+  triggerType?: string;
+  userRiskMode?: string;
+  tpPrice?: string;
+  allowReinvest?: string;
+  cycleId?: string;
+  // recurring
+  stgyName?: string;
+  recurringList?: string;
+  period?: string;
+  recurringDay?: string;
+  recurringTime?: string;
+  timeZone?: string;
 }
 
 export function handleConfigCommand(action: string, rest: string[], json: boolean): Promise<void> | void {
@@ -671,6 +747,101 @@ export function handleBotGridCommand(
     });
 }
 
+export function handleBotDcaCommand(
+  client: OkxRestClient,
+  v: CliValues,
+  rest: string[],
+  json: boolean,
+): Promise<void> | void {
+  const subAction = rest[0];
+  if (subAction === "orders")
+    return cmdDcaOrders(client, { history: v.history ?? false, json });
+  if (subAction === "details")
+    return cmdDcaDetails(client, { algoId: v.algoId!, json });
+  if (subAction === "sub-orders")
+    return cmdDcaSubOrders(client, { algoId: v.algoId!, live: v.live ?? false, json });
+  if (subAction === "ai-param")
+    return cmdDcaAiParam(client, { instId: v.instId!, userRiskMode: v.userRiskMode!, json });
+  if (subAction === "create")
+    return cmdDcaCreate(client, {
+      instId: v.instId!, initOrdAmt: v.initOrdAmt!, safetyOrdAmt: v.safetyOrdAmt!,
+      maxSafetyOrds: v.maxSafetyOrds!, pxSteps: v.pxSteps!, pxStepsMult: v.pxStepsMult!,
+      volMult: v.volMult!, tpPct: v.tpPct!, slPct: v.slPct!,
+      reserveFunds: v.reserveFunds, triggerType: v.triggerType, direction: v.direction,
+      json,
+    });
+  if (subAction === "stop")
+    return cmdDcaStop(client, { algoId: v.algoId!, instId: v.instId!, stopType: v.stopType!, json });
+}
+
+export function handleBotContractDcaCommand(
+  client: OkxRestClient,
+  v: CliValues,
+  rest: string[],
+  json: boolean,
+): Promise<void> | void {
+  const subAction = rest[0];
+  if (subAction === "list")
+    return cmdContractDcaList(client, { history: v.history ?? false, json });
+  if (subAction === "positions")
+    return cmdContractDcaPositions(client, { algoId: v.algoId!, json });
+  if (subAction === "cycles")
+    return cmdContractDcaCycles(client, { algoId: v.algoId!, json });
+  if (subAction === "orders")
+    return cmdContractDcaOrders(client, { algoId: v.algoId!, cycleId: v.cycleId!, json });
+  if (subAction === "create")
+    return cmdContractDcaCreate(client, {
+      instId: v.instId!, lever: v.lever!, side: v.side!,
+      initOrdAmt: v.initOrdAmt!, safetyOrdAmt: v.safetyOrdAmt!,
+      maxSafetyOrds: v.maxSafetyOrds!, pxSteps: v.pxSteps!, pxStepsMult: v.pxStepsMult!,
+      volMult: v.volMult!, tpPct: v.tpPct!,
+      direction: v.direction, reserveFunds: v.reserveFunds,
+      json,
+    });
+  if (subAction === "stop")
+    return cmdContractDcaStop(client, { algoId: v.algoId!, json });
+  if (subAction === "manual-buy")
+    return cmdContractDcaManualBuy(client, { algoId: v.algoId!, amt: v.amt!, px: v.px, json });
+  if (subAction === "margin-add")
+    return cmdContractDcaMargin(client, { algoId: v.algoId!, amt: v.amt!, action: "add", json });
+  if (subAction === "margin-reduce")
+    return cmdContractDcaMargin(client, { algoId: v.algoId!, amt: v.amt!, action: "reduce", json });
+  if (subAction === "set-tp")
+    return cmdContractDcaSetTp(client, { algoId: v.algoId!, tpPrice: v.tpPrice!, json });
+  if (subAction === "set-reinvest")
+    return cmdContractDcaSetReinvest(client, {
+      algoId: v.algoId!,
+      allowReinvest: v.allowReinvest !== "false",
+      json,
+    });
+}
+
+export function handleBotRecurringCommand(
+  client: OkxRestClient,
+  v: CliValues,
+  rest: string[],
+  json: boolean,
+): Promise<void> | void {
+  const subAction = rest[0];
+  if (subAction === "orders")
+    return cmdRecurringOrders(client, { history: v.history ?? false, json });
+  if (subAction === "details")
+    return cmdRecurringDetails(client, { algoId: v.algoId!, json });
+  if (subAction === "sub-orders")
+    return cmdRecurringSubOrders(client, { algoId: v.algoId!, json });
+  if (subAction === "create")
+    return cmdRecurringCreate(client, {
+      stgyName: v.stgyName!, recurringList: v.recurringList!, amt: v.amt!, period: v.period!,
+      recurringDay: v.recurringDay, recurringTime: v.recurringTime, timeZone: v.timeZone,
+      tdMode: v.tdMode,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdRecurringAmend(client, { algoId: v.algoId!, stgyName: v.stgyName!, json });
+  if (subAction === "stop")
+    return cmdRecurringStop(client, { algoId: v.algoId!, json });
+}
+
 export function handleBotCommand(
   client: OkxRestClient,
   action: string,
@@ -679,6 +850,9 @@ export function handleBotCommand(
   json: boolean
 ): Promise<void> | void {
   if (action === "grid") return handleBotGridCommand(client, v, rest, json);
+  if (action === "dca") return handleBotDcaCommand(client, v, rest, json);
+  if (action === "contract-dca") return handleBotContractDcaCommand(client, v, rest, json);
+  if (action === "recurring") return handleBotRecurringCommand(client, v, rest, json);
 }
 
 async function main(): Promise<void> {
@@ -755,6 +929,28 @@ async function main(): Promise<void> {
       autoCxl: { type: "boolean", default: false },
       clOrdId: { type: "string" },
       newPx: { type: "string" },
+      // dca / contract-dca
+      initOrdAmt: { type: "string" },
+      safetyOrdAmt: { type: "string" },
+      maxSafetyOrds: { type: "string" },
+      pxSteps: { type: "string" },
+      pxStepsMult: { type: "string" },
+      volMult: { type: "string" },
+      tpPct: { type: "string" },
+      slPct: { type: "string" },
+      reserveFunds: { type: "string" },
+      triggerType: { type: "string" },
+      userRiskMode: { type: "string" },
+      tpPrice: { type: "string" },
+      allowReinvest: { type: "string" },
+      cycleId: { type: "string" },
+      // recurring
+      stgyName: { type: "string" },
+      recurringList: { type: "string" },
+      period: { type: "string" },
+      recurringDay: { type: "string" },
+      recurringTime: { type: "string" },
+      timeZone: { type: "string" },
     },
     allowPositionals: true,
   });
