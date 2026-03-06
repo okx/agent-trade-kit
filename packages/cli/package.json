@@ -1,6 +1,6 @@
 {
-  "name": "@okx_retail/okx-trade-cli",
-  "version": "1.0.7",
+  "name": "@okx_ai/okx-trade-cli",
+  "version": "1.0.8",
   "description": "OKX CLI - Command line tool for OKX exchange",
   "type": "module",
   "license": "MIT",
@@ -23,7 +23,7 @@
     "smol-toml": "^1.3.4"
   },
   "devDependencies": {
-    "@okx-hub/core": "workspace:*",
+    "@agent-tradekit/core": "workspace:*",
     "@types/node": "^25.2.2",
     "c8": "^10.1.3",
     "tsup": "^8.5.1",

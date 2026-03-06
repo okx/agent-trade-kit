@@ -56,7 +56,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 ```bash
 # 1. Install
-npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
+npm install -g @okx_ai/okx-trade-mcp @okx_ai/okx-trade-cli
 
 # 2. Configure OKX API credentials (interactive wizard)
 okx config init

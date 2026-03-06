@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @okx-hub/core build && pnpm --filter okx-trade-mcp build && pnpm --filter okx-trade-cli build",
+    "build": "pnpm --filter @agent-tradekit/core build && pnpm --filter @okx_ai/okx-trade-mcp build && pnpm --filter @okx_ai/okx-trade-cli build",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
-    "test:unit": "pnpm --filter @okx-hub/core test:unit && pnpm --filter okx-trade-cli test:unit",
+    "test:unit": "pnpm --filter @agent-tradekit/core test:unit && pnpm --filter @okx_ai/okx-trade-cli test:unit",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts",
     "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts"
   },

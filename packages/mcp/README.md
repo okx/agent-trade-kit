@@ -8,7 +8,7 @@ market, account, spot, and swap tools via Model Context Protocol (stdio).
 ### Install
 
 ```bash
-npm install -g @okx_retail/okx-trade-mcp
+npm install -g @okx_ai/okx-trade-mcp
 ```
 
 ### Configure credentials
@@ -70,7 +70,7 @@ OKX 的 MCP Server，供 Claude/Cursor 等 AI 工具调用，通过 MCP 协议�
 ### 安装
 
 ```bash
-npm install -g @okx_retail/okx-trade-mcp
+npm install -g @okx_ai/okx-trade-mcp
 ```
 
 ### 配置凭证

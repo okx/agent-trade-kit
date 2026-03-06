@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.8] - 2026-03-06
+
+### Changed
+
+- **npm org rename**: packages moved from `@okx_retail` to `@okx_ai` scope. Please reinstall:
+  ```
+  npm uninstall -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
+  npm install -g @okx_ai/okx-trade-mcp @okx_ai/okx-trade-cli
+  ```
+  Binary names are unchanged — `okx-trade-mcp` and `okx` still work after reinstall.
+
+---
+
 ## [1.0.7] - 2026-03-04
 
 ### Added
@@ -38,10 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release prep**: version bump for publish
 - **`okx config init`**: site selection (Global / EEA / US) and demo/live choice are now asked upfront; the CLI opens the targeted API creation page with `?go-demo-trading=1` or `?go-live-trading=1` query param so users land directly on the correct tab. EEA (`my.okx.com`) and US (`app.okx.com`) sites are supported and saved as `base_url` in the profile.
 - **docs/configuration.md**, **README.md**, **README.zh.md**: updated API key creation links to direct URLs with `?go-demo-trading=1` / `?go-live-trading=1` parameters (bilingual EN + ZH).
-- **npm scope**: packages are now published under the `@okx_retail` organisation. Please reinstall:
+- **npm scope**: packages are now published under the `@okx_ai` organisation. Please reinstall:
   ```
   npm uninstall -g okx-trade-mcp okx-trade-cli
-  npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
+  npm install -g @okx_ai/okx-trade-mcp @okx_ai/okx-trade-cli
   ```
   Binary names are unchanged — `okx-trade-mcp` and `okx` still work after reinstall.
 

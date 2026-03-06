@@ -123,7 +123,7 @@ export async function main(): Promise<void> {
     return;
   }
 
-  checkForUpdates("@okx_retail/okx-trade-mcp", SERVER_VERSION);
+  checkForUpdates("@okx_ai/okx-trade-mcp", SERVER_VERSION);
 
   const cli = parseCli();
 
