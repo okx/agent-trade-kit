@@ -15,6 +15,25 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const dist = join(__dirname, "../dist/index.js");
+
+describe("CLI --version flag", () => {
+  it("prints version with --version", () => {
+    const output = execFileSync("node", [dist, "--version"], {
+      timeout: 10_000,
+      encoding: "utf-8",
+    }).trim();
+    assert.match(output, /^\d+\.\d+\.\d+$/, `Expected semver, got: ${output}`);
+  });
+
+  it("prints version with -v", () => {
+    const output = execFileSync("node", [dist, "-v"], {
+      timeout: 10_000,
+      encoding: "utf-8",
+    }).trim();
+    assert.match(output, /^\d+\.\d+\.\d+$/, `Expected semver, got: ${output}`);
+  });
+});
 
 describe("CLI entry via symlink", () => {
   it("should produce output when invoked through a symlink (regression for issue #21)", () => {

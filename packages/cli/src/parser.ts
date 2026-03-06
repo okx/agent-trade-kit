@@ -5,6 +5,7 @@ export interface CliValues {
   demo?: boolean;
   json?: boolean;
   help?: boolean;
+  version?: boolean;
   client?: string;
   modules?: string;
   bar?: string;
@@ -64,6 +65,7 @@ export const CLI_OPTIONS = {
   demo: { type: "boolean", default: false },
   json: { type: "boolean", default: false },
   help: { type: "boolean", default: false },
+  version: { type: "boolean", short: "v", default: false },
   // setup command
   client: { type: "string" },
   modules: { type: "string" },

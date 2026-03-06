@@ -8,6 +8,7 @@ Global Options:
   --profile <name>   Use a named profile from ~/.okx/config.toml
   --demo             Use simulated trading (demo) mode
   --json             Output raw JSON
+  --version, -v      Show version
   --help             Show this help
 
 Commands:

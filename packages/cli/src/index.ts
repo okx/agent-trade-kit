@@ -552,6 +552,11 @@ async function main(): Promise<void> {
 
   const { values, positionals } = parseCli(process.argv.slice(2));
 
+  if (values.version) {
+    process.stdout.write(`${CLI_VERSION}\n`);
+    return;
+  }
+
   if (values.help || positionals.length === 0) {
     printHelp();
     return;
