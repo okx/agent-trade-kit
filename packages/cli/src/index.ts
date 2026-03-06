@@ -143,6 +143,7 @@ Commands:
   swap fills [--instId <id>] [--ordId <id>] [--archive]
   swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>] [--tdMode <cross|isolated>]
   swap cancel <instId> --ordId <id>
+  swap amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]
   swap close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl]
   swap leverage --instId <id> --lever <n> --mgnMode <cross|isolated> [--posSide <side>]
   swap get-leverage --instId <id> --mgnMode <cross|isolated>
@@ -520,7 +521,7 @@ function handleSwapAlgoCommand(
     });
 }
 
-function handleSwapCommand(
+export function handleSwapCommand(
   client: OkxRestClient,
   action: string,
   rest: string[],
@@ -567,6 +568,15 @@ function handleSwapCommand(
     });
   if (action === "cancel")
     return cmdSwapCancel(client, rest[0], v.ordId!, json);
+  if (action === "amend")
+    return cmdSpotAmend(client, {
+      instId: v.instId!,
+      ordId: v.ordId,
+      clOrdId: v.clOrdId,
+      newSz: v.newSz,
+      newPx: v.newPx,
+      json,
+    });
   if (action === "leverage")
     return cmdSwapSetLeverage(client, {
       instId: v.instId!,
