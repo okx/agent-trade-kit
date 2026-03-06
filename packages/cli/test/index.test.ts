@@ -14,6 +14,7 @@ import {
   handleAccountWriteCommand,
   handleBotGridCommand,
   handleBotCommand,
+  handleSwapCommand,
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -217,5 +218,23 @@ describe("handleBotCommand", () => {
   it("returns undefined for unknown action", () => {
     const result = handleBotCommand(noopClient, "noop", [], {}, false);
     assert.equal(result, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleSwapCommand — dispatch coverage including swap amend
+// ---------------------------------------------------------------------------
+describe("handleSwapCommand", () => {
+  it("returns undefined for unknown action", () => {
+    const result = handleSwapCommand(noopClient, "noop", [], {}, false);
+    assert.equal(result, undefined);
+  });
+
+  it("dispatches amend action (returns a Promise)", () => {
+    const mockClient = {
+      privatePost: () => Promise.resolve({ data: [{ ordId: "123", sCode: "0" }] }),
+    } as unknown as OkxRestClient;
+    const result = handleSwapCommand(mockClient, "amend", [], { instId: "BTC-USDT-SWAP", ordId: "123", newPx: "50000", json: false } as never, false);
+    assert.ok(result instanceof Promise, "amend should return a Promise");
   });
 });
