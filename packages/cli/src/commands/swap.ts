@@ -320,7 +320,7 @@ export async function cmdSwapAmend(
     json: boolean;
   },
 ): Promise<void> {
-  const result = await run("swap_amend_order", {
+  const result = await run("spot_amend_order", {
     instId: opts.instId,
     ordId: opts.ordId,
     clOrdId: opts.clOrdId,
