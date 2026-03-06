@@ -1,6 +1,6 @@
 [English](CONTRIBUTING.md) | [中文](CONTRIBUTING.zh-CN.md)
 
-# 贡献指南 — okx-trade-mcp
+# 贡献指南 — OKX Agent TradeKit
 
 感谢你对本项目的关注！本指南涵盖了参与贡献所需的一切信息。
 

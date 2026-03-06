@@ -1,4 +1,4 @@
-# OKX Trade MCP Tools
+# OKX Agent TradeKit
 
 [![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
@@ -10,7 +10,7 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-OKX toolkit with two standalone packages:
+OKX Agent TradeKit — an AI-powered trading toolkit with two standalone packages:
 
 | Package | Description |
 |---|---|
@@ -21,7 +21,7 @@ OKX toolkit with two standalone packages:
 
 ## What is this?
 
-OKX Trade MCP connects AI assistants directly to your OKX account via the [Model Context Protocol](https://modelcontextprotocol.io). Instead of switching between your AI and the exchange UI, you describe what you want — the AI calls the right tools and executes it.
+OKX Agent TradeKit connects AI assistants directly to your OKX account via the [Model Context Protocol](https://modelcontextprotocol.io). Instead of switching between your AI and the exchange UI, you describe what you want — the AI calls the right tools and executes it.
 
 It runs as a **local process** with your API keys stored only on your machine. No cloud services, no data leaving your device.
 

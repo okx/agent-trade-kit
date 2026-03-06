@@ -1,4 +1,4 @@
-# OKX Trade MCP 工具集
+# OKX Agent TradeKit
 
 [![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
@@ -10,7 +10,7 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-OKX 工具集，包含两个独立包：
+OKX Agent TradeKit — AI 驱动的交易工具集，包含两个独立包：
 
 | 包 | 说明 |
 |---|---|
@@ -21,7 +21,7 @@ OKX 工具集，包含两个独立包：
 
 ## 这是什么？
 
-OKX Trade MCP 通过 [Model Context Protocol](https://modelcontextprotocol.io) 将 AI 助手直接接入你的 OKX 账户。不用再在 AI 和交易所界面之间来回切换，直接描述你想做什么，AI 调用对应工具完成执行。
+OKX Agent TradeKit 通过 [Model Context Protocol](https://modelcontextprotocol.io) 将 AI 助手直接接入你的 OKX 账户。不用再在 AI 和交易所界面之间来回切换，直接描述你想做什么，AI 调用对应工具完成执行。
 
 以**本地进程**方式运行，API Key 仅存储在你的机器上，数据不离开本地。
 

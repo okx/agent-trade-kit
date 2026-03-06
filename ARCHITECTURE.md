@@ -1,10 +1,10 @@
 [English](ARCHITECTURE.md) | [中文](ARCHITECTURE.zh-CN.md)
 
-# OKX MCP Server — Architecture
+# OKX Agent TradeKit — Architecture
 
 ## 1. Overview
 
-OKX MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) integration layer for the OKX exchange, allowing AI agents (Claude Desktop, Cursor, etc.) to query market data, place orders, and manage positions by calling OKX REST API v5 directly.
+OKX Agent TradeKit is an AI-powered trading toolkit for the OKX exchange. It includes an MCP server (`okx-trade-mcp`) and a CLI tool (`okx-trade-cli`), allowing AI agents (Claude Desktop, Cursor, etc.) and developers to query market data, place orders, and manage positions by calling OKX REST API v5 directly.
 
 - **Transport**: stdio — JSON-RPC communication with the host process via standard input/output
 - **Runtime**: Node.js >= 18
@@ -285,7 +285,7 @@ See the project README for full configuration examples.
 
 ## 9. Key Differences from Other Exchanges
 
-| Aspect | Bitget (`agent_hub`) | OKX (`okx-trade-mcp`) |
+| Aspect | Bitget (`agent_hub`) | OKX (`agent-tradekit`) |
 |--------|---------------------|-----------------|
 | Auth header prefix | `ACCESS-*` | `OK-ACCESS-*` |
 | Timestamp format | Millisecond string `"1699000000000"` | ISO format `"2024-01-01T00:00:00.000Z"` |
