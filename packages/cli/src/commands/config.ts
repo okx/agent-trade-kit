@@ -1,4 +1,5 @@
-import { readTomlProfile, configFilePath } from "@agent-tradekit/core";
+import { readTomlProfile, configFilePath, OKX_SITES } from "@agent-tradekit/core";
+import type { SiteId } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { printJson, printKv } from "../formatter.js";
 import { existsSync, readFileSync } from "node:fs";
@@ -46,13 +47,7 @@ export function cmdConfigSet(key: string, value: string): void {
   }
 }
 
-export const SITES = {
-  global: { label: "Global (www.okx.com)", webUrl: "https://www.okx.com" },
-  eea: { label: "EEA (my.okx.com)", webUrl: "https://my.okx.com" },
-  us: { label: "US (app.okx.com)", webUrl: "https://app.okx.com" },
-} as const;
-
-export type SiteKey = keyof typeof SITES;
+export type SiteKey = SiteId;
 
 /** Maps raw user input ("1"/"2"/"3" or empty) to a site key. */
 export function parseSiteKey(raw: string): SiteKey {
@@ -64,7 +59,7 @@ export function parseSiteKey(raw: string): SiteKey {
 /** Builds the targeted API creation URL for the given site and trading mode. */
 export function buildApiUrl(siteKey: SiteKey, demo: boolean): string {
   const query = demo ? "?go-demo-trading=1" : "?go-live-trading=1";
-  return `${SITES[siteKey].webUrl}/account/my-api${query}`;
+  return `${OKX_SITES[siteKey].webUrl}/account/my-api${query}`;
 }
 
 /** Builds a profile entry, omitting base_url for the global site. */
@@ -77,7 +72,7 @@ export function buildProfileEntry(
 ): OkxProfile {
   const entry: OkxProfile = { api_key: apiKey, secret_key: secretKey, passphrase, demo };
   if (siteKey !== "global") {
-    entry.base_url = SITES[siteKey].webUrl;
+    entry.base_url = OKX_SITES[siteKey].webUrl;
   }
   return entry;
 }
