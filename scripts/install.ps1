@@ -3,7 +3,7 @@
 #
 # What it does:
 #   1. Checks for Node.js >= 18
-#   2. Installs @okx_ai/okx-trade-mcp globally via npm
+#   2. Installs @okx_ai/okx-trade-mcp and @okx_ai/okx-trade-cli globally via npm
 #   3. Verifies the installation
 #   4. Detects installed MCP clients and shows setup hints
 
@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-$PACKAGE = "@okx_ai/okx-trade-mcp"
+$PACKAGES = @("@okx_ai/okx-trade-mcp", "@okx_ai/okx-trade-cli")
 $MIN_NODE_VERSION = 18
 $REPO_URL = "https://github.com/okx/agent-tradekit"
 
@@ -77,12 +77,13 @@ function Test-Npm {
 # Step 3 — Install package
 # ---------------------------------------------------------------------------
 function Install-Package {
-    Write-Info "Installing $PACKAGE ..."
+    $pkgList = $PACKAGES -join " "
+    Write-Info "Installing $pkgList ..."
 
     try {
-        npm install -g $PACKAGE
+        npm install -g @PACKAGES
         if ($LASTEXITCODE -ne 0) { throw "npm install failed" }
-        Write-Ok "Installed $PACKAGE"
+        Write-Ok "Installed $pkgList"
     }
     catch {
         Write-Host ""
@@ -90,7 +91,7 @@ function Install-Package {
         Write-Host ""
         Write-Host "  Try running PowerShell as Administrator, or use:"
         Write-Host ""
-        Write-Host "    npm install -g $PACKAGE"
+        Write-Host "    npm install -g $pkgList"
         Write-Host ""
         Write-Fail "Installation failed. See above for solutions."
     }
@@ -102,22 +103,28 @@ function Install-Package {
 function Test-Install {
     Write-Info "Verifying installation ..."
 
-    $bin = Get-Command okx-trade-mcp -ErrorAction SilentlyContinue
-    if (-not $bin) {
-        Write-Warn "okx-trade-mcp is not in PATH."
-        Write-Host ""
-        Write-Host "  The package installed, but the binary is not in your PATH."
-        Write-Host "  You can still use it via: npx $PACKAGE"
-        Write-Host ""
-        return
+    $mcpBin = Get-Command okx-trade-mcp -ErrorAction SilentlyContinue
+    if ($mcpBin) {
+        try {
+            $version = okx-trade-mcp --version 2>$null
+            Write-Ok "okx-trade-mcp v$version"
+        } catch {
+            Write-Ok "okx-trade-mcp installed (version check skipped)"
+        }
+    } else {
+        Write-Warn "okx-trade-mcp is not in PATH. You can still use it via: npx @okx_ai/okx-trade-mcp"
     }
 
-    try {
-        $version = okx-trade-mcp --version 2>$null
-        Write-Ok "okx-trade-mcp v$version"
-    }
-    catch {
-        Write-Ok "okx-trade-mcp installed (version check skipped)"
+    $cliBin = Get-Command okx -ErrorAction SilentlyContinue
+    if ($cliBin) {
+        try {
+            $cliVersion = okx --version 2>$null
+            Write-Ok "okx-trade-cli v$cliVersion"
+        } catch {
+            Write-Ok "okx-trade-cli installed (version check skipped)"
+        }
+    } else {
+        Write-Warn "okx (CLI) is not in PATH. You can still use it via: npx @okx_ai/okx-trade-cli"
     }
 }
 
@@ -207,7 +214,7 @@ function Show-NextSteps {
     Write-Host ""
     Write-Host "  Next step - configure your API credentials:"
     Write-Host ""
-    Write-Host "    npx @okx_ai/okx-trade-cli config init"
+    Write-Host "    okx config init"
     Write-Host ""
     Write-Host "  Documentation: $REPO_URL"
     Write-Host "------------------------------------------------------------"

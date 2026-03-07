@@ -4,7 +4,7 @@
 #
 # What it does:
 #   1. Checks for Node.js >= 18
-#   2. Installs @okx_ai/okx-trade-mcp globally via npm
+#   2. Installs @okx_ai/okx-trade-mcp and @okx_ai/okx-trade-cli globally via npm
 #   3. Verifies the installation
 #   4. Detects installed MCP clients and shows setup hints
 
@@ -13,7 +13,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-PACKAGE="@okx_ai/okx-trade-mcp"
+PACKAGES="@okx_ai/okx-trade-mcp @okx_ai/okx-trade-cli"
 MIN_NODE_VERSION=18
 REPO_URL="https://github.com/okx/agent-tradekit"
 
@@ -75,10 +75,11 @@ check_npm() {
 # Step 3 — Install package
 # ---------------------------------------------------------------------------
 install_package() {
-  info "Installing ${PACKAGE} ..."
+  info "Installing ${PACKAGES} ..."
 
-  if npm install -g "${PACKAGE}"; then
-    ok "Installed ${PACKAGE}"
+  # shellcheck disable=SC2086
+  if npm install -g ${PACKAGES}; then
+    ok "Installed ${PACKAGES}"
   else
     echo ""
     warn "Global install failed. This usually means a permission issue."
@@ -86,14 +87,14 @@ install_package() {
     echo "  Try one of the following:"
     echo ""
     echo "    # Option 1: Use sudo (not recommended with nvm)"
-    echo "    sudo npm install -g ${PACKAGE}"
+    echo "    sudo npm install -g ${PACKAGES}"
     echo ""
     echo "    # Option 2: Fix npm prefix (recommended)"
     echo "    mkdir -p ~/.npm-global"
     echo "    npm config set prefix '~/.npm-global'"
     echo "    echo 'export PATH=~/.npm-global/bin:\$PATH' >> ~/.bashrc"
     echo "    source ~/.bashrc"
-    echo "    npm install -g ${PACKAGE}"
+    echo "    npm install -g ${PACKAGES}"
     echo ""
     fail "Installation failed. See above for solutions."
   fi
@@ -105,18 +106,31 @@ install_package() {
 verify_install() {
   info "Verifying installation ..."
 
-  if ! command -v okx-trade-mcp &>/dev/null; then
-    warn "okx-trade-mcp is not in PATH."
-    echo ""
-    echo "  The package installed successfully, but the binary is not in your PATH."
-    echo "  You can still use it via: npx ${PACKAGE}"
-    echo ""
-    return
+  local all_ok=true
+
+  if command -v okx-trade-mcp &>/dev/null; then
+    local mcp_ver
+    mcp_ver="$(okx-trade-mcp --version 2>/dev/null || echo 'unknown')"
+    ok "okx-trade-mcp v${mcp_ver}"
+  else
+    warn "okx-trade-mcp is not in PATH. You can still use it via: npx @okx_ai/okx-trade-mcp"
+    all_ok=false
   fi
 
-  local version
-  version="$(okx-trade-mcp --version 2>/dev/null || echo 'unknown')"
-  ok "okx-trade-mcp v${version}"
+  if command -v okx &>/dev/null; then
+    local cli_ver
+    cli_ver="$(okx --version 2>/dev/null || echo 'unknown')"
+    ok "okx-trade-cli v${cli_ver}"
+  else
+    warn "okx (CLI) is not in PATH. You can still use it via: npx @okx_ai/okx-trade-cli"
+    all_ok=false
+  fi
+
+  if [ "${all_ok}" = false ]; then
+    echo ""
+    echo "  Binaries installed but not in PATH. This is common with nvm."
+    echo "  Try opening a new terminal or run: source ~/.bashrc"
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -195,7 +209,7 @@ show_next_steps() {
   echo ""
   echo "  Next step — configure your API credentials:"
   echo ""
-  echo "    npx @okx_ai/okx-trade-cli config init"
+  echo "    okx config init"
   echo ""
   echo "  Documentation: ${REPO_URL}"
   echo "------------------------------------------------------------"
