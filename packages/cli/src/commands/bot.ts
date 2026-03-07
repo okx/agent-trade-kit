@@ -183,6 +183,7 @@ export async function cmdDcaCreate(
   },
 ): Promise<void> {
   const result = await run("dca_create_order", {
+    type: "spot",
     instId: opts.instId,
     initOrdAmt: opts.initOrdAmt,
     safetyOrdAmt: opts.safetyOrdAmt,
@@ -209,7 +210,7 @@ export async function cmdDcaStop(
   opts: { algoId: string; instId: string; stopType: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_stop_order", {
-    algoOrdType: "spot_dca",
+    type: "spot",
     algoId: opts.algoId,
     instId: opts.instId,
     stopType: opts.stopType,
@@ -227,7 +228,7 @@ export async function cmdDcaOrders(
   opts: { history: boolean; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_orders", {
-    algoOrdType: "spot_dca",
+    type: "spot",
     status: opts.history ? "history" : "active",
   });
   const orders = (getData(result) as Record<string, unknown>[]) ?? [];
@@ -250,7 +251,7 @@ export async function cmdDcaDetails(
   opts: { algoId: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_order_details", {
-    algoOrdType: "spot_dca",
+    type: "spot",
     algoId: opts.algoId,
   });
   const detail = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
@@ -276,9 +277,9 @@ export async function cmdDcaSubOrders(
   opts: { algoId: string; live: boolean; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_sub_orders", {
-    algoOrdType: "spot_dca",
+    type: "spot",
     algoId: opts.algoId,
-    type: opts.live ? "live" : "filled",
+    subOrdType: opts.live ? "live" : "filled",
   });
   const orders = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(orders);

@@ -107,26 +107,80 @@ okx futures get --instId BTC-USDT-250328 --ordId 123456
 
 ---
 
-## bot — Grid Trading Bots
+## bot — Trading Bots
 
 ```bash
-# List running grid bots
+# ── Spot Grid (algoOrdType: grid) ─────────────────────────────────────────────
+# List / query
 okx bot grid orders --algoOrdType grid
 okx bot grid orders --algoOrdType grid --history
+okx bot grid orders --algoOrdType grid --instId BTC-USDT
+okx bot grid details --algoOrdType grid --algoId <algoId>
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId>          # filled trades
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId> --live   # live orders
 
-# Create a spot grid bot (invest 100 USDT, 10 grids, price range 80000–100000)
-okx --demo bot grid create --instId BTC-USDT --algoOrdType grid \
+# Create spot grid — invest in quote currency (USDT)
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100
 
-# View bot details and filled sub-orders
-okx bot grid details --algoOrdType grid --algoId <algoId>
-okx bot grid sub-orders --algoOrdType grid --algoId <algoId>
+# Create spot grid — invest in base currency (BTC)
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --baseSz 0.001
 
-# Stop a bot
-okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
+# Create spot grid — geometric spacing (runType 2)
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 --runType 2
+
+# Stop spot grid (stopType: 1=sell all holdings, 2=keep holdings)
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 1
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 2
+
+# ── Contract Grid (algoOrdType: contract_grid) ────────────────────────────────
+# List / query
+okx bot grid orders --algoOrdType contract_grid
+okx bot grid orders --algoOrdType contract_grid --history
+okx bot grid details --algoOrdType contract_grid --algoId <algoId>
+okx bot grid sub-orders --algoOrdType contract_grid --algoId <algoId>
+
+# Create contract grid — neutral direction, 3x leverage, 100 USDT margin
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction neutral --lever 3 --sz 100
+
+# Create contract grid — long direction, 5x leverage
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction long --lever 5 --sz 100
+
+# Create contract grid — short direction
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction short --lever 3 --sz 100
+
+# Stop contract grid (stopType: 1=close position+stop, 2=keep position+stop)
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
+
+# ── Moon Grid (algoOrdType: moon_grid) — list/query only ─────────────────────
+okx bot grid orders --algoOrdType moon_grid
+okx bot grid details --algoOrdType moon_grid --algoId <algoId>
+
+# ── Spot DCA ──────────────────────────────────────────────────────────────────
+okx bot dca orders
+okx bot dca orders --history
+okx bot dca details --algoId <algoId>
+okx bot dca sub-orders --algoId <algoId>            # filled sub-orders
+okx bot dca sub-orders --algoId <algoId> --live     # live (pending) sub-orders
+
+okx bot dca create \
+  --instId BTC-USDT \
+  --triggerType 1 \
+  --initOrdAmt 50 --safetyOrdAmt 30 --maxSafetyOrds 3 \
+  --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
+  --tpPct 0.03 --slPct 0.20
+
+okx bot dca stop --algoId <algoId> --instId BTC-USDT --stopType 2
 ```
-
-> Grid bot tools are not available in demo mode.
 
 ---
 
@@ -268,26 +322,80 @@ okx futures get --instId BTC-USDT-250328 --ordId 123456
 
 ---
 
-## bot — 网格交易机器人
+## bot — 交易机器人
 
 ```bash
-# 查询网格机器人
+# ── 现货网格（algoOrdType: grid）─────────────────────────────────────────────
+# 查询
 okx bot grid orders --algoOrdType grid
 okx bot grid orders --algoOrdType grid --history
+okx bot grid orders --algoOrdType grid --instId BTC-USDT
+okx bot grid details --algoOrdType grid --algoId <algoId>
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId>          # 已成交子订单
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId> --live   # 挂单中子订单
 
-# 创建现货网格机器人（投入100 USDT，10个格，价格区间 80000–100000）
+# 创建现货网格 — 用计价货币（USDT）投入
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100
 
-# 查看机器人详情和子订单
-okx bot grid details --algoOrdType grid --algoId <algoId>
-okx bot grid sub-orders --algoOrdType grid --algoId <algoId>
+# 创建现货网格 — 用基础货币（BTC）投入
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --baseSz 0.001
 
-# 停止机器人
-okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
+# 创建现货网格 — 等比间距（runType 2）
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 --runType 2
+
+# 停止现货网格（stopType: 1=卖出全部持仓, 2=保留持仓）
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 1
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 2
+
+# ── 合约网格（algoOrdType: contract_grid）────────────────────────────────────
+# 查询
+okx bot grid orders --algoOrdType contract_grid
+okx bot grid orders --algoOrdType contract_grid --history
+okx bot grid details --algoOrdType contract_grid --algoId <algoId>
+okx bot grid sub-orders --algoOrdType contract_grid --algoId <algoId>
+
+# 创建合约网格 — neutral 方向，3倍杠杆，100 USDT 保证金
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction neutral --lever 3 --sz 100
+
+# 创建合约网格 — 做多，5倍杠杆
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction long --lever 5 --sz 100
+
+# 创建合约网格 — 做空
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction short --lever 3 --sz 100
+
+# 停止合约网格（stopType: 1=平仓并停止, 2=保留仓位并停止）
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
+
+# ── 月网格（algoOrdType: moon_grid）— 仅支持查询 ─────────────────────────────
+okx bot grid orders --algoOrdType moon_grid
+okx bot grid details --algoOrdType moon_grid --algoId <algoId>
+
+# ── 现货 DCA ──────────────────────────────────────────────────────────────────
+okx bot dca orders
+okx bot dca orders --history
+okx bot dca details --algoId <algoId>
+okx bot dca sub-orders --algoId <algoId>            # 已成交子订单
+okx bot dca sub-orders --algoId <algoId> --live     # 挂单中子订单
+
+okx bot dca create \
+  --instId BTC-USDT \
+  --triggerType 1 \
+  --initOrdAmt 50 --safetyOrdAmt 30 --maxSafetyOrds 3 \
+  --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
+  --tpPct 0.03 --slPct 0.20
+
+okx bot dca stop --algoId <algoId> --instId BTC-USDT --stopType 2
 ```
-
-> 网格机器人工具不支持模拟盘。
 
 ---
 
