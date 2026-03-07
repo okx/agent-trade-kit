@@ -246,8 +246,8 @@ export class OkxRestClient {
     }
 
     const responseCode = parsed.code;
-    if (responseCode && responseCode !== "0") {
-      const message = parsed.msg ?? "OKX API request failed.";
+    if (responseCode && responseCode !== "0" && responseCode !== "1") {
+      const message = parsed.msg || "OKX API request failed.";
       const endpoint = `${config.method} ${config.path}`;
 
       if (
