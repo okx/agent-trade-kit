@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { runSetup, printSetupUsage, SUPPORTED_CLIENTS } from "../src/setup.js";
+import { runSetup, printSetupUsage, getConfigPath, SUPPORTED_CLIENTS } from "../src/setup.js";
 
 // ---------------------------------------------------------------------------
 // Helper: capture stdout without actually writing to the terminal
@@ -284,5 +284,222 @@ describe("runSetup: windsurf", () => {
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
     assert.equal(servers["okx-trade-mcp"].type, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getConfigPath — cross-platform path resolution
+// ---------------------------------------------------------------------------
+describe("getConfigPath", () => {
+  let origPlatform: PropertyDescriptor | undefined;
+  let origAppdata: string | undefined;
+  let origXdgConfigHome: string | undefined;
+  let origHome: string | undefined;
+
+  before(() => {
+    origPlatform = Object.getOwnPropertyDescriptor(process, "platform");
+    origAppdata = process.env.APPDATA;
+    origXdgConfigHome = process.env.XDG_CONFIG_HOME;
+    origHome = process.env.HOME;
+  });
+
+  after(() => {
+    if (origPlatform) {
+      Object.defineProperty(process, "platform", origPlatform);
+    }
+    if (origAppdata !== undefined) process.env.APPDATA = origAppdata;
+    else delete process.env.APPDATA;
+    if (origXdgConfigHome !== undefined) process.env.XDG_CONFIG_HOME = origXdgConfigHome;
+    else delete process.env.XDG_CONFIG_HOME;
+    if (origHome !== undefined) process.env.HOME = origHome;
+    else delete process.env.HOME;
+  });
+
+  function setPlatform(p: string): void {
+    Object.defineProperty(process, "platform", { value: p, writable: true, configurable: true });
+  }
+
+  // -- claude-desktop --
+
+  it("claude-desktop on win32 uses APPDATA", () => {
+    setPlatform("win32");
+    process.env.APPDATA = "C:\\Users\\test\\AppData\\Roaming";
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.includes("AppData"));
+    assert.ok(result.includes("Roaming"));
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  it("claude-desktop on darwin uses Library/Application Support", () => {
+    setPlatform("darwin");
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.includes("Library"));
+    assert.ok(result.includes("Application Support"));
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  it("claude-desktop on linux uses XDG_CONFIG_HOME when set", () => {
+    setPlatform("linux");
+    process.env.XDG_CONFIG_HOME = "/custom/config";
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.startsWith("/custom/config"), `expected XDG prefix, got: ${result}`);
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  it("claude-desktop on linux falls back to ~/.config when XDG_CONFIG_HOME is unset", () => {
+    setPlatform("linux");
+    delete process.env.XDG_CONFIG_HOME;
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.includes(".config"), `expected .config in path, got: ${result}`);
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  // -- cursor (same on all platforms) --
+
+  it("cursor resolves to ~/.cursor/mcp.json on any platform", () => {
+    for (const p of ["win32", "darwin", "linux"] as const) {
+      setPlatform(p);
+      const result = getConfigPath("cursor")!;
+      assert.ok(result.endsWith(path.join(".cursor", "mcp.json")), `cursor path wrong on ${p}: ${result}`);
+    }
+  });
+
+  // -- windsurf (same on all platforms) --
+
+  it("windsurf resolves to ~/.codeium/windsurf/mcp_config.json on any platform", () => {
+    for (const p of ["win32", "darwin", "linux"] as const) {
+      setPlatform(p);
+      const result = getConfigPath("windsurf")!;
+      assert.ok(
+        result.endsWith(path.join(".codeium", "windsurf", "mcp_config.json")),
+        `windsurf path wrong on ${p}: ${result}`,
+      );
+    }
+  });
+
+  // -- vscode --
+
+  it("vscode resolves to cwd/.mcp.json", () => {
+    const result = getConfigPath("vscode")!;
+    assert.equal(result, path.join(process.cwd(), ".mcp.json"));
+  });
+
+  // -- claude-code --
+
+  it("claude-code returns null", () => {
+    assert.equal(getConfigPath("claude-code"), null);
+  });
+
+  // -- platform isolation --
+
+  it("claude-desktop on win32 never includes macOS Library path", () => {
+    setPlatform("win32");
+    process.env.APPDATA = "C:\\Users\\test\\AppData\\Roaming";
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(!result.includes("Library"), `win32 path should not contain 'Library': ${result}`);
+    assert.ok(!result.includes("Application Support"), `win32 path should not contain 'Application Support': ${result}`);
+  });
+
+  it("claude-desktop on darwin never includes .config path", () => {
+    setPlatform("darwin");
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(!result.includes(".config"), `darwin path should not contain '.config': ${result}`);
+  });
+
+  it("claude-desktop on linux never includes Library path", () => {
+    setPlatform("linux");
+    delete process.env.XDG_CONFIG_HOME;
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(!result.includes("Library"), `linux path should not contain 'Library': ${result}`);
+    assert.ok(!result.includes("Application Support"), `linux path should not contain 'Application Support': ${result}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getConfigPath — Windows MS Store Claude Desktop detection
+// ---------------------------------------------------------------------------
+describe("getConfigPath: Windows MS Store Claude Desktop", () => {
+  let tmpDir: string;
+  let origPlatform: PropertyDescriptor | undefined;
+  let origLocalAppData: string | undefined;
+  let origAppdata: string | undefined;
+
+  before(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "okx-setup-msstore-"));
+    origPlatform = Object.getOwnPropertyDescriptor(process, "platform");
+    origLocalAppData = process.env.LOCALAPPDATA;
+    origAppdata = process.env.APPDATA;
+  });
+
+  after(() => {
+    if (origPlatform) Object.defineProperty(process, "platform", origPlatform);
+    if (origLocalAppData !== undefined) process.env.LOCALAPPDATA = origLocalAppData;
+    else delete process.env.LOCALAPPDATA;
+    if (origAppdata !== undefined) process.env.APPDATA = origAppdata;
+    else delete process.env.APPDATA;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function setPlatform(p: string): void {
+    Object.defineProperty(process, "platform", { value: p, writable: true, configurable: true });
+  }
+
+  it("prefers MS Store path when Claude_<hash> package dir exists", () => {
+    setPlatform("win32");
+
+    // Simulate MS Store directory structure
+    const msStoreClaudeDir = path.join(
+      tmpDir, "Packages", "Claude_pzs8sxrjxfjjc", "LocalCache", "Roaming", "Claude",
+    );
+    fs.mkdirSync(msStoreClaudeDir, { recursive: true });
+
+    process.env.LOCALAPPDATA = tmpDir;
+    process.env.APPDATA = path.join(tmpDir, "Roaming"); // standard path (should NOT be used)
+
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.includes("Packages"), `should use MS Store path, got: ${result}`);
+    assert.ok(result.includes("Claude_pzs8sxrjxfjjc"), `should contain package hash, got: ${result}`);
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  it("falls back to standard APPDATA when no MS Store package exists", () => {
+    setPlatform("win32");
+
+    // Create Packages dir without Claude_ entry
+    const packagesDir = path.join(tmpDir, "Packages-empty");
+    fs.mkdirSync(packagesDir, { recursive: true });
+
+    process.env.LOCALAPPDATA = path.join(tmpDir, "NoMsStore");
+    process.env.APPDATA = path.join(tmpDir, "StandardRoaming");
+
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.includes("StandardRoaming"), `should use standard APPDATA, got: ${result}`);
+    assert.ok(!result.includes("Packages"), `should not contain Packages, got: ${result}`);
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  it("falls back to standard APPDATA when LOCALAPPDATA/Packages does not exist", () => {
+    setPlatform("win32");
+
+    process.env.LOCALAPPDATA = path.join(tmpDir, "nonexistent");
+    process.env.APPDATA = path.join(tmpDir, "FallbackRoaming");
+
+    const result = getConfigPath("claude-desktop")!;
+    assert.ok(result.includes("FallbackRoaming"), `should fall back to APPDATA, got: ${result}`);
+    assert.ok(result.endsWith("claude_desktop_config.json"));
+  });
+
+  it("does not trigger MS Store detection on non-win32 platforms", () => {
+    for (const p of ["darwin", "linux"] as const) {
+      setPlatform(p);
+
+      // Even if LOCALAPPDATA has a Claude_ package, non-win32 should ignore it
+      const msStoreDir = path.join(tmpDir, "Packages", "Claude_abc123", "LocalCache", "Roaming", "Claude");
+      fs.mkdirSync(msStoreDir, { recursive: true });
+      process.env.LOCALAPPDATA = tmpDir;
+
+      const result = getConfigPath("claude-desktop")!;
+      assert.ok(!result.includes("Packages"), `${p} should not use MS Store path, got: ${result}`);
+    }
   });
 });

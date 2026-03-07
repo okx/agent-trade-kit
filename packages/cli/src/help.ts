@@ -1,11 +1,12 @@
 import { SUPPORTED_CLIENTS } from "./commands/client-setup.js";
+import { configFilePath } from "@agent-tradekit/core";
 
 export function printHelp(): void {
   process.stdout.write(`
 Usage: okx [--profile <name>] [--json] <command> [args]
 
 Global Options:
-  --profile <name>   Use a named profile from ~/.okx/config.toml
+  --profile <name>   Use a named profile from ${configFilePath()}
   --demo             Use simulated trading (demo) mode
   --json             Output raw JSON
   --version, -v      Show version

@@ -14,5 +14,5 @@ export type { OkxProfile, OkxTomlConfig } from "./config/toml.js";
 export { checkForUpdates } from "./utils/update-check.js";
 export { TradeLogger } from "./utils/logger.js";
 export type { LogLevel, LogEntry } from "./utils/logger.js";
-export { runSetup, printSetupUsage, SUPPORTED_CLIENTS } from "./setup.js";
+export { runSetup, printSetupUsage, getConfigPath, SUPPORTED_CLIENTS } from "./setup.js";
 export type { ClientId, SetupOptions } from "./setup.js";
