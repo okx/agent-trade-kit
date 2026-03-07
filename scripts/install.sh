@@ -110,8 +110,8 @@ verify_install() {
 
   if command -v okx-trade-mcp &>/dev/null; then
     local mcp_ver
-    mcp_ver="$(okx-trade-mcp --version 2>/dev/null || echo 'unknown')"
-    ok "okx-trade-mcp v${mcp_ver}"
+    mcp_ver="$(okx-trade-mcp --version 2>/dev/null | head -1 || echo 'unknown')"
+    ok "okx-trade-mcp ${mcp_ver}"
   else
     warn "okx-trade-mcp is not in PATH. You can still use it via: npx @okx_ai/okx-trade-mcp"
     all_ok=false
@@ -119,8 +119,8 @@ verify_install() {
 
   if command -v okx &>/dev/null; then
     local cli_ver
-    cli_ver="$(okx --version 2>/dev/null || echo 'unknown')"
-    ok "okx-trade-cli v${cli_ver}"
+    cli_ver="$(okx -v 2>/dev/null | head -1 || echo 'unknown')"
+    ok "okx-trade-cli ${cli_ver}"
   else
     warn "okx (CLI) is not in PATH. You can still use it via: npx @okx_ai/okx-trade-cli"
     all_ok=false

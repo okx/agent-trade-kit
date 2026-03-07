@@ -106,8 +106,8 @@ function Test-Install {
     $mcpBin = Get-Command okx-trade-mcp -ErrorAction SilentlyContinue
     if ($mcpBin) {
         try {
-            $version = okx-trade-mcp --version 2>$null
-            Write-Ok "okx-trade-mcp v$version"
+            $version = (okx-trade-mcp --version 2>$null) | Select-Object -First 1
+            Write-Ok "okx-trade-mcp $version"
         } catch {
             Write-Ok "okx-trade-mcp installed (version check skipped)"
         }
@@ -118,8 +118,8 @@ function Test-Install {
     $cliBin = Get-Command okx -ErrorAction SilentlyContinue
     if ($cliBin) {
         try {
-            $cliVersion = okx --version 2>$null
-            Write-Ok "okx-trade-cli v$cliVersion"
+            $cliVersion = (okx -v 2>$null) | Select-Object -First 1
+            Write-Ok "okx-trade-cli $cliVersion"
         } catch {
             Write-Ok "okx-trade-cli installed (version check skipped)"
         }
