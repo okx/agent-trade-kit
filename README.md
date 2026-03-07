@@ -68,6 +68,12 @@ irm https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.
 
 The installer checks Node.js, installs the package, and detects your MCP clients automatically.
 
+After installation, configure your API credentials:
+
+```bash
+okx config init
+```
+
 ### Manual install
 
 **Prerequisites:** Node.js >= 18
