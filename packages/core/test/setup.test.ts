@@ -86,13 +86,16 @@ describe("runSetup: cursor", () => {
     assert.ok(fs.existsSync(configPath), "config file should have been created");
   });
 
-  it("writes a valid mcpServers entry", () => {
+  it("writes a valid mcpServers entry using npx", () => {
     const configPath = path.join(tmpDir, ".cursor", "mcp.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
     assert.ok(servers?.["okx-trade-mcp"], "entry 'okx-trade-mcp' should exist");
-    assert.equal(servers["okx-trade-mcp"].command, "okx-trade-mcp");
-    assert.ok(Array.isArray(servers["okx-trade-mcp"].args), "args should be an array");
+    assert.equal(servers["okx-trade-mcp"].command, "npx");
+    const args = servers["okx-trade-mcp"].args as string[];
+    assert.ok(Array.isArray(args), "args should be an array");
+    assert.equal(args[0], "-y");
+    assert.equal(args[1], "@okx_ai/okx-trade-mcp");
   });
 
   it("cursor entry does not include a 'type' field", () => {
@@ -200,11 +203,12 @@ describe("runSetup: vscode", () => {
     assert.ok(fs.existsSync(configPath), ".mcp.json should exist in cwd");
   });
 
-  it("vscode entry includes type: 'stdio'", () => {
+  it("vscode entry includes type: 'stdio' and uses bare command (not npx)", () => {
     const configPath = path.join(tmpDir, ".mcp.json");
     const data = JSON.parse(fs.readFileSync(configPath, "utf-8")) as Record<string, unknown>;
     const servers = data.mcpServers as Record<string, Record<string, unknown>>;
     assert.equal(servers["okx-trade-mcp"]?.type, "stdio");
+    assert.equal(servers["okx-trade-mcp"]?.command, "okx-trade-mcp");
   });
 
   it("does not print 'Restart' hint for vscode", () => {
