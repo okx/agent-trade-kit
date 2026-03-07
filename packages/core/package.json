@@ -15,12 +15,11 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "test:unit": "node --import tsx/esm --test test/*.test.ts",
+    "test:unit": "node --import tsx/esm --test --test-reporter=spec test/*.test.ts",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
   "dependencies": {
-    "smol-toml": "^1.3.4",
-    "zod": "^3.25.76"
+    "smol-toml": "^1.3.4"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",

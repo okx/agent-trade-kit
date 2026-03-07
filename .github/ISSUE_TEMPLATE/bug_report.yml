@@ -26,7 +26,7 @@ body:
       label: Steps to Reproduce
       description: Step-by-step instructions to reproduce the issue.
       placeholder: |
-        1. Run `agent-tradekit-mcp --modules spot`
+        1. Run `okx-trade-mcp --modules spot`
         2. Call tool `spot_place_order` with args `...`
         3. See error
     validations:
@@ -56,8 +56,8 @@ body:
       value: |
         - OS:
         - Node.js version (`node --version`):
-        - agent-tradekit-mcp version (`npm list -g agent-tradekit-mcp`):
-        - agent-tradekit-cli version (`npm list -g agent-tradekit-cli`):
+        - okx-trade-mcp version (`npm list -g okx-trade-mcp`):
+        - okx-trade-cli version (`npm list -g okx-trade-cli`):
     validations:
       required: true
 

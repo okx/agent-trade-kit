@@ -1,10 +1,12 @@
-import type { OkxRestClient } from "@agent-tradekit/core";
+import type { ToolRunner } from "@agent-tradekit/core";
 import { printJson, printTable, printKv } from "../formatter.js";
 
-// ─── grid orders ─────────────────────────────────────────────────────────────
+function getData(result: unknown): unknown {
+  return (result as Record<string, unknown>).data;
+}
 
 export async function cmdGridOrders(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: {
     algoOrdType: string;
     instId?: string;
@@ -13,15 +15,13 @@ export async function cmdGridOrders(
     json: boolean;
   },
 ): Promise<void> {
-  const path =
-    opts.status === "history"
-      ? "/api/v5/tradingBot/grid/orders-algo-history"
-      : "/api/v5/tradingBot/grid/orders-algo-pending";
-  const params: Record<string, unknown> = { algoOrdType: opts.algoOrdType };
-  if (opts.instId) params["instId"] = opts.instId;
-  if (opts.algoId) params["algoId"] = opts.algoId;
-  const res = await client.privateGet(path, params);
-  const orders = (res.data as Record<string, unknown>[]) ?? [];
+  const result = await run("grid_get_orders", {
+    algoOrdType: opts.algoOrdType,
+    instId: opts.instId,
+    algoId: opts.algoId,
+    status: opts.status,
+  });
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(orders);
   if (!orders.length) { process.stdout.write("No grid bots\n"); return; }
   printTable(
@@ -39,17 +39,15 @@ export async function cmdGridOrders(
   );
 }
 
-// ─── grid details ─────────────────────────────────────────────────────────────
-
 export async function cmdGridDetails(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { algoOrdType: string; algoId: string; json: boolean },
 ): Promise<void> {
-  const res = await client.privateGet("/api/v5/tradingBot/grid/orders-algo-details", {
+  const result = await run("grid_get_order_details", {
     algoOrdType: opts.algoOrdType,
     algoId: opts.algoId,
   });
-  const detail = ((res.data as Record<string, unknown>[]) ?? [])[0];
+  const detail = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
   if (!detail) { process.stdout.write("Bot not found\n"); return; }
   if (opts.json) return printJson(detail);
   printKv({
@@ -69,10 +67,8 @@ export async function cmdGridDetails(
   });
 }
 
-// ─── grid sub-orders ──────────────────────────────────────────────────────────
-
 export async function cmdGridSubOrders(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: {
     algoOrdType: string;
     algoId: string;
@@ -80,12 +76,12 @@ export async function cmdGridSubOrders(
     json: boolean;
   },
 ): Promise<void> {
-  const res = await client.privateGet("/api/v5/tradingBot/grid/sub-orders", {
+  const result = await run("grid_get_sub_orders", {
     algoOrdType: opts.algoOrdType,
     algoId: opts.algoId,
     type: opts.type,
   });
-  const orders = (res.data as Record<string, unknown>[]) ?? [];
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(orders);
   if (!orders.length) { process.stdout.write("No sub-orders\n"); return; }
   printTable(
@@ -102,10 +98,8 @@ export async function cmdGridSubOrders(
   );
 }
 
-// ─── grid create ──────────────────────────────────────────────────────────────
-
 export async function cmdGridCreate(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: {
     instId: string;
     algoOrdType: string;
@@ -121,31 +115,29 @@ export async function cmdGridCreate(
     json: boolean;
   },
 ): Promise<void> {
-  const body: Record<string, unknown> = {
-    instId:      opts.instId,
+  const result = await run("grid_create_order", {
+    instId: opts.instId,
     algoOrdType: opts.algoOrdType,
-    maxPx:       opts.maxPx,
-    minPx:       opts.minPx,
-    gridNum:     opts.gridNum,
-  };
-  if (opts.runType)   body["runType"]   = opts.runType;
-  if (opts.quoteSz)   body["quoteSz"]   = opts.quoteSz;
-  if (opts.baseSz)    body["baseSz"]    = opts.baseSz;
-  if (opts.direction) body["direction"] = opts.direction;
-  if (opts.lever)     body["lever"]     = opts.lever;
-  if (opts.sz)        body["sz"]        = opts.sz;
-  const res = await client.privatePost("/api/v5/tradingBot/grid/order-algo", body);
-  if (opts.json) return printJson(res.data);
-  const r = (res.data as Record<string, unknown>[])[0];
+    maxPx: opts.maxPx,
+    minPx: opts.minPx,
+    gridNum: opts.gridNum,
+    runType: opts.runType,
+    quoteSz: opts.quoteSz,
+    baseSz: opts.baseSz,
+    direction: opts.direction,
+    lever: opts.lever,
+    sz: opts.sz,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
   process.stdout.write(
     `Grid bot created: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
   );
 }
 
-// ─── grid stop ────────────────────────────────────────────────────────────────
-
 export async function cmdGridStop(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: {
     algoId: string;
     algoOrdType: string;
@@ -154,16 +146,153 @@ export async function cmdGridStop(
     json: boolean;
   },
 ): Promise<void> {
-  const entry: Record<string, unknown> = {
-    algoId:      opts.algoId,
+  const result = await run("grid_stop_order", {
+    algoId: opts.algoId,
     algoOrdType: opts.algoOrdType,
-    instId:      opts.instId,
-  };
-  if (opts.stopType) entry["stopType"] = opts.stopType;
-  const res = await client.privatePost("/api/v5/tradingBot/grid/stop-order-algo", [entry]);
-  if (opts.json) return printJson(res.data);
-  const r = (res.data as Record<string, unknown>[])[0];
+    instId: opts.instId,
+    stopType: opts.stopType,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
   process.stdout.write(
     `Grid bot stopped: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DCA (Spot) commands
+// ---------------------------------------------------------------------------
+
+export async function cmdDcaCreate(
+  run: ToolRunner,
+  opts: {
+    instId: string;
+    initOrdAmt: string;
+    safetyOrdAmt: string;
+    maxSafetyOrds: string;
+    pxSteps: string;
+    pxStepsMult: string;
+    volMult: string;
+    tpPct: string;
+    slPct?: string;
+    reserveFunds?: string;
+    triggerType?: string;
+    direction?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("dca_create_order", {
+    instId: opts.instId,
+    initOrdAmt: opts.initOrdAmt,
+    safetyOrdAmt: opts.safetyOrdAmt,
+    maxSafetyOrds: opts.maxSafetyOrds,
+    pxSteps: opts.pxSteps,
+    pxStepsMult: opts.pxStepsMult,
+    volMult: opts.volMult,
+    tpPct: opts.tpPct,
+    slPct: opts.slPct,
+    reserveFunds: opts.reserveFunds,
+    triggerType: opts.triggerType,
+    direction: opts.direction,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
+  process.stdout.write(
+    `DCA bot created: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
+  );
+}
+
+export async function cmdDcaStop(
+  run: ToolRunner,
+  opts: { algoId: string; instId: string; stopType: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_stop_order", {
+    algoOrdType: "spot_dca",
+    algoId: opts.algoId,
+    instId: opts.instId,
+    stopType: opts.stopType,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
+  process.stdout.write(
+    `DCA bot stopped: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
+  );
+}
+
+export async function cmdDcaOrders(
+  run: ToolRunner,
+  opts: { history: boolean; json: boolean },
+): Promise<void> {
+  const result = await run("dca_get_orders", {
+    algoOrdType: "spot_dca",
+    status: opts.history ? "history" : "active",
+  });
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(orders);
+  if (!orders.length) { process.stdout.write("No DCA bots\n"); return; }
+  printTable(
+    orders.map((o) => ({
+      algoId:    o["algoId"],
+      instId:    o["instId"],
+      state:     o["state"],
+      pnl:       o["pnl"],
+      pnlRatio:  o["pnlRatio"],
+      createdAt: new Date(Number(o["cTime"])).toLocaleString(),
+    })),
+  );
+}
+
+export async function cmdDcaDetails(
+  run: ToolRunner,
+  opts: { algoId: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_get_order_details", {
+    algoOrdType: "spot_dca",
+    algoId: opts.algoId,
+  });
+  const detail = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
+  if (!detail) { process.stdout.write("DCA bot not found\n"); return; }
+  if (opts.json) return printJson(detail);
+  printKv({
+    algoId:       detail["algoId"],
+    instId:       detail["instId"],
+    state:        detail["state"],
+    initOrdAmt:   detail["initOrdAmt"],
+    safetyOrdAmt: detail["safetyOrdAmt"],
+    maxSafetyOrds: detail["maxSafetyOrds"],
+    tpPct:        detail["tpPct"],
+    slPct:        detail["slPct"],
+    pnl:          detail["pnl"],
+    pnlRatio:     detail["pnlRatio"],
+    createdAt:    new Date(Number(detail["cTime"])).toLocaleString(),
+  });
+}
+
+export async function cmdDcaSubOrders(
+  run: ToolRunner,
+  opts: { algoId: string; live: boolean; json: boolean },
+): Promise<void> {
+  const result = await run("dca_get_sub_orders", {
+    algoOrdType: "spot_dca",
+    algoId: opts.algoId,
+    type: opts.live ? "live" : "filled",
+  });
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(orders);
+  if (!orders.length) { process.stdout.write("No sub-orders\n"); return; }
+  printTable(
+    orders.map((o) => ({
+      ordId:  o["ordId"],
+      side:   o["side"],
+      px:     o["px"],
+      sz:     o["sz"],
+      fillPx: o["fillPx"],
+      fillSz: o["fillSz"],
+      state:  o["state"],
+      fee:    o["fee"],
+    })),
   );
 }

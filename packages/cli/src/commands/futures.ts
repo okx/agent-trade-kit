@@ -1,20 +1,16 @@
-import type { OkxRestClient } from "@agent-tradekit/core";
+import type { ToolRunner } from "@agent-tradekit/core";
 import { printJson, printKv, printTable } from "../formatter.js";
 
+function getData(result: unknown): unknown {
+  return (result as Record<string, unknown>).data;
+}
+
 export async function cmdFuturesOrders(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instId?: string; status: "open" | "history" | "archive"; json: boolean },
 ): Promise<void> {
-  const path =
-    opts.status === "archive"
-      ? "/api/v5/trade/orders-history-archive"
-      : opts.status === "history"
-        ? "/api/v5/trade/orders-history"
-        : "/api/v5/trade/orders-pending";
-  const params: Record<string, unknown> = { instType: "FUTURES" };
-  if (opts.instId) params["instId"] = opts.instId;
-  const res = await client.privateGet(path, params);
-  const orders = res.data as Record<string, unknown>[];
+  const result = await run("futures_get_orders", { instId: opts.instId, status: opts.status });
+  const orders = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(orders);
   printTable(
     (orders ?? []).map((o) => ({
@@ -31,14 +27,12 @@ export async function cmdFuturesOrders(
 }
 
 export async function cmdFuturesPositions(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string | undefined,
   json: boolean,
 ): Promise<void> {
-  const params: Record<string, unknown> = { instType: "FUTURES" };
-  if (instId) params["instId"] = instId;
-  const res = await client.privateGet("/api/v5/account/positions", params);
-  const positions = res.data as Record<string, unknown>[];
+  const result = await run("futures_get_positions", { instId });
+  const positions = getData(result) as Record<string, unknown>[];
   if (json) return printJson(positions);
   const open = (positions ?? []).filter((p) => Number(p["pos"]) !== 0);
   if (!open.length) { process.stdout.write("No open positions\n"); return; }
@@ -55,15 +49,11 @@ export async function cmdFuturesPositions(
 }
 
 export async function cmdFuturesFills(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instId?: string; ordId?: string; archive: boolean; json: boolean },
 ): Promise<void> {
-  const path = opts.archive ? "/api/v5/trade/fills-history" : "/api/v5/trade/fills";
-  const params: Record<string, unknown> = { instType: "FUTURES" };
-  if (opts.instId) params["instId"] = opts.instId;
-  if (opts.ordId) params["ordId"] = opts.ordId;
-  const res = await client.privateGet(path, params);
-  const fills = res.data as Record<string, unknown>[];
+  const result = await run("futures_get_fills", { instId: opts.instId, ordId: opts.ordId, archive: opts.archive });
+  const fills = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(fills);
   printTable(
     (fills ?? []).map((f) => ({
@@ -78,7 +68,7 @@ export async function cmdFuturesFills(
 }
 
 export async function cmdFuturesPlace(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: {
     instId: string;
     side: string;
@@ -91,42 +81,41 @@ export async function cmdFuturesPlace(
     json: boolean;
   },
 ): Promise<void> {
-  const body: Record<string, unknown> = {
+  const result = await run("futures_place_order", {
     instId: opts.instId,
     tdMode: opts.tdMode,
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
-  };
-  if (opts.posSide) body["posSide"] = opts.posSide;
-  if (opts.px) body["px"] = opts.px;
-  if (opts.reduceOnly !== undefined) body["reduceOnly"] = String(opts.reduceOnly);
-  const res = await client.privatePost("/api/v5/trade/order", body);
-  if (opts.json) return printJson(res.data);
-  const order = (res.data as Record<string, unknown>[])[0];
+    posSide: opts.posSide,
+    px: opts.px,
+    reduceOnly: opts.reduceOnly,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const order = data?.[0];
   process.stdout.write(`Order placed: ${order?.["ordId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`);
 }
 
 export async function cmdFuturesCancel(
-  client: OkxRestClient,
+  run: ToolRunner,
   instId: string,
   ordId: string,
   json: boolean,
 ): Promise<void> {
-  const res = await client.privatePost("/api/v5/trade/cancel-order", { instId, ordId });
-  if (json) return printJson(res.data);
-  const r = (res.data as Record<string, unknown>[])[0];
+  const result = await run("futures_cancel_order", { instId, ordId });
+  const data = getData(result) as Record<string, unknown>[];
+  if (json) return printJson(data);
+  const r = data?.[0];
   process.stdout.write(`Cancelled: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
 }
 
 export async function cmdFuturesGet(
-  client: OkxRestClient,
+  run: ToolRunner,
   opts: { instId: string; ordId?: string; json: boolean },
 ): Promise<void> {
-  const params: Record<string, unknown> = { instId: opts.instId };
-  if (opts.ordId) params["ordId"] = opts.ordId;
-  const res = await client.privateGet("/api/v5/trade/order", params);
-  const data = res.data as Record<string, unknown>[];
+  const result = await run("futures_get_order", { instId: opts.instId, ordId: opts.ordId });
+  const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const o = data?.[0];
   if (!o) { process.stdout.write("No data\n"); return; }

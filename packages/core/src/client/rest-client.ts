@@ -23,8 +23,8 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
   "50026": { retry: true,  suggestion: "Order book system upgrading. Retry in a few minutes." },
 
   // Region / compliance restriction → do not retry
-  "51155": { retry: false, suggestion: "Feature unavailable in your region. Do not retry." },
-  "51734": { retry: false, suggestion: "Feature not supported for your KYC country. Do not retry." },
+  "51155": { retry: false, suggestion: "Feature unavailable in your region (site: {site}). Verify your site setting matches your account registration region. Available sites: global, eea, us. Do not retry." },
+  "51734": { retry: false, suggestion: "Feature not supported for your KYC country (site: {site}). Verify your site setting matches your account registration region. Available sites: global, eea, us. Do not retry." },
 
   // Account issues → do not retry
   "50007": { retry: false, suggestion: "Account suspended. Contact OKX support. Do not retry." },
@@ -264,15 +264,16 @@ export class OkxRestClient {
       }
 
       const behavior = OKX_CODE_BEHAVIORS[responseCode];
+      const suggestion = behavior?.suggestion?.replace("{site}", this.config.site);
 
       if (responseCode === "50011" || responseCode === "50061") {
-        throw new RateLimitError(message, behavior?.suggestion, endpoint, traceId);
+        throw new RateLimitError(message, suggestion, endpoint, traceId);
       }
 
       throw new OkxApiError(message, {
         code: responseCode,
         endpoint,
-        suggestion: behavior?.suggestion,
+        suggestion,
         traceId,
       });
     }

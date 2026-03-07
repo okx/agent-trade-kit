@@ -4,7 +4,13 @@
 
 All credentials are stored in `~/.okx/config.toml`. The client config only needs the profile name.
 
-A minimal single-profile setup:
+The easiest way to set this up is the interactive wizard:
+
+```bash
+okx config init
+```
+
+Or configure manually with a minimal single-profile setup:
 
 ```toml
 default_profile = "demo"
@@ -16,11 +22,47 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-> **Demo key:** OKX website → Trading → Demo Trading → API Management
+> **Demo key:** [Create API Key (Demo Trading)](https://www.okx.com/account/my-api?go-demo-trading=1)
 >
-> **Live key:** OKX website → Profile → API → Create API Key
+> **Live key:** [Create API Key (Live Trading)](https://www.okx.com/account/my-api?go-live-trading=1)
+>
+> EEA users: replace `www.okx.com` with `my.okx.com` · US users: use `app.okx.com`
 
 **Required API permissions:** Read + Trade. Withdraw permission is not required or recommended.
+
+### Site Configuration
+
+OKX operates independent regional sites. Users must use the API of the site where their account is registered.
+
+| Site | User URL | API Base URL |
+|------|----------|-------------|
+| `global` (default) | `www.okx.com` | `https://www.okx.com` |
+| `eea` | `my.okx.com` | `https://eea.okx.com` |
+| `us` | `app.okx.com` | `https://app.okx.com` |
+
+Set the site in your profile:
+
+```toml
+[profiles.main]
+site = "global"          # global | eea | us  (default: global)
+api_key = "your-api-key"
+secret_key = "your-secret-key"
+passphrase = "your-passphrase"
+```
+
+Or override at startup via flag or env var:
+
+```bash
+# Flag
+agent-tradekit-mcp --site eea
+
+# Environment variable (useful in Docker / CI)
+OKX_SITE=us agent-tradekit-mcp
+```
+
+Priority: `--site` flag > `OKX_SITE` env var > `site` in toml > default `global`
+
+> **Note:** `OKX_API_BASE_URL` / `base_url` in toml still override the site mapping entirely — useful for testing against a custom endpoint.
 
 ### Multiple profiles
 
@@ -53,15 +95,15 @@ Then register each as a separate MCP server in your client config:
 {
   "mcpServers": {
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-live": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all"]
     },
     "okx-live-sub": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live-sub", "--modules", "all"]
     }
   }
@@ -78,22 +120,22 @@ The fastest way to configure a client is the `setup` subcommand — no manual JS
 
 ```bash
 # Configure Claude Desktop
-agent-tradekit-mcp setup --client claude-desktop
+okx-trade-mcp setup --client claude-desktop
 
 # Configure Cursor
-agent-tradekit-mcp setup --client cursor
+okx-trade-mcp setup --client cursor
 
 # Configure VS Code (writes .mcp.json in current directory)
-agent-tradekit-mcp setup --client vscode
+okx-trade-mcp setup --client vscode
 
 # Configure Claude Code CLI
-agent-tradekit-mcp setup --client claude-code
+okx-trade-mcp setup --client claude-code
 
 # Use a specific profile and modules
-agent-tradekit-mcp setup --client claude-desktop --profile live --modules market,spot,account
+okx-trade-mcp setup --client claude-desktop --profile live --modules market,spot,account
 ```
 
-Also available as `okx setup --client <client>` if `agent-tradekit-cli` is installed.
+Also available as `okx setup --client <client>` if `okx-trade-cli` is installed.
 
 | `--client` | Target |
 |------------|--------|
@@ -119,11 +161,11 @@ Config file:
 {
   "mcpServers": {
     "okx-LIVE-real-money": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-DEMO-simulated-trading": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -140,7 +182,7 @@ Config file: `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project-level)
 {
   "mcpServers": {
     "okx-trade": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -150,7 +192,7 @@ Config file: `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project-level)
 ### Claude Code CLI
 
 ```bash
-claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --profile demo --modules all
+claude mcp add --transport stdio okx-trade-mcp -- okx-trade-mcp --profile demo --modules all
 ```
 
 Or create `.mcp.json` in your project root:
@@ -158,9 +200,9 @@ Or create `.mcp.json` in your project root:
 ```json
 {
   "mcpServers": {
-    "agent-tradekit-mcp": {
+    "okx-trade-mcp": {
       "type": "stdio",
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -174,9 +216,9 @@ Create `.mcp.json` in your project root (or `~/.claude.json` for global scope):
 ```json
 {
   "mcpServers": {
-    "agent-tradekit-mcp": {
+    "okx-trade-mcp": {
       "type": "stdio",
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -192,8 +234,8 @@ Config file:
 ```json
 {
   "mcpServers": {
-    "agent-tradekit-mcp": {
-      "command": "agent-tradekit-mcp",
+    "okx-trade-mcp": {
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -208,11 +250,11 @@ Config file: `openCxxW.json`
 {
   "mcpServers": {
     "okx-LIVE-real-money": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-DEMO-simulated-trading": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -231,7 +273,7 @@ Watch prices, orderbook, candles without any credentials:
 {
   "mcpServers": {
     "okx-market": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--modules", "market"]
     }
   }
@@ -246,7 +288,7 @@ Has API key but prevents any order placement:
 {
   "mcpServers": {
     "okx-readonly": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all", "--read-only"]
     }
   }
@@ -261,7 +303,7 @@ Minimal setup for spot trading — skips swap, futures, and bot modules:
 {
   "mcpServers": {
     "okx-spot": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "market", "spot", "account"]
     }
   }
@@ -276,7 +318,7 @@ Safe environment for testing — uses OKX paper trading, no real funds at risk:
 {
   "mcpServers": {
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -293,11 +335,11 @@ Register both as separate MCP servers. Your AI can switch between them:
 {
   "mcpServers": {
     "okx-live": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -336,11 +378,47 @@ passphrase = "your-demo-passphrase"
 demo = true
 ```
 
-> **模拟盘 Key：** OKX 官网 → 交易 → 模拟交易 → API 管理
+> **模拟盘 Key：** [创建 API Key（模拟盘）](https://www.okx.com/zh-hans/account/my-api?go-demo-trading=1)
 >
-> **实盘 Key：** OKX 官网 → 个人中心 → API → 创建 API Key
+> **实盘 Key：** [创建 API Key（实盘）](https://www.okx.com/zh-hans/account/my-api?go-live-trading=1)
+>
+> EEA 用户：将 `www.okx.com` 替换为 `my.okx.com`；US 用户：使用 `app.okx.com`
 
 **所需 API 权限：** 读取 + 交易。无需也不建议开启提币权限。
+
+### 站点配置
+
+OKX 运营多个独立的区域站点，用户需要使用其账号所在站点的 API。
+
+| 站点 | 用户网址 | API Base URL |
+|------|----------|-------------|
+| `global`（默认） | `www.okx.com` | `https://www.okx.com` |
+| `eea` | `my.okx.com` | `https://eea.okx.com` |
+| `us` | `app.okx.com` | `https://app.okx.com` |
+
+在 Profile 中指定站点：
+
+```toml
+[profiles.main]
+site = "global"          # global | eea | us（默认：global）
+api_key = "your-api-key"
+secret_key = "your-secret-key"
+passphrase = "your-passphrase"
+```
+
+也可以通过命令行参数或环境变量覆盖：
+
+```bash
+# 命令行参数
+agent-tradekit-mcp --site eea
+
+# 环境变量（适用于 Docker / CI）
+OKX_SITE=us agent-tradekit-mcp
+```
+
+优先级：`--site` 参数 > `OKX_SITE` 环境变量 > toml 中的 `site` > 默认 `global`
+
+> **注意：** `OKX_API_BASE_URL` 环境变量 / toml 中的 `base_url` 仍然优先级最高，会完全覆盖站点映射——适合高级用户或自定义测试场景。
 
 ### 多账号配置
 
@@ -373,15 +451,15 @@ passphrase = "your-sub-passphrase"
 {
   "mcpServers": {
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-live": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all"]
     },
     "okx-live-sub": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live-sub", "--modules", "all"]
     }
   }
@@ -398,22 +476,22 @@ AI 可以直接通过调用对应 Server 的工具来切换账号。
 
 ```bash
 # 配置 Claude Desktop
-agent-tradekit-mcp setup --client claude-desktop
+okx-trade-mcp setup --client claude-desktop
 
 # 配置 Cursor
-agent-tradekit-mcp setup --client cursor
+okx-trade-mcp setup --client cursor
 
 # 配置 VS Code（在当前目录写 .mcp.json）
-agent-tradekit-mcp setup --client vscode
+okx-trade-mcp setup --client vscode
 
 # 配置 Claude Code CLI
-agent-tradekit-mcp setup --client claude-code
+okx-trade-mcp setup --client claude-code
 
 # 指定 profile 和模块
-agent-tradekit-mcp setup --client claude-desktop --profile live --modules market,spot,account
+okx-trade-mcp setup --client claude-desktop --profile live --modules market,spot,account
 ```
 
-安装了 `agent-tradekit-cli` 的话，也可以用 `okx setup --client <client>`。
+安装了 `okx-trade-cli` 的话，也可以用 `okx setup --client <client>`。
 
 | `--client` | 目标 |
 |------------|------|
@@ -439,11 +517,11 @@ agent-tradekit-mcp setup --client claude-desktop --profile live --modules market
 {
   "mcpServers": {
     "okx-LIVE-real-money": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-DEMO-simulated-trading": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -460,7 +538,7 @@ agent-tradekit-mcp setup --client claude-desktop --profile live --modules market
 {
   "mcpServers": {
     "okx-trade": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -470,7 +548,7 @@ agent-tradekit-mcp setup --client claude-desktop --profile live --modules market
 ### Claude Code CLI
 
 ```bash
-claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --profile demo --modules all
+claude mcp add --transport stdio okx-trade-mcp -- okx-trade-mcp --profile demo --modules all
 ```
 
 或在项目根目录创建 `.mcp.json`：
@@ -478,9 +556,9 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 ```json
 {
   "mcpServers": {
-    "agent-tradekit-mcp": {
+    "okx-trade-mcp": {
       "type": "stdio",
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -494,9 +572,9 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 ```json
 {
   "mcpServers": {
-    "agent-tradekit-mcp": {
+    "okx-trade-mcp": {
       "type": "stdio",
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -512,8 +590,8 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 ```json
 {
   "mcpServers": {
-    "agent-tradekit-mcp": {
-      "command": "agent-tradekit-mcp",
+    "okx-trade-mcp": {
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -528,11 +606,11 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 {
   "mcpServers": {
     "okx-LIVE-real-money": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-DEMO-simulated-trading": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -551,7 +629,7 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 {
   "mcpServers": {
     "okx-market": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--modules", "market"]
     }
   }
@@ -566,7 +644,7 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 {
   "mcpServers": {
     "okx-readonly": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "all", "--read-only"]
     }
   }
@@ -581,7 +659,7 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 {
   "mcpServers": {
     "okx-spot": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "live", "--modules", "market", "spot", "account"]
     }
   }
@@ -596,7 +674,7 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 {
   "mcpServers": {
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }
@@ -613,11 +691,11 @@ claude mcp add --transport stdio agent-tradekit-mcp -- agent-tradekit-mcp --prof
 {
   "mcpServers": {
     "okx-live": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     },
     "okx-demo": {
-      "command": "agent-tradekit-mcp",
+      "command": "okx-trade-mcp",
       "args": ["--profile", "demo", "--modules", "all"]
     }
   }

@@ -12,6 +12,9 @@ import { registerSwapTradeTools } from "../src/tools/swap-trade.js";
 import { registerAccountTools } from "../src/tools/account.js";
 import { registerFuturesTools } from "../src/tools/futures-trade.js";
 import { registerOptionTools } from "../src/tools/option-trade.js";
+import { registerAlgoTradeTools } from "../src/tools/algo-trade.js";
+import { registerGridTools } from "../src/tools/bot/grid.js";
+import { registerDcaTools } from "../src/tools/bot/dca.js";
 import { assertNotDemo } from "../src/tools/common.js";
 import { ConfigError } from "../src/utils/errors.js";
 
@@ -842,6 +845,43 @@ describe("spot_get_algo_orders", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-algo-history");
   });
 
+  it("defaults state to effective for history queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, "effective");
+  });
+
+  it("passes explicit state for history queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", ordType: "oco", state: "canceled" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, "canceled");
+  });
+
+  it("does not pass state for pending queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, undefined);
+  });
+
+  it("all parallel history requests include state", async () => {
+    const calls: Record<string, unknown>[] = [];
+    const fakeResponse = (endpoint: string) => ({
+      endpoint,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [],
+    });
+    const capturingClient = {
+      publicGet: async (ep: string, p: Record<string, unknown>) => { calls.push(p); return fakeResponse(ep); },
+      privateGet: async (ep: string, p: Record<string, unknown>) => { calls.push(p); return fakeResponse(ep); },
+      privatePost: async (ep: string, p: Record<string, unknown>) => { calls.push(p); return fakeResponse(ep); },
+    };
+    await tool.handler({ status: "history" }, makeContext(capturingClient));
+    assert.equal(calls.length, 2);
+    for (const params of calls) {
+      assert.equal(params.state, "effective", "each parallel request must include state");
+    }
+  });
+
   it("makes two parallel requests when ordType is omitted", async () => {
     let callCount = 0;
     const fakeResponse = (endpoint: string) => ({
@@ -1395,5 +1435,237 @@ describe("option_get_greeks", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ uly: "BTC-USD" }, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).expTime, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid tools — module field
+// ---------------------------------------------------------------------------
+
+describe("grid tools module field", () => {
+  const tools = registerGridTools();
+
+  it("all grid tools have module 'bot.grid'", () => {
+    for (const tool of tools) {
+      assert.equal(tool.module, "bot.grid", `${tool.name} should have module bot.grid`);
+    }
+  });
+
+  it("registers exactly 5 grid tools", () => {
+    assert.equal(tools.length, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCA tools
+// ---------------------------------------------------------------------------
+
+describe("dca_create_order", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_create_order")!;
+
+  it("spot: calls /dca/order-algo endpoint", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "spot", instId: "BTC-USDT",
+      triggerType: "manual", initOrdAmt: "100",
+      safetyOrdAmt: "50", maxSafetyOrds: "3",
+      pxSteps: "0.02", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+    }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/order-algo");
+  });
+
+  it("spot: passes optional params when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "spot", instId: "BTC-USDT",
+      triggerType: "manual", initOrdAmt: "100",
+      safetyOrdAmt: "50", maxSafetyOrds: "3",
+      pxSteps: "0.02", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+      slPct: "0.05",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.slPct, "0.05");
+    assert.equal(params.triggerType, "manual");
+  });
+
+  it("contract: calls /dca/create endpoint with algoOrdType=contract_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "contract", instId: "BTC-USDT-SWAP",
+      lever: "3", side: "buy",
+      initOrdAmt: "100", safetyOrdAmt: "50",
+      maxSafetyOrds: "3", pxSteps: "0.02",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+    }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/create");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("contract: defaults direction to long", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "contract", instId: "BTC-USDT-SWAP",
+      lever: "3", side: "buy",
+      initOrdAmt: "100", safetyOrdAmt: "50",
+      maxSafetyOrds: "3", pxSteps: "0.02",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+    }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "long");
+  });
+});
+
+describe("dca_stop_order", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_stop_order")!;
+
+  it("spot: calls /dca/stop-order-algo with algoId in array", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "spot", algoId: "123", instId: "BTC-USDT" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/stop-order-algo");
+    assert.ok(Array.isArray(getLastCall()?.params));
+  });
+
+  it("contract: calls /dca/stop with algoOrdType=contract_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "contract", algoId: "456", instId: "BTC-USDT-SWAP" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/stop");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+});
+
+describe("dca_get_orders", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_get_orders")!;
+
+  it("spot: calls pending endpoint by default", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "spot" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders-algo-pending");
+  });
+
+  it("spot: calls history endpoint when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "spot", status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders-algo-history");
+  });
+
+  it("contract: calls /dca/ongoing-list with algoOrdType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "contract" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/ongoing-list");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("contract: calls /dca/history-list when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "contract", status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/history-list");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+});
+
+describe("dca_get_order_details", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_get_order_details")!;
+
+  it("spot: calls /dca/orders-algo-details with algoId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "spot", algoId: "456" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders-algo-details");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "456");
+  });
+
+  it("contract: calls /dca/position-details with algoOrdType=contract_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "contract", algoId: "789" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/position-details");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+});
+
+describe("dca_get_sub_orders", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_get_sub_orders")!;
+
+  it("spot: calls /dca/sub-orders with algoId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "spot", algoId: "123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/sub-orders");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "123");
+  });
+
+  it("contract without cycleId: calls /dca/cycle-list", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "contract", algoId: "123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/cycle-list");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("contract with cycleId: calls /dca/orders", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ type: "contract", algoId: "123", cycleId: "c001" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).cycleId, "c001");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Algo trade — swap_get_algo_orders state parameter
+// ---------------------------------------------------------------------------
+
+describe("swap_get_algo_orders", () => {
+  const tools = registerAlgoTradeTools();
+  const tool = tools.find((t) => t.name === "swap_get_algo_orders")!;
+
+  it("defaults state to effective for history queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, "effective");
+  });
+
+  it("passes explicit state for history queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", ordType: "oco", state: "canceled" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, "canceled");
+  });
+
+  it("does not pass state for pending queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, undefined);
+  });
+
+  it("all parallel history requests include state", async () => {
+    const calls: Record<string, unknown>[] = [];
+    const fakeResponse = (endpoint: string) => ({
+      endpoint,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [],
+    });
+    const capturingClient = {
+      publicGet: async (ep: string, p: Record<string, unknown>) => { calls.push(p); return fakeResponse(ep); },
+      privateGet: async (ep: string, p: Record<string, unknown>) => { calls.push(p); return fakeResponse(ep); },
+      privatePost: async (ep: string, p: Record<string, unknown>) => { calls.push(p); return fakeResponse(ep); },
+    };
+    await tool.handler({ status: "history" }, makeContext(capturingClient));
+    assert.equal(calls.length, 3);
+    for (const params of calls) {
+      assert.equal(params.state, "effective", "each parallel request must include state");
+    }
+  });
+});
+
+describe("dca tools registration", () => {
+  const tools = registerDcaTools();
+
+  it("registers exactly 5 DCA tools", () => {
+    assert.equal(tools.length, 5);
+  });
+
+  it("all DCA tools have module bot.dca", () => {
+    for (const tool of tools) {
+      assert.equal(tool.module, "bot.dca", `${tool.name} should have module bot.dca`);
+    }
   });
 });

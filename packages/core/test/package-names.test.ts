@@ -9,21 +9,21 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
 describe("package name consistency", () => {
-  it("agent-tradekit-mcp package.json name matches checkForUpdates call", () => {
+  it("@okx_ai/okx-trade-mcp package.json name matches checkForUpdates call", () => {
     const pkg = require("../../mcp/package.json") as { name: string };
     assert.equal(
       pkg.name,
-      "agent-tradekit-mcp",
-      `packages/mcp/package.json name is "${pkg.name}" but checkForUpdates is called with "agent-tradekit-mcp"`,
+      "@okx_ai/okx-trade-mcp",
+      `packages/mcp/package.json name is "${pkg.name}" but checkForUpdates is called with "@okx_ai/okx-trade-mcp"`,
     );
   });
 
-  it("agent-tradekit-cli package.json name matches checkForUpdates call", () => {
+  it("@okx_ai/okx-trade-cli package.json name matches checkForUpdates call", () => {
     const pkg = require("../../cli/package.json") as { name: string };
     assert.equal(
       pkg.name,
-      "agent-tradekit-cli",
-      `packages/cli/package.json name is "${pkg.name}" but checkForUpdates is called with "agent-tradekit-cli"`,
+      "@okx_ai/okx-trade-cli",
+      `packages/cli/package.json name is "${pkg.name}" but checkForUpdates is called with "@okx_ai/okx-trade-cli"`,
     );
   });
 });

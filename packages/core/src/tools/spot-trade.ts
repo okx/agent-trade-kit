@@ -445,22 +445,32 @@ export function registerSpotTradeTools(): ToolSpec[] {
             type: "number",
             description: "Max results (default 100)",
           },
+          state: {
+            type: "string",
+            enum: ["effective", "canceled", "order_failed"],
+            description:
+              "Required when status=history. effective=triggered, canceled, order_failed. Defaults to effective.",
+          },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const status = readString(args, "status") ?? "pending";
-        const path =
-          status === "history"
-            ? "/api/v5/trade/orders-algo-history"
-            : "/api/v5/trade/orders-algo-pending";
+        const isHistory = status === "history";
+        const path = isHistory
+          ? "/api/v5/trade/orders-algo-history"
+          : "/api/v5/trade/orders-algo-pending";
         const ordType = readString(args, "ordType");
+        const state = isHistory
+          ? readString(args, "state") ?? "effective"
+          : undefined;
         const baseParams = compactObject({
           instType: "SPOT",
           instId: readString(args, "instId"),
           after: readString(args, "after"),
           before: readString(args, "before"),
           limit: readNumber(args, "limit"),
+          state,
         });
 
         if (ordType) {

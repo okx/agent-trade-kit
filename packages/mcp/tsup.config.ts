@@ -8,6 +8,6 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   dts: true,
-  noExternal: ["@agent-tradekit/core"],
+  noExternal: ["@agent-tradekit/core", "smol-toml"],
   banner: { js: "#!/usr/bin/env node" },
 });

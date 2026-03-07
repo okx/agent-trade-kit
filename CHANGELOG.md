@@ -1,3 +1,5 @@
+[English](CHANGELOG.md) | [中文](CHANGELOG.zh-CN.md)
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -11,9 +13,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
 ### Fixed
 
+---
+
+## [1.1.1] - 2026-03-07
+
+### Fixed
+
+- **Build**: `smol-toml` was not bundled into the CLI output despite `noExternal` config — npm registry `1.1.0` shipped with an external `import from "smol-toml"` that fails at runtime. Added `smol-toml` to runtime `dependencies` as a reliable fix and bumped version to republish.
+
+---
+
+## [1.1.0] - 2026-03-07
+
+### Added
+
+- **Contract DCA bot**: `bot.dca` submodule now supports contract (perpetual) DCA in addition to spot — new tools `dca_get_contract_orders`, `dca_get_contract_order_details`, `dca_create_contract_order`, `dca_stop_contract_order`
+- **`okx setup` subcommand**: interactive wizard to generate and insert MCP server config into Claude Code, VS Code, Windsurf, and other MCP clients
+- **CLI `--version` / `-v` flag**: print the current package version and exit
+- **CLI `swap amend` command**: amend an open swap order via the CLI (`okx swap amend`)
+
+### Fixed
+
+- **Duplicate tool**: removed duplicate `swap_amend_order` tool registration that caused the tool to appear twice in tool listings
+- **CLI swap amend dispatch**: `okx swap amend` now correctly dispatches to the swap handler instead of the spot handler
+
 ### Changed
+
+- **`bot.dca` is opt-in**: the DCA submodule is no longer loaded by default; enable it with `--modules bot.dca` or by adding `bot.dca` to the `modules` list in `~/.okx/config.toml`
+- **Bot tools reorganized into submodules**: `bot` module now uses a submodule system — `bot.grid` and `bot.dca` can be loaded independently
+- **CLI architecture**: CLI commands now invoke Core tool handlers directly via `ToolRunner`, reducing duplication between MCP and CLI code paths
+
+---
+
+## [1.0.9] - 2026-03-06
+
+### Fixed
+
+- **algo orders**: `swap_get_algo_orders` and `spot_get_algo_orders` now pass the required `state` parameter when querying history (`/api/v5/trade/orders-algo-history`), defaulting to `effective` (#28)
+
+---
+
+## [1.0.8] - 2026-03-06
+
+### Changed
+
+- **npm org rename**: packages moved from `@okx_retail` to `@okx_ai` scope. Please reinstall:
+  ```
+  npm uninstall -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
+  npm install -g @okx_ai/okx-trade-mcp @okx_ai/okx-trade-cli
+  ```
+  Binary names are unchanged — `okx-trade-mcp` and `okx` still work after reinstall.
+
+---
+
+## [1.0.7] - 2026-03-04
+
+### Added
+
+- **Scenario tests**: added `scripts/scenario-test/` with multi-step integration tests covering stateless read flows (account balance, market data, swap leverage) and stateful write flows (Spot place→query→cancel, Swap set-leverage→place→query→cancel). Stateless scenarios are CI-safe; stateful scenarios require `OKX_DEMO=1`.
+- **Multi-site support**: users on OKX Global (`www.okx.com`), EEA (`my.okx.com`), and US (`app.okx.com`) can now configure their site via `--site <global|eea|us>` CLI flag, `OKX_SITE` env var, or `site` field in `~/.okx/config.toml`. The API base URL is automatically derived from the site; explicit `OKX_API_BASE_URL` / `base_url` overrides remain supported for advanced use.
+- **`config init` site selection**: the interactive wizard now prompts for site before asking for API key, and opens the correct API management URL for the chosen site.
+- **`config show` site display**: the `site` field is now shown for each profile.
+- **Region error context**: error suggestions for OKX region-restriction codes (51155, 51734) now include the currently configured site to help users diagnose misconfigured site settings.
+- **docs/faq.md**: added "General" section with 3 new Q&As — "What is OKX Trade MCP?", "What trading pairs are supported?", and "What risks should I understand?" (bilingual EN + ZH)
+- **docs/faq.md**: added "API Coverage" section explaining which OKX REST API modules are supported vs. not yet supported by the MCP server and CLI (bilingual EN + ZH)
+
+### Fixed
+
+- **CLI**: ensure `main()` is always invoked when executed via npm global symlink; add defensive comment and symlink regression test to prevent future regressions (#21)
+
+### Changed
+
+- **Release prep**: version bump for publish
+- **`okx config init`**: site selection (Global / EEA / US) and demo/live choice are now asked upfront; the CLI opens the targeted API creation page with `?go-demo-trading=1` or `?go-live-trading=1` query param so users land directly on the correct tab. EEA (`my.okx.com`) and US (`app.okx.com`) sites are supported and saved as `base_url` in the profile.
+- **docs/configuration.md**, **README.md**, **README.zh.md**: updated API key creation links to direct URLs with `?go-demo-trading=1` / `?go-live-trading=1` parameters (bilingual EN + ZH).
+- **npm scope**: packages are now published under the `@okx_retail` organisation. Please reinstall:
+  ```
+  npm uninstall -g okx-trade-mcp okx-trade-cli
+  npm install -g @okx_retail/okx-trade-mcp @okx_retail/okx-trade-cli
+  ```
+  Binary names are unchanged — `okx-trade-mcp` and `okx` still work after reinstall.
 
 ---
 
@@ -25,12 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Package rename**: `okx-trade-mcp` → `agent-tradekit-mcp`, `okx-trade-cli` → `agent-tradekit-cli`. The old npm packages are no longer maintained. Please uninstall the old packages and install the new ones:
-  ```
-  npm uninstall -g okx-trade-mcp okx-trade-cli
-  npm install -g agent-tradekit-mcp agent-tradekit-cli
-  ```
-- **Project rename**: workspace root renamed from `okx-hub` to `agent-tradekit`; internal package `@okx-hub/core` renamed to `@agent-tradekit/core`
+- **Project rename**: internal package `@okx-hub/core` renamed to `@agent-tradekit/core`
 
 ---
 

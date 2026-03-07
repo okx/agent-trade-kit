@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.okx.com)",
+      "WebFetch(domain:okg-block.sg.larksuite.com)",
+      "Bash(source:*)",
+      "Bash(pnpm test:unit:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm:*)"
+    ]
+  }
+}

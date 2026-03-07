@@ -162,7 +162,7 @@ proc.on("error", (err) => { console.error("Failed to start server:", err.message
 const client = new McpClient(proc);
 
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-console.log("  agent-tradekit-mcp E2E tests (demo)");
+console.log("  okx-trade-mcp E2E tests (demo)");
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
 try {
@@ -678,6 +678,17 @@ try {
 
     await test("account_set_position_mode net_mode (idempotent)", async () => {
       assertOk(await client.callTool("account_set_position_mode", { posMode: "net_mode" }));
+    });
+
+    // ── Phase 7: DCA bot read (demo) ──────────────────────────────────────
+    section("DCA bot read (demo)");
+
+    await test("dca_get_orders spot active", async () => {
+      assertOk(await client.callTool("dca_get_orders", { type: "spot", status: "active" }));
+    });
+
+    await test("dca_get_orders contract history", async () => {
+      assertOk(await client.callTool("dca_get_orders", { type: "contract", status: "history" }));
     });
   }
 } finally {

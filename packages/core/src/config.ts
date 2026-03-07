@@ -1,4 +1,4 @@
-import { DEFAULT_MODULES, MODULES, OKX_API_BASE_URL, type ModuleId } from "./constants.js";
+import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, DEFAULT_MODULES, MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, type BotSubModuleId, type ModuleId, type SiteId } from "./constants.js";
 import { ConfigError } from "./utils/errors.js";
 import { readTomlProfile } from "./config/toml.js";
 
@@ -7,6 +7,7 @@ export interface CliOptions {
   readOnly: boolean;
   demo: boolean;
   profile?: string;
+  site?: string;
   userAgent?: string;
 }
 
@@ -20,8 +21,14 @@ export interface OkxConfig {
   modules: ModuleId[];
   readOnly: boolean;
   demo: boolean;
+  site: SiteId;
   userAgent?: string;
 }
+
+/** Base (non-bot) modules — used when expanding "all". */
+const BASE_MODULES = MODULES.filter(
+  (m) => !BOT_SUB_MODULE_IDS.includes(m as BotSubModuleId),
+);
 
 function parseModuleList(rawModules?: string): ModuleId[] {
   if (!rawModules || rawModules.trim().length === 0) {
@@ -30,7 +37,8 @@ function parseModuleList(rawModules?: string): ModuleId[] {
 
   const trimmed = rawModules.trim().toLowerCase();
   if (trimmed === "all") {
-    return [...MODULES];
+    // "all" → every non-bot module + default bot sub-modules
+    return [...BASE_MODULES, ...BOT_DEFAULT_SUB_MODULES] as ModuleId[];
   }
 
   const requested = trimmed
@@ -44,10 +52,20 @@ function parseModuleList(rawModules?: string): ModuleId[] {
 
   const deduped = new Set<ModuleId>();
   for (const moduleId of requested) {
+    // "bot" shorthand → expand to default bot sub-modules
+    if (moduleId === "bot") {
+      for (const sub of BOT_DEFAULT_SUB_MODULES) deduped.add(sub);
+      continue;
+    }
+    // "bot.all" → expand to all bot sub-modules
+    if (moduleId === "bot.all") {
+      for (const sub of BOT_SUB_MODULE_IDS) deduped.add(sub);
+      continue;
+    }
     if (!MODULES.includes(moduleId as ModuleId)) {
       throw new ConfigError(
         `Unknown module "${moduleId}".`,
-        `Use one of: ${MODULES.join(", ")} or "all".`,
+        `Use one of: ${MODULES.join(", ")}, "bot", "bot.all", or "all".`,
       );
     }
     deduped.add(moduleId as ModuleId);
@@ -60,6 +78,17 @@ function parseModuleList(rawModules?: string): ModuleId[] {
  * Credential priority (highest to lowest):
  *   1. Environment variables (OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE)
  *   2. ~/.okx/config.toml  — profile selected by cli.profile or default_profile
+ *
+ * Site priority (highest to lowest):
+ *   1. cli.site arg
+ *   2. OKX_SITE env var
+ *   3. toml profile site field
+ *   4. default: "global"
+ *
+ * Base URL priority (highest to lowest):
+ *   1. OKX_API_BASE_URL env var  (explicit override — advanced users)
+ *   2. toml profile base_url
+ *   3. site's apiBaseUrl (auto-derived from site)
  */
 export function loadConfig(cli: CliOptions): OkxConfig {
   // Read toml profile as fallback
@@ -86,9 +115,19 @@ export function loadConfig(cli: CliOptions): OkxConfig {
     process.env.OKX_DEMO === "true" ||
     (toml.demo ?? false);
 
-  // base url: env var > toml profile > default
+  // site: cli arg > env var > toml profile > default "global"
+  const rawSite = cli.site?.trim() ?? process.env.OKX_SITE?.trim() ?? toml.site ?? "global";
+  if (!SITE_IDS.includes(rawSite as SiteId)) {
+    throw new ConfigError(
+      `Unknown site "${rawSite}".`,
+      `Use one of: ${SITE_IDS.join(", ")}.`,
+    );
+  }
+  const site = rawSite as SiteId;
+
+  // base url: env var > toml profile > site's apiBaseUrl
   const rawBaseUrl =
-    process.env.OKX_API_BASE_URL?.trim() ?? toml.base_url ?? OKX_API_BASE_URL;
+    process.env.OKX_API_BASE_URL?.trim() ?? toml.base_url ?? OKX_SITES[site].apiBaseUrl;
   if (!rawBaseUrl.startsWith("http://") && !rawBaseUrl.startsWith("https://")) {
     throw new ConfigError(
       `Invalid base URL "${rawBaseUrl}".`,
@@ -118,6 +157,7 @@ export function loadConfig(cli: CliOptions): OkxConfig {
     modules: parseModuleList(cli.modules),
     readOnly: cli.readOnly,
     demo,
+    site,
     userAgent: cli.userAgent,
   };
 }

@@ -1,6 +1,6 @@
 {
-  "name": "agent-tradekit-cli",
-  "version": "1.0.6",
+  "name": "@okx_ai/okx-trade-cli",
+  "version": "1.1.1",
   "description": "OKX CLI - Command line tool for OKX exchange",
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,9 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test:unit": "node --import tsx/esm --test test/*.test.ts",
+    "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
   "engines": { "node": ">=18" },
   "keywords": ["okx", "cli", "trading"],
@@ -23,7 +25,9 @@
   "devDependencies": {
     "@agent-tradekit/core": "workspace:*",
     "@types/node": "^25.2.2",
+    "c8": "^10.1.3",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.9.3"
   }
 }

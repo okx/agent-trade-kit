@@ -1,7 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { configFilePath } from "./config/toml.js";
 
 export type ClientId = "claude-desktop" | "cursor" | "windsurf" | "vscode" | "claude-code";
 
@@ -25,20 +26,53 @@ function appData(): string {
   return process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
 }
 
-function getConfigPath(client: ClientId): string | null {
+const CLAUDE_CONFIG_FILE = "claude_desktop_config.json";
+
+/**
+ * Detect Microsoft Store installation of Claude Desktop on Windows.
+ * MS Store apps use a sandboxed path:
+ *   %LOCALAPPDATA%\Packages\Claude_<hash>\LocalCache\Roaming\Claude\
+ * Returns the config file path if found, null otherwise.
+ */
+function findMsStoreClaudePath(): string | null {
+  const localAppData = process.env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
+  const packagesDir = path.join(localAppData, "Packages");
+  try {
+    const entries = fs.readdirSync(packagesDir);
+    const claudePkg = entries.find((e) => e.startsWith("Claude_"));
+    if (claudePkg) {
+      const configPath = path.join(
+        packagesDir, claudePkg, "LocalCache", "Roaming", "Claude", CLAUDE_CONFIG_FILE,
+      );
+      // Return if the config file or its parent directory already exists
+      if (fs.existsSync(configPath) || fs.existsSync(path.dirname(configPath))) {
+        return configPath;
+      }
+    }
+  } catch {
+    // Packages dir may not exist or may not be readable
+  }
+  return null;
+}
+
+export function getConfigPath(client: ClientId): string | null {
   const home = os.homedir();
-  const win = process.platform === "win32";
+  const platform = process.platform;
   switch (client) {
     case "claude-desktop":
-      return win
-        ? path.join(appData(), "Claude", "claude_desktop_config.json")
-        : path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+      if (platform === "win32") {
+        // Prefer MS Store path if detected, otherwise standard %APPDATA%
+        return findMsStoreClaudePath() ?? path.join(appData(), "Claude", CLAUDE_CONFIG_FILE);
+      }
+      if (platform === "darwin") {
+        return path.join(home, "Library", "Application Support", "Claude", CLAUDE_CONFIG_FILE);
+      }
+      // Linux / other
+      return path.join(process.env.XDG_CONFIG_HOME ?? path.join(home, ".config"), "Claude", CLAUDE_CONFIG_FILE);
     case "cursor":
       return path.join(home, ".cursor", "mcp.json");
     case "windsurf":
-      return win
-        ? path.join(home, ".codeium", "windsurf", "mcp_config.json")
-        : path.join(home, ".codeium", "windsurf", "mcp_config.json");
+      return path.join(home, ".codeium", "windsurf", "mcp_config.json");
     case "vscode":
       return path.join(process.cwd(), ".mcp.json");
     case "claude-code":
@@ -51,9 +85,9 @@ function buildEntry(
   args: string[]
 ): Record<string, unknown> {
   if (client === "vscode") {
-    return { type: "stdio", command: "agent-tradekit-mcp", args };
+    return { type: "stdio", command: "okx-trade-mcp", args };
   }
-  return { command: "agent-tradekit-mcp", args };
+  return { command: "okx-trade-mcp", args };
 }
 
 function buildArgs(options: SetupOptions): string[] {
@@ -95,11 +129,11 @@ function mergeJsonConfig(
 
 export function printSetupUsage(): void {
   process.stdout.write(
-    `Usage: agent-tradekit-mcp setup --client <client> [--profile <name>] [--modules <list>]\n\n` +
+    `Usage: okx-trade-mcp setup --client <client> [--profile <name>] [--modules <list>]\n\n` +
       `Clients:\n` +
       SUPPORTED_CLIENTS.map((id) => `  ${id.padEnd(16)} ${CLIENT_NAMES[id]}`).join("\n") +
       `\n\nOptions:\n` +
-      `  --profile <name>   Profile from ~/.okx/config.toml (default: uses default_profile)\n` +
+      `  --profile <name>   Profile from ${configFilePath()} (default: uses default_profile)\n` +
       `  --modules <list>   Comma-separated modules or "all" (default: all)\n`
   );
 }
@@ -108,7 +142,7 @@ export function runSetup(options: SetupOptions): void {
   const { client } = options;
   const name = CLIENT_NAMES[client];
   const args = buildArgs(options);
-  const serverName = options.profile ? `agent-tradekit-mcp-${options.profile}` : "agent-tradekit-mcp";
+  const serverName = options.profile ? `okx-trade-mcp-${options.profile}` : "okx-trade-mcp";
 
   if (client === "claude-code") {
     const claudeArgs = [
@@ -118,11 +152,11 @@ export function runSetup(options: SetupOptions): void {
       "stdio",
       serverName,
       "--",
-      "agent-tradekit-mcp",
+      "okx-trade-mcp",
       ...args,
     ];
     process.stdout.write(`Running: claude ${claudeArgs.join(" ")}\n`);
-    execSync(`claude ${claudeArgs.join(" ")}`, { stdio: "inherit" });
+    execFileSync("claude", claudeArgs, { stdio: "inherit" }); // NOSONAR
     process.stdout.write(`✓ Configured ${name}\n`);
     return;
   }
