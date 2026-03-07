@@ -74,6 +74,7 @@ import {
   cmdFuturesGet,
 } from "./commands/futures.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
+import type { Lang } from "./commands/config.js";
 import {
   cmdSetupClients,
   cmdSetupClient,
@@ -102,8 +103,8 @@ export type { CliValues } from "./parser.js";
 // Command handlers
 // ---------------------------------------------------------------------------
 
-export function handleConfigCommand(action: string, rest: string[], json: boolean): Promise<void> | void {
-  if (action === "init") return cmdConfigInit();
+export function handleConfigCommand(action: string, rest: string[], json: boolean, lang?: string): Promise<void> | void {
+  if (action === "init") return cmdConfigInit((lang === "zh" ? "zh" : "en") as Lang);
   if (action === "show") return cmdConfigShow(json);
   if (action === "set") return cmdConfigSet(rest[0], rest[1]);
   if (action === "setup-clients") return cmdSetupClients();
@@ -604,7 +605,7 @@ async function main(): Promise<void> {
   const v = values;
   const json = v.json ?? false;
 
-  if (module === "config") return handleConfigCommand(action, rest, json);
+  if (module === "config") return handleConfigCommand(action, rest, json, v.lang);
   if (module === "setup") return handleSetupCommand(v);
 
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });
