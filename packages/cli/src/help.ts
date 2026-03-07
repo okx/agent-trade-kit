@@ -99,7 +99,7 @@ Commands:
                  --pxSteps <n> --pxStepsMult <n> --volMult <n> --tpPct <n> [--slPct <n>]
   bot dca stop --algoId <id> --instId <id> --stopType <1|2>
 
-  config init
+  config init [--lang zh]
   config show
   config set <key> <value>
   config setup-clients

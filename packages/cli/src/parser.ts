@@ -69,6 +69,7 @@ export interface CliValues {
   slPct?: string;
   reserveFunds?: string;
   triggerType?: string;
+  lang?: string;
 }
 
 export const CLI_OPTIONS = {
@@ -152,6 +153,8 @@ export const CLI_OPTIONS = {
   slPct: { type: "string" },
   reserveFunds: { type: "string" },
   triggerType: { type: "string" },
+  // i18n
+  lang: { type: "string" },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
