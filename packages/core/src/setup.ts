@@ -80,14 +80,20 @@ export function getConfigPath(client: ClientId): string | null {
   }
 }
 
+const NPX_PACKAGE = "@okx_ai/okx-trade-mcp";
+
 function buildEntry(
   client: ClientId,
   args: string[]
 ): Record<string, unknown> {
   if (client === "vscode") {
+    // VS Code inherits the terminal PATH — bare command is fine
     return { type: "stdio", command: "okx-trade-mcp", args };
   }
-  return { command: "okx-trade-mcp", args };
+  // Standalone apps (Claude Desktop, Cursor, Windsurf) have a limited PATH
+  // that often can't find globally-installed npm bins. Use npx to ensure
+  // the binary is always resolved.
+  return { command: "npx", args: ["-y", NPX_PACKAGE, ...args] };
 }
 
 function buildArgs(options: SetupOptions): string[] {
