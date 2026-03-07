@@ -100,8 +100,19 @@ export async function cmdConfigInit(): Promise<void> {
       // silently ignore
     }
 
-    const profileNameRaw = await prompt(rl, "Profile 名称 (默认: default): ");
-    const profileName = profileNameRaw.trim() || "default";
+    const defaultProfileName = demo ? "okx-demo" : "okx-prod";
+    const profileNameRaw = await prompt(rl, `Profile 名称 (默认: ${defaultProfileName}): `);
+    const profileName = profileNameRaw.trim() || defaultProfileName;
+
+    // Check if profile already exists
+    const config = readFullConfig();
+    if (config.profiles[profileName]) {
+      const overwrite = (await prompt(rl, `Profile "${profileName}" 已存在，是否覆盖？(y/N) `)).trim().toLowerCase();
+      if (overwrite !== "y") {
+        process.stdout.write("已取消。\n");
+        return;
+      }
+    }
 
     const apiKey = (await prompt(rl, "API Key: ")).trim();
     if (!apiKey) {
@@ -128,18 +139,20 @@ export async function cmdConfigInit(): Promise<void> {
       process.stdout.write("已选择模拟盘模式，可随时通过 okx config set 切换为实盘。\n");
     }
 
-    const config = readFullConfig();
     const profileEntry = buildProfileEntry(siteKey, apiKey, secretKey, passphrase, demo);
     config.profiles[profileName] = profileEntry;
+
+    // Auto-set as default_profile
+    if (!config.default_profile || config.default_profile !== profileName) {
+      config.default_profile = profileName;
+    }
 
     const configPath = configFilePath();
     try {
       writeCliConfig(config);
       process.stdout.write(`\n配置已保存到 ${configPath}\n`);
-      process.stdout.write(`使用方式: okx --profile ${profileName} account balance\n`);
-      if (!config.default_profile) {
-        process.stdout.write(`提示: 运行 okx config set default_profile ${profileName} 可将其设为默认\n`);
-      }
+      process.stdout.write(`已设为默认 profile: ${profileName}\n`);
+      process.stdout.write(`使用方式: okx account balance\n`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       const isPermission = err instanceof Error && "code" in err && (err.code === "EACCES" || err.code === "EPERM");
