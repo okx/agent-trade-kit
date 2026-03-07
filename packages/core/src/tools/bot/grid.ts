@@ -7,6 +7,7 @@ import {
   requireString,
 } from "../helpers.js";
 import { privateRateLimit } from "../common.js";
+import { OkxApiError } from "../../utils/errors.js";
 
 function normalize(response: {
   endpoint: string;
@@ -17,6 +18,38 @@ function normalize(response: {
     endpoint: response.endpoint,
     requestTime: response.requestTime,
     data: response.data,
+  };
+}
+
+/** For write operations: surface any inner sCode/sMsg errors from data items. */
+function normalizeWrite(response: {
+  endpoint: string;
+  requestTime: string;
+  data: unknown;
+}): Record<string, unknown> {
+  const data = response.data;
+  if (Array.isArray(data) && data.length > 0) {
+    const failed = data.filter(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        "sCode" in (item as object) &&
+        (item as Record<string, unknown>)["sCode"] !== "0",
+    ) as Record<string, unknown>[];
+    if (failed.length > 0) {
+      const messages = failed.map(
+        (item) => `[${item["sCode"]}] ${item["sMsg"] ?? "Operation failed"}`,
+      );
+      throw new OkxApiError(messages.join("; "), {
+        code: String(failed[0]!["sCode"] ?? ""),
+        endpoint: response.endpoint,
+      });
+    }
+  }
+  return {
+    endpoint: response.endpoint,
+    requestTime: response.requestTime,
+    data,
   };
 }
 
@@ -269,7 +302,7 @@ export function registerGridTools(): ToolSpec[] {
           body,
           privateRateLimit("grid_create_order", 20),
         );
-        return normalize(response);
+        return normalizeWrite(response);
       },
     },
     {
@@ -315,7 +348,7 @@ export function registerGridTools(): ToolSpec[] {
           })],
           privateRateLimit("grid_stop_order", 20),
         );
-        return normalize(response);
+        return normalizeWrite(response);
       },
     },
   ];
