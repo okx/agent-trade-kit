@@ -348,3 +348,41 @@ export async function cmdSwapSetLeverage(
   const r = data?.[0];
   process.stdout.write(`Leverage set: ${r?.["lever"]}x ${r?.["instId"]}\n`);
 }
+
+export async function cmdSwapBatch(
+  run: ToolRunner,
+  opts: { action: string; orders: string; json: boolean },
+): Promise<void> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(opts.orders);
+  } catch {
+    process.stderr.write("Error: --orders must be a valid JSON array\n");
+    process.exitCode = 1;
+    return;
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    process.stderr.write("Error: --orders must be a non-empty JSON array\n");
+    process.exitCode = 1;
+    return;
+  }
+
+  const toolMap: Record<string, string> = {
+    place: "swap_batch_orders",
+    amend: "swap_batch_amend",
+    cancel: "swap_batch_cancel",
+  };
+  const tool = toolMap[opts.action];
+  if (!tool) {
+    process.stderr.write(`Error: --action must be one of: place, amend, cancel\n`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const result = await run(tool, tool === "swap_batch_orders" ? { action: opts.action, orders: parsed } : { orders: parsed });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  for (const r of data ?? []) {
+    process.stdout.write(`${r["ordId"] ?? r["clOrdId"] ?? "?"}: ${r["sCode"] === "0" ? "OK" : r["sMsg"]}\n`);
+  }
+}

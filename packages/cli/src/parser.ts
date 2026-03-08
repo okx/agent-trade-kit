@@ -72,6 +72,15 @@ export interface CliValues {
   triggerType?: string;
   cycleId?: string;
   lang?: string;
+  // option
+  uly?: string;
+  expTime?: string;
+  // batch
+  action?: string;
+  orders?: string;
+  // audit
+  since?: string;
+  tool?: string;
 }
 
 export const CLI_OPTIONS = {
@@ -159,6 +168,15 @@ export const CLI_OPTIONS = {
   cycleId: { type: "string" },
   // i18n
   lang: { type: "string" },
+  // option
+  uly: { type: "string" },
+  expTime: { type: "string" },
+  // batch
+  action: { type: "string" },
+  orders: { type: "string" },
+  // audit
+  since: { type: "string" },
+  tool: { type: "string" },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {

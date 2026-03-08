@@ -35,6 +35,7 @@ import {
   cmdAccountMaxWithdrawal,
   cmdAccountPositionsHistory,
   cmdAccountTransfer,
+  cmdAccountAudit,
 } from "./commands/account.js";
 import {
   cmdSpotOrders,
@@ -47,6 +48,7 @@ import {
   cmdSpotAlgoAmend,
   cmdSpotAlgoCancel,
   cmdSpotAlgoOrders,
+  cmdSpotBatch,
 } from "./commands/spot.js";
 import {
   cmdSwapPositions,
@@ -64,6 +66,7 @@ import {
   cmdSwapAlgoOrders,
   cmdSwapAlgoTrailPlace,
   cmdSwapAmend,
+  cmdSwapBatch,
 } from "./commands/swap.js";
 import {
   cmdFuturesOrders,
@@ -73,6 +76,18 @@ import {
   cmdFuturesCancel,
   cmdFuturesGet,
 } from "./commands/futures.js";
+import {
+  cmdOptionOrders,
+  cmdOptionGet,
+  cmdOptionPositions,
+  cmdOptionFills,
+  cmdOptionInstruments,
+  cmdOptionGreeks,
+  cmdOptionPlace,
+  cmdOptionCancel,
+  cmdOptionAmend,
+  cmdOptionBatchCancel,
+} from "./commands/option.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
 import type { Lang } from "./commands/config.js";
 import {
@@ -216,6 +231,8 @@ function handleAccountCommand(
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
+  if (action === "audit")
+    return cmdAccountAudit({ limit: v.limit, tool: v.tool, since: v.since, json });
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "balance") return cmdAccountBalance(run, rest[0], json);
   if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json);
@@ -321,6 +338,8 @@ function handleSpotCommand(
     return cmdSpotCancel(run, rest[0], v.ordId!, json);
   if (action === "algo")
     return handleSpotAlgoCommand(run, rest[0], v, json);
+  if (action === "batch")
+    return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, json });
 }
 
 function handleSwapAlgoCommand(
@@ -445,6 +464,58 @@ export function handleSwapCommand(
     });
   if (action === "algo")
     return handleSwapAlgoCommand(run, rest[0], v, json);
+  if (action === "batch")
+    return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
+}
+
+function handleOptionCommand(
+  run: ToolRunner,
+  action: string,
+  _rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "orders") {
+    let status: "live" | "history" | "archive" = "live";
+    if (v.archive) status = "archive";
+    else if (v.history) status = "history";
+    return cmdOptionOrders(run, { instId: v.instId, uly: v.uly, status, json });
+  }
+  if (action === "get")
+    return cmdOptionGet(run, { instId: v.instId!, ordId: v.ordId, clOrdId: v.clOrdId, json });
+  if (action === "positions")
+    return cmdOptionPositions(run, { instId: v.instId, uly: v.uly, json });
+  if (action === "fills")
+    return cmdOptionFills(run, { instId: v.instId, ordId: v.ordId, archive: v.archive ?? false, json });
+  if (action === "instruments")
+    return cmdOptionInstruments(run, { uly: v.uly!, expTime: v.expTime, json });
+  if (action === "greeks")
+    return cmdOptionGreeks(run, { uly: v.uly!, expTime: v.expTime, json });
+  if (action === "place")
+    return cmdOptionPlace(run, {
+      instId: v.instId!,
+      tdMode: v.tdMode!,
+      side: v.side!,
+      ordType: v.ordType!,
+      sz: v.sz!,
+      px: v.px,
+      reduceOnly: v.reduceOnly,
+      clOrdId: v.clOrdId,
+      json,
+    });
+  if (action === "cancel")
+    return cmdOptionCancel(run, { instId: v.instId!, ordId: v.ordId, clOrdId: v.clOrdId, json });
+  if (action === "amend")
+    return cmdOptionAmend(run, {
+      instId: v.instId!,
+      ordId: v.ordId,
+      clOrdId: v.clOrdId,
+      newSz: v.newSz,
+      newPx: v.newPx,
+      json,
+    });
+  if (action === "batch-cancel")
+    return cmdOptionBatchCancel(run, { orders: v.orders!, json });
 }
 
 function handleFuturesCommand(
@@ -621,6 +692,7 @@ async function main(): Promise<void> {
   if (module === "spot") return handleSpotCommand(run, action, rest, v, json);
   if (module === "swap") return handleSwapCommand(run, action, rest, v, json);
   if (module === "futures") return handleFuturesCommand(run, action, rest, v, json);
+  if (module === "option") return handleOptionCommand(run, action, rest, v, json);
   if (module === "bot") return handleBotCommand(run, action, rest, v, json);
 
   process.stderr.write(`Unknown command: ${module} ${action ?? ""}\n`);
