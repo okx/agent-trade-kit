@@ -282,10 +282,10 @@ describe("loadConfig — bot sub-modules", () => {
     assert.ok(config.modules.includes("bot.dca" as never));
   });
 
-  it('"all" includes default bot sub-modules (bot.grid only, not bot.dca)', () => {
+  it('"all" includes all bot sub-modules (bot.grid + bot.dca)', () => {
     const config = loadConfig({ ...BASE_CLI, modules: "all" });
     assert.ok(config.modules.includes("bot.grid" as never));
-    assert.ok(!config.modules.includes("bot.dca" as never));
+    assert.ok(config.modules.includes("bot.dca" as never));
     assert.ok(config.modules.includes("market" as never));
   });
 

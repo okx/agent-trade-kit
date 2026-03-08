@@ -37,8 +37,8 @@ function parseModuleList(rawModules?: string): ModuleId[] {
 
   const trimmed = rawModules.trim().toLowerCase();
   if (trimmed === "all") {
-    // "all" → every non-bot module + default bot sub-modules
-    return [...BASE_MODULES, ...BOT_DEFAULT_SUB_MODULES] as ModuleId[];
+    // "all" → every module including all bot sub-modules
+    return [...BASE_MODULES, ...BOT_SUB_MODULE_IDS] as ModuleId[];
   }
 
   const requested = trimmed
