@@ -19,6 +19,33 @@
 
 ---
 
+## [1.1.2] - 2026-03-08
+
+### 新增
+
+- **一键安装脚本**：`install.sh`（macOS/Linux）和 `install.ps1`（Windows）— 一条命令完成 MCP 服务器 + CLI 安装，并自动配置已检测到的 MCP 客户端
+- **自动配置 MCP 客户端**：安装脚本自动检测并配置 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf
+- **`config init --lang`**：`--lang zh` 参数启用中文交互向导；默认使用英文
+- **智能默认配置名**：`config init` 根据运行环境自动推断合适的默认配置名
+- **CLI 期权模块**：`okx option` 命令，支持下单、撤单、改单，以及查询持仓、成交记录、合约链和希腊字母
+- **CLI 批量操作**：`okx spot batch` 和 `okx swap batch`，支持批量下单/撤单/改单
+- **CLI 审计日志**：`okx trade history` 查询本地 NDJSON 审计日志
+- **CLI 合约 DCA**：`okx bot dca contract` 命令，通过 `--type` 参数区分现货与合约 DCA
+
+### 修复
+
+- **版本上报**：MCP 服务器现在从 `package.json` 动态读取版本号，不再使用硬编码字符串
+- **`okx setup` npx 命令**：独立 MCP 客户端（Claude Desktop、Cursor）的 setup 配置现在使用 `npx`，用户无需全局安装即可使用
+- **Bot 写入端点错误**：网格和 DCA 写入端点的 `sCode`/`sMsg` 错误现在能正确抛出，不再被静默吞掉
+- **安装脚本**：同时安装 `@okx_ai/okx-trade-mcp` 和 `@okx_ai/okx-trade-cli`（之前只安装了其中一个）
+
+### 变更
+
+- **Bot 子模块重构**：`bot` 模块新增 `bot.default` 子模块；内部子模块加载逻辑统一，更加健壮
+- **文档**：一键安装说明从 README 移至 `docs/configuration.md`
+
+---
+
 ## [1.1.1] - 2026-03-07
 
 ### 修复

@@ -19,6 +19,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] - 2026-03-08
+
+### Added
+
+- **One-line install scripts**: `install.sh` (macOS/Linux) and `install.ps1` (Windows) — install MCP server + CLI and auto-configure detected MCP clients in one command
+- **Auto MCP client configuration**: install script detects and configures Claude Code, Claude Desktop, Cursor, VS Code, and Windsurf automatically
+- **`config init --lang`**: `--lang zh` flag for Chinese-language interactive wizard; defaults to English
+- **Smart default profile name**: `config init` infers a sensible default profile name from the environment
+- **CLI option module**: `okx option` commands for placing, cancelling, amending orders, querying positions, fills, instruments, and Greeks
+- **CLI batch operations**: `okx spot batch` and `okx swap batch` for bulk place/cancel/amend
+- **CLI audit log**: `okx trade history` to query the local NDJSON audit log
+- **CLI contract DCA**: `okx bot dca contract` commands with `--type` flag to distinguish spot vs. contract DCA
+
+### Fixed
+
+- **Version reporting**: MCP server now reads its version from `package.json` at runtime instead of a hardcoded string
+- **`okx setup` npx command**: setup config for standalone MCP clients (Claude Desktop, Cursor) now uses `npx` so users don't need a global install
+- **Bot write endpoints**: `sCode`/`sMsg` errors from grid and DCA write endpoints are now surfaced correctly instead of being silently swallowed
+- **Install script**: installs both `@okx_ai/okx-trade-mcp` and `@okx_ai/okx-trade-cli` (previously only installed one package)
+
+### Changed
+
+- **Bot sub-module refactor**: `bot` module now includes a `bot.default` sub-module; internal sub-module loading is unified and more robust
+- **Docs**: one-line install instructions moved from READMEs to `docs/configuration.md`
+
+---
+
 ## [1.1.1] - 2026-03-07
 
 ### Fixed
