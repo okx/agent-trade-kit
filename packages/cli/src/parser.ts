@@ -43,6 +43,7 @@ export interface CliValues {
   quoteSz?: string;
   baseSz?: string;
   direction?: string;
+  basePos?: boolean;
   stopType?: string;
   live?: boolean;
   instType?: string;
@@ -135,6 +136,7 @@ export const CLI_OPTIONS = {
   quoteSz: { type: "string" },
   baseSz: { type: "string" },
   direction: { type: "string" },
+  basePos: { type: "boolean", default: true },
   stopType: { type: "string" },
   live: { type: "boolean", default: false },
   // market extras
@@ -180,10 +182,28 @@ export const CLI_OPTIONS = {
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
+  // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
+  const negated = new Set<string>();
+  const filtered = argv.filter((arg) => {
+    if (arg.startsWith("--no-")) {
+      const key = arg.slice(5);
+      if (key in CLI_OPTIONS && (CLI_OPTIONS as Record<string, { type: string }>)[key].type === "boolean") {
+        negated.add(key);
+        return false;
+      }
+    }
+    return true;
+  });
+
   const { values, positionals } = parseArgs({
-    args: argv,
+    args: filtered,
     options: CLI_OPTIONS,
     allowPositionals: true,
   });
+
+  for (const key of negated) {
+    (values as Record<string, unknown>)[key] = false;
+  }
+
   return { values: values as CliValues, positionals };
 }

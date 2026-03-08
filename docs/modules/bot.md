@@ -32,6 +32,10 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | `contract_grid` | Contract grid — trades a perpetual or delivery contract |
 | `moon_grid` | Moon grid — geometric grid optimized for trending markets |
 
+### Contract grid — `basePos` default
+
+When creating a contract grid, `basePos` (whether to open a base position at creation) defaults to **`true`**. This means long/short direction grids will automatically open a base position. The neutral direction ignores this parameter. Pass `basePos: false` to disable.
+
 ## DCA tools (bot.dca)
 
 | Tool | Description |
@@ -66,6 +70,16 @@ okx bot grid sub-orders --algoOrdType grid --algoId <id>
 
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 77000 --minPx 63000 --gridNum 10 --quoteSz 100
+
+# Contract grid (basePos defaults to true — opens base position)
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 77000 --minPx 63000 --gridNum 10 \
+  --direction long --lever 5 --sz 100
+
+# Contract grid without base position
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 77000 --minPx 63000 --gridNum 10 \
+  --direction long --lever 5 --sz 100 --no-basePos
 
 okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT --stopType 2
 
@@ -118,6 +132,10 @@ okx bot dca stop --algoId <id> --instId BTC-USDT --stopType 1
 | `contract_grid` | 合约网格——交易永续或交割合约 |
 | `moon_grid` | Moon Grid——几何级差网格，适合趋势行情 |
 
+### 合约网格 — `basePos` 默认值
+
+创建合约网格时，`basePos`（是否在创建时开底仓）默认为 **`true`**。即做多/做空方向的网格会自动开底仓。中性方向忽略此参数。传 `basePos: false` 可禁用。
+
 ## DCA 工具 (bot.dca)
 
 | 工具 | 说明 |
@@ -152,6 +170,16 @@ okx bot grid sub-orders --algoOrdType grid --algoId <id>
 
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 77000 --minPx 63000 --gridNum 10 --quoteSz 100
+
+# 合约网格（basePos 默认 true——自动开底仓）
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 77000 --minPx 63000 --gridNum 10 \
+  --direction long --lever 5 --sz 100
+
+# 合约网格不开底仓
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 77000 --minPx 63000 --gridNum 10 \
+  --direction long --lever 5 --sz 100 --no-basePos
 
 okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT --stopType 2
 

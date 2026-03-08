@@ -112,6 +112,7 @@ export async function cmdGridCreate(
     direction?: string;
     lever?: string;
     sz?: string;
+    basePos?: boolean;
     json: boolean;
   },
 ): Promise<void> {
@@ -127,6 +128,7 @@ export async function cmdGridCreate(
     direction: opts.direction,
     lever: opts.lever,
     sz: opts.sz,
+    basePos: opts.basePos,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

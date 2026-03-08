@@ -2,6 +2,7 @@ import type { ToolSpec } from "../types.js";
 import {
   asRecord,
   compactObject,
+  readBoolean,
   readNumber,
   readString,
   requireString,
@@ -275,6 +276,12 @@ export function registerGridTools(): ToolSpec[] {
             type: "string",
             description: "Contracts to invest. Required for contract_grid.",
           },
+          basePos: {
+            type: "boolean",
+            description:
+              "Whether to open a base position for contract grid. " +
+              "Ignored for neutral direction and spot grid. Default: true",
+          },
         },
         required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
       },
@@ -296,6 +303,7 @@ export function registerGridTools(): ToolSpec[] {
         });
         if (algoOrdType === "contract_grid") {
           body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];
+          body.basePos = readBoolean(args, "basePos") ?? true;
         }
         const response = await context.client.privatePost(
           "/api/v5/tradingBot/grid/order-algo",

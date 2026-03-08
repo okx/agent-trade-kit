@@ -11,9 +11,11 @@
 
 ## [Unreleased]
 
-### 新增
-
 ### 变更
+
+- **`grid_create_order` — `basePos` 默认为 `true`**：合约网格机器人创建时默认开底仓（做多/做空方向）。中性方向忽略此参数。传 `basePos: false`（MCP）或 `--no-basePos`（CLI）可禁用。现货网格不受影响。
+
+### 新增
 
 ### 修复
 

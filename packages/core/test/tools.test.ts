@@ -1457,6 +1457,61 @@ describe("grid tools module field", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Grid — grid_create_order basePos
+// ---------------------------------------------------------------------------
+
+describe("grid_create_order basePos", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_create_order")!;
+
+  const baseArgs = {
+    instId: "BTC-USDT-SWAP",
+    algoOrdType: "contract_grid",
+    maxPx: "100000",
+    minPx: "80000",
+    gridNum: "10",
+    direction: "long",
+    lever: "5",
+    sz: "100",
+  };
+
+  it("defaults basePos to true for contract_grid", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(baseArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.basePos, true);
+  });
+
+  it("respects explicit basePos=false", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs, basePos: false }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.basePos, false);
+  });
+
+  it("respects explicit basePos=true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs, basePos: true }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.basePos, true);
+  });
+
+  it("does not set basePos for spot grid", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT",
+      algoOrdType: "grid",
+      maxPx: "100000",
+      minPx: "80000",
+      gridNum: "10",
+      quoteSz: "100",
+    }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.basePos, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // DCA tools
 // ---------------------------------------------------------------------------
 
