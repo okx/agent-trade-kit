@@ -344,7 +344,7 @@ export function registerGridTools(): ToolSpec[] {
             algoId: requireString(args, "algoId"),
             algoOrdType: requireString(args, "algoOrdType"),
             instId: requireString(args, "instId"),
-            stopType: readString(args, "stopType"),
+            stopType: readString(args, "stopType") ?? "2",
           })],
           privateRateLimit("grid_stop_order", 20),
         );

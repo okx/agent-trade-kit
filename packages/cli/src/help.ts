@@ -92,12 +92,13 @@ Commands:
                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>]
   bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2|3|5|6>]
 
-  bot dca orders [--history]
-  bot dca details --algoId <id>
-  bot dca sub-orders --algoId <id> [--live]
+  bot dca orders [--type <spot|contract>] [--history]
+  bot dca details [--type <spot|contract>] --algoId <id>
+  bot dca sub-orders [--type <spot|contract>] --algoId <id> [--live] [--cycleId <id>]
   bot dca create --instId <id> --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>
                  --pxSteps <n> --pxStepsMult <n> --volMult <n> --tpPct <n> [--slPct <n>]
-  bot dca stop --algoId <id> --instId <id> --stopType <1|2>
+                 [--type <spot|contract>] [--triggerType <1|2>] [--lever <n>] [--side <buy|sell>]
+  bot dca stop [--type <spot|contract>] --algoId <id> --instId <id> [--stopType <1|2>]
 
   config init [--lang zh]
   config show

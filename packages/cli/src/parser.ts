@@ -59,6 +59,7 @@ export interface CliValues {
   clOrdId?: string;
   newPx?: string;
   // dca bot
+  type?: string;
   initOrdAmt?: string;
   safetyOrdAmt?: string;
   maxSafetyOrds?: string;
@@ -69,6 +70,7 @@ export interface CliValues {
   slPct?: string;
   reserveFunds?: string;
   triggerType?: string;
+  cycleId?: string;
   lang?: string;
 }
 
@@ -143,6 +145,7 @@ export const CLI_OPTIONS = {
   clOrdId: { type: "string" },
   newPx: { type: "string" },
   // dca bot
+  type: { type: "string" },
   initOrdAmt: { type: "string" },
   safetyOrdAmt: { type: "string" },
   maxSafetyOrds: { type: "string" },
@@ -153,6 +156,7 @@ export const CLI_OPTIONS = {
   slPct: { type: "string" },
   reserveFunds: { type: "string" },
   triggerType: { type: "string" },
+  cycleId: { type: "string" },
   // i18n
   lang: { type: "string" },
 } as const;
