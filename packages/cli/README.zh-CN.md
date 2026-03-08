@@ -39,6 +39,14 @@ okx spot orders
 okx swap positions
 ```
 
+### 帮助信息
+
+```bash
+okx --help
+okx market --help
+okx bot grid --help
+```
+
 ### 示例
 
 ```bash
