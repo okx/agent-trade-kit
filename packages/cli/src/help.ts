@@ -112,6 +112,7 @@ Commands:
   bot dca create --instId <id> --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>
                  --pxSteps <n> --pxStepsMult <n> --volMult <n> --tpPct <n> [--slPct <n>]
                  [--type <spot|contract>] [--triggerType <1|2>] [--lever <n>] [--side <buy|sell>]
+                 [--reserveFunds <true|false>]
   bot dca stop [--type <spot|contract>] --algoId <id> --instId <id> [--stopType <1|2>]
 
   config init [--lang zh]
