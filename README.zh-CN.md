@@ -52,30 +52,6 @@ OKX Agent TradeKit 通过 [Model Context Protocol](https://modelcontextprotocol.
 
 ## 快速开始
 
-### 一键安装（推荐）
-
-**macOS / Linux：**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.sh | bash
-```
-
-**Windows (PowerShell)：**
-
-```powershell
-irm https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.ps1 | iex
-```
-
-安装脚本会自动检查 Node.js、安装包、检测已安装的 MCP 客户端。
-
-安装完成后，配置 API 凭证：
-
-```bash
-okx config init --lang zh
-```
-
-### 手动安装
-
 **前置要求：** Node.js >= 18
 
 ```bash
@@ -92,6 +68,8 @@ okx-trade-mcp setup --client claude-code
 okx-trade-mcp setup --client vscode          # 在当前目录写入 .mcp.json
 ```
 
+> **也可使用** [一键安装脚本](docs/configuration.md#one-line-install) — 自动检查 Node.js、安装包、检测并配置 MCP 客户端。
+>
 > 实盘交易、多账户或其他客户端，见 [配置说明 →](docs/configuration.md)。
 
 ---

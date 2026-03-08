@@ -52,30 +52,6 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 ## Quick Start
 
-### One-line install (recommended)
-
-**macOS / Linux:**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.sh | bash
-```
-
-**Windows (PowerShell):**
-
-```powershell
-irm https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.ps1 | iex
-```
-
-The installer checks Node.js, installs the package, and detects your MCP clients automatically.
-
-After installation, configure your API credentials:
-
-```bash
-okx config init
-```
-
-### Manual install
-
 **Prerequisites:** Node.js >= 18
 
 ```bash
@@ -92,6 +68,8 @@ okx-trade-mcp setup --client claude-code
 okx-trade-mcp setup --client vscode          # writes .mcp.json in current directory
 ```
 
+> **Alternative:** [One-line install script](docs/configuration.md#one-line-install) — handles Node.js check, install, and client detection automatically.
+>
 > For live trading, multiple profiles, or other clients, see [configuration →](docs/configuration.md).
 
 ---

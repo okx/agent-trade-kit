@@ -7,18 +7,6 @@ market, account, spot, and swap tools via Model Context Protocol (stdio).
 
 ### Install
 
-**One-line install (recommended):**
-
-```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.sh | bash
-
-# Windows (PowerShell)
-irm https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.ps1 | iex
-```
-
-**Or install manually:**
-
 ```bash
 npm install -g @okx_ai/okx-trade-mcp
 ```
