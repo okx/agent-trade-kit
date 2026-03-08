@@ -24,7 +24,7 @@ Options:
                                   bot.grid, bot.dca
                        Alias: "bot" = all bot sub-modules (bot.grid + bot.dca)
                        Special: "all" loads all modules
-                       Default: spot,swap,account,bot.grid,bot.dca
+                       Default: spot,swap,option,account,bot.grid
 
   --profile <name>     Profile to load from ${configFilePath()}
                        Falls back to default_profile in config, then "default"

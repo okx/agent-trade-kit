@@ -53,4 +53,7 @@ export const MODULES = [
 
 export type ModuleId = (typeof MODULES)[number];
 
-export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "account", ...BOT_DEFAULT_SUB_MODULES];
+export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account", ...BOT_DEFAULT_SUB_MODULES];
+// Default: spot, swap, option, account, bot.grid
+// "all": every module including market, futures, bot.dca
+// "bot": bot.grid only; "bot.all": bot.grid + bot.dca
