@@ -91,7 +91,7 @@ import {
   cmdOptionAmend,
   cmdOptionBatchCancel,
 } from "./commands/option.js";
-import { cmdConfigShow, cmdConfigSet, cmdConfigInit } from "./commands/config.js";
+import { cmdConfigShow, cmdConfigSet, cmdConfigInit, cmdConfigAddProfile, cmdConfigListProfile, cmdConfigUse } from "./commands/config.js";
 import type { Lang } from "./commands/config.js";
 import {
   cmdSetupClients,
@@ -121,11 +121,14 @@ export type { CliValues } from "./parser.js";
 // Command handlers
 // ---------------------------------------------------------------------------
 
-export function handleConfigCommand(action: string, rest: string[], json: boolean, lang?: string): Promise<void> | void {
+export function handleConfigCommand(action: string, rest: string[], json: boolean, lang?: string, force?: boolean): Promise<void> | void {
   if (action === "init") return cmdConfigInit((lang === "zh" ? "zh" : "en") as Lang);
   if (action === "show") return cmdConfigShow(json);
   if (action === "set") return cmdConfigSet(rest[0], rest[1]);
   if (action === "setup-clients") return cmdSetupClients();
+  if (action === "add-profile") return cmdConfigAddProfile(rest, force ?? false);
+  if (action === "list-profile") return cmdConfigListProfile();
+  if (action === "use") return cmdConfigUse(rest[0]);
   process.stderr.write(`Unknown config command: ${action}\n`);
   process.exitCode = 1;
 }
@@ -693,7 +696,7 @@ async function main(): Promise<void> {
   const v = values;
   const json = v.json ?? false;
 
-  if (module === "config") return handleConfigCommand(action, rest, json, v.lang);
+  if (module === "config") return handleConfigCommand(action, rest, json, v.lang, v.force);
   if (module === "setup") return handleSetupCommand(v);
 
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, userAgent: `okx-trade-cli/${CLI_VERSION}` });

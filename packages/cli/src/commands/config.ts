@@ -1,4 +1,4 @@
-import { readFullConfig, configFilePath, OKX_SITES, tomlStringify } from "@agent-tradekit/core";
+import { readFullConfig, configFilePath, OKX_SITES, SITE_IDS, tomlStringify } from "@agent-tradekit/core";
 import type { SiteId } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { printJson, printKv } from "../formatter.js";
@@ -69,7 +69,7 @@ export function cmdConfigShow(json: boolean): void {
   for (const [name, profile] of Object.entries(config.profiles)) {
     process.stdout.write(`[${name}]\n`);
     printKv({
-      api_key: profile.api_key ? "***" + profile.api_key.slice(-4) : "(not set)",
+      api_key: profile.api_key ? maskSecret(profile.api_key) : "(not set)",
       demo: profile.demo ?? false,
       base_url: profile.base_url ?? "(default)",
     }, 2);
@@ -91,11 +91,29 @@ export function cmdConfigSet(key: string, value: string): void {
 
 export type SiteKey = SiteId;
 
-/** Maps raw user input ("1"/"2"/"3" or empty) to a site key. */
+/** Maps raw user input ("1"/"2"/"3", site names like "global"/"eea"/"us", or empty) to a site key. */
 export function parseSiteKey(raw: string): SiteKey {
-  if (raw === "2") return "eea";
-  if (raw === "3") return "us";
+  const lower = raw.toLowerCase();
+  if (lower === "eea" || raw === "2") return "eea";
+  if (lower === "us" || raw === "3") return "us";
+  if (lower === "global" || raw === "1") return "global";
   return "global";
+}
+
+/** Infers site key from a base_url value (for backward-compat with old profiles lacking a site field). */
+export function inferSiteFromBaseUrl(baseUrl?: string): SiteKey {
+  if (!baseUrl) return "global";
+  for (const id of SITE_IDS) {
+    const site = OKX_SITES[id];
+    if (baseUrl === site.apiBaseUrl || baseUrl === site.webUrl) return id;
+  }
+  return "global";
+}
+
+/** Masks a secret value, showing only the last 4 characters. */
+export function maskSecret(value?: string): string {
+  if (!value || value.length < 4) return "****";
+  return "***" + value.slice(-4);
 }
 
 /** Builds the targeted API creation URL for the given site and trading mode. */
@@ -219,4 +237,117 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
   } finally {
     rl.close();
   }
+}
+
+/**
+ * Non-interactive profile creation / update.
+ * Usage: okx config add-profile AK=xxx SK=yyy PP=zzz [site=global|eea|us] [demo=true|false] [name=xxx] [--force]
+ */
+export function cmdConfigAddProfile(kvPairs: string[], force: boolean): void {
+  // Parse key=value pairs (split on first '=' only to handle values containing '=')
+  const params: Record<string, string> = {};
+  for (const pair of kvPairs) {
+    const eqIdx = pair.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = pair.slice(0, eqIdx).trim();
+    const value = pair.slice(eqIdx + 1);
+    params[key.toUpperCase()] = value;
+  }
+
+  const ak = params["AK"];
+  const sk = params["SK"];
+  const pp = params["PP"];
+
+  // Validate required fields
+  const missing: string[] = [];
+  if (!ak) missing.push("AK");
+  if (!sk) missing.push("SK");
+  if (!pp) missing.push("PP");
+  if (missing.length > 0) {
+    process.stderr.write(`Error: missing required parameter(s): ${missing.join(", ")}\n`);
+    process.stderr.write("Usage: okx config add-profile AK=<key> SK=<secret> PP=<passphrase> [site=global|eea|us] [demo=true|false] [name=<name>] [--force]\n");
+    process.exitCode = 1;
+    return;
+  }
+
+  const siteKey = parseSiteKey(params["SITE"] ?? "");
+  const demo = params["DEMO"] !== undefined ? params["DEMO"].toLowerCase() !== "false" : true;
+  const defaultName = demo ? "demo" : "live";
+  const profileName = params["NAME"] ?? defaultName;
+
+  const config = readFullConfig();
+
+  // Check for conflict
+  if (config.profiles[profileName] && !force) {
+    process.stderr.write(`Error: profile "${profileName}" already exists. Use --force to overwrite.\n`);
+    process.exitCode = 1;
+    return;
+  }
+
+  // Build profile entry and set site field
+  const entry = buildProfileEntry(siteKey, ak, sk, pp, demo);
+  entry.site = siteKey;
+  config.profiles[profileName] = entry;
+  config.default_profile = profileName;
+
+  writeCliConfig(config);
+  process.stdout.write(`Profile "${profileName}" saved to ${configFilePath()}\n`);
+  process.stdout.write(`Default profile set to: ${profileName}\n`);
+}
+
+/**
+ * Lists all profiles, masking sensitive fields.
+ * Default profile is marked with *.
+ */
+export function cmdConfigListProfile(): void {
+  const config = readFullConfig();
+  const entries = Object.entries(config.profiles);
+  if (entries.length === 0) {
+    process.stdout.write("No profiles found. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>\n");
+    return;
+  }
+  process.stdout.write(`Config: ${configFilePath()}\n\n`);
+  for (const [name, profile] of entries) {
+    const isDefault = name === config.default_profile;
+    const marker = isDefault ? " *" : "";
+    const site = profile.site ?? inferSiteFromBaseUrl(profile.base_url);
+    const mode = profile.demo !== false ? "demo (模拟盘)" : "live (实盘)";
+    process.stdout.write(`[${name}]${marker}\n`);
+    process.stdout.write(`  api_key:    ${maskSecret(profile.api_key)}\n`);
+    process.stdout.write(`  secret_key: ${maskSecret(profile.secret_key)}\n`);
+    process.stdout.write(`  passphrase: ${maskSecret(profile.passphrase)}\n`);
+    process.stdout.write(`  site:       ${site}\n`);
+    process.stdout.write(`  mode:       ${mode}\n`);
+    process.stdout.write("\n");
+  }
+}
+
+/**
+ * Switches the default profile.
+ * Usage: okx config use <profile-name>
+ */
+export function cmdConfigUse(profileName: string): void {
+  if (!profileName) {
+    process.stderr.write("Error: profile name is required.\nUsage: okx config use <profile-name>\n");
+    process.exitCode = 1;
+    return;
+  }
+
+  const config = readFullConfig();
+  const available = Object.keys(config.profiles);
+
+  if (!config.profiles[profileName]) {
+    process.stderr.write(`Error: profile "${profileName}" does not exist.\n`);
+    if (available.length > 0) {
+      process.stderr.write(`Available profiles: ${available.join(", ")}\n`);
+    } else {
+      process.stderr.write("No profiles configured. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>\n");
+    }
+    process.exitCode = 1;
+    return;
+  }
+
+  config.default_profile = profileName;
+  writeCliConfig(config);
+  process.stdout.write(`Default profile set to: "${profileName}"\n`);
 }

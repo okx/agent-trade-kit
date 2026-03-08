@@ -81,6 +81,8 @@ export interface CliValues {
   // audit
   since?: string;
   tool?: string;
+  // config profile
+  force?: boolean;
 }
 
 export const CLI_OPTIONS = {
@@ -177,6 +179,8 @@ export const CLI_OPTIONS = {
   // audit
   since: { type: "string" },
   tool: { type: "string" },
+  // config profile
+  force: { type: "boolean", default: false },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
