@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Multi-level `--help` navigation**: `okx --help`, `okx <module> --help`, and `okx <module> <subgroup> --help` now print scoped help with descriptions for every command, so AI agents can discover available capabilities without reading source code.
+
 ### Changed
 
 ### Fixed

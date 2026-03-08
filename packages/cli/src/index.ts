@@ -677,7 +677,15 @@ async function main(): Promise<void> {
   }
 
   if (values.help || positionals.length === 0) {
-    printHelp();
+    // Multi-level help: resolve depth from positionals captured before --help
+    const [module, subgroup] = positionals;
+    if (!module) {
+      printHelp();
+    } else if (!subgroup) {
+      printHelp(module);
+    } else {
+      printHelp(module, subgroup);
+    }
     return;
   }
 
