@@ -271,6 +271,7 @@ function handleSpotAlgoCommand(
   if (subAction === "place")
     return cmdSpotAlgoPlace(run, {
       instId: v.instId!,
+      tdMode: v.tdMode,
       side: v.side!,
       ordType: v.ordType ?? "conditional",
       sz: v.sz!,
@@ -331,6 +332,7 @@ function handleSpotCommand(
   if (action === "place")
     return cmdSpotPlace(run, {
       instId: v.instId!,
+      tdMode: v.tdMode,
       side: v.side!,
       ordType: v.ordType!,
       sz: v.sz!,

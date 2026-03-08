@@ -43,13 +43,13 @@ Commands:
   spot orders [--instId <id>] [--history]
   spot get --instId <id> --ordId <id>
   spot fills [--instId <id>] [--ordId <id>]
-  spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>]
+  spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]
   spot amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]
   spot cancel <instId> --ordId <id>
   spot algo orders [--instId <id>] [--history] [--ordType <conditional|oco>]
   spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]
                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]
-                  [--slTriggerPx <price>] [--slOrdPx <price|-1>]
+                  [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--tdMode <cash|cross|isolated>]
   spot algo amend --instId <id> --algoId <id> [--newSz <n>]
                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]
                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]

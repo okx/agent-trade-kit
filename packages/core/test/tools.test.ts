@@ -332,14 +332,14 @@ describe("spot_batch_orders", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-batch-orders");
   });
 
-  it("defaults tdMode to cash for place orders", async () => {
+  it("defaults tdMode to cross for place orders", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       { action: "place", orders: [{ instId: "BTC-USDT", side: "buy", ordType: "market", sz: "10" }] },
       makeContext(client),
     );
     const body = getLastCall()?.params as unknown[];
-    assert.equal((body[0] as Record<string, unknown>).tdMode, "cash");
+    assert.equal((body[0] as Record<string, unknown>).tdMode, "cross");
   });
 });
 

@@ -30,6 +30,7 @@ export async function cmdSpotPlace(
   run: ToolRunner,
   opts: {
     instId: string;
+    tdMode?: string;
     side: string;
     ordType: string;
     sz: string;
@@ -39,7 +40,7 @@ export async function cmdSpotPlace(
 ): Promise<void> {
   const result = await run("spot_place_order", {
     instId: opts.instId,
-    tdMode: "cash",
+    tdMode: opts.tdMode ?? "cross",
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
@@ -68,6 +69,7 @@ export async function cmdSpotAlgoPlace(
   run: ToolRunner,
   opts: {
     instId: string;
+    tdMode?: string;
     side: string;
     ordType: string;
     sz: string;
@@ -80,7 +82,7 @@ export async function cmdSpotAlgoPlace(
 ): Promise<void> {
   const result = await run("spot_place_algo_order", {
     instId: opts.instId,
-    tdMode: "cash",
+    tdMode: opts.tdMode ?? "cross",
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
