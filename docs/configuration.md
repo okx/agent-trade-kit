@@ -1,5 +1,36 @@
 # Configuration
 
+## One-Line Install
+
+For a guided installation that handles Node.js checking, package installation, and MCP client detection:
+
+**macOS / Linux:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/okx/agent-tradekit/master/scripts/install.ps1 | iex
+```
+
+The installer will:
+1. Check Node.js >= 18 (with install guidance if missing)
+2. Install `@okx_ai/okx-trade-mcp` and `@okx_ai/okx-trade-cli` globally
+3. Verify installation
+4. Detect installed MCP clients (Claude Desktop, Cursor, Windsurf)
+5. Auto-configure detected clients
+
+After installation, configure your API credentials:
+
+```bash
+okx config init
+```
+
+---
+
 ## API Credentials
 
 All credentials are stored in `~/.okx/config.toml`. The client config only needs the profile name.
