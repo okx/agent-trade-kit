@@ -223,7 +223,7 @@ export function registerGridTools(): ToolSpec[] {
         "Create a new grid trading bot. [CAUTION] Executes real trades and locks funds. " +
         "Supports Spot Grid ('grid') and Contract Grid ('contract_grid'). " +
         "For spot grid, provide quoteSz (invest in quote currency) or baseSz (invest in base currency). " +
-        "For contract grids, provide direction, lever, and sz (investment amount in USDT). " +
+        "For contract grids, provide direction, lever, and sz (investment amount in margin currency, e.g. USDT for USDT-margined contracts). " +
         "Private endpoint. Rate limit: 20 req/2s per UID.",
       isWrite: true,
       inputSchema: {
@@ -274,7 +274,7 @@ export function registerGridTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Investment amount in USDT. Required for contract_grid.",
+            description: "Investment amount in margin currency (e.g. USDT for USDT-margined contracts). Required for contract_grid.",
           },
           basePos: {
             type: "boolean",
