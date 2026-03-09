@@ -143,22 +143,16 @@ okx bot grid details --algoOrdType contract_grid --algoId <algoId>
 okx bot grid sub-orders --algoOrdType contract_grid --algoId <algoId>
 
 # Create contract grid — neutral direction, 3x leverage, 100 USDT margin
-# (basePos is ignored for neutral direction)
 okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction neutral --lever 3 --sz 100
 
-# Create contract grid — long direction, 5x leverage (basePos defaults to true)
+# Create contract grid — long direction, 5x leverage, 100 USDT margin
 okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction long --lever 5 --sz 100
 
-# Create contract grid — long direction, without base position
-okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
-  --maxPx 100000 --minPx 80000 --gridNum 10 \
-  --direction long --lever 5 --sz 100 --no-basePos
-
-# Create contract grid — short direction
+# Create contract grid — short direction, 3x leverage, 100 USDT margin
 okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction short --lever 3 --sz 100
@@ -364,22 +358,16 @@ okx bot grid details --algoOrdType contract_grid --algoId <algoId>
 okx bot grid sub-orders --algoOrdType contract_grid --algoId <algoId>
 
 # 创建合约网格 — neutral 方向，3倍杠杆，100 USDT 保证金
-# （neutral 方向忽略 basePos）
 okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction neutral --lever 3 --sz 100
 
-# 创建合约网格 — 做多，5倍杠杆（basePos 默认 true，自动开底仓）
+# 创建合约网格 — 做多，5倍杠杆，100 USDT 保证金
 okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction long --lever 5 --sz 100
 
-# 创建合约网格 — 做多，不开底仓
-okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
-  --maxPx 100000 --minPx 80000 --gridNum 10 \
-  --direction long --lever 5 --sz 100 --no-basePos
-
-# 创建合约网格 — 做空
+# 创建合约网格 — 做空，3倍杠杆，100 USDT 保证金
 okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction short --lever 3 --sz 100
