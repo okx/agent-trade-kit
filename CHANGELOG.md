@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+---
+
+## [1.1.9] - 2026-03-09
+
+### Changed
+
 - **`grid_create_order` — `sz` description clarified**: the `sz` parameter description now says "investment amount in margin currency (e.g. USDT for USDT-margined contracts)" instead of "Investment amount in USDT", correctly covering both USDT-margined and coin-margined contract grids. Behavior is unchanged.
 - **`--no-basePos` CLI example removed from docs**: the `--no-basePos` flag example has been removed from `docs/cli-reference.md` as `basePos` defaults to `true` and is not exposed as a standalone CLI flag.
 
