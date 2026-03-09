@@ -91,9 +91,17 @@ okx bot dca sub-orders --algoId <id>
 
 okx bot dca create --instId BTC-USDT --initOrdAmt 50 --safetyOrdAmt 30 \
   --maxSafetyOrds 3 --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
-  --tpPct 0.03 --slPct 0.20
+  --tpPct 0.03 --slPct 0.20 --slMode market
 
 okx bot dca stop --algoId <id> --instId BTC-USDT --stopType 1
+
+# Contract DCA with stop-loss (slMode required when slPct is set)
+okx bot dca create --type contract --instId BTC-USDT-SWAP --lever 3 --side buy \
+  --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
+  --pxSteps 0.03 --pxStepsMult 1 --volMult 1 \
+  --tpPct 0.03 --slPct 0.15 --slMode market
+
+okx bot dca stop --type contract --algoId <id> --instId BTC-USDT-SWAP --stopType 1
 ```
 
 ---
@@ -191,7 +199,15 @@ okx bot dca sub-orders --algoId <id>
 
 okx bot dca create --instId BTC-USDT --initOrdAmt 50 --safetyOrdAmt 30 \
   --maxSafetyOrds 3 --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
-  --tpPct 0.03 --slPct 0.20
+  --tpPct 0.03 --slPct 0.20 --slMode market
 
 okx bot dca stop --algoId <id> --instId BTC-USDT --stopType 1
+
+# 合约 DCA 带止损（设置 slPct 时 slMode 为必填）
+okx bot dca create --type contract --instId BTC-USDT-SWAP --lever 3 --side buy \
+  --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
+  --pxSteps 0.03 --pxStepsMult 1 --volMult 1 \
+  --tpPct 0.03 --slPct 0.15 --slMode market
+
+okx bot dca stop --type contract --algoId <id> --instId BTC-USDT-SWAP --stopType 1
 ```

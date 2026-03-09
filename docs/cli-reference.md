@@ -177,9 +177,23 @@ okx bot dca create \
   --triggerType 1 \
   --initOrdAmt 50 --safetyOrdAmt 30 --maxSafetyOrds 3 \
   --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
-  --tpPct 0.03 --slPct 0.20
+  --tpPct 0.03 --slPct 0.20 --slMode market
 
 okx bot dca stop --algoId <algoId> --instId BTC-USDT --stopType 2
+
+# ── Contract DCA ───────────────────────────────────────────────────────────
+okx bot dca orders --type contract
+okx bot dca orders --type contract --history
+okx bot dca details --type contract --algoId <algoId>
+okx bot dca sub-orders --type contract --algoId <algoId>
+
+okx bot dca create --type contract \
+  --instId BTC-USDT-SWAP --lever 3 --side buy \
+  --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
+  --pxSteps 0.03 --pxStepsMult 1 --volMult 1 \
+  --tpPct 0.03 --slPct 0.15 --slMode market
+
+okx bot dca stop --type contract --algoId <algoId> --instId BTC-USDT-SWAP --stopType 1
 ```
 
 ---
@@ -392,9 +406,23 @@ okx bot dca create \
   --triggerType 1 \
   --initOrdAmt 50 --safetyOrdAmt 30 --maxSafetyOrds 3 \
   --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
-  --tpPct 0.03 --slPct 0.20
+  --tpPct 0.03 --slPct 0.20 --slMode market
 
 okx bot dca stop --algoId <algoId> --instId BTC-USDT --stopType 2
+
+# ── 合约 DCA ───────────────────────────────────────────────────────────────
+okx bot dca orders --type contract
+okx bot dca orders --type contract --history
+okx bot dca details --type contract --algoId <algoId>
+okx bot dca sub-orders --type contract --algoId <algoId>
+
+okx bot dca create --type contract \
+  --instId BTC-USDT-SWAP --lever 3 --side buy \
+  --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
+  --pxSteps 0.03 --pxStepsMult 1 --volMult 1 \
+  --tpPct 0.03 --slPct 0.15 --slMode market
+
+okx bot dca stop --type contract --algoId <algoId> --instId BTC-USDT-SWAP --stopType 1
 ```
 
 ---
