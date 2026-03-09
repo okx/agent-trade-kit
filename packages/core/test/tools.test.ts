@@ -1568,6 +1568,76 @@ describe("dca_create_order", () => {
     }, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "long");
   });
+
+  it("contract: passes slPct when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "contract", instId: "BTC-USDT-SWAP",
+      lever: "3", side: "buy",
+      initOrdAmt: "100", safetyOrdAmt: "50",
+      maxSafetyOrds: "3", pxSteps: "0.02",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+      slPct: "0.10",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.slPct, "0.10");
+  });
+
+  it("contract: omits slPct when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "contract", instId: "BTC-USDT-SWAP",
+      lever: "3", side: "buy",
+      initOrdAmt: "100", safetyOrdAmt: "50",
+      maxSafetyOrds: "3", pxSteps: "0.02",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.slPct, undefined);
+  });
+
+  it("contract: passes slMode when provided with slPct", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "contract", instId: "BTC-USDT-SWAP",
+      lever: "3", side: "buy",
+      initOrdAmt: "100", safetyOrdAmt: "50",
+      maxSafetyOrds: "3", pxSteps: "0.02",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+      slPct: "0.05", slMode: "market",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.slPct, "0.05");
+    assert.equal(params.slMode, "market");
+  });
+
+  it("contract: omits slMode when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "contract", instId: "BTC-USDT-SWAP",
+      lever: "3", side: "buy",
+      initOrdAmt: "100", safetyOrdAmt: "50",
+      maxSafetyOrds: "3", pxSteps: "0.02",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.slMode, undefined);
+  });
+
+  it("spot: passes slMode when provided with slPct", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      type: "spot", instId: "BTC-USDT",
+      triggerType: "1",
+      initOrdAmt: "10", safetyOrdAmt: "10",
+      maxSafetyOrds: "3", pxSteps: "0.01",
+      pxStepsMult: "1", volMult: "1", tpPct: "0.03",
+      slPct: "0.05", slMode: "limit",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.slPct, "0.05");
+    assert.equal(params.slMode, "limit");
+  });
 });
 
 describe("dca_stop_order", () => {

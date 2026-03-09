@@ -396,7 +396,7 @@ const HELP_TREE: HelpTree = {
             description: "List sub-orders of a DCA bot",
           },
           create: {
-            usage: "okx bot dca create --instId <id> --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>\n                 --pxSteps <n> --pxStepsMult <n> --volMult <n> --tpPct <n> [--slPct <n>]\n                 [--type <spot|contract>] [--triggerType <1|2>] [--lever <n>] [--side <buy|sell>]\n                 [--reserveFunds <true|false>]",
+            usage: "okx bot dca create --instId <id> --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>\n                 --pxSteps <n> --pxStepsMult <n> --volMult <n> --tpPct <n> [--slPct <n>] [--slMode <limit|market>]\n                 [--type <spot|contract>] [--triggerType <1|2>] [--lever <n>] [--side <buy|sell>]\n                 [--reserveFunds <true|false>]",
             description: "Create a new DCA bot order",
           },
           stop: {

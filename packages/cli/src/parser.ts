@@ -69,6 +69,7 @@ export interface CliValues {
   volMult?: string;
   tpPct?: string;
   slPct?: string;
+  slMode?: string;
   reserveFunds?: string;
   triggerType?: string;
   cycleId?: string;
@@ -167,6 +168,7 @@ export const CLI_OPTIONS = {
   volMult: { type: "string" },
   tpPct: { type: "string" },
   slPct: { type: "string" },
+  slMode: { type: "string" },
   reserveFunds: { type: "string" },
   triggerType: { type: "string" },
   cycleId: { type: "string" },

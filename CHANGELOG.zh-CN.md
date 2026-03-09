@@ -20,6 +20,8 @@
 
 ### 修复
 
+- **`dca_create_order` — 合约 DCA 现已传递 `slPct` 和 `slMode`**：`slPct`（止损比例）和 `slMode`（止损价格类型）参数在 schema 中已定义，但合约 DCA handler 未将其转发至 OKX API，导致创建合约 DCA bot 时止损设置被静默忽略。现货 DCA 不受影响。注意：合约 DCA 设置 `slPct` 时，OKX API 要求同时传递 `slMode`（`"limit"` 或 `"market"`）。
+
 ---
 
 ## [1.1.8] - 2026-03-09

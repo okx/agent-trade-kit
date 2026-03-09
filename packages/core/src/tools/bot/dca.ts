@@ -64,7 +64,7 @@ export function registerDcaTools(): ToolSpec[] {
       description:
         "Create a DCA bot order. " +
         "type='spot': Spot DCA (Martingale on spot, no leverage). Required: instId, initOrdAmt, safetyOrdAmt, maxSafetyOrds, pxSteps, pxStepsMult, volMult, tpPct, triggerType. " +
-        "type='contract': Contract DCA (Martingale with leverage on futures/swaps). Required: instId, lever, side, initOrdAmt, safetyOrdAmt, maxSafetyOrds, pxSteps, pxStepsMult, volMult, tpPct. " +
+        "type='contract': Contract DCA (Martingale with leverage on futures/swaps). Required: instId, lever, side, initOrdAmt, safetyOrdAmt, maxSafetyOrds, pxSteps, pxStepsMult, volMult, tpPct. When slPct is set, slMode is required. " +
         "[CAUTION] Executes real trades. Private endpoint. Rate limit: 20 req/2s.",
       isWrite: true,
       inputSchema: {
@@ -85,6 +85,7 @@ export function registerDcaTools(): ToolSpec[] {
           volMult: { type: "string", description: "Safety order size multiplier, e.g. '1.5'" },
           tpPct: { type: "string", description: "Take-profit ratio, e.g. '0.03' = 3%" },
           slPct: { type: "string", description: "Stop-loss ratio, e.g. '0.05' = 5% (optional)" },
+          slMode: { type: "string", enum: ["limit", "market"], description: "Stop-loss price type: limit or market. Required when slPct is set (contract DCA)" },
           reserveFunds: { type: "string", enum: ["true", "false"], description: "Reserve full assets upfront (default: false)" },
           // Spot-only params
           triggerType: { type: "string", enum: ["1", "2"], description: "[spot] Trigger type: 1=instant, 2=RSI signal" },
@@ -116,6 +117,8 @@ export function registerDcaTools(): ToolSpec[] {
               pxStepsMult: requireString(args, "pxStepsMult"),
               volMult: requireString(args, "volMult"),
               tpPct: requireString(args, "tpPct"),
+              slPct: readString(args, "slPct"),
+              slMode: readString(args, "slMode"),
               reserveFunds: readString(args, "reserveFunds") ?? "false",
               triggerParams: [{ triggerAction: "start", triggerStrategy: "instant" }],
             }),
@@ -140,6 +143,7 @@ export function registerDcaTools(): ToolSpec[] {
             volMult: requireString(args, "volMult"),
             tpPct: requireString(args, "tpPct"),
             slPct: readString(args, "slPct"),
+            slMode: readString(args, "slMode"),
           }),
           privateRateLimit("dca_create_order", 20),
         );

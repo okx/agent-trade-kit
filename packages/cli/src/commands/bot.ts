@@ -179,6 +179,7 @@ export async function cmdDcaCreate(
     volMult: string;
     tpPct: string;
     slPct?: string;
+    slMode?: string;
     reserveFunds?: string;
     triggerType?: string;
     direction?: string;
@@ -198,6 +199,7 @@ export async function cmdDcaCreate(
     volMult: opts.volMult,
     tpPct: opts.tpPct,
     slPct: opts.slPct,
+    slMode: opts.slMode,
     reserveFunds: opts.reserveFunds,
     triggerType: opts.triggerType,
     direction: opts.direction,

@@ -644,6 +644,7 @@ export function handleBotDcaCommand(
       volMult: v.volMult!,
       tpPct: v.tpPct!,
       slPct: v.slPct,
+      slMode: v.slMode,
       reserveFunds: v.reserveFunds,
       triggerType: v.triggerType,
       direction: v.direction,

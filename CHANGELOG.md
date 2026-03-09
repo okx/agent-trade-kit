@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`dca_create_order` — contract DCA now passes `slPct` and `slMode`**: the `slPct` (stop-loss ratio) and `slMode` (stop-loss price type) parameters were accepted in the schema but not forwarded to the OKX API for contract DCA. This caused stop-loss settings to be silently ignored when creating contract DCA bots. Spot DCA was unaffected. Note: when `slPct` is set for contract DCA, `slMode` (`"limit"` or `"market"`) is required by the OKX API.
+
 ---
 
 ## [1.1.8] - 2026-03-09
