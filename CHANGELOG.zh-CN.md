@@ -15,10 +15,16 @@
 
 ### 变更
 
+### 修复
+
+---
+
+## [1.1.9] - 2026-03-09
+
+### 变更
+
 - **`grid_create_order` — `sz` 描述修正**：`sz` 参数描述由"Investment amount in USDT"改为"investment amount in margin currency (e.g. USDT for USDT-margined contracts)"，准确覆盖 USDT 保证金和币本位合约网格两种场景。行为不变。
 - **文档移除 `--no-basePos` CLI 示例**：`docs/cli-reference.md` 中移除了 `--no-basePos` 用例，与现有行为保持一致（`basePos` 默认 `true`，不作为独立 CLI 标志对外暴露）。
-
-### 修复
 
 ---
 
