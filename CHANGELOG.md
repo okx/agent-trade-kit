@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Post-install security notice**: `npm install` now prints a bilingual security reminder to stderr — reminding users to never share API keys in agent chat, use a dedicated sub-account, and test on demo before going live. Applies to both `@okx_ai/okx-trade-cli` and `@okx_ai/okx-trade-mcp`. The one-line install scripts (`install.sh` / `install.ps1`) also display the same notice after installation completes.
+
 ---
 
 ## [1.2.0] - 2026-03-10
