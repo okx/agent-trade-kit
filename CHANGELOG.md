@@ -13,9 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Contract DCA — optional parameters**: `--slMode` (stop-loss price type: `limit`/`market`), `--allowReinvest` (reinvest profit into next cycle, default `true`), `--triggerStrategy` (bot start mode: `instant`/`price`/`rsi`), `--triggerPx` (trigger price for `price` strategy). All are optional and only apply to contract DCA create.
+- **Contract DCA orders — `instId` filter**: `dca_get_orders` now accepts an optional `--instId` parameter to filter contract DCA bots by instrument (e.g. `BTC-USDT-SWAP`)
+- **Contract DCA sub-orders — `cycleId` filter**: `dca_get_sub_orders` now accepts an optional `--cycleId` parameter, allowing querying orders within a specific cycle
+
 ### Changed
 
+- **DCA tools now contract-only**: Removed Spot DCA support from all 5 DCA tools (`dca_create_order`, `dca_stop_order`, `dca_get_orders`, `dca_get_order_details`, `dca_get_sub_orders`). The `type` parameter has been removed — all DCA tools now operate exclusively on contract DCA. Spot DCA was removed due to product risk assessment.
+- **Agent skill (`okx-cex-bot`) updated for contract-only DCA**: Rewrote `SKILL.md` to remove all Spot DCA references — description, quickstart examples, command index, cross-skill workflows, operation flow, CLI reference (create/stop/orders/details/sub-orders), MCP tool reference, input/output examples, edge cases, and parameter display name tables. DCA sections now document contract-only usage with `--lever`, `--direction` as required params and no `--type` flag.
+
 ### Fixed
+
+- **Contract DCA `side`/`direction` mismatch** (critical): MCP schema used `side` (`buy`/`sell`) but API requires `direction` (`long`/`short`). The `side` field was removed; `direction` is now used directly. Previously, short positions could not be created correctly.
+- **Contract DCA `safetyOrdAmt`, `pxSteps`, `pxStepsMult`, `volMult` conditionally required**: These 4 parameters are business-required when `maxSafetyOrds > 0` (API returns 400 if omitted), but API-optional when `maxSafetyOrds = 0`. They are now schema-optional with descriptions noting the conditional requirement.
+- **Contract sub-orders sent unsupported pagination**: contract DCA orders-by-cycle path sent `after`/`before` params, but the API only supports `limit`. Removed `after`/`before` from this path.
 
 ---
 
@@ -23,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Spot DCA endpoint paths updated**: all 5 Spot DCA tool endpoints now use the new `/api/v5/tradingBot/spot-dca` base URL and renamed paths (`create`, `stop`, `bot-active-list`, `bot-history-list`, `bot-detail`, `trade-list`), aligning with the backend change in okcoin-bots MR #210. Contract DCA remains on `/api/v5/tradingBot/dca` and is unaffected.
 - **`grid_create_order` — `sz` description clarified**: the `sz` parameter description now says "investment amount in margin currency (e.g. USDT for USDT-margined contracts)" instead of "Investment amount in USDT", correctly covering both USDT-margined and coin-margined contract grids. Behavior is unchanged.
 - **`--no-basePos` CLI example removed from docs**: the `--no-basePos` flag example has been removed from `docs/cli-reference.md` as `basePos` defaults to `true` and is not exposed as a standalone CLI flag.
 

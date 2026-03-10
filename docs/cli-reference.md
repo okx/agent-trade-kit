@@ -165,35 +165,27 @@ okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USD
 okx bot grid orders --algoOrdType moon_grid
 okx bot grid details --algoOrdType moon_grid --algoId <algoId>
 
-# ── Spot DCA ──────────────────────────────────────────────────────────────────
+# ── Contract DCA ──────────────────────────────────────────────────────────────
 okx bot dca orders
 okx bot dca orders --history
 okx bot dca details --algoId <algoId>
-okx bot dca sub-orders --algoId <algoId>            # filled sub-orders
-okx bot dca sub-orders --algoId <algoId> --live     # live (pending) sub-orders
+okx bot dca sub-orders --algoId <algoId>
+okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
 
 okx bot dca create \
-  --instId BTC-USDT \
-  --triggerType 1 \
-  --initOrdAmt 50 --safetyOrdAmt 30 --maxSafetyOrds 3 \
-  --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
-  --tpPct 0.03 --slPct 0.20 --slMode market
+  --instId BTC-USDT-SWAP --lever 3 --direction long \
+  --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
+  --pxSteps 0.03 --pxStepsMult 1 --volMult 1 --tpPct 0.03
+# Note: safetyOrdAmt, pxSteps, pxStepsMult, volMult are required when maxSafetyOrds > 0
 
-okx bot dca stop --algoId <algoId> --instId BTC-USDT --stopType 2
-
-# ── Contract DCA ───────────────────────────────────────────────────────────
-okx bot dca orders --type contract
-okx bot dca orders --type contract --history
-okx bot dca details --type contract --algoId <algoId>
-okx bot dca sub-orders --type contract --algoId <algoId>
-
-okx bot dca create --type contract \
-  --instId BTC-USDT-SWAP --lever 3 --side buy \
+# With optional params (stop-loss, trigger strategy)
+okx bot dca create \
+  --instId BTC-USDT-SWAP --lever 3 --direction long \
   --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
   --pxSteps 0.03 --pxStepsMult 1 --volMult 1 \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
-okx bot dca stop --type contract --algoId <algoId> --instId BTC-USDT-SWAP --stopType 1
+okx bot dca stop --algoId <algoId>
 ```
 
 ---
@@ -394,35 +386,27 @@ okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USD
 okx bot grid orders --algoOrdType moon_grid
 okx bot grid details --algoOrdType moon_grid --algoId <algoId>
 
-# ── 现货 DCA ──────────────────────────────────────────────────────────────────
+# ── 合约 DCA ──────────────────────────────────────────────────────────────────
 okx bot dca orders
 okx bot dca orders --history
 okx bot dca details --algoId <algoId>
-okx bot dca sub-orders --algoId <algoId>            # 已成交子订单
-okx bot dca sub-orders --algoId <algoId> --live     # 挂单中子订单
+okx bot dca sub-orders --algoId <algoId>
+okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
 
 okx bot dca create \
-  --instId BTC-USDT \
-  --triggerType 1 \
-  --initOrdAmt 50 --safetyOrdAmt 30 --maxSafetyOrds 3 \
-  --pxSteps 0.05 --pxStepsMult 1 --volMult 1 \
-  --tpPct 0.03 --slPct 0.20 --slMode market
+  --instId BTC-USDT-SWAP --lever 3 --direction long \
+  --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
+  --pxSteps 0.03 --pxStepsMult 1 --volMult 1 --tpPct 0.03
+# 注意：当 maxSafetyOrds > 0 时，safetyOrdAmt、pxSteps、pxStepsMult、volMult 为必填
 
-okx bot dca stop --algoId <algoId> --instId BTC-USDT --stopType 2
-
-# ── 合约 DCA ───────────────────────────────────────────────────────────────
-okx bot dca orders --type contract
-okx bot dca orders --type contract --history
-okx bot dca details --type contract --algoId <algoId>
-okx bot dca sub-orders --type contract --algoId <algoId>
-
-okx bot dca create --type contract \
-  --instId BTC-USDT-SWAP --lever 3 --side buy \
+# 带可选参数（止损、触发策略）
+okx bot dca create \
+  --instId BTC-USDT-SWAP --lever 3 --direction long \
   --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
   --pxSteps 0.03 --pxStepsMult 1 --volMult 1 \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
-okx bot dca stop --type contract --algoId <algoId> --instId BTC-USDT-SWAP --stopType 1
+okx bot dca stop --algoId <algoId>
 ```
 
 ---

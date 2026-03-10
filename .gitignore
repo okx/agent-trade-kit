@@ -8,3 +8,4 @@ npm-debug.log*
 _tmp_*
 .cursor/
 scripts/smoke-test/report.md
+.claude/settings.local.json
