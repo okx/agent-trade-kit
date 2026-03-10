@@ -13,9 +13,20 @@
 
 ### 新增
 
+- **合约 DCA — 可选参数**：`--slMode`（止损价格类型：`limit`/`market`）、`--allowReinvest`（利润再投入下一轮循环，默认 `true`）、`--triggerStrategy`（启动方式：`instant`/`price`/`rsi`）、`--triggerPx`（触发价格，`price` 策略时必填）。均为可选参数，仅适用于合约 DCA 创建。
+- **合约 DCA 订单 — `instId` 过滤**：`dca_get_orders` 现支持可选的 `--instId` 参数，用于按合约筛选 DCA 机器人（如 `BTC-USDT-SWAP`）
+- **合约 DCA 子订单 — `cycleId` 过滤**：`dca_get_sub_orders` 现支持可选的 `--cycleId` 参数，用于查询指定周期内的订单
+
 ### 变更
 
+- **DCA 工具现仅支持合约**：从所有 5 个 DCA 工具中移除了现货 DCA 支持（`dca_create_order`、`dca_stop_order`、`dca_get_orders`、`dca_get_order_details`、`dca_get_sub_orders`）。`type` 参数已移除——所有 DCA 工具现在仅操作合约 DCA。现货 DCA 因产品风险评估而移除。
+- **Agent Skill（`okx-cex-bot`）同步更新**：全面改写 `SKILL.md`，移除所有现货 DCA 引用——包括描述、快速开始示例、命令索引、跨技能工作流、操作流程、CLI 参考（create/stop/orders/details/sub-orders）、MCP 工具参考、输入输出示例、边界场景、参数展示名称表。DCA 章节现仅文档化合约用法，`--lever`、`--direction` 为必填参数，移除 `--type` 标志。
+
 ### 修复
+
+- **合约 DCA `side`/`direction` 参数错误**（严重）：MCP schema 使用 `side`（`buy`/`sell`），但 API 要求 `direction`（`long`/`short`）。已移除 `side` 字段，直接使用 `direction`。此前做空仓位无法正确创建。
+- **合约 DCA `safetyOrdAmt`、`pxSteps`、`pxStepsMult`、`volMult` 条件必填**：当 `maxSafetyOrds > 0` 时这 4 个参数为业务必填（缺省返回 400），当 `maxSafetyOrds = 0` 时为可选。现在 schema 中标记为可选，描述中注明条件必填要求。
+- **合约子订单发送不支持的分页参数**：合约 DCA 按周期查询订单时发送了 `after`/`before` 参数，但 API 仅支持 `limit`。已从该路径移除 `after`/`before`。
 
 ---
 
@@ -23,6 +34,7 @@
 
 ### 变更
 
+- **Spot DCA 端点路径更新**：5 个 Spot DCA 工具端点全部迁移至新路径 `/api/v5/tradingBot/spot-dca`，端点名称同步更新（`create`、`stop`、`bot-active-list`、`bot-history-list`、`bot-detail`、`trade-list`），与后端 okcoin-bots MR #210 保持一致。Contract DCA 仍使用 `/api/v5/tradingBot/dca`，不受影响。
 - **`grid_create_order` — `sz` 描述修正**：`sz` 参数描述由"Investment amount in USDT"改为"investment amount in margin currency (e.g. USDT for USDT-margined contracts)"，准确覆盖 USDT 保证金和币本位合约网格两种场景。行为不变。
 - **文档移除 `--no-basePos` CLI 示例**：`docs/cli-reference.md` 中移除了 `--no-basePos` 用例，与现有行为保持一致（`basePos` 默认 `true`，不作为独立 CLI 标志对外暴露）。
 

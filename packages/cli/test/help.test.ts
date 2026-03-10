@@ -122,7 +122,7 @@ describe('printHelp("bot") — bot module overview', () => {
     assert.ok(out.includes("grid"), "should mention grid strategy");
     assert.ok(out.includes("dca"), "should mention dca strategy");
     assert.ok(out.includes("Grid trading bot"), "should include grid description");
-    assert.ok(out.includes("Dollar Cost Averaging"), "should include dca description");
+    assert.ok(out.includes("Contract DCA"), "should include dca description");
   });
 
   it("hints to run bot <strategy> --help", () => {
@@ -176,9 +176,9 @@ describe('printHelp("bot", "dca") — dca bot subgroup detail', () => {
     }
   });
 
-  it("includes --reserveFunds in create usage", () => {
+  it("includes --lever in create usage", () => {
     const out = captureStdout(() => printHelp("bot", "dca"));
-    assert.ok(out.includes("--reserveFunds"), "should include --reserveFunds flag");
+    assert.ok(out.includes("--lever"), "should include --lever flag");
   });
 });
 

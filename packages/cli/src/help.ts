@@ -381,27 +381,27 @@ const HELP_TREE: HelpTree = {
         },
       },
       dca: {
-        description: "DCA (Dollar Cost Averaging) bot — automated recurring buys",
+        description: "Contract DCA (Martingale) bot — leveraged recurring buys on futures/swaps",
         commands: {
           orders: {
-            usage: "okx bot dca orders [--type <spot|contract>] [--history]",
-            description: "List active or historical DCA bot orders",
+            usage: "okx bot dca orders [--history]",
+            description: "List active or historical Contract DCA bot orders",
           },
           details: {
-            usage: "okx bot dca details [--type <spot|contract>] --algoId <id>",
-            description: "Get details of a specific DCA bot order",
+            usage: "okx bot dca details --algoId <id>",
+            description: "Get details of a specific Contract DCA bot order",
           },
           "sub-orders": {
-            usage: "okx bot dca sub-orders [--type <spot|contract>] --algoId <id> [--live] [--cycleId <id>]",
-            description: "List sub-orders of a DCA bot",
+            usage: "okx bot dca sub-orders --algoId <id> [--cycleId <id>]",
+            description: "List cycles or orders within a cycle of a Contract DCA bot",
           },
           create: {
-            usage: "okx bot dca create --instId <id> --initOrdAmt <n> --safetyOrdAmt <n> --maxSafetyOrds <n>\n                 --pxSteps <n> --pxStepsMult <n> --volMult <n> --tpPct <n> [--slPct <n>] [--slMode <limit|market>]\n                 [--type <spot|contract>] [--triggerType <1|2>] [--lever <n>] [--side <buy|sell>]\n                 [--reserveFunds <true|false>]",
-            description: "Create a new DCA bot order",
+            usage: "okx bot dca create --instId <id> --lever <n> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>]\n                 [--allowReinvest <true|false>] [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 Note: safetyOrdAmt, pxSteps, pxStepsMult, volMult are required when maxSafetyOrds > 0",
+            description: "Create a new Contract DCA bot order",
           },
           stop: {
-            usage: "okx bot dca stop [--type <spot|contract>] --algoId <id> --instId <id> [--stopType <1|2>]",
-            description: "Stop a running DCA bot order",
+            usage: "okx bot dca stop --algoId <id>",
+            description: "Stop a running Contract DCA bot order",
           },
         },
       },
