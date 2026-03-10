@@ -1,5 +1,9 @@
 # Development Rules
 
+## General Rules
+
+Always respond in Chinese (中文) unless explicitly asked otherwise. Never use Korean.
+
 Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branch workflow, testing, commit conventions, and code style.
 
 ## Module Design (MANDATORY)
@@ -23,3 +27,7 @@ Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branch workflow, testing, commit c
 - CHANGELOG 遵循 [Keep a Changelog](https://keepachangelog.com/) 格式
 - `docs/` 目录下的技术设计文档为内部文档，不要求双语
 - 文档间使用相对链接交叉引用，避免内容重复
+
+## GitLab / Git Operations
+
+When working with GitLab, use `$DACS` as the home path for glab config. Ensure glab CLI token is configured before attempting any GitLab operations (MR comments, issue viewing).

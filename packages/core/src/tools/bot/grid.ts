@@ -300,6 +300,7 @@ export function registerGridTools(): ToolSpec[] {
           direction: readString(args, "direction"),
           lever: readString(args, "lever"),
           sz: readString(args, "sz"),
+          tag: context.config.sourceTag,
         });
         if (algoOrdType === "contract_grid") {
           body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];

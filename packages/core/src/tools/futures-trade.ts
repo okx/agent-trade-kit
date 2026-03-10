@@ -75,9 +75,6 @@ export function registerFuturesTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
-          tag: {
-            type: "string",
-          },
           tpTriggerPx: {
             type: "string",
             description: "TP trigger price; places TP at tpOrdPx",
@@ -118,7 +115,7 @@ export function registerFuturesTools(): ToolSpec[] {
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
-            tag: readString(args, "tag"),
+            tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
           privateRateLimit("futures_place_order", 60),

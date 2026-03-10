@@ -1,4 +1,4 @@
-import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, DEFAULT_MODULES, MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, type BotSubModuleId, type ModuleId, type SiteId } from "./constants.js";
+import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, DEFAULT_MODULES, DEFAULT_SOURCE_TAG, MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, type BotSubModuleId, type ModuleId, type SiteId } from "./constants.js";
 import { ConfigError } from "./utils/errors.js";
 import { readTomlProfile } from "./config/toml.js";
 
@@ -9,6 +9,7 @@ export interface CliOptions {
   profile?: string;
   site?: string;
   userAgent?: string;
+  sourceTag?: string;
 }
 
 export interface OkxConfig {
@@ -23,6 +24,7 @@ export interface OkxConfig {
   demo: boolean;
   site: SiteId;
   userAgent?: string;
+  sourceTag: string;
 }
 
 /** Base (non-bot) modules — used when expanding "all". */
@@ -159,5 +161,6 @@ export function loadConfig(cli: CliOptions): OkxConfig {
     demo,
     site,
     userAgent: cli.userAgent,
+    sourceTag: cli.sourceTag ?? DEFAULT_SOURCE_TAG,
   };
 }

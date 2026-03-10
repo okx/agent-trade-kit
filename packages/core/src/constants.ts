@@ -1,5 +1,8 @@
 export const OKX_API_BASE_URL = "https://www.okx.com";
 
+/** Default source tag injected into all order placements for attribution. */
+export const DEFAULT_SOURCE_TAG = "MCP";
+
 // ---------------------------------------------------------------------------
 // Site registry
 // ---------------------------------------------------------------------------

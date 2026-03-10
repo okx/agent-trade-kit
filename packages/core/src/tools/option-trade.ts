@@ -66,9 +66,6 @@ export function registerOptionTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
-          tag: {
-            type: "string",
-          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
@@ -86,7 +83,7 @@ export function registerOptionTools(): ToolSpec[] {
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
-            tag: readString(args, "tag"),
+            tag: context.config.sourceTag,
           }),
           privateRateLimit("option_place_order", 60),
         );

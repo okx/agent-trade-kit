@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **DCA tools now contract-only**: Removed Spot DCA support from all 5 DCA tools (`dca_create_order`, `dca_stop_order`, `dca_get_orders`, `dca_get_order_details`, `dca_get_sub_orders`). The `type` parameter has been removed — all DCA tools now operate exclusively on contract DCA. Spot DCA was removed due to product risk assessment.
 - **Agent skill (`okx-cex-bot`) updated for contract-only DCA**: Rewrote `SKILL.md` to remove all Spot DCA references — description, quickstart examples, command index, cross-skill workflows, operation flow, CLI reference (create/stop/orders/details/sub-orders), MCP tool reference, input/output examples, edge cases, and parameter display name tables. DCA sections now document contract-only usage with `--lever`, `--direction` as required params and no `--type` flag.
+- **All order placement tools — `tag` parameter removed, auto-injected**: the `tag` field has been removed from all order placement tool input schemas (spot, swap, futures, option, algo, grid). The server now automatically injects `tag: "MCP"` (or `"CLI"` for CLI usage) into every outgoing order request. Users who previously passed a custom `tag` value will no longer be able to override it. Note: DCA bot tools do not inject `tag` as the Contract DCA API does not support this field.
 
 ### Fixed
 

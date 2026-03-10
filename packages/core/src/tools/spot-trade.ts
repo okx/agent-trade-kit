@@ -63,9 +63,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
-          tag: {
-            type: "string",
-          },
           tpTriggerPx: {
             type: "string",
             description: "TP trigger price; places TP at tpOrdPx",
@@ -103,7 +100,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             sz: requireString(args, "sz"),
             px: readString(args, "px"),
             clOrdId: readString(args, "clOrdId"),
-            tag: readString(args, "tag"),
+            tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
           privateRateLimit("spot_place_order", 60),
@@ -337,6 +334,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             tpOrdPx: readString(args, "tpOrdPx"),
             slTriggerPx: readString(args, "slTriggerPx"),
             slOrdPx: readString(args, "slOrdPx"),
+            tag: context.config.sourceTag,
           }),
           privateRateLimit("spot_place_algo_order", 20),
         );
@@ -623,6 +621,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
                   sz: requireString(o, "sz"),
                   px: readString(o, "px"),
                   clOrdId: readString(o, "clOrdId"),
+                  tag: context.config.sourceTag,
                   attachAlgoOrds,
                 });
               })

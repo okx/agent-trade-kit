@@ -17,6 +17,7 @@ import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
 import { assertNotDemo } from "../src/tools/common.js";
 import { ConfigError } from "../src/utils/errors.js";
+import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -61,7 +62,7 @@ function makeMockClient() {
 function makeContext(client: unknown): ToolContext {
   return {
     client: client as ToolContext["client"],
-    config: {} as ToolContext["config"],
+    config: { sourceTag: DEFAULT_SOURCE_TAG } as ToolContext["config"],
   };
 }
 
@@ -340,6 +341,16 @@ describe("spot_batch_orders", () => {
     );
     const body = getLastCall()?.params as unknown as unknown[];
     assert.equal((body[0] as Record<string, unknown>).tdMode, "cash");
+  });
+
+  it("injects tag into each placed order", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "place", orders: [{ instId: "BTC-USDT", side: "buy", ordType: "market", sz: "10" }] },
+      makeContext(client),
+    );
+    const body = getLastCall()?.params as unknown[];
+    assert.equal((body[0] as Record<string, unknown>).tag, DEFAULT_SOURCE_TAG);
   });
 });
 
@@ -652,6 +663,40 @@ describe("spot_batch_amend", () => {
   });
 });
 
+describe("swap_batch_orders", () => {
+  const tools = registerSwapTradeTools();
+  const tool = tools.find((t) => t.name === "swap_batch_orders")!;
+
+  it("calls /trade/batch-orders for action=place via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "place", orders: [{ instId: "BTC-USDT-SWAP", tdMode: "cross", side: "buy", ordType: "market", sz: "1" }] },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/batch-orders");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("calls /trade/cancel-batch-orders for action=cancel", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "cancel", orders: [{ instId: "BTC-USDT-SWAP", ordId: "456" }] },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-batch-orders");
+  });
+
+  it("injects tag into each placed order", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { action: "place", orders: [{ instId: "BTC-USDT-SWAP", tdMode: "cross", side: "buy", ordType: "market", sz: "1" }] },
+      makeContext(client),
+    );
+    const body = getLastCall()?.params as unknown[];
+    assert.equal((body[0] as Record<string, unknown>).tag, DEFAULT_SOURCE_TAG);
+  });
+});
+
 describe("swap_batch_amend", () => {
   const tools = registerSwapTradeTools();
   const tool = tools.find((t) => t.name === "swap_batch_amend")!;
@@ -721,6 +766,16 @@ describe("futures_place_order", () => {
     );
     assert.equal(getLastCall()?.method, "POST");
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order");
+  });
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-240329", tdMode: "cross", side: "buy", ordType: "market", sz: "1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
   });
 });
 
@@ -799,6 +854,16 @@ describe("spot_place_order", () => {
     assert.equal(params.instId, "ETH-USDT");
     assert.equal(params.side, "sell");
     assert.equal(params.px, "2000");
+  });
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", tdMode: "cash", side: "buy", ordType: "market", sz: "100" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
   });
 });
 
@@ -916,6 +981,16 @@ describe("swap_place_order", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order");
     assert.equal(getLastCall()?.method, "POST");
   });
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "buy", ordType: "market", sz: "1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
+  });
 });
 
 describe("swap_cancel_order", () => {
@@ -956,6 +1031,13 @@ describe("swap_close_position", () => {
     await tool.handler({ instId: "BTC-USDT-SWAP", mgnMode: "cross" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/close-position");
     assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", mgnMode: "cross" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
   });
 });
 
@@ -1176,6 +1258,16 @@ describe("option_place_order", () => {
       makeContext(client),
     );
     assert.equal((getLastCall()?.params as Record<string, unknown>).reduceOnly, undefined);
+  });
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USD-241227-50000-C", tdMode: "cash", side: "buy", ordType: "market", sz: "1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
   });
 });
 
@@ -1509,6 +1601,13 @@ describe("grid_create_order basePos", () => {
     const params = getLastCall()!.params;
     assert.equal(params.basePos, undefined);
   });
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(baseArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1665,6 +1764,7 @@ describe("dca_create_order", () => {
     assert.equal(params.slPct, undefined);
     assert.equal(params.slMode, undefined);
   });
+
 });
 
 describe("dca_stop_order", () => {
@@ -1800,3 +1900,39 @@ describe("dca tools registration", () => {
     }
   });
 });
+
+
+// ---------------------------------------------------------------------------
+// swap_place_algo_order — tag injection
+// ---------------------------------------------------------------------------
+
+describe("swap_place_algo_order tag injection", () => {
+  const tools = registerAlgoTradeTools();
+  const tool = tools.find((t) => t.name === "swap_place_algo_order")!;
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
+  });
+});
+
+describe("spot_place_algo_order tag injection", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_place_algo_order")!;
+
+  it("injects tag into request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", side: "sell", ordType: "conditional", sz: "0.01", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
+  });
+});
+

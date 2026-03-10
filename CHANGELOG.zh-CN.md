@@ -21,6 +21,7 @@
 
 - **DCA 工具现仅支持合约**：从所有 5 个 DCA 工具中移除了现货 DCA 支持（`dca_create_order`、`dca_stop_order`、`dca_get_orders`、`dca_get_order_details`、`dca_get_sub_orders`）。`type` 参数已移除——所有 DCA 工具现在仅操作合约 DCA。现货 DCA 因产品风险评估而移除。
 - **Agent Skill（`okx-cex-bot`）同步更新**：全面改写 `SKILL.md`，移除所有现货 DCA 引用——包括描述、快速开始示例、命令索引、跨技能工作流、操作流程、CLI 参考（create/stop/orders/details/sub-orders）、MCP 工具参考、输入输出示例、边界场景、参数展示名称表。DCA 章节现仅文档化合约用法，`--lever`、`--direction` 为必填参数，移除 `--type` 标志。
+- **所有下单工具移除 `tag` 参数、改为自动注入**：`tag` 字段已从所有下单工具的输入 schema 中移除（涵盖 spot、swap、futures、option、algo、grid）。服务端现在会自动注入 `tag: "MCP"`（CLI 使用时为 `"CLI"`）。此前传入自定义 `tag` 值的用户将无法再覆盖该字段。注意：DCA bot 工具不注入 `tag`，因为合约 DCA API 不支持该字段。
 
 ### 修复
 

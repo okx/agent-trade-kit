@@ -8,6 +8,7 @@ export interface LoadProfileOptions {
   demo?: boolean;
   site?: string;
   userAgent?: string;
+  sourceTag?: string;
 }
 
 /**
@@ -23,5 +24,6 @@ export function loadProfileConfig(opts: LoadProfileOptions): OkxConfig {
     demo: opts.demo ?? false,
     site: opts.site,
     userAgent: opts.userAgent,
+    sourceTag: opts.sourceTag,
   });
 }

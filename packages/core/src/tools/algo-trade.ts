@@ -121,6 +121,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
+            tag: context.config.sourceTag,
           }),
           privateRateLimit("swap_place_algo_order", 20),
         );

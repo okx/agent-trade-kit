@@ -75,9 +75,6 @@ export function registerSwapTradeTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
-          tag: {
-            type: "string",
-          },
           tpTriggerPx: {
             type: "string",
             description: "TP trigger price; places TP at tpOrdPx",
@@ -118,7 +115,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
-            tag: readString(args, "tag"),
+            tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
           privateRateLimit("swap_place_order", 60),
@@ -507,9 +504,6 @@ export function registerSwapTradeTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID for close order",
           },
-          tag: {
-            type: "string",
-          },
         },
         required: ["instId", "mgnMode"],
       },
@@ -524,7 +518,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
             posSide: readString(args, "posSide"),
             autoCxl: typeof autoCxl === "boolean" ? String(autoCxl) : undefined,
             clOrdId: readString(args, "clOrdId"),
-            tag: readString(args, "tag"),
+            tag: context.config.sourceTag,
           }),
           privateRateLimit("swap_close_position", 20),
         );
@@ -591,6 +585,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
                   reduceOnly:
                     typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
                   clOrdId: readString(o, "clOrdId"),
+                  tag: context.config.sourceTag,
                   attachAlgoOrds,
                 });
               })

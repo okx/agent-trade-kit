@@ -147,6 +147,7 @@ export async function main(): Promise<void> {
     readOnly: cli.readOnly,
     demo: cli.demo,
     userAgent: `${SERVER_NAME}/${SERVER_VERSION}`,
+    sourceTag: "MCP",
   });
   const logger = cli.noLog ? undefined : new TradeLogger(cli.logLevel as LogLevel);
   const server = createServer(config, logger);
