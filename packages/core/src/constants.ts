@@ -66,6 +66,8 @@ export type ModuleId = (typeof MODULES)[number];
 
 export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account", ...BOT_DEFAULT_SUB_MODULES];
 // Default: spot, swap, option, account, bot.grid
-// "all": every module including market, futures, bot.dca
+// "all": every module including market, futures, bot.dca — earn is NOT included (requires explicit opt-in)
 // "bot": bot.grid only; "bot.all": bot.grid + bot.dca
-// "earn": all earn sub-modules; "earn.all": same
+// "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain) — must be requested explicitly
+// "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only
+// To enable earn alongside all other modules, use: "all,earn" or "all,earn.savings" / "all,earn.onchain"
