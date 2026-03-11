@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.2] - 2026-03-11
+
+### Fixed
+
+- **Security tips timing changed to first CLI run**: The security reminder is no longer printed during `npm install` (postinstall). Instead, it is shown on the first time `okx` CLI is invoked after installation. This avoids the notice being silently suppressed by npm in CI/CD environments and ensures users actually see it when they first use the tool.
+
+---
+
 ## [1.2.1] - 2026-03-11
 
 ### Added

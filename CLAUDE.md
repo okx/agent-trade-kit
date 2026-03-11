@@ -28,6 +28,42 @@ Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branch workflow, testing, commit c
 - `docs/` 目录下的技术设计文档为内部文档，不要求双语
 - 文档间使用相对链接交叉引用，避免内容重复
 
+## Testing Standards (MANDATORY)
+
+核心原则：**用用户的方式测，不用开发者的捷径测。**
+
+### 三层测试要求
+
+所有涉及用户可感知行为的变更，必须逐层验证：
+
+| 层次 | 验证目标 | 必须 |
+|------|---------|------|
+| 单元测试 | 函数逻辑正确 | ✅ |
+| 集成测试 | 组件协作正确 | ✅ |
+| 端到端测试 | 用户实际体验与预期一致 | ✅ |
+
+### 强制规则
+
+1. **用户视角验证**：描述用户的操作路径，然后完全按该路径执行验证。禁止用开发者捷径（如 `node script.js`）代替用户操作（如 `npm install`、`npx`）。
+2. **环境记录**：测试时必须记录关键运行时版本（node/npm 等），确保测试环境与用户目标环境一致。
+3. **运行时行为查验**：使用 lifecycle hook、stdout/stderr、环境变量等运行时特性时，必须查证目标运行时版本的实际行为。
+4. **MR Test Plan 格式**：
+   ```
+   ## Test plan
+   ### 功能验证（开发视角）
+   - [ ] 单元/集成测试项
+
+   ### 用户体验验证（用户视角）
+   - [ ] 用户操作路径 → 预期结果
+   - [ ] 测试环境: node vX.Y.Z, npm vX.Y.Z
+   ```
+5. **失败回溯**：测试遗漏导致线上问题时，须在 MR 中记录根因分析并更新本规范。
+
+### 典型反例（禁止）
+- ❌ 用 `node scripts/postinstall.js` 验证 npm postinstall 效果（npm v7+ 默认静默 lifecycle 输出）
+- ❌ 不记录运行时版本就声称"测试通过"
+- ❌ Test Plan 只有开发视角，缺少用户视角验证项
+
 ## GitLab / Git Operations
 
 When working with GitLab, use `$DACS` as the home path for glab config. Ensure glab CLI token is configured before attempting any GitLab operations (MR comments, issue viewing).
