@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.3-beta.1] - 2026-03-11
+
 ### 破坏性变更
 
 - **`--modules all` 不再包含 earn 子模块**：此前 `--modules all` 会展开为所有模块，包括 `earn.savings` 和 `earn.onchain`。现在 `all` 仅包含基础模块和 bot 子模块，earn 模块需要显式启用：
