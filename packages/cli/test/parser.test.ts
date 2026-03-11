@@ -47,4 +47,53 @@ describe("parseCli", () => {
       assert.deepEqual(positionals, ["market", "tickers"]);
     });
   });
+
+  describe("onchain-earn options", () => {
+    it("--productId sets productId", () => {
+      const { values } = parseCli(["onchain-earn", "purchase", "--productId", "prod123"]);
+      assert.equal(values.productId, "prod123");
+    });
+
+    it("--protocolType sets protocolType", () => {
+      const { values } = parseCli(["onchain-earn", "offers", "--protocolType", "staking"]);
+      assert.equal(values.protocolType, "staking");
+    });
+
+    it("--term sets term", () => {
+      const { values } = parseCli(["onchain-earn", "purchase", "--term", "30"]);
+      assert.equal(values.term, "30");
+    });
+
+    it("--tag sets tag", () => {
+      const { values } = parseCli(["onchain-earn", "purchase", "--tag", "myTag"]);
+      assert.equal(values.tag, "myTag");
+    });
+
+    it("--allowEarlyRedeem sets allowEarlyRedeem to true", () => {
+      const { values } = parseCli(["onchain-earn", "redeem", "--allowEarlyRedeem"]);
+      assert.equal(values.allowEarlyRedeem, true);
+    });
+
+    it("--no-allowEarlyRedeem sets allowEarlyRedeem to false", () => {
+      const { values } = parseCli(["onchain-earn", "redeem", "--no-allowEarlyRedeem"]);
+      assert.equal(values.allowEarlyRedeem, false);
+    });
+
+    it("--state sets state", () => {
+      const { values } = parseCli(["onchain-earn", "orders", "--state", "1"]);
+      assert.equal(values.state, "1");
+    });
+  });
+});
+
+describe("earn --rate option", () => {
+  it("parses --rate as string", () => {
+    const { values } = parseCli(["earn", "purchase", "--ccy", "USDT", "--amt", "100", "--rate", "0.02"]);
+    assert.equal(values.rate, "0.02");
+  });
+
+  it("rate is undefined when not provided", () => {
+    const { values } = parseCli(["earn", "balance"]);
+    assert.equal(values.rate, undefined);
+  });
 });

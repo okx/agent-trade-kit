@@ -80,11 +80,20 @@ export interface CliValues {
   // batch
   action?: string;
   orders?: string;
+  // earn
+  rate?: string;
   // audit
   since?: string;
   tool?: string;
   // config profile
   force?: boolean;
+  // onchain-earn
+  productId?: string;
+  protocolType?: string;
+  term?: string;
+  tag?: string;
+  allowEarlyRedeem?: boolean;
+  state?: string;
 }
 
 export const CLI_OPTIONS = {
@@ -180,11 +189,20 @@ export const CLI_OPTIONS = {
   // batch
   action: { type: "string" },
   orders: { type: "string" },
+  // earn
+  rate: { type: "string" },
   // audit
   since: { type: "string" },
   tool: { type: "string" },
   // config profile
   force: { type: "boolean", default: false },
+  // onchain-earn
+  productId: { type: "string" },
+  protocolType: { type: "string" },
+  term: { type: "string" },
+  tag: { type: "string" },
+  allowEarlyRedeem: { type: "boolean", default: false },
+  state: { type: "string" },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {

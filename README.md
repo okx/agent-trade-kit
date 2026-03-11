@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **82 tools across 7 modules** | Full trading lifecycle: market data → orders → algo orders → account management → trading bots |
+| **95 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -46,6 +46,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `futures` | 6 | Delivery contract trading, positions, fills, order history | [→](docs/modules/futures.md) |
 | `option` | 10 | Options trading: place/cancel/amend/batch-cancel, order history, positions (with Greeks), fills, option chain, IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
+| `earn` | 13 | Simple Earn: balance, purchase, redeem, lending rate (7). On-chain staking/DeFi (6). Sub-modules: `earn.savings`, `earn.onchain` | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 
 ---

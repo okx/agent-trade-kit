@@ -100,3 +100,15 @@ export function compactObject(
   }
   return next;
 }
+
+export function normalizeResponse(response: {
+  endpoint: string;
+  requestTime: string;
+  data: unknown;
+}): Record<string, unknown> {
+  return {
+    endpoint: response.endpoint,
+    requestTime: response.requestTime,
+    data: response.data,
+  };
+}

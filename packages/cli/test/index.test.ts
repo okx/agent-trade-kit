@@ -15,6 +15,7 @@ import {
   handleBotGridCommand,
   handleBotCommand,
   handleSwapCommand,
+  handleEarnCommand,
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -240,5 +241,226 @@ describe("handleSwapCommand", () => {
   it("dispatches amend action (returns a Promise)", () => {
     const result = handleSwapCommand(mockRunner, "amend", [], { instId: "BTC-USDT-SWAP", ordId: "123", newPx: "50000", json: false } as never, false);
     assert.ok(result instanceof Promise, "amend should return a Promise");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleEarnCommand — unified earn module dispatch coverage
+// ---------------------------------------------------------------------------
+describe("handleEarnCommand", () => {
+  it("writes error for unknown earn sub-module", () => {
+    const origCode = process.exitCode;
+    const err = captureStderr(() => {
+      handleEarnCommand(noopRunner, "noop", [], {}, false);
+    });
+    assert.ok(err.includes("Unknown earn sub-module"), "should report unknown sub-module");
+    assert.equal(process.exitCode, 1);
+    process.exitCode = origCode;
+  });
+
+  // earn.savings sub-module — balance / purchase / redeem
+  it("dispatches savings balance (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["balance", "USDT"], {}, false);
+    assert.ok(result instanceof Promise, "savings balance should return a Promise");
+  });
+
+  it("dispatches savings purchase (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["purchase"], { ccy: "USDT", amt: "100" } as never, false);
+    assert.ok(result instanceof Promise, "savings purchase should return a Promise");
+  });
+
+  it("dispatches savings redeem (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["redeem"], { ccy: "USDT", amt: "50" } as never, false);
+    assert.ok(result instanceof Promise, "savings redeem should return a Promise");
+  });
+
+  // earn.savings sub-module — lending rate actions (belong to Simple Earn)
+  it("dispatches savings set-rate (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["set-rate"], { ccy: "USDT", rate: "0.02" } as never, false);
+    assert.ok(result instanceof Promise, "savings set-rate should return a Promise");
+  });
+
+  it("dispatches savings lending-history (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["lending-history"], {}, false);
+    assert.ok(result instanceof Promise, "savings lending-history should return a Promise");
+  });
+
+  it("dispatches savings rate-summary (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["rate-summary", "USDT"], {}, false);
+    assert.ok(result instanceof Promise, "savings rate-summary should return a Promise");
+  });
+
+  it("dispatches savings rate-history (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "savings", ["rate-history"], {}, false);
+    assert.ok(result instanceof Promise, "savings rate-history should return a Promise");
+  });
+
+  // earn onchain sub-module
+  it("dispatches onchain offers (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "onchain", ["offers"], {}, false);
+    assert.ok(result instanceof Promise, "onchain offers should return a Promise");
+  });
+
+  it("dispatches onchain orders (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "onchain", ["orders"], {}, false);
+    assert.ok(result instanceof Promise, "onchain orders should return a Promise");
+  });
+
+  it("dispatches onchain history (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "onchain", ["history"], {}, false);
+    assert.ok(result instanceof Promise, "onchain history should return a Promise");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CLI earn commands — output coverage
+// ---------------------------------------------------------------------------
+import {
+  cmdEarnSavingsBalance,
+  cmdEarnLendingHistory,
+  cmdEarnLendingRateSummary,
+  cmdEarnLendingRateHistory,
+} from "../src/commands/earn.js";
+import {
+  cmdOnchainEarnPurchase,
+  cmdOnchainEarnRedeem,
+  cmdOnchainEarnCancel,
+} from "../src/commands/onchain-earn.js";
+
+// Runner that returns a list response
+const listRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/test",
+  requestTime: new Date().toISOString(),
+  data: [{ ccy: "USDT", amt: "100", earnings: "0.1", rate: "0.01", loanAmt: "0", pendingAmt: "0" }],
+});
+
+// Runner that returns empty list
+const emptyRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/test",
+  requestTime: new Date().toISOString(),
+  data: [],
+});
+
+describe("cmdEarnSavingsBalance output", () => {
+  it("prints table when data exists", async () => {
+    const out = await captureStdout(() => cmdEarnSavingsBalance(listRunner, "USDT", false));
+    assert.ok(out.length > 0, "should produce output");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdEarnSavingsBalance(listRunner, undefined, true));
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty message when no data", async () => {
+    const out = await captureStdout(() => cmdEarnSavingsBalance(emptyRunner, undefined, false));
+    assert.ok(out.includes("No savings balance"));
+  });
+});
+
+describe("cmdEarnLendingHistory output", () => {
+  it("prints table when data exists", async () => {
+    const runner: ToolRunner = async () => ({
+      endpoint: "/api/v5/test", requestTime: "ts",
+      data: [{ ccy: "USDT", amt: "100", earnings: "0.1", rate: "0.01", ts: "1700000000000" }],
+    });
+    const out = await captureStdout(() => cmdEarnLendingHistory(runner, { json: false }));
+    assert.ok(out.length > 0);
+  });
+
+  it("prints empty message when no data", async () => {
+    const out = await captureStdout(() => cmdEarnLendingHistory(emptyRunner, { json: false }));
+    assert.ok(out.includes("No lending history"));
+  });
+});
+
+describe("cmdEarnLendingRateSummary output", () => {
+  it("prints table when data exists", async () => {
+    const runner: ToolRunner = async () => ({
+      endpoint: "/api/v5/test", requestTime: "ts",
+      data: [{ ccy: "USDT", avgRate: "0.01", estRate: "0.02", avgAmt: "1000" }],
+    });
+    const out = await captureStdout(() => cmdEarnLendingRateSummary(runner, "USDT", false));
+    assert.ok(out.length > 0);
+  });
+
+  it("prints empty message when no data", async () => {
+    const out = await captureStdout(() => cmdEarnLendingRateSummary(emptyRunner, undefined, false));
+    assert.ok(out.includes("No rate summary data"));
+  });
+});
+
+describe("cmdEarnLendingRateHistory output", () => {
+  it("prints table when data exists", async () => {
+    const runner: ToolRunner = async () => ({
+      endpoint: "/api/v5/test", requestTime: "ts",
+      data: [{ ccy: "USDT", lendingRate: "0.01", rate: "0.02", ts: "1700000000000" }],
+    });
+    const out = await captureStdout(() => cmdEarnLendingRateHistory(runner, { json: false }));
+    assert.ok(out.length > 0);
+  });
+
+  it("prints empty message when no data", async () => {
+    const out = await captureStdout(() => cmdEarnLendingRateHistory(emptyRunner, { json: false }));
+    assert.ok(out.includes("No rate history data"));
+  });
+});
+
+describe("earn onchain CLI commands — full dispatch coverage", () => {
+  it("dispatches onchain purchase (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "onchain", ["purchase"], { productId: "p1", ccy: "ETH", amt: "1" } as never, false);
+    assert.ok(result instanceof Promise, "onchain purchase should return a Promise");
+  });
+
+  it("dispatches onchain redeem (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "onchain", ["redeem"], { ordId: "123", protocolType: "staking" } as never, false);
+    assert.ok(result instanceof Promise, "onchain redeem should return a Promise");
+  });
+
+  it("dispatches onchain cancel (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "onchain", ["cancel"], { ordId: "123", protocolType: "staking" } as never, false);
+    assert.ok(result instanceof Promise, "onchain cancel should return a Promise");
+  });
+
+  it("cmdOnchainEarnPurchase builds investData from ccy+amt", async () => {
+    let capturedArgs: Record<string, unknown> | undefined;
+    const capturingRunner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "/test", requestTime: "ts", data: [] };
+    };
+    await cmdOnchainEarnPurchase(capturingRunner, { ccy: "ETH", amt: "1", productId: "p1" } as never);
+    assert.deepEqual(capturedArgs?.["investData"], [{ ccy: "ETH", amt: "1" }]);
+  });
+
+  it("cmdOnchainEarnPurchase sets investData=undefined when ccy missing", async () => {
+    let capturedArgs: Record<string, unknown> | undefined;
+    const capturingRunner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "/test", requestTime: "ts", data: [] };
+    };
+    await cmdOnchainEarnPurchase(capturingRunner, { productId: "p1" } as never);
+    assert.equal(capturedArgs?.["investData"], undefined);
+  });
+
+  it("cmdOnchainEarnRedeem passes ordId and protocolType", async () => {
+    let capturedArgs: Record<string, unknown> | undefined;
+    const capturingRunner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "/test", requestTime: "ts", data: [] };
+    };
+    await cmdOnchainEarnRedeem(capturingRunner, { ordId: "456", protocolType: "defi" } as never);
+    assert.equal(capturedArgs?.["ordId"], "456");
+    assert.equal(capturedArgs?.["protocolType"], "defi");
+  });
+
+  it("cmdOnchainEarnCancel passes ordId and protocolType", async () => {
+    let capturedArgs: Record<string, unknown> | undefined;
+    const capturingRunner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "/test", requestTime: "ts", data: [] };
+    };
+    await cmdOnchainEarnCancel(capturingRunner, { ordId: "789", protocolType: "staking" } as never);
+    assert.equal(capturedArgs?.["ordId"], "789");
+    assert.equal(capturedArgs?.["protocolType"], "staking");
   });
 });

@@ -1,4 +1,4 @@
-import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, DEFAULT_MODULES, DEFAULT_SOURCE_TAG, MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, type BotSubModuleId, type ModuleId, type SiteId } from "./constants.js";
+import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, EARN_SUB_MODULE_IDS, DEFAULT_MODULES, DEFAULT_SOURCE_TAG, MODULES, OKX_SITES, SITE_IDS, type BotSubModuleId, type EarnSubModuleId, type ModuleId, type SiteId } from "./constants.js";
 import { ConfigError } from "./utils/errors.js";
 import { readTomlProfile } from "./config/toml.js";
 
@@ -27,10 +27,21 @@ export interface OkxConfig {
   sourceTag: string;
 }
 
-/** Base (non-bot) modules — used when expanding "all". */
+/** Base (non-bot, non-earn) modules — used when expanding "all". */
 const BASE_MODULES = MODULES.filter(
-  (m) => !BOT_SUB_MODULE_IDS.includes(m as BotSubModuleId),
+  (m) => !BOT_SUB_MODULE_IDS.includes(m as BotSubModuleId) && !EARN_SUB_MODULE_IDS.includes(m as EarnSubModuleId),
 );
+
+/**
+ * Expand a single module shorthand into its concrete sub-module IDs.
+ * Returns the expanded IDs, or null if the input is not a shorthand.
+ */
+function expandShorthand(moduleId: string): ModuleId[] | null {
+  if (moduleId === "earn" || moduleId === "earn.all") return [...EARN_SUB_MODULE_IDS];
+  if (moduleId === "bot") return [...BOT_DEFAULT_SUB_MODULES];
+  if (moduleId === "bot.all") return [...BOT_SUB_MODULE_IDS];
+  return null;
+}
 
 function parseModuleList(rawModules?: string): ModuleId[] {
   if (!rawModules || rawModules.trim().length === 0) {
@@ -39,35 +50,25 @@ function parseModuleList(rawModules?: string): ModuleId[] {
 
   const trimmed = rawModules.trim().toLowerCase();
   if (trimmed === "all") {
-    // "all" → every module including all bot sub-modules
-    return [...BASE_MODULES, ...BOT_SUB_MODULE_IDS] as ModuleId[];
+    return [...BASE_MODULES, ...EARN_SUB_MODULE_IDS, ...BOT_SUB_MODULE_IDS] as ModuleId[];
   }
 
-  const requested = trimmed
-    .split(",")
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-
+  const requested = trimmed.split(",").map((s) => s.trim()).filter(Boolean);
   if (requested.length === 0) {
     return [...DEFAULT_MODULES];
   }
 
   const deduped = new Set<ModuleId>();
   for (const moduleId of requested) {
-    // "bot" shorthand → expand to default bot sub-modules
-    if (moduleId === "bot") {
-      for (const sub of BOT_DEFAULT_SUB_MODULES) deduped.add(sub);
-      continue;
-    }
-    // "bot.all" → expand to all bot sub-modules
-    if (moduleId === "bot.all") {
-      for (const sub of BOT_SUB_MODULE_IDS) deduped.add(sub);
+    const expanded = expandShorthand(moduleId);
+    if (expanded) {
+      expanded.forEach((sub) => deduped.add(sub));
       continue;
     }
     if (!MODULES.includes(moduleId as ModuleId)) {
       throw new ConfigError(
         `Unknown module "${moduleId}".`,
-        `Use one of: ${MODULES.join(", ")}, "bot", "bot.all", or "all".`,
+        `Use one of: ${MODULES.join(", ")}, "earn", "earn.all", "bot", "bot.all", or "all".`,
       );
     }
     deduped.add(moduleId as ModuleId);

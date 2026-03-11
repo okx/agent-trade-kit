@@ -30,6 +30,7 @@
 ### 新增
 
 - **安装后安全提示**：`npm install` 完成后会向 stderr 输出双语安全提醒——提示用户切勿在 Agent 对话中分享 API Key、使用专用子账户、先在模拟盘测试再接入实盘。适用于 `@okx_ai/okx-trade-cli` 和 `@okx_ai/okx-trade-mcp` 两个包。一键安装脚本（`install.sh` / `install.ps1`）也会在安装完成后展示相同提示。
+- **Earn 模块** — 新增 7 个 OKX 简单赚币（活期/灵活借贷）工具：`earn_get_savings_balance`、`earn_savings_purchase`、`earn_savings_redeem`、`earn_set_lending_rate`、`earn_get_lending_history`、`earn_get_lending_rate_summary`、`earn_get_lending_rate_history`。包含 CLI 命令、中英文文档及完整测试覆盖。
 
 ---
 
@@ -40,6 +41,7 @@
 - **合约 DCA — 可选参数**：`--slMode`（止损价格类型：`limit`/`market`）、`--allowReinvest`（利润再投入下一轮循环，默认 `true`）、`--triggerStrategy`（启动方式：`instant`/`price`/`rsi`）、`--triggerPx`（触发价格，`price` 策略时必填）。均为可选参数，仅适用于合约 DCA 创建。
 - **合约 DCA 订单 — `instId` 过滤**：`dca_get_orders` 现支持可选的 `--instId` 参数，用于按合约筛选 DCA 机器人（如 `BTC-USDT-SWAP`）
 - **合约 DCA 子订单 — `cycleId` 过滤**：`dca_get_sub_orders` 现支持可选的 `--cycleId` 参数，用于查询指定周期内的订单
+- **链上赚币模块（6 个工具）**：新增 `onchain-earn` 模块，支持 OKX 链上赚币（质押/DeFi）产品 — `onchain_earn_get_offers`、`onchain_earn_purchase`、`onchain_earn_redeem`、`onchain_earn_cancel`、`onchain_earn_get_active_orders`、`onchain_earn_get_order_history`。CLI 命令：`okx earn onchain offers`、`okx earn onchain purchase`、`okx earn onchain redeem`、`okx earn onchain cancel`、`okx earn onchain orders`、`okx earn onchain history`。
 
 ### 变更
 

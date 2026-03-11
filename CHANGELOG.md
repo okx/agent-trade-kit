@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Post-install security notice**: `npm install` now prints a bilingual security reminder to stderr — reminding users to never share API keys in agent chat, use a dedicated sub-account, and test on demo before going live. Applies to both `@okx_ai/okx-trade-cli` and `@okx_ai/okx-trade-mcp`. The one-line install scripts (`install.sh` / `install.ps1`) also display the same notice after installation completes.
+- **Earn module** — 7 new tools for OKX Simple Earn (savings/flexible lending): `earn_get_savings_balance`, `earn_savings_purchase`, `earn_savings_redeem`, `earn_set_lending_rate`, `earn_get_lending_history`, `earn_get_lending_rate_summary`, `earn_get_lending_rate_history`. Includes CLI commands, dual-language documentation, and full test coverage.
 
 ---
 
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Contract DCA — optional parameters**: `--slMode` (stop-loss price type: `limit`/`market`), `--allowReinvest` (reinvest profit into next cycle, default `true`), `--triggerStrategy` (bot start mode: `instant`/`price`/`rsi`), `--triggerPx` (trigger price for `price` strategy). All are optional and only apply to contract DCA create.
 - **Contract DCA orders — `instId` filter**: `dca_get_orders` now accepts an optional `--instId` parameter to filter contract DCA bots by instrument (e.g. `BTC-USDT-SWAP`)
 - **Contract DCA sub-orders — `cycleId` filter**: `dca_get_sub_orders` now accepts an optional `--cycleId` parameter, allowing querying orders within a specific cycle
+- **On-chain Earn module (6 tools)**: new `onchain-earn` module for OKX On-chain Earn (staking/DeFi) products — `onchain_earn_get_offers`, `onchain_earn_purchase`, `onchain_earn_redeem`, `onchain_earn_cancel`, `onchain_earn_get_active_orders`, `onchain_earn_get_order_history`. CLI: `okx earn onchain offers`, `okx earn onchain purchase`, `okx earn onchain redeem`, `okx earn onchain cancel`, `okx earn onchain orders`, `okx earn onchain history`.
 
 ### Changed
 

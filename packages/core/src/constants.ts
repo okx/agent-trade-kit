@@ -44,6 +44,13 @@ export type BotSubModuleId = (typeof BOT_SUB_MODULE_IDS)[number];
 
 export const BOT_DEFAULT_SUB_MODULES: BotSubModuleId[] = ["bot.grid"];
 
+export const EARN_SUB_MODULE_IDS = [
+  "earn.savings",
+  "earn.onchain",
+] as const;
+
+export type EarnSubModuleId = (typeof EARN_SUB_MODULE_IDS)[number];
+
 export const MODULES = [
   "market",
   "spot",
@@ -51,6 +58,7 @@ export const MODULES = [
   "futures",
   "option",
   "account",
+  ...EARN_SUB_MODULE_IDS,
   ...BOT_SUB_MODULE_IDS,
 ] as const;
 
@@ -60,3 +68,4 @@ export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account",
 // Default: spot, swap, option, account, bot.grid
 // "all": every module including market, futures, bot.dca
 // "bot": bot.grid only; "bot.all": bot.grid + bot.dca
+// "earn": all earn sub-modules; "earn.all": same

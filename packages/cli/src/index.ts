@@ -102,6 +102,15 @@ import {
 } from "./commands/client-setup.js";
 import type { ClientId } from "./commands/client-setup.js";
 import {
+  cmdEarnSavingsBalance,
+  cmdEarnSavingsPurchase,
+  cmdEarnSavingsRedeem,
+  cmdEarnSetLendingRate,
+  cmdEarnLendingHistory,
+  cmdEarnLendingRateSummary,
+  cmdEarnLendingRateHistory,
+} from "./commands/earn.js";
+import {
   cmdGridOrders,
   cmdGridDetails,
   cmdGridSubOrders,
@@ -113,6 +122,14 @@ import {
   cmdDcaDetails,
   cmdDcaSubOrders,
 } from "./commands/bot.js";
+import {
+  cmdOnchainEarnOffers,
+  cmdOnchainEarnPurchase,
+  cmdOnchainEarnRedeem,
+  cmdOnchainEarnCancel,
+  cmdOnchainEarnActiveOrders,
+  cmdOnchainEarnOrderHistory,
+} from "./commands/onchain-earn.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -678,9 +695,74 @@ export function handleBotCommand(
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
 }
 
+export function handleEarnCommand(
+  run: ToolRunner,
+  submodule: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const action = rest[0];
+  const innerRest = rest.slice(1);
+  if (submodule === "savings") return handleEarnSavingsCommand(run, action, innerRest, v, json);
+  if (submodule === "onchain") return handleEarnOnchainCommand(run, action, v, json);
+  process.stderr.write(`Unknown earn sub-module: ${submodule}\nValid: savings, onchain\n`);
+  process.exitCode = 1;
+}
+
+function handleEarnSavingsCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  if (action === "balance") return cmdEarnSavingsBalance(run, rest[0] ?? v.ccy, json);
+  if (action === "purchase") return cmdEarnSavingsPurchase(run, { ccy: v.ccy!, amt: v.amt!, rate: v.rate, json });
+  if (action === "redeem") return cmdEarnSavingsRedeem(run, { ccy: v.ccy!, amt: v.amt!, json });
+  if (action === "set-rate") return cmdEarnSetLendingRate(run, { ccy: v.ccy!, rate: v.rate!, json });
+  if (action === "lending-history") return cmdEarnLendingHistory(run, { ccy: v.ccy, limit, json });
+  if (action === "rate-summary") return cmdEarnLendingRateSummary(run, rest[0] ?? v.ccy, json);
+  if (action === "rate-history") return cmdEarnLendingRateHistory(run, { ccy: v.ccy, limit, json });
+  process.stderr.write(`Unknown earn savings command: ${action}\n`);
+  process.exitCode = 1;
+}
+
+function handleEarnOnchainCommand(
+  run: ToolRunner,
+  action: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (action === "offers") return cmdOnchainEarnOffers(run, v).then((r) => outputResult(r, json));
+  if (action === "purchase") return cmdOnchainEarnPurchase(run, v).then((r) => outputResult(r, json));
+  if (action === "redeem") return cmdOnchainEarnRedeem(run, v).then((r) => outputResult(r, json));
+  if (action === "cancel") return cmdOnchainEarnCancel(run, v).then((r) => outputResult(r, json));
+  if (action === "orders") return cmdOnchainEarnActiveOrders(run, v).then((r) => outputResult(r, json));
+  if (action === "history") return cmdOnchainEarnOrderHistory(run, v).then((r) => outputResult(r, json));
+  process.stderr.write(`Unknown earn onchain command: ${action}\n`);
+  process.exitCode = 1;
+}
+
+function outputResult(result: { endpoint: string; requestTime: string; data: unknown }, json: boolean): void {
+  if (json) {
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+  } else {
+    process.stdout.write(JSON.stringify(result.data, null, 2) + "\n");
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
+
+function printHelpForLevel(positionals: string[]): void {
+  const [module, subgroup] = positionals;
+  if (!module) printHelp();
+  else if (!subgroup) printHelp(module);
+  else printHelp(module, subgroup);
+}
 
 async function main(): Promise<void> {
   showFirstRunTips(CLI_VERSION);
@@ -694,15 +776,7 @@ async function main(): Promise<void> {
   }
 
   if (values.help || positionals.length === 0) {
-    // Multi-level help: resolve depth from positionals captured before --help
-    const [module, subgroup] = positionals;
-    if (!module) {
-      printHelp();
-    } else if (!subgroup) {
-      printHelp(module);
-    } else {
-      printHelp(module, subgroup);
-    }
+    printHelpForLevel(positionals);
     return;
   }
 
@@ -717,14 +791,18 @@ async function main(): Promise<void> {
   const client = new OkxRestClient(config);
   const run = createToolRunner(client, config);
 
-  if (module === "market") return handleMarketCommand(run, action, rest, v, json);
-  if (module === "account") return handleAccountCommand(run, action, rest, v, json);
-  if (module === "spot") return handleSpotCommand(run, action, rest, v, json);
-  if (module === "swap") return handleSwapCommand(run, action, rest, v, json);
-  if (module === "futures") return handleFuturesCommand(run, action, rest, v, json);
-  if (module === "option") return handleOptionCommand(run, action, rest, v, json);
-  if (module === "bot") return handleBotCommand(run, action, rest, v, json);
-
+  const moduleHandlers: Record<string, () => Promise<void> | void> = {
+    market:  () => handleMarketCommand(run, action, rest, v, json),
+    account: () => handleAccountCommand(run, action, rest, v, json),
+    spot:    () => handleSpotCommand(run, action, rest, v, json),
+    swap:    () => handleSwapCommand(run, action, rest, v, json),
+    futures: () => handleFuturesCommand(run, action, rest, v, json),
+    option:  () => handleOptionCommand(run, action, rest, v, json),
+    bot:     () => handleBotCommand(run, action, rest, v, json),
+    earn:    () => handleEarnCommand(run, action, rest, v, json),
+  };
+  const handler = moduleHandlers[module];
+  if (handler) return handler();
   process.stderr.write(`Unknown command: ${module} ${action ?? ""}\n`);
   process.exitCode = 1;
 }

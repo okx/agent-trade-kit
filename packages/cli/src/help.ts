@@ -352,6 +352,74 @@ const HELP_TREE: HelpTree = {
     },
   },
 
+  earn: {
+    description: "Earn products — Simple Earn (savings/lending) and On-chain Earn (staking/DeFi)",
+    subgroups: {
+      savings: {
+        description: "Simple Earn — flexible savings and lending",
+        commands: {
+          balance: {
+            usage: "okx earn savings balance [<ccy>]",
+            description: "Get savings balance (optionally filter by currency)",
+          },
+          purchase: {
+            usage: "okx earn savings purchase --ccy <ccy> --amt <n> [--rate <rate>]",
+            description: "Purchase Simple Earn (flexible savings). Rate defaults to 0.01 (1%)",
+          },
+          redeem: {
+            usage: "okx earn savings redeem --ccy <ccy> --amt <n>",
+            description: "Redeem Simple Earn (flexible savings)",
+          },
+          "set-rate": {
+            usage: "okx earn savings set-rate --ccy <ccy> --rate <rate>",
+            description: "Set lending rate for a currency",
+          },
+          "lending-history": {
+            usage: "okx earn savings lending-history [--ccy <ccy>] [--limit <n>]",
+            description: "Get lending history",
+          },
+          "rate-summary": {
+            usage: "okx earn savings rate-summary [<ccy>]",
+            description: "Get market lending rate summary (public, no auth needed)",
+          },
+          "rate-history": {
+            usage: "okx earn savings rate-history [--ccy <ccy>] [--limit <n>]",
+            description: "Get historical lending rates (public, no auth needed)",
+          },
+        },
+      },
+      onchain: {
+        description: "On-chain Earn — staking and DeFi products",
+        commands: {
+          offers: {
+            usage: "okx earn onchain offers [--productId <id>] [--protocolType <type>] [--ccy <ccy>]",
+            description: "Browse available on-chain earn products (staking, DeFi)",
+          },
+          purchase: {
+            usage: "okx earn onchain purchase --productId <id> --ccy <ccy> --amt <n> [--term <term>] [--tag <tag>]",
+            description: "Purchase an on-chain earn product (stake/deposit)",
+          },
+          redeem: {
+            usage: "okx earn onchain redeem --ordId <id> --protocolType <type> [--allowEarlyRedeem]",
+            description: "Redeem an on-chain earn position",
+          },
+          cancel: {
+            usage: "okx earn onchain cancel --ordId <id> --protocolType <type>",
+            description: "Cancel a pending on-chain earn order",
+          },
+          orders: {
+            usage: "okx earn onchain orders [--productId <id>] [--protocolType <type>] [--ccy <ccy>] [--state <state>]",
+            description: "List active on-chain earn orders",
+          },
+          history: {
+            usage: "okx earn onchain history [--productId <id>] [--protocolType <type>] [--ccy <ccy>]",
+            description: "Get on-chain earn order history",
+          },
+        },
+      },
+    },
+  },
+
   bot: {
     description: "Trading bot strategies (grid, dca)",
     subgroups: {
