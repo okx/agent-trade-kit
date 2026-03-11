@@ -46,7 +46,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `futures` | 6 | Delivery contract trading, positions, fills, order history | [→](docs/modules/futures.md) |
 | `option` | 10 | Options trading: place/cancel/amend/batch-cancel, order history, positions (with Greeks), fills, option chain, IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
-| `earn` | 13 | Simple Earn: balance, purchase, redeem, lending rate (7). On-chain staking/DeFi (6). Sub-modules: `earn.savings`, `earn.onchain` | [→](docs/modules/earn.md) |
+| `earn` | 13 | Simple Earn: balance, purchase, redeem, lending rate (7). On-chain staking/DeFi (6). Sub-modules: `earn.savings`, `earn.onchain`. **Requires explicit opt-in** — not included in `all`. | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 
 ---
@@ -81,7 +81,8 @@ okx-trade-mcp setup --client vscode          # writes .mcp.json in current direc
 okx-trade-mcp                                        # default: spot, swap, account
 okx-trade-mcp --modules market                       # market data only (no auth needed)
 okx-trade-mcp --modules spot,account                 # spot trading + account
-okx-trade-mcp --profile live --modules all           # all modules, specific profile
+okx-trade-mcp --profile live --modules all           # all modules except earn (earn requires explicit opt-in)
+okx-trade-mcp --profile live --modules all,earn      # all modules including earn
 okx-trade-mcp --read-only                            # query tools only, no writes
 ```
 

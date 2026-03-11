@@ -384,7 +384,7 @@ Register both as separate MCP servers. Your AI can switch between them:
 | Option | Description |
 |--------|-------------|
 | `--profile <name>` | Profile from `~/.okx/config.toml` (default: value of `default_profile`) |
-| `--modules <list>` | Comma-separated module names, or `all`. Default: `spot swap account` |
+| `--modules <list>` | Comma-separated module names, or `all`. Default: `spot swap account`. **Note:** `all` does not include earn modules — use `all,earn` to opt in. |
 | `--read-only` | Disable all write operations (orders, position changes, bot creation) |
 | `--no-log` | Disable audit logging to `~/.okx/logs/` |
 | `--log-level <level>` | Minimum log level: `debug`, `info`, `warn`, `error` (default: `info`) |
@@ -740,7 +740,7 @@ claude mcp add --transport stdio okx-trade-mcp -- okx-trade-mcp --profile demo -
 | 参数 | 说明 |
 |------|------|
 | `--profile <name>` | 指定 `~/.okx/config.toml` 中的 Profile（默认：`default_profile` 的值） |
-| `--modules <list>` | 逗号分隔的模块名，或 `all`。默认：`spot swap account` |
+| `--modules <list>` | 逗号分隔的模块名，或 `all`。默认：`spot swap account`。**注意：** `all` 不包含 earn 模块，需显式启用：`all,earn`。 |
 | `--read-only` | 禁用所有写操作（下单、改单、修改仓位、创建/停止 Bot 等） |
 | `--no-log` | 禁用审计日志（默认写入 `~/.okx/logs/`） |
 | `--log-level <level>` | 最低日志级别：`debug`、`info`、`warn`、`error`（默认：`info`） |

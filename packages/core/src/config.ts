@@ -37,6 +37,8 @@ const BASE_MODULES = MODULES.filter(
  * Returns the expanded IDs, or null if the input is not a shorthand.
  */
 function expandShorthand(moduleId: string): ModuleId[] | null {
+  // "all" expands to BASE_MODULES + all bot sub-modules; earn is intentionally excluded (opt-in only)
+  if (moduleId === "all") return [...BASE_MODULES, ...BOT_SUB_MODULE_IDS] as ModuleId[];
   if (moduleId === "earn" || moduleId === "earn.all") return [...EARN_SUB_MODULE_IDS];
   if (moduleId === "bot") return [...BOT_DEFAULT_SUB_MODULES];
   if (moduleId === "bot.all") return [...BOT_SUB_MODULE_IDS];
@@ -50,7 +52,9 @@ function parseModuleList(rawModules?: string): ModuleId[] {
 
   const trimmed = rawModules.trim().toLowerCase();
   if (trimmed === "all") {
-    return [...BASE_MODULES, ...EARN_SUB_MODULE_IDS, ...BOT_SUB_MODULE_IDS] as ModuleId[];
+    // NOTE: earn sub-modules are intentionally excluded from "all".
+    // Earn tools require explicit opt-in via "earn", "earn.all", "earn.savings", or "earn.onchain".
+    return [...BASE_MODULES, ...BOT_SUB_MODULE_IDS] as ModuleId[];
   }
 
   const requested = trimmed.split(",").map((s) => s.trim()).filter(Boolean);

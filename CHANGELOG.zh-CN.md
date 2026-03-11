@@ -11,6 +11,16 @@
 
 ## [Unreleased]
 
+### 破坏性变更
+
+- **`--modules all` 不再包含 earn 子模块**：此前 `--modules all` 会展开为所有模块，包括 `earn.savings` 和 `earn.onchain`。现在 `all` 仅包含基础模块和 bot 子模块，earn 模块需要显式启用：
+  - `--modules all,earn` — 所有模块 + 全部 earn 子模块
+  - `--modules all,earn.savings` — 所有模块 + 仅简单赚币
+  - `--modules all,earn.onchain` — 所有模块 + 仅链上赚币
+  - `--modules earn` — 仅 earn 子模块
+
+  **迁移方案**：若此前使用 `--modules all` 且依赖 earn 工具，需在配置中追加 `,earn`：`--modules all,earn`。
+
 ### 新增
 
 - **CLI 下单命令 — 附带止盈止损**：`okx spot place`、`okx swap place`、`okx futures place` 现支持可选的止盈止损参数：`--tpTriggerPx`、`--tpOrdPx`、`--tpTriggerPxType`、`--slTriggerPx`、`--slOrdPx`、`--slTriggerPxType`。这些参数会直接作为附带 TP/SL 传递给 OKX 下单 API。

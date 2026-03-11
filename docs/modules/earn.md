@@ -83,13 +83,24 @@ okx earn onchain cancel --ordId 12345 --protocolType staking
 
 ### MCP startup
 
+> **Note:** Earn modules are **not** included in `--modules all`. You must opt in explicitly.
+
 ```bash
-# All earn sub-modules (default when earn is selected)
+# All earn sub-modules
 okx-trade-mcp --modules earn
 
 # Individual sub-modules
 okx-trade-mcp --modules earn.savings
 okx-trade-mcp --modules earn.onchain
+
+# All modules including earn (explicit opt-in required)
+okx-trade-mcp --modules all,earn
+
+# All modules + only Simple Earn
+okx-trade-mcp --modules all,earn.savings
+
+# All modules + only On-chain Earn
+okx-trade-mcp --modules all,earn.onchain
 ```
 
 ### Notes
@@ -179,13 +190,24 @@ okx earn onchain cancel --ordId 12345 --protocolType staking
 
 ### MCP 启动
 
+> **注意：** Earn 模块**不**包含在 `--modules all` 中，需要显式启用。
+
 ```bash
-# 所有赚币子模块（默认）
+# 所有赚币子模块
 okx-trade-mcp --modules earn
 
 # 指定子模块
 okx-trade-mcp --modules earn.savings
 okx-trade-mcp --modules earn.onchain
+
+# 所有模块 + 赚币（需显式启用）
+okx-trade-mcp --modules all,earn
+
+# 所有模块 + 仅简单赚币
+okx-trade-mcp --modules all,earn.savings
+
+# 所有模块 + 仅链上赚币
+okx-trade-mcp --modules all,earn.onchain
 ```
 
 ### 注意事项
