@@ -14,24 +14,7 @@
 ### 新增
 
 - **CLI 下单命令 — 附带止盈止损**：`okx spot place`、`okx swap place`、`okx futures place` 现支持可选的止盈止损参数：`--tpTriggerPx`、`--tpOrdPx`、`--tpTriggerPxType`、`--slTriggerPx`、`--slOrdPx`、`--slTriggerPxType`。这些参数会直接作为附带 TP/SL 传递给 OKX 下单 API。
-
----
-
-## [1.2.2] - 2026-03-11
-
-### 修复
-
-- **安全提示时机改为首次 CLI 运行时展示**：安全提醒不再于 `npm install`（postinstall）阶段打印，改为在安装后首次调用 `okx` CLI 时展示。此改动避免了在 CI/CD 环境中 npm 静默抑制 lifecycle 输出的问题，确保用户在实际使用工具时能看到安全提示。
-
----
-
-## [1.2.1] - 2026-03-11
-
-### 新增
-
-- **安装后安全提示**：`npm install` 完成后会向 stderr 输出双语安全提醒——提示用户切勿在 Agent 对话中分享 API Key、使用专用子账户、先在模拟盘测试再接入实盘。适用于 `@okx_ai/okx-trade-cli` 和 `@okx_ai/okx-trade-mcp` 两个包。一键安装脚本（`install.sh` / `install.ps1`）也会在安装完成后展示相同提示。
 - **Earn 模块** — 新增 7 个 OKX 简单赚币（活期/灵活借贷）工具：`earn_get_savings_balance`、`earn_savings_purchase`、`earn_savings_redeem`、`earn_set_lending_rate`、`earn_get_lending_history`、`earn_get_lending_rate_summary`、`earn_get_lending_rate_history`。包含 CLI 命令、中英文文档及完整测试覆盖。
-
 ---
 
 ## [1.2.0] - 2026-03-10

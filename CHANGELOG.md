@@ -14,24 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **CLI place commands — attached TP/SL**: `okx spot place`, `okx swap place`, and `okx futures place` now accept optional take-profit and stop-loss parameters: `--tpTriggerPx`, `--tpOrdPx`, `--tpTriggerPxType`, `--slTriggerPx`, `--slOrdPx`, `--slTriggerPxType`. These are forwarded directly to the OKX order API as attached TP/SL on the placed order.
-
----
-
-## [1.2.2] - 2026-03-11
-
-### Fixed
-
-- **Security tips timing changed to first CLI run**: The security reminder is no longer printed during `npm install` (postinstall). Instead, it is shown on the first time `okx` CLI is invoked after installation. This avoids the notice being silently suppressed by npm in CI/CD environments and ensures users actually see it when they first use the tool.
-
----
-
-## [1.2.1] - 2026-03-11
-
-### Added
-
-- **Post-install security notice**: `npm install` now prints a bilingual security reminder to stderr — reminding users to never share API keys in agent chat, use a dedicated sub-account, and test on demo before going live. Applies to both `@okx_ai/okx-trade-cli` and `@okx_ai/okx-trade-mcp`. The one-line install scripts (`install.sh` / `install.ps1`) also display the same notice after installation completes.
 - **Earn module** — 7 new tools for OKX Simple Earn (savings/flexible lending): `earn_get_savings_balance`, `earn_savings_purchase`, `earn_savings_redeem`, `earn_set_lending_rate`, `earn_get_lending_history`, `earn_get_lending_rate_summary`, `earn_get_lending_rate_history`. Includes CLI commands, dual-language documentation, and full test coverage.
-
 ---
 
 ## [1.2.0] - 2026-03-10

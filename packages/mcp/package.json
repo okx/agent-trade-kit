@@ -9,13 +9,12 @@
   "bin": {
     "okx-trade-mcp": "dist/index.js"
   },
-  "files": ["dist", "scripts", "README.md"],
+  "files": ["dist", "README.md"],
   "publishConfig": { "access": "public" },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "postinstall": "node scripts/postinstall.js",
     "test:unit": "node --import tsx/esm --test test/*.test.ts"
   },
   "engines": { "node": ">=18" },
