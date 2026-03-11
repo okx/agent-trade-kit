@@ -502,6 +502,11 @@ const HELP_TREE: HelpTree = {
     description: "Set up client integrations (Cursor, Windsurf, Claude, etc.)",
     usage: `okx setup --client <${SUPPORTED_CLIENTS.join("|")}> [--profile <name>] [--modules <list>]`,
   },
+
+  diagnose: {
+    description: "Run network diagnostics (DNS, TCP, TLS, API, auth)",
+    usage: "okx diagnose [--profile <name>] [--demo]",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -518,6 +523,7 @@ function printGlobalHelp(): void {
     `  --profile <name>   Use a named profile from ${configFilePath()}`,
     "  --demo             Use simulated trading (demo) mode",
     "  --json             Output raw JSON",
+    "  --verbose          Show detailed network request/response info (stderr)",
     "  --version, -v      Show version",
     "  --help             Show this help",
     "",

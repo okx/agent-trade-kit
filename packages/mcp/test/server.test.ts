@@ -18,6 +18,8 @@ function makeConfig(overrides: Partial<OkxConfig> = {}): OkxConfig {
     readOnly: false,
     demo: true,
     site: "global",
+    sourceTag: "test",
+    verbose: false,
     ...overrides,
   };
 }

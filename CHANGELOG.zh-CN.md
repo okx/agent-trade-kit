@@ -13,6 +13,8 @@
 
 ### 新增
 
+- **CLI `--verbose` 标志**：为任意命令添加 `--verbose`，可在 stderr 查看详细的网络请求/响应信息 — 包括方法、URL、认证状态（密钥脱敏）、耗时、HTTP 状态码、OKX 错误码和 trace ID。适用于排查连接和认证问题。
+- **CLI `okx diagnose` 诊断命令**：逐步检查连通性 — 环境（Node.js、OS、shell、locale、时区、代理）、配置（凭证、站点、base URL）、网络（DNS → TCP → TLS → 公开 API）和认证。失败时给出具体建议，并在末尾输出可复制分享的诊断报告。
 - **CLI 下单命令 — 附带止盈止损**：`okx spot place`、`okx swap place`、`okx futures place` 现支持可选的止盈止损参数：`--tpTriggerPx`、`--tpOrdPx`、`--tpTriggerPxType`、`--slTriggerPx`、`--slOrdPx`、`--slTriggerPxType`。这些参数会直接作为附带 TP/SL 传递给 OKX 下单 API。
 - **Earn 模块** — 新增 7 个 OKX 简单赚币（活期/灵活借贷）工具：`earn_get_savings_balance`、`earn_savings_purchase`、`earn_savings_redeem`、`earn_set_lending_rate`、`earn_get_lending_history`、`earn_get_lending_rate_summary`、`earn_get_lending_rate_history`。包含 CLI 命令、中英文文档及完整测试覆盖。
 

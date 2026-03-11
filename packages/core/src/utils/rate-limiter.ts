@@ -22,9 +22,11 @@ function sleep(ms: number): Promise<void> {
 export class RateLimiter {
   private readonly buckets = new Map<string, Bucket>();
   private readonly maxWaitMs: number;
+  private readonly verbose: boolean;
 
-  public constructor(maxWaitMs = 30_000) {
+  public constructor(maxWaitMs = 30_000, verbose = false) {
     this.maxWaitMs = maxWaitMs;
+    this.verbose = verbose;
   }
 
   public async consume(config: RateLimitConfig, amount = 1): Promise<void> {
@@ -47,6 +49,9 @@ export class RateLimiter {
       );
     }
 
+    if (this.verbose) {
+      process.stderr.write(`[verbose] \u23F3 rate-limit: waiting ${waitMs}ms for "${config.key}"\n`);
+    }
     await sleep(waitMs);
     this.refill(bucket);
 

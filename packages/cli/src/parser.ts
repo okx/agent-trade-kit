@@ -94,6 +94,8 @@ export interface CliValues {
   tag?: string;
   allowEarlyRedeem?: boolean;
   state?: string;
+  // diagnostics
+  verbose?: boolean;
 }
 
 export const CLI_OPTIONS = {
@@ -203,6 +205,8 @@ export const CLI_OPTIONS = {
   tag: { type: "string" },
   allowEarlyRedeem: { type: "boolean", default: false },
   state: { type: "string" },
+  // diagnostics
+  verbose: { type: "boolean", default: false },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {

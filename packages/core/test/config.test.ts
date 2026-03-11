@@ -74,6 +74,11 @@ describe("loadConfig — site defaults", () => {
     const config = loadConfig(BASE_CLI);
     assert.equal(config.baseUrl, OKX_SITES.global.apiBaseUrl);
   });
+
+  it("defaults verbose to false when not specified", () => {
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.verbose, false);
+  });
 });
 
 describe("loadConfig — site from CLI arg", () => {

@@ -7,6 +7,7 @@ declare const __GIT_HASH__: string;
 const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
+import { cmdDiagnose } from "./commands/diagnose.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
 import { parseCli } from "./parser.js";
@@ -763,6 +764,18 @@ function printHelpForLevel(positionals: string[]): void {
   else printHelp(module, subgroup);
 }
 
+function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxConfig, profile?: string): void {
+  let authLabel = "\u2717";
+  if (config.hasAuth && config.apiKey) {
+    authLabel = `\u2713(${config.apiKey.slice(0, 3)}***${config.apiKey.slice(-3)})`;
+  } else if (config.hasAuth) {
+    authLabel = "\u2713";
+  }
+  process.stderr.write(
+    `[verbose] config: profile=${profile ?? "default"} site=${config.site} base=${config.baseUrl} auth=${authLabel} demo=${config.demo ? "on" : "off"} modules=${config.modules.join(",")}\n`,
+  );
+}
+
 async function main(): Promise<void> {
   checkForUpdates("@okx_ai/okx-trade-cli", CLI_VERSION);
 
@@ -785,7 +798,12 @@ async function main(): Promise<void> {
   if (module === "config") return handleConfigCommand(action, rest, json, v.lang, v.force);
   if (module === "setup") return handleSetupCommand(v);
 
-  const config = loadProfileConfig({ profile: v.profile, demo: v.demo, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  const config = loadProfileConfig({ profile: v.profile, demo: v.demo, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+
+  if (config.verbose) printVerboseConfigSummary(config, v.profile);
+
+  if (module === "diagnose") return cmdDiagnose(config, v.profile ?? "default");
+
   const client = new OkxRestClient(config);
   const run = createToolRunner(client, config);
 

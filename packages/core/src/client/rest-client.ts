@@ -92,12 +92,42 @@ function buildQueryString(query?: QueryParams): string {
   return params.toString();
 }
 
+function maskKey(key: string): string {
+  if (key.length <= 8) return "***";
+  return `${key.slice(0, 3)}***${key.slice(-3)}`;
+}
+
+function vlog(message: string): void {
+  process.stderr.write(`[verbose] ${message}\n`);
+}
+
 export class OkxRestClient {
   private readonly config: OkxConfig;
-  private readonly rateLimiter = new RateLimiter();
+  private readonly rateLimiter: RateLimiter;
 
   public constructor(config: OkxConfig) {
     this.config = config;
+    this.rateLimiter = new RateLimiter(30_000, config.verbose);
+  }
+
+  private logRequest(method: string, url: string, auth: string): void {
+    if (!this.config.verbose) return;
+    vlog(`\u2192 ${method} ${url}`);
+    const authInfo = auth === "private" && this.config.apiKey
+      ? `auth=\u2713(${maskKey(this.config.apiKey)})` : `auth=${auth}`;
+    vlog(`  ${authInfo} demo=${this.config.demo} timeout=${this.config.timeoutMs}ms`);
+  }
+
+  private logResponse(
+    status: number, rawLen: number, elapsed: number,
+    traceId: string | undefined, code?: string, msg?: string,
+  ): void {
+    if (!this.config.verbose) return;
+    if (code && code !== "0" && code !== "1") {
+      vlog(`\u2717 ${status} | code=${code} | msg=${msg ?? "-"} | ${rawLen}B | ${elapsed}ms | trace=${traceId ?? "-"}`);
+    } else {
+      vlog(`\u2190 ${status} | code=${code ?? "0"} | ${rawLen}B | ${elapsed}ms | trace=${traceId ?? "-"}`);
+    }
   }
 
   public async publicGet<TData = unknown>(
@@ -142,17 +172,135 @@ export class OkxRestClient {
     });
   }
 
+  private setAuthHeaders(
+    headers: Headers, method: string, requestPath: string, bodyJson: string, timestamp: string,
+  ): void {
+    if (!this.config.hasAuth) {
+      throw new ConfigError(
+        "Private endpoint requires API credentials.",
+        "Configure OKX_API_KEY, OKX_SECRET_KEY and OKX_PASSPHRASE.",
+      );
+    }
+
+    if (!this.config.apiKey || !this.config.secretKey || !this.config.passphrase) {
+      throw new ConfigError(
+        "Invalid private API credentials state.",
+        "Ensure all OKX credentials are set.",
+      );
+    }
+
+    // OKX signature: timestamp + METHOD + requestPath + body
+    const payload = `${timestamp}${method.toUpperCase()}${requestPath}${bodyJson}`;
+    const signature = signOkxPayload(payload, this.config.secretKey);
+    headers.set("OK-ACCESS-KEY", this.config.apiKey);
+    headers.set("OK-ACCESS-SIGN", signature);
+    headers.set("OK-ACCESS-PASSPHRASE", this.config.passphrase);
+    headers.set("OK-ACCESS-TIMESTAMP", timestamp);
+  }
+
+  private throwOkxError(
+    code: string, msg: string | undefined, reqConfig: RequestConfig, traceId: string | undefined,
+  ): never {
+    const message = msg || "OKX API request failed.";
+    const endpoint = `${reqConfig.method} ${reqConfig.path}`;
+
+    if (code === "50111" || code === "50112" || code === "50113") {
+      throw new AuthenticationError(
+        message,
+        "Check API key, secret, passphrase and permissions.",
+        endpoint,
+        traceId,
+      );
+    }
+
+    const behavior = OKX_CODE_BEHAVIORS[code];
+    const suggestion = behavior?.suggestion?.replace("{site}", this.config.site);
+
+    if (code === "50011" || code === "50061") {
+      throw new RateLimitError(message, suggestion, endpoint, traceId);
+    }
+
+    throw new OkxApiError(message, {
+      code,
+      endpoint,
+      suggestion,
+      traceId,
+    });
+  }
+
+  private processResponse<TData>(
+    rawText: string,
+    response: Response,
+    elapsed: number,
+    traceId: string | undefined,
+    reqConfig: RequestConfig,
+    requestPath: string,
+  ): RequestResult<TData> {
+    let parsed: OkxApiResponse<TData>;
+    try {
+      parsed = (rawText ? JSON.parse(rawText) : {}) as OkxApiResponse<TData>;
+    } catch (error) {
+      this.logResponse(response.status, rawText.length, elapsed, traceId, "non-JSON");
+      if (!response.ok) {
+        const messagePreview = rawText.slice(0, 160).replace(/\s+/g, " ").trim();
+        throw new OkxApiError(
+          `HTTP ${response.status} from OKX: ${messagePreview || "Non-JSON response body"}`,
+          {
+            code: String(response.status),
+            endpoint: `${reqConfig.method} ${reqConfig.path}`,
+            suggestion: "Verify endpoint path and request parameters.",
+            traceId,
+          },
+        );
+      }
+      throw new NetworkError(
+        `OKX returned non-JSON response for ${reqConfig.method} ${requestPath}.`,
+        `${reqConfig.method} ${requestPath}`,
+        error,
+      );
+    }
+
+    if (!response.ok) {
+      this.logResponse(response.status, rawText.length, elapsed, traceId, parsed.code ?? "-", parsed.msg);
+      throw new OkxApiError(
+        `HTTP ${response.status} from OKX: ${parsed.msg ?? "Unknown error"}`,
+        {
+          code: String(response.status),
+          endpoint: `${reqConfig.method} ${reqConfig.path}`,
+          suggestion: "Retry later or verify endpoint parameters.",
+          traceId,
+        },
+      );
+    }
+
+    const responseCode = parsed.code;
+    this.logResponse(response.status, rawText.length, elapsed, traceId, responseCode, parsed.msg);
+
+    if (responseCode && responseCode !== "0" && responseCode !== "1") {
+      this.throwOkxError(responseCode, parsed.msg, reqConfig, traceId);
+    }
+
+    return {
+      endpoint: `${reqConfig.method} ${reqConfig.path}`,
+      requestTime: new Date().toISOString(),
+      data: (parsed.data ?? null) as TData,
+      raw: parsed,
+    };
+  }
+
   private async request<TData = unknown>(
-    config: RequestConfig,
+    reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
-    const queryString = buildQueryString(config.query);
-    const requestPath = queryString.length > 0 ? `${config.path}?${queryString}` : config.path;
+    const queryString = buildQueryString(reqConfig.query);
+    const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
     const url = `${this.config.baseUrl}${requestPath}`;
-    const bodyJson = config.body ? JSON.stringify(config.body) : "";
+    const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
     const timestamp = getNow();
 
-    if (config.rateLimit) {
-      await this.rateLimiter.consume(config.rateLimit);
+    this.logRequest(reqConfig.method, url, reqConfig.auth);
+
+    if (reqConfig.rateLimit) {
+      await this.rateLimiter.consume(reqConfig.rateLimit);
     }
 
     const headers = new Headers({
@@ -164,125 +312,39 @@ export class OkxRestClient {
       headers.set("User-Agent", this.config.userAgent);
     }
 
-    if (config.auth === "private") {
-      if (!this.config.hasAuth) {
-        throw new ConfigError(
-          "Private endpoint requires API credentials.",
-          "Configure OKX_API_KEY, OKX_SECRET_KEY and OKX_PASSPHRASE.",
-        );
-      }
-
-      if (!this.config.apiKey || !this.config.secretKey || !this.config.passphrase) {
-        throw new ConfigError(
-          "Invalid private API credentials state.",
-          "Ensure all OKX credentials are set.",
-        );
-      }
-
-      // OKX signature: timestamp + METHOD + requestPath + body
-      const payload = `${timestamp}${config.method.toUpperCase()}${requestPath}${bodyJson}`;
-      const signature = signOkxPayload(payload, this.config.secretKey);
-      headers.set("OK-ACCESS-KEY", this.config.apiKey);
-      headers.set("OK-ACCESS-SIGN", signature);
-      headers.set("OK-ACCESS-PASSPHRASE", this.config.passphrase);
-      headers.set("OK-ACCESS-TIMESTAMP", timestamp);
+    if (reqConfig.auth === "private") {
+      this.setAuthHeaders(headers, reqConfig.method, requestPath, bodyJson, timestamp);
     }
 
     if (this.config.demo) {
       headers.set("x-simulated-trading", "1");
     }
 
+    const t0 = Date.now();
     let response: Response;
     try {
       response = await fetch(url, {
-        method: config.method,
+        method: reqConfig.method,
         headers,
-        body: config.method === "POST" ? bodyJson : undefined,
+        body: reqConfig.method === "POST" ? bodyJson : undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
       });
     } catch (error) {
+      if (this.config.verbose) {
+        const elapsed = Date.now() - t0;
+        const cause = error instanceof Error ? error.message : String(error);
+        vlog(`\u2717 NetworkError after ${elapsed}ms: ${cause}`);
+      }
       throw new NetworkError(
-        `Failed to call OKX endpoint ${config.method} ${requestPath}.`,
-        `${config.method} ${requestPath}`,
+        `Failed to call OKX endpoint ${reqConfig.method} ${requestPath}.`,
+        `${reqConfig.method} ${requestPath}`,
         error,
       );
     }
 
     const rawText = await response.text();
+    const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
-    let parsed: OkxApiResponse<TData>;
-    try {
-      parsed = (rawText ? JSON.parse(rawText) : {}) as OkxApiResponse<TData>;
-    } catch (error) {
-      if (!response.ok) {
-        const messagePreview = rawText.slice(0, 160).replace(/\s+/g, " ").trim();
-        throw new OkxApiError(
-          `HTTP ${response.status} from OKX: ${messagePreview || "Non-JSON response body"}`,
-          {
-            code: String(response.status),
-            endpoint: `${config.method} ${config.path}`,
-            suggestion: "Verify endpoint path and request parameters.",
-            traceId,
-          },
-        );
-      }
-      throw new NetworkError(
-        `OKX returned non-JSON response for ${config.method} ${requestPath}.`,
-        `${config.method} ${requestPath}`,
-        error,
-      );
-    }
-
-    if (!response.ok) {
-      throw new OkxApiError(
-        `HTTP ${response.status} from OKX: ${parsed.msg ?? "Unknown error"}`,
-        {
-          code: String(response.status),
-          endpoint: `${config.method} ${config.path}`,
-          suggestion: "Retry later or verify endpoint parameters.",
-          traceId,
-        },
-      );
-    }
-
-    const responseCode = parsed.code;
-    if (responseCode && responseCode !== "0" && responseCode !== "1") {
-      const message = parsed.msg || "OKX API request failed.";
-      const endpoint = `${config.method} ${config.path}`;
-
-      if (
-        responseCode === "50111" ||
-        responseCode === "50112" ||
-        responseCode === "50113"
-      ) {
-        throw new AuthenticationError(
-          message,
-          "Check API key, secret, passphrase and permissions.",
-          endpoint,
-          traceId,
-        );
-      }
-
-      const behavior = OKX_CODE_BEHAVIORS[responseCode];
-      const suggestion = behavior?.suggestion?.replace("{site}", this.config.site);
-
-      if (responseCode === "50011" || responseCode === "50061") {
-        throw new RateLimitError(message, suggestion, endpoint, traceId);
-      }
-
-      throw new OkxApiError(message, {
-        code: responseCode,
-        endpoint,
-        suggestion,
-        traceId,
-      });
-    }
-
-    return {
-      endpoint: `${config.method} ${config.path}`,
-      requestTime: new Date().toISOString(),
-      data: (parsed.data ?? null) as TData,
-      raw: parsed,
-    };
+    return this.processResponse<TData>(rawText, response, elapsed, traceId, reqConfig, requestPath);
   }
 }

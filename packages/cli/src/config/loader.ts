@@ -9,6 +9,7 @@ export interface LoadProfileOptions {
   site?: string;
   userAgent?: string;
   sourceTag?: string;
+  verbose?: boolean;
 }
 
 /**
@@ -25,5 +26,6 @@ export function loadProfileConfig(opts: LoadProfileOptions): OkxConfig {
     site: opts.site,
     userAgent: opts.userAgent,
     sourceTag: opts.sourceTag,
+    verbose: opts.verbose,
   });
 }

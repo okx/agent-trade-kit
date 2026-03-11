@@ -18,7 +18,7 @@ import {
   RateLimitError,
 } from "../src/utils/errors.js";
 import type { OkxConfig } from "../src/config.js";
-import type { ModuleId } from "../src/constants.js";
+import type { ModuleId, SiteId } from "../src/constants.js";
 
 // ---------------------------------------------------------------------------
 // Config & mock helpers
@@ -31,6 +31,9 @@ const BASE_CONFIG: OkxConfig = {
   modules: ["market"] as ModuleId[],
   readOnly: false,
   demo: false,
+  site: "global",
+  sourceTag: "test",
+  verbose: false,
 };
 
 /** Mock globalThis.fetch for the duration of a single test. */
@@ -674,5 +677,88 @@ describe("OkxRestClient: query string building", () => {
     );
     const url = new URL(captured.req?.url ?? "");
     assert.equal(url.searchParams.get("instId"), "BTC-USDT,ETH-USDT");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Verbose mode output
+// ---------------------------------------------------------------------------
+
+describe("OkxRestClient: verbose mode", () => {
+  /** Capture stderr writes during a callback. */
+  async function captureStderr(fn: () => Promise<void>): Promise<string> {
+    const chunks: string[] = [];
+    const originalWrite = process.stderr.write;
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      chunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+    try {
+      await fn();
+    } finally {
+      process.stderr.write = originalWrite;
+    }
+    return chunks.join("");
+  }
+
+  const VERBOSE_CONFIG: OkxConfig = { ...BASE_CONFIG, verbose: true };
+
+  it("writes request and response info to stderr when verbose=true", async () => {
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+      const client = new OkxRestClient(VERBOSE_CONFIG);
+      const output = await captureStderr(() => client.publicGet("/api/v5/market/ticker", { instId: "BTC-USDT" }));
+      assert.ok(output.includes("[verbose]"), "should contain [verbose] prefix");
+      assert.ok(output.includes("/api/v5/market/ticker"), "should contain request path");
+      assert.ok(output.includes("200"), "should contain response status");
+    });
+  });
+
+  it("does not write to stderr when verbose=false", async () => {
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+      const client = new OkxRestClient({ ...BASE_CONFIG, verbose: false });
+      const output = await captureStderr(() => client.publicGet("/api/v5/market/ticker"));
+      assert.equal(output, "", "should not produce verbose output");
+    });
+  });
+
+  it("logs network errors to stderr when verbose=true", async () => {
+    await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
+      const client = new OkxRestClient(VERBOSE_CONFIG);
+      const output = await captureStderr(async () => {
+        try { await client.publicGet("/api/v5/market/ticker"); } catch { /* expected */ }
+      });
+      assert.ok(output.includes("NetworkError"), "should contain NetworkError");
+      assert.ok(output.includes("fetch failed"), "should contain error cause");
+    });
+  });
+
+  it("masks API key in verbose output", async () => {
+    const authVerboseConfig: OkxConfig = {
+      ...BASE_CONFIG,
+      verbose: true,
+      hasAuth: true,
+      apiKey: "abcdefghijklmnop",
+      secretKey: "test-secret",
+      passphrase: "test-pass",
+    };
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+      const client = new OkxRestClient(authVerboseConfig);
+      const output = await captureStderr(() => client.privateGet("/api/v5/account/balance"));
+      assert.ok(output.includes("abc***nop"), "should contain masked key");
+      assert.ok(!output.includes("abcdefghijklmnop"), "should NOT contain full key");
+    });
+  });
+
+  it("logs OKX API error details when verbose=true", async () => {
+    await withFetch(
+      jsonFetch({ code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] }),
+      async () => {
+        const client = new OkxRestClient(VERBOSE_CONFIG);
+        const output = await captureStderr(async () => {
+          try { await client.publicGet("/api/v5/account/balance"); } catch { /* expected */ }
+        });
+        assert.ok(output.includes("50111"), "should contain error code");
+      },
+    );
   });
 });
