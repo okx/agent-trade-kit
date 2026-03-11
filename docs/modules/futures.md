@@ -43,6 +43,9 @@ okx futures get --instId BTC-USDT-250328 --ordId 123456
 
 # Place and cancel
 okx futures place --instId BTC-USDT-250328 --side buy --ordType market --sz 1 --tdMode cross
+# With attached TP/SL
+okx futures place --instId BTC-USDT-250328 --side buy --ordType market --sz 1 --tdMode cross \
+  --tpTriggerPx 100000 --tpOrdPx 99900 --slTriggerPx 85000 --slOrdPx 84900
 okx futures cancel BTC-USDT-250328 --ordId 123456
 ```
 
@@ -93,5 +96,8 @@ okx futures get --instId BTC-USDT-250328 --ordId 123456
 
 # 下单和撤单
 okx futures place --instId BTC-USDT-250328 --side buy --ordType market --sz 1 --tdMode cross
+# 附带止盈止损
+okx futures place --instId BTC-USDT-250328 --side buy --ordType market --sz 1 --tdMode cross \
+  --tpTriggerPx 100000 --tpOrdPx 99900 --slTriggerPx 85000 --slOrdPx 84900
 okx futures cancel BTC-USDT-250328 --ordId 123456
 ```

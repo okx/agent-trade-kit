@@ -48,6 +48,9 @@ okx spot fills --instId BTC-USDT
 # Place orders
 okx spot place --instId BTC-USDT --side buy --ordType market --sz 100
 okx spot place --instId BTC-USDT --side sell --ordType limit --sz 0.001 --px 70000
+# With attached TP/SL
+okx spot place --instId BTC-USDT --side buy --ordType limit --sz 0.001 --px 60000 \
+  --tpTriggerPx 65000 --tpOrdPx 64900 --slTriggerPx 58000 --slOrdPx 57900
 
 # Manage orders
 okx spot amend --instId BTC-USDT --ordId 123456 --newPx 68000
@@ -106,6 +109,9 @@ okx spot fills --instId BTC-USDT
 # 下单
 okx spot place --instId BTC-USDT --side buy --ordType market --sz 100
 okx spot place --instId BTC-USDT --side sell --ordType limit --sz 0.001 --px 70000
+# 附带止盈止损
+okx spot place --instId BTC-USDT --side buy --ordType limit --sz 0.001 --px 60000 \
+  --tpTriggerPx 65000 --tpOrdPx 64900 --slTriggerPx 58000 --slOrdPx 57900
 
 # 管理订单
 okx spot amend --instId BTC-USDT --ordId 123456 --newPx 68000

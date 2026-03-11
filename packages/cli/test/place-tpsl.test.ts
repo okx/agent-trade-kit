@@ -8,8 +8,7 @@ import { cmdFuturesPlace } from "../src/commands/futures.js";
 // Capture stdout to prevent noise during tests
 function muteStdout(fn: () => Promise<void>): Promise<void> {
   const orig = process.stdout.write.bind(process.stdout);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (process.stdout as any).write = () => true;
+  (process.stdout as { write: typeof process.stdout.write }).write = () => true;
   return fn().finally(() => {
     process.stdout.write = orig;
   });
