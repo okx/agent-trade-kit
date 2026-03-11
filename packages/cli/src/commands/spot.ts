@@ -35,6 +35,10 @@ export async function cmdSpotPlace(
     ordType: string;
     sz: string;
     px?: string;
+    tpTriggerPx?: string;
+    tpOrdPx?: string;
+    slTriggerPx?: string;
+    slOrdPx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -45,6 +49,10 @@ export async function cmdSpotPlace(
     ordType: opts.ordType,
     sz: opts.sz,
     px: opts.px,
+    tpTriggerPx: opts.tpTriggerPx,
+    tpOrdPx: opts.tpOrdPx,
+    slTriggerPx: opts.slTriggerPx,
+    slOrdPx: opts.slOrdPx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
