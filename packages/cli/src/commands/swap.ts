@@ -59,6 +59,10 @@ export async function cmdSwapPlace(
     posSide?: string;
     px?: string;
     tdMode: string;
+    tpTriggerPx?: string;
+    tpOrdPx?: string;
+    slTriggerPx?: string;
+    slOrdPx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -70,6 +74,10 @@ export async function cmdSwapPlace(
     sz: opts.sz,
     posSide: opts.posSide,
     px: opts.px,
+    tpTriggerPx: opts.tpTriggerPx,
+    tpOrdPx: opts.tpOrdPx,
+    slTriggerPx: opts.slTriggerPx,
+    slOrdPx: opts.slOrdPx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

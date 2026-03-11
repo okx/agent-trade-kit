@@ -158,8 +158,8 @@ const HELP_TREE: HelpTree = {
         description: "Get trade fill history for spot orders",
       },
       place: {
-        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]",
-        description: "Place a new spot order",
+        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        description: "Place a new spot order (supports attached TP/SL)",
       },
       amend: {
         usage: "okx spot amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]",
@@ -219,8 +219,8 @@ const HELP_TREE: HelpTree = {
         description: "Get trade fill history for swap orders",
       },
       place: {
-        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>] [--tdMode <cross|isolated>]",
-        description: "Place a new perpetual swap order",
+        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>] [--tdMode <cross|isolated>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        description: "Place a new perpetual swap order (supports attached TP/SL)",
       },
       cancel: {
         usage: "okx swap cancel <instId> --ordId <id>",
@@ -292,8 +292,8 @@ const HELP_TREE: HelpTree = {
         description: "Get trade fill history for futures orders",
       },
       place: {
-        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]",
-        description: "Place a new futures order",
+        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        description: "Place a new futures order (supports attached TP/SL)",
       },
       cancel: {
         usage: "okx futures cancel <instId> --ordId <id>",

@@ -78,6 +78,10 @@ export async function cmdFuturesPlace(
     posSide?: string;
     px?: string;
     reduceOnly?: boolean;
+    tpTriggerPx?: string;
+    tpOrdPx?: string;
+    slTriggerPx?: string;
+    slOrdPx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -90,6 +94,10 @@ export async function cmdFuturesPlace(
     posSide: opts.posSide,
     px: opts.px,
     reduceOnly: opts.reduceOnly,
+    tpTriggerPx: opts.tpTriggerPx,
+    tpOrdPx: opts.tpOrdPx,
+    slTriggerPx: opts.slTriggerPx,
+    slOrdPx: opts.slOrdPx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

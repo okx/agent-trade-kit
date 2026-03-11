@@ -341,6 +341,10 @@ function handleSpotCommand(
       ordType: v.ordType!,
       sz: v.sz!,
       px: v.px,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
       json,
     });
   if (action === "cancel")
@@ -450,6 +454,10 @@ export function handleSwapCommand(
       posSide: v.posSide,
       px: v.px,
       tdMode: v.tdMode ?? "cross",
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
       json,
     });
   if (action === "cancel")
@@ -558,6 +566,10 @@ function handleFuturesCommand(
       posSide: v.posSide,
       px: v.px,
       reduceOnly: v.reduceOnly,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
       json,
     });
   if (action === "cancel")

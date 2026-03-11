@@ -48,6 +48,9 @@ okx swap fills --instId BTC-USDT-SWAP
 
 # Place and manage orders
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 --posSide long --tdMode cross
+# With attached TP/SL
+okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 --posSide long --tdMode cross \
+  --tpTriggerPx 100000 --tpOrdPx 99900 --slTriggerPx 85000 --slOrdPx 84900
 okx swap cancel BTC-USDT-SWAP --ordId 123456
 okx swap close --instId BTC-USDT-SWAP --mgnMode cross
 
@@ -108,6 +111,9 @@ okx swap fills --instId BTC-USDT-SWAP
 
 # 下单和管理
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 --posSide long --tdMode cross
+# 附带止盈止损
+okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 --posSide long --tdMode cross \
+  --tpTriggerPx 100000 --tpOrdPx 99900 --slTriggerPx 85000 --slOrdPx 84900
 okx swap cancel BTC-USDT-SWAP --ordId 123456
 okx swap close --instId BTC-USDT-SWAP --mgnMode cross
 
