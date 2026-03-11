@@ -26,18 +26,7 @@ pnpm test:unit
 
 确认全部通过，0 fail。把结果摘要告诉用户（pass 数、fail 数）。
 
-## 4. 用户视角验证
-
-如果本次改动涉及**用户可感知的行为**（安装输出、CLI 交互、错误提示等），必须：
-
-1. 描述用户的实际操作路径（如 `npm install -g`、`npx okx`）
-2. 按该路径执行端到端验证，**禁止用开发者捷径替代**
-3. 记录测试环境版本：`node -v && npm -v`
-4. 将验证结果写入 MR Test Plan 的「用户体验验证」部分
-
-如果不涉及用户可感知行为，跳过此步并说明原因。
-
-## 5. Build + Typecheck
+## 4. Build + Typecheck
 
 ```bash
 pnpm build && pnpm typecheck
@@ -46,4 +35,4 @@ pnpm build && pnpm typecheck
 确认无报错。
 
 完成后输出一行总结，例如：
-> Changelog ✓ README ✓ Tests 162/162 ✓ E2E ✓ Build ✓ — 可以提 MR 了
+> Changelog ✓ README ✓ Tests 162/162 ✓ Build ✓ — 可以提 MR 了

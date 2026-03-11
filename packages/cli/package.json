@@ -8,12 +8,13 @@
   "bin": {
     "okx": "dist/index.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "scripts", "README.md"],
   "publishConfig": { "access": "public" },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "postinstall": "node scripts/postinstall.js",
     "test:unit": "node --import tsx/esm --test test/*.test.ts",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },

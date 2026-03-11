@@ -8,7 +8,6 @@ const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
 import { loadProfileConfig } from "./config/loader.js";
-import { showFirstRunTips } from "./tips.js";
 import { printHelp } from "./help.js";
 import { parseCli } from "./parser.js";
 import type { CliValues } from "./parser.js";
@@ -765,7 +764,6 @@ function printHelpForLevel(positionals: string[]): void {
 }
 
 async function main(): Promise<void> {
-  showFirstRunTips(CLI_VERSION);
   checkForUpdates("@okx_ai/okx-trade-cli", CLI_VERSION);
 
   const { values, positionals } = parseCli(process.argv.slice(2));
