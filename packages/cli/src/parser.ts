@@ -101,8 +101,9 @@ export interface CliValues {
   lastDays?: string;
   copyMode?: string;
   copyRatio?: string;
-  fixedAmt?: string;
+  copyTotalAmt?: string;
   copyAmt?: string;
+  copyMgnMode?: string;
 }
 
 export const CLI_OPTIONS = {
@@ -219,8 +220,9 @@ export const CLI_OPTIONS = {
   lastDays: { type: "string" },
   copyMode: { type: "string" },
   copyRatio: { type: "string" },
-  fixedAmt: { type: "string" },
+  copyTotalAmt: { type: "string" },
   copyAmt: { type: "string" },
+  copyMgnMode: { type: "string" },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {

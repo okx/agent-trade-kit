@@ -210,7 +210,7 @@ okx copy-trade traders --limit 20
 okx copy-trade status
 
 # Start following a trader (allocates real funds)
-okx copy-trade follow --uniqueCode <16-char-code> --fixedAmt 1000
+okx copy-trade follow --uniqueCode <16-char-code> --copyTotalAmt 1000 --copyAmt 50
 
 # Stop following a trader
 okx copy-trade unfollow --uniqueCode <16-char-code>
@@ -465,7 +465,7 @@ okx copy-trade traders --limit 20
 okx copy-trade status
 
 # 开始跟单（会使用真实资金）
-okx copy-trade follow --uniqueCode <16位代码> --fixedAmt 1000
+okx copy-trade follow --uniqueCode <16位代码> --copyTotalAmt 1000 --copyAmt 50
 
 # 停止跟单
 okx copy-trade unfollow --uniqueCode <16位代码>

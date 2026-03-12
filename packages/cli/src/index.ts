@@ -705,8 +705,8 @@ export function handleCopyTradeCommand(
   if (action === "follow")
     return cmdCopyTradeFollow(run, {
       uniqueCode: v.uniqueCode!,
-      copyTotalAmt: v.fixedAmt!,
-      copyMgnMode: v.mgnMode,
+      copyTotalAmt: v.copyTotalAmt!,
+      copyMgnMode: v.copyMgnMode,
       copyMode: v.copyMode,
       copyAmt: v.copyAmt,
       copyRatio: v.copyRatio,

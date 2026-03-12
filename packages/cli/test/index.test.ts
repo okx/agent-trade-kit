@@ -427,7 +427,7 @@ describe("handleCopyTradeCommand", () => {
   });
 
   it("dispatches follow action with required params (returns a Promise)", () => {
-    const result = handleCopyTradeCommand(mockRunner, "follow", { uniqueCode: "ABC123", fixedAmt: "1000" } as never, false);
+    const result = handleCopyTradeCommand(mockRunner, "follow", { uniqueCode: "ABC123", copyTotalAmt: "1000" } as never, false);
     assert.ok(result instanceof Promise, "follow should return a Promise");
   });
 
