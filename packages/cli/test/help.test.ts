@@ -51,9 +51,9 @@ describe("printHelp() — global overview", () => {
     assert.ok(out.includes("Usage: okx"), "should include Usage line");
   });
 
-  it("lists all 9 modules with descriptions", () => {
+  it("lists all 10 modules with descriptions", () => {
     const out = captureStdout(() => printHelp());
-    for (const mod of ["market", "account", "spot", "swap", "futures", "option", "bot", "config", "setup"]) {
+    for (const mod of ["market", "account", "spot", "swap", "futures", "option", "bot", "config", "setup", "copy-trade"]) {
       assert.ok(out.includes(mod), `should mention module '${mod}'`);
     }
   });

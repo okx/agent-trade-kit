@@ -20,7 +20,7 @@ Usage: okx-trade-mcp [options]
 
 Options:
   --modules <list>     Comma-separated list of modules to load
-                       Available: market, spot, swap, futures, option, account
+                       Available: market, copytrading, spot, swap, futures, option, account
                                   bot.grid, bot.dca
                        Alias: "bot" = all bot sub-modules (bot.grid + bot.dca)
                        Special: "all" loads all modules

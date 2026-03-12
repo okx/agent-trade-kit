@@ -123,6 +123,22 @@ import {
   cmdDcaSubOrders,
 } from "./commands/bot.js";
 import {
+  cmdCopyTradeTraders,
+  cmdCopyTradePositions,
+  cmdCopyTradeFollow,
+  cmdCopyTradeUnfollow,
+  cmdCopyTradeUpdate,
+  cmdCopyTradePnl,
+  cmdCopyTradeOrders,
+  cmdCopyTradeTraderPnl,
+  cmdCopyTradeTraderWeeklyPnl,
+  cmdCopyTradeTraderStats,
+  cmdCopyTradeTraderPreference,
+  cmdCopyTradeTraderPositions,
+  cmdCopyTradeTraderHistory,
+  cmdCopyTradePublicConfig,
+} from "./commands/copy-trade.js";
+import {
   cmdOnchainEarnOffers,
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
@@ -695,6 +711,60 @@ export function handleBotCommand(
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
 }
 
+export function handleCopyTradeCommand(
+  run: ToolRunner,
+  action: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  if (action === "traders")
+    return cmdCopyTradeTraders(run, { instType: v.instType, limit, json });
+  if (action === "positions")
+    return cmdCopyTradePositions(run, { instId: v.instId, instType: v.instType, json });
+  if (action === "follow")
+    return cmdCopyTradeFollow(run, {
+      uniqueCode: v.uniqueCode!,
+      copyTotalAmt: v.copyAmt!,
+      copyMode: v.copyMode,
+      copyAmt: v.fixedAmt,
+      copyRatio: v.copyRatio,
+      copyMgnMode: v.mgnMode ?? "isolated",
+      copyInstIdType: "copy",
+      subPosCloseType: "copy_close",
+      instType: v.instType,
+      json,
+    });
+  if (action === "unfollow")
+    return cmdCopyTradeUnfollow(run, { uniqueCode: v.uniqueCode!, instType: v.instType, json });
+  if (action === "update")
+    return cmdCopyTradeUpdate(run, {
+      uniqueCode: v.uniqueCode!,
+      copyTotalAmt: v.copyAmt,
+      copyMode: v.copyMode,
+      copyAmt: v.fixedAmt,
+      copyRatio: v.copyRatio,
+      instType: v.instType,
+      json,
+    });
+  if (action === "pnl") return cmdCopyTradePnl(run, { instType: v.instType, json });
+  if (action === "orders") return cmdCopyTradeOrders(run, { instType: v.instType, limit, json });
+  if (action === "trader-pnl")
+    return cmdCopyTradeTraderPnl(run, { uniqueCode: v.uniqueCode!, lastDays: v.lastDays, instType: v.instType, json });
+  if (action === "trader-weekly-pnl")
+    return cmdCopyTradeTraderWeeklyPnl(run, { uniqueCode: v.uniqueCode!, instType: v.instType, json });
+  if (action === "trader-stats")
+    return cmdCopyTradeTraderStats(run, { uniqueCode: v.uniqueCode!, lastDays: v.lastDays, instType: v.instType, json });
+  if (action === "trader-preference")
+    return cmdCopyTradeTraderPreference(run, { uniqueCode: v.uniqueCode!, instType: v.instType, json });
+  if (action === "trader-positions")
+    return cmdCopyTradeTraderPositions(run, { uniqueCode: v.uniqueCode!, instType: v.instType, limit, json });
+  if (action === "trader-history")
+    return cmdCopyTradeTraderHistory(run, { uniqueCode: v.uniqueCode!, instType: v.instType, limit, json });
+  if (action === "public-config")
+    return cmdCopyTradePublicConfig(run, { instType: v.instType, json });
+}
+
 export function handleEarnCommand(
   run: ToolRunner,
   submodule: string,
@@ -815,7 +885,8 @@ async function main(): Promise<void> {
     futures: () => handleFuturesCommand(run, action, rest, v, json),
     option:  () => handleOptionCommand(run, action, rest, v, json),
     bot:     () => handleBotCommand(run, action, rest, v, json),
-    earn:    () => handleEarnCommand(run, action, rest, v, json),
+    earn:         () => handleEarnCommand(run, action, rest, v, json),
+    "copy-trade": () => handleCopyTradeCommand(run, action, v, json),
   };
   const handler = moduleHandlers[module];
   if (handler) return handler();

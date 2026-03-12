@@ -87,6 +87,13 @@ export interface CliValues {
   tool?: string;
   // config profile
   force?: boolean;
+  // copy-trade
+  uniqueCode?: string;
+  lastDays?: string;
+  copyMode?: string;
+  copyRatio?: string;
+  fixedAmt?: string;
+  copyAmt?: string;
   // onchain-earn
   productId?: string;
   protocolType?: string;
@@ -198,6 +205,13 @@ export const CLI_OPTIONS = {
   tool: { type: "string" },
   // config profile
   force: { type: "boolean", default: false },
+  // copy-trade
+  uniqueCode: { type: "string" },
+  lastDays: { type: "string" },
+  copyMode: { type: "string" },
+  copyRatio: { type: "string" },
+  fixedAmt: { type: "string" },
+  copyAmt: { type: "string" },
   // onchain-earn
   productId: { type: "string" },
   protocolType: { type: "string" },

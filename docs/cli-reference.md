@@ -208,6 +208,46 @@ okx config set default_profile live
 
 ---
 
+## copy-trade — Copy Trading
+
+```bash
+# Browse top traders (public, no API key required)
+okx copy-trade traders
+okx copy-trade traders --instType SPOT --limit 20
+
+# Get platform copy trading config (limits and ratios)
+okx copy-trade public-config
+
+# Research a specific trader (public)
+okx copy-trade trader-pnl --uniqueCode <code> --lastDays 2       # 30d daily P&L
+okx copy-trade trader-weekly-pnl --uniqueCode <code>             # last 12 weeks
+okx copy-trade trader-stats --uniqueCode <code> --lastDays 2     # win rate, avg position
+okx copy-trade trader-preference --uniqueCode <code>             # preferred currencies
+okx copy-trade trader-positions --uniqueCode <code>              # current open positions
+okx copy-trade trader-history --uniqueCode <code>                # closed positions history
+
+# Start copying a trader (fixed amount mode: 500 USDT total, 50 USDT per order)
+okx copy-trade follow --uniqueCode <code> --copyAmt 500 --copyMode fixed_amount --fixedAmt 50
+
+# Start copying a trader (ratio mode: 500 USDT total, copy 10% of lead trader's order size)
+okx copy-trade follow --uniqueCode <code> --copyAmt 500 --copyMode ratio_copy --copyRatio 0.1
+
+# Update copy settings
+okx copy-trade update --uniqueCode <code> --copyAmt 1000 --fixedAmt 100
+
+# View my copy trading
+okx copy-trade pnl                                               # P&L of all traders I copy
+okx copy-trade positions                                         # current open copy positions
+okx copy-trade orders                                            # copy position history
+
+# Stop copying a trader
+okx copy-trade unfollow --uniqueCode <code>
+```
+
+`--lastDays`: `1`=7d `2`=30d `3`=90d `4`=365d
+
+---
+
 ## setup — Configure MCP Clients
 
 ```bash
@@ -435,6 +475,46 @@ okx bot dca stop --algoId <algoId>
 okx config show
 okx config set default_profile live
 ```
+
+---
+
+## copy-trade — 跟单交易
+
+```bash
+# 浏览顶级带单员（公开接口，无需 API Key）
+okx copy-trade traders
+okx copy-trade traders --instType SPOT --limit 20
+
+# 查看平台跟单配置（金额和比例限制）
+okx copy-trade public-config
+
+# 研究指定带单员（公开接口）
+okx copy-trade trader-pnl --uniqueCode <code> --lastDays 2       # 30天每日盈亏
+okx copy-trade trader-weekly-pnl --uniqueCode <code>             # 最近12周盈亏
+okx copy-trade trader-stats --uniqueCode <code> --lastDays 2     # 胜率、均仓等统计
+okx copy-trade trader-preference --uniqueCode <code>             # 偏好交易币种
+okx copy-trade trader-positions --uniqueCode <code>              # 当前持仓
+okx copy-trade trader-history --uniqueCode <code>                # 历史平仓记录
+
+# 开始跟单（固定金额：总投入500 USDT，每单50 USDT）
+okx copy-trade follow --uniqueCode <code> --copyAmt 500 --copyMode fixed_amount --fixedAmt 50
+
+# 开始跟单（比例模式：总投入500 USDT，跟随带单员仓位的10%）
+okx copy-trade follow --uniqueCode <code> --copyAmt 500 --copyMode ratio_copy --copyRatio 0.1
+
+# 修改跟单设置
+okx copy-trade update --uniqueCode <code> --copyAmt 1000 --fixedAmt 100
+
+# 查看我的跟单情况
+okx copy-trade pnl                                               # 所有跟单员盈亏汇总
+okx copy-trade positions                                         # 当前跟单仓位
+okx copy-trade orders                                            # 跟单历史仓位
+
+# 停止跟单
+okx copy-trade unfollow --uniqueCode <code>
+```
+
+`--lastDays`：`1`=7天 `2`=30天 `3`=90天 `4`=365天
 
 ---
 

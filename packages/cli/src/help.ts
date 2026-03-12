@@ -352,6 +352,68 @@ const HELP_TREE: HelpTree = {
     },
   },
 
+  "copy-trade": {
+    description: "Copy trading — follow top traders, manage copy positions",
+    commands: {
+      traders: {
+        usage: "okx copy-trade traders [--instType <SPOT|SWAP>] [--limit <n>]",
+        description: "List top lead traders (public, no auth required)",
+      },
+      follow: {
+        usage: "okx copy-trade follow --uniqueCode <code> --copyAmt <total-usdt> [--copyMode <fixed_amount|ratio_copy>] [--fixedAmt <n>] [--copyRatio <n>]",
+        description: "Start copy trading a lead trader [CAUTION: allocates real funds]",
+      },
+      unfollow: {
+        usage: "okx copy-trade unfollow --uniqueCode <code> [--instType <SPOT|SWAP>]",
+        description: "Stop copy trading a lead trader",
+      },
+      update: {
+        usage: "okx copy-trade update --uniqueCode <code> [--copyAmt <total-usdt>] [--copyMode <mode>] [--fixedAmt <n>] [--copyRatio <n>]",
+        description: "Update copy trade settings for a lead trader",
+      },
+      positions: {
+        usage: "okx copy-trade positions [--instType <SPOT|SWAP>] [--instId <id>]",
+        description: "Get my current open copy trade positions",
+      },
+      pnl: {
+        usage: "okx copy-trade pnl [--instType <SWAP|SPOT>]",
+        description: "Show P&L summary of all traders I am copying",
+      },
+      orders: {
+        usage: "okx copy-trade orders [--instType <SWAP|SPOT>] [--limit <n>]",
+        description: "Get copy trade position history (last 3 months)",
+      },
+      "trader-pnl": {
+        usage: "okx copy-trade trader-pnl --uniqueCode <code> [--lastDays <1|2|3|4>] [--instType <SWAP|SPOT>]",
+        description: "Get a lead trader daily P&L (public). lastDays: 1=7d 2=30d 3=90d 4=365d",
+      },
+      "trader-weekly-pnl": {
+        usage: "okx copy-trade trader-weekly-pnl --uniqueCode <code> [--instType <SWAP|SPOT>]",
+        description: "Get a lead trader weekly P&L for the last 12 weeks (public)",
+      },
+      "trader-stats": {
+        usage: "okx copy-trade trader-stats --uniqueCode <code> [--lastDays <1|2|3|4>] [--instType <SWAP|SPOT>]",
+        description: "Get a lead trader statistics: win rate, avg position, follower P&L (public)",
+      },
+      "trader-preference": {
+        usage: "okx copy-trade trader-preference --uniqueCode <code> [--instType <SWAP|SPOT>]",
+        description: "Get a lead trader preferred trading currencies (public)",
+      },
+      "trader-positions": {
+        usage: "okx copy-trade trader-positions --uniqueCode <code> [--instType <SWAP|SPOT>] [--limit <n>]",
+        description: "Get a lead trader current open positions (public)",
+      },
+      "trader-history": {
+        usage: "okx copy-trade trader-history --uniqueCode <code> [--instType <SWAP|SPOT>] [--limit <n>]",
+        description: "Get a lead trader closed positions history (public)",
+      },
+      "public-config": {
+        usage: "okx copy-trade public-config [--instType <SWAP|SPOT>]",
+        description: "Get platform copy trading config (min/max amounts and ratios)",
+      },
+    },
+  },
+
   earn: {
     description: "Earn products — Simple Earn (savings/lending) and On-chain Earn (staking/DeFi)",
     subgroups: {
