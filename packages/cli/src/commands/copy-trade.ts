@@ -32,15 +32,16 @@ export async function cmdCopyTradeMyStatus(
   opts: { instType?: string; json: boolean },
 ): Promise<void> {
   const result = await run("copytrading_my_status", { instType: opts.instType });
-  const data = getData(result) as Record<string, unknown>[];
-  if (opts.json) return printJson(data);
+  const raw = result as unknown as Record<string, unknown>;
+  const traders = (raw.traders ?? []) as Record<string, unknown>[];
+  if (opts.json) return printJson(raw);
 
-  if (!data || !data.length) {
+  if (!traders.length) {
     process.stdout.write("No active copy traders\n");
     return;
   }
   printTable(
-    data.map((t) => ({
+    traders.map((t) => ({
       uniqueCode: t["uniqueCode"],
       nickName: t["nickName"],
       copyTotalPnl: t["copyTotalPnl"],

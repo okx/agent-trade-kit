@@ -96,29 +96,42 @@ describe("cmdCopyTradeTraders", () => {
 // ---------------------------------------------------------------------------
 // cmdCopyTradeMyStatus
 // ---------------------------------------------------------------------------
+function createMyStatusRunner(traders: unknown[] = [], subpositions: unknown[] = []): ToolRunner {
+  return async () => ({
+    endpoint: "/api/v5/copytrading/current-lead-traders",
+    requestTime: new Date().toISOString(),
+    traders,
+    subpositions,
+  } as unknown as { endpoint: string; requestTime: string; data: unknown });
+}
+
 describe("cmdCopyTradeMyStatus", () => {
-  it("prints 'No active copy traders' when data is empty", async () => {
-    const runner = createMockRunner([]);
+  it("prints 'No active copy traders' when traders is empty", async () => {
+    const runner = createMyStatusRunner([]);
     const out = await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: false }));
     assert.ok(out.includes("No active copy traders"));
   });
 
-  it("prints table when data exists", async () => {
-    const runner = createMockRunner([
+  it("prints table when traders exist", async () => {
+    const runner = createMyStatusRunner([
       { uniqueCode: "ABC", nickName: "Trader1", copyTotalPnl: "500", todayPnl: "10", upl: "5", margin: "1000" },
     ]);
     const out = await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: false }));
     assert.ok(out.length > 0, "should produce output");
+    assert.ok(out.includes("Trader1") || out.includes("ABC"));
   });
 
-  it("prints JSON in json=true mode", async () => {
-    const runner = createMockRunner([{ uniqueCode: "ABC" }]);
+  it("prints JSON in json=true mode (includes traders and subpositions)", async () => {
+    const runner = createMyStatusRunner([{ uniqueCode: "ABC" }], [{ subPosId: "1" }]);
     const out = await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: true }));
     assert.doesNotThrow(() => JSON.parse(out), "should be valid JSON");
+    const parsed = JSON.parse(out) as Record<string, unknown>;
+    assert.ok("traders" in parsed, "should include traders field");
+    assert.ok("subpositions" in parsed, "should include subpositions field");
   });
 
   it("calls copytrading_my_status tool", async () => {
-    const { runner, getCalls } = createCapturingRunner([]);
+    const { runner, getCalls } = createCapturingRunner();
     await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: false }));
     assert.equal(getCalls()[0]?.tool, "copytrading_my_status");
   });
