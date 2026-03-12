@@ -1,7 +1,7 @@
 {
   "name": "okx-hub",
   "private": true,
-  "version": "1.2.3-beta.1",
+  "version": "1.2.3",
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @agent-tradekit/core build && pnpm --filter @okx_ai/okx-trade-mcp build && pnpm --filter @okx_ai/okx-trade-cli build",

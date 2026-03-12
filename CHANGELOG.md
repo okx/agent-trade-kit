@@ -11,13 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **HTTP/HTTPS proxy support**: Configure `proxy_url` in your TOML profile to route all OKX API requests through a proxy server. Supports authenticated proxies via URL credentials (e.g. `http://user:pass@proxy:8080`). Only HTTP/HTTPS proxies are supported; SOCKS is not. ([#53](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/53))
-
 ---
 
-## [1.2.3-beta.1] - 2026-03-11
+## [1.2.3] - 2026-03-12
 
 ### Breaking Changes
 
@@ -31,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **HTTP/HTTPS proxy support**: Configure `proxy_url` in your TOML profile to route all OKX API requests through a proxy server. Supports authenticated proxies via URL credentials (e.g. `http://user:pass@proxy:8080`). Only HTTP/HTTPS proxies are supported; SOCKS is not. ([#53](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/53))
 - **CLI `--verbose` flag**: Add `--verbose` to any command to see detailed network request/response info on stderr — method, URL, auth status (key masked), timing, HTTP status, OKX code, and trace ID. Useful for debugging connectivity and auth issues.
 - **CLI `okx diagnose` command**: Step-by-step connectivity check that verifies environment (Node.js, OS, shell, locale, timezone, proxy), configuration (credentials, site, base URL), network (DNS → TCP → TLS → public API), and authentication. On failure, shows actionable hints. Prints a copy-paste diagnostic report block for sharing with support.
 - **CLI place commands — attached TP/SL**: `okx spot place`, `okx swap place`, and `okx futures place` now accept optional take-profit and stop-loss parameters: `--tpTriggerPx`, `--tpOrdPx`, `--tpTriggerPxType`, `--slTriggerPx`, `--slOrdPx`, `--slTriggerPxType`. These are forwarded directly to the OKX order API as attached TP/SL on the placed order.
