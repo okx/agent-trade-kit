@@ -61,7 +61,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts (e.g. '1'; BTC-USDT-SWAP: 1ct=0.01 BTC)",
+            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
           },
           px: {
             type: "string",
@@ -336,7 +336,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
           algoId: { type: "string", description: "Algo order ID" },
-          newSz: { type: "string", description: "New quantity (contracts)" },
+          newSz: { type: "string", description: "New number of contracts (NOT USDT amount)" },
           newTpTriggerPx: { type: "string", description: "New TP trigger price" },
           newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
           newSlTriggerPx: { type: "string", description: "New SL trigger price" },

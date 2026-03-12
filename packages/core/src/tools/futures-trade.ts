@@ -61,7 +61,7 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts",
+            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
           },
           px: {
             type: "string",
