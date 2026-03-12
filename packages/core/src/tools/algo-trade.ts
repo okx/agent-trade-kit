@@ -61,7 +61,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts to close",
+            description: "Number of contracts to close (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
           },
           tpTriggerPx: {
             type: "string",
@@ -162,7 +162,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts",
+            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
           },
           callbackRatio: {
             type: "string",

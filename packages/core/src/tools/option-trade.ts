@@ -52,7 +52,7 @@ export function registerOptionTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Number of contracts",
+            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
           },
           px: {
             type: "string",
@@ -162,7 +162,7 @@ export function registerOptionTools(): ToolSpec[] {
           instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
           ordId: { type: "string" },
           clOrdId: { type: "string" },
-          newSz: { type: "string", description: "New quantity (contracts)" },
+          newSz: { type: "string", description: "New number of contracts (NOT USDT amount)" },
           newPx: { type: "string", description: "New price" },
         },
         required: ["instId"],
