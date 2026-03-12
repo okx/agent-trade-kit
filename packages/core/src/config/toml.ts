@@ -13,6 +13,7 @@ export interface OkxProfile {
   timeout_ms?: number;
   demo?: boolean;
   site?: string;
+  proxy_url?: string;
 }
 
 export interface OkxTomlConfig {

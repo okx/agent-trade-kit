@@ -344,3 +344,93 @@ describe("loadConfig — bot sub-modules", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Proxy URL from toml profile
+// ---------------------------------------------------------------------------
+
+describe("loadConfig — proxy_url from toml profile", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  function writeToml(content: string): void {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), content, "utf-8");
+  }
+
+  it("reads proxy_url from toml profile", () => {
+    writeToml('[profiles.default]\nproxy_url = "http://127.0.0.1:7890"\n');
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.proxyUrl, "http://127.0.0.1:7890");
+  });
+
+  it("supports https proxy URL", () => {
+    writeToml('[profiles.default]\nproxy_url = "https://proxy.example.com:8080"\n');
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.proxyUrl, "https://proxy.example.com:8080");
+  });
+
+  it("supports authenticated proxy URL", () => {
+    writeToml('[profiles.default]\nproxy_url = "http://user:p%40ss@proxy.example.com:8080"\n');
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.proxyUrl, "http://user:p%40ss@proxy.example.com:8080");
+  });
+
+  it("proxyUrl is undefined when proxy_url not set in toml", () => {
+    writeToml('[profiles.default]\ndemo = false\n');
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.proxyUrl, undefined);
+  });
+
+  it("throws ConfigError for SOCKS proxy URL", () => {
+    writeToml('[profiles.default]\nproxy_url = "socks5://127.0.0.1:1080"\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("socks5://") &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("SOCKS"),
+    );
+  });
+
+  it("throws ConfigError for proxy URL without scheme", () => {
+    writeToml('[profiles.default]\nproxy_url = "proxy.example.com:8080"\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("proxy.example.com"),
+    );
+  });
+
+  it("trims whitespace from proxy_url", () => {
+    writeToml('[profiles.default]\nproxy_url = "  http://127.0.0.1:7890  "\n');
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.proxyUrl, "http://127.0.0.1:7890");
+  });
+
+  it("treats empty string proxy_url as undefined", () => {
+    writeToml('[profiles.default]\nproxy_url = ""\n');
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.proxyUrl, undefined);
+  });
+});

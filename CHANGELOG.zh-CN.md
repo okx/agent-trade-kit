@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **HTTP/HTTPS 代理支持**：在 TOML Profile 中配置 `proxy_url`，所有 OKX API 请求将通过代理服务器转发。支持带认证的代理 URL（如 `http://user:pass@proxy:8080`）。仅支持 HTTP/HTTPS 代理，不支持 SOCKS。（[#53](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/53)）
+
 ---
 
 ## [1.2.3-beta.1] - 2026-03-11

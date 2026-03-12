@@ -16,3 +16,7 @@ api_key = "your-demo-api-key"
 secret_key = "your-demo-secret-key"
 passphrase = "your-demo-passphrase"
 demo = true
+
+# 代理（可选） / Proxy (optional)
+# proxy_url = "http://127.0.0.1:7890"
+# proxy_url = "http://user:password@proxy.example.com:8080"

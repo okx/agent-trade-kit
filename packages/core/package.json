@@ -19,7 +19,8 @@
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
   "dependencies": {
-    "smol-toml": "^1.3.4"
+    "smol-toml": "^1.3.4",
+    "undici": "^6.0.0"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",

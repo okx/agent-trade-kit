@@ -1,3 +1,4 @@
+import { ProxyAgent } from "undici";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
   AuthenticationError,
@@ -104,10 +105,14 @@ function vlog(message: string): void {
 export class OkxRestClient {
   private readonly config: OkxConfig;
   private readonly rateLimiter: RateLimiter;
+  private readonly dispatcher?: ProxyAgent;
 
   public constructor(config: OkxConfig) {
     this.config = config;
     this.rateLimiter = new RateLimiter(30_000, config.verbose);
+    if (config.proxyUrl) {
+      this.dispatcher = new ProxyAgent(config.proxyUrl);
+    }
   }
 
   private logRequest(method: string, url: string, auth: string): void {
@@ -323,12 +328,16 @@ export class OkxRestClient {
     const t0 = Date.now();
     let response: Response;
     try {
-      response = await fetch(url, {
+      const fetchOptions: Record<string, unknown> = {
         method: reqConfig.method,
         headers,
         body: reqConfig.method === "POST" ? bodyJson : undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
-      });
+      };
+      if (this.dispatcher) {
+        fetchOptions.dispatcher = this.dispatcher;
+      }
+      response = await fetch(url, fetchOptions as RequestInit);
     } catch (error) {
       if (this.config.verbose) {
         const elapsed = Date.now() - t0;

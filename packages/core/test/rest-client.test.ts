@@ -657,6 +657,60 @@ describe("OkxRestClient: privateGet / privatePost", () => {
 // Query string building edge cases
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Proxy dispatcher injection
+// ---------------------------------------------------------------------------
+
+/** Capture raw fetch init object (not through new Request, which drops dispatcher). */
+function capturingFetchInit(capture: { init?: Record<string, unknown> }): typeof globalThis.fetch {
+  return async (_input, init) => {
+    capture.init = init as unknown as Record<string, unknown>;
+    return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+}
+
+describe("OkxRestClient: proxy dispatcher", () => {
+  it("passes dispatcher to fetch when proxyUrl is configured", async () => {
+    const captured: { init?: Record<string, unknown> } = {};
+    const client = new OkxRestClient({
+      ...BASE_CONFIG,
+      proxyUrl: "http://127.0.0.1:7890",
+    });
+    await withFetch(capturingFetchInit(captured), () =>
+      client.publicGet("/api/v5/market/ticker"),
+    );
+    assert.ok(captured.init?.dispatcher !== undefined, "dispatcher should be set");
+  });
+
+  it("does not pass dispatcher when proxyUrl is not configured", async () => {
+    const captured: { init?: Record<string, unknown> } = {};
+    const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(capturingFetchInit(captured), () =>
+      client.publicGet("/api/v5/market/ticker"),
+    );
+    assert.equal(captured.init?.dispatcher, undefined, "dispatcher should not be set");
+  });
+
+  it("passes dispatcher on privatePost as well", async () => {
+    const captured: { init?: Record<string, unknown> } = {};
+    const client = new OkxRestClient({
+      ...AUTH_CONFIG,
+      proxyUrl: "http://proxy.example.com:8080",
+    });
+    await withFetch(capturingFetchInit(captured), () =>
+      client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+    );
+    assert.ok(captured.init?.dispatcher !== undefined, "dispatcher should be set on POST");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Query string building edge cases
+// ---------------------------------------------------------------------------
+
 describe("OkxRestClient: query string building", () => {
   it("omits '?' when query object is empty", async () => {
     const captured: { req?: Request } = {};

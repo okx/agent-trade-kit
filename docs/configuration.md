@@ -95,6 +95,30 @@ Priority: `--site` flag > `OKX_SITE` env var > `site` in toml > default `global`
 
 > **Note:** `OKX_API_BASE_URL` / `base_url` in toml still override the site mapping entirely — useful for testing against a custom endpoint.
 
+### Proxy Configuration
+
+Configure an HTTP/HTTPS proxy in your profile:
+
+```toml
+[profiles.default]
+api_key = "your-api-key"
+secret_key = "your-secret-key"
+passphrase = "your-passphrase"
+proxy_url = "http://127.0.0.1:7890"
+```
+
+Authenticated proxies are supported — include credentials in the URL:
+
+```toml
+[profiles.default]
+proxy_url = "http://user:password@proxy.example.com:8080"
+
+# Special characters in password need URL encoding, e.g. p@ss → p%40ss
+# proxy_url = "http://user:p%40ss@proxy.example.com:8080"
+```
+
+> **Note:** Only HTTP/HTTPS proxies are supported. SOCKS proxies are not supported.
+
 ### Multiple profiles
 
 You can define as many profiles as you like. Each MCP server instance uses one profile, so you can run demo and live side by side:
@@ -450,6 +474,30 @@ OKX_SITE=us agent-tradekit-mcp
 优先级：`--site` 参数 > `OKX_SITE` 环境变量 > toml 中的 `site` > 默认 `global`
 
 > **注意：** `OKX_API_BASE_URL` 环境变量 / toml 中的 `base_url` 仍然优先级最高，会完全覆盖站点映射——适合高级用户或自定义测试场景。
+
+### 代理配置
+
+在 Profile 中配置 HTTP/HTTPS 代理：
+
+```toml
+[profiles.default]
+api_key = "your-api-key"
+secret_key = "your-secret-key"
+passphrase = "your-passphrase"
+proxy_url = "http://127.0.0.1:7890"
+```
+
+支持带认证的代理——在 URL 中包含用户名和密码：
+
+```toml
+[profiles.default]
+proxy_url = "http://user:password@proxy.example.com:8080"
+
+# 密码中的特殊字符需要 URL encode，例如 p@ss → p%40ss
+# proxy_url = "http://user:p%40ss@proxy.example.com:8080"
+```
+
+> **注意：** 仅支持 HTTP/HTTPS 代理，不支持 SOCKS 代理。
 
 ### 多账号配置
 

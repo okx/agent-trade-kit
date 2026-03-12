@@ -27,6 +27,7 @@ export interface OkxConfig {
   site: SiteId;
   userAgent?: string;
   sourceTag: string;
+  proxyUrl?: string;
   verbose: boolean;
 }
 
@@ -161,6 +162,15 @@ export function loadConfig(cli: CliOptions): OkxConfig {
     );
   }
 
+  // proxy: toml profile only (no env vars — keep it explicit)
+  const rawProxyUrl = toml.proxy_url?.trim();
+  if (rawProxyUrl && !rawProxyUrl.startsWith("http://") && !rawProxyUrl.startsWith("https://")) {
+    throw new ConfigError(
+      `Invalid proxy URL "${rawProxyUrl}".`,
+      "proxy_url must start with http:// or https://. SOCKS proxies are not supported.",
+    );
+  }
+
   return {
     ...creds,
     baseUrl,
@@ -171,6 +181,7 @@ export function loadConfig(cli: CliOptions): OkxConfig {
     site,
     userAgent: cli.userAgent,
     sourceTag: cli.sourceTag ?? DEFAULT_SOURCE_TAG,
+    proxyUrl: rawProxyUrl || undefined,
     verbose: cli.verbose ?? false,
   };
 }
