@@ -844,7 +844,6 @@ async function main(): Promise<void> {
 
   const moduleHandlers: Record<string, () => Promise<void> | void> = {
     market:       () => handleMarketCommand(run, action, rest, v, json),
-    "copy-trade": () => handleCopyTradeCommand(run, action, v, json),
     account:      () => handleAccountCommand(run, action, rest, v, json),
     spot:         () => handleSpotCommand(run, action, rest, v, json),
     swap:         () => handleSwapCommand(run, action, rest, v, json),
@@ -852,6 +851,7 @@ async function main(): Promise<void> {
     option:       () => handleOptionCommand(run, action, rest, v, json),
     bot:          () => handleBotCommand(run, action, rest, v, json),
     earn:         () => handleEarnCommand(run, action, rest, v, json),
+    "copy-trade": () => handleCopyTradeCommand(run, action, v, json),
   };
   const handler = moduleHandlers[module];
   if (handler) return handler();

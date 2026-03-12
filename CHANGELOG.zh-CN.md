@@ -17,10 +17,10 @@
   - `copytrading_public_lead_traders` — 带单员排行榜，支持多维筛选（排序类型、最低资产、最低 AUM、分页）
   - `copytrading_public_trader_detail` — 带单员完整档案（每日盈亏 + 胜率统计 + 偏好币种，一次返回）
   - `copytrading_my_status` — 我当前跟随的交易员（含累计盈亏）及开仓中的跟单持仓
-  - `copytrading_set_copy_trading` — 开始跟单，支持固定金额/比例跟单、止盈止损、保证金模式配置
+  - `copytrading_set_copy_trading` — 开始跟单，支持固定金额跟单（`fixed_amount`）/ 固定比例跟单（`ratio_copy`）、止盈止损、保证金模式配置。仅支持 SWAP。
   - `copytrading_stop_copy_trader` — 停止跟单，可选持仓处理方式
 - **CLI `copy-trade` 模块**：5 个命令 — `traders`、`status`、`follow`、`unfollow`、`trader-detail`
-- 模块文档：`docs/modules/copy-trade.md` 和 `docs/modules/copy-trade.zh-CN.md`
+- 模块文档：`docs/modules/copy-trade.md`（双语）
 
 ---
 

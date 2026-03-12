@@ -29,7 +29,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 特性 | 说明 |
 |------|------|
-| **95 个工具，8 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 |
+| **100 个工具，9 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 → 跟单 |
 | **内置算法单** | 条件单、OCO 止盈止损、追踪止损 |
 | **安全控制** | `--read-only` 只读模式、按模块过滤、内置限速器 |
 | **零基础设施** | 本地 stdio 进程，无需服务器或数据库 |
@@ -48,6 +48,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 | `account` | 14 | 余额、账单（含归档）、持仓、持仓历史、手续费率、配置、仓位模式、最大可提币量、最大可用仓位、操作审计日志 | [→](docs/modules/account.md) |
 | `earn` | 13 | 简单赚币：余额、申购、赎回、出借利率管理 (7)。链上质押/DeFi (6)。子模块：`earn.savings`、`earn.onchain`。**需显式启用**，不包含在 `all` 中。 | [→](docs/modules/earn.md) |
 | `bot` | 10 | 交易机器人：网格 (5)、DCA (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
+| `copytrading` | 5 | 跟单交易：浏览带单员、跟单/取消跟单、查看跟单持仓。仅支持 SWAP。**默认不加载**，需显式启用：`--modules copytrading` 或 `--modules all`。 | [→](docs/modules/copy-trade.md) |
 
 ---
 

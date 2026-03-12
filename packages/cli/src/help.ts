@@ -352,32 +352,6 @@ const HELP_TREE: HelpTree = {
     },
   },
 
-  "copy-trade": {
-    description: "Copy trading — follow lead traders and manage copy positions",
-    commands: {
-      traders: {
-        usage: "okx copy-trade traders [--limit <n>]",
-        description: "List top lead traders by ranking (SWAP only)",
-      },
-      status: {
-        usage: "okx copy-trade status",
-        description: "Get your currently followed lead traders and their cumulative P&L (SWAP only)",
-      },
-      follow: {
-        usage: "okx copy-trade follow --uniqueCode <code> --fixedAmt <n>\n                   [--copyMode <fixed_amount|ratio_copy>] [--copyRatio <n>] [--copyAmt <n>]\n                   [--mgnMode <isolated|cross>]",
-        description: "Start following a lead trader (SWAP only)",
-      },
-      unfollow: {
-        usage: "okx copy-trade unfollow --uniqueCode <code>",
-        description: "Stop following a lead trader (SWAP only)",
-      },
-      "trader-detail": {
-        usage: "okx copy-trade trader-detail --uniqueCode <code> [--lastDays <1|2|3|4>]",
-        description: "Get stats, daily P&L, and currency preference of a lead trader (SWAP only)",
-      },
-    },
-  },
-
   earn: {
     description: "Earn products — Simple Earn (savings/lending) and On-chain Earn (staking/DeFi)",
     subgroups: {
@@ -498,6 +472,32 @@ const HELP_TREE: HelpTree = {
             description: "Stop a running Contract DCA bot order",
           },
         },
+      },
+    },
+  },
+
+  "copy-trade": {
+    description: "Copy trading — follow lead traders and manage copy positions",
+    commands: {
+      traders: {
+        usage: "okx copy-trade traders [--limit <n>]",
+        description: "List top lead traders by ranking (SWAP only)",
+      },
+      status: {
+        usage: "okx copy-trade status",
+        description: "Get your currently followed lead traders and their cumulative P&L (SWAP only)",
+      },
+      follow: {
+        usage: "okx copy-trade follow --uniqueCode <code> --fixedAmt <n>\n                   [--copyMode <fixed_amount|ratio_copy>] [--copyRatio <n>] [--copyAmt <n>]\n                   [--mgnMode <isolated|cross>]",
+        description: "Start following a lead trader (SWAP only)",
+      },
+      unfollow: {
+        usage: "okx copy-trade unfollow --uniqueCode <code>",
+        description: "Stop following a lead trader (SWAP only)",
+      },
+      "trader-detail": {
+        usage: "okx copy-trade trader-detail --uniqueCode <code> [--lastDays <1|2|3|4>]",
+        description: "Get stats, daily P&L, and currency preference of a lead trader (SWAP only)",
       },
     },
   },
