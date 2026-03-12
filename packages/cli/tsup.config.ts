@@ -12,6 +12,7 @@ export default defineConfig({
   clean: true,
   dts: false,
   noExternal: ["@agent-tradekit/core", "smol-toml"],
+  external: ["undici"],
   banner: { js: "#!/usr/bin/env node" },
   define: { __GIT_HASH__: JSON.stringify(gitHash) },
 });
