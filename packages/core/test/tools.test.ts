@@ -16,7 +16,7 @@ import { registerOptionTools } from "../src/tools/option-trade.js";
 import { registerAlgoTradeTools } from "../src/tools/algo-trade.js";
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
-import { registerOnchainEarnTools } from "../src/tools/onchain-earn.js";
+import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
 import { assertNotDemo } from "../src/tools/common.js";
 import { ConfigError } from "../src/utils/errors.js";
 import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
@@ -2245,7 +2245,7 @@ describe("spot_place_algo_order tag injection", () => {
 // Earn tools
 // ---------------------------------------------------------------------------
 
-import { registerEarnTools } from "../src/tools/earn.js";
+import { registerEarnTools } from "../src/tools/earn/savings.js";
 
 describe("earn tools registration", () => {
   const tools = registerEarnTools();

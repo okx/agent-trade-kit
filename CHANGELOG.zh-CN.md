@@ -15,6 +15,7 @@
 
 - **CLI：移除直接 `smol-toml` 依赖** — `packages/cli` 不再声明 `smol-toml` 为直接依赖。TOML 功能现在完全通过 `@agent-tradekit/core` 提供，core 包内部已内联 `smol-toml`。([#39](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/39))
 - **去重 postinstall 脚本**：monorepo 根目录下的 `scripts/postinstall-notice.js` 现为单一来源。`packages/cli/scripts/postinstall.js` 和 `packages/mcp/scripts/postinstall.js` 在 `build` 时自动生成，已加入 `.gitignore`。([#50](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/50))
+- **`earn` 重构为子模块目录**（内部重构）：`earn.ts` → `tools/earn/savings.ts`，`onchain-earn.ts` → `tools/earn/onchain.ts`，新增 `tools/earn/index.ts` 作为聚合入口。与 `bot/` 子模块目录结构保持一致，不影响公开 API。([#64](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/64))
 
 ---
 
