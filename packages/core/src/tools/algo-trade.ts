@@ -131,8 +131,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             slTriggerPx: readString(args, "slTriggerPx"),
             slOrdPx: readString(args, "slOrdPx"),
             slTriggerPxType: readString(args, "slTriggerPxType"),
-            callbackRatio: readString(args, "callbackRatio"),
-            callbackSpread: readString(args, "callbackSpread"),
+            callBackRatio: readString(args, "callbackRatio"),
+            callBackSpread: readString(args, "callbackSpread"),
             activePx: readString(args, "activePx"),
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
@@ -216,8 +216,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             posSide: readString(args, "posSide"),
             ordType: "move_order_stop",
             sz: requireString(args, "sz"),
-            callbackRatio: readString(args, "callbackRatio"),
-            callbackSpread: readString(args, "callbackSpread"),
+            callBackRatio: readString(args, "callbackRatio"),
+            callBackSpread: readString(args, "callbackSpread"),
             activePx: readString(args, "activePx"),
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
