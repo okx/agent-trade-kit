@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.4-beta.3] - 2026-03-13
+
+### Added
+
+- **CLI `okx futures algo trail`**: New CLI sub-command for placing a futures trailing stop order. Usage: `okx futures algo trail --instId BTC-USD-250328 --side sell --sz 1 --callbackRatio 0.01 [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]`. ([#68](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/68))
+
+---
+
 ## [1.2.4-beta.2] - 2026-03-13
 
 ### Added
@@ -17,7 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`swap_place_algo_order` now supports trailing stop** (`ordType='move_order_stop'`): The swap algo order tool is extended with the same `callbackRatio`, `callbackSpread`, and `activePx` parameters, replacing the need for the deprecated `swap_place_move_stop_order` tool. ([#67](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/67))
 - **`spot_get_algo_orders` now includes trailing stop orders**: When no `ordType` filter is specified, the query now fetches `conditional`, `oco`, and `move_order_stop` orders in parallel (previously only `conditional` and `oco`). ([#67](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/67))
 - **CLI `okx spot algo trail`**: New CLI sub-command for placing a spot trailing stop order. Usage: `okx spot algo trail --instId BTC-USDT --side sell --sz 0.001 --callbackRatio 0.01 [--activePx <price>] [--tdMode cash]`. ([#67](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/67))
-- **CLI `okx futures algo trail`**: New CLI sub-command for placing a futures trailing stop order. Usage: `okx futures algo trail --instId BTC-USD-250328 --side sell --sz 1 --callbackRatio 0.01 [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]`. ([#68](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/68))
 
 ### Deprecated
 
