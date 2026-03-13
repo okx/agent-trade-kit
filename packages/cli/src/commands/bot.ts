@@ -229,10 +229,12 @@ export async function cmdDcaStop(
 
 export async function cmdDcaOrders(
   run: ToolRunner,
-  opts: { history: boolean; json: boolean },
+  opts: { algoId?: string; instId?: string; history: boolean; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_orders", {
     status: opts.history ? "history" : "active",
+    algoId: opts.algoId,
+    instId: opts.instId,
   });
   const orders = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(orders);

@@ -13,6 +13,7 @@ import {
   handleMarketCommand,
   handleAccountWriteCommand,
   handleBotGridCommand,
+  handleBotDcaCommand,
   handleBotCommand,
   handleSwapCommand,
   handleEarnCommand,
@@ -215,6 +216,16 @@ describe("handleBotGridCommand", () => {
 
   it("returns undefined for unknown subAction", () => {
     const result = handleBotGridCommand(noopRunner, {}, ["noop"], false);
+    assert.equal(result, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleBotDcaCommand — dispatch coverage
+// ---------------------------------------------------------------------------
+describe("handleBotDcaCommand", () => {
+  it("returns undefined for unknown subAction", () => {
+    const result = handleBotDcaCommand(noopRunner, "noop", {}, false);
     assert.equal(result, undefined);
   });
 });
