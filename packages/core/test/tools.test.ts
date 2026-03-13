@@ -1156,7 +1156,7 @@ describe("spot_get_algo_orders", () => {
       },
     };
     await tool.handler({ status: "history" }, makeContext(capturingClient));
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 3);
     for (const params of calls) {
       assert.equal(
         params.state,
@@ -1166,7 +1166,7 @@ describe("spot_get_algo_orders", () => {
     }
   });
 
-  it("makes two parallel requests when ordType is omitted", async () => {
+  it("makes three parallel requests when ordType is omitted", async () => {
     let callCount = 0;
     const fakeResponse = (endpoint: string) => ({
       endpoint,
@@ -1188,7 +1188,7 @@ describe("spot_get_algo_orders", () => {
       },
     };
     await tool.handler({}, makeContext(countingClient));
-    assert.equal(callCount, 2);
+    assert.equal(callCount, 3);
   });
 });
 

@@ -277,7 +277,10 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_place_algo_order",
       module: "spot",
       description:
-        "Place a spot algo order with take-profit and/or stop-loss. [CAUTION] Executes real trades. Private endpoint. Rate limit: 20 req/s per UID.",
+        "Place a spot algo order: take-profit/stop-loss (conditional/oco) or trailing stop (move_order_stop). " +
+        "For conditional/oco: use tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx. " +
+        "For move_order_stop (trailing stop): use callbackRatio (e.g. '0.01' for 1%) OR callbackSpread (fixed price distance), and optionally activePx. " +
+        "[CAUTION] Executes real trades. Private endpoint. Rate limit: 20 req/s per UID.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -297,8 +300,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           ordType: {
             type: "string",
-            enum: ["conditional", "oco"],
-            description: "conditional=single TP/SL; oco=TP+SL pair (one-cancels-other)",
+            enum: ["conditional", "oco", "move_order_stop"],
+            description: "conditional=single TP/SL; oco=TP+SL pair (one-cancels-other); move_order_stop=trailing stop",
           },
           sz: {
             type: "string",
@@ -306,19 +309,31 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           tpTriggerPx: {
             type: "string",
-            description: "TP trigger price",
+            description: "TP trigger price (conditional/oco only)",
           },
           tpOrdPx: {
             type: "string",
-            description: "TP order price; -1=market",
+            description: "TP order price; -1=market (conditional/oco only)",
           },
           slTriggerPx: {
             type: "string",
-            description: "SL trigger price",
+            description: "SL trigger price (conditional/oco only)",
           },
           slOrdPx: {
             type: "string",
-            description: "SL order price; -1=market",
+            description: "SL order price; -1=market (conditional/oco only)",
+          },
+          callbackRatio: {
+            type: "string",
+            description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread (move_order_stop only)",
+          },
+          callbackSpread: {
+            type: "string",
+            description: "Callback spread in price units; provide either ratio or spread (move_order_stop only)",
+          },
+          activePx: {
+            type: "string",
+            description: "Activation price; tracking starts after market reaches this level (move_order_stop only)",
           },
         },
         required: ["instId", "side", "ordType", "sz"],
@@ -337,6 +352,9 @@ export function registerSpotTradeTools(): ToolSpec[] {
             tpOrdPx: readString(args, "tpOrdPx"),
             slTriggerPx: readString(args, "slTriggerPx"),
             slOrdPx: readString(args, "slOrdPx"),
+            callbackRatio: readString(args, "callbackRatio"),
+            callbackSpread: readString(args, "callbackSpread"),
+            activePx: readString(args, "activePx"),
             tag: context.config.sourceTag,
           }),
           privateRateLimit("spot_place_algo_order", 20),
@@ -436,7 +454,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           ordType: {
             type: "string",
-            enum: ["conditional", "oco"],
+            enum: ["conditional", "oco", "move_order_stop"],
             description: "Filter by type; omit for all",
           },
           after: {
@@ -488,14 +506,16 @@ export function registerSpotTradeTools(): ToolSpec[] {
           return normalize(response);
         }
 
-        // ordType is required by OKX; fetch both spot types in parallel and merge
-        const [r1, r2] = await Promise.all([
+        // ordType is required by OKX; fetch all three spot types in parallel and merge
+        const [r1, r2, r3] = await Promise.all([
           context.client.privateGet(path, { ...baseParams, ordType: "conditional" }, privateRateLimit("spot_get_algo_orders", 20)),
           context.client.privateGet(path, { ...baseParams, ordType: "oco" }, privateRateLimit("spot_get_algo_orders", 20)),
+          context.client.privateGet(path, { ...baseParams, ordType: "move_order_stop" }, privateRateLimit("spot_get_algo_orders", 20)),
         ]);
         const merged = [
           ...((r1.data as unknown[]) ?? []),
           ...((r2.data as unknown[]) ?? []),
+          ...((r3.data as unknown[]) ?? []),
         ];
         return { endpoint: r1.endpoint, requestTime: r1.requestTime, data: merged };
       },
