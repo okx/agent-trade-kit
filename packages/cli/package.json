@@ -8,12 +8,13 @@
   "bin": {
     "okx": "dist/index.js"
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "scripts", "README.md"],
   "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "postinstall": "node scripts/postinstall.js 2>/dev/null || true",
     "test:unit": "node --import tsx/esm --test test/*.test.ts",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
