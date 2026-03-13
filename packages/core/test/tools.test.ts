@@ -198,6 +198,94 @@ describe("market_get_open_interest", () => {
   });
 });
 
+describe("market_get_stock_tokens", () => {
+  const tools = registerMarketTools();
+  const tool = tools.find((t) => t.name === "market_get_stock_tokens")!;
+
+  it("is registered", () => {
+    assert.ok(tool, "market_get_stock_tokens should be registered");
+  });
+
+  it("calls /public/instruments", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/public/instruments");
+  });
+
+  it("defaults instType to SWAP when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "SWAP");
+  });
+
+  it("passes explicit instType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instType: "SPOT" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "SPOT");
+  });
+
+  it("passes instId when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "AAPL-USDT-SWAP" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instId, "AAPL-USDT-SWAP");
+  });
+
+  it("omits instId when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.params.instId, undefined);
+  });
+
+  it("filters out non-stock instruments (instCategory !== '3')", async () => {
+    const { client } = makeMockClient();
+    // Override publicGet to return mixed instruments
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [
+        { instId: "BTC-USDT-SWAP", instCategory: "1" },
+        { instId: "AAPL-USDT-SWAP", instCategory: "3" },
+        { instId: "TSLA-USDT-SWAP", instCategory: "3" },
+        { instId: "ETH-USDT-SWAP", instCategory: "1" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as { data: unknown[] };
+    assert.equal(result.data.length, 2);
+    assert.ok(
+      (result.data as Array<{ instId: string }>).every((i) => i.instId.match(/AAPL|TSLA/)),
+      "should only contain stock tokens",
+    );
+  });
+
+  it("returns empty array when no stock tokens exist", async () => {
+    const { client } = makeMockClient();
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [
+        { instId: "BTC-USDT-SWAP", instCategory: "1" },
+        { instId: "ETH-USDT-SWAP", instCategory: "1" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as { data: unknown[] };
+    assert.equal(result.data.length, 0);
+  });
+
+  it("passes through non-array data unchanged", async () => {
+    const { client } = makeMockClient();
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: null,
+    });
+    const result = await tool.handler({}, makeContext(client)) as { data: unknown };
+    assert.equal(result.data, null);
+  });
+});
+
 describe("market_get_index_ticker", () => {
   const tools = registerMarketTools();
   const tool = tools.find((t) => t.name === "market_get_index_ticker")!;

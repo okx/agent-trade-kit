@@ -168,6 +168,22 @@ describe("handleMarketPublicCommand", () => {
     const result = handleMarketPublicCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
+
+  it("dispatches stock-tokens action (returns a Promise)", () => {
+    const result = handleMarketPublicCommand(mockRunner, "stock-tokens", [], {}, false);
+    assert.ok(result instanceof Promise, "stock-tokens should return a Promise");
+  });
+
+  it("dispatches stock-tokens with instType and instId from v", () => {
+    const result = handleMarketPublicCommand(
+      mockRunner,
+      "stock-tokens",
+      [],
+      { instType: "SPOT", instId: "AAPL-USDT" },
+      false,
+    );
+    assert.ok(result instanceof Promise, "stock-tokens with params should return a Promise");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -332,6 +348,7 @@ import {
   cmdEarnLendingRateSummary,
   cmdEarnLendingRateHistory,
 } from "../src/commands/earn.js";
+import { cmdMarketStockTokens } from "../src/commands/market.js";
 import {
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
@@ -473,5 +490,50 @@ describe("earn onchain CLI commands — full dispatch coverage", () => {
     await cmdOnchainEarnCancel(capturingRunner, { ordId: "789", protocolType: "staking" } as never);
     assert.equal(capturedArgs?.["ordId"], "789");
     assert.equal(capturedArgs?.["protocolType"], "staking");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketStockTokens — output coverage
+// ---------------------------------------------------------------------------
+
+const stockTokenRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/public/instruments",
+  requestTime: new Date().toISOString(),
+  data: [
+    { instId: "AAPL-USDT-SWAP", instCategory: "3", ctVal: "1", lotSz: "1", minSz: "1", tickSz: "0.01", state: "live" },
+    { instId: "TSLA-USDT-SWAP", instCategory: "3", ctVal: "1", lotSz: "1", minSz: "1", tickSz: "0.01", state: "live" },
+  ],
+});
+
+describe("cmdMarketStockTokens output", () => {
+  it("prints table when data exists", async () => {
+    const out = await captureStdout(() => cmdMarketStockTokens(stockTokenRunner, { json: false }));
+    assert.ok(out.includes("AAPL-USDT-SWAP"), "should include AAPL");
+    assert.ok(out.includes("TSLA-USDT-SWAP"), "should include TSLA");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdMarketStockTokens(stockTokenRunner, { json: true }));
+    assert.doesNotThrow(() => JSON.parse(out));
+    const parsed = JSON.parse(out) as Array<{ instId: string }>;
+    assert.equal(parsed.length, 2);
+  });
+
+  it("prints table with instType filter", async () => {
+    const out = await captureStdout(() =>
+      cmdMarketStockTokens(stockTokenRunner, { instType: "SPOT", json: false })
+    );
+    assert.ok(out.length > 0, "should produce output");
+  });
+
+  it("prints empty table when no data", async () => {
+    const emptyStockRunner: ToolRunner = async () => ({
+      endpoint: "/api/v5/public/instruments",
+      requestTime: new Date().toISOString(),
+      data: [],
+    });
+    const out = await captureStdout(() => cmdMarketStockTokens(emptyStockRunner, { json: false }));
+    assert.ok(typeof out === "string", "should not throw on empty data");
   });
 });
