@@ -81,6 +81,16 @@ import {
   cmdFuturesPlace,
   cmdFuturesCancel,
   cmdFuturesGet,
+  cmdFuturesAmend,
+  cmdFuturesAlgoPlace,
+  cmdFuturesAlgoAmend,
+  cmdFuturesAlgoCancel,
+  cmdFuturesAlgoOrders,
+  cmdFuturesAlgoTrailPlace,
+  cmdFuturesBatch,
+  cmdFuturesClose,
+  cmdFuturesGetLeverage,
+  cmdFuturesSetLeverage,
 } from "./commands/futures.js";
 import {
   cmdOptionOrders,
@@ -579,6 +589,62 @@ function handleOptionCommand(
     return cmdOptionBatchCancel(run, { orders: v.orders!, json });
 }
 
+function handleFuturesAlgoCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "trail")
+    return cmdFuturesAlgoTrailPlace(run, {
+      instId: v.instId!,
+      side: v.side!,
+      sz: v.sz!,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
+      posSide: v.posSide,
+      tdMode: v.tdMode ?? "cross",
+      reduceOnly: v.reduceOnly,
+      json,
+    });
+  if (subAction === "place")
+    return cmdFuturesAlgoPlace(run, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      posSide: v.posSide,
+      tdMode: v.tdMode ?? "cross",
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      reduceOnly: v.reduceOnly,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdFuturesAlgoAmend(run, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdFuturesAlgoCancel(run, v.instId!, v.algoId!, json);
+  if (subAction === "orders")
+    return cmdFuturesAlgoOrders(run, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
+}
+
 function handleFuturesCommand(
   run: ToolRunner,
   action: string,
@@ -620,6 +686,37 @@ function handleFuturesCommand(
     return cmdFuturesCancel(run, rest[0] ?? v.instId!, v.ordId!, json);
   if (action === "get")
     return cmdFuturesGet(run, { instId: rest[0] ?? v.instId!, ordId: v.ordId, json });
+  if (action === "amend")
+    return cmdFuturesAmend(run, {
+      instId: v.instId!,
+      ordId: v.ordId,
+      clOrdId: v.clOrdId,
+      newSz: v.newSz,
+      newPx: v.newPx,
+      json,
+    });
+  if (action === "close")
+    return cmdFuturesClose(run, {
+      instId: v.instId!,
+      mgnMode: v.mgnMode!,
+      posSide: v.posSide,
+      autoCxl: v.autoCxl,
+      json,
+    });
+  if (action === "get-leverage")
+    return cmdFuturesGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
+  if (action === "leverage")
+    return cmdFuturesSetLeverage(run, {
+      instId: v.instId!,
+      lever: v.lever!,
+      mgnMode: v.mgnMode!,
+      posSide: v.posSide,
+      json,
+    });
+  if (action === "batch")
+    return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, json });
+  if (action === "algo")
+    return handleFuturesAlgoCommand(run, rest[0], v, json);
 }
 
 export function handleBotGridCommand(

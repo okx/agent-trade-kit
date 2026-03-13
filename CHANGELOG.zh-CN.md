@@ -17,6 +17,7 @@
 - **`swap_place_algo_order` 新增移动止损支持**（`ordType='move_order_stop'`）：swap 算法订单工具新增 `callbackRatio`、`callbackSpread`、`activePx` 参数，可替代已废弃的 `swap_place_move_stop_order` 工具。([#67](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/67))
 - **`spot_get_algo_orders` 现已包含移动止损订单**：未指定 `ordType` 过滤时，查询现并行获取 `conditional`、`oco` 和 `move_order_stop` 三种类型（此前仅查询 `conditional` 和 `oco`）。([#67](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/67))
 - **CLI `okx spot algo trail`**：新增现货移动止损下单命令。用法：`okx spot algo trail --instId BTC-USDT --side sell --sz 0.001 --callbackRatio 0.01 [--activePx <price>] [--tdMode cash]`。([#67](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/67))
+- **CLI `okx futures algo trail`**：新增期货移动止损下单命令。用法：`okx futures algo trail --instId BTC-USD-250328 --side sell --sz 1 --callbackRatio 0.01 [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]`。([#68](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/68))
 
 ### 废弃
 
