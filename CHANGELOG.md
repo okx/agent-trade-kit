@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **`--modules all` now includes earn sub-modules**: `all` now expands to every module including `earn.savings`, `earn.onchain`, and `earn.dcd`, on par with bot sub-modules. Previously, earn required explicit opt-in via `all,earn`. The default modules remain unchanged (`spot`, `swap`, `option`, `account`, `bot.grid`). ([#66](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/66))
+
+---
+
 ## [1.2.4-beta.1] - 2026-03-13
 
 ### Added
