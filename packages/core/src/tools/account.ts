@@ -2,6 +2,7 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
+  normalizeResponse,
   readBoolean,
   readNumber,
   readString,
@@ -9,25 +10,13 @@ import {
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
-
 export function registerAccountTools(): ToolSpec[] {
   return [
     {
       name: "account_get_balance",
       module: "account",
       description:
-        "Get account balance for trading account. Returns balances for all currencies or a specific one. Private endpoint. Rate limit: 10 req/s.",
+        "Get account balance for trading account. Returns balances for all currencies or a specific one.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -45,14 +34,14 @@ export function registerAccountTools(): ToolSpec[] {
           compactObject({ ccy: readString(args, "ccy") }),
           privateRateLimit("account_get_balance", 10),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_transfer",
       module: "account",
       description:
-        "Transfer funds between accounts (trading, funding, etc.). [CAUTION] Moves real funds. Private endpoint. Rate limit: 2 req/s.",
+        "Transfer funds between accounts (trading, funding, etc.). [CAUTION] Moves real funds.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -103,14 +92,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_transfer", 2),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_max_size",
       module: "account",
       description:
-        "Get max buy/sell order size for a SWAP/FUTURES instrument given current balance and leverage. Useful before placing orders. Private. Rate limit: 20 req/s.",
+        "Get max buy/sell order size for a SWAP/FUTURES instrument given current balance and leverage. Useful before placing orders.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -151,14 +140,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_max_size", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_asset_balance",
       module: "account",
       description:
-        "Get funding account balance (asset account). Different from account_get_balance which queries the trading account. Private. Rate limit: 6 req/s.",
+        "Get funding account balance (asset account). Different from account_get_balance which queries the trading account.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -176,15 +165,14 @@ export function registerAccountTools(): ToolSpec[] {
           compactObject({ ccy: readString(args, "ccy") }),
           privateRateLimit("account_get_asset_balance", 6),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_bills",
       module: "account",
       description:
-        "Get account ledger: fees paid, funding charges, realized PnL, transfers, etc. " +
-        "Default 20 records (last 7 days), max 100. Private endpoint. Rate limit: 6 req/s.",
+        "Get account ledger: fees paid, funding charges, realized PnL, transfers, etc. Default 20 records (last 7 days), max 100.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -244,15 +232,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_bills", 6),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_positions_history",
       module: "account",
       description:
-        "Get closed position history for SWAP or FUTURES. " +
-        "Default 20 records, max 100. Private endpoint. Rate limit: 1 req/s.",
+        "Get closed position history for SWAP or FUTURES. Default 20 records, max 100.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -307,14 +294,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_positions_history", 1),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_trade_fee",
       module: "account",
       description:
-        "Get maker/taker fee rates for the account. Useful to understand your fee tier before trading. Private endpoint. Rate limit: 5 req/s.",
+        "Get maker/taker fee rates for the account. Useful to understand your fee tier before trading.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -340,14 +327,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_trade_fee", 5),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_config",
       module: "account",
       description:
-        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc. Private endpoint. Rate limit: 5 req/s.",
+        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -359,15 +346,14 @@ export function registerAccountTools(): ToolSpec[] {
           {},
           privateRateLimit("account_get_config", 5),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_max_withdrawal",
       module: "account",
       description:
-        "Get maximum withdrawable amount for a currency from the trading account. " +
-        "Useful before initiating a transfer or withdrawal. Private endpoint. Rate limit: 20 req/s.",
+        "Get maximum withdrawable amount for a currency from the trading account. Useful before initiating a transfer or withdrawal.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -385,16 +371,14 @@ export function registerAccountTools(): ToolSpec[] {
           compactObject({ ccy: readString(args, "ccy") }),
           privateRateLimit("account_get_max_withdrawal", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_max_avail_size",
       module: "account",
       description:
-        "Get maximum available size for opening or reducing a position. " +
-        "Different from account_get_max_size which calculates new order size. " +
-        "Private endpoint. Rate limit: 20 req/s.",
+        "Get maximum available size for opening or reducing a position. Different from account_get_max_size which calculates new order size.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -432,16 +416,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_max_avail_size", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_positions",
       module: "account",
       description:
-        "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION). " +
-        "Use swap_get_positions for SWAP/FUTURES-only queries when the swap module is loaded. " +
-        "Private endpoint. Rate limit: 10 req/s.",
+        "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION). Use swap_get_positions for SWAP/FUTURES-only queries.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -470,16 +452,14 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_positions", 10),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "account_get_bills_archive",
       module: "account",
       description:
-        "Get archived account ledger (bills older than 7 days, up to 3 months). " +
-        "Use account_get_bills for recent 7-day records. " +
-        "Default 20 records, max 100. Private endpoint. Rate limit: 6 req/s.",
+        "Get archived account ledger (bills older than 7 days, up to 3 months). Use account_get_bills for recent 7-day records. Default 20 records, max 100.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -539,7 +519,7 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_bills_archive", 6),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -547,9 +527,8 @@ export function registerAccountTools(): ToolSpec[] {
       module: "account",
       description:
         "Switch between net position mode and long/short hedge mode. " +
-        "net: one position per instrument (default for most accounts). " +
-        "long_short_mode: separate long and short positions. " +
-        "[CAUTION] Requires no open positions or pending orders. Private endpoint. Rate limit: 5 req/s.",
+        "net: one position per instrument (default). long_short_mode: separate long and short positions. " +
+        "[CAUTION] Requires no open positions or pending orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -569,7 +548,7 @@ export function registerAccountTools(): ToolSpec[] {
           { posMode: requireString(args, "posMode") },
           privateRateLimit("account_set_position_mode", 5),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

@@ -2,7 +2,9 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   assertEnum,
+  buildAttachAlgoOrds,
   compactObject,
+  normalizeResponse,
   readBoolean,
   readNumber,
   readString,
@@ -12,25 +14,13 @@ import { privateRateLimit } from "./common.js";
 
 const FUTURES_INST_TYPES = ["FUTURES", "SWAP"] as const;
 
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
-
 export function registerFuturesTools(): ToolSpec[] {
   return [
     {
       name: "futures_place_order",
       module: "futures",
       description:
-        "Place a FUTURES delivery contract order (e.g. instId: BTC-USDT-240329). Optionally attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades. Private endpoint. Rate limit: 60 req/s.",
+        "Place a FUTURES delivery contract order (e.g. instId: BTC-USDT-240329). Optionally attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -97,12 +87,7 @@ export function registerFuturesTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
-        const tpTriggerPx = readString(args, "tpTriggerPx");
-        const tpOrdPx = readString(args, "tpOrdPx");
-        const slTriggerPx = readString(args, "slTriggerPx");
-        const slOrdPx = readString(args, "slOrdPx");
-        const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
-        const attachAlgoOrds = Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+        const attachAlgoOrds = buildAttachAlgoOrds(args);
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -120,14 +105,14 @@ export function registerFuturesTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_place_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "futures_cancel_order",
       module: "futures",
       description:
-        "Cancel an unfilled FUTURES delivery order. Private endpoint. Rate limit: 60 req/s.",
+        "Cancel an unfilled FUTURES delivery order.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -157,14 +142,14 @@ export function registerFuturesTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_cancel_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "futures_get_order",
       module: "futures",
       description:
-        "Get details of a single FUTURES delivery order by ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+        "Get details of a single FUTURES delivery order by ordId or clOrdId.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -195,14 +180,14 @@ export function registerFuturesTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_get_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "futures_get_orders",
       module: "futures",
       description:
-        "Query FUTURES open orders, history (last 7 days), or archive (up to 3 months). Private. Rate limit: 20 req/s.",
+        "Query FUTURES open orders, history (last 7 days), or archive (up to 3 months).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -277,14 +262,14 @@ export function registerFuturesTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_get_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "futures_get_positions",
       module: "futures",
       description:
-        "Get current FUTURES delivery contract positions. Private endpoint. Rate limit: 10 req/s.",
+        "Get current FUTURES delivery contract positions.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -316,14 +301,14 @@ export function registerFuturesTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_get_positions", 10),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "futures_get_fills",
       module: "futures",
       description:
-        "Get FUTURES fill details. archive=false: last 3 days. archive=true: up to 3 months. Private. Rate limit: 20 req/s.",
+        "Get FUTURES fill details. archive=false: last 3 days; archive=true: up to 3 months.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -387,7 +372,7 @@ export function registerFuturesTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_get_fills", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

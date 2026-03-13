@@ -2,6 +2,7 @@ import type { ToolSpec } from "../types.js";
 import {
   asRecord,
   compactObject,
+  normalizeResponse,
   readNumber,
   readString,
   requireString,
@@ -10,18 +11,6 @@ import { privateRateLimit } from "../common.js";
 import { OkxApiError } from "../../utils/errors.js";
 
 const BASE = "/api/v5/tradingBot/dca";
-
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
 
 /** For write operations: surface any inner sCode/sMsg errors from data items. */
 function normalizeWrite(response: {
@@ -63,9 +52,8 @@ export function registerDcaTools(): ToolSpec[] {
       description:
         "Create a Contract DCA (Martingale) bot order with leverage on futures/swaps. " +
         "Required: instId, lever, direction, initOrdAmt, maxSafetyOrds, tpPct. " +
-        "Conditionally required (when maxSafetyOrds > 0): safetyOrdAmt, pxSteps, pxStepsMult, volMult. " +
-        "Optional: slPct, slMode, allowReinvest, triggerStrategy, triggerPx. " +
-        "[CAUTION] Executes real trades. Private endpoint. Rate limit: 20 req/2s.",
+        "When maxSafetyOrds > 0: also provide safetyOrdAmt, pxSteps, pxStepsMult, volMult. " +
+        "[CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -130,9 +118,7 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_stop_order",
       module: "bot.dca",
       description:
-        "Stop a running Contract DCA bot. " +
-        "[CAUTION] This will stop the bot. " +
-        "Private endpoint. Rate limit: 20 req/2s.",
+        "Stop a running Contract DCA bot. [CAUTION] This will stop the bot.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -162,9 +148,7 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_get_orders",
       module: "bot.dca",
       description:
-        "Query Contract DCA bot orders. " +
-        "Use status='active' for running bots, status='history' for completed/stopped. " +
-        "Private endpoint. Rate limit: 20 req/2s.",
+        "Query Contract DCA bot orders. status='active' for running bots; status='history' for completed/stopped.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -204,16 +188,14 @@ export function registerDcaTools(): ToolSpec[] {
           }),
           privateRateLimit("dca_get_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "dca_get_order_details",
       module: "bot.dca",
       description:
-        "Query details of a single Contract DCA bot by algo ID. " +
-        "Returns current position details. " +
-        "Private endpoint. Rate limit: 20 req/2s.",
+        "Query details of a single Contract DCA bot by algo ID. Returns current position details.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -236,16 +218,14 @@ export function registerDcaTools(): ToolSpec[] {
           { algoId, algoOrdType: "contract_dca" },
           privateRateLimit("dca_get_order_details", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "dca_get_sub_orders",
       module: "bot.dca",
       description:
-        "Query cycles or orders within a cycle of a Contract DCA bot. " +
-        "Returns cycle list when cycleId is omitted; returns orders within a specific cycle when cycleId is provided. " +
-        "Private endpoint. Rate limit: 20 req/2s.",
+        "Query cycles or orders within a cycle of a Contract DCA bot. Omit cycleId for cycle list; provide cycleId for orders within a cycle.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -280,7 +260,7 @@ export function registerDcaTools(): ToolSpec[] {
             }),
             privateRateLimit("dca_get_sub_orders", 20),
           );
-          return normalize(response);
+          return normalizeResponse(response);
         }
         // cycle list
         const response = await context.client.privateGet(
@@ -294,7 +274,7 @@ export function registerDcaTools(): ToolSpec[] {
           }),
           privateRateLimit("dca_get_sub_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

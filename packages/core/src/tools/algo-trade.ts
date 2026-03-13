@@ -2,23 +2,12 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
+  normalizeResponse,
   readNumber,
   readString,
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
-
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
 
 export function registerAlgoTradeTools(): ToolSpec[] {
   return [
@@ -26,12 +15,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       name: "swap_place_algo_order",
       module: "swap",
       description:
-        "Place a SWAP/FUTURES algo order: take-profit/stop-loss (conditional/oco) or trailing stop (move_order_stop). [CAUTION] Executes real trades. " +
-        "Use ordType='conditional' for a single TP, single SL, or combined TP+SL on one order. " +
-        "Use ordType='oco' (one-cancels-other) to place TP and SL simultaneously — whichever triggers first cancels the other. " +
-        "Use ordType='move_order_stop' for trailing stop: provide callbackRatio (e.g. '0.01' for 1%) OR callbackSpread (fixed price distance), and optionally activePx. " +
-        "Set tpOrdPx='-1' or slOrdPx='-1' to execute the closing leg as a market order. " +
-        "Private endpoint. Rate limit: 20 req/s per UID.",
+        "Place a SWAP/FUTURES algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). [CAUTION] Executes real trades. " +
+        "conditional: single TP, single SL, or both on one order. " +
+        "oco: TP+SL simultaneously — first trigger cancels the other. " +
+        "move_order_stop: provide callbackRatio (e.g. '0.01'=1%) OR callbackSpread, and optionally activePx. " +
+        "Set tpOrdPx='-1' or slOrdPx='-1' for market execution.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -141,7 +129,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_place_algo_order", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -149,11 +137,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       module: "swap",
       description:
         "[DEPRECATED] Use swap_place_algo_order with ordType='move_order_stop' instead. " +
-        "Place a SWAP/FUTURES trailing stop order (move_order_stop). [CAUTION] Executes real trades. " +
-        "The order tracks the market price and triggers when the price reverses by the callback amount. " +
-        "Specify either callbackRatio (e.g. '0.01' for 1%) or callbackSpread (fixed price distance), not both. " +
-        "Optionally set activePx so tracking only starts once the market reaches that price. " +
-        "Private endpoint. Rate limit: 20 req/s per UID.",
+        "Place a SWAP/FUTURES trailing stop order. [CAUTION] Executes real trades. " +
+        "Specify callbackRatio (e.g. '0.01'=1%) or callbackSpread (fixed price distance), not both. " +
+        "Optionally set activePx so tracking starts once market reaches that price.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -225,15 +211,14 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_place_move_stop_order", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "swap_cancel_algo_orders",
       module: "swap",
       description:
-        "Cancel one or more pending SWAP/FUTURES algo orders (TP/SL). " +
-        "Accepts a list of {algoId, instId} objects. Private endpoint. Rate limit: 20 req/s per UID.",
+        "Cancel one or more pending SWAP/FUTURES algo orders (TP/SL). Accepts a list of {algoId, instId} objects.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -270,14 +255,14 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           orders,
           privateRateLimit("swap_cancel_algo_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "swap_get_algo_orders",
       module: "swap",
       description:
-        "Query pending or completed SWAP/FUTURES algo orders (TP/SL, OCO, trailing stop). Private endpoint. Rate limit: 20 req/s.",
+        "Query pending or completed SWAP/FUTURES algo orders (TP/SL, OCO, trailing stop).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -347,7 +332,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             { ...baseParams, ordType },
             privateRateLimit("swap_get_algo_orders", 20),
           );
-          return normalize(response);
+          return normalizeResponse(response);
         }
 
         // No filter: fetch all three types in parallel and merge

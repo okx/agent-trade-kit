@@ -231,7 +231,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_positions",
       module: "swap",
       description:
-        "Get current SWAP or FUTURES positions. Private endpoint. Rate limit: 10 req/s.",
+        "Get current SWAP or FUTURES positions.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -270,7 +270,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_set_leverage",
       module: "swap",
       description:
-        "Set leverage for a SWAP or FUTURES instrument or position. [CAUTION] Changes risk parameters. Private endpoint. Rate limit: 20 req/s.",
+        "Set leverage for a SWAP or FUTURES instrument or position. [CAUTION] Changes risk parameters.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -314,7 +314,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_amend_algo_order",
       module: "swap",
       description:
-        "Amend a pending SWAP/FUTURES algo order (modify TP/SL prices or size). Private endpoint. Rate limit: 20 req/s.",
+        "Amend a pending SWAP/FUTURES algo order (modify TP/SL prices or size).",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -351,10 +351,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_fills",
       module: "swap",
       description:
-        "Get SWAP or FUTURES transaction fill details. " +
-        "archive=false (default): last 3 days. " +
-        "archive=true: up to 3 months, default limit 20. " +
-        "Private endpoint. Rate limit: 20 req/s.",
+        "Get SWAP or FUTURES fill details. archive=false (default): last 3 days; archive=true: up to 3 months.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -425,7 +422,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_order",
       module: "swap",
       description:
-        "Get details of a single SWAP or FUTURES order by order ID or client order ID. Private endpoint. Rate limit: 60 req/s.",
+        "Get details of a single SWAP or FUTURES order by order ID or client order ID.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -581,7 +578,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_leverage",
       module: "swap",
       description:
-        "Get current leverage for a SWAP/FUTURES instrument. Call before swap_place_order to verify leverage. Private. Rate limit: 20 req/s.",
+        "Get current leverage for a SWAP/FUTURES instrument. Call before swap_place_order to verify leverage.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -614,7 +611,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_batch_amend",
       module: "swap",
       description:
-        "[CAUTION] Batch amend up to 20 unfilled SWAP/FUTURES orders in one request. Modify price and/or size per order. Private endpoint. Rate limit: 60 req/s.",
+        "[CAUTION] Batch amend up to 20 unfilled SWAP/FUTURES orders in one request. Modify price and/or size per order.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -645,7 +642,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_batch_cancel",
       module: "swap",
       description:
-        "[CAUTION] Batch cancel up to 20 SWAP/FUTURES orders in one request. Provide instId plus ordId or clOrdId for each order. Private endpoint. Rate limit: 60 req/s.",
+        "[CAUTION] Batch cancel up to 20 SWAP/FUTURES orders in one request. Provide instId plus ordId or clOrdId for each order.",
       isWrite: true,
       inputSchema: {
         type: "object",
