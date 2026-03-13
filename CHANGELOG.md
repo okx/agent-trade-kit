@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Bot tools: added missing parameter descriptions for `algoId`, `algoOrdType`, and `groupId`** — Grid tools (`grid_get_orders`, `grid_get_order_details`, `grid_get_sub_orders`, `grid_stop_order`) and DCA tools (`dca_get_orders`, `dca_get_order_details`) were missing `algoId` descriptions, causing AI agents to pass invalid values (error `51000`) or mismatched `algoOrdType` (error `50016`). Also added `groupId` description for `grid_get_sub_orders` and `newSz` description for `spot_amend_algo_order`.
+- **CLI: `okx bot dca orders` now supports `--algoId` and `--instId` filters** — Previously the CLI did not pass these parameters to the underlying `dca_get_orders` tool, even though the MCP tool already supported them. Now aligned with `okx bot grid orders` behavior.
+
 ### Changed
 
 - **CLI: removed direct `smol-toml` dependency** — `packages/cli` no longer declares `smol-toml` as a direct dependency. The TOML functionality is now provided exclusively through `@agent-tradekit/core`, which bundles `smol-toml` internally. ([#39](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/39))

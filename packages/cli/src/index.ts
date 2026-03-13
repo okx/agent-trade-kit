@@ -656,7 +656,7 @@ export function handleBotDcaCommand(
   json: boolean,
 ): Promise<void> | void {
   if (subAction === "orders")
-    return cmdDcaOrders(run, { history: v.history ?? false, json });
+    return cmdDcaOrders(run, { algoId: v.algoId, instId: v.instId, history: v.history ?? false, json });
   if (subAction === "details")
     return cmdDcaDetails(run, { algoId: v.algoId!, json });
   if (subAction === "sub-orders")

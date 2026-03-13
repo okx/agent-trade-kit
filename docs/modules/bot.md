@@ -32,6 +32,11 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | `contract_grid` | Contract grid — trades a perpetual or delivery contract |
 | `moon_grid` | Moon grid — geometric grid optimized for trending markets |
 
+### Important: `algoId` and `algoOrdType` usage
+
+- **`algoId`** is a grid bot algo order ID (returned by `grid_create_order` or `grid_get_orders`). It is **NOT** a normal trade order ID — do not pass `ordId` values here.
+- **`algoOrdType`** must match the bot's actual type. Always use the `algoOrdType` value from `grid_get_orders` response — do not guess based on user description alone. Mismatched values will cause error `50016`.
+
 ### Contract grid — `basePos` default
 
 When creating a contract grid, `basePos` (whether to open a base position at creation) defaults to **`true`**. This means long/short direction grids will automatically open a base position. The neutral direction ignores this parameter. Pass `basePos: false` to disable.
@@ -84,7 +89,7 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
 okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT --stopType 2
 
 # ── Contract DCA ──────────────────────────────────────────────────────────────
-okx bot dca orders
+okx bot dca orders [--algoId <id>] [--instId <id>]
 okx bot dca orders --history
 okx bot dca details --algoId <id>
 okx bot dca sub-orders --algoId <id>
@@ -140,6 +145,11 @@ okx bot dca stop --algoId <id>
 | `contract_grid` | 合约网格——交易永续或交割合约 |
 | `moon_grid` | Moon Grid——几何级差网格，适合趋势行情 |
 
+### 重要：`algoId` 和 `algoOrdType` 使用说明
+
+- **`algoId`** 是网格机器人的策略订单 ID（由 `grid_create_order` 或 `grid_get_orders` 返回），**不是**普通交易订单 ID——不要传 `ordId` 的值。
+- **`algoOrdType`** 必须与机器人的实际类型匹配。务必使用 `grid_get_orders` 返回结果中的 `algoOrdType` 值，不要仅凭用户描述猜测。类型不匹配会导致错误 `50016`。
+
 ### 合约网格 — `basePos` 默认值
 
 创建合约网格时，`basePos`（是否在创建时开底仓）默认为 **`true`**。即做多/做空方向的网格会自动开底仓。中性方向忽略此参数。传 `basePos: false` 可禁用。
@@ -192,7 +202,7 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
 okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT --stopType 2
 
 # ── 合约 DCA ──────────────────────────────────────────────────────────────────
-okx bot dca orders
+okx bot dca orders [--algoId <id>] [--instId <id>]
 okx bot dca orders --history
 okx bot dca details --algoId <id>
 okx bot dca sub-orders --algoId <id>

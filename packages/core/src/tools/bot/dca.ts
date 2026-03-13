@@ -137,7 +137,12 @@ export function registerDcaTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "Algo order ID of the DCA bot to stop" },
+          algoId: {
+            type: "string",
+            description:
+              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
+              "This is NOT a normal trade order ID.",
+          },
         },
         required: ["algoId"],
       },
@@ -169,7 +174,12 @@ export function registerDcaTools(): ToolSpec[] {
             enum: ["active", "history"],
             description: "active=running (default); history=stopped",
           },
-          algoId: { type: "string" },
+          algoId: {
+            type: "string",
+            description:
+              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
+              "This is NOT a normal trade order ID.",
+          },
           instId: { type: "string", description: "Filter by instrument, e.g. BTC-USDT-SWAP (optional)" },
           after: { type: "string", description: "Pagination: before this algo ID" },
           before: { type: "string", description: "Pagination: after this algo ID" },
@@ -208,7 +218,12 @@ export function registerDcaTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string" },
+          algoId: {
+            type: "string",
+            description:
+              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
+              "This is NOT a normal trade order ID.",
+          },
         },
         required: ["algoId"],
       },
@@ -235,7 +250,12 @@ export function registerDcaTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "Algo order ID of the DCA bot" },
+          algoId: {
+            type: "string",
+            description:
+              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
+              "This is NOT a normal trade order ID.",
+          },
           cycleId: { type: "string", description: "Omit to list all cycles; provide to get orders within a cycle" },
           after: { type: "string", description: "Pagination cursor — applies to cycle-list mode only (when cycleId is omitted)" },
           before: { type: "string", description: "Pagination cursor — applies to cycle-list mode only (when cycleId is omitted)" },

@@ -69,7 +69,9 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
+            description:
+              "Grid bot type. grid=Spot, contract_grid=Contract, moon_grid=Moon. " +
+              "Must match the bot's actual type when filtering by algoId.",
           },
           status: {
             type: "string",
@@ -82,6 +84,9 @@ export function registerGridTools(): ToolSpec[] {
           },
           algoId: {
             type: "string",
+            description:
+              "Grid bot algo order ID (returned by grid_create_order or grid_get_orders). " +
+              "This is NOT a normal trade order ID.",
           },
           after: {
             type: "string",
@@ -135,10 +140,15 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
+            description:
+              "Must match the bot's actual type (use the algoOrdType value returned by grid_get_orders). " +
+              "grid=Spot, contract_grid=Contract, moon_grid=Moon.",
           },
           algoId: {
             type: "string",
+            description:
+              "Grid bot algo order ID (returned by grid_create_order or grid_get_orders). " +
+              "This is NOT a normal trade order ID.",
           },
         },
         required: ["algoOrdType", "algoId"],
@@ -170,10 +180,15 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
+            description:
+              "Must match the bot's actual type (use the algoOrdType value returned by grid_get_orders). " +
+              "grid=Spot, contract_grid=Contract, moon_grid=Moon.",
           },
           algoId: {
             type: "string",
+            description:
+              "Grid bot algo order ID (returned by grid_create_order or grid_get_orders). " +
+              "This is NOT a normal trade order ID.",
           },
           type: {
             type: "string",
@@ -182,6 +197,7 @@ export function registerGridTools(): ToolSpec[] {
           },
           groupId: {
             type: "string",
+            description: "Group ID — a buy-sell pair shares the same groupId. Use to filter a specific grid level.",
           },
           after: {
             type: "string",
@@ -327,11 +343,16 @@ export function registerGridTools(): ToolSpec[] {
         properties: {
           algoId: {
             type: "string",
+            description:
+              "Grid bot algo order ID (returned by grid_create_order or grid_get_orders). " +
+              "This is NOT a normal trade order ID.",
           },
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid", "moon_grid"],
-            description: "grid=Spot, contract_grid=Contract, moon_grid=Moon",
+            description:
+              "Must match the bot's actual type (use the algoOrdType value returned by grid_get_orders). " +
+              "grid=Spot, contract_grid=Contract, moon_grid=Moon.",
           },
           instId: {
             type: "string",

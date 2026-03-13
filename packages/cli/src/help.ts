@@ -452,7 +452,7 @@ const HELP_TREE: HelpTree = {
         description: "Contract DCA (Martingale) bot — leveraged recurring buys on futures/swaps",
         commands: {
           orders: {
-            usage: "okx bot dca orders [--history]",
+            usage: "okx bot dca orders [--algoId <id>] [--instId <id>] [--history]",
             description: "List active or historical Contract DCA bot orders",
           },
           details: {

@@ -2091,6 +2091,18 @@ describe("dca_get_orders", () => {
     await tool.handler({}, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).instId, undefined);
   });
+
+  it("passes algoId filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "999888" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "999888");
+  });
+
+  it("omits algoId when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, undefined);
+  });
 });
 
 describe("dca_get_order_details", () => {
@@ -2205,6 +2217,59 @@ describe("dca tools registration", () => {
       );
     }
   });
+});
+
+// ---------------------------------------------------------------------------
+// Grid & DCA tools — algoId description regression (prevents error 51000/50016)
+// ---------------------------------------------------------------------------
+
+describe("grid tools algoId description", () => {
+  const tools = registerGridTools();
+  const toolsWithAlgoId = ["grid_get_orders", "grid_get_order_details", "grid_get_sub_orders", "grid_stop_order"];
+
+  for (const name of toolsWithAlgoId) {
+    it(`${name} has a non-empty algoId description`, () => {
+      const tool = tools.find((t) => t.name === name)!;
+      const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+      assert.ok(props["algoId"], `${name} should have algoId property`);
+      assert.ok(
+        typeof props["algoId"]["description"] === "string" && props["algoId"]["description"].length > 0,
+        `${name}.algoId should have a non-empty description`,
+      );
+    });
+  }
+
+  const toolsWithAlgoOrdType = ["grid_get_order_details", "grid_get_sub_orders", "grid_stop_order"];
+
+  for (const name of toolsWithAlgoOrdType) {
+    it(`${name} algoOrdType description mentions matching`, () => {
+      const tool = tools.find((t) => t.name === name)!;
+      const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+      assert.ok(
+        typeof props["algoOrdType"]["description"] === "string" &&
+          props["algoOrdType"]["description"].toLowerCase().includes("must match"),
+        `${name}.algoOrdType should mention that value must match the bot's actual type`,
+      );
+    });
+  }
+});
+
+describe("dca tools algoId description", () => {
+  const tools = registerDcaTools();
+  const allDcaTools = ["dca_create_order", "dca_stop_order", "dca_get_orders", "dca_get_order_details", "dca_get_sub_orders"];
+
+  for (const name of allDcaTools) {
+    const tool = tools.find((t) => t.name === name)!;
+    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+    if (props["algoId"]) {
+      it(`${name} has a non-empty algoId description`, () => {
+        assert.ok(
+          typeof props["algoId"]["description"] === "string" && props["algoId"]["description"].length > 0,
+          `${name}.algoId should have a non-empty description`,
+        );
+      });
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------

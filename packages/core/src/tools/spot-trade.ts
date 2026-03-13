@@ -160,6 +160,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           ordId: {
             type: "string",
+            description: "Order ID",
           },
           clOrdId: {
             type: "string",
@@ -167,9 +168,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           newSz: {
             type: "string",
+            description: "New order size in base currency (e.g. BTC amount)",
           },
           newPx: {
             type: "string",
+            description: "New order price",
           },
           newClOrdId: {
             type: "string",
@@ -352,7 +355,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "e.g. BTC-USDT" },
           algoId: { type: "string", description: "Algo order ID" },
-          newSz: { type: "string" },
+          newSz: { type: "string", description: "New order size in base currency (e.g. BTC amount)" },
           newTpTriggerPx: { type: "string", description: "New TP trigger price" },
           newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
           newSlTriggerPx: { type: "string", description: "New SL trigger price" },
