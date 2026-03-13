@@ -5,7 +5,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { printHelp } from "../src/index.js";
+import { printHelp } from "../src/help.js";
 
 // ---------------------------------------------------------------------------
 // Helper: capture stdout without writing to terminal
