@@ -2,7 +2,9 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   assertEnum,
+  buildAttachAlgoOrds,
   compactObject,
+  normalizeResponse,
   readBoolean,
   readNumber,
   readString,
@@ -10,25 +12,13 @@ import {
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
-
 export function registerSpotTradeTools(): ToolSpec[] {
   return [
     {
       name: "spot_place_order",
       module: "spot",
       description:
-        "Place a spot order. Optionally attach take-profit/stop-loss via tpTriggerPx/slTriggerPx (assembled into attachAlgoOrds automatically). [CAUTION] Executes real trades. Private endpoint. Rate limit: 60 req/s per UID.",
+        "Place a spot order. Optionally attach TP/SL via tpTriggerPx/slTriggerPx (assembled into attachAlgoOrds automatically). [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -84,12 +74,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const tpTriggerPx = readString(args, "tpTriggerPx");
-        const tpOrdPx = readString(args, "tpOrdPx");
-        const slTriggerPx = readString(args, "slTriggerPx");
-        const slOrdPx = readString(args, "slOrdPx");
-        const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
-        const attachAlgoOrds = Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+        const attachAlgoOrds = buildAttachAlgoOrds(args);
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -105,14 +90,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_place_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_cancel_order",
       module: "spot",
       description:
-        "Cancel an unfilled spot order by order ID or client order ID. Private endpoint. Rate limit: 60 req/s per UID.",
+        "Cancel an unfilled spot order by order ID or client order ID.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -142,14 +127,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_cancel_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_amend_order",
       module: "spot",
       description:
-        "Amend an unfilled spot order (modify price or size). Private endpoint. Rate limit: 60 req/s per UID.",
+        "Amend an unfilled spot order (modify price or size).",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -195,14 +180,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_amend_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_get_orders",
       module: "spot",
       description:
-        "Query spot open orders, order history (last 7 days), or order archive (up to 3 months). Private endpoint. Rate limit: 20 req/s.",
+        "Query spot open orders, order history (last 7 days), or order archive (up to 3 months).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -270,17 +255,17 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_get_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_place_algo_order",
       module: "spot",
       description:
-        "Place a spot algo order: take-profit/stop-loss (conditional/oco) or trailing stop (move_order_stop). " +
+        "Place a spot algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). " +
         "For conditional/oco: use tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx. " +
-        "For move_order_stop (trailing stop): use callbackRatio (e.g. '0.01' for 1%) OR callbackSpread (fixed price distance), and optionally activePx. " +
-        "[CAUTION] Executes real trades. Private endpoint. Rate limit: 20 req/s per UID.",
+        "For move_order_stop: use callbackRatio (e.g. '0.01'=1%) OR callbackSpread, and optionally activePx. " +
+        "[CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -359,14 +344,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_place_algo_order", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_amend_algo_order",
       module: "spot",
       description:
-        "Amend a pending spot algo order (modify TP/SL prices or size). Private endpoint. Rate limit: 20 req/s.",
+        "Amend a pending spot algo order (modify TP/SL prices or size).",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -396,14 +381,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_amend_algo_order", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_cancel_algo_order",
       module: "spot",
       description:
-        "Cancel a spot algo order (TP/SL). Private endpoint. Rate limit: 20 req/s per UID.",
+        "Cancel a spot algo order (TP/SL).",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -431,14 +416,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           ],
           privateRateLimit("spot_cancel_algo_order", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_get_algo_orders",
       module: "spot",
       description:
-        "Query spot algo orders (TP/SL) — pending or history. Private endpoint. Rate limit: 20 req/s.",
+        "Query spot algo orders (TP/SL) — pending or history.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -503,7 +488,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             { ...baseParams, ordType },
             privateRateLimit("spot_get_algo_orders", 20),
           );
-          return normalize(response);
+          return normalizeResponse(response);
         }
 
         // ordType is required by OKX; fetch all three spot types in parallel and merge
@@ -524,10 +509,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_fills",
       module: "spot",
       description:
-        "Get spot transaction fill details. " +
-        "archive=false (default): last 3 days. " +
-        "archive=true: up to 3 months, default limit 20. " +
-        "Private endpoint. Rate limit: 20 req/s.",
+        "Get spot transaction fill details. archive=false (default): last 3 days; archive=true: up to 3 months.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -584,7 +566,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_get_fills", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -629,13 +611,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           action === "place"
             ? orders.map((order: unknown) => {
                 const o = asRecord(order);
-                const tpTriggerPx = readString(o, "tpTriggerPx");
-                const tpOrdPx = readString(o, "tpOrdPx");
-                const slTriggerPx = readString(o, "slTriggerPx");
-                const slOrdPx = readString(o, "slOrdPx");
-                const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
-                const attachAlgoOrds =
-                  Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+                const attachAlgoOrds = buildAttachAlgoOrds(o);
                 return compactObject({
                   instId: requireString(o, "instId"),
                   tdMode: readString(o, "tdMode") ?? "cash",
@@ -654,14 +630,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           body,
           privateRateLimit("spot_batch_orders", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_get_order",
       module: "spot",
       description:
-        "Get details of a single spot order by order ID or client order ID. Private endpoint. Rate limit: 60 req/s.",
+        "Get details of a single spot order by order ID or client order ID.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -692,14 +668,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("spot_get_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_batch_amend",
       module: "spot",
       description:
-        "[CAUTION] Batch amend up to 20 unfilled spot orders in one request. Modify price and/or size per order. Private endpoint. Rate limit: 60 req/s.",
+        "[CAUTION] Batch amend up to 20 unfilled spot orders in one request. Modify price and/or size per order.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -723,14 +699,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
           orders as Record<string, unknown>[],
           privateRateLimit("spot_batch_amend", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "spot_batch_cancel",
       module: "spot",
       description:
-        "[CAUTION] Batch cancel up to 20 spot orders in one request. Provide instId plus ordId or clOrdId for each order. Private endpoint. Rate limit: 60 req/s.",
+        "[CAUTION] Batch cancel up to 20 spot orders in one request. Provide instId plus ordId or clOrdId for each order.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -754,7 +730,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           orders as Record<string, unknown>[],
           privateRateLimit("spot_batch_cancel", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

@@ -112,3 +112,14 @@ export function normalizeResponse(response: {
     data: response.data,
   };
 }
+
+export function buildAttachAlgoOrds(
+  source: Record<string, unknown>,
+): Record<string, unknown>[] | undefined {
+  const tpTriggerPx = readString(source, "tpTriggerPx");
+  const tpOrdPx = readString(source, "tpOrdPx");
+  const slTriggerPx = readString(source, "slTriggerPx");
+  const slOrdPx = readString(source, "slOrdPx");
+  const entry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
+  return Object.keys(entry).length > 0 ? [entry] : undefined;
+}

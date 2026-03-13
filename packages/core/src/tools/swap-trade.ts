@@ -2,7 +2,9 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   assertEnum,
+  buildAttachAlgoOrds,
   compactObject,
+  normalizeResponse,
   readBoolean,
   readNumber,
   readString,
@@ -12,25 +14,13 @@ import { privateRateLimit } from "./common.js";
 
 const SWAP_INST_TYPES = ["SWAP", "FUTURES"] as const;
 
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
-
 export function registerSwapTradeTools(): ToolSpec[] {
   return [
     {
       name: "swap_place_order",
       module: "swap",
       description:
-        "Place a SWAP or FUTURES perpetual/delivery contract order. Optionally attach take-profit/stop-loss via tpTriggerPx/slTriggerPx (assembled into attachAlgoOrds automatically). [CAUTION] Executes real trades. Private endpoint. Rate limit: 60 req/s per UID.",
+        "Place a SWAP or FUTURES contract order. Optionally attach TP/SL via tpTriggerPx/slTriggerPx (assembled into attachAlgoOrds automatically). [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -97,12 +87,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
-        const tpTriggerPx = readString(args, "tpTriggerPx");
-        const tpOrdPx = readString(args, "tpOrdPx");
-        const slTriggerPx = readString(args, "slTriggerPx");
-        const slOrdPx = readString(args, "slOrdPx");
-        const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
-        const attachAlgoOrds = Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+        const attachAlgoOrds = buildAttachAlgoOrds(args);
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -120,14 +105,14 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_place_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "swap_cancel_order",
       module: "swap",
       description:
-        "Cancel an unfilled SWAP or FUTURES order. Private endpoint. Rate limit: 60 req/s per UID.",
+        "Cancel an unfilled SWAP or FUTURES order.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -157,14 +142,14 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_cancel_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "swap_get_orders",
       module: "swap",
       description:
-        "Query SWAP or FUTURES open orders, order history (last 7 days), or order archive (up to 3 months). Private endpoint. Rate limit: 20 req/s.",
+        "Query SWAP or FUTURES open orders, history (last 7 days), or archive (up to 3 months).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -239,7 +224,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_get_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -278,7 +263,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_get_positions", 10),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -322,7 +307,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_set_leverage", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -359,7 +344,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_amend_algo_order", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -433,7 +418,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_get_fills", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -471,7 +456,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_get_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -522,7 +507,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_close_position", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -566,13 +551,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           action === "place"
             ? orders.map((order: unknown) => {
                 const o = asRecord(order);
-                const tpTriggerPx = readString(o, "tpTriggerPx");
-                const tpOrdPx = readString(o, "tpOrdPx");
-                const slTriggerPx = readString(o, "slTriggerPx");
-                const slOrdPx = readString(o, "slOrdPx");
-                const algoEntry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
-                const attachAlgoOrds =
-                  Object.keys(algoEntry).length > 0 ? [algoEntry] : undefined;
+                const attachAlgoOrds = buildAttachAlgoOrds(o);
                 const reduceOnly = o.reduceOnly;
                 return compactObject({
                   instId: requireString(o, "instId"),
@@ -595,7 +574,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           body,
           privateRateLimit("swap_batch_orders", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -628,7 +607,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_get_leverage", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -659,7 +638,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           orders as Record<string, unknown>[],
           privateRateLimit("swap_batch_amend", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -690,7 +669,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           orders as Record<string, unknown>[],
           privateRateLimit("swap_batch_cancel", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

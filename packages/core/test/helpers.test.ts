@@ -161,3 +161,45 @@ describe("compactObject", () => {
     assert.deepEqual(compactObject({ a: undefined, b: null }), {});
   });
 });
+
+import { buildAttachAlgoOrds } from "../src/tools/helpers.js";
+
+describe("buildAttachAlgoOrds", () => {
+  it("returns undefined when all TP/SL fields are absent", () => {
+    assert.equal(buildAttachAlgoOrds({}), undefined);
+  });
+
+  it("returns undefined when all TP/SL fields are undefined", () => {
+    assert.equal(
+      buildAttachAlgoOrds({ tpTriggerPx: undefined, tpOrdPx: undefined, slTriggerPx: undefined, slOrdPx: undefined }),
+      undefined,
+    );
+  });
+
+  it("returns array with only tpTriggerPx when only that field is provided", () => {
+    const result = buildAttachAlgoOrds({ tpTriggerPx: "50000" });
+    assert.deepEqual(result, [{ tpTriggerPx: "50000" }]);
+  });
+
+  it("returns array with all four fields when all are provided", () => {
+    const result = buildAttachAlgoOrds({
+      tpTriggerPx: "50000",
+      tpOrdPx: "-1",
+      slTriggerPx: "40000",
+      slOrdPx: "-1",
+    });
+    assert.deepEqual(result, [
+      { tpTriggerPx: "50000", tpOrdPx: "-1", slTriggerPx: "40000", slOrdPx: "-1" },
+    ]);
+  });
+
+  it("returns array with only slTriggerPx when only that field is provided", () => {
+    const result = buildAttachAlgoOrds({ slTriggerPx: "40000" });
+    assert.deepEqual(result, [{ slTriggerPx: "40000" }]);
+  });
+
+  it("ignores non-tpsl fields in source", () => {
+    const result = buildAttachAlgoOrds({ instId: "BTC-USDT", tpTriggerPx: "50000" });
+    assert.deepEqual(result, [{ tpTriggerPx: "50000" }]);
+  });
+});
