@@ -519,5 +519,45 @@ export function registerMarketTools(): ToolSpec[] {
         return normalize(response);
       },
     },
+    {
+      name: "market_get_stock_tokens",
+      module: "market",
+      description:
+        "Get all stock token instruments (instCategory=3). " +
+        "Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP, TSLA-USDT-SWAP). " +
+        "Fetches all instruments of the given type and filters client-side by instCategory=3. " +
+        "Public endpoint. Rate limit: 20 req/s.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SPOT", "SWAP"],
+            description: "Instrument type. Default: SWAP",
+          },
+          instId: {
+            type: "string",
+            description: "Optional: filter by specific instrument ID, e.g. AAPL-USDT-SWAP",
+          },
+        },
+        required: [],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const instType = readString(args, "instType") ?? "SWAP";
+        const instId = readString(args, "instId");
+        const response = await context.client.publicGet(
+          "/api/v5/public/instruments",
+          compactObject({ instType, instId }),
+          publicRateLimit("market_get_stock_tokens", 20),
+        );
+        const data = response.data;
+        const filtered = Array.isArray(data)
+          ? data.filter((item) => (item as Record<string, unknown>).instCategory === "3")
+          : data;
+        return normalize({ ...response, data: filtered });
+      },
+    },
   ];
 }
