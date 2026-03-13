@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **CLI：移除直接 `smol-toml` 依赖** — `packages/cli` 不再声明 `smol-toml` 为直接依赖。TOML 功能现在完全通过 `@agent-tradekit/core` 提供，core 包内部已内联 `smol-toml`。([#39](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/39))
+
 ---
 
 ## [1.2.3] - 2026-03-12

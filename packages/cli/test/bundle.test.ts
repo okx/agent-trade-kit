@@ -37,7 +37,7 @@ function extractExternalImports(source: string): string[] {
   return [...seen];
 }
 
-const noExternal = ["@agent-tradekit/core", "smol-toml"];
+const noExternal = ["@agent-tradekit/core"];
 const deps = Object.keys(pkg.dependencies ?? {});
 
 describe("CLI bundle integrity", () => {

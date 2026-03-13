@@ -11,7 +11,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   dts: false,
-  noExternal: ["@agent-tradekit/core", "smol-toml"],
+  noExternal: ["@agent-tradekit/core"],
   external: ["undici"],
   banner: { js: "#!/usr/bin/env node" },
   define: { __GIT_HASH__: JSON.stringify(gitHash) },
