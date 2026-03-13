@@ -233,3 +233,23 @@ export async function cmdMarketCandles(
     })),
   );
 }
+
+export async function cmdMarketStockTokens(
+  run: ToolRunner,
+  opts: { instType?: string; instId?: string; json: boolean },
+): Promise<void> {
+  const result = await run("market_get_stock_tokens", { instType: opts.instType, instId: opts.instId });
+  const items = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(items);
+  printTable(
+    (items ?? []).slice(0, 50).map((t) => ({
+      instId: t["instId"],
+      instCategory: t["instCategory"],
+      ctVal: t["ctVal"],
+      lotSz: t["lotSz"],
+      minSz: t["minSz"],
+      tickSz: t["tickSz"],
+      state: t["state"],
+    })),
+  );
+}

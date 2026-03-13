@@ -25,6 +25,7 @@ import {
   cmdMarketIndexCandles,
   cmdMarketPriceLimit,
   cmdMarketOpenInterest,
+  cmdMarketStockTokens,
 } from "./commands/market.js";
 import {
   cmdAccountBalance,
@@ -188,6 +189,8 @@ export function handleMarketPublicCommand(
   if (action === "price-limit") return cmdMarketPriceLimit(run, rest[0], json);
   if (action === "open-interest")
     return cmdMarketOpenInterest(run, { instType: v.instType!, instId: v.instId, json });
+  if (action === "stock-tokens")
+    return cmdMarketStockTokens(run, { instType: v.instType, instId: v.instId, json });
 }
 
 export function handleMarketDataCommand(
