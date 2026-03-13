@@ -171,44 +171,51 @@ export function registerCopyTradeTools(): ToolSpec[] {
       name: "copytrading_set_copytrading",
       module: "copytrading",
       description:
-        "Start copy trading a lead trader. copyMode: fixed_amount (default), ratio_copy, smart_copy. [CAUTION] Allocates real funds. Private. Rate limit: 5/2s.",
+        "Start copy trading a lead trader. copyMode: smart_copy (default), fixed_amount, ratio_copy. [CAUTION] Allocates real funds. Private. Rate limit: 5/2s.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code (16 chars)" },
           instType: { type: "string", enum: ["SWAP"], description: "Only SWAP is supported. Default: SWAP." },
-          copyMode: { type: "string", enum: ["fixed_amount", "ratio_copy", "smart_copy"], description: "fixed_amount=固定金额跟单，copyAmt必填（默认）; ratio_copy=比例跟单，copyRatio必填; smart_copy=智能跟单，initialAmount 和 replicationRequired 必填" },
+          copyMode: { type: "string", enum: ["fixed_amount", "ratio_copy", "smart_copy"], description: "fixed_amount=固定金额跟单，copyAmt必填; ratio_copy=比例跟单，copyRatio必填; smart_copy=智能跟单，initialAmount 和 replicationRequired 必填（默认）" },
           copyMgnMode: { type: "string", enum: ["cross", "isolated", "copy"], description: "Margin mode: cross/isolated/copy(follow trader). Default: isolated" },
           copyInstIdType: { type: "string", enum: ["copy", "custom"], description: "copy=follow trader's instruments (default); custom=user-defined (instId required)" },
           instId: { type: "string", description: "Comma-separated instrument IDs, required when copyInstIdType=custom" },
-          copyTotalAmt: { type: "string", description: "Max total USDT to allocate for this trader" },
-          copyAmt: { type: "string", description: "Fixed USDT per order. [REQUIRED when copyMode=fixed_amount, which is the default]" },
+          copyTotalAmt: { type: "string", description: "Max total USDT to allocate for this trader. [REQUIRED when copyMode=fixed_amount or ratio_copy; auto-filled from initialAmount when copyMode=smart_copy]" },
+          copyAmt: { type: "string", description: "Fixed USDT per order. [REQUIRED when copyMode=fixed_amount]" },
           copyRatio: { type: "string", description: "Copy ratio (e.g. 0.1 = 10%). [REQUIRED when copyMode=ratio_copy]" },
-          initialAmount: { type: "string", description: "跟单初始投入金额，单位为USDT。[copyMode=smart_copy 时必填]" },
+          initialAmount: { type: "string", description: "跟单初始投入金额，单位为USDT。[copyMode=smart_copy 时必填，自动赋值给 copyTotalAmt]" },
           replicationRequired: { type: "string", enum: ["0", "1"], description: "是否复制仓位。0：否；1：是。[copyMode=smart_copy 时必填]" },
           tpRatio: { type: "string", description: "Take-profit ratio per order, e.g. 0.1 = 10%" },
           slRatio: { type: "string", description: "Stop-loss ratio per order, e.g. 0.1 = 10%" },
           subPosCloseType: { type: "string", enum: ["copy_close", "market_close", "manual_close"], description: "How to close sub-positions when you stop copying: copy_close=follow trader (default), market_close=close all immediately, manual_close=keep open" },
           slTotalAmt: { type: "string", description: "Total stop-loss amount (USDT). Auto-stop when net loss reaches this amount" },
         },
-        required: ["uniqueCode", "copyTotalAmt"],
+        required: ["uniqueCode"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const copyMode = readString(args, "copyMode") ?? "smart_copy";
+        const initialAmount = copyMode === "smart_copy"
+          ? requireString(args, "initialAmount")
+          : readString(args, "initialAmount");
+        const copyTotalAmt = copyMode === "smart_copy"
+          ? initialAmount
+          : requireString(args, "copyTotalAmt");
         const response = await context.client.privatePost(
           `${BASE}/first-copy-settings`,
           compactObject({
             instType: readString(args, "instType") ?? "SWAP",
             uniqueCode: requireString(args, "uniqueCode"),
-            copyMode: readString(args, "copyMode") ?? "fixed_amount",
+            copyMode,
             copyMgnMode: readString(args, "copyMgnMode") ?? "isolated",
             copyInstIdType: readString(args, "copyInstIdType") ?? "copy",
             instId: readString(args, "instId"),
-            copyTotalAmt: requireString(args, "copyTotalAmt"),
+            copyTotalAmt,
             copyAmt: readString(args, "copyAmt"),
             copyRatio: readString(args, "copyRatio"),
-            initialAmount: readString(args, "initialAmount"),
+            initialAmount,
             replicationRequired: readString(args, "replicationRequired"),
             tpRatio: readString(args, "tpRatio"),
             slRatio: readString(args, "slRatio"),
