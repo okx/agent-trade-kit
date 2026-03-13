@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `copytrading_get_lead_traders` — ranked lead trader list with filters (sortType, minAssets, minAum, pagination)
   - `copytrading_get_trader_details` — aggregated trader profile: daily P&L, win-rate stats, and currency preference
   - `copytrading_get_my_details` — current followed traders with cumulative P&L + open copy positions
-  - `copytrading_set_copytrading` — start copy trading with configurable mode (fixed_amount = fixed amount per order / ratio_copy = fixed ratio), TP/SL, and margin settings. SWAP only.
+  - `copytrading_set_copytrading` — start copy trading with configurable mode: `smart_copy` (default, initialAmount + replicationRequired required), `fixed_amount` (copyAmt required), `ratio_copy` (copyRatio required). Supports TP/SL, margin mode, instrument selection. SWAP only.
   - `copytrading_stop_copy_trader` — stop copy trading with position close type selection
 - **CLI `copytrading` module**: 5 commands — `traders`, `status`, `follow`, `unfollow`, `trader-detail`
 - Module docs: `docs/modules/copytrading.md` (bilingual)

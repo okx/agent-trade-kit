@@ -266,13 +266,14 @@ describe("copytrading_set_copytrading", () => {
     assert.equal(p["initialAmount"], "500");
   });
 
-  it("fixed_amount mode: forwards uniqueCode and copyTotalAmt explicitly", async () => {
+  it("fixed_amount mode: forwards uniqueCode, copyTotalAmt, and copyAmt", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ uniqueCode: "MYCODE12345ABCDE", copyMode: "fixed_amount", copyTotalAmt: "500" }, makeContext(client));
+    await tool.handler({ uniqueCode: "MYCODE12345ABCDE", copyMode: "fixed_amount", copyTotalAmt: "500", copyAmt: "50" }, makeContext(client));
     const p = getLastCall()?.params ?? {};
     assert.equal(p["uniqueCode"], "MYCODE12345ABCDE");
     assert.equal(p["copyTotalAmt"], "500");
     assert.equal(p["copyMode"], "fixed_amount");
+    assert.equal(p["copyAmt"], "50");
   });
 
   it("forwards optional tpRatio, slRatio, slTotalAmt when provided", async () => {
@@ -307,11 +308,27 @@ describe("copytrading_set_copytrading", () => {
     assert.equal(p["copyRatio"], "0.1");
   });
 
+  it("smart_copy mode: throws when initialAmount is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ uniqueCode: "ABCD1234EFGH5678", replicationRequired: "0" }, makeContext(client)),
+      /initialAmount/,
+    );
+  });
+
   it("smart_copy mode: throws when replicationRequired is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
       () => tool.handler({ uniqueCode: "ABCD1234EFGH5678", initialAmount: "500" }, makeContext(client)),
       /replicationRequired/,
+    );
+  });
+
+  it("fixed_amount mode: throws when copyAmt is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ uniqueCode: "ABCD1234EFGH5678", copyMode: "fixed_amount", copyTotalAmt: "1000" }, makeContext(client)),
+      /copyAmt/,
     );
   });
 
