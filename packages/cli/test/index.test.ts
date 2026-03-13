@@ -411,9 +411,12 @@ describe("cmdEarnLendingRateHistory output", () => {
 // handleCopyTradeCommand — dispatch coverage
 // ---------------------------------------------------------------------------
 describe("handleCopyTradeCommand", () => {
-  it("returns undefined for unknown action", () => {
+  it("returns undefined and sets exitCode for unknown action", () => {
+    const origCode = process.exitCode;
     const result = handleCopyTradeCommand(noopRunner, "noop", {}, false);
     assert.equal(result, undefined);
+    assert.equal(process.exitCode, 1);
+    process.exitCode = origCode;
   });
 
   it("dispatches traders action (returns a Promise)", () => {

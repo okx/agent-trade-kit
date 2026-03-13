@@ -2,6 +2,7 @@ import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
+  normalizeResponse,
   readNumber,
   readString,
   requireString,
@@ -12,18 +13,6 @@ const BASE = "/api/v5/copytrading";
 
 /** lastDays: "1"=7d, "2"=30d, "3"=90d, "4"=365d */
 const LAST_DAYS_30 = "2";
-
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
 
 export function registerCopyTradeTools(): ToolSpec[] {
   return [
@@ -71,8 +60,8 @@ export function registerCopyTradeTools(): ToolSpec[] {
         const dataArr = Array.isArray(raw.data) ? raw.data as Record<string, unknown>[] : [];
         const first = dataArr[0] ?? {};
         return {
-          endpoint: String(raw.endpoint ?? ""),
-          requestTime: String(raw.requestTime ?? ""),
+          endpoint: response.endpoint,
+          requestTime: response.requestTime,
           dataVer: String(first["dataVer"] ?? ""),
           totalPage: String(first["totalPage"] ?? ""),
           data: (first["ranks"] as unknown[]) ?? [],
@@ -116,9 +105,9 @@ export function registerCopyTradeTools(): ToolSpec[] {
         ]);
 
         return {
-          pnl: normalize(pnlRes).data,
-          stats: normalize(statsRes).data,
-          preference: normalize(preferenceRes).data,
+          pnl: normalizeResponse(pnlRes).data,
+          stats: normalizeResponse(statsRes).data,
+          preference: normalizeResponse(preferenceRes).data,
         };
       },
     },
@@ -228,7 +217,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("copytrading_set_copytrading", 5),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
@@ -257,7 +246,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("copytrading_stop_copy_trader", 5),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

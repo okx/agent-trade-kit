@@ -724,6 +724,8 @@ export function handleCopyTradeCommand(
     return cmdCopyTradeUnfollow(run, { uniqueCode: v.uniqueCode!, subPosCloseType: v.subPosCloseType, instType: v.instType, json });
   if (action === "trader-detail")
     return cmdCopyTradeTraderDetail(run, { uniqueCode: v.uniqueCode!, lastDays: v.lastDays, instType: v.instType, json });
+  process.stderr.write(`Unknown copytrading command: ${action}\nValid: traders, status, follow, unfollow, trader-detail\n`);
+  process.exitCode = 1;
 }
 
 export function handleBotCommand(
