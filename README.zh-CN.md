@@ -3,9 +3,9 @@
 [![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/okx/agent-tradekit/branch/master/graph/badge.svg)](https://codecov.io/gh/okx/agent-tradekit)
 [![npm: mcp](https://img.shields.io/npm/v/okx-trade-mcp?label=okx-trade-mcp)](https://www.npmjs.com/package/okx-trade-mcp)
-[![npm downloads: mcp](https://img.shields.io/npm/dm/okx-trade-mcp?label=mcp+downloads)](https://www.npmjs.com/package/okx-trade-mcp)
+[![npm downloads: mcp](https://img.shields.io/npm/dt/okx-trade-mcp?label=mcp+total+downloads)](https://www.npmjs.com/package/okx-trade-mcp)
 [![npm: cli](https://img.shields.io/npm/v/okx-trade-cli?label=okx-trade-cli)](https://www.npmjs.com/package/okx-trade-cli)
-[![npm downloads: cli](https://img.shields.io/npm/dm/okx-trade-cli?label=cli+downloads)](https://www.npmjs.com/package/okx-trade-cli)
+[![npm downloads: cli](https://img.shields.io/npm/dt/okx-trade-cli?label=cli+total+downloads)](https://www.npmjs.com/package/okx-trade-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [English](README.md) | [中文](README.zh-CN.md)

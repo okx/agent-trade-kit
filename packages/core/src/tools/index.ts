@@ -6,9 +6,8 @@ import { registerAlgoTradeTools } from "./algo-trade.js";
 import { registerAuditTools } from "./audit.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerCopyTradeTools } from "./copytrading.js";
-import { registerEarnTools } from "./earn.js";
+import { registerAllEarnTools } from "./earn/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
-import { registerOnchainEarnTools } from "./onchain-earn.js";
 import { registerMarketTools } from "./market.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
@@ -26,8 +25,7 @@ function allToolSpecs(): ToolSpec[] {
     ...registerAccountTools(),
     ...registerBotTools(),
     ...registerCopyTradeTools(),
-    ...registerEarnTools(),
-    ...registerOnchainEarnTools(),
+    ...registerAllEarnTools(),
     ...registerAuditTools(),
   ];
 }

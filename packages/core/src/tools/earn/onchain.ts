@@ -1,4 +1,4 @@
-import type { ToolSpec } from "./types.js";
+import type { ToolSpec } from "../types.js";
 import {
   asRecord,
   compactObject,
@@ -6,8 +6,8 @@ import {
   readBoolean,
   readString,
   requireString,
-} from "./helpers.js";
-import { assertNotDemo, privateRateLimit } from "./common.js";
+} from "../helpers.js";
+import { assertNotDemo, privateRateLimit } from "../common.js";
 
 export function registerOnchainEarnTools(): ToolSpec[] {
   return [
