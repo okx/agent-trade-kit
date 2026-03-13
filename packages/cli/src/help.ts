@@ -281,7 +281,7 @@ const HELP_TREE: HelpTree = {
   },
 
   futures: {
-    description: "Futures trading (orders, positions)",
+    description: "Futures trading (orders, positions, algo orders, leverage)",
     commands: {
       orders: {
         usage: "okx futures orders [--instId <id>] [--history] [--archive]",
@@ -303,9 +303,56 @@ const HELP_TREE: HelpTree = {
         usage: "okx futures cancel <instId> --ordId <id>",
         description: "Cancel a pending futures order",
       },
+      amend: {
+        usage: "okx futures amend --instId <id> [--ordId <id>] [--clOrdId <id>] [--newSz <n>] [--newPx <price>]",
+        description: "Amend a pending futures order",
+      },
       get: {
         usage: "okx futures get --instId <id> --ordId <id>",
         description: "Get details of a specific futures order",
+      },
+      close: {
+        usage: "okx futures close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl]",
+        description: "Close a futures position",
+      },
+      "get-leverage": {
+        usage: "okx futures get-leverage --instId <id> --mgnMode <cross|isolated>",
+        description: "Get current leverage for a futures instrument",
+      },
+      leverage: {
+        usage: "okx futures leverage --instId <id> --lever <n> --mgnMode <cross|isolated> [--posSide <net|long|short>]",
+        description: "Set leverage for a futures instrument",
+      },
+      batch: {
+        usage: "okx futures batch --action <place|amend|cancel> --orders '<json>'",
+        description: "Batch place, amend, or cancel futures orders",
+      },
+    },
+    subgroups: {
+      algo: {
+        description: "Futures algo orders (trailing stop, conditional, OCO)",
+        commands: {
+          orders: {
+            usage: "okx futures algo orders [--instId <id>] [--history] [--ordType <conditional|oco>]",
+            description: "List futures algo orders",
+          },
+          trail: {
+            usage: "okx futures algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                   [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            description: "Place a trailing stop algo order for futures",
+          },
+          place: {
+            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            description: "Place a futures algo order (take-profit/stop-loss)",
+          },
+          amend: {
+            usage: "okx futures algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
+            description: "Amend a pending futures algo order",
+          },
+          cancel: {
+            usage: "okx futures algo cancel --instId <id> --algoId <id>",
+            description: "Cancel a pending futures algo order",
+          },
+        },
       },
     },
   },

@@ -1,5 +1,17 @@
 import type { ToolRunner } from "@agent-tradekit/core";
 import { printJson, printKv, printTable } from "../formatter.js";
+import {
+  cmdSwapAmend,
+  cmdSwapAlgoPlace,
+  cmdSwapAlgoAmend,
+  cmdSwapAlgoCancel,
+  cmdSwapAlgoOrders,
+  cmdSwapBatch,
+  cmdSwapClose,
+  cmdSwapGetLeverage,
+  cmdSwapSetLeverage,
+  cmdSwapAlgoTrailPlace,
+} from "./swap.js";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -141,3 +153,18 @@ export async function cmdFuturesGet(
     cTime: new Date(Number(o["cTime"])).toLocaleString(),
   });
 }
+
+// ---------------------------------------------------------------------------
+// Shared implementations with swap perpetuals
+// Futures contracts use the same underlying OKX API tools as swap perpetuals.
+// ---------------------------------------------------------------------------
+export const cmdFuturesAmend = cmdSwapAmend;
+export const cmdFuturesAlgoPlace = cmdSwapAlgoPlace;
+export const cmdFuturesAlgoAmend = cmdSwapAlgoAmend;
+export const cmdFuturesAlgoCancel = cmdSwapAlgoCancel;
+export const cmdFuturesAlgoOrders = cmdSwapAlgoOrders;
+export const cmdFuturesBatch = cmdSwapBatch;
+export const cmdFuturesClose = cmdSwapClose;
+export const cmdFuturesGetLeverage = cmdSwapGetLeverage;
+export const cmdFuturesSetLeverage = cmdSwapSetLeverage;
+export const cmdFuturesAlgoTrailPlace = cmdSwapAlgoTrailPlace;

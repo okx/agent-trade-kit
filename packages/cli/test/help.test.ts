@@ -222,6 +222,47 @@ describe('printHelp("spot", "algo") — spot algo subgroup detail', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Module-level help — printHelp("futures")
+// ---------------------------------------------------------------------------
+describe('printHelp("futures") — futures module detail', () => {
+  it("includes all futures direct commands", () => {
+    const out = captureStdout(() => printHelp("futures"));
+    for (const cmd of ["orders", "positions", "fills", "place", "cancel", "amend", "get", "close", "get-leverage", "leverage", "batch"]) {
+      assert.ok(out.includes(cmd), `should mention futures '${cmd}' command`);
+    }
+  });
+
+  it("mentions algo subgroup", () => {
+    const out = captureStdout(() => printHelp("futures"));
+    assert.ok(out.includes("algo"), "should mention algo subgroup");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Subgroup-level help — printHelp("futures", "algo")
+// ---------------------------------------------------------------------------
+describe('printHelp("futures", "algo") — futures algo subgroup detail', () => {
+  it("includes Usage line for futures algo", () => {
+    const out = captureStdout(() => printHelp("futures", "algo"));
+    assert.ok(out.includes("Usage: okx futures algo"), "should include subgroup usage");
+  });
+
+  it("lists all futures algo commands including trail, place, amend, cancel, orders", () => {
+    const out = captureStdout(() => printHelp("futures", "algo"));
+    for (const cmd of ["trail", "place", "amend", "cancel", "orders"]) {
+      assert.ok(out.includes(cmd), `should mention futures algo '${cmd}' command`);
+    }
+  });
+
+  it("includes key flags for trail command", () => {
+    const out = captureStdout(() => printHelp("futures", "algo"));
+    assert.ok(out.includes("--callbackRatio"), "should include --callbackRatio flag");
+    assert.ok(out.includes("--activePx"), "should include --activePx flag");
+    assert.ok(out.includes("--posSide"), "should include --posSide flag");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("swap", "algo")
 // ---------------------------------------------------------------------------
 describe('printHelp("swap", "algo") — swap algo subgroup detail', () => {
