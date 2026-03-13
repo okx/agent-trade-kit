@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **95 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
+| **96 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -40,7 +40,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Module | Tools | Description | Docs |
 |--------|-------|-------------|------|
-| `market` | 12 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest | [→](docs/modules/market.md) |
+| `market` | 13 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens | [→](docs/modules/market.md) |
 | `spot` | 13 | Place/cancel/amend orders, batch orders, fills (+archive), order history (+archive), conditional orders, OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | Perpetual trading, batch orders, positions, leverage, conditional orders, OCO, trailing stop | [→](docs/modules/swap.md) |
 | `futures` | 6 | Delivery contract trading, positions, fills, order history | [→](docs/modules/futures.md) |

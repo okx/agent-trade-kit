@@ -81,6 +81,10 @@ const HELP_TREE: HelpTree = {
         usage: "okx market open-interest --instType <SWAP|FUTURES|OPTION> [--instId <id>]",
         description: "Get open interest for instruments",
       },
+      "stock-tokens": {
+        usage: "okx market stock-tokens [--instType <SPOT|SWAP>] [--instId <id>]",
+        description: "List all stock token instruments (instCategory=3, e.g. AAPL-USDT-SWAP)",
+      },
     },
   },
 
