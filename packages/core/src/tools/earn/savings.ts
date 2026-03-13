@@ -1,4 +1,4 @@
-import type { ToolSpec } from "./types.js";
+import type { ToolSpec } from "../types.js";
 import {
   asRecord,
   compactObject,
@@ -6,8 +6,8 @@ import {
   readNumber,
   readString,
   requireString,
-} from "./helpers.js";
-import { assertNotDemo, privateRateLimit, publicRateLimit } from "./common.js";
+} from "../helpers.js";
+import { assertNotDemo, privateRateLimit, publicRateLimit } from "../common.js";
 
 export function registerEarnTools(): ToolSpec[] {
   return [
