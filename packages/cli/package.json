@@ -13,8 +13,8 @@
   "scripts": {
     "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\"",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "postinstall": "node scripts/postinstall.js 2>/dev/null || true",
+    "clean": "rm -rf dist scripts",
+    "postinstall": "node scripts/postinstall.js || exit 0",
     "test:unit": "node --import tsx/esm --test test/*.test.ts",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
