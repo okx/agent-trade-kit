@@ -1,4 +1,4 @@
-import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, EARN_SUB_MODULE_IDS, DEFAULT_MODULES, DEFAULT_SOURCE_TAG, MODULES, OKX_SITES, SITE_IDS, type BotSubModuleId, type EarnSubModuleId, type ModuleId, type SiteId } from "./constants.js";
+import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, EARN_SUB_MODULE_IDS, DEFAULT_MODULES, DEFAULT_SOURCE_TAG, MODULES, OKX_SITES, SITE_IDS, type ModuleId, type SiteId } from "./constants.js";
 import { ConfigError } from "./utils/errors.js";
 import { readTomlProfile } from "./config/toml.js";
 import type { OkxProfile } from "./config/toml.js";
@@ -31,18 +31,13 @@ export interface OkxConfig {
   verbose: boolean;
 }
 
-/** Base (non-bot, non-earn) modules — used when expanding "all". */
-const BASE_MODULES = MODULES.filter(
-  (m) => !BOT_SUB_MODULE_IDS.includes(m as BotSubModuleId) && !EARN_SUB_MODULE_IDS.includes(m as EarnSubModuleId),
-);
-
 /**
  * Expand a single module shorthand into its concrete sub-module IDs.
  * Returns the expanded IDs, or null if the input is not a shorthand.
  */
 function expandShorthand(moduleId: string): ModuleId[] | null {
-  // "all" expands to BASE_MODULES + all bot sub-modules; earn is intentionally excluded (opt-in only)
-  if (moduleId === "all") return [...BASE_MODULES, ...BOT_SUB_MODULE_IDS] as ModuleId[];
+  // "all" expands to every known module (base + bot sub-modules + earn sub-modules)
+  if (moduleId === "all") return [...MODULES];
   if (moduleId === "earn" || moduleId === "earn.all") return [...EARN_SUB_MODULE_IDS];
   if (moduleId === "bot") return [...BOT_DEFAULT_SUB_MODULES];
   if (moduleId === "bot.all") return [...BOT_SUB_MODULE_IDS];
@@ -55,12 +50,6 @@ function parseModuleList(rawModules?: string): ModuleId[] {
   }
 
   const trimmed = rawModules.trim().toLowerCase();
-  if (trimmed === "all") {
-    // NOTE: earn sub-modules are intentionally excluded from "all".
-    // Earn tools require explicit opt-in via "earn", "earn.all", "earn.savings", or "earn.onchain".
-    return [...BASE_MODULES, ...BOT_SUB_MODULE_IDS] as ModuleId[];
-  }
-
   const requested = trimmed.split(",").map((s) => s.trim()).filter(Boolean);
   if (requested.length === 0) {
     return [...DEFAULT_MODULES];

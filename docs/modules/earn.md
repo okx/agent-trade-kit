@@ -84,24 +84,16 @@ okx earn onchain cancel --ordId 12345 --protocolType staking
 
 ### MCP startup
 
-> **Note:** Earn modules are **not** included in `--modules all`. You must opt in explicitly.
-
 ```bash
-# All earn sub-modules
+# All modules including earn (earn is included in "all")
+okx-trade-mcp --modules all
+
+# All earn sub-modules only
 okx-trade-mcp --modules earn
 
 # Individual sub-modules
 okx-trade-mcp --modules earn.savings
 okx-trade-mcp --modules earn.onchain
-
-# All modules including earn (explicit opt-in required)
-okx-trade-mcp --modules all,earn
-
-# All modules + only Simple Earn
-okx-trade-mcp --modules all,earn.savings
-
-# All modules + only On-chain Earn
-okx-trade-mcp --modules all,earn.onchain
 ```
 
 ### earn.dcd — Dual Currency Deposit (双币赢)
@@ -258,24 +250,16 @@ okx earn onchain cancel --ordId 12345 --protocolType staking
 
 ### MCP 启动
 
-> **注意：** Earn 模块**不**包含在 `--modules all` 中，需要显式启用。
-
 ```bash
-# 所有赚币子模块
+# 所有模块（含赚币，earn 已包含在 "all" 中）
+okx-trade-mcp --modules all
+
+# 仅赚币子模块
 okx-trade-mcp --modules earn
 
 # 指定子模块
 okx-trade-mcp --modules earn.savings
 okx-trade-mcp --modules earn.onchain
-
-# 所有模块 + 赚币（需显式启用）
-okx-trade-mcp --modules all,earn
-
-# 所有模块 + 仅简单赚币
-okx-trade-mcp --modules all,earn.savings
-
-# 所有模块 + 仅链上赚币
-okx-trade-mcp --modules all,earn.onchain
 ```
 
 ### earn.dcd — 双币赢（Dual Currency Deposit）
