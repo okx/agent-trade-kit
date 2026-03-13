@@ -53,6 +53,7 @@ import {
   cmdSpotAlgoAmend,
   cmdSpotAlgoCancel,
   cmdSpotAlgoOrders,
+  cmdSpotAlgoTrailPlace,
   cmdSpotBatch,
 } from "./commands/spot.js";
 import {
@@ -304,6 +305,17 @@ function handleSpotAlgoCommand(
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
+  if (subAction === "trail")
+    return cmdSpotAlgoTrailPlace(run, {
+      instId: v.instId!,
+      side: v.side!,
+      sz: v.sz!,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
+      tdMode: v.tdMode,
+      json,
+    });
   if (subAction === "place")
     return cmdSpotAlgoPlace(run, {
       instId: v.instId!,
