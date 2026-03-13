@@ -2395,6 +2395,68 @@ describe("spot_place_algo_order tag injection", () => {
 });
 
 // ---------------------------------------------------------------------------
+// swap_place_move_stop_order — callBack key names (capital B)
+// ---------------------------------------------------------------------------
+
+describe("swap_place_move_stop_order callBack key names", () => {
+  const tools = registerAlgoTradeTools();
+  const tool = tools.find((t) => t.name === "swap_place_move_stop_order")!;
+
+  it("sends callBackRatio (capital B) in POST body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", sz: "1", callbackRatio: "0.01" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.callBackRatio, "0.01", "callBackRatio (capital B) should be present");
+    assert.equal(params.callbackRatio, undefined, "callbackRatio (lowercase b) should NOT be present");
+  });
+
+  it("sends callBackSpread (capital B) in POST body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", sz: "1", callbackSpread: "100" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.callBackSpread, "100", "callBackSpread (capital B) should be present");
+    assert.equal(params.callbackSpread, undefined, "callbackSpread (lowercase b) should NOT be present");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// swap_place_algo_order — callBack key names (capital B)
+// ---------------------------------------------------------------------------
+
+describe("swap_place_algo_order callBack key names", () => {
+  const tools = registerAlgoTradeTools();
+  const tool = tools.find((t) => t.name === "swap_place_algo_order")!;
+
+  it("sends callBackRatio (capital B) in POST body for move_order_stop", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "move_order_stop", sz: "1", callbackRatio: "0.02" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.callBackRatio, "0.02", "callBackRatio (capital B) should be present");
+    assert.equal(params.callbackRatio, undefined, "callbackRatio (lowercase b) should NOT be present");
+  });
+
+  it("sends callBackSpread (capital B) in POST body for move_order_stop", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "move_order_stop", sz: "1", callbackSpread: "50" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.callBackSpread, "50", "callBackSpread (capital B) should be present");
+    assert.equal(params.callbackSpread, undefined, "callbackSpread (lowercase b) should NOT be present");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Earn tools
 // ---------------------------------------------------------------------------
 
