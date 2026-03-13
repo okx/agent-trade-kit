@@ -131,6 +131,18 @@ import {
   cmdOnchainEarnActiveOrders,
   cmdOnchainEarnOrderHistory,
 } from "./commands/onchain-earn.js";
+import {
+  cmdDcdPairs,
+  cmdDcdProducts,
+  cmdDcdQuote,
+  cmdDcdBuy,
+  cmdDcdRedeemQuote,
+  cmdDcdRedeem,
+  cmdDcdRedeemExecute,
+  cmdDcdOrderState,
+  cmdDcdOrders,
+  cmdDcdQuoteAndBuy,
+} from "./commands/dcd.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -709,7 +721,8 @@ export function handleEarnCommand(
   const innerRest = rest.slice(1);
   if (submodule === "savings") return handleEarnSavingsCommand(run, action, innerRest, v, json);
   if (submodule === "onchain") return handleEarnOnchainCommand(run, action, v, json);
-  process.stderr.write(`Unknown earn sub-module: ${submodule}\nValid: savings, onchain\n`);
+  if (submodule === "dcd") return handleEarnDcdCommand(run, action, v, json);
+  process.stderr.write(`Unknown earn sub-module: ${submodule}\nValid: savings, onchain, dcd\n`);
   process.exitCode = 1;
 }
 
@@ -745,6 +758,75 @@ function handleEarnOnchainCommand(
   if (action === "orders") return cmdOnchainEarnActiveOrders(run, v).then((r) => outputResult(r, json));
   if (action === "history") return cmdOnchainEarnOrderHistory(run, v).then((r) => outputResult(r, json));
   process.stderr.write(`Unknown earn onchain command: ${action}\n`);
+  process.exitCode = 1;
+}
+
+function parseDcdOpts(v: CliValues) {
+  return {
+    limit: v.limit !== undefined ? Number(v.limit) : undefined,
+    minYield: v.minYield !== undefined ? parseFloat(v.minYield) : undefined,
+    strikeNear: v.strikeNear !== undefined ? parseFloat(v.strikeNear) : undefined,
+    termDays: v.termDays !== undefined ? parseInt(v.termDays, 10) : undefined,
+    minTermDays: v.minTermDays !== undefined ? parseInt(v.minTermDays, 10) : undefined,
+    maxTermDays: v.maxTermDays !== undefined ? parseInt(v.maxTermDays, 10) : undefined,
+  };
+}
+
+function handleEarnDcdCommand(
+  run: ToolRunner,
+  action: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const { limit, minYield, strikeNear, termDays, minTermDays, maxTermDays } = parseDcdOpts(v);
+  if (action === "pairs") return cmdDcdPairs(run, json);
+  if (action === "products")
+    return cmdDcdProducts(run, {
+      baseCcy: v.baseCcy,
+      quoteCcy: v.quoteCcy,
+      optType: v.optType,
+      minYield,
+      strikeNear,
+      termDays,
+      minTermDays,
+      maxTermDays,
+      expDate: v.expDate,
+      json,
+    });
+  if (action === "quote")
+    return cmdDcdQuote(run, { productId: v.productId!, notionalSz: v.sz!, notionalCcy: v.notionalCcy!, json });
+  if (action === "buy")
+    return cmdDcdBuy(run, { quoteId: v.quoteId!, clOrdId: v.clOrdId, json });
+  if (action === "quote-and-buy")
+    return cmdDcdQuoteAndBuy(run, {
+      productId: v.productId!,
+      notionalSz: v.sz!,
+      notionalCcy: v.notionalCcy!,
+      clOrdId: v.clOrdId,
+      json,
+    });
+  if (action === "redeem-quote")
+    return cmdDcdRedeemQuote(run, { ordId: v.ordId!, json });
+  if (action === "redeem")
+    return cmdDcdRedeem(run, { ordId: v.ordId!, quoteId: v.quoteId!, json });
+  if (action === "redeem-execute")
+    return cmdDcdRedeemExecute(run, { ordId: v.ordId!, json });
+  if (action === "order")
+    return cmdDcdOrderState(run, { ordId: v.ordId!, json });
+  if (action === "orders")
+    return cmdDcdOrders(run, {
+      ordId: v.ordId,
+      productId: v.productId,
+      uly: v.uly,
+      state: v.state,
+      beginId: v.beginId,
+      endId: v.endId,
+      begin: v.begin,
+      end: v.end,
+      limit,
+      json,
+    });
+  process.stderr.write(`Unknown earn dcd command: ${action}\nValid: pairs, products, quote, buy, quote-and-buy, redeem-quote, redeem, redeem-execute, order, orders\n`);
   process.exitCode = 1;
 }
 

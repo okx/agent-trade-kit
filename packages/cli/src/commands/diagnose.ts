@@ -298,18 +298,19 @@ async function checkNetwork(config: OkxConfig, client: OkxRestClient, report: Re
   return passed;
 }
 
-function getAuthHints(msg: string): string[] {
+function getAuthHints(msg: string, baseUrl: string): string[] {
+  const accountUrl = baseUrl.replace(/\/+$/, "") + "/account/my-api";
   if (msg.includes("50111") || msg.includes("Invalid OK-ACCESS-KEY")) {
-    return ["API key is invalid or expired", "Regenerate at https://www.okx.com/account/my-api"];
+    return ["API key is invalid or expired", `Regenerate at ${accountUrl}`];
   }
   if (msg.includes("50112") || msg.includes("Invalid Sign")) {
-    return ["Secret key or passphrase may be wrong", "Regenerate API key at https://www.okx.com/account/my-api"];
+    return ["Secret key or passphrase may be wrong", `Regenerate API key at ${accountUrl}`];
   }
   if (msg.includes("50113")) {
     return ["Passphrase is incorrect"];
   }
   if (msg.includes("50100")) {
-    return ["API key lacks required permissions", "Update permissions at https://www.okx.com/account/my-api"];
+    return ["API key lacks required permissions", `Update permissions at ${accountUrl}`];
   }
   return ["Check API credentials and permissions"];
 }
@@ -335,7 +336,7 @@ async function checkAuth(client: OkxRestClient, config: OkxConfig, report: Repor
   } catch (e) {
     const ms = Date.now() - t1;
     const msg = e instanceof Error ? e.message : String(e);
-    const hints = getAuthHints(msg);
+    const hints = getAuthHints(msg, config.baseUrl);
     fail("Account balance", msg, hints);
     passed = false;
     report.add("auth_api", `FAIL /account/balance ${msg} (${ms}ms)`);

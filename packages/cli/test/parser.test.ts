@@ -86,6 +86,78 @@ describe("parseCli", () => {
   });
 });
 
+describe("dcd options", () => {
+  it("--quoteId sets quoteId", () => {
+    const { values } = parseCli(["earn", "dcd", "buy", "--quoteId", "qtbcDCD-QUOTE123"]);
+    assert.equal(values.quoteId, "qtbcDCD-QUOTE123");
+  });
+
+  it("--notionalCcy sets notionalCcy", () => {
+    const { values } = parseCli(["earn", "dcd", "quote", "--notionalCcy", "BTC"]);
+    assert.equal(values.notionalCcy, "BTC");
+  });
+
+  it("--optType sets optType", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--optType", "C"]);
+    assert.equal(values.optType, "C");
+  });
+
+  it("--baseCcy sets baseCcy", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--baseCcy", "BTC"]);
+    assert.equal(values.baseCcy, "BTC");
+  });
+
+  it("--beginId sets beginId", () => {
+    const { values } = parseCli(["earn", "dcd", "orders", "--beginId", "100"]);
+    assert.equal(values.beginId, "100");
+  });
+
+  it("--endId sets endId", () => {
+    const { values } = parseCli(["earn", "dcd", "orders", "--endId", "200"]);
+    assert.equal(values.endId, "200");
+  });
+
+  it("--begin sets begin", () => {
+    const { values } = parseCli(["earn", "dcd", "orders", "--begin", "1700000000000"]);
+    assert.equal(values.begin, "1700000000000");
+  });
+
+  it("--end sets end", () => {
+    const { values } = parseCli(["earn", "dcd", "orders", "--end", "1800000000000"]);
+    assert.equal(values.end, "1800000000000");
+  });
+
+  it("--minYield sets minYield", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--minYield", "0.05"]);
+    assert.equal(values.minYield, "0.05");
+  });
+
+  it("--strikeNear sets strikeNear", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--strikeNear", "72000"]);
+    assert.equal(values.strikeNear, "72000");
+  });
+
+  it("--termDays sets termDays", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--termDays", "7"]);
+    assert.equal(values.termDays, "7");
+  });
+
+  it("--minTermDays sets minTermDays", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--minTermDays", "3"]);
+    assert.equal(values.minTermDays, "3");
+  });
+
+  it("--maxTermDays sets maxTermDays", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--maxTermDays", "30"]);
+    assert.equal(values.maxTermDays, "30");
+  });
+
+  it("--expDate sets expDate", () => {
+    const { values } = parseCli(["earn", "dcd", "products", "--expDate", "2026-03-27"]);
+    assert.equal(values.expDate, "2026-03-27");
+  });
+});
+
 describe("earn --rate option", () => {
   it("parses --rate as string", () => {
     const { values } = parseCli(["earn", "purchase", "--ccy", "USDT", "--amt", "100", "--rate", "0.02"]);

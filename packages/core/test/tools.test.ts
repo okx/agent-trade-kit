@@ -2399,6 +2399,7 @@ describe("spot_place_algo_order tag injection", () => {
 // ---------------------------------------------------------------------------
 
 import { registerEarnTools } from "../src/tools/earn/savings.js";
+import { registerDcdTools } from "../src/tools/earn/dcd.js";
 
 describe("earn tools registration", () => {
   const tools = registerEarnTools();
@@ -2844,5 +2845,221 @@ describe("earn tools isWrite classification", () => {
       assert.ok(tool, `${name} should exist`);
       assert.equal(tool!.isWrite, false, `${name} should not be a write tool`);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD tools
+// ---------------------------------------------------------------------------
+
+describe("dcd tools registration", () => {
+  const tools = registerDcdTools();
+
+  it("registers exactly 8 dcd tools", () => {
+    assert.equal(tools.length, 8);
+  });
+
+  it("all tools have module earn.dcd", () => {
+    for (const tool of tools) {
+      assert.equal(tool.module, "earn.dcd", `${tool.name} should have module earn.dcd`);
+    }
+  });
+
+  it("write tools have isWrite=true", () => {
+    for (const name of ["dcd_execute_quote", "dcd_execute_redeem"]) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `${name} should exist`);
+      assert.equal(tool!.isWrite, true, `${name} should have isWrite=true`);
+    }
+  });
+
+  it("read tools have isWrite=false", () => {
+    for (const name of ["dcd_get_currency_pairs", "dcd_get_products", "dcd_request_quote",
+      "dcd_request_redeem_quote", "dcd_get_order_state", "dcd_get_orders"]) {
+      const tool = tools.find((t) => t.name === name);
+      assert.ok(tool, `${name} should exist`);
+      assert.equal(tool!.isWrite, false, `${name} should have isWrite=false`);
+    }
+  });
+});
+
+describe("dcd_get_currency_pairs", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_get_currency_pairs")!;
+
+  it("calls /api/v5/finance/sfp/dcd/currency-pair via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/currency-pair");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+});
+
+describe("dcd_get_products", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_get_products")!;
+
+  it("calls /api/v5/finance/sfp/dcd/products via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ baseCcy: "BTC", quoteCcy: "USDT", optType: "C" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/products");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes required params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ baseCcy: "ETH", quoteCcy: "USDT", optType: "P" }, makeContext(client));
+    assert.equal(getLastCall()?.params.baseCcy, "ETH");
+    assert.equal(getLastCall()?.params.quoteCcy, "USDT");
+    assert.equal(getLastCall()?.params.optType, "P");
+  });
+});
+
+describe("dcd_request_quote", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_request_quote")!;
+
+  it("calls /api/v5/finance/sfp/dcd/quote via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "1.5", notionalCcy: "BTC" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/quote");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes notionalSz and notionalCcy", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params.notionalSz, "0.001");
+    assert.equal(getLastCall()?.params.notionalCcy, "BTC");
+  });
+});
+
+describe("dcd_execute_quote", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_execute_quote")!;
+
+  it("calls /api/v5/finance/sfp/dcd/trade via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ quoteId: "qtbcDCD-QUOTE123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/trade");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes optional clOrdId when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ quoteId: "qtbcDCD-QUOTE123", clOrdId: "myOrder1" }, makeContext(client));
+    assert.equal(getLastCall()?.params.clOrdId, "myOrder1");
+  });
+
+  it("rejects in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoContext = {
+      client: client as ToolContext["client"],
+      config: { demo: true } as ToolContext["config"],
+    };
+    await assert.rejects(
+      () => tool.handler({ quoteId: "qtbcDCD-QUOTE123" }, demoContext),
+      (err: unknown) => err instanceof ConfigError,
+    );
+  });
+});
+
+describe("dcd_request_redeem_quote", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_request_redeem_quote")!;
+
+  it("calls /api/v5/finance/sfp/dcd/redeem-quote via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordId: "987654321" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/redeem-quote");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes ordId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordId: "111" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ordId, "111");
+  });
+});
+
+describe("dcd_execute_redeem", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_execute_redeem")!;
+
+  it("calls /api/v5/finance/sfp/dcd/redeem via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordId: "987654321", quoteId: "qtbcDCD-REDEEM123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/redeem");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes ordId and quoteId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordId: "111", quoteId: "q222" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ordId, "111");
+    assert.equal(getLastCall()?.params.quoteId, "q222");
+  });
+
+  it("rejects in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoContext = {
+      client: client as ToolContext["client"],
+      config: { demo: true } as ToolContext["config"],
+    };
+    await assert.rejects(
+      () => tool.handler({ ordId: "111", quoteId: "q222" }, demoContext),
+      (err: unknown) => err instanceof ConfigError,
+    );
+  });
+});
+
+describe("dcd_get_order_state", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_get_order_state")!;
+
+  it("calls /api/v5/finance/sfp/dcd/order-status via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordId: "987654321" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/order-status");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes ordId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordId: "123" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ordId, "123");
+  });
+});
+
+describe("dcd_get_orders", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_get_orders")!;
+
+  it("calls /api/v5/finance/sfp/dcd/order-history via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/order-history");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes optional filters when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ state: "live", uly: "BTC-USD", limit: 10 }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, "live");
+    assert.equal(getLastCall()?.params.uly, "BTC-USD");
+    assert.equal(getLastCall()?.params.limit, 10);
+  });
+
+  it("omits undefined optional params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.params.state, undefined);
+    assert.equal(getLastCall()?.params.ordId, undefined);
   });
 });

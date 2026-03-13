@@ -51,9 +51,9 @@ describe("printHelp() — global overview", () => {
     assert.ok(out.includes("Usage: okx"), "should include Usage line");
   });
 
-  it("lists all 9 modules with descriptions", () => {
+  it("lists all major modules with descriptions", () => {
     const out = captureStdout(() => printHelp());
-    for (const mod of ["market", "account", "spot", "swap", "futures", "option", "bot", "config", "setup"]) {
+    for (const mod of ["market", "account", "spot", "swap", "futures", "option", "bot", "earn", "config", "setup"]) {
       assert.ok(out.includes(mod), `should mention module '${mod}'`);
     }
   });
@@ -277,12 +277,53 @@ describe('printHelp("setup") — setup module with usage only', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Module-level help — printHelp("earn") — earn module with DCD subgroup
+// ---------------------------------------------------------------------------
+describe('printHelp("earn") — earn module overview', () => {
+  it("includes Usage line", () => {
+    const out = captureStdout(() => printHelp("earn"));
+    assert.ok(out.includes("Usage: okx earn"), "should include earn usage");
+  });
+
+  it("lists savings, onchain, and dcd subgroups", () => {
+    const out = captureStdout(() => printHelp("earn"));
+    assert.ok(out.includes("savings"), "should mention savings subgroup");
+    assert.ok(out.includes("onchain"), "should mention onchain subgroup");
+    assert.ok(out.includes("dcd"), "should mention dcd subgroup");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Subgroup-level help — printHelp("earn", "dcd")
+// ---------------------------------------------------------------------------
+describe('printHelp("earn", "dcd") — dcd subgroup detail', () => {
+  it("includes Usage line for earn dcd", () => {
+    const out = captureStdout(() => printHelp("earn", "dcd"));
+    assert.ok(out.includes("Usage: okx earn dcd"), "should include subgroup usage");
+  });
+
+  it("lists all DCD commands", () => {
+    const out = captureStdout(() => printHelp("earn", "dcd"));
+    for (const cmd of ["pairs", "products", "quote", "buy", "quote-and-buy", "redeem-quote", "redeem", "redeem-execute", "order", "orders"]) {
+      assert.ok(out.includes(cmd), `should mention dcd '${cmd}' command`);
+    }
+  });
+
+  it("includes key flags in usage lines", () => {
+    const out = captureStdout(() => printHelp("earn", "dcd"));
+    assert.ok(out.includes("--productId"), "should include --productId flag");
+    assert.ok(out.includes("--quoteId"), "should include --quoteId flag");
+    assert.ok(out.includes("--ordId"), "should include --ordId flag");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Verify backward-compat: existing tests still pass
 // ---------------------------------------------------------------------------
 describe("printHelp() — backward compatibility", () => {
   it("printHelp() with no args outputs all major module names", () => {
     const out = captureStdout(() => printHelp());
-    for (const mod of ["market", "account", "spot", "swap", "futures", "bot", "config", "setup"]) {
+    for (const mod of ["market", "account", "spot", "swap", "futures", "bot", "earn", "config", "setup"]) {
       assert.ok(out.includes(mod), `should include '${mod}'`);
     }
   });
