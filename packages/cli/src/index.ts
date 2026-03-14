@@ -341,6 +341,9 @@ function handleSpotAlgoCommand(
       tpOrdPx: v.tpOrdPx,
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -445,6 +448,9 @@ function handleSwapAlgoCommand(
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -674,6 +680,9 @@ function handleFuturesAlgoCommand(
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
