@@ -375,5 +375,295 @@ export function registerFuturesTools(): ToolSpec[] {
         return normalizeResponse(response);
       },
     },
+    {
+      name: "futures_amend_order",
+      module: "futures",
+      description:
+        "Amend an unfilled FUTURES delivery order (modify price and/or size).",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USDT-240329",
+          },
+          ordId: {
+            type: "string",
+            description: "Provide ordId or clOrdId",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Provide ordId or clOrdId",
+          },
+          newSz: {
+            type: "string",
+            description: "New number of contracts",
+          },
+          newPx: {
+            type: "string",
+            description: "New price",
+          },
+        },
+        required: ["instId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privatePost(
+          "/api/v5/trade/amend-order",
+          compactObject({
+            instId: requireString(args, "instId"),
+            ordId: readString(args, "ordId"),
+            clOrdId: readString(args, "clOrdId"),
+            newSz: readString(args, "newSz"),
+            newPx: readString(args, "newPx"),
+          }),
+          privateRateLimit("futures_amend_order", 60),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "futures_close_position",
+      module: "futures",
+      description:
+        "[CAUTION] Close an entire FUTURES delivery position at market. Private. Rate limit: 20 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USDT-240329",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+          },
+          posSide: {
+            type: "string",
+            enum: ["long", "short", "net"],
+            description: "long/short=hedge mode; omit for one-way (net)",
+          },
+          autoCxl: {
+            type: "boolean",
+            description: "Cancel pending orders for this instrument on close",
+          },
+          clOrdId: {
+            type: "string",
+            description: "Client order ID for close order",
+          },
+        },
+        required: ["instId", "mgnMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const autoCxl = args.autoCxl;
+        const response = await context.client.privatePost(
+          "/api/v5/trade/close-position",
+          compactObject({
+            instId: requireString(args, "instId"),
+            mgnMode: requireString(args, "mgnMode"),
+            posSide: readString(args, "posSide"),
+            autoCxl: typeof autoCxl === "boolean" ? String(autoCxl) : undefined,
+            clOrdId: readString(args, "clOrdId"),
+            tag: context.config.sourceTag,
+          }),
+          privateRateLimit("futures_close_position", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "futures_set_leverage",
+      module: "futures",
+      description:
+        "Set leverage for a FUTURES delivery instrument or position. [CAUTION] Changes risk parameters.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USDT-240329",
+          },
+          lever: {
+            type: "string",
+            description: "Leverage, e.g. '10'",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+          },
+          posSide: {
+            type: "string",
+            enum: ["long", "short", "net"],
+            description: "Required for isolated margin in hedge mode",
+          },
+        },
+        required: ["instId", "lever", "mgnMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privatePost(
+          "/api/v5/account/set-leverage",
+          compactObject({
+            instId: requireString(args, "instId"),
+            lever: requireString(args, "lever"),
+            mgnMode: requireString(args, "mgnMode"),
+            posSide: readString(args, "posSide"),
+          }),
+          privateRateLimit("futures_set_leverage", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "futures_get_leverage",
+      module: "futures",
+      description:
+        "Get current leverage for a FUTURES delivery instrument.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USDT-240329",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+          },
+        },
+        required: ["instId", "mgnMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/account/leverage-info",
+          compactObject({
+            instId: requireString(args, "instId"),
+            mgnMode: requireString(args, "mgnMode"),
+          }),
+          privateRateLimit("futures_get_leverage", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "futures_batch_orders",
+      module: "futures",
+      description:
+        "[CAUTION] Batch place up to 20 FUTURES delivery orders in one request. Private. Rate limit: 60 req/s.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          orders: {
+            type: "array",
+            description:
+              "Array (max 20): {instId,tdMode,side,ordType,sz,px?,posSide?,reduceOnly?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?}",
+            items: {
+              type: "object",
+            },
+          },
+        },
+        required: ["orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const body = orders.map((order: unknown) => {
+          const o = asRecord(order);
+          const attachAlgoOrds = buildAttachAlgoOrds(o);
+          const reduceOnly = o.reduceOnly;
+          return compactObject({
+            instId: requireString(o, "instId"),
+            tdMode: requireString(o, "tdMode"),
+            side: requireString(o, "side"),
+            ordType: requireString(o, "ordType"),
+            sz: requireString(o, "sz"),
+            px: readString(o, "px"),
+            posSide: readString(o, "posSide"),
+            reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
+            clOrdId: readString(o, "clOrdId"),
+            tag: context.config.sourceTag,
+            attachAlgoOrds,
+          });
+        });
+        const response = await context.client.privatePost(
+          "/api/v5/trade/batch-orders",
+          body,
+          privateRateLimit("futures_batch_orders", 60),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "futures_batch_amend",
+      module: "futures",
+      description:
+        "[CAUTION] Batch amend up to 20 unfilled FUTURES delivery orders in one request.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          orders: {
+            type: "array",
+            description: "Array (max 20): {instId, ordId?, clOrdId?, newSz?, newPx?}",
+            items: { type: "object" },
+          },
+        },
+        required: ["orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const response = await context.client.privatePost(
+          "/api/v5/trade/amend-batch-orders",
+          orders as Record<string, unknown>[],
+          privateRateLimit("futures_batch_amend", 60),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "futures_batch_cancel",
+      module: "futures",
+      description:
+        "[CAUTION] Batch cancel up to 20 FUTURES delivery orders in one request.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          orders: {
+            type: "array",
+            description: "Array (max 20): {instId, ordId?, clOrdId?}",
+            items: { type: "object" },
+          },
+        },
+        required: ["orders"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const orders = args.orders;
+        if (!Array.isArray(orders) || orders.length === 0) {
+          throw new Error("orders must be a non-empty array.");
+        }
+        const response = await context.client.privatePost(
+          "/api/v5/trade/cancel-batch-orders",
+          orders as Record<string, unknown>[],
+          privateRateLimit("futures_batch_cancel", 60),
+        );
+        return normalizeResponse(response);
+      },
+    },
   ];
 }

@@ -33,7 +33,7 @@ const fakeAlgoResult = {
 // cmdFuturesAlgoTrailPlace — trailing stop passthrough
 // ---------------------------------------------------------------------------
 describe("cmdFuturesAlgoTrailPlace", () => {
-  it("calls swap_place_move_stop_order with callbackRatio for futures instId", async () => {
+  it("calls futures_place_move_stop_order with callbackRatio for futures instId", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -54,7 +54,7 @@ describe("cmdFuturesAlgoTrailPlace", () => {
     );
 
     assert.ok(capturedTool, "runner should have been called");
-    assert.equal(capturedTool, "swap_place_move_stop_order");
+    assert.equal(capturedTool, "futures_place_move_stop_order");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["tdMode"], "cross");
     assert.equal(capturedParams!["side"], "sell");
