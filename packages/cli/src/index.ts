@@ -103,6 +103,10 @@ import {
   cmdOptionCancel,
   cmdOptionAmend,
   cmdOptionBatchCancel,
+  cmdOptionAlgoPlace,
+  cmdOptionAlgoAmend,
+  cmdOptionAlgoCancel,
+  cmdOptionAlgoOrders,
 } from "./commands/option.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit, cmdConfigAddProfile, cmdConfigListProfile, cmdConfigUse } from "./commands/config.js";
 import type { Lang } from "./commands/config.js";
@@ -539,10 +543,53 @@ export function handleSwapCommand(
     return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
 }
 
+function handleOptionAlgoCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "place")
+    return cmdOptionAlgoPlace(run, {
+      instId: v.instId!,
+      tdMode: v.tdMode!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      reduceOnly: v.reduceOnly,
+      clOrdId: v.clOrdId,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdOptionAlgoAmend(run, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdOptionAlgoCancel(run, { instId: v.instId!, algoId: v.algoId!, json });
+  if (subAction === "orders")
+    return cmdOptionAlgoOrders(run, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
+}
+
 function handleOptionCommand(
   run: ToolRunner,
   action: string,
-  _rest: string[],
+  rest: string[],
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
@@ -572,6 +619,10 @@ function handleOptionCommand(
       px: v.px,
       reduceOnly: v.reduceOnly,
       clOrdId: v.clOrdId,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
       json,
     });
   if (action === "cancel")
@@ -587,6 +638,8 @@ function handleOptionCommand(
     });
   if (action === "batch-cancel")
     return cmdOptionBatchCancel(run, { orders: v.orders!, json });
+  if (action === "algo")
+    return handleOptionAlgoCommand(run, rest[0], v, json);
 }
 
 function handleFuturesAlgoCommand(
