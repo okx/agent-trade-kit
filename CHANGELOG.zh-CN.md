@@ -9,11 +9,18 @@
 
 ---
 
-## [1.2.4-beta.6] - 2026-03-14
+## [1.2.4-beta.7] - 2026-03-14
 
 ### 修复
 
 - **CLI `okx swap algo cancel` 报 "orders must be a non-empty array"**：`cmdSwapAlgoCancel` 将 `{ instId, algoId }` 直接传给 `swap_cancel_algo_orders`，而该工具要求 `{ orders: [{ instId, algoId }] }` 格式，导致命令必然失败。已修正为与 `futures`/`option` 保持一致的包装格式。([#76](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/76))
+
+---
+
+## [1.2.4-beta.6] - 2026-03-14
+
+### 修复
+
 - **CLI `algo place` 移动止损参数未透传**：`cmdSpotAlgoPlace`、`cmdSwapAlgoPlace`、`cmdFuturesAlgoPlace` 在用户传入 `callbackRatio`、`callbackSpread`、`activePx` 时会静默丢弃这些参数。通过 `okx {spot,swap,futures} algo place --ordType move_order_stop` 下移动止损单时，API 会返回错误 50015（缺少必要参数）。三个参数现已正确透传到 tool runner。([#74](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/74))
 
 ---
