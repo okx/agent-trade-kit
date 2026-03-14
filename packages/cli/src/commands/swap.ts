@@ -212,7 +212,7 @@ export async function cmdSwapAlgoCancel(
   algoId: string,
   json: boolean,
 ): Promise<void> {
-  const result = await run("swap_cancel_algo_orders", { instId, algoId });
+  const result = await run("swap_cancel_algo_orders", { orders: [{ instId, algoId }] });
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const r = data?.[0];
