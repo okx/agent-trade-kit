@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.4-beta.6] - 2026-03-14
+
+### Fixed
+
+- **CLI `algo place` missing trailing stop params**: `cmdSpotAlgoPlace`, `cmdSwapAlgoPlace`, and `cmdFuturesAlgoPlace` were silently dropping `callbackRatio`, `callbackSpread`, and `activePx` when passed by the user. Placing a trailing stop via `okx {spot,swap,futures} algo place --ordType move_order_stop` would return API error 50015 (missing required param). The three params are now passed through to the tool runner correctly. ([#74](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/74))
+
+---
+
 ## [1.2.4-beta.5] - 2026-03-14
 
 ### Added
@@ -34,8 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Trim tool descriptions**: Removed "Private endpoint", "Public endpoint", and "Rate limit: X req/s per UID" labels from all tool description strings to reduce MCP schema token overhead. `[CAUTION]` markers are preserved. ([#70](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/70))
 
 ### Fixed
-
-- **CLI `algo place` missing trailing stop params**: `cmdSpotAlgoPlace`, `cmdSwapAlgoPlace`, and `cmdFuturesAlgoPlace` were silently dropping `callbackRatio`, `callbackSpread`, and `activePx` when passed by the user. Placing a trailing stop via `okx {spot,swap,futures} algo place --ordType move_order_stop` would return API error 50015 (missing required param). The three params are now passed through to the tool runner correctly. ([#74](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/74))
 
 - **`callBackRatio` / `callBackSpread` parameter name mismatch**: OKX API expects `callBackRatio` and `callBackSpread` (capital B) but the POST body was sending `callbackRatio` and `callbackSpread` (lowercase b), causing sCode 50015 errors. Fixed in `swap_place_algo_order` and `swap_place_move_stop_order` handlers. The MCP input schema parameter names (`callbackRatio` / `callbackSpread`) remain unchanged. ([#69](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/69))
 
