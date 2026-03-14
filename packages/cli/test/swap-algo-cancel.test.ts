@@ -8,14 +8,6 @@ import assert from "node:assert/strict";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdSwapAlgoCancel } from "../src/commands/swap.js";
 
-function muteStdout(fn: () => Promise<void>): Promise<void> {
-  const orig = process.stdout.write.bind(process.stdout);
-  (process.stdout as { write: typeof process.stdout.write }).write = () => true;
-  return fn().finally(() => {
-    process.stdout.write = orig;
-  });
-}
-
 function captureStdout(fn: () => Promise<void>): Promise<string> {
   const chunks: string[] = [];
   const orig = process.stdout.write.bind(process.stdout);
@@ -28,6 +20,10 @@ function captureStdout(fn: () => Promise<void>): Promise<string> {
       process.stdout.write = orig;
     })
     .then(() => chunks.join(""));
+}
+
+function muteStdout(fn: () => Promise<void>): Promise<void> {
+  return captureStdout(fn).then(() => undefined);
 }
 
 const fakeCancelResult = {
