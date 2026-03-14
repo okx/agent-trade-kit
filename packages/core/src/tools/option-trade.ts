@@ -1,6 +1,7 @@
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,
+  buildAttachAlgoOrds,
   compactObject,
   normalizeResponse,
   readBoolean,
@@ -55,12 +56,29 @@ export function registerOptionTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
+          tpTriggerPx: {
+            type: "string",
+            description: "TP trigger price; attaches a take-profit algo order",
+          },
+          tpOrdPx: {
+            type: "string",
+            description: "TP order price; -1=market",
+          },
+          slTriggerPx: {
+            type: "string",
+            description: "SL trigger price; attaches a stop-loss algo order",
+          },
+          slOrdPx: {
+            type: "string",
+            description: "SL order price; -1=market (recommended)",
+          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const attachAlgoOrds = buildAttachAlgoOrds(args);
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -73,6 +91,7 @@ export function registerOptionTools(): ToolSpec[] {
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
             tag: context.config.sourceTag,
+            attachAlgoOrds,
           }),
           privateRateLimit("option_place_order", 60),
         );

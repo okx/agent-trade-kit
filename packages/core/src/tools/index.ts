@@ -8,6 +8,7 @@ import { registerBotTools } from "./bot/index.js";
 import { registerAllEarnTools } from "./earn/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerMarketTools } from "./market.js";
+import { registerOptionAlgoTools } from "./option-algo-trade.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
 import { registerSwapTradeTools } from "./swap-trade.js";
@@ -21,6 +22,7 @@ function allToolSpecs(): ToolSpec[] {
     ...registerFuturesTools(),
     ...registerFuturesAlgoTools(),
     ...registerOptionTools(),
+    ...registerOptionAlgoTools(),
     ...registerAlgoTradeTools(),
     ...registerAccountTools(),
     ...registerBotTools(),
