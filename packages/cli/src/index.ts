@@ -121,6 +121,10 @@ import {
   cmdDcaOrders,
   cmdDcaDetails,
   cmdDcaSubOrders,
+  cmdTwapPlace,
+  cmdTwapCancel,
+  cmdTwapOrders,
+  cmdTwapDetails,
 } from "./commands/bot.js";
 import {
   cmdOnchainEarnOffers,
@@ -684,6 +688,39 @@ export function handleBotDcaCommand(
     return cmdDcaStop(run, { algoId: v.algoId!, json });
 }
 
+export function handleBotTwapCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (subAction === "orders")
+    return cmdTwapOrders(run, { history: v.history ?? false, instId: v.instId, instType: v.instType, state: v.state, json });
+  if (subAction === "details")
+    return cmdTwapDetails(run, { algoId: v.algoId, algoClOrdId: v.algoClOrdId, json });
+  if (subAction === "place")
+    return cmdTwapPlace(run, {
+      instId: v.instId!,
+      tdMode: v.tdMode!,
+      side: v.side!,
+      sz: v.sz!,
+      szLimit: v.szLimit!,
+      pxLimit: v.pxLimit!,
+      timeInterval: v.timeInterval!,
+      posSide: v.posSide,
+      pxVar: v.pxVar,
+      pxSpread: v.pxSpread,
+      algoClOrdId: v.algoClOrdId,
+      ccy: v.ccy,
+      tradeQuoteCcy: v.tradeQuoteCcy,
+      reduceOnly: v.reduceOnly || undefined,
+      isTradeBorrowMode: v.isTradeBorrowMode || undefined,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdTwapCancel(run, { instId: v.instId!, algoId: v.algoId, algoClOrdId: v.algoClOrdId, json });
+}
+
 export function handleBotCommand(
   run: ToolRunner,
   action: string,
@@ -693,6 +730,7 @@ export function handleBotCommand(
 ): Promise<void> | void {
   if (action === "grid") return handleBotGridCommand(run, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
+  if (action === "twap") return handleBotTwapCommand(run, rest[0], v, json);
 }
 
 export function handleEarnCommand(

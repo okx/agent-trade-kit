@@ -119,6 +119,7 @@ export function registerDcaTools(): ToolSpec[] {
             slPct: readString(args, "slPct"),
             slMode: readString(args, "slMode"),
             allowReinvest: readString(args, "allowReinvest"),
+            tag: context.config.sourceTag,
             triggerParams: [triggerParam],
           }),
           privateRateLimit("dca_create_order", 20),

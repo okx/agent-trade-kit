@@ -300,3 +300,124 @@ export async function cmdDcaSubOrders(
     })),
   );
 }
+
+// ---------------------------------------------------------------------------
+// TWAP commands
+// ---------------------------------------------------------------------------
+
+export async function cmdTwapPlace(
+  run: ToolRunner,
+  opts: {
+    instId: string;
+    tdMode: string;
+    side: string;
+    sz: string;
+    szLimit: string;
+    pxLimit: string;
+    timeInterval: string;
+    posSide?: string;
+    pxVar?: string;
+    pxSpread?: string;
+    algoClOrdId?: string;
+    ccy?: string;
+    tradeQuoteCcy?: string;
+    reduceOnly?: boolean;
+    isTradeBorrowMode?: boolean;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("twap_place_order", {
+    instId: opts.instId,
+    tdMode: opts.tdMode,
+    side: opts.side,
+    sz: opts.sz,
+    szLimit: opts.szLimit,
+    pxLimit: opts.pxLimit,
+    timeInterval: opts.timeInterval,
+    posSide: opts.posSide,
+    pxVar: opts.pxVar,
+    pxSpread: opts.pxSpread,
+    algoClOrdId: opts.algoClOrdId,
+    ccy: opts.ccy,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
+    reduceOnly: opts.reduceOnly,
+    isTradeBorrowMode: opts.isTradeBorrowMode,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
+  process.stdout.write(
+    `TWAP order placed: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
+  );
+}
+
+export async function cmdTwapCancel(
+  run: ToolRunner,
+  opts: { instId: string; algoId?: string; algoClOrdId?: string; json: boolean },
+): Promise<void> {
+  const result = await run("twap_cancel_order", {
+    instId: opts.instId,
+    algoId: opts.algoId,
+    algoClOrdId: opts.algoClOrdId,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
+  process.stdout.write(
+    `TWAP order cancelled: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
+  );
+}
+
+export async function cmdTwapOrders(
+  run: ToolRunner,
+  opts: { history: boolean; instId?: string; instType?: string; state?: string; json: boolean },
+): Promise<void> {
+  const result = await run("twap_get_orders", {
+    status: opts.history ? "history" : "active",
+    instId: opts.instId,
+    instType: opts.instType,
+    state: opts.state,
+  });
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(orders);
+  if (!orders.length) { process.stdout.write("No TWAP orders\n"); return; }
+  printTable(
+    orders.map((o) => ({
+      algoId:      o["algoId"],
+      instId:      o["instId"],
+      side:        o["side"],
+      state:       o["state"],
+      sz:          o["sz"],
+      szLimit:     o["szLimit"],
+      pxLimit:     o["pxLimit"],
+      timeInterval: o["timeInterval"],
+      createdAt:   new Date(Number(o["cTime"])).toLocaleString(),
+    })),
+  );
+}
+
+export async function cmdTwapDetails(
+  run: ToolRunner,
+  opts: { algoId?: string; algoClOrdId?: string; json: boolean },
+): Promise<void> {
+  const result = await run("twap_get_order_details", {
+    algoId: opts.algoId,
+    algoClOrdId: opts.algoClOrdId,
+  });
+  const detail = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
+  if (!detail) { process.stdout.write("TWAP order not found\n"); return; }
+  if (opts.json) return printJson(detail);
+  printKv({
+    algoId:       detail["algoId"],
+    instId:       detail["instId"],
+    side:         detail["side"],
+    state:        detail["state"],
+    sz:           detail["sz"],
+    szLimit:      detail["szLimit"],
+    pxLimit:      detail["pxLimit"],
+    pxVar:        detail["pxVar"],
+    pxSpread:     detail["pxSpread"],
+    timeInterval: detail["timeInterval"],
+    createdAt:    new Date(Number(detail["cTime"])).toLocaleString(),
+  });
+}

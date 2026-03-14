@@ -10,9 +10,10 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 |------------|-------|-------------|
 | `bot.grid` | 5 | Spot Grid, Contract Grid, Moon Grid strategies |
 | `bot.dca` | 5 | Contract DCA (Martingale) strategies |
+| `bot.twap` | 4 | TWAP (Time-Weighted Average Price) strategies |
 
 **Module aliases:**
-- `bot` → all bot sub-modules (`bot.grid` + `bot.dca`)
+- `bot` → all bot sub-modules (`bot.grid` + `bot.dca` + `bot.twap`)
 
 ## Grid tools (bot.grid)
 
@@ -46,6 +47,42 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_get_order_details` | Get details of a single Contract DCA bot |
 | `dca_get_sub_orders` | List cycles / orders within a cycle of a Contract DCA bot |
 
+## TWAP tools (bot.twap)
+
+| Tool | Description |
+|------|-------------|
+| `twap_place_order` | Place a TWAP algo order to split a large order over time |
+| `twap_cancel_order` | Cancel a running TWAP algo order |
+| `twap_get_orders` | List active or historical TWAP algo orders |
+| `twap_get_order_details` | Get details of a single TWAP algo order |
+
+### TWAP parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `instId` | Yes | Instrument ID, e.g. BTC-USDT-SWAP |
+| `tdMode` | Yes | Trade mode: cross, isolated, cash |
+| `side` | Yes | buy or sell |
+| `sz` | Yes | Total quantity to execute |
+| `szLimit` | Yes | Size limit per slice order |
+| `pxLimit` | Yes | Price limit — worst acceptable price |
+| `timeInterval` | Yes | Time interval between slices (seconds) |
+| `pxVar` | Conditional | Price variance (basis points). Must provide either pxVar or pxSpread |
+| `pxSpread` | Conditional | Price spread (absolute). Must provide either pxVar or pxSpread |
+| `posSide` | No | Position side for hedge mode: long, short, net |
+| `algoClOrdId` | No | Client-assigned algo order ID |
+| `ccy` | No | Margin currency, e.g. USDT |
+| `tradeQuoteCcy` | No | Quote currency for spot trading. Defaults to instId quote ccy |
+| `reduceOnly` | No | Whether to reduce only (true/false) |
+| `isTradeBorrowMode` | No | Whether to enable auto-borrow mode (true/false) |
+
+### TWAP cancel / query notes
+
+- `twap_cancel_order` and `twap_get_order_details` accept either `algoId` or `algoClOrdId` (must pass one; `algoId` takes priority if both provided)
+- `twap_get_orders` supports `instType` filter (SPOT, SWAP, FUTURES, MARGIN)
+- For history queries: `state` and `algoId` are mutually exclusive — pass one or the other (defaults to `state=effective` if neither given)
+- TWAP orders cannot be amended — cancel and re-create instead
+
 ## Example prompts
 
 **Grid:**
@@ -58,6 +95,11 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 - "Create a contract DCA bot on BTC-USDT-SWAP: 3x leverage, long, 100 USDT initial, 3 max safety, 3% TP"
 - "Show my active DCA strategies"
 - "Stop DCA bot algoId 12345"
+
+**TWAP:**
+- "Place a TWAP buy order on BTC-USDT-SWAP: 100 contracts, 10 per slice, every 10 seconds, limit price 50000"
+- "Show my active TWAP orders"
+- "Cancel TWAP order algoId 12345"
 
 ## CLI
 
@@ -102,6 +144,37 @@ okx bot dca create --instId BTC-USDT-SWAP --lever 3 --direction long \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
 okx bot dca stop --algoId <id>
+
+# ── TWAP ─────────────────────────────────────────────────────────────────────
+okx bot twap orders
+okx bot twap orders --history
+okx bot twap orders --history --state canceled
+okx bot twap orders --instType SWAP
+okx bot twap details --algoId <id>
+okx bot twap details --algoClOrdId <clientId>
+
+# SWAP (perpetual) — with pxVar
+okx bot twap place --instId BTC-USDT-SWAP --tdMode cross --side buy \
+  --sz 100 --szLimit 10 --pxLimit 50000 --timeInterval 10 --pxVar 0.005
+
+# SWAP — with pxSpread
+okx bot twap place --instId BTC-USDT-SWAP --tdMode cross --side buy \
+  --sz 100 --szLimit 10 --pxLimit 50000 --timeInterval 10 --pxSpread 1
+
+# SPOT (现货)
+okx bot twap place --instId BTC-USDT --tdMode cash --side buy \
+  --sz 0.001 --szLimit 0.0001 --pxLimit 50000 --timeInterval 10 --pxVar 0.005
+
+# MARGIN (杠杆)
+okx bot twap place --instId BTC-USDT --tdMode cross --side buy \
+  --sz 0.001 --szLimit 0.0001 --pxLimit 50000 --timeInterval 10 --pxVar 0.005
+
+# With reduce-only and auto-borrow
+okx bot twap place --instId BTC-USDT-SWAP --tdMode cross --side buy \
+  --sz 100 --szLimit 10 --pxLimit 50000 --timeInterval 10 --pxVar 0.005 --reduceOnly --isTradeBorrowMode
+
+okx bot twap cancel --instId BTC-USDT-SWAP --algoId <id>
+okx bot twap cancel --instId BTC-USDT-SWAP --algoClOrdId <clientId>
 ```
 
 ---
@@ -118,9 +191,10 @@ okx bot dca stop --algoId <id>
 |--------|--------|------|
 | `bot.grid` | 5 | 现货网格、合约网格、Moon Grid 策略 |
 | `bot.dca` | 5 | 合约 DCA（马丁格尔）策略 |
+| `bot.twap` | 4 | TWAP（时间加权平均价格）策略 |
 
 **模块别名：**
-- `bot` → 所有 bot 子模块（`bot.grid` + `bot.dca`）
+- `bot` → 所有 bot 子模块（`bot.grid` + `bot.dca` + `bot.twap`）
 
 ## 网格工具 (bot.grid)
 
@@ -154,6 +228,42 @@ okx bot dca stop --algoId <id>
 | `dca_get_order_details` | 查询单个合约 DCA 机器人详情 |
 | `dca_get_sub_orders` | 列出合约 DCA 周期 / 周期内订单 |
 
+## TWAP 工具 (bot.twap)
+
+| 工具 | 说明 |
+|------|------|
+| `twap_place_order` | 下达 TWAP 算法委托，按时间分片执行大单 |
+| `twap_cancel_order` | 取消运行中的 TWAP 委托 |
+| `twap_get_orders` | 列出运行中或历史 TWAP 委托 |
+| `twap_get_order_details` | 查询单个 TWAP 委托详情 |
+
+### TWAP 参数
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `instId` | 是 | 产品ID，如 BTC-USDT-SWAP |
+| `tdMode` | 是 | 交易模式：cross、isolated、cash |
+| `side` | 是 | 买卖方向：buy 或 sell |
+| `sz` | 是 | 总委托数量 |
+| `szLimit` | 是 | 单笔小单数量 |
+| `pxLimit` | 是 | 吃单限制价 |
+| `timeInterval` | 是 | 下单间隔（秒） |
+| `pxVar` | 条件必填 | 吃单价优于盘口的比例，与 pxSpread 二选一必填 |
+| `pxSpread` | 条件必填 | 吃单价优于盘口的价距，与 pxVar 二选一必填 |
+| `posSide` | 否 | 持仓方向（开平仓模式）：long、short、net |
+| `algoClOrdId` | 否 | 客户自定义策略订单ID |
+| `ccy` | 否 | 保证金币种，如 USDT |
+| `tradeQuoteCcy` | 否 | 币币交易的计价币种，默认为 instId 的计价币 |
+| `reduceOnly` | 否 | 是否只减仓（true/false） |
+| `isTradeBorrowMode` | 否 | 是否自动借币（true/false） |
+
+### TWAP 撤单 / 查询说明
+
+- `twap_cancel_order` 和 `twap_get_order_details` 支持 `algoId` 或 `algoClOrdId`（必传其一，同时传以 `algoId` 为主）
+- `twap_get_orders` 支持 `instType` 过滤（SPOT、SWAP、FUTURES、MARGIN）
+- 历史查询：`state` 和 `algoId` 互斥——传其一即可（都不传时默认 `state=effective`）
+- TWAP 委托不支持修改——需撤销后重新下单
+
 ## 示例提示词
 
 **网格：**
@@ -166,6 +276,11 @@ okx bot dca stop --algoId <id>
 - "创建 BTC-USDT-SWAP 合约 DCA 机器人：3 倍杠杆，做多，初始 100 USDT，最多 3 个安全单，3% 止盈"
 - "显示我的 DCA 策略"
 - "停止 DCA 机器人 algoId 12345"
+
+**TWAP：**
+- "在 BTC-USDT-SWAP 下达 TWAP 买单：总量 100 张，每次 10 张，每 10 秒一次，限价 50000"
+- "显示我的 TWAP 委托"
+- "取消 TWAP 委托 algoId 12345"
 
 ## CLI
 
@@ -210,4 +325,31 @@ okx bot dca create --instId BTC-USDT-SWAP --lever 3 --direction long \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
 okx bot dca stop --algoId <id>
+
+# ── TWAP ─────────────────────────────────────────────────────────────────────
+okx bot twap orders
+okx bot twap orders --history
+okx bot twap orders --history --state canceled
+okx bot twap orders --instType SWAP
+okx bot twap details --algoId <id>
+okx bot twap details --algoClOrdId <clientId>
+
+# 永续合约 — 带 pxVar
+okx bot twap place --instId BTC-USDT-SWAP --tdMode cross --side buy \
+  --sz 100 --szLimit 10 --pxLimit 50000 --timeInterval 10 --pxVar 0.005
+
+# 永续合约 — 带 pxSpread
+okx bot twap place --instId BTC-USDT-SWAP --tdMode cross --side buy \
+  --sz 100 --szLimit 10 --pxLimit 50000 --timeInterval 10 --pxSpread 1
+
+# 现货（SPOT）
+okx bot twap place --instId BTC-USDT --tdMode cash --side buy \
+  --sz 0.001 --szLimit 0.0001 --pxLimit 50000 --timeInterval 10 --pxVar 0.005
+
+# 杠杆（MARGIN）
+okx bot twap place --instId BTC-USDT --tdMode cross --side buy \
+  --sz 0.001 --szLimit 0.0001 --pxLimit 50000 --timeInterval 10 --pxVar 0.005
+
+okx bot twap cancel --instId BTC-USDT-SWAP --algoId <id>
+okx bot twap cancel --instId BTC-USDT-SWAP --algoClOrdId <clientId>
 ```

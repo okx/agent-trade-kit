@@ -87,6 +87,16 @@ export interface CliValues {
   tool?: string;
   // config profile
   force?: boolean;
+  // twap bot
+  pxVar?: string;
+  pxSpread?: string;
+  szLimit?: string;
+  pxLimit?: string;
+  timeInterval?: string;
+  algoClOrdId?: string;
+  tgtCcy?: string;
+  tradeQuoteCcy?: string;
+  isTradeBorrowMode?: boolean;
   // onchain-earn
   productId?: string;
   protocolType?: string;
@@ -198,6 +208,16 @@ export const CLI_OPTIONS = {
   tool: { type: "string" },
   // config profile
   force: { type: "boolean", default: false },
+  // twap bot
+  pxVar: { type: "string" },
+  pxSpread: { type: "string" },
+  szLimit: { type: "string" },
+  pxLimit: { type: "string" },
+  timeInterval: { type: "string" },
+  algoClOrdId: { type: "string" },
+  tgtCcy: { type: "string" },
+  tradeQuoteCcy: { type: "string" },
+  isTradeBorrowMode: { type: "boolean", default: false },
   // onchain-earn
   productId: { type: "string" },
   protocolType: { type: "string" },

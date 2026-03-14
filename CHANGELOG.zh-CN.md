@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **TWAP 策略模块 (`bot.twap`)**：新增时间加权平均价格策略委托子模块。包含 4 个工具：`twap_place_order`、`twap_cancel_order`、`twap_get_orders`、`twap_get_order_details`。默认不加载——通过 `--modules bot.twap`、`--modules bot.all` 或 `--modules all` 启用。CLI 命令：`okx bot twap place|cancel|orders|details`。
+
 ---
 
 ## [1.2.3] - 2026-03-12

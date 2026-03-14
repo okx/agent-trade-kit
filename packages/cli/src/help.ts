@@ -421,7 +421,7 @@ const HELP_TREE: HelpTree = {
   },
 
   bot: {
-    description: "Trading bot strategies (grid, dca)",
+    description: "Trading bot strategies (grid, dca, twap)",
     subgroups: {
       grid: {
         description: "Grid trading bot — create, monitor, and stop grid orders",
@@ -470,6 +470,27 @@ const HELP_TREE: HelpTree = {
           stop: {
             usage: "okx bot dca stop --algoId <id>",
             description: "Stop a running Contract DCA bot order",
+          },
+        },
+      },
+      twap: {
+        description: "TWAP (Time-Weighted Average Price) — split large orders over time intervals",
+        commands: {
+          orders: {
+            usage: "okx bot twap orders [--instId <id>] [--instType <SPOT|SWAP|FUTURES|MARGIN>] [--history] [--state <effective|canceled|order_failed>]",
+            description: "List active or historical TWAP algo orders",
+          },
+          details: {
+            usage: "okx bot twap details --algoId <id> | --algoClOrdId <id>",
+            description: "Get details of a specific TWAP algo order",
+          },
+          place: {
+            usage: "okx bot twap place --instId <id> --tdMode <cross|isolated|cash> --side <buy|sell>\n                   --sz <n> --szLimit <n> --pxLimit <px> --timeInterval <sec>\n                   --pxVar <bps> | --pxSpread <abs>\n                   [--posSide <long|short|net>] [--algoClOrdId <id>] [--ccy <ccy>] [--tradeQuoteCcy <ccy>]\n                   [--reduceOnly] [--isTradeBorrowMode]",
+            description: "Place a TWAP algo order to split a large order over time",
+          },
+          cancel: {
+            usage: "okx bot twap cancel --instId <id> --algoId <id> | --algoClOrdId <id>",
+            description: "Cancel a running TWAP algo order",
           },
         },
       },

@@ -16,9 +16,10 @@ import { registerOptionTools } from "../src/tools/option-trade.js";
 import { registerAlgoTradeTools } from "../src/tools/algo-trade.js";
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
+import { registerTwapTools } from "../src/tools/bot/twap.js";
 import { registerOnchainEarnTools } from "../src/tools/onchain-earn.js";
 import { assertNotDemo } from "../src/tools/common.js";
-import { ConfigError } from "../src/utils/errors.js";
+import { ConfigError, OkxApiError } from "../src/utils/errors.js";
 import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,36 @@ function makeMockClient() {
     endpoint,
     requestTime: "2024-01-01T00:00:00.000Z",
     data: [],
+  });
+
+  const client = {
+    publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+      lastCall = { method: "GET", endpoint, params };
+      return fakeResponse(endpoint);
+    },
+    privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+      lastCall = { method: "GET", endpoint, params };
+      return fakeResponse(endpoint);
+    },
+    privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+      lastCall = { method: "POST", endpoint, params };
+      return fakeResponse(endpoint);
+    },
+  };
+
+  return {
+    client,
+    getLastCall: () => lastCall,
+  };
+}
+
+function makeMockClientWithData(data: unknown) {
+  let lastCall: CapturedCall | null = null;
+
+  const fakeResponse = (endpoint: string) => ({
+    endpoint,
+    requestTime: "2024-01-01T00:00:00.000Z",
+    data,
   });
 
   const client = {
@@ -2048,6 +2079,17 @@ describe("dca_create_order", () => {
     assert.equal(params.slMode, undefined);
   });
 
+  it("uses sourceTag from context config", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT-SWAP",
+      lever: "3", direction: "long",
+      initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
+      pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+    }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).tag, DEFAULT_SOURCE_TAG);
+  });
+
 });
 
 describe("dca_stop_order", () => {
@@ -2691,5 +2733,315 @@ describe("earn tools isWrite classification", () => {
       assert.ok(tool, `${name} should exist`);
       assert.equal(tool!.isWrite, false, `${name} should not be a write tool`);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TWAP bot tools
+// ---------------------------------------------------------------------------
+
+describe("twap_place_order", () => {
+  const tools = registerTwapTools();
+  const tool = tools.find((t) => t.name === "twap_place_order")!;
+
+  it("calls /api/v5/trade/order-algo with ordType=twap", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+      },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order-algo");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, "twap");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instId, "BTC-USDT-SWAP");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).szLimit, "10");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).pxLimit, "50000");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).timeInterval, "10");
+  });
+
+  it("passes pxVar without pxSpread when pxVar is provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+        pxVar: "5",
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).pxVar, "5");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).pxSpread, undefined);
+  });
+
+  it("uses sourceTag from context config", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).tag, DEFAULT_SOURCE_TAG);
+  });
+
+  it("passes reduceOnly as string 'true' when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+        reduceOnly: true,
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).reduceOnly, "true");
+  });
+
+  it("omits reduceOnly when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).reduceOnly, undefined);
+  });
+
+  it("passes isTradeBorrowMode as string 'true' when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+        isTradeBorrowMode: true,
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).isTradeBorrowMode, "true");
+  });
+
+  it("omits isTradeBorrowMode when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).isTradeBorrowMode, undefined);
+  });
+
+  it("passes pxSpread without pxVar when pxSpread is provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        tdMode: "cross",
+        side: "buy",
+        sz: "100",
+        szLimit: "10",
+        pxLimit: "50000",
+        timeInterval: "10",
+        pxSpread: "0.5",
+      },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).pxSpread, "0.5");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).pxVar, undefined);
+  });
+
+  it("throws OkxApiError when API returns sCode != 0", async () => {
+    const { client } = makeMockClientWithData([
+      { algoId: "123", sCode: "51000", sMsg: "Parameter error" },
+    ]);
+    await assert.rejects(
+      () =>
+        tool.handler(
+          {
+            instId: "BTC-USDT-SWAP",
+            tdMode: "cross",
+            side: "buy",
+            sz: "100",
+            szLimit: "10",
+            pxLimit: "50000",
+            timeInterval: "10",
+          },
+          makeContext(client),
+        ),
+      (err: Error) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.ok(err.message.includes("[51000]"));
+        assert.ok(err.message.includes("Parameter error"));
+        return true;
+      },
+    );
+  });
+
+  it("has module bot.twap", () => {
+    assert.equal(tool.module, "bot.twap");
+  });
+});
+
+describe("twap_cancel_order", () => {
+  const tools = registerTwapTools();
+  const tool = tools.find((t) => t.name === "twap_cancel_order")!;
+
+  it("calls /api/v5/trade/cancel-algos with array body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", algoId: "123456" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-algos");
+    const params = getLastCall()?.params as Record<string, unknown>[];
+    assert.ok(Array.isArray(params), "body should be an array");
+    assert.equal((params[0] as Record<string, unknown>).algoId, "123456");
+    assert.equal((params[0] as Record<string, unknown>).instId, "BTC-USDT-SWAP");
+  });
+
+  it("supports algoClOrdId instead of algoId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", algoClOrdId: "myOrder1" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>[];
+    assert.equal((params[0] as Record<string, unknown>).algoClOrdId, "myOrder1");
+    assert.equal((params[0] as Record<string, unknown>).algoId, undefined);
+  });
+
+  it("throws OkxApiError when cancel returns sCode != 0", async () => {
+    const { client } = makeMockClientWithData([
+      { algoId: "123", sCode: "51008", sMsg: "Order does not exist" },
+    ]);
+    await assert.rejects(
+      () =>
+        tool.handler({ instId: "BTC-USDT-SWAP", algoId: "123" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.ok(err.message.includes("[51008]"));
+        return true;
+      },
+    );
+  });
+});
+
+describe("twap_get_orders", () => {
+  const tools = registerTwapTools();
+  const tool = tools.find((t) => t.name === "twap_get_orders")!;
+
+  it("calls /api/v5/trade/orders-algo-pending by default (active)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-algo-pending");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, "twap");
+  });
+
+  it("calls /api/v5/trade/orders-algo-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-algo-history");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, "twap");
+  });
+
+  it("defaults state to effective for history queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).state, "effective");
+  });
+
+  it("does not pass state for active queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).state, undefined);
+  });
+
+  it("passes instId filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instId, "BTC-USDT-SWAP");
+  });
+
+  it("passes instType filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instType: "SWAP" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).instType, "SWAP");
+  });
+
+  it("does not pass state when algoId is provided in history mode (mutually exclusive)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", algoId: "123456" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-algo-history");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "123456");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).state, undefined);
+  });
+
+  it("passes custom state for history queries", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", state: "canceled" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).state, "canceled");
+  });
+
+  it("passes pagination params (after, before, limit)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ after: "100", before: "200", limit: 50 }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).after, "100");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).before, "200");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).limit, 50);
+  });
+});
+
+describe("twap_get_order_details", () => {
+  const tools = registerTwapTools();
+  const tool = tools.find((t) => t.name === "twap_get_order_details")!;
+
+  it("calls /api/v5/trade/order-algo with algoId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "789" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order-algo");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "789");
+  });
+
+  it("supports algoClOrdId instead of algoId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoClOrdId: "myOrder1" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order-algo");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoClOrdId, "myOrder1");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, undefined);
   });
 });

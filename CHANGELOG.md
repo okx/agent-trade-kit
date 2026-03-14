@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **TWAP bot module (`bot.twap`)**: New sub-module for Time-Weighted Average Price strategy orders. Includes 4 tools: `twap_place_order`, `twap_cancel_order`, `twap_get_orders`, `twap_get_order_details`. Not loaded by default — enable with `--modules bot.twap`, `--modules bot.all`, or `--modules all`. CLI commands: `okx bot twap place|cancel|orders|details`.
+
 ---
 
 ## [1.2.3] - 2026-03-12
