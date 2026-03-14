@@ -11,6 +11,15 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **7 个新期货核心工具**（Phase 1，对齐 swap 功能）：`futures_amend_order`、`futures_close_position`、`futures_set_leverage`、`futures_get_leverage`、`futures_batch_orders`、`futures_batch_amend`、`futures_batch_cancel`。这些工具使用 futures 专属名称（`futures_*`），而非复用 swap 工具，为期货提供独立的 API 接口。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
+- **5 个新期货算法工具**（`registerFuturesAlgoTools`）：`futures_place_algo_order`、`futures_place_move_stop_order`、`futures_amend_algo_order`、`futures_cancel_algo_orders`、`futures_get_algo_orders`。与 swap algo 工具类似，但使用 `instType: "FUTURES"` 并注册在 `futures` 模块下。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
+
+### 修复
+
+- **`swap_get_algo_orders` 硬编码 `instType`**：该工具之前在 API 请求中硬编码 `instType: "SWAP"`，导致无法查询 FUTURES 类型的算法订单。现在新增可选 `instType` 参数（默认 `"SWAP"`，支持 `"FUTURES"`）。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
+
 ### 变更
 
 - **消除 `normalize()` 重复实现**：删除了 `spot-trade`、`swap-trade`、`futures-trade`、`option-trade`、`algo-trade`、`account`、`market`、`bot/grid`、`bot/dca` 中共 9 处本地 `normalize()` 函数，统一使用 `helpers.ts` 中的 `normalizeResponse`。([#70](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/70))

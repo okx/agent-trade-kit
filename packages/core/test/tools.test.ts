@@ -13,7 +13,7 @@ import { registerSwapTradeTools } from "../src/tools/swap-trade.js";
 import { registerAccountTools } from "../src/tools/account.js";
 import { registerFuturesTools } from "../src/tools/futures-trade.js";
 import { registerOptionTools } from "../src/tools/option-trade.js";
-import { registerAlgoTradeTools } from "../src/tools/algo-trade.js";
+import { registerAlgoTradeTools, registerFuturesAlgoTools } from "../src/tools/algo-trade.js";
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
 import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
@@ -3123,5 +3123,197 @@ describe("dcd_get_orders", () => {
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.params.state, undefined);
     assert.equal(getLastCall()?.params.ordId, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Futures trade — new tools (Phase 1)
+// ---------------------------------------------------------------------------
+
+describe("futures_amend_order", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_amend_order")!;
+
+  it("calls /api/v5/trade/amend-order via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", ordId: "123", newPx: "50000" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/amend-order");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes newPx and newSz when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", ordId: "123", newPx: "50000", newSz: "2" }, makeContext(client));
+    assert.equal(getLastCall()?.params.newPx, "50000");
+    assert.equal(getLastCall()?.params.newSz, "2");
+  });
+});
+
+describe("futures_close_position", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_close_position")!;
+
+  it("calls /api/v5/trade/close-position via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", mgnMode: "cross" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/close-position");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes posSide when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", mgnMode: "isolated", posSide: "long" }, makeContext(client));
+    assert.equal(getLastCall()?.params.posSide, "long");
+  });
+});
+
+describe("futures_set_leverage", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_set_leverage")!;
+
+  it("calls /api/v5/account/set-leverage via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", lever: "10", mgnMode: "cross" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/set-leverage");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes lever and mgnMode correctly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated" }, makeContext(client));
+    assert.equal(getLastCall()?.params.lever, "5");
+    assert.equal(getLastCall()?.params.mgnMode, "isolated");
+  });
+});
+
+describe("futures_get_leverage", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_get_leverage")!;
+
+  it("calls /api/v5/account/leverage-info via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", mgnMode: "cross" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/leverage-info");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+});
+
+describe("futures_batch_orders", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_batch_orders")!;
+
+  it("calls /api/v5/trade/batch-orders via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const orders = [{ instId: "BTC-USDT-240329", tdMode: "cross", side: "buy", ordType: "limit", sz: "1", px: "50000" }];
+    await tool.handler({ orders }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/batch-orders");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("throws if orders is empty", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ orders: [] }, makeContext(client)),
+      /non-empty array/,
+    );
+  });
+});
+
+describe("futures_batch_amend", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_batch_amend")!;
+
+  it("calls /api/v5/trade/amend-batch-orders via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ orders: [{ instId: "BTC-USDT-240329", ordId: "123", newPx: "50000" }] }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/amend-batch-orders");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+});
+
+describe("futures_batch_cancel", () => {
+  const tools = registerFuturesTools();
+  const tool = tools.find((t) => t.name === "futures_batch_cancel")!;
+
+  it("calls /api/v5/trade/cancel-batch-orders via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ orders: [{ instId: "BTC-USDT-240329", ordId: "123" }] }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-batch-orders");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Futures algo tools (Phase 1)
+// ---------------------------------------------------------------------------
+
+describe("futures_place_algo_order", () => {
+  const tools = registerFuturesAlgoTools();
+  const tool = tools.find((t) => t.name === "futures_place_algo_order")!;
+
+  it("calls /api/v5/trade/order-algo via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-240329", tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", tpTriggerPx: "60000", tpOrdPx: "-1" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/order-algo");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes tpTriggerPx and slTriggerPx when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-240329", tdMode: "cross", side: "sell", ordType: "oco", sz: "1", tpTriggerPx: "60000", slTriggerPx: "40000" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params.tpTriggerPx, "60000");
+    assert.equal(getLastCall()?.params.slTriggerPx, "40000");
+  });
+});
+
+describe("futures_get_algo_orders", () => {
+  const tools = registerFuturesAlgoTools();
+  const tool = tools.find((t) => t.name === "futures_get_algo_orders")!;
+
+  it("defaults to instType=FUTURES", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "FUTURES");
+  });
+
+  it("calls pending endpoint by default", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-algo-pending");
+  });
+
+  it("calls history endpoint when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-algo-history");
+  });
+
+  it("defaults state to effective for history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.state, "effective");
+  });
+});
+
+describe("swap_get_algo_orders instType param", () => {
+  const tools = registerAlgoTradeTools();
+  const tool = tools.find((t) => t.name === "swap_get_algo_orders")!;
+
+  it("defaults instType to SWAP", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordType: "conditional" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "SWAP");
+  });
+
+  it("passes explicit instType=FUTURES", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ordType: "conditional", instType: "FUTURES" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "FUTURES");
   });
 });

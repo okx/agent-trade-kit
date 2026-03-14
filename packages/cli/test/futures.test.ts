@@ -93,7 +93,7 @@ describe("cmdFuturesAmend", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls spot_amend_order with correct params", async () => {
+  it("calls futures_amend_order with correct params", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -111,7 +111,7 @@ describe("cmdFuturesAmend", () => {
       }),
     );
 
-    assert.equal(capturedTool, "spot_amend_order");
+    assert.equal(capturedTool, "futures_amend_order");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["ordId"], "123456");
     assert.equal(capturedParams!["newPx"], "50000");
@@ -167,7 +167,7 @@ describe("cmdFuturesAlgoPlace", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls swap_place_algo_order with required params", async () => {
+  it("calls futures_place_algo_order with required params", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -189,7 +189,7 @@ describe("cmdFuturesAlgoPlace", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_place_algo_order");
+    assert.equal(capturedTool, "futures_place_algo_order");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["side"], "sell");
     assert.equal(capturedParams!["ordType"], "conditional");
@@ -260,7 +260,7 @@ describe("cmdFuturesAlgoAmend", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls swap_amend_algo_order with correct params", async () => {
+  it("calls futures_amend_algo_order with correct params", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -279,7 +279,7 @@ describe("cmdFuturesAlgoAmend", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_amend_algo_order");
+    assert.equal(capturedTool, "futures_amend_algo_order");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["algoId"], "987654");
     assert.equal(capturedParams!["newTpTriggerPx"], "62000");
@@ -300,7 +300,7 @@ describe("cmdFuturesAlgoCancel", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls swap_cancel_algo_orders with instId and algoId", async () => {
+  it("calls futures_cancel_algo_orders with instId and algoId", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -313,9 +313,11 @@ describe("cmdFuturesAlgoCancel", () => {
       cmdFuturesAlgoCancel(runner, "BTC-USD-250328", "987654", false),
     );
 
-    assert.equal(capturedTool, "swap_cancel_algo_orders");
-    assert.equal(capturedParams!["instId"], "BTC-USD-250328");
-    assert.equal(capturedParams!["algoId"], "987654");
+    assert.equal(capturedTool, "futures_cancel_algo_orders");
+    // cancel sends {orders: [{instId, algoId}]}
+    const orders = capturedParams!["orders"] as Array<Record<string, unknown>>;
+    assert.equal(orders[0]["instId"], "BTC-USD-250328");
+    assert.equal(orders[0]["algoId"], "987654");
   });
 });
 
@@ -347,7 +349,7 @@ describe("cmdFuturesAlgoOrders", () => {
     assert.ok(out.includes("No algo orders"), "should indicate no orders");
   });
 
-  it("calls swap_get_algo_orders with pending status by default", async () => {
+  it("calls futures_get_algo_orders with pending status by default", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -360,7 +362,7 @@ describe("cmdFuturesAlgoOrders", () => {
       cmdFuturesAlgoOrders(runner, { status: "pending", json: false }),
     );
 
-    assert.equal(capturedTool, "swap_get_algo_orders");
+    assert.equal(capturedTool, "futures_get_algo_orders");
     assert.equal(capturedParams!["status"], "pending");
     assert.equal(capturedParams!["instId"], undefined);
   });
@@ -407,7 +409,7 @@ describe("cmdFuturesBatch", () => {
     process.exitCode = origCode;
   });
 
-  it("calls swap_batch_orders for place action", async () => {
+  it("calls futures_batch_orders for place action", async () => {
     let capturedTool: string | undefined;
     const runner: ToolRunner = async (tool) => {
       capturedTool = tool;
@@ -422,10 +424,10 @@ describe("cmdFuturesBatch", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_batch_orders");
+    assert.equal(capturedTool, "futures_batch_orders");
   });
 
-  it("calls swap_batch_amend for amend action", async () => {
+  it("calls futures_batch_amend for amend action", async () => {
     let capturedTool: string | undefined;
     const runner: ToolRunner = async (tool) => {
       capturedTool = tool;
@@ -440,10 +442,10 @@ describe("cmdFuturesBatch", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_batch_amend");
+    assert.equal(capturedTool, "futures_batch_amend");
   });
 
-  it("calls swap_batch_cancel for cancel action", async () => {
+  it("calls futures_batch_cancel for cancel action", async () => {
     let capturedTool: string | undefined;
     const runner: ToolRunner = async (tool) => {
       capturedTool = tool;
@@ -458,7 +460,7 @@ describe("cmdFuturesBatch", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_batch_cancel");
+    assert.equal(capturedTool, "futures_batch_cancel");
   });
 
   it("writes error for invalid JSON", async () => {
@@ -494,7 +496,7 @@ describe("cmdFuturesClose", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls swap_close_position with required params", async () => {
+  it("calls futures_close_position with required params", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -512,7 +514,7 @@ describe("cmdFuturesClose", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_close_position");
+    assert.equal(capturedTool, "futures_close_position");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["mgnMode"], "cross");
     assert.equal(capturedParams!["posSide"], "long");
@@ -539,7 +541,7 @@ describe("cmdFuturesGetLeverage", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls swap_get_leverage with instId and mgnMode", async () => {
+  it("calls futures_get_leverage with instId and mgnMode", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -552,7 +554,7 @@ describe("cmdFuturesGetLeverage", () => {
       cmdFuturesGetLeverage(runner, { instId: "BTC-USD-250328", mgnMode: "cross", json: false }),
     );
 
-    assert.equal(capturedTool, "swap_get_leverage");
+    assert.equal(capturedTool, "futures_get_leverage");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["mgnMode"], "cross");
   });
@@ -570,7 +572,7 @@ describe("cmdFuturesSetLeverage", () => {
     assert.doesNotThrow(() => JSON.parse(out), "output should be valid JSON");
   });
 
-  it("calls swap_set_leverage with required params", async () => {
+  it("calls futures_set_leverage with required params", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (tool, params) => {
@@ -588,7 +590,7 @@ describe("cmdFuturesSetLeverage", () => {
       }),
     );
 
-    assert.equal(capturedTool, "swap_set_leverage");
+    assert.equal(capturedTool, "futures_set_leverage");
     assert.equal(capturedParams!["instId"], "BTC-USD-250328");
     assert.equal(capturedParams!["lever"], "10");
     assert.equal(capturedParams!["mgnMode"], "cross");
