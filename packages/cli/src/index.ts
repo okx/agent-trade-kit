@@ -139,6 +139,22 @@ import {
   cmdTwapDetails,
 } from "./commands/bot.js";
 import {
+  cmdGridAmendBasicParam,
+  cmdGridAmendOrder,
+  cmdGridClosePosition,
+  cmdGridCancelCloseOrder,
+  cmdGridInstantTrigger,
+  cmdGridPositions,
+  cmdGridWithdrawIncome,
+  cmdGridComputeMarginBalance,
+  cmdGridMarginBalance,
+  cmdGridAdjustInvestment,
+  cmdGridAiParam,
+  cmdGridMinInvestment,
+  cmdGridRsiBackTesting,
+  cmdGridMaxQuantity,
+} from "./commands/bot-grid-ext.js";
+import {
   cmdOnchainEarnOffers,
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
@@ -725,11 +741,14 @@ function handleFuturesCommand(
 
 export function handleBotGridCommand(
   run: ToolRunner,
+  client: OkxRestClient,
   v: CliValues,
   rest: string[],
   json: boolean
 ): Promise<void> | void {
   const subAction = rest[0];
+
+  // --- Existing commands (via ToolRunner) ---
   if (subAction === "orders")
     return cmdGridOrders(run, {
       algoOrdType: v.algoOrdType!,
@@ -765,6 +784,12 @@ export function handleBotGridCommand(
       lever: v.lever,
       sz: v.sz,
       basePos: v.basePos,
+      tpTriggerPx: v.tpTriggerPx,
+      slTriggerPx: v.slTriggerPx,
+      algoClOrdId: v.algoClOrdId,
+      tpRatio: v.tpRatio,
+      slRatio: v.slRatio,
+      tradeQuoteCcy: v.tradeQuoteCcy,
       json,
     });
   if (subAction === "stop")
@@ -773,6 +798,123 @@ export function handleBotGridCommand(
       algoOrdType: v.algoOrdType!,
       instId: v.instId!,
       stopType: v.stopType,
+      json,
+    });
+
+  // --- New commands (via OkxRestClient directly) ---
+  if (subAction === "amend-basic")
+    return cmdGridAmendBasicParam(client, {
+      algoId: v.algoId!,
+      minPx: v.minPx!,
+      maxPx: v.maxPx!,
+      gridNum: v.gridNum!,
+      topupAmount: v.topupAmount,
+      json,
+    });
+  if (subAction === "amend-order")
+    return cmdGridAmendOrder(client, {
+      algoId: v.algoId!,
+      instId: v.instId!,
+      slTriggerPx: v.slTriggerPx,
+      tpTriggerPx: v.tpTriggerPx,
+      tpRatio: v.tpRatio,
+      slRatio: v.slRatio,
+      topUpAmt: v.topUpAmt,
+      json,
+    });
+  if (subAction === "close-position")
+    return cmdGridClosePosition(client, {
+      algoId: v.algoId!,
+      mktClose: v.mktClose ?? false,
+      sz: v.sz,
+      px: v.px,
+      json,
+    });
+  if (subAction === "cancel-close")
+    return cmdGridCancelCloseOrder(client, {
+      algoId: v.algoId!,
+      ordId: v.ordId!,
+      json,
+    });
+  if (subAction === "instant-trigger")
+    return cmdGridInstantTrigger(client, {
+      algoId: v.algoId!,
+      topUpAmt: v.topUpAmt,
+      json,
+    });
+  if (subAction === "positions")
+    return cmdGridPositions(client, {
+      algoOrdType: v.algoOrdType!,
+      algoId: v.algoId!,
+      json,
+    });
+  if (subAction === "withdraw-income")
+    return cmdGridWithdrawIncome(client, {
+      algoId: v.algoId!,
+      json,
+    });
+  if (subAction === "compute-margin")
+    return cmdGridComputeMarginBalance(client, {
+      algoId: v.algoId!,
+      type: v.gridType!,
+      amt: v.amt,
+      json,
+    });
+  if (subAction === "margin-balance")
+    return cmdGridMarginBalance(client, {
+      algoId: v.algoId!,
+      type: v.gridType!,
+      amt: v.amt,
+      percent: v.percent,
+      json,
+    });
+  if (subAction === "adjust-investment")
+    return cmdGridAdjustInvestment(client, {
+      algoId: v.algoId!,
+      amt: v.amt!,
+      allowReinvestProfit: v.allowReinvestProfit,
+      json,
+    });
+  if (subAction === "ai-param")
+    return cmdGridAiParam(client, {
+      algoOrdType: v.algoOrdType!,
+      instId: v.instId!,
+      direction: v.direction,
+      duration: v.duration,
+      json,
+    });
+  if (subAction === "min-investment")
+    return cmdGridMinInvestment(client, {
+      instId: v.instId!,
+      algoOrdType: v.algoOrdType!,
+      gridNum: v.gridNum!,
+      maxPx: v.maxPx!,
+      minPx: v.minPx!,
+      runType: v.runType!,
+      direction: v.direction,
+      lever: v.lever,
+      basePos: v.basePos,
+      investmentType: v.investmentType,
+      json,
+    });
+  if (subAction === "rsi-back-testing")
+    return cmdGridRsiBackTesting(client, {
+      instId: v.instId!,
+      timeframe: v.timeframe!,
+      thold: v.thold!,
+      timePeriod: v.timePeriod!,
+      triggerCond: v.triggerCond,
+      duration: v.duration,
+      json,
+    });
+  if (subAction === "max-quantity")
+    return cmdGridMaxQuantity(client, {
+      instId: v.instId!,
+      runType: v.runType!,
+      algoOrdType: v.algoOrdType!,
+      maxPx: v.maxPx!,
+      minPx: v.minPx!,
+      lever: v.lever,
       json,
     });
 }
@@ -847,12 +989,13 @@ export function handleBotTwapCommand(
 
 export function handleBotCommand(
   run: ToolRunner,
+  client: OkxRestClient,
   action: string,
   rest: string[],
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
-  if (action === "grid") return handleBotGridCommand(run, v, rest, json);
+  if (action === "grid") return handleBotGridCommand(run, client, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
   if (action === "twap") return handleBotTwapCommand(run, rest[0], v, json);
 }
@@ -1046,7 +1189,7 @@ async function main(): Promise<void> {
     swap:    () => handleSwapCommand(run, action, rest, v, json),
     futures: () => handleFuturesCommand(run, action, rest, v, json),
     option:  () => handleOptionCommand(run, action, rest, v, json),
-    bot:     () => handleBotCommand(run, action, rest, v, json),
+    bot:     () => handleBotCommand(run, client, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
   };
   const handler = moduleHandlers[module];

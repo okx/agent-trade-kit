@@ -13,6 +13,10 @@
 
 ### 新增
 
+- **`grid_create_order` — 6 个新可选参数**：`tpTriggerPx`、`slTriggerPx`、`algoClOrdId`（现货 + 合约），`tradeQuoteCcy`（仅现货），`tpRatio`、`slRatio`（仅合约）。工具 handler 现在区分现货/合约参数——仅现货参数在 `contract_grid` 下被忽略，反之亦然。
+- **14 个新网格 CLI 命令**（仅 CLI，无 MCP 工具）：`amend-basic-param`、`amend-order`、`close-position`、`cancel-close-order`、`instant-trigger`、`positions`、`withdraw-income`、`compute-margin-balance`、`margin-balance`、`adjust-investment`、`ai-param`、`min-investment`、`rsi-back-testing`、`max-quantity`。覆盖此前未实现的 15 个 OKX 网格交易 OpenAPI。其中 4 个为公开接口（无需 API Key）。
+- **`OkxRestClient.publicPost()` 方法**：新增公开 POST 请求方法（用于网格 `min-investment` API）。
+- **Core 导出**：`privateRateLimit`、`publicRateLimit`、`compactObject`、`normalizeResponse` 现已从 `@agent-tradekit/core` 导出，供 CLI 直接调用客户端的命令使用。
 - **7 个新期货核心工具**（Phase 1，对齐 swap 功能）：`futures_amend_order`、`futures_close_position`、`futures_set_leverage`、`futures_get_leverage`、`futures_batch_orders`、`futures_batch_amend`、`futures_batch_cancel`。这些工具使用 futures 专属名称（`futures_*`），而非复用 swap 工具，为期货提供独立的 API 接口。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
 - **5 个新期货算法工具**（`registerFuturesAlgoTools`）：`futures_place_algo_order`、`futures_place_move_stop_order`、`futures_amend_algo_order`、`futures_cancel_algo_orders`、`futures_get_algo_orders`。与 swap algo 工具类似，但使用 `instType: "FUTURES"` 并注册在 `futures` 模块下。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
 - **TWAP 策略模块 (`bot.twap`)**：新增时间加权平均价格策略委托子模块。包含 4 个工具：`twap_place_order`、`twap_cancel_order`、`twap_get_orders`、`twap_get_order_details`。默认不加载——通过 `--modules bot.twap`、`--modules bot.all` 或 `--modules all` 启用。CLI 命令：`okx bot twap place|cancel|orders|details`。

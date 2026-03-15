@@ -5,6 +5,8 @@ export { toMcpTool } from "./tools/types.js";
 export { loadConfig } from "./config.js";
 export { MODULES, DEFAULT_MODULES, BOT_SUB_MODULE_IDS, BOT_DEFAULT_SUB_MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS } from "./constants.js";
 export { OkxApiError, ConfigError, toToolErrorPayload } from "./utils/errors.js";
+export { privateRateLimit, publicRateLimit } from "./tools/common.js";
+export { compactObject, normalizeResponse } from "./tools/helpers.js";
 export type { OkxConfig, CliOptions } from "./config.js";
 export type { ModuleId, BotSubModuleId, SiteId, OkxSite } from "./constants.js";
 export type { ToolSpec, ToolContext, ToolArgs } from "./tools/types.js";

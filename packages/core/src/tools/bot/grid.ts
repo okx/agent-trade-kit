@@ -280,12 +280,37 @@ export function registerGridTools(): ToolSpec[] {
               "Whether to open a base position for contract grid. " +
               "Ignored for neutral direction and spot grid. Default: true",
           },
+          tpTriggerPx: {
+            type: "string",
+            description: "Take-profit trigger price. Applies to both spot and contract grid.",
+          },
+          slTriggerPx: {
+            type: "string",
+            description: "Stop-loss trigger price. Applies to both spot and contract grid.",
+          },
+          algoClOrdId: {
+            type: "string",
+            description: "User-defined algo order ID. Alphanumeric, 1-32 chars.",
+          },
+          tradeQuoteCcy: {
+            type: "string",
+            description: "Spot grid only. Quote currency for trading. Default: instId's quote currency.",
+          },
+          tpRatio: {
+            type: "string",
+            description: "Contract grid only. Take-profit ratio (e.g. '0.1' = 10%).",
+          },
+          slRatio: {
+            type: "string",
+            description: "Contract grid only. Stop-loss ratio (e.g. '0.1' = 10%).",
+          },
         },
         required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoOrdType = requireString(args, "algoOrdType");
+        // Common params (spot + contract)
         const body: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           algoOrdType,
@@ -293,6 +318,9 @@ export function registerGridTools(): ToolSpec[] {
           minPx: requireString(args, "minPx"),
           gridNum: requireString(args, "gridNum"),
           runType: readString(args, "runType"),
+          tpTriggerPx: readString(args, "tpTriggerPx"),
+          slTriggerPx: readString(args, "slTriggerPx"),
+          algoClOrdId: readString(args, "algoClOrdId"),
           quoteSz: readString(args, "quoteSz"),
           baseSz: readString(args, "baseSz"),
           direction: readString(args, "direction"),
@@ -300,9 +328,21 @@ export function registerGridTools(): ToolSpec[] {
           sz: readString(args, "sz"),
           tag: context.config.sourceTag,
         });
+        // Spot grid only
+        if (algoOrdType === "grid") {
+          const tradeQuoteCcy = readString(args, "tradeQuoteCcy");
+          if (tradeQuoteCcy) body.tradeQuoteCcy = tradeQuoteCcy;
+        }
+        // Contract grid only
         if (algoOrdType === "contract_grid") {
-          body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];
+          if (!body.triggerParams) {
+            body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];
+          }
           body.basePos = readBoolean(args, "basePos") ?? true;
+          const tpRatio = readString(args, "tpRatio");
+          const slRatio = readString(args, "slRatio");
+          if (tpRatio) body.tpRatio = tpRatio;
+          if (slRatio) body.slRatio = slRatio;
         }
         const response = await context.client.privatePost(
           "/api/v5/tradingBot/grid/order-algo",

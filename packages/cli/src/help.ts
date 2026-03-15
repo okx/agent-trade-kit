@@ -535,12 +535,68 @@ const HELP_TREE: HelpTree = {
             description: "List sub-orders of a grid bot (filled or live)",
           },
           create: {
-            usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]",
+            usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]\n                   [--tpTriggerPx <px>] [--slTriggerPx <px>] [--algoClOrdId <id>]\n                   [--tpRatio <ratio>] [--slRatio <ratio>] [--tradeQuoteCcy <ccy>]",
             description: "Create a new grid bot order (contract grid opens base position by default)",
           },
           stop: {
             usage: "okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2|3|5|6>]",
             description: "Stop a running grid bot order",
+          },
+          "amend-basic": {
+            usage: "okx bot grid amend-basic --algoId <id> --minPx <px> --maxPx <px> --gridNum <n> [--topupAmount <n>]",
+            description: "Amend grid bot's price range and grid count",
+          },
+          "amend-order": {
+            usage: "okx bot grid amend-order --algoId <id> --instId <id>\n                   [--slTriggerPx <px>] [--tpTriggerPx <px>]\n                   [--tpRatio <ratio>] [--slRatio <ratio>] [--topUpAmt <n>]",
+            description: "Amend TP/SL settings of a running grid bot",
+          },
+          "close-position": {
+            usage: "okx bot grid close-position --algoId <id> [--mktClose] [--sz <n>] [--px <price>]",
+            description: "Close position of a stopped contract grid bot",
+          },
+          "cancel-close": {
+            usage: "okx bot grid cancel-close --algoId <id> --ordId <id>",
+            description: "Cancel a pending close order for contract grid",
+          },
+          "instant-trigger": {
+            usage: "okx bot grid instant-trigger --algoId <id> [--topUpAmt <n>]",
+            description: "Immediately trigger a pending-signal grid bot",
+          },
+          positions: {
+            usage: "okx bot grid positions --algoOrdType contract_grid --algoId <id>",
+            description: "Get contract grid bot position info",
+          },
+          "withdraw-income": {
+            usage: "okx bot grid withdraw-income --algoId <id>",
+            description: "Withdraw profit from a spot grid bot",
+          },
+          "compute-margin": {
+            usage: "okx bot grid compute-margin --algoId <id> --gridType <add|reduce> [--amt <n>]",
+            description: "Preview margin adjustment for contract grid",
+          },
+          "margin-balance": {
+            usage: "okx bot grid margin-balance --algoId <id> --gridType <add|reduce> [--amt <n>] [--percent <n>]",
+            description: "Adjust margin for contract grid bot",
+          },
+          "adjust-investment": {
+            usage: "okx bot grid adjust-investment --algoId <id> --amt <n> [--allowReinvestProfit <true|false>]",
+            description: "Add investment to a running grid bot",
+          },
+          "ai-param": {
+            usage: "okx bot grid ai-param --algoOrdType <grid|contract_grid> --instId <id> [--direction <dir>] [--duration <7D|30D|180D>]",
+            description: "Get AI-recommended grid parameters (public, no auth)",
+          },
+          "min-investment": {
+            usage: "okx bot grid min-investment --instId <id> --algoOrdType <type> --gridNum <n>\n                       --maxPx <px> --minPx <px> --runType <1|2>\n                       [--direction <dir>] [--lever <n>] [--basePos] [--investmentType <quote|base|dual>]",
+            description: "Calculate minimum investment for grid config (public, no auth)",
+          },
+          "rsi-back-testing": {
+            usage: "okx bot grid rsi-back-testing --instId <id> --timeframe <3m|5m|15m|30m|1H|4H|1D>\n                         --thold <n> --timePeriod <n> [--triggerCond <cond>] [--duration <1M>]",
+            description: "RSI signal back testing for grid trigger (public, no auth)",
+          },
+          "max-quantity": {
+            usage: "okx bot grid max-quantity --instId <id> --runType <1|2> --algoOrdType <type>\n                      --maxPx <px> --minPx <px> [--lever <n>]",
+            description: "Get maximum grid quantity for config (public, no auth)",
           },
         },
       },

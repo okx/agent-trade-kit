@@ -170,6 +170,67 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
+# ── Grid Create — optional TP/SL and client ID ───────────────────────────────
+# Spot grid with TP/SL triggers
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 \
+  --tpTriggerPx 110000 --slTriggerPx 75000 --algoClOrdId mygrid001
+
+# Contract grid with TP/SL ratios
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction long --lever 5 --sz 100 \
+  --tpRatio 0.1 --slRatio 0.05
+
+# ── Grid Extended Commands (CLI-only) ────────────────────────────────────────
+# Amend grid range
+okx bot grid amend-basic --algoId <algoId> --minPx 78000 --maxPx 105000 --gridNum 12
+
+# Amend TP/SL on a grid bot
+okx bot grid amend-order --algoId <algoId> --instId BTC-USDT --tpTriggerPx 115000
+
+# Close contract grid position (market)
+okx bot grid close-position --algoId <algoId> --mktClose
+
+# Close contract grid position (limit)
+okx bot grid close-position --algoId <algoId> --sz 1 --px 95000
+
+# Cancel pending close order
+okx bot grid cancel-close --algoId <algoId> --ordId <ordId>
+
+# Instant trigger a pending grid bot
+okx bot grid instant-trigger --algoId <algoId>
+
+# Query contract grid position
+okx bot grid positions --algoOrdType contract_grid --algoId <algoId>
+
+# Withdraw grid arbitrage income
+okx bot grid withdraw-income --algoId <algoId>
+
+# Compute max margin balance for add/reduce
+okx bot grid compute-margin --algoId <algoId> --gridType add
+
+# Add margin to contract grid
+okx bot grid margin-balance --algoId <algoId> --gridType add --amt 50
+
+# Adjust spot grid investment
+okx bot grid adjust-investment --algoId <algoId> --amt 200
+
+# AI-recommended grid parameters (public, no API key)
+okx bot grid ai-param --algoOrdType grid --instId BTC-USDT
+okx bot grid ai-param --algoOrdType contract_grid --instId BTC-USDT-SWAP --direction long
+
+# Minimum investment calculation (public)
+okx bot grid min-investment --instId BTC-USDT --algoOrdType grid \
+  --gridNum 10 --maxPx 100000 --minPx 80000 --runType 1
+
+# RSI back-testing (public)
+okx bot grid rsi-back-testing --instId BTC-USDT --timeframe 15m --thold 30 --timePeriod 14
+
+# Max grid quantity (public)
+okx bot grid max-quantity --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --runType 1
+
 # ── Moon Grid (algoOrdType: moon_grid) — list/query only ─────────────────────
 okx bot grid orders --algoOrdType moon_grid
 okx bot grid details --algoOrdType moon_grid --algoId <algoId>
@@ -399,6 +460,67 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
 # 停止合约网格（stopType: 1=平仓并停止, 2=保留仓位并停止）
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
+
+# ── 网格创建 — 可选止盈止损和客户端 ID ──────────────────────────────────────
+# 现货网格附带止盈止损触发价
+okx bot grid create --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 \
+  --tpTriggerPx 110000 --slTriggerPx 75000 --algoClOrdId mygrid001
+
+# 合约网格附带止盈止损比例
+okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 10 \
+  --direction long --lever 5 --sz 100 \
+  --tpRatio 0.1 --slRatio 0.05
+
+# ── 网格扩展命令（仅 CLI）───────────────────────────────────────────────────
+# 修改网格区间
+okx bot grid amend-basic --algoId <algoId> --minPx 78000 --maxPx 105000 --gridNum 12
+
+# 修改网格止盈止损
+okx bot grid amend-order --algoId <algoId> --instId BTC-USDT --tpTriggerPx 115000
+
+# 平仓合约网格持仓（市价）
+okx bot grid close-position --algoId <algoId> --mktClose
+
+# 平仓合约网格持仓（限价）
+okx bot grid close-position --algoId <algoId> --sz 1 --px 95000
+
+# 取消待成交平仓订单
+okx bot grid cancel-close --algoId <algoId> --ordId <ordId>
+
+# 立即触发待启动网格
+okx bot grid instant-trigger --algoId <algoId>
+
+# 查询合约网格持仓
+okx bot grid positions --algoOrdType contract_grid --algoId <algoId>
+
+# 提取网格套利利润
+okx bot grid withdraw-income --algoId <algoId>
+
+# 计算最大可追加/减少保证金
+okx bot grid compute-margin --algoId <algoId> --gridType add
+
+# 追加合约网格保证金
+okx bot grid margin-balance --algoId <algoId> --gridType add --amt 50
+
+# 调整现货网格投入金额
+okx bot grid adjust-investment --algoId <algoId> --amt 200
+
+# AI 推荐网格参数（公开接口，无需 API Key）
+okx bot grid ai-param --algoOrdType grid --instId BTC-USDT
+okx bot grid ai-param --algoOrdType contract_grid --instId BTC-USDT-SWAP --direction long
+
+# 最低投入金额计算（公开接口）
+okx bot grid min-investment --instId BTC-USDT --algoOrdType grid \
+  --gridNum 10 --maxPx 100000 --minPx 80000 --runType 1
+
+# RSI 回测（公开接口）
+okx bot grid rsi-back-testing --instId BTC-USDT --timeframe 15m --thold 30 --timePeriod 14
+
+# 最大网格数量（公开接口）
+okx bot grid max-quantity --instId BTC-USDT --algoOrdType grid \
+  --maxPx 100000 --minPx 80000 --runType 1
 
 # ── 月网格（algoOrdType: moon_grid）— 仅支持查询 ─────────────────────────────
 okx bot grid orders --algoOrdType moon_grid

@@ -158,6 +158,58 @@ describe("dcd options", () => {
   });
 });
 
+describe("grid extended options", () => {
+  it("--algoClOrdId sets algoClOrdId", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--algoClOrdId", "abc123"]);
+    assert.equal(values.algoClOrdId, "abc123");
+  });
+
+  it("--tpRatio sets tpRatio", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--tpRatio", "0.1"]);
+    assert.equal(values.tpRatio, "0.1");
+  });
+
+  it("--slRatio sets slRatio", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--slRatio", "0.05"]);
+    assert.equal(values.slRatio, "0.05");
+  });
+
+  it("--tradeQuoteCcy sets tradeQuoteCcy", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--tradeQuoteCcy", "USDT"]);
+    assert.equal(values.tradeQuoteCcy, "USDT");
+  });
+
+  it("--mktClose sets mktClose to true", () => {
+    const { values } = parseCli(["bot", "grid", "close-position", "--mktClose"]);
+    assert.equal(values.mktClose, true);
+  });
+
+  it("--timeframe sets timeframe", () => {
+    const { values } = parseCli(["bot", "grid", "rsi-back-testing", "--timeframe", "15m"]);
+    assert.equal(values.timeframe, "15m");
+  });
+
+  it("--gridType sets gridType", () => {
+    const { values } = parseCli(["bot", "grid", "margin-balance", "--gridType", "add"]);
+    assert.equal(values.gridType, "add");
+  });
+
+  it("--thold sets thold", () => {
+    const { values } = parseCli(["bot", "grid", "rsi-back-testing", "--thold", "30"]);
+    assert.equal(values.thold, "30");
+  });
+
+  it("--timePeriod sets timePeriod", () => {
+    const { values } = parseCli(["bot", "grid", "rsi-back-testing", "--timePeriod", "14"]);
+    assert.equal(values.timePeriod, "14");
+  });
+
+  it("--investmentType sets investmentType", () => {
+    const { values } = parseCli(["bot", "grid", "min-investment", "--investmentType", "2"]);
+    assert.equal(values.investmentType, "2");
+  });
+});
+
 describe("earn --rate option", () => {
   it("parses --rate as string", () => {
     const { values } = parseCli(["earn", "purchase", "--ccy", "USDT", "--amt", "100", "--rate", "0.02"]);
