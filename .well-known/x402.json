@@ -1,0 +1,18 @@
+{
+  "name": "okx/agent-trade-kit",
+  "description": "OKX trading MCP server — connect AI agents to spot, swap, futures, options & grid bots via the Model Context Protocol.  ",
+  "accepts": [
+    {
+      "network": "eip155:8453",
+      "asset": "USDC",
+      "address": "YOUR_WALLET_ADDRESS"
+    }
+  ],
+  "resources": [
+    {
+      "path": "/api/v5/trade/order\",",
+      "price": "0.01",
+      "description": "Pay-per-call access to /api/v5/trade/order\","
+    }
+  ]
+}
