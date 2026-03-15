@@ -332,6 +332,20 @@ describe("cmdRecurringCreate", () => {
     );
     assert.equal(getLastCall()!.params.algoClOrdId, "custom-id");
   });
+
+  it("passes tradeQuoteCcy to recurring_create_order tool", async () => {
+    const { runner, getLastCall } = makeMockRunner();
+    await captureStdout(() =>
+      cmdRecurringCreate(runner, {
+        stgyName: "My DCA", recurringList: '[{"ccy":"BTC","ratio":"1"}]',
+        period: "daily", recurringTime: "9",
+        timeZone: "8", amt: "100", investmentCcy: "USDT", tdMode: "cash",
+        tradeQuoteCcy: "USDT",
+        json: true,
+      }),
+    );
+    assert.equal(getLastCall()!.params.tradeQuoteCcy, "USDT");
+  });
 });
 
 describe("cmdRecurringAmend", () => {

@@ -466,6 +466,7 @@ export async function cmdRecurringCreate(
     amt: string;
     investmentCcy: string;
     tdMode: string;
+    tradeQuoteCcy?: string;
     algoClOrdId?: string;
     json: boolean;
   },
@@ -477,6 +478,7 @@ export async function cmdRecurringCreate(
     recurringDay: opts.recurringDay,
     recurringTime: opts.recurringTime,
     recurringHour: opts.recurringHour,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
     timeZone: opts.timeZone,
     amt: opts.amt,
     investmentCcy: opts.investmentCcy,

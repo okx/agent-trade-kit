@@ -1046,6 +1046,7 @@ export function handleBotRecurringCommand(
       amt: v.amt!,
       investmentCcy: v.investmentCcy!,
       tdMode: v.tdMode!,
+      tradeQuoteCcy: v.tradeQuoteCcy,
       algoClOrdId: v.algoClOrdId,
       json,
     });

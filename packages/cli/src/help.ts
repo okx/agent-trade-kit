@@ -682,7 +682,7 @@ const HELP_TREE: HelpTree = {
             description: "List sub-orders (individual buy executions) of a recurring buy",
           },
           create: {
-            usage: "okx bot recurring create --stgyName <name> --recurringList '<json>'\n                      --period <hourly|daily|weekly|monthly> --recurringDay <n> --recurringTime <HH:mm> --timeZone <n>\n                      --amt <n> --investmentCcy <ccy> --tdMode <cross|cash>\n                      [--recurringHour <1|4|8|12>] [--algoClOrdId <id>]",
+            usage: "okx bot recurring create --stgyName <name> --recurringList '<json>'\n                      --period <hourly|daily|weekly|monthly> --recurringTime <0-23> --timeZone <n>\n                      --amt <n> --investmentCcy <ccy> --tdMode <cross|cash>\n                      [--recurringDay <n>] [--recurringHour <1|4|8|12>] [--tradeQuoteCcy <ccy>] [--algoClOrdId <id>]",
             description: "Create a new recurring buy order",
           },
           amend: {
