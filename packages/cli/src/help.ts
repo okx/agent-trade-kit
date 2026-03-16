@@ -600,8 +600,8 @@ const HELP_TREE: HelpTree = {
   },
 
   diagnose: {
-    description: "Run network diagnostics (DNS, TCP, TLS, API, auth)",
-    usage: "okx diagnose [--profile <name>] [--demo]",
+    description: "Run network / MCP server diagnostics",
+    usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo] [--output <file>]",
   },
 };
 

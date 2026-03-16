@@ -9,17 +9,15 @@
 
 ---
 
-## [1.2.5-beta.1] - 2026-03-16
+## [Unreleased]
 
-### 变更
+### 新增
 
-- **优化 earn 模块工具描述，提升 AI agent 使用准确性**：
-  - `earn_get_savings_balance`：新增提示，展示市场均利率时应调用 `earn_get_lending_rate_history`，而非 `earn_get_lending_rate_summary`。
-  - `earn_get_lending_history`：明确定位为"市场借贷利率历史"，避免与 Simple Earn 借出记录混淆。
-  - `earn_get_lending_rate_summary`：明确该工具查询的是**借币市场利率**（非 Simple Earn），补充返回字段说明（`avgRate`、`estRate`、`preRate`）。
-  - `earn_get_lending_rate_history`：明确为查询 Simple Earn 借贷利率的正确工具，补充与余额展示联动的使用场景说明。
-  - `onchain_earn_get_offers`：新增指引，展示产品时须显示协议名称（`protocol` 字段）和收益币种（`earningData[].ccy` 字段）。
-- **CLI earn 帮助文本更新**：`lending-history`、`rate-summary`、`rate-history` 子命令描述与工具变更同步更新。
+- **CLI `okx diagnose --mcp`**：新增 MCP 服务器专项诊断模式。检查项包括：包版本、Node.js 兼容性、MCP 入口文件存在性和可执行性、Claude Desktop `mcpServers` 配置、最近的 MCP 日志片段、模块加载冒烟测试（`--version`），以及 stdio JSON-RPC 握手（5 秒超时）。零外部依赖，仅使用 Node.js 内置模块。
+- **`okx diagnose --output <file>`**：默认模式与 `--mcp` 模式均支持 `--output <路径>` 将诊断报告保存为文件，便于分享排查。
+- **`diagnose-utils.ts`**（内部模块）：从 `diagnose.ts` 中提取 `Report`、`ok`、`fail`、`section`、`sanitize` 等共享工具函数，供 `diagnose-mcp.ts` 复用。
+- **`sanitize()` 工具函数**：在诊断输出分享前自动屏蔽 UUID、长十六进制字符串（≥32 位）及 Bearer Token。
+- **`allToolSpecs()` 从 `@agent-tradekit/core` 导出**：该函数现已纳入公开 API，为未来的外部消费者（如第三方 MCP 客户端、测试工具）提供枚举所有已注册工具规格的能力。此前该函数已被 `buildTools()` 和 `createToolRunner()` 内部调用，本次变更是面向预期的下游使用场景而预先公开暴露，并非供 `diagnose-mcp.ts` 内部调用。
 
 ---
 

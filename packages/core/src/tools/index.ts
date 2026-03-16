@@ -14,7 +14,15 @@ import { registerSpotTradeTools } from "./spot-trade.js";
 import { registerSwapTradeTools } from "./swap-trade.js";
 import type { ToolSpec, ToolArgs } from "./types.js";
 
-function allToolSpecs(): ToolSpec[] {
+/**
+ * Return specs for every registered tool across all modules.
+ *
+ * Exported for external consumers (e.g. diagnostic / introspection tooling)
+ * that need to enumerate tool names, schemas, or module membership without
+ * instantiating a full client.  Not all callers use every spec — consumers
+ * should filter as needed.
+ */
+export function allToolSpecs(): ToolSpec[] {
   return [
     ...registerMarketTools(),
     ...registerSpotTradeTools(),

@@ -1058,7 +1058,7 @@ async function main(): Promise<void> {
 
   if (config.verbose) printVerboseConfigSummary(config, v.profile);
 
-  if (module === "diagnose") return cmdDiagnose(config, v.profile ?? "default");
+  if (module === "diagnose") return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
 
   const client = new OkxRestClient(config);
   const run = createToolRunner(client, config);

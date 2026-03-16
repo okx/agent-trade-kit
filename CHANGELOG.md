@@ -9,17 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.5-beta.1] - 2026-03-16
+## [Unreleased]
 
-### Changed
+### Added
 
-- **Earn tool descriptions improved for better AI agent guidance**:
-  - `earn_get_savings_balance`: Added guidance to use `earn_get_lending_rate_history` (not `earn_get_lending_rate_summary`) when displaying market rates alongside balance.
-  - `earn_get_lending_history`: Clarified as "market lending rate history" to avoid confusion with Simple Earn lending records.
-  - `earn_get_lending_rate_summary`: Clarified this tool is for **coin lending market rates** (借币市场利率), NOT Simple Earn. Added description of returned fields (`avgRate`, `estRate`, `preRate`).
-  - `earn_get_lending_rate_history`: Clarified this is the correct tool for Simple Earn lending rates; added context for usage with savings balance display.
-  - `onchain_earn_get_offers`: Added instruction to always display `protocol` field and `earningData[].ccy` when showing offers to users.
-- **CLI earn help text updated**: Descriptions for `lending-history`, `rate-summary`, and `rate-history` sub-commands updated to match tool description changes.
+- **CLI `okx diagnose --mcp`**: New MCP server troubleshooting mode. Checks package versions, Node.js compatibility, MCP entry-point existence and executability, Claude Desktop `mcpServers` configuration, recent MCP log tail, module-load smoke test (`--version`), and a live stdio JSON-RPC handshake (5 s timeout). Zero external dependencies — uses Node.js built-ins only.
+- **`--output <file>` for `okx diagnose`**: Both the default and `--mcp` modes now accept `--output <path>` to save the diagnostic report to a file for sharing.
+- **`diagnose-utils.ts`** (internal): Shared `Report`, `ok`, `fail`, `section`, and `sanitize` helpers extracted from `diagnose.ts` to enable reuse by `diagnose-mcp.ts`.
+- **`sanitize()` utility**: Masks UUIDs, long hex strings (≥32 chars), and Bearer tokens in diagnostic output before sharing.
+- **`allToolSpecs()` exported from `@agent-tradekit/core`**: The function is now part of the public API, exposed for future external consumers that need to enumerate all registered tool specs (e.g. third-party MCP clients, testing utilities). It was already used internally by `buildTools()` and `createToolRunner()`; this change makes the export public-facing for anticipated downstream use, not for use within `diagnose-mcp.ts`.
 
 ---
 

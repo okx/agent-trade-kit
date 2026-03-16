@@ -1,5 +1,8 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs";
 import type { OkxConfig } from "@agent-tradekit/core";
 import { cmdDiagnose } from "../src/commands/diagnose.js";
 
@@ -70,9 +73,9 @@ function errorFetch(code: string, msg: string): typeof globalThis.fetch {
 }
 
 /** Run cmdDiagnose with mocked fetch and capture output. */
-async function run(config: OkxConfig, profile = "default", fetchMock?: typeof globalThis.fetch): Promise<CaptureResult> {
+async function run(config: OkxConfig, profile = "default", fetchMock?: typeof globalThis.fetch, options?: { output?: string; mcp?: boolean; cli?: boolean; all?: boolean }): Promise<CaptureResult> {
   return captureStdout(() =>
-    withFetch(fetchMock ?? successFetch(), () => cmdDiagnose(config, profile)),
+    withFetch(fetchMock ?? successFetch(), () => cmdDiagnose(config, profile, options)),
   );
 }
 
@@ -229,5 +232,62 @@ describe("cmdDiagnose", () => {
   it("report includes timestamp", async () => {
     const { output } = await run(BASE_CONFIG);
     assert.ok(output.includes("ts"));
+  });
+
+  it("backward compat: works without options param (default behavior)", async () => {
+    // Should not throw when options is omitted
+    const { output } = await run(BASE_CONFIG);
+    assert.ok(output.includes("OKX Trade CLI Diagnostics"));
+  });
+
+  it("writes report to --output file when specified", async () => {
+    const tmpDir = os.tmpdir();
+    const outFile = path.join(tmpDir, `okx-diag-test-${Date.now()}.txt`);
+    try {
+      await run(BASE_CONFIG, "default", undefined, { output: outFile });
+      assert.ok(fs.existsSync(outFile), "output file should be created");
+      const content = fs.readFileSync(outFile, "utf8");
+      assert.ok(content.includes("Diagnostic Report"), "file should contain report header");
+    } finally {
+      if (fs.existsSync(outFile)) fs.unlinkSync(outFile);
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Flag routing tests: --cli / --mcp / --all
+  // ---------------------------------------------------------------------------
+
+  it("--cli flag: runs CLI checks (same as default)", async () => {
+    const { output } = await run(BASE_CONFIG, "default", undefined, { cli: true });
+    assert.ok(output.includes("OKX Trade CLI Diagnostics"), "should show CLI diagnostics header");
+    assert.ok(!output.includes("OKX MCP Server Diagnostics"), "should NOT show MCP diagnostics header");
+  });
+
+  it("no flag (default): runs CLI checks only", async () => {
+    const { output } = await run(BASE_CONFIG, "default", undefined, {});
+    assert.ok(output.includes("OKX Trade CLI Diagnostics"), "should show CLI diagnostics header");
+    assert.ok(!output.includes("OKX MCP Server Diagnostics"), "should NOT show MCP diagnostics header");
+  });
+
+  it("--mcp flag: runs MCP checks only", async () => {
+    const { output } = await run(BASE_CONFIG, "default", undefined, { mcp: true });
+    assert.ok(output.includes("OKX MCP Server Diagnostics"), "should show MCP diagnostics header");
+    assert.ok(!output.includes("OKX Trade CLI Diagnostics"), "should NOT show CLI diagnostics header");
+  });
+
+  it("--all flag: runs CLI checks then MCP checks", async () => {
+    const { output } = await run(BASE_CONFIG, "default", undefined, { all: true });
+    assert.ok(output.includes("OKX Trade CLI Diagnostics"), "should show CLI diagnostics header");
+    assert.ok(output.includes("OKX MCP Server Diagnostics"), "should also show MCP diagnostics header");
+    // CLI header should appear before MCP header
+    const cliIdx = output.indexOf("OKX Trade CLI Diagnostics");
+    const mcpIdx = output.indexOf("OKX MCP Server Diagnostics");
+    assert.ok(cliIdx < mcpIdx, "CLI section should come before MCP section");
+  });
+
+  it("--all flag: does not skip CLI checks even when mcp is also set", async () => {
+    // --all takes precedence over --mcp alone
+    const { output } = await run(BASE_CONFIG, "default", undefined, { all: true, mcp: true });
+    assert.ok(output.includes("OKX Trade CLI Diagnostics"), "should show CLI diagnostics with --all --mcp");
   });
 });

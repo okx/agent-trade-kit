@@ -2,70 +2,16 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import os from "node:os";
 import tls from "node:tls";
-import { createRequire } from "node:module";
 import type { OkxConfig } from "@agent-tradekit/core";
 import { OkxRestClient } from "@agent-tradekit/core";
-
-const _require = createRequire(import.meta.url);
-
-function readCliVersion(): string {
-  for (const rel of ["../package.json", "../../package.json"]) {
-    try {
-      return (_require(rel) as { version: string }).version;
-    } catch (_err: unknown) {
-      // Path not found in this layout (bundled vs source) — try next
-    }
-  }
-  return "0.0.0";
-}
+import { Report, ok, fail, section, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
+import { cmdDiagnoseMcp } from "./diagnose-mcp.js";
 
 const CLI_VERSION = readCliVersion();
 
 declare const __GIT_HASH__: string;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
 
-// ---------------------------------------------------------------------------
-// Report collector — accumulates raw data for the copy-paste block
-// ---------------------------------------------------------------------------
-
-interface ReportLine { key: string; value: string }
-
-class Report {
-  private lines: ReportLine[] = [];
-
-  add(key: string, value: string): void {
-    this.lines.push({ key, value });
-  }
-
-  print(): void {
-    const w = process.stdout.write.bind(process.stdout);
-    const sep = "\u2500".repeat(52);
-    w(`\n  \u2500\u2500 Diagnostic Report (copy & share) ${sep.slice(35)}\n`);
-    for (const { key, value } of this.lines) {
-      w(`  ${key.padEnd(14)} ${value}\n`);
-    }
-    w(`  ${sep}\n\n`);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Display helpers
-// ---------------------------------------------------------------------------
-
-function ok(label: string, detail: string): void {
-  process.stdout.write(`  \u2713 ${label.padEnd(14)} ${detail}\n`);
-}
-
-function fail(label: string, detail: string, hints: string[]): void {
-  process.stdout.write(`  \u2717 ${label.padEnd(14)} ${detail}\n`);
-  for (const hint of hints) {
-    process.stdout.write(`    \u2192 ${hint}\n`);
-  }
-}
-
-function section(title: string): void {
-  process.stdout.write(`\n  ${title}\n`);
-}
 
 function maskKey(key: string | undefined): string {
   if (!key) return "(not set)";
@@ -349,7 +295,30 @@ async function checkAuth(client: OkxRestClient, config: OkxConfig, report: Repor
 // Main
 // ---------------------------------------------------------------------------
 
-export async function cmdDiagnose(config: OkxConfig, profile: string): Promise<void> {
+export interface DiagnoseOptions {
+  mcp?: boolean;
+  cli?: boolean;
+  all?: boolean;
+  output?: string;
+}
+
+export async function cmdDiagnose(config: OkxConfig, profile: string, options: DiagnoseOptions = {}): Promise<void> {
+  // --mcp only: run MCP server checks
+  if (options.mcp && !options.all) {
+    return cmdDiagnoseMcp({ output: options.output });
+  }
+
+  // --all: run CLI checks first, then MCP checks
+  if (options.all) {
+    await runCliChecks(config, profile, options.output);
+    return cmdDiagnoseMcp({ output: options.output });
+  }
+
+  // --cli or no flag (default): run CLI/general checks only
+  return runCliChecks(config, profile, options.output);
+}
+
+async function runCliChecks(config: OkxConfig, profile: string, outputPath?: string): Promise<void> {
   process.stdout.write("\n  OKX Trade CLI Diagnostics\n");
   process.stdout.write("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n");
 
@@ -375,4 +344,6 @@ export async function cmdDiagnose(config: OkxConfig, profile: string): Promise<v
 
   report.add("result", allPassed ? "PASS" : "FAIL");
   report.print();
+
+  writeReportIfRequested(report, outputPath);
 }
