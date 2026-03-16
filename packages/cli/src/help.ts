@@ -427,15 +427,15 @@ const HELP_TREE: HelpTree = {
           },
           "lending-history": {
             usage: "okx earn savings lending-history [--ccy <ccy>] [--limit <n>]",
-            description: "Get lending history",
+            description: "Get market lending rate history",
           },
           "rate-summary": {
             usage: "okx earn savings rate-summary [<ccy>]",
-            description: "Get market lending rate summary (public, no auth needed)",
+            description: "Get coin lending market rate summary (not Simple Earn, public)",
           },
           "rate-history": {
             usage: "okx earn savings rate-history [--ccy <ccy>] [--limit <n>]",
-            description: "Get historical lending rates (public, no auth needed)",
+            description: "Query Simple Earn lending rates (public, no auth needed)",
           },
         },
       },
