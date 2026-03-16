@@ -20,7 +20,7 @@ export function registerFuturesTools(): ToolSpec[] {
       name: "futures_place_order",
       module: "futures",
       description:
-        "Place a FUTURES delivery contract order (e.g. instId: BTC-USDT-240329). Optionally attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.",
+        "Place FUTURES delivery contract order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -37,21 +37,21 @@ export function registerFuturesTools(): ToolSpec[] {
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description: "one-way: buy=open long, sell=open short (use reduceOnly=true to close); hedge: combined with posSide",
+            description: "buy=long, sell=short; hedge: use with posSide",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description: "net=one-way mode (default); long/short=hedge mode only",
+            description: "net=one-way (default); long/short=hedge mode",
           },
           ordType: {
             type: "string",
             enum: ["market", "limit", "post_only", "fok", "ioc"],
-            description: "market(no px)|limit(px req)|post_only(maker)|fok(all-or-cancel)|ioc(partial fill)",
+            description: "market=no px; limit/fok/ioc=px req; post_only=maker",
           },
           sz: {
             type: "string",
-            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
+            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
           },
           px: {
             type: "string",
@@ -67,7 +67,7 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           tpTriggerPx: {
             type: "string",
-            description: "TP trigger price; places TP at tpOrdPx",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
@@ -75,7 +75,7 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           slTriggerPx: {
             type: "string",
-            description: "SL trigger price; places SL at slOrdPx",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
@@ -164,7 +164,6 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           clOrdId: {
             type: "string",
-            description: "Provide ordId or clOrdId",
           },
         },
         required: ["instId"],
@@ -216,11 +215,11 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this order ID",
+            description: "Cursor: return older",
           },
           before: {
             type: "string",
-            description: "Pagination: after this order ID",
+            description: "Cursor: return newer",
           },
           begin: {
             type: "string",
@@ -332,11 +331,11 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this bill ID",
+            description: "Cursor: return older",
           },
           before: {
             type: "string",
-            description: "Pagination: after this bill ID",
+            description: "Cursor: return newer",
           },
           begin: {
             type: "string",
@@ -394,7 +393,6 @@ export function registerFuturesTools(): ToolSpec[] {
           },
           clOrdId: {
             type: "string",
-            description: "Provide ordId or clOrdId",
           },
           newSz: {
             type: "string",
@@ -427,7 +425,7 @@ export function registerFuturesTools(): ToolSpec[] {
       name: "futures_close_position",
       module: "futures",
       description:
-        "[CAUTION] Close an entire FUTURES delivery position at market. Private. Rate limit: 20 req/s.",
+        "[CAUTION] Close entire FUTURES delivery position at market.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -555,7 +553,7 @@ export function registerFuturesTools(): ToolSpec[] {
       name: "futures_batch_orders",
       module: "futures",
       description:
-        "[CAUTION] Batch place up to 20 FUTURES delivery orders in one request. Private. Rate limit: 60 req/s.",
+        "[CAUTION] Batch place up to 20 FUTURES delivery orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -607,7 +605,7 @@ export function registerFuturesTools(): ToolSpec[] {
       name: "futures_batch_amend",
       module: "futures",
       description:
-        "[CAUTION] Batch amend up to 20 unfilled FUTURES delivery orders in one request.",
+        "[CAUTION] Batch amend up to 20 unfilled FUTURES delivery orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -638,7 +636,7 @@ export function registerFuturesTools(): ToolSpec[] {
       name: "futures_batch_cancel",
       module: "futures",
       description:
-        "[CAUTION] Batch cancel up to 20 FUTURES delivery orders in one request.",
+        "[CAUTION] Batch cancel up to 20 FUTURES delivery orders.",
       isWrite: true,
       inputSchema: {
         type: "object",

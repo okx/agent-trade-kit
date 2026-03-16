@@ -20,14 +20,14 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_place_order",
       module: "swap",
       description:
-        "Place a SWAP or FUTURES contract order. Optionally attach TP/SL via tpTriggerPx/slTriggerPx (assembled into attachAlgoOrds automatically). [CAUTION] Executes real trades.",
+        "Place SWAP/FUTURES order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           instId: {
             type: "string",
-            description: "e.g. BTC-USDT-SWAP (perp) or BTC-USD-240329 (delivery)",
+            description: "e.g. BTC-USDT-SWAP",
           },
           tdMode: {
             type: "string",
@@ -37,21 +37,21 @@ export function registerSwapTradeTools(): ToolSpec[] {
           side: {
             type: "string",
             enum: ["buy", "sell"],
-            description: "one-way: buy=open long, sell=open short (use reduceOnly=true to close); hedge: combined with posSide",
+            description: "buy=long, sell=short; hedge: use with posSide",
           },
           posSide: {
             type: "string",
             enum: ["long", "short", "net"],
-            description: "net=one-way mode (default for most accounts); long/short=hedge mode only. Error 'posSide not valid' → use net",
+            description: "net=one-way (default); long/short=hedge mode",
           },
           ordType: {
             type: "string",
             enum: ["market", "limit", "post_only", "fok", "ioc"],
-            description: "market(no px)|limit(px req)|post_only(maker)|fok(all-or-cancel)|ioc(partial fill)",
+            description: "market=no px; limit/fok/ioc=px req; post_only=maker",
           },
           sz: {
             type: "string",
-            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
+            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
           },
           px: {
             type: "string",
@@ -67,7 +67,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           tpTriggerPx: {
             type: "string",
-            description: "TP trigger price; places TP at tpOrdPx",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
@@ -75,7 +75,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           slTriggerPx: {
             type: "string",
-            description: "SL trigger price; places SL at slOrdPx",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
@@ -178,11 +178,11 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this order ID",
+            description: "Cursor: return older",
           },
           before: {
             type: "string",
-            description: "Pagination: after this order ID",
+            description: "Cursor: return newer",
           },
           begin: {
             type: "string",
@@ -321,7 +321,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
           algoId: { type: "string", description: "Algo order ID" },
-          newSz: { type: "string", description: "New number of contracts (NOT USDT amount)" },
+          newSz: { type: "string", description: "New contracts count" },
           newTpTriggerPx: { type: "string", description: "New TP trigger price" },
           newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
           newSlTriggerPx: { type: "string", description: "New SL trigger price" },
@@ -375,11 +375,11 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this bill ID",
+            description: "Cursor: return older",
           },
           before: {
             type: "string",
-            description: "Pagination: after this bill ID",
+            description: "Cursor: return newer",
           },
           begin: {
             type: "string",
@@ -422,7 +422,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_order",
       module: "swap",
       description:
-        "Get details of a single SWAP or FUTURES order by order ID or client order ID.",
+        "Get details of a single SWAP or FUTURES order by ordId or clOrdId.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -437,7 +437,6 @@ export function registerSwapTradeTools(): ToolSpec[] {
           },
           clOrdId: {
             type: "string",
-            description: "Provide ordId or clOrdId",
           },
         },
         required: ["instId"],
@@ -460,7 +459,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_close_position",
       module: "swap",
       description:
-        "[CAUTION] Close an entire SWAP/FUTURES position at market. Simpler than swap_place_order with reduceOnly when closing the full position. Private. Rate limit: 20 req/s.",
+        "[CAUTION] Close entire SWAP/FUTURES position at market.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -511,7 +510,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_batch_orders",
       module: "swap",
       description:
-        "[CAUTION] Batch place/cancel/amend up to 20 SWAP/FUTURES orders in one request. Use action='place'/'cancel'/'amend'. Private. Rate limit: 60 req/s.",
+        "[CAUTION] Batch place/cancel/amend SWAP/FUTURES orders (max 20). action=place|cancel|amend.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -523,7 +522,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           orders: {
             type: "array",
             description:
-              "Array (max 20). place: {instId,tdMode,side,ordType,sz,px?,posSide?,reduceOnly?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?}. cancel: {instId,ordId|clOrdId}. amend: {instId,ordId|clOrdId,newSz?,newPx?}.",
+              "Max 20. place:{instId,tdMode,side,ordType,sz,...}; cancel:{instId,ordId|clOrdId}; amend:{instId,ordId|clOrdId,newSz?,newPx?}.",
             items: {
               type: "object",
             },
@@ -578,7 +577,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_get_leverage",
       module: "swap",
       description:
-        "Get current leverage for a SWAP/FUTURES instrument. Call before swap_place_order to verify leverage.",
+        "Get current leverage for a SWAP/FUTURES instrument.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -611,7 +610,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_batch_amend",
       module: "swap",
       description:
-        "[CAUTION] Batch amend up to 20 unfilled SWAP/FUTURES orders in one request. Modify price and/or size per order.",
+        "[CAUTION] Batch amend up to 20 unfilled SWAP/FUTURES orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -642,7 +641,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_batch_cancel",
       module: "swap",
       description:
-        "[CAUTION] Batch cancel up to 20 SWAP/FUTURES orders in one request. Provide instId plus ordId or clOrdId for each order.",
+        "[CAUTION] Batch cancel up to 20 SWAP/FUTURES orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
