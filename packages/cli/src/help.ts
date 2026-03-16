@@ -616,7 +616,7 @@ const HELP_TREE: HelpTree = {
             description: "List cycles or orders within a cycle of a Contract DCA bot",
           },
           create: {
-            usage: "okx bot dca create --instId <id> --lever <n> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>]\n                 [--allowReinvest <true|false>] [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timePeriod <n>] [--timeframe <3m|5m|15m|30m|1H|4H|1D>]\n                 [--trackingMode <sync|async>] [--profitSharingRatio <0|0.1|0.2|0.3>]\n                 Note: safetyOrdAmt, pxSteps required when maxSafetyOrds > 0; pxStepsMult, volMult required when maxSafetyOrds > 1\n                 Note: slMode required when slPct is set; triggerCond, thold, timeframe required when triggerStrategy=rsi",
+            usage: "okx bot dca create --instId <id> --lever <n> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>]\n                 [--allowReinvest <true|false>] [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timePeriod <n>] [--timeframe <3m|5m|15m|30m|1H|4H|1D>]\n                 [--trackingMode <sync|async>] [--profitSharingRatio <0|0.1|0.2|0.3>]\n                 Ranges: maxSafetyOrds [0,100]; pxSteps [0.001,0.5] (varies by instrument);\n                 tpPct: long [0.001,10], short [0.001,0.9999]; slPct must > MPD\n                 Note: safetyOrdAmt, pxSteps required when maxSafetyOrds > 0; pxStepsMult, volMult required when maxSafetyOrds > 1\n                 Note: slMode required when slPct is set; triggerCond, thold, timeframe required when triggerStrategy=rsi",
             description: "Create a new Contract DCA bot order",
           },
           stop: {
@@ -633,7 +633,7 @@ const HELP_TREE: HelpTree = {
           },
           "set-tp": {
             usage: "okx bot dca set-tp --algoId <id> --tpPrice <price>",
-            description: "Update take-profit price for a running DCA bot (CLI-only)",
+            description: "Update take-profit price for a running DCA bot (CLI-only). Long: tpPrice must not be below tpPriceRange; Short: tpPrice must not exceed tpPriceRange. Get tpPriceRange from 'dca orders' (ongoing-list)",
           },
           "set-reinvest": {
             usage: "okx bot dca set-reinvest --algoId <id> --allowReinvest <true|false>",

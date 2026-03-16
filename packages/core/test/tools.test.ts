@@ -2764,6 +2764,66 @@ describe("dca tools algoId description", () => {
 });
 
 // ---------------------------------------------------------------------------
+// DCA schema description — validation rule hints (pxSteps, tpPct, maxSafetyOrds, slPct)
+// ---------------------------------------------------------------------------
+
+describe("dca_create_order schema descriptions — validation rule hints", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_create_order")!;
+  const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+
+  it("pxSteps description mentions default range [0.001, 0.5]", () => {
+    const desc = props["pxSteps"]["description"] as string;
+    assert.ok(desc.includes("0.001"), "should mention lower bound 0.001");
+    assert.ok(desc.includes("0.5"), "should mention upper bound 0.5");
+  });
+
+  it("pxSteps description mentions precision (4 decimal places)", () => {
+    const desc = props["pxSteps"]["description"] as string;
+    assert.ok(desc.includes("4 decimal"), "should mention 4 decimal places precision");
+  });
+
+  it("pxSteps description notes range varies by instrument", () => {
+    const desc = props["pxSteps"]["description"] as string;
+    assert.ok(desc.includes("varies by instrument"), "should mention instrument-dependent range");
+  });
+
+  it("tpPct description mentions long direction range [0.001, 10]", () => {
+    const desc = props["tpPct"]["description"] as string;
+    assert.ok(desc.includes("long"), "should mention long direction");
+    assert.ok(desc.includes("0.001"), "should mention lower bound");
+    assert.ok(desc.includes("10"), "should mention upper bound 10 for long");
+  });
+
+  it("tpPct description mentions short direction range [0.001, 0.9999]", () => {
+    const desc = props["tpPct"]["description"] as string;
+    assert.ok(desc.includes("short"), "should mention short direction");
+    assert.ok(desc.includes("0.9999"), "should mention upper bound 0.9999 for short");
+  });
+
+  it("tpPct description mentions rounded down", () => {
+    const desc = props["tpPct"]["description"] as string;
+    assert.ok(desc.includes("rounded down"), "should mention rounded down");
+  });
+
+  it("maxSafetyOrds description mentions integer range [0, 100]", () => {
+    const desc = props["maxSafetyOrds"]["description"] as string;
+    assert.ok(desc.includes("integer"), "should mention integer type");
+    assert.ok(desc.includes("0") && desc.includes("100"), "should mention range 0 to 100");
+  });
+
+  it("slPct description mentions must exceed MPD", () => {
+    const desc = props["slPct"]["description"] as string;
+    assert.ok(desc.includes("max price deviation") || desc.includes("MPD"), "should mention max price deviation / MPD");
+  });
+
+  it("slPct description mentions pxStepsMult calculation", () => {
+    const desc = props["slPct"]["description"] as string;
+    assert.ok(desc.includes("pxStepsMult"), "should reference pxStepsMult in MPD calculation");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // swap_place_algo_order — tag injection
 // ---------------------------------------------------------------------------
 
