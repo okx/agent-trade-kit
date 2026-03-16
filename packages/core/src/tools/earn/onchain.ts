@@ -18,7 +18,8 @@ export function registerOnchainEarnTools(): ToolSpec[] {
       name: "onchain_earn_get_offers",
       module: "earn.onchain",
       description:
-        "Get available on-chain earn (staking/DeFi) offers. Returns investment products with APY, terms, and limits. " +
+        "Get available on-chain earn (staking/DeFi) offers. Returns investment products with protocol name, APY, terms, and limits. " +
+        "Always display the protocol name (protocol field) and earnings currency (earningData[].ccy field) when showing offers to the user. " +
         "Private endpoint. Rate limit: 3 req/s.",
       isWrite: false,
       inputSchema: {

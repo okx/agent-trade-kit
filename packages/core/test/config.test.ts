@@ -294,31 +294,19 @@ describe("loadConfig — bot sub-modules", () => {
     assert.ok(config.modules.includes("market" as never));
   });
 
-  it('"all" does NOT include earn sub-modules (earn is opt-in only)', () => {
+  it('"all" includes earn sub-modules (earn.savings, earn.onchain, earn.dcd)', () => {
     const config = loadConfig({ ...BASE_CLI, modules: "all" });
-    assert.ok(!config.modules.includes("earn.savings" as never));
-    assert.ok(!config.modules.includes("earn.onchain" as never));
-  });
-
-  it('"all,earn" includes all earn sub-modules', () => {
-    const config = loadConfig({ ...BASE_CLI, modules: "all,earn" });
     assert.ok(config.modules.includes("earn.savings" as never));
     assert.ok(config.modules.includes("earn.onchain" as never));
-    // still includes bot and other modules
+    assert.ok(config.modules.includes("earn.dcd" as never));
+  });
+
+  it('"all" still includes bot and base modules alongside earn', () => {
+    const config = loadConfig({ ...BASE_CLI, modules: "all" });
     assert.ok(config.modules.includes("bot.grid" as never));
+    assert.ok(config.modules.includes("bot.dca" as never));
     assert.ok(config.modules.includes("market" as never));
-  });
-
-  it('"all,earn.onchain" includes only earn.onchain, not earn.savings', () => {
-    const config = loadConfig({ ...BASE_CLI, modules: "all,earn.onchain" });
-    assert.ok(config.modules.includes("earn.onchain" as never));
-    assert.ok(!config.modules.includes("earn.savings" as never));
-  });
-
-  it('"all,earn.savings" includes only earn.savings, not earn.onchain', () => {
-    const config = loadConfig({ ...BASE_CLI, modules: "all,earn.savings" });
-    assert.ok(config.modules.includes("earn.savings" as never));
-    assert.ok(!config.modules.includes("earn.onchain" as never));
+    assert.ok(config.modules.includes("spot" as never));
   });
 
   it("individual bot sub-modules can be selected", () => {

@@ -13,6 +13,7 @@ import {
   handleMarketCommand,
   handleAccountWriteCommand,
   handleBotGridCommand,
+  handleBotDcaCommand,
   handleBotCommand,
   handleSwapCommand,
   handleEarnCommand,
@@ -168,6 +169,22 @@ describe("handleMarketPublicCommand", () => {
     const result = handleMarketPublicCommand(noopRunner, "noop", [], {}, false);
     assert.equal(result, undefined);
   });
+
+  it("dispatches stock-tokens action (returns a Promise)", () => {
+    const result = handleMarketPublicCommand(mockRunner, "stock-tokens", [], {}, false);
+    assert.ok(result instanceof Promise, "stock-tokens should return a Promise");
+  });
+
+  it("dispatches stock-tokens with instType and instId from v", () => {
+    const result = handleMarketPublicCommand(
+      mockRunner,
+      "stock-tokens",
+      [],
+      { instType: "SPOT", instId: "AAPL-USDT" },
+      false,
+    );
+    assert.ok(result instanceof Promise, "stock-tokens with params should return a Promise");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -216,6 +233,16 @@ describe("handleBotGridCommand", () => {
 
   it("returns undefined for unknown subAction", () => {
     const result = handleBotGridCommand(noopRunner, {}, ["noop"], false);
+    assert.equal(result, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleBotDcaCommand — dispatch coverage
+// ---------------------------------------------------------------------------
+describe("handleBotDcaCommand", () => {
+  it("returns undefined for unknown subAction", () => {
+    const result = handleBotDcaCommand(noopRunner, "noop", {}, false);
     assert.equal(result, undefined);
   });
 });
@@ -322,11 +349,24 @@ import {
   cmdEarnLendingRateSummary,
   cmdEarnLendingRateHistory,
 } from "../src/commands/earn.js";
+import { cmdMarketStockTokens } from "../src/commands/market.js";
 import {
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
   cmdOnchainEarnCancel,
 } from "../src/commands/onchain-earn.js";
+import {
+  cmdDcdPairs,
+  cmdDcdProducts,
+  cmdDcdOrders,
+  cmdDcdQuote,
+  cmdDcdBuy,
+  cmdDcdRedeemQuote,
+  cmdDcdRedeem,
+  cmdDcdRedeemExecute,
+  cmdDcdOrderState,
+  cmdDcdQuoteAndBuy,
+} from "../src/commands/dcd.js";
 
 // Runner that returns a list response
 const listRunner: ToolRunner = async () => ({
@@ -466,6 +506,47 @@ describe("earn onchain CLI commands — full dispatch coverage", () => {
     assert.ok(result instanceof Promise, "onchain cancel should return a Promise");
   });
 
+  // earn.dcd sub-module
+  it("dispatches dcd pairs (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["pairs"], {}, false);
+    assert.ok(result instanceof Promise, "dcd pairs should return a Promise");
+  });
+
+  it("dispatches dcd products (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["products"], { baseCcy: "BTC", quoteCcy: "USDT", optType: "C" } as never, false);
+    assert.ok(result instanceof Promise, "dcd products should return a Promise");
+  });
+
+  it("dispatches dcd quote (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["quote"], { productId: "BTC-USDT-260327-77000-C", sz: "0.001", notionalCcy: "BTC" } as never, false);
+    assert.ok(result instanceof Promise, "dcd quote should return a Promise");
+  });
+
+  it("dispatches dcd buy (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["buy"], { quoteId: "qtbcDCD-QUOTE123" } as never, false);
+    assert.ok(result instanceof Promise, "dcd buy should return a Promise");
+  });
+
+  it("dispatches dcd orders (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["orders"], {}, false);
+    assert.ok(result instanceof Promise, "dcd orders should return a Promise");
+  });
+
+  it("dispatches dcd order (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["order"], { ordId: "123" } as never, false);
+    assert.ok(result instanceof Promise, "dcd order should return a Promise");
+  });
+
+  it("writes error for unknown dcd command", () => {
+    const origCode = process.exitCode;
+    const err = captureStderr(() => {
+      handleEarnCommand(noopRunner, "dcd", ["noop-cmd"], {}, false);
+    });
+    assert.ok(err.includes("Unknown earn dcd command"), "should report unknown dcd command");
+    assert.equal(process.exitCode, 1);
+    process.exitCode = origCode;
+  });
+
   it("cmdOnchainEarnPurchase builds investData from ccy+amt", async () => {
     let capturedArgs: Record<string, unknown> | undefined;
     const capturingRunner: ToolRunner = async (_tool, args) => {
@@ -506,5 +587,464 @@ describe("earn onchain CLI commands — full dispatch coverage", () => {
     await cmdOnchainEarnCancel(capturingRunner, { ordId: "789", protocolType: "staking" } as never);
     assert.equal(capturedArgs?.["ordId"], "789");
     assert.equal(capturedArgs?.["protocolType"], "staking");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketStockTokens — output coverage
+// ---------------------------------------------------------------------------
+
+const stockTokenRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/public/instruments",
+  requestTime: new Date().toISOString(),
+  data: [
+    { instId: "AAPL-USDT-SWAP", instCategory: "3", ctVal: "1", lotSz: "1", minSz: "1", tickSz: "0.01", state: "live" },
+    { instId: "TSLA-USDT-SWAP", instCategory: "3", ctVal: "1", lotSz: "1", minSz: "1", tickSz: "0.01", state: "live" },
+  ],
+});
+
+describe("cmdMarketStockTokens output", () => {
+  it("prints table when data exists", async () => {
+    const out = await captureStdout(() => cmdMarketStockTokens(stockTokenRunner, { json: false }));
+    assert.ok(out.includes("AAPL-USDT-SWAP"), "should include AAPL");
+    assert.ok(out.includes("TSLA-USDT-SWAP"), "should include TSLA");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdMarketStockTokens(stockTokenRunner, { json: true }));
+    assert.doesNotThrow(() => JSON.parse(out));
+    const parsed = JSON.parse(out) as Array<{ instId: string }>;
+    assert.equal(parsed.length, 2);
+  });
+
+  it("prints table with instType filter", async () => {
+    const out = await captureStdout(() =>
+      cmdMarketStockTokens(stockTokenRunner, { instType: "SPOT", json: false })
+    );
+    assert.ok(out.length > 0, "should produce output");
+  });
+
+  it("prints empty table when no data", async () => {
+    const emptyStockRunner: ToolRunner = async () => ({
+      endpoint: "/api/v5/public/instruments",
+      requestTime: new Date().toISOString(),
+      data: [],
+    });
+    const out = await captureStdout(() => cmdMarketStockTokens(emptyStockRunner, { json: false }));
+    assert.ok(typeof out === "string", "should not throw on empty data");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI commands — output coverage
+// ---------------------------------------------------------------------------
+
+const dcdPairsRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/finance/sfp/dcd/currency-pair",
+  requestTime: new Date().toISOString(),
+  data: [{ baseCcy: "BTC", quoteCcy: "USDT", optType: "C" }],
+});
+
+const dcdProductsRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/finance/sfp/dcd/products",
+  requestTime: new Date().toISOString(),
+  data: { products: [{ productId: "BTC-USDT-260327-77000-C", baseCcy: "BTC", quoteCcy: "USDT", optType: "C", strike: "77000", annualizedYield: "0.1834", minSize: "0.0001", expTime: "1774598400000", interestAccrualTime: "1773370800000" }] },
+});
+
+const dcdOrdersRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/finance/sfp/dcd/order-history",
+  requestTime: new Date().toISOString(),
+  data: [{ ordId: "123", productId: "BTC-USDT-260327-77000-C", state: "LIVE", baseCcy: "BTC", quoteCcy: "USDT", strike: "77000", notionalSz: "0.0001", annualizedYield: "0.1834", yieldSz: "", settleTime: "1774598400000", settledTime: "" }],
+});
+
+describe("cmdDcdPairs output", () => {
+  it("prints table when data exists", async () => {
+    const out = await captureStdout(() => cmdDcdPairs(dcdPairsRunner, false));
+    assert.ok(out.includes("BTC"), "should include baseCcy");
+    assert.ok(out.includes("USDT"), "should include quoteCcy");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdDcdPairs(dcdPairsRunner, true));
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty message when no data", async () => {
+    const out = await captureStdout(() => cmdDcdPairs(emptyRunner, false));
+    assert.ok(out.includes("No currency pairs"));
+  });
+});
+
+describe("cmdDcdProducts output", () => {
+  it("prints table when products exist", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdProducts(dcdProductsRunner, { baseCcy: "BTC", quoteCcy: "USDT", optType: "C", json: false })
+    );
+    assert.ok(out.includes("BTC-USDT-260327-77000-C"), "should include productId");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdProducts(dcdProductsRunner, { json: true })
+    );
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty message when no products match", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdProducts(emptyRunner, { json: false })
+    );
+    assert.ok(out.includes("No products matched"));
+  });
+});
+
+describe("cmdDcdOrders output", () => {
+  it("prints table when orders exist", async () => {
+    const out = await captureStdout(() => cmdDcdOrders(dcdOrdersRunner, { json: false }));
+    assert.ok(out.includes("123"), "should include ordId");
+    assert.ok(out.includes("LIVE"), "should include state");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdDcdOrders(dcdOrdersRunner, { json: true }));
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty message when no orders found", async () => {
+    const out = await captureStdout(() => cmdDcdOrders(emptyRunner, { json: false }));
+    assert.ok(out.includes("No orders found"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdProducts with client-side filters
+// ---------------------------------------------------------------------------
+
+const productSample = {
+  productId: "BTC-USDT-260327-77000-C",
+  baseCcy: "BTC", quoteCcy: "USDT", optType: "C",
+  strike: "77000",
+  annualizedYield: "0.20",
+  minSize: "0.0001",
+  expTime: String(Date.now() + 7 * 86400_000),
+  interestAccrualTime: String(Date.now()),
+};
+
+const dcdProductsRunnerWith = (products: object[]): ToolRunner =>
+  async () => ({ endpoint: "/test", requestTime: "ts", data: { products } });
+
+describe("cmdDcdProducts — client-side filters", () => {
+  it("minYield filters out low-yield products", async () => {
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, annualizedYield: "0.05" },
+      { ...productSample, productId: "BTC-USDT-260327-80000-C", annualizedYield: "0.30" },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { minYield: 0.25, json: false })
+    );
+    assert.ok(out.includes("BTC-USDT-260327-80000-C"), "should include high-yield product");
+    assert.ok(!out.includes("BTC-USDT-260327-77000-C"), "should exclude low-yield product");
+  });
+
+  it("strikeNear filters by ±10% of reference price", async () => {
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, strike: "77000" },
+      { ...productSample, productId: "BTC-USDT-260327-99000-C", strike: "99000" },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { strikeNear: 75000, json: false })
+    );
+    assert.ok(out.includes("BTC-USDT-260327-77000-C"), "strike 77000 is within 10% of 75000");
+    assert.ok(!out.includes("BTC-USDT-260327-99000-C"), "strike 99000 is outside 10% of 75000");
+  });
+
+  it("termDays filters by exact term", async () => {
+    const MS = 86400_000;
+    const now = Date.now();
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, expTime: String(now + 7 * MS), interestAccrualTime: String(now) },
+      { ...productSample, productId: "BTC-USDT-260334-77000-C", expTime: String(now + 14 * MS), interestAccrualTime: String(now) },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { termDays: 7, json: false })
+    );
+    assert.ok(out.includes("BTC-USDT-260327-77000-C"), "7-day term should match");
+    assert.ok(!out.includes("BTC-USDT-260334-77000-C"), "14-day term should not match");
+  });
+
+  it("minTermDays and maxTermDays filter by term range", async () => {
+    const MS = 86400_000;
+    const now = Date.now();
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, productId: "p3d", expTime: String(now + 3 * MS), interestAccrualTime: String(now) },
+      { ...productSample, productId: "p7d", expTime: String(now + 7 * MS), interestAccrualTime: String(now) },
+      { ...productSample, productId: "p30d", expTime: String(now + 30 * MS), interestAccrualTime: String(now) },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { minTermDays: 5, maxTermDays: 10, json: false })
+    );
+    assert.ok(out.includes("p7d"), "7-day is within 5-10 range");
+    assert.ok(!out.includes("p3d"), "3-day is below minimum");
+    assert.ok(!out.includes("p30d"), "30-day is above maximum");
+  });
+
+  it("expDate filters by YYYY-MM-DD", async () => {
+    const future = new Date(Date.now() + 14 * 86400_000);
+    const dateStr = future.toISOString().slice(0, 10);
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, productId: "match", expTime: String(future.getTime()) },
+      { ...productSample, productId: "nomatch", expTime: String(Date.now() + 7 * 86400_000) },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { expDate: dateStr, json: false })
+    );
+    assert.ok(out.includes("match"), "product on target date should appear");
+  });
+
+  it("expDate with time precision (YYYY-MM-DDTHH:mm)", async () => {
+    // Use a fixed UTC time with full HH:mm so new Date() can parse it
+    const expTime = new Date("2026-06-01T16:00:00.000Z").getTime();
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, productId: "match", expTime: String(expTime) },
+      { ...productSample, productId: "nomatch", expTime: String(new Date("2026-06-01T08:00:00.000Z").getTime()) },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { expDate: "2026-06-01T16:00", json: false })
+    );
+    assert.ok(out.includes("match"), "should match by hour precision");
+  });
+
+  it("products with missing expTime/interestAccrualTime are excluded from term filter", async () => {
+    const runner = dcdProductsRunnerWith([
+      { ...productSample, expTime: "", interestAccrualTime: "" },
+    ]);
+    const out = await captureStdout(() =>
+      cmdDcdProducts(runner, { termDays: 7, json: false })
+    );
+    assert.ok(out.includes("No products matched"), "invalid times should be filtered out");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdQuote
+// ---------------------------------------------------------------------------
+
+const dcdQuoteRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/finance/sfp/dcd/quote",
+  requestTime: "ts",
+  data: [{ quoteId: "q123", productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC", annualizedYield: "18.34", absYield: "0.00806", idxPx: "71000", validUntil: "1774598400000" }],
+});
+
+describe("cmdDcdQuote output", () => {
+  it("prints quote details when data exists", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdQuote(dcdQuoteRunner, { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC", json: false })
+    );
+    assert.ok(out.includes("q123"), "should include quoteId");
+    assert.ok(out.includes("18.34"), "should include yield");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdQuote(dcdQuoteRunner, { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: true })
+    );
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty message when no quote returned", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdQuote(emptyRunner, { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: false })
+    );
+    assert.ok(out.includes("No quote returned"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdBuy
+// ---------------------------------------------------------------------------
+
+function makeDcdBuyRunner(ordId: string): ToolRunner {
+  return async (tool) => {
+    if (tool === "dcd_execute_quote") return { endpoint: "/test", requestTime: "ts", data: [{ ordId, quoteId: "q1", state: "INITIAL" }] };
+    return { endpoint: "/test", requestTime: "ts", data: [{ ordId, state: "LIVE" }] };
+  };
+}
+
+describe("cmdDcdBuy output", () => {
+  it("prints order and auto-queries state", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdBuy(makeDcdBuyRunner("ord999"), { quoteId: "q1", json: false })
+    );
+    assert.ok(out.includes("Order placed"), "should confirm order placed");
+    assert.ok(out.includes("ord999"), "should show ordId");
+  });
+
+  it("prints JSON with order and state", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdBuy(makeDcdBuyRunner("ord999"), { quoteId: "q1", json: true })
+    );
+    const parsed = JSON.parse(out);
+    assert.ok(parsed.order, "should include order");
+    assert.ok(parsed.state, "should include state");
+  });
+
+  it("prints empty when no response data", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdBuy(emptyRunner, { quoteId: "q1", json: false })
+    );
+    assert.ok(out.includes("No response data"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdRedeemQuote
+// ---------------------------------------------------------------------------
+
+const dcdRedeemQuoteRunner: ToolRunner = async () => ({
+  endpoint: "/test", requestTime: "ts",
+  data: [{ ordId: "ord1", quoteId: "rq1", redeemSz: "0.00009979", redeemCcy: "BTC", termRate: "-0.21", validUntil: "1774598400000" }],
+});
+
+describe("cmdDcdRedeemQuote output", () => {
+  it("prints redeem quote details", async () => {
+    const out = await captureStdout(() => cmdDcdRedeemQuote(dcdRedeemQuoteRunner, { ordId: "ord1", json: false }));
+    assert.ok(out.includes("rq1"), "should include quoteId");
+    assert.ok(out.includes("-0.21%"), "should show termRate");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdDcdRedeemQuote(dcdRedeemQuoteRunner, { ordId: "ord1", json: true }));
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty when no redeem quote", async () => {
+    const out = await captureStdout(() => cmdDcdRedeemQuote(emptyRunner, { ordId: "ord1", json: false }));
+    assert.ok(out.includes("No redeem quote returned"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdRedeem
+// ---------------------------------------------------------------------------
+
+const dcdRedeemRunner: ToolRunner = async () => ({
+  endpoint: "/test", requestTime: "ts",
+  data: [{ ordId: "ord1", state: "PENDING_REDEEM_BOOKING" }],
+});
+
+describe("cmdDcdRedeem output", () => {
+  it("prints ordId and state", async () => {
+    const out = await captureStdout(() => cmdDcdRedeem(dcdRedeemRunner, { ordId: "ord1", quoteId: "rq1", json: false }));
+    assert.ok(out.includes("ord1"), "should show ordId");
+    assert.ok(out.includes("PENDING_REDEEM_BOOKING"), "should show state");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdDcdRedeem(dcdRedeemRunner, { ordId: "ord1", quoteId: "rq1", json: true }));
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints empty when no response data", async () => {
+    const out = await captureStdout(() => cmdDcdRedeem(emptyRunner, { ordId: "ord1", quoteId: "rq1", json: false }));
+    assert.ok(out.includes("No response data"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdRedeemExecute
+// ---------------------------------------------------------------------------
+
+function makeDcdRedeemExecuteRunner(): ToolRunner {
+  return async (tool) => {
+    if (tool === "dcd_request_redeem_quote") {
+      return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", quoteId: "rq1", redeemSz: "0.0001", redeemCcy: "BTC", termRate: "-0.5", validUntil: "1774598400000" }] };
+    }
+    return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", state: "PENDING_REDEEM_BOOKING" }] };
+  };
+}
+
+describe("cmdDcdRedeemExecute output", () => {
+  it("re-quotes and executes, prints result", async () => {
+    const out = await captureStdout(() => cmdDcdRedeemExecute(makeDcdRedeemExecuteRunner(), { ordId: "ord1", json: false }));
+    assert.ok(out.includes("ord1"), "should show ordId");
+    assert.ok(out.includes("PENDING_REDEEM_BOOKING"), "should show state");
+  });
+
+  it("prints JSON with quote and redeem", async () => {
+    const out = await captureStdout(() => cmdDcdRedeemExecute(makeDcdRedeemExecuteRunner(), { ordId: "ord1", json: true }));
+    const parsed = JSON.parse(out);
+    assert.ok(parsed.quote, "should include quote");
+    assert.ok(parsed.redeem, "should include redeem");
+  });
+
+  it("prints error when redeem quote fails", async () => {
+    const out = await captureStdout(() => cmdDcdRedeemExecute(emptyRunner, { ordId: "ord1", json: false }));
+    assert.ok(out.includes("Failed to get redeem quote"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdOrderState
+// ---------------------------------------------------------------------------
+
+const dcdOrderStateRunner: ToolRunner = async () => ({
+  endpoint: "/test", requestTime: "ts",
+  data: [{ ordId: "ord1", state: "LIVE" }],
+});
+
+describe("cmdDcdOrderState output", () => {
+  it("prints ordId and state", async () => {
+    const out = await captureStdout(() => cmdDcdOrderState(dcdOrderStateRunner, { ordId: "ord1", json: false }));
+    assert.ok(out.includes("ord1"), "should show ordId");
+    assert.ok(out.includes("LIVE"), "should show state");
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() => cmdDcdOrderState(dcdOrderStateRunner, { ordId: "ord1", json: true }));
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints not found when no data", async () => {
+    const out = await captureStdout(() => cmdDcdOrderState(emptyRunner, { ordId: "ord1", json: false }));
+    assert.ok(out.includes("Order not found"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCD CLI — cmdDcdQuoteAndBuy
+// ---------------------------------------------------------------------------
+
+function makeDcdQuoteAndBuyRunner(): ToolRunner {
+  return async (tool) => {
+    if (tool === "dcd_request_quote") return { endpoint: "/test", requestTime: "ts", data: [{ quoteId: "q1", annualizedYield: "18.34", absYield: "0.008", notionalSz: "0.001", notionalCcy: "BTC" }] };
+    if (tool === "dcd_execute_quote") return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", quoteId: "q1", state: "INITIAL" }] };
+    return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", state: "LIVE" }] };
+  };
+}
+
+describe("cmdDcdQuoteAndBuy output", () => {
+  it("quotes and buys, prints quote + order + state", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdQuoteAndBuy(makeDcdQuoteAndBuyRunner(), { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC", json: false })
+    );
+    assert.ok(out.includes("Quote:"), "should show quote section");
+    assert.ok(out.includes("Order placed:"), "should show order section");
+    assert.ok(out.includes("ord1"), "should show ordId");
+  });
+
+  it("prints JSON with quote + order + state", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdQuoteAndBuy(makeDcdQuoteAndBuyRunner(), { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: true })
+    );
+    const parsed = JSON.parse(out);
+    assert.ok(parsed.quote, "should include quote");
+    assert.ok(parsed.order, "should include order");
+  });
+
+  it("prints error when no quote returned", async () => {
+    const out = await captureStdout(() =>
+      cmdDcdQuoteAndBuy(emptyRunner, { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: false })
+    );
+    assert.ok(out.includes("No quote returned"));
   });
 });

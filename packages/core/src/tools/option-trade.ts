@@ -1,7 +1,9 @@
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,
+  buildAttachAlgoOrds,
   compactObject,
+  normalizeResponse,
   readBoolean,
   readNumber,
   readString,
@@ -9,25 +11,13 @@ import {
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
-
 export function registerOptionTools(): ToolSpec[] {
   return [
     {
       name: "option_place_order",
       module: "option",
       description:
-        "Place an OPTION order (buy/sell call or put). instId format: {uly}-{expiry}-{strike}-{C|P}, e.g. BTC-USD-241227-50000-C. tdMode: cash (buyer) or cross/isolated (seller). [CAUTION] Executes real trades. Private endpoint. Rate limit: 60 req/s.",
+        "Place an OPTION order (buy/sell call or put). instId format: {uly}-{expiry}-{strike}-{C|P}, e.g. BTC-USD-241227-50000-C. tdMode: cash (buyer) or cross/isolated (seller). [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -66,12 +56,29 @@ export function registerOptionTools(): ToolSpec[] {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
+          tpTriggerPx: {
+            type: "string",
+            description: "TP trigger price; attaches a take-profit algo order",
+          },
+          tpOrdPx: {
+            type: "string",
+            description: "TP order price; -1=market",
+          },
+          slTriggerPx: {
+            type: "string",
+            description: "SL trigger price; attaches a stop-loss algo order",
+          },
+          slOrdPx: {
+            type: "string",
+            description: "SL order price; -1=market (recommended)",
+          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const attachAlgoOrds = buildAttachAlgoOrds(args);
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -84,17 +91,18 @@ export function registerOptionTools(): ToolSpec[] {
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
             tag: context.config.sourceTag,
+            attachAlgoOrds,
           }),
           privateRateLimit("option_place_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_cancel_order",
       module: "option",
       description:
-        "Cancel an unfilled OPTION order. Provide ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+        "Cancel an unfilled OPTION order. Provide ordId or clOrdId.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -116,14 +124,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_cancel_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_batch_cancel",
       module: "option",
       description:
-        "[CAUTION] Batch cancel up to 20 OPTION orders. Each item: {instId, ordId?, clOrdId?}. Private endpoint. Rate limit: 60 req/s.",
+        "[CAUTION] Batch cancel up to 20 OPTION orders. Each item: {instId, ordId?, clOrdId?}.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -147,14 +155,14 @@ export function registerOptionTools(): ToolSpec[] {
           orders as Record<string, unknown>[],
           privateRateLimit("option_batch_cancel", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_amend_order",
       module: "option",
       description:
-        "Amend an unfilled OPTION order (price and/or size). Provide ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+        "Amend an unfilled OPTION order (price and/or size). Provide ordId or clOrdId.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -180,14 +188,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_amend_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_get_order",
       module: "option",
       description:
-        "Get details of a single OPTION order by ordId or clOrdId. Private endpoint. Rate limit: 60 req/s.",
+        "Get details of a single OPTION order by ordId or clOrdId.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -209,14 +217,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_get_order", 60),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_get_orders",
       module: "option",
       description:
-        "List OPTION orders. status: live=pending (default), history=7d, archive=3mo. Private endpoint. Rate limit: 20 req/s.",
+        "List OPTION orders. status: live=pending (default), history=7d, archive=3mo.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -262,14 +270,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_get_orders", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_get_positions",
       module: "option",
       description:
-        "Get current OPTION positions including Greeks (delta, gamma, theta, vega). Private endpoint. Rate limit: 10 req/s.",
+        "Get current OPTION positions including Greeks (delta, gamma, theta, vega).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -289,14 +297,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_get_positions", 10),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_get_fills",
       module: "option",
       description:
-        "Get OPTION fill history. archive=false: last 3 days (default). archive=true: up to 3 months. Private endpoint. Rate limit: 20 req/s.",
+        "Get OPTION fill history. archive=false: last 3 days (default); archive=true: up to 3 months.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -332,14 +340,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_get_fills", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_get_instruments",
       module: "option",
       description:
-        "List available OPTION contracts for a given underlying (option chain). Use to find valid instIds before placing orders. Public endpoint. Rate limit: 20 req/s.",
+        "List available OPTION contracts for a given underlying (option chain). Use to find valid instIds before placing orders.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -366,14 +374,14 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_get_instruments", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "option_get_greeks",
       module: "option",
       description:
-        "Get implied volatility and Greeks (delta, gamma, theta, vega) for OPTION contracts by underlying. Public endpoint. Rate limit: 20 req/s.",
+        "Get implied volatility and Greeks (delta, gamma, theta, vega) for OPTION contracts by underlying.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -399,7 +407,7 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_get_greeks", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
   ];

@@ -12,6 +12,10 @@ import {
   cmdOptionCancel,
   cmdOptionAmend,
   cmdOptionBatchCancel,
+  cmdOptionAlgoPlace,
+  cmdOptionAlgoAmend,
+  cmdOptionAlgoCancel,
+  cmdOptionAlgoOrders,
 } from "../src/commands/option.js";
 import { cmdSpotBatch } from "../src/commands/spot.js";
 import { cmdSwapBatch } from "../src/commands/swap.js";
@@ -187,6 +191,113 @@ describe("cmdOptionBatchCancel", () => {
     const err = await captureStderr(() => cmdOptionBatchCancel(runner, { orders: "[]", json: false }));
     assert.ok(err.includes("non-empty"));
     process.exitCode = origCode;
+  });
+});
+
+describe("cmdOptionPlace with TP/SL", () => {
+  it("passes tpTriggerPx and slTriggerPx to runner", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "POST /api/v5/trade/order", requestTime: new Date().toISOString(), data: [{ ordId: "1", sCode: "0" }] };
+    };
+    await cmdOptionPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cash",
+      side: "buy",
+      ordType: "limit",
+      sz: "1",
+      px: "0.05",
+      tpTriggerPx: "0.08",
+      tpOrdPx: "-1",
+      slTriggerPx: "0.03",
+      slOrdPx: "-1",
+      json: false,
+    });
+    assert.equal(capturedArgs["tpTriggerPx"], "0.08");
+    assert.equal(capturedArgs["slTriggerPx"], "0.03");
+  });
+});
+
+describe("cmdOptionAlgoPlace", () => {
+  it("outputs algo order confirmation", async () => {
+    const runner = createMockRunner([{ algoId: "A001", sCode: "0" }]);
+    const out = await captureStdout(() => cmdOptionAlgoPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cash",
+      side: "buy",
+      ordType: "conditional",
+      sz: "1",
+      tpTriggerPx: "0.08",
+      tpOrdPx: "-1",
+      json: false,
+    }));
+    assert.ok(out.includes("Algo order placed"));
+    assert.ok(out.includes("A001"));
+  });
+
+  it("outputs JSON in json mode", async () => {
+    const runner = createMockRunner([{ algoId: "A001", sCode: "0" }]);
+    const out = await captureStdout(() => cmdOptionAlgoPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cash",
+      side: "buy",
+      ordType: "conditional",
+      sz: "1",
+      json: true,
+    }));
+    assert.ok(out.includes('"algoId"'));
+  });
+});
+
+describe("cmdOptionAlgoAmend", () => {
+  it("outputs amend confirmation", async () => {
+    const runner = createMockRunner([{ algoId: "A001", sCode: "0" }]);
+    const out = await captureStdout(() => cmdOptionAlgoAmend(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      algoId: "A001",
+      newTpTriggerPx: "0.09",
+      json: false,
+    }));
+    assert.ok(out.includes("Algo order amended"));
+    assert.ok(out.includes("A001"));
+  });
+});
+
+describe("cmdOptionAlgoCancel", () => {
+  it("outputs cancel confirmation", async () => {
+    const runner = createMockRunner([{ algoId: "A001", sCode: "0" }]);
+    const out = await captureStdout(() => cmdOptionAlgoCancel(runner, { instId: "BTC-USD-241227-50000-C", algoId: "A001", json: false }));
+    assert.ok(out.includes("Algo order cancelled"));
+  });
+});
+
+describe("cmdOptionAlgoOrders", () => {
+  it("shows 'No algo orders' when empty", async () => {
+    const runner = createMockRunner([]);
+    const out = await captureStdout(() => cmdOptionAlgoOrders(runner, { status: "pending", json: false }));
+    assert.ok(out.includes("No algo orders"));
+  });
+
+  it("outputs table for pending orders", async () => {
+    const runner = createMockRunner([{
+      algoId: "A001",
+      instId: "BTC-USD-241227-50000-C",
+      ordType: "conditional",
+      side: "sell",
+      sz: "1",
+      tpTriggerPx: "0.08",
+      slTriggerPx: "0.03",
+      state: "live",
+    }]);
+    const out = await captureStdout(() => cmdOptionAlgoOrders(runner, { status: "pending", json: false }));
+    assert.ok(out.includes("algoId"), "should show algoId column");
+  });
+
+  it("outputs JSON in json mode", async () => {
+    const runner = createMockRunner([{ algoId: "A001" }]);
+    const out = await captureStdout(() => cmdOptionAlgoOrders(runner, { status: "pending", json: true }));
+    assert.ok(out.includes('"algoId"'));
   });
 });
 

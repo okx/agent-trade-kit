@@ -25,6 +25,7 @@ import {
   cmdMarketIndexCandles,
   cmdMarketPriceLimit,
   cmdMarketOpenInterest,
+  cmdMarketStockTokens,
 } from "./commands/market.js";
 import {
   cmdAccountBalance,
@@ -52,6 +53,7 @@ import {
   cmdSpotAlgoAmend,
   cmdSpotAlgoCancel,
   cmdSpotAlgoOrders,
+  cmdSpotAlgoTrailPlace,
   cmdSpotBatch,
 } from "./commands/spot.js";
 import {
@@ -79,6 +81,16 @@ import {
   cmdFuturesPlace,
   cmdFuturesCancel,
   cmdFuturesGet,
+  cmdFuturesAmend,
+  cmdFuturesAlgoPlace,
+  cmdFuturesAlgoAmend,
+  cmdFuturesAlgoCancel,
+  cmdFuturesAlgoOrders,
+  cmdFuturesAlgoTrailPlace,
+  cmdFuturesBatch,
+  cmdFuturesClose,
+  cmdFuturesGetLeverage,
+  cmdFuturesSetLeverage,
 } from "./commands/futures.js";
 import {
   cmdOptionOrders,
@@ -91,6 +103,10 @@ import {
   cmdOptionCancel,
   cmdOptionAmend,
   cmdOptionBatchCancel,
+  cmdOptionAlgoPlace,
+  cmdOptionAlgoAmend,
+  cmdOptionAlgoCancel,
+  cmdOptionAlgoOrders,
 } from "./commands/option.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit, cmdConfigAddProfile, cmdConfigListProfile, cmdConfigUse } from "./commands/config.js";
 import type { Lang } from "./commands/config.js";
@@ -130,6 +146,18 @@ import {
   cmdOnchainEarnActiveOrders,
   cmdOnchainEarnOrderHistory,
 } from "./commands/onchain-earn.js";
+import {
+  cmdDcdPairs,
+  cmdDcdProducts,
+  cmdDcdQuote,
+  cmdDcdBuy,
+  cmdDcdRedeemQuote,
+  cmdDcdRedeem,
+  cmdDcdRedeemExecute,
+  cmdDcdOrderState,
+  cmdDcdOrders,
+  cmdDcdQuoteAndBuy,
+} from "./commands/dcd.js";
 import {
   cmdCopyTradeTraders,
   cmdCopyTradeMyStatus,
@@ -195,6 +223,8 @@ export function handleMarketPublicCommand(
   if (action === "price-limit") return cmdMarketPriceLimit(run, rest[0], json);
   if (action === "open-interest")
     return cmdMarketOpenInterest(run, { instType: v.instType!, instId: v.instId, json });
+  if (action === "stock-tokens")
+    return cmdMarketStockTokens(run, { instType: v.instType, instId: v.instId, json });
 }
 
 export function handleMarketDataCommand(
@@ -296,6 +326,17 @@ function handleSpotAlgoCommand(
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
+  if (subAction === "trail")
+    return cmdSpotAlgoTrailPlace(run, {
+      instId: v.instId!,
+      side: v.side!,
+      sz: v.sz!,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
+      tdMode: v.tdMode,
+      json,
+    });
   if (subAction === "place")
     return cmdSpotAlgoPlace(run, {
       instId: v.instId!,
@@ -307,6 +348,9 @@ function handleSpotAlgoCommand(
       tpOrdPx: v.tpOrdPx,
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -411,6 +455,9 @@ function handleSwapAlgoCommand(
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -509,10 +556,53 @@ export function handleSwapCommand(
     return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
 }
 
+function handleOptionAlgoCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "place")
+    return cmdOptionAlgoPlace(run, {
+      instId: v.instId!,
+      tdMode: v.tdMode!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      reduceOnly: v.reduceOnly,
+      clOrdId: v.clOrdId,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdOptionAlgoAmend(run, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdOptionAlgoCancel(run, { instId: v.instId!, algoId: v.algoId!, json });
+  if (subAction === "orders")
+    return cmdOptionAlgoOrders(run, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
+}
+
 function handleOptionCommand(
   run: ToolRunner,
   action: string,
-  _rest: string[],
+  rest: string[],
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
@@ -542,6 +632,10 @@ function handleOptionCommand(
       px: v.px,
       reduceOnly: v.reduceOnly,
       clOrdId: v.clOrdId,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
       json,
     });
   if (action === "cancel")
@@ -557,6 +651,67 @@ function handleOptionCommand(
     });
   if (action === "batch-cancel")
     return cmdOptionBatchCancel(run, { orders: v.orders!, json });
+  if (action === "algo")
+    return handleOptionAlgoCommand(run, rest[0], v, json);
+}
+
+function handleFuturesAlgoCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "trail")
+    return cmdFuturesAlgoTrailPlace(run, {
+      instId: v.instId!,
+      side: v.side!,
+      sz: v.sz!,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
+      posSide: v.posSide,
+      tdMode: v.tdMode ?? "cross",
+      reduceOnly: v.reduceOnly,
+      json,
+    });
+  if (subAction === "place")
+    return cmdFuturesAlgoPlace(run, {
+      instId: v.instId!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      posSide: v.posSide,
+      tdMode: v.tdMode ?? "cross",
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      reduceOnly: v.reduceOnly,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdFuturesAlgoAmend(run, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdFuturesAlgoCancel(run, v.instId!, v.algoId!, json);
+  if (subAction === "orders")
+    return cmdFuturesAlgoOrders(run, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
 }
 
 function handleFuturesCommand(
@@ -600,6 +755,37 @@ function handleFuturesCommand(
     return cmdFuturesCancel(run, rest[0] ?? v.instId!, v.ordId!, json);
   if (action === "get")
     return cmdFuturesGet(run, { instId: rest[0] ?? v.instId!, ordId: v.ordId, json });
+  if (action === "amend")
+    return cmdFuturesAmend(run, {
+      instId: v.instId!,
+      ordId: v.ordId,
+      clOrdId: v.clOrdId,
+      newSz: v.newSz,
+      newPx: v.newPx,
+      json,
+    });
+  if (action === "close")
+    return cmdFuturesClose(run, {
+      instId: v.instId!,
+      mgnMode: v.mgnMode!,
+      posSide: v.posSide,
+      autoCxl: v.autoCxl,
+      json,
+    });
+  if (action === "get-leverage")
+    return cmdFuturesGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
+  if (action === "leverage")
+    return cmdFuturesSetLeverage(run, {
+      instId: v.instId!,
+      lever: v.lever!,
+      mgnMode: v.mgnMode!,
+      posSide: v.posSide,
+      json,
+    });
+  if (action === "batch")
+    return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, json });
+  if (action === "algo")
+    return handleFuturesAlgoCommand(run, rest[0], v, json);
 }
 
 export function handleBotGridCommand(
@@ -663,7 +849,7 @@ export function handleBotDcaCommand(
   json: boolean,
 ): Promise<void> | void {
   if (subAction === "orders")
-    return cmdDcaOrders(run, { history: v.history ?? false, json });
+    return cmdDcaOrders(run, { algoId: v.algoId, instId: v.instId, history: v.history ?? false, json });
   if (subAction === "details")
     return cmdDcaDetails(run, { algoId: v.algoId!, json });
   if (subAction === "sub-orders")
@@ -752,7 +938,8 @@ export function handleEarnCommand(
   const innerRest = rest.slice(1);
   if (submodule === "savings") return handleEarnSavingsCommand(run, action, innerRest, v, json);
   if (submodule === "onchain") return handleEarnOnchainCommand(run, action, v, json);
-  process.stderr.write(`Unknown earn sub-module: ${submodule}\nValid: savings, onchain\n`);
+  if (submodule === "dcd") return handleEarnDcdCommand(run, action, v, json);
+  process.stderr.write(`Unknown earn sub-module: ${submodule}\nValid: savings, onchain, dcd\n`);
   process.exitCode = 1;
 }
 
@@ -788,6 +975,75 @@ function handleEarnOnchainCommand(
   if (action === "orders") return cmdOnchainEarnActiveOrders(run, v).then((r) => outputResult(r, json));
   if (action === "history") return cmdOnchainEarnOrderHistory(run, v).then((r) => outputResult(r, json));
   process.stderr.write(`Unknown earn onchain command: ${action}\n`);
+  process.exitCode = 1;
+}
+
+function parseDcdOpts(v: CliValues) {
+  return {
+    limit: v.limit !== undefined ? Number(v.limit) : undefined,
+    minYield: v.minYield !== undefined ? parseFloat(v.minYield) : undefined,
+    strikeNear: v.strikeNear !== undefined ? parseFloat(v.strikeNear) : undefined,
+    termDays: v.termDays !== undefined ? parseInt(v.termDays, 10) : undefined,
+    minTermDays: v.minTermDays !== undefined ? parseInt(v.minTermDays, 10) : undefined,
+    maxTermDays: v.maxTermDays !== undefined ? parseInt(v.maxTermDays, 10) : undefined,
+  };
+}
+
+function handleEarnDcdCommand(
+  run: ToolRunner,
+  action: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const { limit, minYield, strikeNear, termDays, minTermDays, maxTermDays } = parseDcdOpts(v);
+  if (action === "pairs") return cmdDcdPairs(run, json);
+  if (action === "products")
+    return cmdDcdProducts(run, {
+      baseCcy: v.baseCcy,
+      quoteCcy: v.quoteCcy,
+      optType: v.optType,
+      minYield,
+      strikeNear,
+      termDays,
+      minTermDays,
+      maxTermDays,
+      expDate: v.expDate,
+      json,
+    });
+  if (action === "quote")
+    return cmdDcdQuote(run, { productId: v.productId!, notionalSz: v.sz!, notionalCcy: v.notionalCcy!, json });
+  if (action === "buy")
+    return cmdDcdBuy(run, { quoteId: v.quoteId!, clOrdId: v.clOrdId, json });
+  if (action === "quote-and-buy")
+    return cmdDcdQuoteAndBuy(run, {
+      productId: v.productId!,
+      notionalSz: v.sz!,
+      notionalCcy: v.notionalCcy!,
+      clOrdId: v.clOrdId,
+      json,
+    });
+  if (action === "redeem-quote")
+    return cmdDcdRedeemQuote(run, { ordId: v.ordId!, json });
+  if (action === "redeem")
+    return cmdDcdRedeem(run, { ordId: v.ordId!, quoteId: v.quoteId!, json });
+  if (action === "redeem-execute")
+    return cmdDcdRedeemExecute(run, { ordId: v.ordId!, json });
+  if (action === "order")
+    return cmdDcdOrderState(run, { ordId: v.ordId!, json });
+  if (action === "orders")
+    return cmdDcdOrders(run, {
+      ordId: v.ordId,
+      productId: v.productId,
+      uly: v.uly,
+      state: v.state,
+      beginId: v.beginId,
+      endId: v.endId,
+      begin: v.begin,
+      end: v.end,
+      limit,
+      json,
+    });
+  process.stderr.write(`Unknown earn dcd command: ${action}\nValid: pairs, products, quote, buy, quote-and-buy, redeem-quote, redeem, redeem-execute, order, orders\n`);
   process.exitCode = 1;
 }
 

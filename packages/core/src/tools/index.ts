@@ -2,13 +2,14 @@ import type { OkxConfig } from "../config.js";
 import type { OkxRestClient } from "../client/rest-client.js";
 import { MODULES, type ModuleId } from "../constants.js";
 import { registerAccountTools } from "./account.js";
-import { registerAlgoTradeTools } from "./algo-trade.js";
+import { registerAlgoTradeTools, registerFuturesAlgoTools } from "./algo-trade.js";
 import { registerAuditTools } from "./audit.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerCopyTradeTools } from "./copytrading.js";
 import { registerAllEarnTools } from "./earn/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerMarketTools } from "./market.js";
+import { registerOptionAlgoTools } from "./option-algo-trade.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
 import { registerSwapTradeTools } from "./swap-trade.js";
@@ -20,7 +21,9 @@ function allToolSpecs(): ToolSpec[] {
     ...registerSpotTradeTools(),
     ...registerSwapTradeTools(),
     ...registerFuturesTools(),
+    ...registerFuturesAlgoTools(),
     ...registerOptionTools(),
+    ...registerOptionAlgoTools(),
     ...registerAlgoTradeTools(),
     ...registerAccountTools(),
     ...registerBotTools(),

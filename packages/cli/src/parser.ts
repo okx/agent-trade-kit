@@ -94,6 +94,21 @@ export interface CliValues {
   tag?: string;
   allowEarlyRedeem?: boolean;
   state?: string;
+  // dcd
+  quoteId?: string;
+  notionalCcy?: string;
+  optType?: string;
+  baseCcy?: string;
+  beginId?: string;
+  endId?: string;
+  begin?: string;
+  end?: string;
+  minYield?: string;
+  strikeNear?: string;
+  termDays?: string;
+  minTermDays?: string;
+  maxTermDays?: string;
+  expDate?: string;
   // diagnostics
   verbose?: boolean;
   // copytrading
@@ -220,6 +235,21 @@ export const CLI_OPTIONS = {
   tag: { type: "string" },
   allowEarlyRedeem: { type: "boolean", default: false },
   state: { type: "string" },
+  // dcd
+  quoteId: { type: "string" },
+  notionalCcy: { type: "string" },
+  optType: { type: "string" },
+  baseCcy: { type: "string" },
+  beginId: { type: "string" },
+  endId: { type: "string" },
+  begin: { type: "string" },
+  end: { type: "string" },
+  minYield: { type: "string" },
+  strikeNear: { type: "string" },
+  termDays: { type: "string" },
+  minTermDays: { type: "string" },
+  maxTermDays: { type: "string" },
+  expDate: { type: "string" },
   // diagnostics
   verbose: { type: "boolean", default: false },
   // copytrading

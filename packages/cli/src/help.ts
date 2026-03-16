@@ -81,6 +81,10 @@ const HELP_TREE: HelpTree = {
         usage: "okx market open-interest --instType <SWAP|FUTURES|OPTION> [--instId <id>]",
         description: "Get open interest for instruments",
       },
+      "stock-tokens": {
+        usage: "okx market stock-tokens [--instType <SPOT|SWAP>] [--instId <id>]",
+        description: "List all stock token instruments (instCategory=3, e.g. AAPL-USDT-SWAP)",
+      },
     },
   },
 
@@ -277,7 +281,7 @@ const HELP_TREE: HelpTree = {
   },
 
   futures: {
-    description: "Futures trading (orders, positions)",
+    description: "Futures trading (orders, positions, algo orders, leverage)",
     commands: {
       orders: {
         usage: "okx futures orders [--instId <id>] [--history] [--archive]",
@@ -299,9 +303,56 @@ const HELP_TREE: HelpTree = {
         usage: "okx futures cancel <instId> --ordId <id>",
         description: "Cancel a pending futures order",
       },
+      amend: {
+        usage: "okx futures amend --instId <id> [--ordId <id>] [--clOrdId <id>] [--newSz <n>] [--newPx <price>]",
+        description: "Amend a pending futures order",
+      },
       get: {
         usage: "okx futures get --instId <id> --ordId <id>",
         description: "Get details of a specific futures order",
+      },
+      close: {
+        usage: "okx futures close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl]",
+        description: "Close a futures position",
+      },
+      "get-leverage": {
+        usage: "okx futures get-leverage --instId <id> --mgnMode <cross|isolated>",
+        description: "Get current leverage for a futures instrument",
+      },
+      leverage: {
+        usage: "okx futures leverage --instId <id> --lever <n> --mgnMode <cross|isolated> [--posSide <net|long|short>]",
+        description: "Set leverage for a futures instrument",
+      },
+      batch: {
+        usage: "okx futures batch --action <place|amend|cancel> --orders '<json>'",
+        description: "Batch place, amend, or cancel futures orders",
+      },
+    },
+    subgroups: {
+      algo: {
+        description: "Futures algo orders (trailing stop, conditional, OCO)",
+        commands: {
+          orders: {
+            usage: "okx futures algo orders [--instId <id>] [--history] [--ordType <conditional|oco>]",
+            description: "List futures algo orders",
+          },
+          trail: {
+            usage: "okx futures algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                   [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            description: "Place a trailing stop algo order for futures",
+          },
+          place: {
+            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            description: "Place a futures algo order (take-profit/stop-loss)",
+          },
+          amend: {
+            usage: "okx futures algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
+            description: "Amend a pending futures algo order",
+          },
+          cancel: {
+            usage: "okx futures algo cancel --instId <id> --algoId <id>",
+            description: "Cancel a pending futures algo order",
+          },
+        },
       },
     },
   },
@@ -353,7 +404,7 @@ const HELP_TREE: HelpTree = {
   },
 
   earn: {
-    description: "Earn products — Simple Earn (savings/lending) and On-chain Earn (staking/DeFi)",
+    description: "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
     subgroups: {
       savings: {
         description: "Simple Earn — flexible savings and lending",
@@ -376,15 +427,15 @@ const HELP_TREE: HelpTree = {
           },
           "lending-history": {
             usage: "okx earn savings lending-history [--ccy <ccy>] [--limit <n>]",
-            description: "Get lending history",
+            description: "Get market lending rate history",
           },
           "rate-summary": {
             usage: "okx earn savings rate-summary [<ccy>]",
-            description: "Get market lending rate summary (public, no auth needed)",
+            description: "Get coin lending market rate summary (not Simple Earn, public)",
           },
           "rate-history": {
             usage: "okx earn savings rate-history [--ccy <ccy>] [--limit <n>]",
-            description: "Get historical lending rates (public, no auth needed)",
+            description: "Query Simple Earn lending rates (public, no auth needed)",
           },
         },
       },
@@ -414,6 +465,51 @@ const HELP_TREE: HelpTree = {
           history: {
             usage: "okx earn onchain history [--productId <id>] [--protocolType <type>] [--ccy <ccy>]",
             description: "Get on-chain earn order history",
+          },
+        },
+      },
+      dcd: {
+        description: "DCD (Dual Currency Deposit) — structured products with fixed yield",
+        commands: {
+          pairs: {
+            usage: "okx earn dcd pairs",
+            description: "List available DCD currency pairs",
+          },
+          products: {
+            usage: "okx earn dcd products --baseCcy <ccy> --quoteCcy <ccy> --optType <C|P>\n                         [--minYield <n>] [--strikeNear <price>]\n                         [--termDays <n>] [--minTermDays <n>] [--maxTermDays <n>]\n                         [--expDate <YYYY-MM-DD|YYYY-MM-DDTHH:mm>]",
+            description: "List active DCD products (baseCcy, quoteCcy, optType required). Client-side filters: minYield (e.g. 0.05=5%), strikeNear (±10%), term range, expDate",
+          },
+          quote: {
+            usage: "okx earn dcd quote --productId <id> --sz <n> --notionalCcy <ccy>",
+            description: "Request a real-time DCD quote (TTL: 30 seconds)",
+          },
+          buy: {
+            usage: "okx earn dcd buy --quoteId <id> [--clOrdId <id>]",
+            description: "[CAUTION] Execute a DCD quote to place a trade. Auto-queries order state after placement",
+          },
+          "quote-and-buy": {
+            usage: "okx earn dcd quote-and-buy --productId <id> --sz <n> --notionalCcy <ccy> [--clOrdId <id>]",
+            description: "[CAUTION] Request quote and execute immediately in one step (no confirmation — for AI agent use)",
+          },
+          "redeem-quote": {
+            usage: "okx earn dcd redeem-quote --ordId <id>",
+            description: "Request an early redemption quote for a live DCD order (TTL: 15 seconds)",
+          },
+          redeem: {
+            usage: "okx earn dcd redeem --ordId <id> --quoteId <id>",
+            description: "[CAUTION] Execute early redemption of a DCD position",
+          },
+          "redeem-execute": {
+            usage: "okx earn dcd redeem-execute --ordId <id>",
+            description: "[CAUTION] Re-quote and execute early redemption in one step (recommended for AI agent use)",
+          },
+          order: {
+            usage: "okx earn dcd order --ordId <id>",
+            description: "Query current state of a DCD order",
+          },
+          orders: {
+            usage: "okx earn dcd orders [--ordId <id>] [--productId <id>] [--uly <uly>] [--state <state>] [--limit <n>]",
+            description: "Get DCD order history. State: initial|live|pending_settle|settled|pending_redeem|redeemed|rejected",
           },
         },
       },
@@ -452,7 +548,7 @@ const HELP_TREE: HelpTree = {
         description: "Contract DCA (Martingale) bot — leveraged recurring buys on futures/swaps",
         commands: {
           orders: {
-            usage: "okx bot dca orders [--history]",
+            usage: "okx bot dca orders [--algoId <id>] [--instId <id>] [--history]",
             description: "List active or historical Contract DCA bot orders",
           },
           details: {

@@ -51,9 +51,9 @@ describe("printHelp() — global overview", () => {
     assert.ok(out.includes("Usage: okx"), "should include Usage line");
   });
 
-  it("lists all 10 modules with descriptions", () => {
+  it("lists all major modules with descriptions", () => {
     const out = captureStdout(() => printHelp());
-    for (const mod of ["market", "account", "spot", "swap", "futures", "option", "bot", "copytrading", "config", "setup"]) {
+    for (const mod of ["market", "account", "spot", "swap", "futures", "option", "bot", "earn", "copytrading", "config", "setup"]) {
       assert.ok(out.includes(mod), `should mention module '${mod}'`);
     }
   });
@@ -222,6 +222,47 @@ describe('printHelp("spot", "algo") — spot algo subgroup detail', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Module-level help — printHelp("futures")
+// ---------------------------------------------------------------------------
+describe('printHelp("futures") — futures module detail', () => {
+  it("includes all futures direct commands", () => {
+    const out = captureStdout(() => printHelp("futures"));
+    for (const cmd of ["orders", "positions", "fills", "place", "cancel", "amend", "get", "close", "get-leverage", "leverage", "batch"]) {
+      assert.ok(out.includes(cmd), `should mention futures '${cmd}' command`);
+    }
+  });
+
+  it("mentions algo subgroup", () => {
+    const out = captureStdout(() => printHelp("futures"));
+    assert.ok(out.includes("algo"), "should mention algo subgroup");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Subgroup-level help — printHelp("futures", "algo")
+// ---------------------------------------------------------------------------
+describe('printHelp("futures", "algo") — futures algo subgroup detail', () => {
+  it("includes Usage line for futures algo", () => {
+    const out = captureStdout(() => printHelp("futures", "algo"));
+    assert.ok(out.includes("Usage: okx futures algo"), "should include subgroup usage");
+  });
+
+  it("lists all futures algo commands including trail, place, amend, cancel, orders", () => {
+    const out = captureStdout(() => printHelp("futures", "algo"));
+    for (const cmd of ["trail", "place", "amend", "cancel", "orders"]) {
+      assert.ok(out.includes(cmd), `should mention futures algo '${cmd}' command`);
+    }
+  });
+
+  it("includes key flags for trail command", () => {
+    const out = captureStdout(() => printHelp("futures", "algo"));
+    assert.ok(out.includes("--callbackRatio"), "should include --callbackRatio flag");
+    assert.ok(out.includes("--activePx"), "should include --activePx flag");
+    assert.ok(out.includes("--posSide"), "should include --posSide flag");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("swap", "algo")
 // ---------------------------------------------------------------------------
 describe('printHelp("swap", "algo") — swap algo subgroup detail', () => {
@@ -277,12 +318,53 @@ describe('printHelp("setup") — setup module with usage only', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Module-level help — printHelp("earn") — earn module with DCD subgroup
+// ---------------------------------------------------------------------------
+describe('printHelp("earn") — earn module overview', () => {
+  it("includes Usage line", () => {
+    const out = captureStdout(() => printHelp("earn"));
+    assert.ok(out.includes("Usage: okx earn"), "should include earn usage");
+  });
+
+  it("lists savings, onchain, and dcd subgroups", () => {
+    const out = captureStdout(() => printHelp("earn"));
+    assert.ok(out.includes("savings"), "should mention savings subgroup");
+    assert.ok(out.includes("onchain"), "should mention onchain subgroup");
+    assert.ok(out.includes("dcd"), "should mention dcd subgroup");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Subgroup-level help — printHelp("earn", "dcd")
+// ---------------------------------------------------------------------------
+describe('printHelp("earn", "dcd") — dcd subgroup detail', () => {
+  it("includes Usage line for earn dcd", () => {
+    const out = captureStdout(() => printHelp("earn", "dcd"));
+    assert.ok(out.includes("Usage: okx earn dcd"), "should include subgroup usage");
+  });
+
+  it("lists all DCD commands", () => {
+    const out = captureStdout(() => printHelp("earn", "dcd"));
+    for (const cmd of ["pairs", "products", "quote", "buy", "quote-and-buy", "redeem-quote", "redeem", "redeem-execute", "order", "orders"]) {
+      assert.ok(out.includes(cmd), `should mention dcd '${cmd}' command`);
+    }
+  });
+
+  it("includes key flags in usage lines", () => {
+    const out = captureStdout(() => printHelp("earn", "dcd"));
+    assert.ok(out.includes("--productId"), "should include --productId flag");
+    assert.ok(out.includes("--quoteId"), "should include --quoteId flag");
+    assert.ok(out.includes("--ordId"), "should include --ordId flag");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Verify backward-compat: existing tests still pass
 // ---------------------------------------------------------------------------
 describe("printHelp() — backward compatibility", () => {
   it("printHelp() with no args outputs all major module names", () => {
     const out = captureStdout(() => printHelp());
-    for (const mod of ["market", "account", "spot", "swap", "futures", "bot", "config", "setup"]) {
+    for (const mod of ["market", "account", "spot", "swap", "futures", "bot", "earn", "config", "setup"]) {
       assert.ok(out.includes(mod), `should include '${mod}'`);
     }
   });

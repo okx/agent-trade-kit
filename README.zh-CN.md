@@ -29,7 +29,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 特性 | 说明 |
 |------|------|
-| **100 个工具，9 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 → 跟单 |
+| **113 个工具，9 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 → 跟单 |
 | **内置算法单** | 条件单、OCO 止盈止损、追踪止损 |
 | **安全控制** | `--read-only` 只读模式、按模块过滤、内置限速器 |
 | **零基础设施** | 本地 stdio 进程，无需服务器或数据库 |
@@ -40,13 +40,13 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 模块 | 工具数 | 说明 | 文档 |
 |------|--------|------|------|
-| `market` | 12 | Ticker、盘口、K线（含历史）、指数行情、指数K线、涨跌停、资金费率、标记价格、持仓量 | [→](docs/modules/market.md) |
+| `market` | 13 | Ticker、盘口、K线（含历史）、指数行情、指数K线、涨跌停、资金费率、标记价格、持仓量、股票代币 | [→](docs/modules/market.md) |
 | `spot` | 13 | 下单/改单/撤单、批量操作、成交记录（含归档）、订单历史（含归档）、条件单、OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | 永续合约交易、批量操作、持仓、杠杆、条件单、OCO、追踪止损 | [→](docs/modules/swap.md) |
-| `futures` | 6 | 交割合约下单/撤单/改单、持仓、成交记录、订单历史 | [→](docs/modules/futures.md) |
+| `futures` | 18 | 交割合约下单/撤单/改单、持仓、成交记录、订单历史、平仓、杠杆设置、批量订单、算法单（止盈止损、OCO、追踪止损） | [→](docs/modules/futures.md) |
 | `option` | 10 | 期权交易：下单/撤单/改单/批量撤单、订单历史、持仓（含 Greeks）、成交记录、期权链、IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | 余额、账单（含归档）、持仓、持仓历史、手续费率、配置、仓位模式、最大可提币量、最大可用仓位、操作审计日志 | [→](docs/modules/account.md) |
-| `earn` | 13 | 简单赚币：余额、申购、赎回、出借利率管理 (7)。链上质押/DeFi (6)。子模块：`earn.savings`、`earn.onchain`。**需显式启用**，不包含在 `all` 中。 | [→](docs/modules/earn.md) |
+| `earn` | 21 | 简单赚币：余额、申购、赎回、出借利率管理 (7)。链上质押/DeFi (6)。双币赢/Dual Currency Deposit (8)。子模块：`earn.savings`、`earn.onchain`、`earn.dcd`。包含在 `all` 中。 | [→](docs/modules/earn.md) |
 | `bot` | 10 | 交易机器人：网格 (5)、DCA (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
 | `copytrading` | 5 | 跟单交易：浏览带单员、跟单/取消跟单、查看跟单持仓。支持 SWAP 和 SPOT。**默认不加载**，需显式启用：`--modules copytrading` 或 `--modules all`。 | [→](docs/modules/copytrading.md) |
 
@@ -82,8 +82,7 @@ okx-trade-mcp setup --client vscode          # 在当前目录写入 .mcp.json
 okx-trade-mcp                                        # 默认：现货、合约、账户
 okx-trade-mcp --modules market                       # 纯行情，无需 API Key
 okx-trade-mcp --modules spot,account                 # 现货 + 账户
-okx-trade-mcp --profile live --modules all           # 所有模块（不含 earn，earn 需显式启用）
-okx-trade-mcp --profile live --modules all,earn      # 所有模块含赚币
+okx-trade-mcp --profile live --modules all           # 所有模块（含赚币）
 okx-trade-mcp --read-only                            # 只读，禁止下单等写操作
 ```
 

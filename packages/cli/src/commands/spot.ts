@@ -85,6 +85,9 @@ export async function cmdSpotAlgoPlace(
     tpOrdPx?: string;
     slTriggerPx?: string;
     slOrdPx?: string;
+    callbackRatio?: string;
+    callbackSpread?: string;
+    activePx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -98,6 +101,9 @@ export async function cmdSpotAlgoPlace(
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
+    callbackRatio: opts.callbackRatio,
+    callbackSpread: opts.callbackSpread,
+    activePx: opts.activePx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -241,6 +247,37 @@ export async function cmdSpotFills(
       fee: f["fee"],
       ts: new Date(Number(f["ts"])).toLocaleString(),
     })),
+  );
+}
+
+export async function cmdSpotAlgoTrailPlace(
+  run: ToolRunner,
+  opts: {
+    instId: string;
+    side: string;
+    sz: string;
+    callbackRatio?: string;
+    callbackSpread?: string;
+    activePx?: string;
+    tdMode?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("spot_place_algo_order", {
+    instId: opts.instId,
+    tdMode: opts.tdMode ?? "cash",
+    side: opts.side,
+    ordType: "move_order_stop",
+    sz: opts.sz,
+    callbackRatio: opts.callbackRatio,
+    callbackSpread: opts.callbackSpread,
+    activePx: opts.activePx,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const order = data?.[0];
+  process.stdout.write(
+    `Trailing stop placed: ${order?.["algoId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`,
   );
 }
 

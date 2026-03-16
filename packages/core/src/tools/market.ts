@@ -1,18 +1,6 @@
 import type { ToolSpec } from "./types.js";
-import { asRecord, compactObject, readBoolean, readNumber, readString, requireString } from "./helpers.js";
+import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
-
-function normalize(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
-  };
-}
 
 export function registerMarketTools(): ToolSpec[] {
   return [
@@ -20,7 +8,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_ticker",
       module: "market",
       description:
-        "Get ticker data for a single instrument. Public endpoint, no authentication required. Rate limit: 20 req/s.",
+        "Get ticker data for a single instrument.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -39,14 +27,14 @@ export function registerMarketTools(): ToolSpec[] {
           { instId: requireString(args, "instId") },
           publicRateLimit("market_get_ticker", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_tickers",
       module: "market",
       description:
-        "Get ticker data for all instruments of a given type. Public endpoint, no authentication required. Rate limit: 20 req/s.",
+        "Get ticker data for all instruments of a given type.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -77,14 +65,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_tickers", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_orderbook",
       module: "market",
       description:
-        "Get the order book (bids/asks) for an instrument. Public endpoint, no authentication required. Rate limit: 20 req/s.",
+        "Get the order book (bids/asks) for an instrument.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -110,17 +98,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_orderbook", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_candles",
       module: "market",
       description:
-        "Get candlestick (OHLCV) data for an instrument. " +
-        "history=false (default): recent candles up to 1440 bars. " +
-        "history=true: older historical data beyond the recent window. " +
-        "Public endpoint, no authentication required. Rate limit: 40 req/s.",
+        "Get candlestick (OHLCV) data for an instrument. history=false (default): recent candles up to 1440 bars; history=true: older historical data.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -170,14 +155,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_candles", 40),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_instruments",
       module: "market",
       description:
-        "Get tradable instruments for a given type. Returns contract specs: min order size, lot size, tick size, contract value, settlement currency, listing/expiry time. Essential before placing orders. Public endpoint. Rate limit: 20 req/s.",
+        "Get tradable instruments for a given type. Returns contract specs: min order size, lot size, tick size, contract value, settlement currency, listing/expiry time. Essential before placing orders.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -213,17 +198,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_instruments", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_funding_rate",
       module: "market",
       description:
-        "Get funding rate for a SWAP instrument. " +
-        "history=false (default): current rate and estimated next rate + settlement time. " +
-        "history=true: historical rates, default 20 records, max 100. " +
-        "Public endpoint. Rate limit: 20 req/s.",
+        "Get funding rate for a SWAP instrument. history=false (default): current rate + next estimated rate; history=true: historical rates.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -265,23 +247,21 @@ export function registerMarketTools(): ToolSpec[] {
             }),
             publicRateLimit("market_get_funding_rate", 20),
           );
-          return normalize(response);
+          return normalizeResponse(response);
         }
         const response = await context.client.publicGet(
           "/api/v5/public/funding-rate",
           { instId: requireString(args, "instId") },
           publicRateLimit("market_get_funding_rate", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_mark_price",
       module: "market",
       description:
-        "Get mark price for SWAP, FUTURES, or MARGIN instruments. " +
-        "Mark price is used for liquidation calculations and unrealized PnL. " +
-        "Public endpoint. Rate limit: 10 req/s.",
+        "Get mark price for SWAP, FUTURES, or MARGIN instruments. Used for liquidation calculations and unrealized PnL.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -316,15 +296,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_mark_price", 10),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_trades",
       module: "market",
       description:
-        "Get recent trades for an instrument. Default 20 records, max 500. " +
-        "Public endpoint, no authentication required. Rate limit: 20 req/s.",
+        "Get recent trades for an instrument. Default 20 records, max 500.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -350,16 +329,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_trades", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_index_ticker",
       module: "market",
       description:
-        "Get index ticker data (e.g. BTC-USD, ETH-USD index prices). " +
-        "Index prices are used for mark price calculation and are independent of any single exchange. " +
-        "Public endpoint. Rate limit: 20 req/s.",
+        "Get index ticker data (e.g. BTC-USD, ETH-USD index prices). Independent of any single exchange.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -384,17 +361,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_index_ticker", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_index_candles",
       module: "market",
       description:
-        "Get candlestick data for an index (e.g. BTC-USD index). " +
-        "history=false (default): recent candles up to 1440 bars. " +
-        "history=true: older historical data beyond the recent window. " +
-        "Public endpoint. Rate limit: 20 req/s.",
+        "Get candlestick data for an index (e.g. BTC-USD index). history=false: recent up to 1440 bars; history=true: older data.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -444,16 +418,14 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_index_candles", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_price_limit",
       module: "market",
       description:
-        "Get the current price limit (upper and lower bands) for a SWAP or FUTURES instrument. " +
-        "Orders placed outside these limits will be rejected by OKX. " +
-        "Public endpoint. Rate limit: 20 req/s.",
+        "Get the current price limit (upper and lower bands) for a SWAP or FUTURES instrument. Orders outside these limits will be rejected.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -472,16 +444,14 @@ export function registerMarketTools(): ToolSpec[] {
           { instId: requireString(args, "instId") },
           publicRateLimit("market_get_price_limit", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
       },
     },
     {
       name: "market_get_open_interest",
       module: "market",
       description:
-        "Get open interest for SWAP, FUTURES, or OPTION instruments. " +
-        "Useful for gauging market sentiment and positioning. " +
-        "Public endpoint. Rate limit: 20 req/s.",
+        "Get open interest for SWAP, FUTURES, or OPTION instruments. Useful for gauging market sentiment and positioning.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -516,7 +486,44 @@ export function registerMarketTools(): ToolSpec[] {
           }),
           publicRateLimit("market_get_open_interest", 20),
         );
-        return normalize(response);
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "market_get_stock_tokens",
+      module: "market",
+      description:
+        "Get all stock token instruments (instCategory=3). Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP). Filters client-side by instCategory=3.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instType: {
+            type: "string",
+            enum: ["SPOT", "SWAP"],
+            description: "Instrument type. Default: SWAP",
+          },
+          instId: {
+            type: "string",
+            description: "Optional: filter by specific instrument ID, e.g. AAPL-USDT-SWAP",
+          },
+        },
+        required: [],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const instType = readString(args, "instType") ?? "SWAP";
+        const instId = readString(args, "instId");
+        const response = await context.client.publicGet(
+          "/api/v5/public/instruments",
+          compactObject({ instType, instId }),
+          publicRateLimit("market_get_stock_tokens", 20),
+        );
+        const data = response.data;
+        const filtered = Array.isArray(data)
+          ? data.filter((item) => (item as Record<string, unknown>).instCategory === "3")
+          : data;
+        return normalizeResponse({ ...response, data: filtered });
       },
     },
   ];
