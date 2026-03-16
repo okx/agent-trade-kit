@@ -202,7 +202,7 @@ okx bot dca stop --algoId <algoId>
 ## copytrading — Copy Trading
 
 ```bash
-# Browse top lead traders (SWAP only)
+# Browse top lead traders (default: SWAP)
 okx copytrading traders
 okx copytrading traders --limit 20
 
@@ -220,6 +220,9 @@ okx copytrading follow --uniqueCode <16-char-code> --copyMode ratio_copy --copyT
 
 # With take-profit / stop-loss
 okx copytrading follow --uniqueCode <16-char-code> --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
+
+# Custom instruments only (copyInstIdType=custom requires --instId)
+okx copytrading follow --uniqueCode <16-char-code> --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
 
 # Stop following a trader
 okx copytrading unfollow --uniqueCode <16-char-code>
@@ -466,7 +469,7 @@ okx bot dca stop --algoId <algoId>
 ## copytrading — 跟单交易
 
 ```bash
-# 查看排行榜上的带单员（仅 SWAP）
+# 查看排行榜上的带单员（默认 SWAP，支持 SPOT）
 okx copytrading traders
 okx copytrading traders --limit 20
 
@@ -484,6 +487,9 @@ okx copytrading follow --uniqueCode <16位代码> --copyMode ratio_copy --copyTo
 
 # 带止盈止损
 okx copytrading follow --uniqueCode <16位代码> --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
+
+# 自定义跟单品种（copyInstIdType=custom 时 --instId 必填）
+okx copytrading follow --uniqueCode <16位代码> --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
 
 # 停止跟单
 okx copytrading unfollow --uniqueCode <16位代码>

@@ -480,24 +480,24 @@ const HELP_TREE: HelpTree = {
     description: "Copy trading — follow lead traders and manage copy positions",
     commands: {
       traders: {
-        usage: "okx copytrading traders [--limit <n>]",
-        description: "List top lead traders by ranking (SWAP only)",
+        usage: "okx copytrading traders [--instType <SWAP|SPOT>] [--limit <n>]",
+        description: "List top lead traders by ranking (default instType: SWAP)",
       },
       status: {
-        usage: "okx copytrading status",
-        description: "Get your currently followed lead traders and their cumulative P&L (SWAP only)",
+        usage: "okx copytrading status [--instType <SWAP|SPOT>]",
+        description: "Get your currently followed lead traders and their cumulative P&L (default instType: SWAP)",
       },
       follow: {
-        usage: "okx copytrading follow --uniqueCode <code>\n                   [--copyMode <smart_copy|fixed_amount|ratio_copy>]\n                   smart_copy (default): --initialAmount <n> --replicationRequired <0|1>\n                   fixed_amount:         --copyTotalAmt <n> --copyAmt <n>\n                   ratio_copy:           --copyTotalAmt <n> --copyRatio <n>\n                   [--copyMgnMode <isolated|cross|copy>] [--copyInstIdType <copy|custom>]\n                   [--subPosCloseType <copy_close|market_close|manual_close>]",
-        description: "Start following a lead trader (SWAP only)",
+        usage: "okx copytrading follow --uniqueCode <code>\n                   [--instType <SWAP|SPOT>]\n                   [--copyMode <smart_copy|fixed_amount|ratio_copy>]\n                   smart_copy (default): --initialAmount <n> --replicationRequired <0|1>\n                   fixed_amount:         --copyTotalAmt <n> --copyAmt <n>\n                   ratio_copy:           --copyTotalAmt <n> --copyRatio <n>\n                   [--copyMgnMode <copy|isolated|cross>]\n                   [--copyInstIdType <copy|custom>] [--instId <id,...>]  (instId required when copyInstIdType=custom)\n                   [--subPosCloseType <copy_close|market_close|manual_close>]\n                   [--tpRatio <ratio>] [--slRatio <ratio>] [--slTotalAmt <n>]",
+        description: "Start following a lead trader (default instType: SWAP)",
       },
       unfollow: {
-        usage: "okx copytrading unfollow --uniqueCode <code> [--subPosCloseType <copy_close|market_close|manual_close>]",
-        description: "Stop following a lead trader (SWAP only). Default subPosCloseType: copy_close",
+        usage: "okx copytrading unfollow --uniqueCode <code> [--instType <SWAP|SPOT>] [--subPosCloseType <copy_close|market_close|manual_close>]",
+        description: "Stop following a lead trader (default instType: SWAP). Default subPosCloseType: copy_close",
       },
       "trader-detail": {
-        usage: "okx copytrading trader-detail --uniqueCode <code> [--lastDays <1|2|3|4>]",
-        description: "Get stats, daily P&L, and currency preference of a lead trader (SWAP only)",
+        usage: "okx copytrading trader-detail --uniqueCode <code> [--instType <SWAP|SPOT>] [--lastDays <1|2|3|4>]",
+        description: "Get stats, daily P&L, and currency preference of a lead trader (default instType: SWAP)",
       },
     },
   },

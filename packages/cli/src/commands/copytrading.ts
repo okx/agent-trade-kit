@@ -34,7 +34,7 @@ export async function cmdCopyTradeMyStatus(
 ): Promise<void> {
   const result = await run("copytrading_get_my_details", { instType: opts.instType });
   const raw = result as unknown as Record<string, unknown>;
-  const traders = (raw.traders ?? []) as Record<string, unknown>[];
+  const traders = (raw.data ?? []) as Record<string, unknown>[];
   if (opts.json) return printJson(raw);
 
   if (!traders.length) {
@@ -60,6 +60,7 @@ export async function cmdCopyTradeFollow(
     copyTotalAmt?: string;
     copyMgnMode?: string;
     copyInstIdType?: string;
+    instId?: string;
     copyMode?: string;
     copyAmt?: string;
     copyRatio?: string;
@@ -78,6 +79,7 @@ export async function cmdCopyTradeFollow(
     copyTotalAmt: opts.copyTotalAmt,
     copyMgnMode: opts.copyMgnMode,
     copyInstIdType: opts.copyInstIdType,
+    instId: opts.instId,
     copyMode: opts.copyMode,
     copyAmt: opts.copyAmt,
     copyRatio: opts.copyRatio,

@@ -14,6 +14,17 @@ const BASE = "/api/v5/copytrading";
 /** lastDays: "1"=7d, "2"=30d, "3"=90d, "4"=365d */
 const LAST_DAYS_30 = "2";
 
+const INST_TYPE_SWAP = "SWAP";
+const COPY_MODE_SMART = "smart_copy";
+const COPY_MODE_FIXED = "fixed_amount";
+const COPY_MODE_RATIO = "ratio_copy";
+const COPY_INST_ID_TYPE_COPY = "copy";
+const COPY_INST_ID_TYPE_CUSTOM = "custom";
+const COPY_MGN_MODE_COPY = "copy";
+const COPY_MGN_MODE_ISOLATED = "isolated";
+const INST_TYPE_SPOT = "SPOT";
+const SUB_POS_CLOSE_COPY = "copy_close";
+
 export function registerCopyTradeTools(): ToolSpec[] {
   return [
     {
@@ -25,7 +36,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          instType: { type: "string", enum: ["SWAP"], description: "Only SWAP is supported. Default: SWAP." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
           sortType: { type: "string", enum: ["overview", "pnl", "aum", "win_ratio", "pnl_ratio", "current_copy_trader_pnl"], description: "Sort by: overview (default), pnl, aum, win_ratio, pnl_ratio, current_copy_trader_pnl" },
           state: { type: "string", enum: ["0", "1"], description: "0=all traders (default), 1=only traders with open slots" },
           minLeadDays: { type: "string", enum: ["1", "2", "3", "4"], description: "Min lead trading days: 1=7d, 2=30d, 3=90d, 4=180d" },
@@ -43,7 +54,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
         const response = await context.client.publicGet(
           `${BASE}/public-lead-traders`,
           compactObject({
-            instType: readString(args, "instType") ?? "SWAP",
+            instType: readString(args, "instType") ?? INST_TYPE_SWAP,
             sortType: readString(args, "sortType") ?? "overview",
             state: readString(args, "state"),
             minLeadDays: readString(args, "minLeadDays"),
@@ -78,7 +89,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code (16 chars)" },
-          instType: { type: "string", enum: ["SWAP"], description: "Only SWAP is supported." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
           lastDays: { type: "string", enum: ["1", "2", "3", "4"], description: "Time range for pnl and stats: 1=7d 2=30d 3=90d 4=365d (default: 2)" },
         },
         required: ["uniqueCode"],
@@ -86,7 +97,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const uniqueCode = requireString(args, "uniqueCode");
-        const instType = readString(args, "instType") ?? "SWAP";
+        const instType = readString(args, "instType") ?? INST_TYPE_SWAP;
         const lastDays = readString(args, "lastDays") ?? LAST_DAYS_30;
 
         const [pnlRes, statsRes, preferenceRes] = await Promise.all([
@@ -115,45 +126,22 @@ export function registerCopyTradeTools(): ToolSpec[] {
       name: "copytrading_get_my_details",
       module: "copytrading",
       description:
-        "Query the lead traders I am currently copying (cumulative P&L per trader) and all current open copytrading sub-positions. Returns traders and subpositions together. Private. Rate limit: 5/2s (traders), 20/2s (subpositions).",
+        "Query the lead traders I am currently copying (cumulative P&L per trader). Private. Rate limit: 5/2s.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          instType: { type: "string", enum: ["SWAP"], description: "Only SWAP is supported." },
-          instId: { type: "string", description: "Filter sub-positions by instrument ID, e.g. BTC-USDT-SWAP" },
-          after: { type: "string", description: "Sub-positions pagination: return records older than this subPosId" },
-          before: { type: "string", description: "Sub-positions pagination: return records newer than this subPosId" },
-          limit: { type: "string", description: "Sub-positions max results (default 500, max 500)" },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const instType = readString(args, "instType");
-        const [tradersRes, subposRes] = await Promise.all([
-          context.client.privateGet(
-            `${BASE}/current-lead-traders`,
-            compactObject({ instType: instType ?? "SWAP" }),
-            privateRateLimit("copytrading_get_my_details", 5),
-          ),
-          context.client.privateGet(
-            `${BASE}/current-subpositions`,
-            compactObject({
-              instType,
-              instId: readString(args, "instId"),
-              after: readString(args, "after"),
-              before: readString(args, "before"),
-              limit: readString(args, "limit"),
-            }),
-            privateRateLimit("copytrading_get_my_details_subpos", 20),
-          ),
-        ]);
-        return {
-          endpoint: tradersRes.endpoint,
-          requestTime: tradersRes.requestTime,
-          traders: tradersRes.data,
-          subpositions: subposRes.data,
-        };
+        const response = await context.client.privateGet(
+          `${BASE}/current-lead-traders`,
+          compactObject({ instType: readString(args, "instType") ?? INST_TYPE_SWAP }),
+          privateRateLimit("copytrading_get_my_details", 5),
+        );
+        return normalizeResponse(response);
       },
     },
     {
@@ -166,16 +154,16 @@ export function registerCopyTradeTools(): ToolSpec[] {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code (16 chars)" },
-          instType: { type: "string", enum: ["SWAP"], description: "Only SWAP is supported. Default: SWAP." },
-          copyMode: { type: "string", enum: ["fixed_amount", "ratio_copy", "smart_copy"], description: "fixed_amount=固定金额跟单，copyAmt必填; ratio_copy=比例跟单，copyRatio必填; smart_copy=智能跟单，initialAmount 和 replicationRequired 必填（默认）" },
-          copyMgnMode: { type: "string", enum: ["cross", "isolated", "copy"], description: "Margin mode: cross/isolated/copy(follow trader). Default: isolated" },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
+          copyMode: { type: "string", enum: ["smart_copy", "fixed_amount", "ratio_copy"], description: "Copy mode: smart_copy=smart copy, initialAmount+replicationRequired required (default); fixed_amount=fixed USDT per order, copyAmt required; ratio_copy=proportional copy, copyRatio required" },
+          copyMgnMode: { type: "string", enum: ["cross", "isolated", "copy"], description: "Margin mode (non-smart_copy only): copy=follow trader (default), isolated, cross. For smart_copy: auto-set by instType (SWAP→copy, SPOT→isolated), user input ignored." },
           copyInstIdType: { type: "string", enum: ["copy", "custom"], description: "copy=follow trader's instruments (default); custom=user-defined (instId required)" },
           instId: { type: "string", description: "Comma-separated instrument IDs, required when copyInstIdType=custom" },
           copyTotalAmt: { type: "string", description: "Max total USDT to allocate for this trader. [REQUIRED when copyMode=fixed_amount or ratio_copy; auto-filled from initialAmount when copyMode=smart_copy]" },
           copyAmt: { type: "string", description: "Fixed USDT per order. [REQUIRED when copyMode=fixed_amount]" },
           copyRatio: { type: "string", description: "Copy ratio (e.g. 0.1 = 10%). [REQUIRED when copyMode=ratio_copy]" },
-          initialAmount: { type: "string", description: "跟单初始投入金额，单位为USDT。[copyMode=smart_copy 时必填，自动赋值给 copyTotalAmt]" },
-          replicationRequired: { type: "string", enum: ["0", "1"], description: "是否复制仓位。0：否；1：是。[copyMode=smart_copy 时必填]" },
+          initialAmount: { type: "string", description: "Initial investment amount in USDT. [REQUIRED when copyMode=smart_copy; automatically assigned to copyTotalAmt]" },
+          replicationRequired: { type: "string", enum: ["0", "1"], description: "Whether to replicate existing positions: 0=no, 1=yes. Only applicable to smart_copy mode." },
           tpRatio: { type: "string", description: "Take-profit ratio per order, e.g. 0.1 = 10%" },
           slRatio: { type: "string", description: "Stop-loss ratio per order, e.g. 0.1 = 10%" },
           subPosCloseType: { type: "string", enum: ["copy_close", "market_close", "manual_close"], description: "How to close sub-positions when you stop copying: copy_close=follow trader (default), market_close=close all immediately, manual_close=keep open" },
@@ -185,33 +173,39 @@ export function registerCopyTradeTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const copyMode = readString(args, "copyMode") ?? "smart_copy";
-        const initialAmount = copyMode === "smart_copy"
+        const copyMode = readString(args, "copyMode") ?? COPY_MODE_SMART;
+        const instType = readString(args, "instType") ?? INST_TYPE_SWAP;
+        const copyInstIdType = readString(args, "copyInstIdType") ?? COPY_INST_ID_TYPE_COPY;
+        // smart_copy: mgnMode is determined by instType (SWAP→copy, SPOT→isolated)
+        const copyMgnMode = copyMode === COPY_MODE_SMART
+          ? (instType === INST_TYPE_SPOT ? COPY_MGN_MODE_ISOLATED : COPY_MGN_MODE_COPY)
+          : (readString(args, "copyMgnMode") ?? COPY_MGN_MODE_COPY);
+        const initialAmount = copyMode === COPY_MODE_SMART
           ? requireString(args, "initialAmount")
           : readString(args, "initialAmount");
-        const replicationRequired = copyMode === "smart_copy"
+        const replicationRequired = copyMode === COPY_MODE_SMART
           ? requireString(args, "replicationRequired")
-          : readString(args, "replicationRequired");
-        const copyTotalAmt = copyMode === "smart_copy"
+          : undefined;
+        const copyTotalAmt = copyMode === COPY_MODE_SMART
           ? initialAmount
           : requireString(args, "copyTotalAmt");
         const response = await context.client.privatePost(
           `${BASE}/first-copy-settings`,
           compactObject({
-            instType: readString(args, "instType") ?? "SWAP",
+            instType,
             uniqueCode: requireString(args, "uniqueCode"),
             copyMode,
-            copyMgnMode: readString(args, "copyMgnMode") ?? "isolated",
-            copyInstIdType: readString(args, "copyInstIdType") ?? "copy",
-            instId: readString(args, "instId"),
+            copyMgnMode,
+            copyInstIdType,
+            instId: copyInstIdType === COPY_INST_ID_TYPE_CUSTOM ? requireString(args, "instId") : readString(args, "instId"),
             copyTotalAmt,
-            copyAmt: copyMode === "fixed_amount" ? requireString(args, "copyAmt") : readString(args, "copyAmt"),
-            copyRatio: copyMode === "ratio_copy" ? requireString(args, "copyRatio") : readString(args, "copyRatio"),
-            initialAmount: copyMode === "smart_copy" ? initialAmount : undefined,
-            replicationRequired: copyMode === "smart_copy" ? replicationRequired : undefined,
+            copyAmt: copyMode === COPY_MODE_FIXED ? requireString(args, "copyAmt") : readString(args, "copyAmt"),
+            copyRatio: copyMode === COPY_MODE_RATIO ? requireString(args, "copyRatio") : readString(args, "copyRatio"),
+            initialAmount: copyMode === COPY_MODE_SMART ? initialAmount : undefined,
+            replicationRequired: copyMode === COPY_MODE_SMART ? replicationRequired : undefined,
             tpRatio: readString(args, "tpRatio"),
             slRatio: readString(args, "slRatio"),
-            subPosCloseType: readString(args, "subPosCloseType") ?? "copy_close",
+            subPosCloseType: readString(args, "subPosCloseType") ?? SUB_POS_CLOSE_COPY,
             slTotalAmt: readString(args, "slTotalAmt"),
             tag: context.config.sourceTag,
           }),
@@ -230,19 +224,19 @@ export function registerCopyTradeTools(): ToolSpec[] {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code" },
-          subPosCloseType: { type: "string", enum: ["market_close", "copy_close", "manual_close"], description: "market_close=close all now, copy_close=follow trader, manual_close=keep open" },
-          instType: { type: "string", enum: ["SWAP"], description: "Only SWAP is supported." },
+          subPosCloseType: { type: "string", enum: ["copy_close", "market_close", "manual_close"], description: "How to handle positions when stopping: copy_close=follow trader (default), market_close=close all immediately, manual_close=keep open" },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
         },
-        required: ["uniqueCode", "subPosCloseType"],
+        required: ["uniqueCode"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           `${BASE}/stop-copy-trading`,
           compactObject({
-            instType: readString(args, "instType") ?? "SWAP",
+            instType: readString(args, "instType") ?? INST_TYPE_SWAP,
             uniqueCode: requireString(args, "uniqueCode"),
-            subPosCloseType: requireString(args, "subPosCloseType"),
+            subPosCloseType: readString(args, "subPosCloseType") ?? SUB_POS_CLOSE_COPY,
           }),
           privateRateLimit("copytrading_stop_copy_trader", 5),
         );

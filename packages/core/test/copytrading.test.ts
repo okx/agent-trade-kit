@@ -175,60 +175,32 @@ describe("copytrading_get_my_details", () => {
   const tools = registerCopyTradeTools();
   const tool = tools.find((t) => t.name === "copytrading_get_my_details")!;
 
-  it("calls both current-lead-traders and current-subpositions in parallel", async () => {
+  it("calls only current-lead-traders", async () => {
     const { client, getCalls } = makeMockClient();
     await tool.handler({}, makeContext(client));
     const endpoints = getCalls().map((c) => c.endpoint);
     assert.ok(endpoints.includes("/api/v5/copytrading/current-lead-traders"));
-    assert.ok(endpoints.includes("/api/v5/copytrading/current-subpositions"));
-    assert.equal(getCalls().length, 2);
+    assert.equal(getCalls().length, 1);
   });
 
-  it("defaults instType=SWAP for current-lead-traders", async () => {
+  it("defaults instType=SWAP", async () => {
     const { client, getCalls } = makeMockClient();
     await tool.handler({}, makeContext(client));
-    const tradersCall = getCalls().find((c) => c.endpoint.includes("current-lead-traders"));
-    assert.equal(tradersCall?.params["instType"], "SWAP");
+    assert.equal(getCalls()[0]?.params["instType"], "SWAP");
   });
 
-  it("forwards instType=SWAP to both calls", async () => {
+  it("forwards instType when provided", async () => {
     const { client, getCalls } = makeMockClient();
     await tool.handler({ instType: "SWAP" }, makeContext(client));
-    for (const call of getCalls()) {
-      assert.equal(call.params["instType"], "SWAP");
-    }
+    assert.equal(getCalls()[0]?.params["instType"], "SWAP");
   });
 
-  it("subpositions call omits instType when not provided", async () => {
-    const { client, getCalls } = makeMockClient();
-    await tool.handler({}, makeContext(client));
-    const subposCall = getCalls().find((c) => c.endpoint.includes("current-subpositions"));
-    assert.ok(!("instType" in (subposCall?.params ?? {})), "subpositions instType should be absent when not provided");
-  });
-
-  it("forwards instId filter to subpositions", async () => {
-    const { client, getCalls } = makeMockClient();
-    await tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client));
-    const subposCall = getCalls().find((c) => c.endpoint.includes("current-subpositions"));
-    assert.equal(subposCall?.params["instId"], "BTC-USDT-SWAP");
-  });
-
-  it("forwards pagination params after/before/limit to subpositions", async () => {
-    const { client, getCalls } = makeMockClient();
-    await tool.handler({ after: "649945658862370816", before: "649920301388038144", limit: "100" }, makeContext(client));
-    const subposCall = getCalls().find((c) => c.endpoint.includes("current-subpositions"));
-    assert.equal(subposCall?.params["after"], "649945658862370816");
-    assert.equal(subposCall?.params["before"], "649920301388038144");
-    assert.equal(subposCall?.params["limit"], "100");
-  });
-
-  it("returns endpoint, requestTime, traders, subpositions fields", async () => {
+  it("returns endpoint, requestTime, data fields", async () => {
     const { client } = makeMockClient();
     const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
     assert.ok("endpoint" in result);
     assert.ok("requestTime" in result);
-    assert.ok("traders" in result);
-    assert.ok("subpositions" in result);
+    assert.ok("data" in result);
   });
 });
 
@@ -247,13 +219,13 @@ describe("copytrading_set_copytrading", () => {
     assert.equal(getLastCall()?.method, "POST");
   });
 
-  it("defaults copyMode=smart_copy, instType=SWAP, copyMgnMode=isolated, copyInstIdType=copy, subPosCloseType=copy_close", async () => {
+  it("defaults copyMode=smart_copy, instType=SWAP, copyMgnMode=copy, copyInstIdType=copy, subPosCloseType=copy_close", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ uniqueCode: "ABCD1234EFGH5678", initialAmount: "1000", replicationRequired: "0" }, makeContext(client));
     const p = getLastCall()?.params ?? {};
     assert.equal(p["copyMode"], "smart_copy");
     assert.equal(p["instType"], "SWAP");
-    assert.equal(p["copyMgnMode"], "isolated");
+    assert.equal(p["copyMgnMode"], "copy");
     assert.equal(p["copyInstIdType"], "copy");
     assert.equal(p["subPosCloseType"], "copy_close");
   });
@@ -264,6 +236,24 @@ describe("copytrading_set_copytrading", () => {
     const p = getLastCall()?.params ?? {};
     assert.equal(p["copyTotalAmt"], "500");
     assert.equal(p["initialAmount"], "500");
+  });
+
+  it("smart_copy + SWAP: forces copyMgnMode=copy regardless of user input", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uniqueCode: "ABCD1234EFGH5678", instType: "SWAP", initialAmount: "1000", replicationRequired: "0", copyMgnMode: "isolated" }, makeContext(client));
+    assert.equal(getLastCall()?.params["copyMgnMode"], "copy");
+  });
+
+  it("smart_copy + SPOT: forces copyMgnMode=isolated regardless of user input", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uniqueCode: "ABCD1234EFGH5678", instType: "SPOT", initialAmount: "1000", replicationRequired: "0", copyMgnMode: "copy" }, makeContext(client));
+    assert.equal(getLastCall()?.params["copyMgnMode"], "isolated");
+  });
+
+  it("non-smart_copy mode: forwards user-specified copyMgnMode", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uniqueCode: "ABCD1234EFGH5678", copyMode: "fixed_amount", copyTotalAmt: "1000", copyAmt: "50", copyMgnMode: "cross" }, makeContext(client));
+    assert.equal(getLastCall()?.params["copyMgnMode"], "cross");
   });
 
   it("fixed_amount mode: forwards uniqueCode, copyTotalAmt, and copyAmt", async () => {
@@ -348,12 +338,28 @@ describe("copytrading_set_copytrading", () => {
     );
   });
 
+  it("ratio_copy mode: throws when copyRatio is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ uniqueCode: "ABCD1234EFGH5678", copyMode: "ratio_copy", copyTotalAmt: "1000" }, makeContext(client)),
+      /copyRatio/,
+    );
+  });
+
   it("forwards copyInstIdType=custom when provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ uniqueCode: "ABCD1234EFGH5678", initialAmount: "1000", replicationRequired: "1", copyInstIdType: "custom", instId: "BTC-USDT-SWAP" }, makeContext(client));
     const p = getLastCall()?.params ?? {};
     assert.equal(p["copyInstIdType"], "custom");
     assert.equal(p["instId"], "BTC-USDT-SWAP");
+  });
+
+  it("throws when copyInstIdType=custom but instId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ uniqueCode: "ABCD1234EFGH5678", initialAmount: "1000", replicationRequired: "1", copyInstIdType: "custom" }, makeContext(client)),
+      /instId/,
+    );
   });
 });
 
@@ -388,6 +394,12 @@ describe("copytrading_stop_copy_trader", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ uniqueCode: "ABCD1234EFGH5678", subPosCloseType: "market_close" }, makeContext(client));
     assert.equal(getLastCall()?.params["subPosCloseType"], "market_close");
+  });
+
+  it("defaults subPosCloseType=copy_close when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ uniqueCode: "ABCD1234EFGH5678" }, makeContext(client));
+    assert.equal(getLastCall()?.params["subPosCloseType"], "copy_close");
   });
 
   it("returns endpoint, requestTime, data fields", async () => {

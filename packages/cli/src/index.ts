@@ -709,6 +709,7 @@ export function handleCopyTradeCommand(
       copyTotalAmt: v.copyTotalAmt,
       copyMgnMode: v.copyMgnMode,
       copyInstIdType: v.copyInstIdType,
+      instId: v.instId,
       copyMode: v.copyMode,
       copyAmt: v.copyAmt,
       copyRatio: v.copyRatio,

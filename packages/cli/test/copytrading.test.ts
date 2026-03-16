@@ -96,17 +96,16 @@ describe("cmdCopyTradeTraders", () => {
 // ---------------------------------------------------------------------------
 // cmdCopyTradeMyStatus
 // ---------------------------------------------------------------------------
-function createMyStatusRunner(traders: unknown[] = [], subpositions: unknown[] = []): ToolRunner {
+function createMyStatusRunner(data: unknown[] = []): ToolRunner {
   return async () => ({
     endpoint: "/api/v5/copytrading/current-lead-traders",
     requestTime: new Date().toISOString(),
-    traders,
-    subpositions,
+    data,
   } as unknown as { endpoint: string; requestTime: string; data: unknown });
 }
 
 describe("cmdCopyTradeMyStatus", () => {
-  it("prints 'No active copy traders' when traders is empty", async () => {
+  it("prints 'No active copy traders' when data is empty", async () => {
     const runner = createMyStatusRunner([]);
     const out = await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: false }));
     assert.ok(out.includes("No active copy traders"));
@@ -121,13 +120,10 @@ describe("cmdCopyTradeMyStatus", () => {
     assert.ok(out.includes("Trader1") || out.includes("ABC"));
   });
 
-  it("prints JSON in json=true mode (includes traders and subpositions)", async () => {
-    const runner = createMyStatusRunner([{ uniqueCode: "ABC" }], [{ subPosId: "1" }]);
+  it("prints JSON in json=true mode", async () => {
+    const runner = createMyStatusRunner([{ uniqueCode: "ABC" }]);
     const out = await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: true }));
     assert.doesNotThrow(() => JSON.parse(out), "should be valid JSON");
-    const parsed = JSON.parse(out) as Record<string, unknown>;
-    assert.ok("traders" in parsed, "should include traders field");
-    assert.ok("subpositions" in parsed, "should include subpositions field");
   });
 
   it("calls copytrading_get_my_details tool", async () => {
@@ -227,6 +223,23 @@ describe("cmdCopyTradeFollow", () => {
     const args = getCalls()[0]?.args as Record<string, unknown>;
     assert.equal(args?.["copyInstIdType"], "custom");
     assert.equal(args?.["subPosCloseType"], "market_close");
+  });
+
+  it("forwards instId when copyInstIdType=custom", async () => {
+    const { runner, getCalls } = createCapturingRunner([]);
+    await captureStdout(() =>
+      cmdCopyTradeFollow(runner, {
+        uniqueCode: "TRADER123",
+        initialAmount: "1000",
+        replicationRequired: "1",
+        copyInstIdType: "custom",
+        instId: "BTC-USDT-SWAP,ETH-USDT-SWAP",
+        json: false,
+      })
+    );
+    const args = getCalls()[0]?.args as Record<string, unknown>;
+    assert.equal(args?.["copyInstIdType"], "custom");
+    assert.equal(args?.["instId"], "BTC-USDT-SWAP,ETH-USDT-SWAP");
   });
 
   it("forwards tpRatio, slRatio, slTotalAmt when provided", async () => {
