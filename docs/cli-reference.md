@@ -271,18 +271,26 @@ okx bot dca set-tp --algoId <algoId> --tpPrice 50000
 okx bot dca set-reinvest --algoId <algoId> --allowReinvest false
 okx bot dca manual-buy --algoId <algoId> --amt 100
 
-# Recurring Buy (Spot 定投)
+# ── Recurring Buy (CLI-only) ────────────────────────────────────────────────
 okx bot recurring orders
+okx bot recurring orders --history
 okx bot recurring details --algoId <algoId>
 okx bot recurring sub-orders --algoId <algoId>
 
-okx bot recurring create --stgyName "Daily BTC" \
+okx bot recurring create --stgyName "BTC Weekly" \
   --recurringList '[{"ccy":"BTC","ratio":"1"}]' \
-  --period daily --recurringTime 08:00 --timeZone 8 \
-  --amt 100 --investmentCcy USDT --tdMode cash
+  --period weekly --recurringDay 1 --recurringTime 08:00 \
+  --timeZone 8 --amt 100 --investmentCcy USDT --tdMode cross
 
-okx bot recurring amend --algoId <algoId> --amt 200
+# Multi-asset recurring buy
+okx bot recurring create --stgyName "BTC+ETH Recurring Buy" \
+  --recurringList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
+  --period daily --recurringTime 08:00 \
+  --timeZone 8 --amt 50 --investmentCcy USDT --tdMode cross
+
+okx bot recurring amend --algoId <algoId> --stgyName "New Name"
 okx bot recurring stop --algoId <algoId>
+
 ```
 
 ---
@@ -589,18 +597,26 @@ okx bot dca set-tp --algoId <algoId> --tpPrice 50000
 okx bot dca set-reinvest --algoId <algoId> --allowReinvest false
 okx bot dca manual-buy --algoId <algoId> --amt 100
 
-# ── 现货定投 ──────────────────────────────────────────────────────────────────
+# ── 定投（仅 CLI）────────────────────────────────────────────────────────────
 okx bot recurring orders
+okx bot recurring orders --history
 okx bot recurring details --algoId <algoId>
 okx bot recurring sub-orders --algoId <algoId>
 
-okx bot recurring create --stgyName "每日定投BTC" \
+okx bot recurring create --stgyName "BTC 周定投" \
   --recurringList '[{"ccy":"BTC","ratio":"1"}]' \
-  --period daily --recurringTime 08:00 --timeZone 8 \
-  --amt 100 --investmentCcy USDT --tdMode cash
+  --period weekly --recurringDay 1 --recurringTime 08:00 \
+  --timeZone 8 --amt 100 --investmentCcy USDT --tdMode cross
 
-okx bot recurring amend --algoId <algoId> --amt 200
+# 多币种定投
+okx bot recurring create --stgyName "BTC+ETH 定投" \
+  --recurringList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
+  --period daily --recurringTime 08:00 \
+  --timeZone 8 --amt 50 --investmentCcy USDT --tdMode cross
+
+okx bot recurring amend --algoId <algoId> --stgyName "新名称"
 okx bot recurring stop --algoId <algoId>
+
 ```
 
 ---

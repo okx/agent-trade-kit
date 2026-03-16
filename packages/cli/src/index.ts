@@ -137,12 +137,6 @@ import {
   cmdTwapCancel,
   cmdTwapOrders,
   cmdTwapDetails,
-  cmdRecurringCreate,
-  cmdRecurringAmend,
-  cmdRecurringStop,
-  cmdRecurringOrders,
-  cmdRecurringDetails,
-  cmdRecurringSubOrders,
 } from "./commands/bot.js";
 import {
   cmdGridAmendBasicParam,
@@ -167,6 +161,14 @@ import {
   cmdDcaSetReinvestment,
   cmdDcaManualBuy,
 } from "./commands/bot-dca-ext.js";
+import {
+  cmdRecurringCreate,
+  cmdRecurringAmend,
+  cmdRecurringStop,
+  cmdRecurringOrders,
+  cmdRecurringDetails,
+  cmdRecurringSubOrders,
+} from "./commands/bot-recurring-ext.js";
 import {
   cmdOnchainEarnOffers,
   cmdOnchainEarnPurchase,
@@ -1021,21 +1023,20 @@ export function handleBotTwapCommand(
     return cmdTwapCancel(run, { instId: v.instId!, algoId: v.algoId, algoClOrdId: v.algoClOrdId, json });
 }
 
-// ROLLBACK NOTE: Delete handleBotRecurringCommand to remove Recurring Buy CLI support.
 export function handleBotRecurringCommand(
-  run: ToolRunner,
+  client: OkxRestClient,
   subAction: string,
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
   if (subAction === "orders")
-    return cmdRecurringOrders(run, { algoId: v.algoId, history: v.history ?? false, json });
+    return cmdRecurringOrders(client, { algoId: v.algoId, history: v.history ?? false, json });
   if (subAction === "details")
-    return cmdRecurringDetails(run, { algoId: v.algoId!, json });
+    return cmdRecurringDetails(client, { algoId: v.algoId!, json });
   if (subAction === "sub-orders")
-    return cmdRecurringSubOrders(run, { algoId: v.algoId!, json });
+    return cmdRecurringSubOrders(client, { algoId: v.algoId!, json });
   if (subAction === "create")
-    return cmdRecurringCreate(run, {
+    return cmdRecurringCreate(client, {
       stgyName: v.stgyName!,
       recurringList: v.recurringList!,
       period: v.period!,
@@ -1051,13 +1052,13 @@ export function handleBotRecurringCommand(
       json,
     });
   if (subAction === "amend")
-    return cmdRecurringAmend(run, {
+    return cmdRecurringAmend(client, {
       algoId: v.algoId!,
       stgyName: v.stgyName!,
       json,
     });
   if (subAction === "stop")
-    return cmdRecurringStop(run, { algoId: v.algoId!, json });
+    return cmdRecurringStop(client, { algoId: v.algoId!, json });
 }
 
 export function handleBotCommand(
@@ -1071,7 +1072,7 @@ export function handleBotCommand(
   if (action === "grid") return handleBotGridCommand(run, client, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, client, rest[0], v, json);
   if (action === "twap") return handleBotTwapCommand(run, rest[0], v, json);
-  if (action === "recurring") return handleBotRecurringCommand(run, rest[0], v, json);
+  if (action === "recurring") return handleBotRecurringCommand(client, rest[0], v, json);
 }
 
 export function handleEarnCommand(

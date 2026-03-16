@@ -3,7 +3,7 @@ export { buildTools, createToolRunner } from "./tools/index.js";
 export type { ToolResult, ToolRunner } from "./tools/index.js";
 export { toMcpTool } from "./tools/types.js";
 export { loadConfig } from "./config.js";
-export { MODULES, DEFAULT_MODULES, BOT_SUB_MODULE_IDS, BOT_DEFAULT_SUB_MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS } from "./constants.js";
+export { MODULES, DEFAULT_MODULES, BOT_SUB_MODULE_IDS, BOT_DEFAULT_SUB_MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, DEFAULT_SOURCE_TAG } from "./constants.js";
 export { OkxApiError, ConfigError, toToolErrorPayload } from "./utils/errors.js";
 export { privateRateLimit, publicRateLimit } from "./tools/common.js";
 export { compactObject, normalizeResponse } from "./tools/helpers.js";

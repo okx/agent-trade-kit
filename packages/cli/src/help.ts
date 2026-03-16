@@ -667,7 +667,7 @@ const HELP_TREE: HelpTree = {
         },
       },
       recurring: {
-        description: "Spot Recurring Buy (定投) — periodic automatic purchases",
+        description: "Spot Recurring Buy (定投) — periodic automatic purchases (CLI-only)",
         commands: {
           orders: {
             usage: "okx bot recurring orders [--algoId <id>] [--history]",

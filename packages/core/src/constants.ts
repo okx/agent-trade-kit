@@ -39,7 +39,6 @@ export const BOT_SUB_MODULE_IDS = [
   "bot.grid",
   "bot.dca",
   "bot.twap",
-  "bot.recurring",
 ] as const;
 
 export type BotSubModuleId = (typeof BOT_SUB_MODULE_IDS)[number];
@@ -70,6 +69,6 @@ export type ModuleId = (typeof MODULES)[number];
 export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account", ...BOT_DEFAULT_SUB_MODULES];
 // Default: spot, swap, option, account, bot.grid
 // "all": every module including market, futures, bot.dca, bot.twap, earn.savings, earn.onchain, earn.dcd
-// "bot": bot.grid only; "bot.all": bot.grid + bot.dca + bot.twap + bot.recurring
+// "bot": bot.grid only; "bot.all": bot.grid + bot.dca + bot.twap
 // "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd)
 // "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only
