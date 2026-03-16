@@ -15,7 +15,9 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_savings_balance",
       module: "earn.savings",
       description:
-        "Get Simple Earn (savings/flexible earn) balance. Returns current holdings for all currencies or a specific one. Private endpoint. Rate limit: 6 req/s.",
+        "Get Simple Earn (savings/flexible earn) balance. Returns current holdings for all currencies or a specific one. " +
+        "To show market rates alongside balance (市场均利率), call earn_get_lending_rate_history — do NOT use earn_get_lending_rate_summary for this purpose. " +
+        "Private endpoint. Rate limit: 6 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -153,7 +155,8 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_lending_history",
       module: "earn.savings",
       description:
-        "Get lending history for Simple Earn. Returns lending records with details like amount, rate, and earnings. " +
+        "Get market lending rate history for Simple Earn. Use this tool to query market lending rates. " +
+        "Returns market lending records with amount, rate, and earnings data. " +
         "Private endpoint. Rate limit: 6 req/s.",
       isWrite: false,
       inputSchema: {
@@ -196,8 +199,9 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_lending_rate_summary",
       module: "earn.savings",
       description:
-        "Get market lending rate summary for Simple Earn. Public endpoint (no API key required). " +
-        "Returns current lending rates, estimated APY, and available amounts. Rate limit: 6 req/s.",
+        "Get coin lending market rate summary. NOT related to Simple Earn. Public endpoint (no API key required). " +
+        "Use this to query the lending/borrowing market rates (借币市场利率). " +
+        "Returns aggregate overview: average rate (avgRate), estimated next-cycle rate (estRate), previous-cycle rate (preRate), and available lending amounts. Rate limit: 6 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -222,8 +226,10 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_lending_rate_history",
       module: "earn.savings",
       description:
-        "Get historical lending rates for Simple Earn. Public endpoint (no API key required). " +
-        "Returns past lending rate data for trend analysis. Rate limit: 6 req/s.",
+        "Query Simple Earn lending rates. Public endpoint (no API key required). " +
+        "Use this tool when the user asks about current or historical lending rates for Simple Earn, " +
+        "or when displaying savings balance with market rate context (市场均利率). " +
+        "Returns actual settled lending rate records (lendingRate field) with timestamps, ordered newest-first. Rate limit: 6 req/s.",
       isWrite: false,
       inputSchema: {
         type: "object",

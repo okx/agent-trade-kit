@@ -25,9 +25,9 @@ Requires API key with **Read** permission. Write operations (purchase, redeem, s
 | `earn_savings_purchase` | Purchase Simple Earn product (move funds into savings) |
 | `earn_savings_redeem` | Redeem Simple Earn product (withdraw funds from savings) |
 | `earn_set_lending_rate` | Set your lending rate preference |
-| `earn_get_lending_history` | Get lending history with earnings details |
-| `earn_get_lending_rate_summary` | Get market lending rate summary (public, no auth) |
-| `earn_get_lending_rate_history` | Get historical lending rates (public, no auth) |
+| `earn_get_lending_history` | Get market lending rate history |
+| `earn_get_lending_rate_summary` | Get coin lending market rate summary (借币市场利率). NOT related to Simple Earn. Public, no auth. |
+| `earn_get_lending_rate_history` | Query Simple Earn lending rates — use this when asking about current or historical lending rates (public, no auth) |
 
 ### earn.onchain — On-chain Earn (staking/DeFi)
 
@@ -36,7 +36,7 @@ Requires API key with **Read** permission. Write operations require **Trade** pe
 
 | Tool | Description | Write |
 |------|-------------|-------|
-| `onchain_earn_get_offers` | Get available staking/DeFi offers | No |
+| `onchain_earn_get_offers` | Get available staking/DeFi offers; always show protocol name (protocol field) and earnings currency (earningData[].ccy field) | No |
 | `onchain_earn_purchase` | Purchase (invest in) a product | Yes |
 | `onchain_earn_redeem` | Redeem an investment | Yes |
 | `onchain_earn_cancel` | Cancel a pending purchase | Yes |
@@ -191,9 +191,9 @@ okx-trade-mcp --modules earn.dcd
 | `earn_savings_purchase` | 申购简单赚币（将资金转入理财） |
 | `earn_savings_redeem` | 赎回简单赚币（将资金从理财取出） |
 | `earn_set_lending_rate` | 设置出借利率偏好 |
-| `earn_get_lending_history` | 查询出借历史及收益明细 |
-| `earn_get_lending_rate_summary` | 查询市场出借利率摘要（公开接口，无需认证） |
-| `earn_get_lending_rate_history` | 查询历史出借利率（公开接口，无需认证） |
+| `earn_get_lending_history` | 查询市场借贷利率历史 |
+| `earn_get_lending_rate_summary` | 查询借币市场利率摘要，与简单赚币无关（公开接口，无需认证） |
+| `earn_get_lending_rate_history` | 查询简单赚币利率——用户询问当前或历史利率时调用此工具（公开接口，无需认证） |
 
 ### earn.onchain — 链上赚币（质押/DeFi）
 
@@ -202,7 +202,7 @@ okx-trade-mcp --modules earn.dcd
 
 | 工具 | 说明 | 写入 |
 |------|------|------|
-| `onchain_earn_get_offers` | 获取可用的质押/DeFi 产品 | 否 |
+| `onchain_earn_get_offers` | 获取可用的质押/DeFi 产品；展示时必须显示协议名称（protocol 字段）和收益币种（earningData[].ccy 字段） | 否 |
 | `onchain_earn_purchase` | 申购产品 | 是 |
 | `onchain_earn_redeem` | 赎回投资 | 是 |
 | `onchain_earn_cancel` | 取消待处理的申购 | 是 |
