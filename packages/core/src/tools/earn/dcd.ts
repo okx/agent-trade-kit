@@ -61,8 +61,7 @@ export function registerDcdTools(): ToolSpec[] {
     {
       name: "dcd_get_currency_pairs",
       module: "earn.dcd",
-      description:
-        "Get available DCD (Dual Currency Deposit) currency pairs. Private endpoint. Rate limit: 5 req/s.",
+      description: "Get available DCD currency pairs.",
       isWrite: false,
       inputSchema: { type: "object", properties: {} },
       handler: async (_rawArgs, context) => {
@@ -79,9 +78,7 @@ export function registerDcdTools(): ToolSpec[] {
     {
       name: "dcd_get_products",
       module: "earn.dcd",
-      description:
-        "Get active DCD products with yield, trade size, quota, and VIP yield tier information. " +
-        "baseCcy, quoteCcy, and optType are all required. Private endpoint. Rate limit: 5 req/s.",
+      description: "Get DCD products with yield and quota info.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -112,8 +109,8 @@ export function registerDcdTools(): ToolSpec[] {
       name: "dcd_request_quote",
       module: "earn.dcd",
       description:
-        "Request a real-time quote for a DCD product. Check validUntil for expiry time — execute before expiry. " +
-        "Yield reflects the user's actual VIP tier rate. Private endpoint. Rate limit: 5 req/s.",
+        "Request quote for a DCD product. Check validUntil for expiry — execute before it expires. " +
+        "Yield reflects user's actual VIP tier rate.",
       isWrite: false, // POST for payload, no state change
       inputSchema: {
         type: "object",
@@ -144,15 +141,14 @@ export function registerDcdTools(): ToolSpec[] {
       name: "dcd_execute_quote",
       module: "earn.dcd",
       description:
-        "Execute a DCD quote to place a trade. [CAUTION] Moves real funds into DCD product. " +
-        "Quote expires — call immediately after dcd_request_quote. " +
-        "Not supported in demo/simulated trading mode. Private endpoint. Rate limit: 5 req/s.",
+        "Execute a DCD quote. [CAUTION] Moves real funds. " +
+        "Quote expires — call immediately after dcd_request_quote.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           quoteId: { type: "string", description: "Quote ID from dcd_request_quote" },
-          clOrdId: { type: "string", description: "Client order ID for idempotency (optional)" },
+          clOrdId: { type: "string", description: "Client order ID for idempotency" },
         },
         required: ["quoteId"],
       },
@@ -176,8 +172,7 @@ export function registerDcdTools(): ToolSpec[] {
       name: "dcd_request_redeem_quote",
       module: "earn.dcd",
       description:
-        "Request an early redemption quote for a live DCD order. Check validUntil for expiry. " +
-        "Private endpoint. Rate limit: 5 req/s.",
+        "Request early redemption quote for a DCD order. Check validUntil for expiry.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -202,8 +197,7 @@ export function registerDcdTools(): ToolSpec[] {
       name: "dcd_execute_redeem",
       module: "earn.dcd",
       description:
-        "Execute an early redemption using a valid redeem quote. [CAUTION] Initiates early redemption of a DCD position. " +
-        "Not supported in demo/simulated trading mode. Private endpoint. Rate limit: 5 req/s.",
+        "Execute early redemption. [CAUTION] Initiates early redemption of a DCD position.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -232,8 +226,7 @@ export function registerDcdTools(): ToolSpec[] {
     {
       name: "dcd_get_order_state",
       module: "earn.dcd",
-      description:
-        "Query DCD order state by order ID. Private endpoint. Rate limit: 5 req/s.",
+      description: "Query DCD order state by order ID.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -257,26 +250,24 @@ export function registerDcdTools(): ToolSpec[] {
     {
       name: "dcd_get_orders",
       module: "earn.dcd",
-      description:
-        "Get DCD order history with optional filters. Returns up to 100 records per request. " +
-        "Private endpoint. Rate limit: 5 req/s.",
+      description: "Get DCD order history.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          ordId: { type: "string", description: "Filter by specific order ID (ignores other filters when provided)" },
-          productId: { type: "string", description: "Filter by product ID, e.g. BTC-USDT-260327-77000-C" },
-          uly: { type: "string", description: "Filter by underlying index, e.g. BTC-USD" },
+          ordId: { type: "string", description: "Filter by order ID (overrides other filters)" },
+          productId: { type: "string", description: "e.g. BTC-USDT-260327-77000-C" },
+          uly: { type: "string", description: "Underlying index, e.g. BTC-USD" },
           state: {
             type: "string",
             description:
               "Filter by state: initial | live | pending_settle | settled | pending_redeem | redeemed | rejected",
           },
-          beginId: { type: "string", description: "Return records newer than this order ID (pagination)" },
-          endId: { type: "string", description: "Return records older than this order ID (pagination)" },
-          begin: { type: "string", description: "Begin timestamp filter, Unix ms" },
-          end: { type: "string", description: "End timestamp filter, Unix ms" },
-          limit: { type: "number", description: "Results per request, max 100 (default 100)" },
+          beginId: { type: "string", description: "Cursor for newer records" },
+          endId: { type: "string", description: "Cursor for older records" },
+          begin: { type: "string", description: "Begin timestamp, Unix ms" },
+          end: { type: "string", description: "End timestamp, Unix ms" },
+          limit: { type: "number", description: "Default 100" },
         },
       },
       handler: async (rawArgs, context) => {
