@@ -2330,13 +2330,13 @@ describe("grid tools algoId description", () => {
   const toolsWithAlgoOrdType = ["grid_get_order_details", "grid_get_sub_orders", "grid_stop_order"];
 
   for (const name of toolsWithAlgoOrdType) {
-    it(`${name} algoOrdType description mentions matching`, () => {
+    it(`${name} algoOrdType description explains enum values`, () => {
       const tool = tools.find((t) => t.name === name)!;
       const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+      const desc = props["algoOrdType"]["description"];
       assert.ok(
-        typeof props["algoOrdType"]["description"] === "string" &&
-          props["algoOrdType"]["description"].toLowerCase().includes("must match"),
-        `${name}.algoOrdType should mention that value must match the bot's actual type`,
+        typeof desc === "string" && desc.includes("grid") && desc.includes("contract_grid"),
+        `${name}.algoOrdType should describe the enum values (grid/contract_grid)`,
       );
     });
   }
