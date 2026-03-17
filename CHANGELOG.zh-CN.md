@@ -19,21 +19,8 @@
 
 ## [1.2.5-beta.2] - 2026-03-17
 
-### 修复
-
-- **`docs/cli-reference.md` — 定投示例命名修正**：将多币种定投示例中的 `stgyName` 从 `"BTC+ETH DCA"` 改为 `"BTC+ETH Recurring Buy"`，避免与 DCA（马丁格尔）机器人混淆。
-
 ### 新增
 
-- **`dca_create_order` — RSI 触发子参数**：当 `triggerStrategy='rsi'` 时，工具现支持 `triggerCond`（cross_up/cross_down）、`thold`（RSI 阈值）、`timePeriod`（默认 14）和 `timeframe`（3m/5m/15m/30m/1H/4H/1D）参数。验证逻辑确保所有必填 RSI 参数存在。
-- **`dca_create_order` — 跟单参数**：新增可选参数 `trackingMode`（sync/async）和 `profitSharingRatio`（0/0.1/0.2/0.3），用于带单交易场景。
-- **5 个新 DCA CLI 命令**（仅 CLI，无 MCP 工具）：`margin-add`、`margin-reduce`、`set-tp`、`set-reinvest`、`manual-buy`。覆盖 5 个未作为 MCP 工具暴露的 DCA 管理端点。
-- **现货定投 CLI 命令**（仅 CLI，无 MCP 工具）：`create`、`amend`、`stop`、`orders`、`details`、`sub-orders`。6 个命令覆盖现货定投（Spot Recurring Buy）策略，直接调用 OKX REST API。CLI 命令：`okx bot recurring create|amend|stop|orders|details|sub-orders`。
-
-- **`grid_create_order` — 6 个新可选参数**：`tpTriggerPx`、`slTriggerPx`、`algoClOrdId`（现货 + 合约），`tradeQuoteCcy`（仅现货），`tpRatio`、`slRatio`（仅合约）。工具 handler 现在区分现货/合约参数——仅现货参数在 `contract_grid` 下被忽略，反之亦然。
-- **14 个新网格 CLI 命令**（仅 CLI，无 MCP 工具）：`amend-basic-param`、`amend-order`、`close-position`、`cancel-close-order`、`instant-trigger`、`positions`、`withdraw-income`、`compute-margin-balance`、`margin-balance`、`adjust-investment`、`ai-param`、`min-investment`、`rsi-back-testing`、`max-quantity`。覆盖此前未实现的 15 个 OKX 网格交易 OpenAPI。其中 4 个为公开接口（无需 API Key）。
-- **`OkxRestClient.publicPost()` 方法**：新增公开 POST 请求方法（用于网格 `min-investment` API）。
-- **Core 导出**：`privateRateLimit`、`publicRateLimit`、`compactObject`、`normalizeResponse` 现已从 `@agent-tradekit/core` 导出，供 CLI 直接调用客户端的命令使用。
 - **`dcd_subscribe` 工具**（`earn.dcd`）：原子化 DCD 申购，内部一步完成询价+下单，彻底消灭 MCP 用户的报价过期竞争问题。支持可选参数 `minAnnualizedYield`（百分比），若实际报价年化低于该阈值则拒绝下单并返回错误。返回结果包含 trade 信息及 quote 快照（`annualizedYield`、`absYield`）。不支持模拟交易模式。
 - **`dcd_redeem` 工具**（`earn.dcd`）：两阶段提前赎回设计，确保用户在执行前确认损失。第一次调用（不传 `quoteId`）：仅询价，返回赎回损失详情供用户确认。第二次调用（传入 `quoteId`）：执行赎回。若两次调用之间报价已过期，自动重新询价并原子执行，response 中包含 `autoRefreshedQuote: true`。执行步骤不支持模拟交易模式。
 - **移除低阶 DCD 拆分工具**：`dcd_request_quote`、`dcd_execute_quote`、`dcd_request_redeem_quote`、`dcd_execute_redeem` 已删除。申购流程请使用 `dcd_subscribe`，提前赎回流程请使用 `dcd_redeem`。
@@ -119,7 +106,6 @@
 
 - **7 个新期货核心工具**（Phase 1，对齐 swap 功能）：`futures_amend_order`、`futures_close_position`、`futures_set_leverage`、`futures_get_leverage`、`futures_batch_orders`、`futures_batch_amend`、`futures_batch_cancel`。这些工具使用 futures 专属名称（`futures_*`），而非复用 swap 工具，为期货提供独立的 API 接口。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
 - **5 个新期货算法工具**（`registerFuturesAlgoTools`）：`futures_place_algo_order`、`futures_place_move_stop_order`、`futures_amend_algo_order`、`futures_cancel_algo_orders`、`futures_get_algo_orders`。与 swap algo 工具类似，但使用 `instType: "FUTURES"` 并注册在 `futures` 模块下。([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
-- **TWAP CLI 命令**（仅 CLI，无 MCP 工具）：`place`、`cancel`、`orders`、`details`。4 个命令覆盖 TWAP（时间加权平均价格）策略委托，直接调用 OKX REST API。CLI 命令：`okx bot twap place|cancel|orders|details`。
 
 ### 修复
 
@@ -276,7 +262,7 @@
 ### 修复
 
 - **合约 DCA `side`/`direction` 参数错误**（严重）：MCP schema 使用 `side`（`buy`/`sell`），但 API 要求 `direction`（`long`/`short`）。已移除 `side` 字段，直接使用 `direction`。此前做空仓位无法正确创建。
-- **合约 DCA `safetyOrdAmt`、`pxSteps`、`pxStepsMult`、`volMult` 条件必填**：`safetyOrdAmt` 和 `pxSteps` 在 `maxSafetyOrds > 0` 时必填；`pxStepsMult` 和 `volMult` 在 `maxSafetyOrds > 1` 时必填。现在 schema 中标记为可选，描述中注明条件必填要求。
+- **合约 DCA `safetyOrdAmt`、`pxSteps`、`pxStepsMult`、`volMult` 条件必填**：当 `maxSafetyOrds > 0` 时这 4 个参数为业务必填（缺省返回 400），当 `maxSafetyOrds = 0` 时为可选。现在 schema 中标记为可选，描述中注明条件必填要求。
 - **合约子订单发送不支持的分页参数**：合约 DCA 按周期查询订单时发送了 `after`/`before` 参数，但 API 仅支持 `limit`。已从该路径移除 `after`/`before`。
 
 ---

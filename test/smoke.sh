@@ -98,13 +98,6 @@ if has_credentials; then
   echo "▶ config"
   run_test "config show"             cli config show
 
-  echo ""
-  echo "▶ twap bot (private read)"
-  run_test "twap_get_orders (active)"  cli bot twap orders
-  run_test "twap_get_orders (history)" cli bot twap orders --history
-  run_test "twap_get_orders (instType filter)" cli bot twap orders --instType SWAP
-  # twap_get_order_details requires a real algoId; skip — covered by unit tests
-
 else
   echo ""
   echo "  ⚠️  未检测到凭证，跳过 private 测试。"

@@ -51,7 +51,7 @@ export function registerDcaTools(): ToolSpec[] {
       module: "bot.dca",
       description:
         "Create Contract DCA (Martingale) bot. [CAUTION] Real trades. " +
-        "When maxSafetyOrds > 0: also need safetyOrdAmt, pxSteps. When maxSafetyOrds > 1: also need pxStepsMult, volMult.",
+        "When maxSafetyOrds > 0: also need safetyOrdAmt, pxSteps, pxStepsMult, volMult.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -64,62 +64,19 @@ export function registerDcaTools(): ToolSpec[] {
           tpPct: { type: "string", description: "Take-profit ratio, e.g. '0.03' = 3%" },
           safetyOrdAmt: { type: "string", description: "Safety order amount (USDT). Need when maxSafetyOrds > 0" },
           pxSteps: { type: "string", description: "Price drop % per safety order, e.g. '0.03'. Need when maxSafetyOrds > 0" },
-          pxStepsMult: { type: "string", description: "Price step multiplier, e.g. '1.2'. Need when maxSafetyOrds > 1" },
-          volMult: { type: "string", description: "Safety order size multiplier, e.g. '1.5'. Need when maxSafetyOrds > 1" },
+          pxStepsMult: { type: "string", description: "Price step multiplier, e.g. '1.2'. Need when maxSafetyOrds > 0" },
+          volMult: { type: "string", description: "Safety order size multiplier, e.g. '1.5'. Need when maxSafetyOrds > 0" },
           slPct: { type: "string", description: "Stop-loss ratio, e.g. '0.05' = 5%" },
           slMode: { type: "string", enum: ["limit", "market"], description: "Stop-loss type. Default: market" },
           allowReinvest: { type: "string", enum: ["true", "false"], description: "Reinvest profit. Default: 'true'" },
           triggerStrategy: { type: "string", enum: ["instant", "price", "rsi"], default: "instant", description: "How bot starts. Default: instant" },
           triggerPx: { type: "string", description: "Required when triggerStrategy='price'" },
-          triggerCond: { type: "string", enum: ["cross_up", "cross_down"], description: "RSI trigger condition. Required when triggerStrategy='rsi'" },
-          thold: { type: "string", description: "RSI threshold, e.g. '30'. Required when triggerStrategy='rsi'" },
-          timePeriod: { type: "string", description: "RSI period. Default: '14'" },
-          timeframe: { type: "string", enum: ["3m", "5m", "15m", "30m", "1H", "4H", "1D"], description: "RSI K-line timeframe. Required when triggerStrategy='rsi'" },
-          trackingMode: { type: "string", enum: ["sync", "async"], description: "Copy-trading tracking mode" },
-          profitSharingRatio: { type: "string", enum: ["0", "0.1", "0.2", "0.3"], description: "Copy-trading profit sharing ratio" },
         },
         required: ["instId", "lever", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const instId = requireString(args, "instId");
-
-        // Validate conditionally required params
-        const maxSafetyOrds = Number(requireString(args, "maxSafetyOrds"));
-        if (maxSafetyOrds > 0) {
-          const missing: string[] = [];
-          if (!readString(args, "safetyOrdAmt")) missing.push("safetyOrdAmt");
-          if (!readString(args, "pxSteps")) missing.push("pxSteps");
-          if (missing.length > 0) {
-            throw new Error(
-              `When maxSafetyOrds > 0, the following parameters are required: ${missing.join(", ")}`,
-            );
-          }
-        }
-        if (maxSafetyOrds > 1) {
-          const missing: string[] = [];
-          if (!readString(args, "pxStepsMult")) missing.push("pxStepsMult");
-          if (!readString(args, "volMult")) missing.push("volMult");
-          if (missing.length > 0) {
-            throw new Error(
-              `When maxSafetyOrds > 1, the following parameters are required: ${missing.join(", ")}`,
-            );
-          }
-        }
-
-        // Validate slPct + slMode dependency: must be both set or both omitted
-        const slPct = readString(args, "slPct");
-        const slMode = readString(args, "slMode");
-        if (slPct && !slMode) {
-          throw new Error(
-            "slMode is required when slPct is set. Use 'market' (market price stop-loss) or 'limit' (limit price stop-loss).",
-          );
-        }
-        if (slMode && !slPct) {
-          throw new Error(
-            "slPct is required when slMode is set. e.g. '0.05' = 5% stop-loss.",
-          );
-        }
 
         // Build triggerParams: default to instant; support price/rsi strategies
         const triggerStrategy = readString(args, "triggerStrategy") ?? "instant";
@@ -130,26 +87,6 @@ export function registerDcaTools(): ToolSpec[] {
         if (triggerStrategy === "price") {
           triggerParam["triggerPx"] = requireString(args, "triggerPx");
         }
-        if (triggerStrategy === "rsi") {
-          const rsiMissing: string[] = [];
-          const triggerCond = readString(args, "triggerCond");
-          const thold = readString(args, "thold");
-          const timeframe = readString(args, "timeframe");
-          if (!triggerCond) rsiMissing.push("triggerCond");
-          if (!thold) rsiMissing.push("thold");
-          if (!timeframe) rsiMissing.push("timeframe");
-          if (rsiMissing.length > 0) {
-            throw new Error(
-              `When triggerStrategy='rsi', the following parameters are required: ${rsiMissing.join(", ")}`,
-            );
-          }
-          triggerParam["triggerCond"] = triggerCond!;
-          triggerParam["thold"] = thold!;
-          triggerParam["timePeriod"] = readString(args, "timePeriod") ?? "14";
-          triggerParam["timeframe"] = timeframe!;
-        }
-
-        const triggerParams: Record<string, string>[] = [triggerParam];
 
         const response = await context.client.privatePost(
           `${BASE}/create`,
@@ -168,10 +105,7 @@ export function registerDcaTools(): ToolSpec[] {
             slPct: readString(args, "slPct"),
             slMode: readString(args, "slMode"),
             allowReinvest: readString(args, "allowReinvest"),
-            trackingMode: readString(args, "trackingMode"),
-            profitSharingRatio: readString(args, "profitSharingRatio"),
-            tag: context.config.sourceTag,
-            triggerParams,
+            triggerParams: [triggerParam],
           }),
           privateRateLimit("dca_create_order", 20),
         );
@@ -299,8 +233,6 @@ export function registerDcaTools(): ToolSpec[] {
               algoId,
               algoOrdType: "contract_dca",
               cycleId,
-              after: readString(args, "after"),
-              before: readString(args, "before"),
               limit: readNumber(args, "limit"),
             }),
             privateRateLimit("dca_get_sub_orders", 20),

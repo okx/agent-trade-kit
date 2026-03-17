@@ -163,20 +163,6 @@ export class OkxRestClient {
     });
   }
 
-  public async publicPost<TData = unknown>(
-    path: string,
-    body?: RequestConfig["body"],
-    rateLimit?: RequestConfig["rateLimit"],
-  ): Promise<RequestResult<TData>> {
-    return this.request<TData>({
-      method: "POST",
-      path,
-      auth: "public",
-      body,
-      rateLimit,
-    });
-  }
-
   public async privatePost<TData = unknown>(
     path: string,
     body?: RequestConfig["body"],

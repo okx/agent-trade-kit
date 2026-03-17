@@ -16,11 +16,9 @@ import { registerOptionTools } from "../src/tools/option-trade.js";
 import { registerAlgoTradeTools, registerFuturesAlgoTools } from "../src/tools/algo-trade.js";
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
-
-
 import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
 import { assertNotDemo } from "../src/tools/common.js";
-import { ConfigError, OkxApiError, ValidationError } from "../src/utils/errors.js";
+import { ConfigError, OkxApiError } from "../src/utils/errors.js";
 import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
 
 // ---------------------------------------------------------------------------
@@ -40,36 +38,6 @@ function makeMockClient() {
     endpoint,
     requestTime: "2024-01-01T00:00:00.000Z",
     data: [],
-  });
-
-  const client = {
-    publicGet: async (endpoint: string, params: Record<string, unknown>) => {
-      lastCall = { method: "GET", endpoint, params };
-      return fakeResponse(endpoint);
-    },
-    privateGet: async (endpoint: string, params: Record<string, unknown>) => {
-      lastCall = { method: "GET", endpoint, params };
-      return fakeResponse(endpoint);
-    },
-    privatePost: async (endpoint: string, params: Record<string, unknown>) => {
-      lastCall = { method: "POST", endpoint, params };
-      return fakeResponse(endpoint);
-    },
-  };
-
-  return {
-    client,
-    getLastCall: () => lastCall,
-  };
-}
-
-function makeMockClientWithData(data: unknown) {
-  let lastCall: CapturedCall | null = null;
-
-  const fakeResponse = (endpoint: string) => ({
-    endpoint,
-    requestTime: "2024-01-01T00:00:00.000Z",
-    data,
   });
 
   const client = {
@@ -2014,245 +1982,6 @@ describe("grid_create_order basePos", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Grid — grid_create_order new optional params
-// ---------------------------------------------------------------------------
-
-describe("grid_create_order tpTriggerPx / slTriggerPx", () => {
-  const tools = registerGridTools();
-  const tool = tools.find((t) => t.name === "grid_create_order")!;
-
-  const spotArgs = {
-    instId: "BTC-USDT", algoOrdType: "grid",
-    maxPx: "100000", minPx: "80000", gridNum: "10", quoteSz: "100",
-  };
-  const contractArgs = {
-    instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
-    maxPx: "100000", minPx: "80000", gridNum: "10",
-    direction: "long", lever: "5", sz: "100",
-  };
-
-  it("spot grid passes tpTriggerPx", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...spotArgs, tpTriggerPx: "80000" }, makeContext(client));
-    assert.equal(getLastCall()!.params.tpTriggerPx, "80000");
-  });
-
-  it("spot grid passes slTriggerPx", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...spotArgs, slTriggerPx: "60000" }, makeContext(client));
-    assert.equal(getLastCall()!.params.slTriggerPx, "60000");
-  });
-
-  it("contract grid passes tpTriggerPx", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...contractArgs, tpTriggerPx: "80000" }, makeContext(client));
-    assert.equal(getLastCall()!.params.tpTriggerPx, "80000");
-  });
-
-  it("contract grid passes slTriggerPx", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...contractArgs, slTriggerPx: "60000" }, makeContext(client));
-    assert.equal(getLastCall()!.params.slTriggerPx, "60000");
-  });
-
-  it("tpTriggerPx omitted → not in body", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler(spotArgs, makeContext(client));
-    assert.equal(getLastCall()!.params.tpTriggerPx, undefined);
-  });
-
-  it("slTriggerPx omitted → not in body", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler(spotArgs, makeContext(client));
-    assert.equal(getLastCall()!.params.slTriggerPx, undefined);
-  });
-});
-
-describe("grid_create_order algoClOrdId", () => {
-  const tools = registerGridTools();
-  const tool = tools.find((t) => t.name === "grid_create_order")!;
-
-  const spotArgs = {
-    instId: "BTC-USDT", algoOrdType: "grid",
-    maxPx: "100000", minPx: "80000", gridNum: "10", quoteSz: "100",
-  };
-
-  it("passes algoClOrdId for spot grid", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...spotArgs, algoClOrdId: "my-001" }, makeContext(client));
-    assert.equal(getLastCall()!.params.algoClOrdId, "my-001");
-  });
-
-  it("passes algoClOrdId for contract grid", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
-      maxPx: "100000", minPx: "80000", gridNum: "10",
-      direction: "long", lever: "5", sz: "100",
-      algoClOrdId: "my-002",
-    }, makeContext(client));
-    assert.equal(getLastCall()!.params.algoClOrdId, "my-002");
-  });
-
-  it("algoClOrdId omitted → not in body", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler(spotArgs, makeContext(client));
-    assert.equal(getLastCall()!.params.algoClOrdId, undefined);
-  });
-});
-
-describe("grid_create_order tradeQuoteCcy (spot only)", () => {
-  const tools = registerGridTools();
-  const tool = tools.find((t) => t.name === "grid_create_order")!;
-
-  it("spot grid passes tradeQuoteCcy", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT", algoOrdType: "grid",
-      maxPx: "100000", minPx: "80000", gridNum: "10",
-      quoteSz: "100", tradeQuoteCcy: "USDT",
-    }, makeContext(client));
-    assert.equal(getLastCall()!.params.tradeQuoteCcy, "USDT");
-  });
-
-  it("contract grid ignores tradeQuoteCcy", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
-      maxPx: "100000", minPx: "80000", gridNum: "10",
-      direction: "long", lever: "5", sz: "100",
-      tradeQuoteCcy: "USDT",
-    }, makeContext(client));
-    assert.equal(getLastCall()!.params.tradeQuoteCcy, undefined);
-  });
-
-  it("tradeQuoteCcy omitted → not in body", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT", algoOrdType: "grid",
-      maxPx: "100000", minPx: "80000", gridNum: "10", quoteSz: "100",
-    }, makeContext(client));
-    assert.equal(getLastCall()!.params.tradeQuoteCcy, undefined);
-  });
-});
-
-describe("grid_create_order tpRatio / slRatio (contract only)", () => {
-  const tools = registerGridTools();
-  const tool = tools.find((t) => t.name === "grid_create_order")!;
-
-  const contractArgs = {
-    instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
-    maxPx: "100000", minPx: "80000", gridNum: "10",
-    direction: "long", lever: "5", sz: "100",
-  };
-  const spotArgs = {
-    instId: "BTC-USDT", algoOrdType: "grid",
-    maxPx: "100000", minPx: "80000", gridNum: "10", quoteSz: "100",
-  };
-
-  it("contract grid passes tpRatio", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...contractArgs, tpRatio: "0.1" }, makeContext(client));
-    assert.equal(getLastCall()!.params.tpRatio, "0.1");
-  });
-
-  it("contract grid passes slRatio", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...contractArgs, slRatio: "0.05" }, makeContext(client));
-    assert.equal(getLastCall()!.params.slRatio, "0.05");
-  });
-
-  it("spot grid ignores tpRatio", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...spotArgs, tpRatio: "0.1" }, makeContext(client));
-    assert.equal(getLastCall()!.params.tpRatio, undefined);
-  });
-
-  it("spot grid ignores slRatio", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...spotArgs, slRatio: "0.05" }, makeContext(client));
-    assert.equal(getLastCall()!.params.slRatio, undefined);
-  });
-
-  it("both tpRatio and slRatio passed together", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ...contractArgs, tpRatio: "0.1", slRatio: "0.05" }, makeContext(client));
-    assert.equal(getLastCall()!.params.tpRatio, "0.1");
-    assert.equal(getLastCall()!.params.slRatio, "0.05");
-  });
-
-  it("tpRatio/slRatio omitted → not in body", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler(contractArgs, makeContext(client));
-    assert.equal(getLastCall()!.params.tpRatio, undefined);
-    assert.equal(getLastCall()!.params.slRatio, undefined);
-  });
-});
-
-describe("grid_create_order inputSchema — new fields", () => {
-  const tools = registerGridTools();
-  const tool = tools.find((t) => t.name === "grid_create_order")!;
-  const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, unknown>;
-  const required = (tool.inputSchema as Record<string, unknown>).required as string[];
-
-  for (const field of ["tpTriggerPx", "slTriggerPx", "algoClOrdId", "tradeQuoteCcy", "tpRatio", "slRatio"]) {
-    it(`has '${field}' in properties`, () => {
-      assert.ok(props[field], `missing property: ${field}`);
-    });
-  }
-
-  it("new fields are not in required", () => {
-    for (const f of ["tpTriggerPx", "slTriggerPx", "algoClOrdId", "tradeQuoteCcy", "tpRatio", "slRatio"]) {
-      assert.ok(!required.includes(f), `${f} should NOT be required`);
-    }
-    assert.equal(required.length, 5);
-  });
-});
-
-describe("grid_create_order spot/contract field isolation", () => {
-  const tools = registerGridTools();
-  const tool = tools.find((t) => t.name === "grid_create_order")!;
-
-  it("spot grid: all spot fields present, contract fields absent", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT", algoOrdType: "grid",
-      maxPx: "100000", minPx: "80000", gridNum: "10", quoteSz: "100",
-      tpTriggerPx: "110000", slTriggerPx: "75000",
-      algoClOrdId: "spot-001", tradeQuoteCcy: "USDT",
-      tpRatio: "0.1", slRatio: "0.05",
-    }, makeContext(client));
-    const p = getLastCall()!.params;
-    assert.equal(p.tpTriggerPx, "110000");
-    assert.equal(p.slTriggerPx, "75000");
-    assert.equal(p.algoClOrdId, "spot-001");
-    assert.equal(p.tradeQuoteCcy, "USDT");
-    assert.equal(p.tpRatio, undefined);
-    assert.equal(p.slRatio, undefined);
-    assert.equal(p.basePos, undefined);
-  });
-
-  it("contract grid: all contract fields present, spot fields absent", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
-      maxPx: "100000", minPx: "80000", gridNum: "10",
-      direction: "long", lever: "5", sz: "100",
-      tpTriggerPx: "110000", slTriggerPx: "75000",
-      algoClOrdId: "contract-001", tpRatio: "0.1", slRatio: "0.05",
-      tradeQuoteCcy: "USDT",
-    }, makeContext(client));
-    const p = getLastCall()!.params;
-    assert.equal(p.tpTriggerPx, "110000");
-    assert.equal(p.slTriggerPx, "75000");
-    assert.equal(p.algoClOrdId, "contract-001");
-    assert.equal(p.tpRatio, "0.1");
-    assert.equal(p.slRatio, "0.05");
-    assert.equal(p.tradeQuoteCcy, undefined);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // DCA tools
 // ---------------------------------------------------------------------------
 
@@ -2283,17 +2012,16 @@ describe("dca_create_order", () => {
     assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "short");
   });
 
-  it("passes slMode when provided with slPct", async () => {
+  it("passes slMode when provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
       instId: "BTC-USDT-SWAP",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
-      slPct: "0.05", slMode: "limit",
+      slMode: "limit",
     }, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).slMode, "limit");
-    assert.equal((getLastCall()?.params as Record<string, unknown>).slPct, "0.05");
   });
 
   it("passes allowReinvest when provided", async () => {
@@ -2408,114 +2136,6 @@ describe("dca_create_order", () => {
     assert.equal(params.slMode, undefined);
   });
 
-  it("throws when slPct is set but slMode is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({
-        instId: "BTC-USDT-SWAP",
-        lever: "3", direction: "long",
-        initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
-        pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
-        slPct: "0.05",
-      }, makeContext(client)),
-      { message: /slMode is required when slPct is set/ },
-    );
-  });
-
-  it("throws when slMode is set but slPct is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({
-        instId: "BTC-USDT-SWAP",
-        lever: "3", direction: "long",
-        initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
-        pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
-        slMode: "market",
-      }, makeContext(client)),
-      { message: /slPct is required when slMode is set/ },
-    );
-  });
-
-  it("throws when maxSafetyOrds > 1 but pxStepsMult is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({
-        instId: "BTC-USDT-SWAP",
-        lever: "3", direction: "long",
-        initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
-        pxSteps: "0.03", volMult: "1", tpPct: "0.02",
-      }, makeContext(client)),
-      { message: /pxStepsMult/ },
-    );
-  });
-
-  it("throws when maxSafetyOrds > 1 but volMult is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({
-        instId: "BTC-USDT-SWAP",
-        lever: "3", direction: "long",
-        initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
-        pxSteps: "0.03", pxStepsMult: "1", tpPct: "0.02",
-      }, makeContext(client)),
-      { message: /volMult/ },
-    );
-  });
-
-  it("throws with all missing params when maxSafetyOrds > 1 and none provided", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({
-        instId: "BTC-USDT-SWAP",
-        lever: "3", direction: "long",
-        initOrdAmt: "100", maxSafetyOrds: "2", tpPct: "0.02",
-      }, makeContext(client)),
-      { message: /safetyOrdAmt, pxSteps/ },
-    );
-  });
-
-  it("allows omitting pxStepsMult/volMult when maxSafetyOrds=1", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT-SWAP",
-      lever: "3", direction: "long",
-      initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "1",
-      pxSteps: "0.03", tpPct: "0.02",
-    }, makeContext(client));
-    const params = getLastCall()?.params as Record<string, unknown>;
-    assert.equal(params.pxStepsMult, undefined);
-    assert.equal(params.volMult, undefined);
-  });
-
-  it("allows omitting safetyOrdAmt/pxSteps/pxStepsMult/volMult when maxSafetyOrds=0", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT-SWAP",
-      lever: "3", direction: "long",
-      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.02",
-    }, makeContext(client));
-    const params = getLastCall()?.params as Record<string, unknown>;
-    assert.equal(params.pxStepsMult, undefined);
-    assert.equal(params.volMult, undefined);
-  });
-
-  it("uses sourceTag from context config", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      instId: "BTC-USDT-SWAP",
-      lever: "3", direction: "long",
-      initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
-      pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
-    }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>).tag, DEFAULT_SOURCE_TAG);
-  });
-
-  it("triggerCond enum only allows cross_up and cross_down", () => {
-    const props = tool.inputSchema.properties as Record<string, { enum?: string[] }>;
-    const allowed = props["triggerCond"]!.enum!;
-    assert.deepStrictEqual(allowed, ["cross_up", "cross_down"]);
-  });
-
 });
 
 describe("dca_stop_order", () => {
@@ -2601,29 +2221,6 @@ describe("dca_get_sub_orders", () => {
     await tool.handler({ algoId: "123", cycleId: "c001" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders");
     assert.equal((getLastCall()?.params as Record<string, unknown>).cycleId, "c001");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Algo trade — swap_cancel_algo_orders
-// ---------------------------------------------------------------------------
-
-describe("swap_cancel_algo_orders", () => {
-  const tools = registerAlgoTradeTools();
-  const tool = tools.find((t) => t.name === "swap_cancel_algo_orders")!;
-
-  it("calls /trade/cancel-algos with [{instId, algoId}] array body", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ instId: "BTC-USDT-SWAP", algoId: "123456" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/cancel-algos");
-    const body = getLastCall()?.params as unknown[];
-    assert.ok(Array.isArray(body), "body should be an array");
-    assert.equal(body.length, 1);
-    assert.deepStrictEqual(body[0], { instId: "BTC-USDT-SWAP", algoId: "123456" });
-  });
-
-  it("is a write tool", () => {
-    assert.equal(tool.isWrite, true);
   });
 });
 
@@ -2762,8 +2359,6 @@ describe("dca tools algoId description", () => {
     }
   }
 });
-
-// DCA schema description validation rule hints removed — descriptions compressed in master merge.
 
 // ---------------------------------------------------------------------------
 // swap_place_algo_order — tag injection
@@ -3795,4 +3390,3 @@ describe("swap_get_algo_orders instType param", () => {
     assert.equal(getLastCall()?.params.instType, "FUTURES");
   });
 });
-

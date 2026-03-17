@@ -59,10 +59,10 @@ export async function cmdGridDetails(
     minPx:        detail["minPx"],
     gridNum:      detail["gridNum"],
     runType:      detail["runType"] === "1" ? "arithmetic" : "geometric",
-    pnl:          detail["totalPnl"],
+    pnl:          detail["pnl"],
     pnlRatio:     detail["pnlRatio"],
-    investAmt:    detail["investment"],
-    totalAnnRate: detail["totalAnnualizedRate"],
+    investAmt:    detail["investAmt"],
+    totalAnnRate: detail["totalAnnRate"],
     createdAt:    new Date(Number(detail["cTime"])).toLocaleString(),
   });
 }
@@ -113,12 +113,6 @@ export async function cmdGridCreate(
     lever?: string;
     sz?: string;
     basePos?: boolean;
-    tpTriggerPx?: string;
-    slTriggerPx?: string;
-    algoClOrdId?: string;
-    tpRatio?: string;
-    slRatio?: string;
-    tradeQuoteCcy?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -135,12 +129,6 @@ export async function cmdGridCreate(
     lever: opts.lever,
     sz: opts.sz,
     basePos: opts.basePos,
-    tpTriggerPx: opts.tpTriggerPx,
-    slTriggerPx: opts.slTriggerPx,
-    algoClOrdId: opts.algoClOrdId,
-    tpRatio: opts.tpRatio,
-    slRatio: opts.slRatio,
-    tradeQuoteCcy: opts.tradeQuoteCcy,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -196,12 +184,6 @@ export async function cmdDcaCreate(
     allowReinvest?: string;
     triggerStrategy?: string;
     triggerPx?: string;
-    triggerCond?: string;
-    thold?: string;
-    timePeriod?: string;
-    timeframe?: string;
-    trackingMode?: string;
-    profitSharingRatio?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -221,12 +203,6 @@ export async function cmdDcaCreate(
     allowReinvest: opts.allowReinvest,
     triggerStrategy: opts.triggerStrategy,
     triggerPx: opts.triggerPx,
-    triggerCond: opts.triggerCond,
-    thold: opts.thold,
-    timePeriod: opts.timePeriod,
-    timeframe: opts.timeframe,
-    trackingMode: opts.trackingMode,
-    profitSharingRatio: opts.profitSharingRatio,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -326,4 +302,3 @@ export async function cmdDcaSubOrders(
     })),
   );
 }
-

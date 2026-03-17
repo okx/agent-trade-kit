@@ -69,6 +69,5 @@ export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account",
 // Default: spot, swap, option, account, bot.grid
 // "all": every module including market, futures, bot.dca, earn.savings, earn.onchain, earn.dcd
 // "bot": bot.grid only; "bot.all": bot.grid + bot.dca
-// NOTE: TWAP and Recurring Buy are CLI-only commands, not MCP tools.
 // "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd)
 // "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only

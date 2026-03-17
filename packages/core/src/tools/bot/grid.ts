@@ -204,19 +204,12 @@ export function registerGridTools(): ToolSpec[] {
           lever: { type: "string", description: "Leverage. Contract only" },
           sz: { type: "string", description: "Margin amount. Contract only" },
           basePos: { type: "boolean", description: "Open base position for contract. Default: true" },
-          tpTriggerPx: { type: "string", description: "Take-profit trigger price. Spot + contract" },
-          slTriggerPx: { type: "string", description: "Stop-loss trigger price. Spot + contract" },
-          algoClOrdId: { type: "string", description: "User-defined algo order ID, 1-32 chars" },
-          tradeQuoteCcy: { type: "string", description: "Spot grid only. Quote currency for trading" },
-          tpRatio: { type: "string", description: "Contract grid only. TP ratio, e.g. '0.1' = 10%" },
-          slRatio: { type: "string", description: "Contract grid only. SL ratio, e.g. '0.1' = 10%" },
         },
         required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoOrdType = requireString(args, "algoOrdType");
-        // Common params (spot + contract)
         const body: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           algoOrdType,
@@ -224,9 +217,6 @@ export function registerGridTools(): ToolSpec[] {
           minPx: requireString(args, "minPx"),
           gridNum: requireString(args, "gridNum"),
           runType: readString(args, "runType"),
-          tpTriggerPx: readString(args, "tpTriggerPx"),
-          slTriggerPx: readString(args, "slTriggerPx"),
-          algoClOrdId: readString(args, "algoClOrdId"),
           quoteSz: readString(args, "quoteSz"),
           baseSz: readString(args, "baseSz"),
           direction: readString(args, "direction"),
@@ -234,21 +224,9 @@ export function registerGridTools(): ToolSpec[] {
           sz: readString(args, "sz"),
           tag: context.config.sourceTag,
         });
-        // Spot grid only
-        if (algoOrdType === "grid") {
-          const tradeQuoteCcy = readString(args, "tradeQuoteCcy");
-          if (tradeQuoteCcy) body.tradeQuoteCcy = tradeQuoteCcy;
-        }
-        // Contract grid only
         if (algoOrdType === "contract_grid") {
-          if (!body.triggerParams) {
-            body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];
-          }
+          body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];
           body.basePos = readBoolean(args, "basePos") ?? true;
-          const tpRatio = readString(args, "tpRatio");
-          const slRatio = readString(args, "slRatio");
-          if (tpRatio) body.tpRatio = tpRatio;
-          if (slRatio) body.slRatio = slRatio;
         }
         const response = await context.client.privatePost(
           "/api/v5/tradingBot/grid/order-algo",
