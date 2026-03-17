@@ -295,43 +295,6 @@ okx bot recurring stop --algoId <algoId>
 
 ---
 
-## copytrading — Copy Trading
-
-```bash
-# Browse top lead traders (default: SWAP)
-okx copytrading traders [--instType SWAP|SPOT] [--limit 20]
-
-# View your currently followed lead traders and their cumulative P&L
-okx --profile live copytrading status --instType SWAP
-okx --profile live copytrading status --instType SPOT
-
-# Start following a trader — smart_copy mode (default, allocates real funds)
-okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --initialAmount 1000 --replicationRequired 1
-
-# Start following a trader — fixed_amount mode (fixed USDT per order)
-okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --copyMode fixed_amount --copyTotalAmt 5000 --copyAmt 100
-
-# Start following a trader — ratio_copy mode (copy by ratio)
-okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --copyMode ratio_copy --copyTotalAmt 5000 --copyRatio 0.1
-
-# With take-profit / stop-loss
-okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
-
-# Custom instruments only (copyInstIdType=custom requires --instId)
-okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
-
-# Stop following a trader
-okx --profile live copytrading unfollow --uniqueCode <16-char-code> --instType SWAP
-
-# View a trader's stats, P&L, and currency preference
-okx copytrading trader-detail --uniqueCode <16-char-code> [--instType SWAP|SPOT]
-okx copytrading trader-detail --uniqueCode <16-char-code> --instType SWAP --lastDays 1
-```
-
-> **Note:** The `copytrading` commands are available by default in the CLI — no `--modules` flag required.
-
----
-
 ## config
 
 ```bash
@@ -655,43 +618,6 @@ okx bot recurring amend --algoId <algoId> --stgyName "新名称"
 okx bot recurring stop --algoId <algoId>
 
 ```
-
----
-
-## copytrading — 跟单交易
-
-```bash
-# 查看排行榜上的带单员（默认 SWAP，支持 SPOT）
-okx copytrading traders [--instType SWAP|SPOT] [--limit 20]
-
-# 查看我当前跟随的带单员及累计盈亏
-okx --profile live copytrading status --instType SWAP
-okx --profile live copytrading status --instType SPOT
-
-# 开始跟单 — 智能跟单模式（默认，会使用真实资金）
-okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --initialAmount 1000 --replicationRequired 1
-
-# 开始跟单 — 固定金额模式（每单固定 USDT）
-okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --copyMode fixed_amount --copyTotalAmt 5000 --copyAmt 100
-
-# 开始跟单 — 固定比例模式（按比例跟单）
-okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --copyMode ratio_copy --copyTotalAmt 5000 --copyRatio 0.1
-
-# 带止盈止损
-okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
-
-# 自定义跟单品种（copyInstIdType=custom 时 --instId 必填）
-okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
-
-# 停止跟单
-okx --profile live copytrading unfollow --uniqueCode <16位代码> --instType SWAP
-
-# 查看带单员详情（统计数据、每日盈亏、偏好币种）
-okx copytrading trader-detail --uniqueCode <16位代码> [--instType SWAP|SPOT]
-okx copytrading trader-detail --uniqueCode <16位代码> --instType SWAP --lastDays 1
-```
-
-> **注意：** CLI 中 `copytrading` 命令默认可用，无需 `--modules` 参数。
 
 ---
 

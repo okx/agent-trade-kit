@@ -155,27 +155,6 @@ export interface CliValues {
   cli?: boolean;   // diagnose --cli: run CLI/general checks only (explicit alias for default)
   all?: boolean;   // diagnose --all: run CLI checks then MCP checks
   output?: string; // diagnose --output: save diagnostic report to file
-  // copytrading
-  uniqueCode?: string;
-  lastDays?: string;
-  sortType?: string;
-  minLeadDays?: string;
-  minAssets?: string;
-  maxAssets?: string;
-  minAum?: string;
-  maxAum?: string;
-  page?: string;
-  dataVer?: string;
-  copyMode?: string;
-  copyRatio?: string;
-  copyTotalAmt?: string;
-  copyAmt?: string;
-  copyMgnMode?: string;
-  copyInstIdType?: string;
-  subPosCloseType?: string;
-  initialAmount?: string;
-  replicationRequired?: string;
-  slTotalAmt?: string;
 }
 
 export const CLI_OPTIONS = {
@@ -346,27 +325,6 @@ export const CLI_OPTIONS = {
   cli: { type: "boolean", default: false }, // diagnose --cli only: CLI/general checks (explicit alias for default)
   all: { type: "boolean", default: false }, // diagnose --all: run both CLI and MCP checks
   output: { type: "string" },               // diagnose --output only: save report to file
-  // copytrading
-  uniqueCode: { type: "string" },
-  lastDays: { type: "string" },
-  sortType: { type: "string" },
-  minLeadDays: { type: "string" },
-  minAssets: { type: "string" },
-  maxAssets: { type: "string" },
-  minAum: { type: "string" },
-  maxAum: { type: "string" },
-  page: { type: "string" },
-  dataVer: { type: "string" },
-  copyMode: { type: "string" },
-  copyRatio: { type: "string" },
-  copyTotalAmt: { type: "string" },
-  copyAmt: { type: "string" },
-  copyMgnMode: { type: "string" },
-  copyInstIdType: { type: "string" },
-  subPosCloseType: { type: "string" },
-  initialAmount: { type: "string" },
-  replicationRequired: { type: "string" },
-  slTotalAmt: { type: "string" },
 } as const;
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {

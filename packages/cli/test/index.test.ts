@@ -19,7 +19,6 @@ import {
   handleSwapCommand,
   handleFuturesCommand,
   handleEarnCommand,
-  handleCopyTradeCommand,
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -442,49 +441,6 @@ describe("cmdEarnLendingRateHistory output", () => {
   it("prints empty message when no data", async () => {
     const out = await captureStdout(() => cmdEarnLendingRateHistory(emptyRunner, { json: false }));
     assert.ok(out.includes("No rate history data"));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// handleCopyTradeCommand — dispatch coverage
-// ---------------------------------------------------------------------------
-describe("handleCopyTradeCommand", () => {
-  it("returns undefined and sets exitCode for unknown action", () => {
-    const origCode = process.exitCode;
-    const result = handleCopyTradeCommand(noopRunner, "noop", {}, false);
-    assert.equal(result, undefined);
-    assert.equal(process.exitCode, 1);
-    process.exitCode = origCode;
-  });
-
-  it("dispatches traders action (returns a Promise)", () => {
-    const result = handleCopyTradeCommand(mockRunner, "traders", {}, false);
-    assert.ok(result instanceof Promise, "traders should return a Promise");
-  });
-
-  it("dispatches status action (returns a Promise)", () => {
-    const result = handleCopyTradeCommand(mockRunner, "status", {}, false);
-    assert.ok(result instanceof Promise, "status should return a Promise");
-  });
-
-  it("dispatches follow action with required params (returns a Promise)", () => {
-    const result = handleCopyTradeCommand(mockRunner, "follow", { uniqueCode: "ABC123", copyTotalAmt: "1000" } as never, false);
-    assert.ok(result instanceof Promise, "follow should return a Promise");
-  });
-
-  it("dispatches unfollow action with uniqueCode (returns a Promise)", () => {
-    const result = handleCopyTradeCommand(mockRunner, "unfollow", { uniqueCode: "ABC123" } as never, false);
-    assert.ok(result instanceof Promise, "unfollow should return a Promise");
-  });
-
-  it("dispatches trader-detail action with uniqueCode (returns a Promise)", () => {
-    const result = handleCopyTradeCommand(mockRunner, "trader-detail", { uniqueCode: "ABC123" } as never, false);
-    assert.ok(result instanceof Promise, "trader-detail should return a Promise");
-  });
-
-  it("forwards limit from v.limit when set", () => {
-    const result = handleCopyTradeCommand(mockRunner, "traders", { limit: "20" }, false);
-    assert.ok(result instanceof Promise, "should return a Promise with limit set");
   });
 });
 

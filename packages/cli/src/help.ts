@@ -682,32 +682,6 @@ const HELP_TREE: HelpTree = {
     },
   },
 
-  "copytrading": {
-    description: "Copy trading — follow lead traders and manage copy positions",
-    commands: {
-      traders: {
-        usage: "okx copytrading traders [--instType <SWAP|SPOT>] [--sortType <overview|pnl|aum|win_ratio|pnl_ratio|current_copy_trader_pnl>]\n                   [--state <0|1>] [--minLeadDays <1|2|3|4>]\n                   [--minAssets <n>] [--maxAssets <n>] [--minAum <n>] [--maxAum <n>]\n                   [--page <n>] [--dataVer <14-digit>] [--limit <n>]",
-        description: "List top lead traders by ranking (default instType: SWAP, sortType: overview)",
-      },
-      status: {
-        usage: "okx --profile <name> copytrading status [--instType <SWAP|SPOT>]",
-        description: "Get your currently followed lead traders and their cumulative P&L (default instType: SWAP). Requires --profile.",
-      },
-      follow: {
-        usage: "okx --profile <name> copytrading follow --uniqueCode <code>\n                   [--instType <SWAP|SPOT>]\n                   [--copyMode <smart_copy|fixed_amount|ratio_copy>]\n                   smart_copy (default): --initialAmount <n> --replicationRequired <0|1>\n                   fixed_amount:         --copyTotalAmt <n> --copyAmt <n>\n                   ratio_copy:           --copyTotalAmt <n> --copyRatio <n>\n                   [--copyMgnMode <copy|isolated|cross>]\n                   [--copyInstIdType <copy|custom>] [--instId <id,...>]  (instId required when copyInstIdType=custom)\n                   [--subPosCloseType <copy_close|market_close|manual_close>]\n                   [--tpRatio <ratio>] [--slRatio <ratio>] [--slTotalAmt <n>]",
-        description: "Start following a lead trader (default instType: SWAP). Requires --profile.",
-      },
-      unfollow: {
-        usage: "okx --profile <name> copytrading unfollow --uniqueCode <code> [--instType <SWAP|SPOT>] [--subPosCloseType <copy_close|market_close|manual_close>]",
-        description: "Stop following a lead trader (default instType: SWAP). Default subPosCloseType: copy_close. Requires --profile.",
-      },
-      "trader-detail": {
-        usage: "okx copytrading trader-detail --uniqueCode <code> [--instType <SWAP|SPOT>] [--lastDays <1|2|3|4>]",
-        description: "Get stats, daily P&L, and currency preference of a lead trader (default instType: SWAP). lastDays: 1=7d, 2=30d (default), 3=90d, 4=365d",
-      },
-    },
-  },
-
   config: {
     description: "Manage CLI configuration profiles",
     commands: {

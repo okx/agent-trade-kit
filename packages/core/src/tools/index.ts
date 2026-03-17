@@ -11,7 +11,6 @@ import { registerMarketTools } from "./market.js";
 import { registerOptionAlgoTools } from "./option-algo-trade.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
-import { registerCopyTradeTools } from "./copytrading.js";
 import { registerSwapTradeTools } from "./swap-trade.js";
 import type { ToolSpec, ToolArgs } from "./types.js";
 
@@ -37,14 +36,12 @@ export function allToolSpecs(): ToolSpec[] {
     ...registerBotTools(),
     ...registerAllEarnTools(),
     ...registerAuditTools(),
-    // copytrading: included for CLI use only; not exposed via MCP (module removed from MODULES)
-    ...registerCopyTradeTools(),
   ];
 }
 
 export function buildTools(config: OkxConfig): ToolSpec[] {
   const enabledModules = new Set(config.modules);
-  const tools = allToolSpecs().filter((tool) => enabledModules.has(tool.module as ModuleId));
+  const tools = allToolSpecs().filter((tool) => enabledModules.has(tool.module));
   if (!config.readOnly) {
     return tools;
   }

@@ -17,16 +17,11 @@
 
 ### 新增
 
-- **CLI `copytrading` 模块**：5 个新命令，支持浏览带单员、跟单/取消跟单、查看跟单状态。支持 SWAP 和 SPOT。公开接口无需鉴权；`status` / `follow` / `unfollow` 需要 `--profile`。
-  - `okx copytrading traders` — 带单员排行榜，支持完整筛选：`--sortType`、`--state`、`--minLeadDays`、`--minAssets`、`--maxAssets`、`--minAum`、`--maxAum`、`--page`、`--dataVer`
-  - `okx copytrading trader-detail` — 带单员完整档案（每日盈亏 + 胜率统计 + 偏好币种）
-  - `okx copytrading status` — 我当前跟随的带单员（含累计盈亏）
-  - `okx copytrading follow` — 开始跟单，支持三种模式：`smart_copy`（initialAmount + replicationRequired）、`fixed_amount`（copyAmt）、`ratio_copy`（copyRatio）。支持止盈止损、保证金模式、自定义品种。
-  - `okx copytrading unfollow` — 停止跟单，可选持仓处理方式（`copy_close` / `market_close` / `manual_close`）
 - **`dca_create_order` — RSI 触发子参数**：当 `triggerStrategy='rsi'` 时，工具现支持 `triggerCond`（cross_up/cross_down）、`thold`（RSI 阈值）、`timePeriod`（默认 14）和 `timeframe`（3m/5m/15m/30m/1H/4H/1D）参数。验证逻辑确保所有必填 RSI 参数存在。
 - **`dca_create_order` — 跟单参数**：新增可选参数 `trackingMode`（sync/async）和 `profitSharingRatio`（0/0.1/0.2/0.3），用于带单交易场景。
 - **5 个新 DCA CLI 命令**（仅 CLI，无 MCP 工具）：`margin-add`、`margin-reduce`、`set-tp`、`set-reinvest`、`manual-buy`。覆盖 5 个未作为 MCP 工具暴露的 DCA 管理端点。
 - **现货定投 CLI 命令**（仅 CLI，无 MCP 工具）：`create`、`amend`、`stop`、`orders`、`details`、`sub-orders`。6 个命令覆盖现货定投（Spot Recurring Buy）策略，直接调用 OKX REST API。CLI 命令：`okx bot recurring create|amend|stop|orders|details|sub-orders`。
+
 - **`grid_create_order` — 6 个新可选参数**：`tpTriggerPx`、`slTriggerPx`、`algoClOrdId`（现货 + 合约），`tradeQuoteCcy`（仅现货），`tpRatio`、`slRatio`（仅合约）。工具 handler 现在区分现货/合约参数——仅现货参数在 `contract_grid` 下被忽略，反之亦然。
 - **14 个新网格 CLI 命令**（仅 CLI，无 MCP 工具）：`amend-basic-param`、`amend-order`、`close-position`、`cancel-close-order`、`instant-trigger`、`positions`、`withdraw-income`、`compute-margin-balance`、`margin-balance`、`adjust-investment`、`ai-param`、`min-investment`、`rsi-back-testing`、`max-quantity`。覆盖此前未实现的 15 个 OKX 网格交易 OpenAPI。其中 4 个为公开接口（无需 API Key）。
 - **`OkxRestClient.publicPost()` 方法**：新增公开 POST 请求方法（用于网格 `min-investment` API）。
@@ -34,10 +29,6 @@
 - **`dcd_subscribe` 工具**（`earn.dcd`）：原子化 DCD 申购，内部一步完成询价+下单，彻底消灭 MCP 用户的报价过期竞争问题。支持可选参数 `minAnnualizedYield`（百分比），若实际报价年化低于该阈值则拒绝下单并返回错误。返回结果包含 trade 信息及 quote 快照（`annualizedYield`、`absYield`）。不支持模拟交易模式。
 - **`dcd_redeem` 工具**（`earn.dcd`）：两阶段提前赎回设计，确保用户在执行前确认损失。第一次调用（不传 `quoteId`）：仅询价，返回赎回损失详情供用户确认。第二次调用（传入 `quoteId`）：执行赎回。若两次调用之间报价已过期，自动重新询价并原子执行，response 中包含 `autoRefreshedQuote: true`。执行步骤不支持模拟交易模式。
 - **移除低阶 DCD 拆分工具**：`dcd_request_quote`、`dcd_execute_quote`、`dcd_request_redeem_quote`、`dcd_execute_redeem` 已删除。申购流程请使用 `dcd_subscribe`，提前赎回流程请使用 `dcd_redeem`。
-
----
-
-## [1.2.5-beta.1] - 2026-03-16
 
 ### 变更
 

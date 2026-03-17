@@ -17,12 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **CLI `copytrading` module**: 5 new commands for browsing lead traders, following/unfollowing traders, and monitoring copy positions. Supports SWAP and SPOT. Public endpoints require no credentials; `status` / `follow` / `unfollow` require `--profile`.
-  - `okx copytrading traders` — ranked lead trader list with full filter support: `--sortType`, `--state`, `--minLeadDays`, `--minAssets`, `--maxAssets`, `--minAum`, `--maxAum`, `--page`, `--dataVer`
-  - `okx copytrading trader-detail` — aggregated trader profile: daily P&L, win-rate stats, and currency preference
-  - `okx copytrading status` — current followed traders with cumulative P&L
-  - `okx copytrading follow` — start copy trading: `smart_copy` (initialAmount + replicationRequired), `fixed_amount` (copyAmt), `ratio_copy` (copyRatio). Supports TP/SL, margin mode, custom instruments.
-  - `okx copytrading unfollow` — stop copy trading with configurable position close type (`copy_close` / `market_close` / `manual_close`)
 - **`dca_create_order` — RSI trigger sub-parameters**: When `triggerStrategy='rsi'`, the tool now accepts `triggerCond` (cross_up/cross_down), `thold` (RSI threshold), `timePeriod` (default 14), and `timeframe` (3m/5m/15m/30m/1H/4H/1D). Validation ensures all required RSI params are present.
 - **`dca_create_order` — copy-trading params**: Added optional `trackingMode` (sync/async) and `profitSharingRatio` (0/0.1/0.2/0.3) for lead trader copy-trading scenarios.
 - **5 new DCA CLI commands** (CLI-only, no MCP tool): `margin-add`, `margin-reduce`, `set-tp`, `set-reinvest`, `manual-buy`. These cover 5 DCA management endpoints not exposed as MCP tools.
@@ -34,10 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dcd_subscribe` tool** (`earn.dcd`): atomic DCD subscription that requests a quote and executes it in a single step, eliminating quote-expiry race conditions for MCP users. Accepts optional `minAnnualizedYield` (in percent) — if the actual quote yield falls below this threshold, the order is rejected before execution. Returns the trade result with a quote snapshot (`annualizedYield`, `absYield`). Not supported in demo mode.
 - **`dcd_redeem` tool** (`earn.dcd`): two-step early redemption designed for user confirmation before executing. First call (no `quoteId`): requests a redemption quote showing the early-exit cost. Second call (with `quoteId`): executes the redemption. If the quote has expired between the two calls, a fresh quote is automatically requested and executed atomically; response includes `autoRefreshedQuote: true`. Not supported in demo mode for the execute step.
 - **Removed low-level split DCD tools**: `dcd_request_quote`, `dcd_execute_quote`, `dcd_request_redeem_quote`, and `dcd_execute_redeem` have been removed. Use `dcd_subscribe` for subscribe flows and `dcd_redeem` for early redemption flows.
-
----
-
-## [1.2.5-beta.1] - 2026-03-16
 
 ### Changed
 

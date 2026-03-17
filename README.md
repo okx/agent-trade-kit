@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **113 tools across 9 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → copy trading |
+| **106 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -48,7 +48,6 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
 | `earn` | 19 | Simple Earn: balance, purchase, redeem, lending rate (7). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`. Included in `all`. | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
-| `copytrading` | 5 | Copy trading: browse lead traders, follow/unfollow, monitor copy positions. Supports SWAP and SPOT. **CLI only** — not exposed as MCP tools. | [→](docs/cli-reference.md#copytrading--copy-trading) |
 
 ---
 
