@@ -120,6 +120,33 @@ describe("handleSpotCommand — parameter routing", () => {
     assert.equal(captured.args["ordId"], "123");
   });
 
+  it("cancel: instId falls back to rest[0] when flag absent", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleSpotCommand(spy, "cancel", ["ETH-USDT"], vals({ ordId: "123" }), false)
+    );
+    assert.equal(captured.args["instId"], "ETH-USDT");
+    assert.equal(captured.args["ordId"], "123");
+  });
+
+  it("cancel: --instId flag takes precedence over rest[0]", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleSpotCommand(spy, "cancel", ["WRONG-PAIR"], vals({ instId: "ETH-USDT", ordId: "123" }), false)
+    );
+    assert.equal(captured.args["instId"], "ETH-USDT");
+  });
+
+  it("cancel: clOrdId can be used instead of ordId", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleSpotCommand(spy, "cancel", [], vals({ instId: "ETH-USDT", clOrdId: "my-client-id" }), false)
+    );
+    assert.equal(captured.args["instId"], "ETH-USDT");
+    assert.equal(captured.args["clOrdId"], "my-client-id");
+    assert.equal(captured.args["ordId"], undefined);
+  });
+
   it("amend: instId and ordId come from v", async () => {
     const { spy, captured } = makeSpy();
     await captureStdout(() =>
@@ -231,6 +258,31 @@ describe("handleSwapCommand — parameter routing", () => {
     );
     assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
     assert.equal(captured.args["ordId"], "123");
+  });
+
+  it("cancel: instId falls back to rest[0] when flag absent", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleSwapCommand(spy, "cancel", ["BTC-USDT-SWAP"], vals({ ordId: "123" }), false)
+    );
+    assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
+  });
+
+  it("cancel: --instId flag takes precedence over rest[0]", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleSwapCommand(spy, "cancel", ["WRONG-PAIR"], vals({ instId: "BTC-USDT-SWAP", ordId: "123" }), false)
+    );
+    assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
+  });
+
+  it("cancel: clOrdId can be used instead of ordId", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleSwapCommand(spy, "cancel", [], vals({ instId: "BTC-USDT-SWAP", clOrdId: "my-swap-id" }), false)
+    );
+    assert.equal(captured.args["clOrdId"], "my-swap-id");
+    assert.equal(captured.args["ordId"], undefined);
   });
 
   it("amend: instId and ordId come from v", async () => {
@@ -359,6 +411,31 @@ describe("handleFuturesCommand — parameter routing", () => {
     );
     assert.equal(captured.args["instId"], "BTC-USD-250328");
     assert.equal(captured.args["ordId"], "123");
+  });
+
+  it("cancel: instId falls back to rest[0] when flag absent", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleFuturesCommand(spy, "cancel", ["BTC-USD-250328"], vals({ ordId: "123" }), false)
+    );
+    assert.equal(captured.args["instId"], "BTC-USD-250328");
+  });
+
+  it("cancel: --instId flag takes precedence over rest[0]", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleFuturesCommand(spy, "cancel", ["WRONG-PAIR"], vals({ instId: "BTC-USD-250328", ordId: "123" }), false)
+    );
+    assert.equal(captured.args["instId"], "BTC-USD-250328");
+  });
+
+  it("cancel: clOrdId can be used instead of ordId", async () => {
+    const { spy, captured } = makeSpy();
+    await captureStdout(() =>
+      handleFuturesCommand(spy, "cancel", [], vals({ instId: "BTC-USD-250328", clOrdId: "my-fut-id" }), false)
+    );
+    assert.equal(captured.args["clOrdId"], "my-fut-id");
+    assert.equal(captured.args["ordId"], undefined);
   });
 
   it("amend: instId and ordId come from v", async () => {

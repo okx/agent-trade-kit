@@ -107,11 +107,11 @@ export async function cmdFuturesPlace(
 
 export async function cmdFuturesCancel(
   run: ToolRunner,
-  instId: string,
-  ordId: string,
-  json: boolean,
+  opts: { instId: string; ordId?: string; clOrdId?: string; json: boolean },
 ): Promise<void> {
-  const result = await run("futures_cancel_order", { instId, ordId });
+  const { instId, ordId, clOrdId, json } = opts;
+  if (!ordId && !clOrdId) throw new Error("Either --ordId or --clOrdId is required");
+  const result = await run("futures_cancel_order", { instId, ...(ordId ? { ordId } : { clOrdId }) });
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const r = data?.[0];

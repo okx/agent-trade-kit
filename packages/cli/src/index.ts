@@ -405,7 +405,7 @@ export function handleSpotCommand(
       json,
     });
   if (action === "cancel")
-    return cmdSpotCancel(run, v.instId!, v.ordId!, json);
+    return cmdSpotCancel(run, { instId: (v.instId ?? rest[0])!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "algo")
     return handleSpotAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
@@ -471,15 +471,15 @@ export function handleSwapAlgoCommand(
     });
 }
 
-export function handleSwapCommand(
+function handleSwapQuery(
   run: ToolRunner,
   action: string,
   rest: string[],
   v: CliValues,
   json: boolean
-): Promise<void> | void {
+): Promise<void> | void | undefined {
   if (action === "positions")
-    return cmdSwapPositions(run, rest[0] ?? v.instId, json);
+    return cmdSwapPositions(run, v.instId ?? rest[0], json);
   if (action === "orders")
     return cmdSwapOrders(run, {
       instId: v.instId,
@@ -495,6 +495,20 @@ export function handleSwapCommand(
       archive: v.archive ?? false,
       json,
     });
+  if (action === "get-leverage")
+    return cmdSwapGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
+  return undefined;
+}
+
+export function handleSwapCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const queryResult = handleSwapQuery(run, action, rest, v, json);
+  if (queryResult !== undefined) return queryResult;
   if (action === "close")
     return cmdSwapClose(run, {
       instId: v.instId!,
@@ -503,8 +517,6 @@ export function handleSwapCommand(
       autoCxl: v.autoCxl,
       json,
     });
-  if (action === "get-leverage")
-    return cmdSwapGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
   if (action === "place")
     return cmdSwapPlace(run, {
       instId: v.instId!,
@@ -521,7 +533,7 @@ export function handleSwapCommand(
       json,
     });
   if (action === "cancel")
-    return cmdSwapCancel(run, v.instId!, v.ordId!, json);
+    return cmdSwapCancel(run, { instId: (v.instId ?? rest[0])!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "amend")
     return cmdSwapAmend(run, {
       instId: v.instId!,
@@ -709,13 +721,12 @@ function resolveFuturesOrdersStatus(v: CliValues): "archive" | "history" | "open
   return "open";
 }
 
-export function handleFuturesCommand(
+function handleFuturesQuery(
   run: ToolRunner,
   action: string,
-  rest: string[],
   v: CliValues,
   json: boolean
-): Promise<void> | void {
+): Promise<void> | void | undefined {
   if (action === "orders")
     return cmdFuturesOrders(run, { instId: v.instId, status: resolveFuturesOrdersStatus(v), json });
   if (action === "positions") return cmdFuturesPositions(run, v.instId, json);
@@ -726,6 +737,22 @@ export function handleFuturesCommand(
       archive: v.archive ?? false,
       json,
     });
+  if (action === "get")
+    return cmdFuturesGet(run, { instId: v.instId!, ordId: v.ordId, json });
+  if (action === "get-leverage")
+    return cmdFuturesGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
+  return undefined;
+}
+
+export function handleFuturesCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  const queryResult = handleFuturesQuery(run, action, v, json);
+  if (queryResult !== undefined) return queryResult;
   if (action === "place")
     return cmdFuturesPlace(run, {
       instId: v.instId!,
@@ -743,9 +770,7 @@ export function handleFuturesCommand(
       json,
     });
   if (action === "cancel")
-    return cmdFuturesCancel(run, v.instId!, v.ordId!, json);
-  if (action === "get")
-    return cmdFuturesGet(run, { instId: rest[0] ?? v.instId!, ordId: v.ordId, json });
+    return cmdFuturesCancel(run, { instId: (v.instId ?? rest[0])!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "amend")
     return cmdFuturesAmend(run, {
       instId: v.instId!,
@@ -763,8 +788,6 @@ export function handleFuturesCommand(
       autoCxl: v.autoCxl,
       json,
     });
-  if (action === "get-leverage")
-    return cmdFuturesGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
   if (action === "leverage")
     return cmdFuturesSetLeverage(run, {
       instId: v.instId!,
