@@ -139,6 +139,43 @@ import {
   cmdDcaSubOrders,
 } from "./commands/bot.js";
 import {
+  cmdGridAmendBasicParam,
+  cmdGridAmendOrder,
+  cmdGridClosePosition,
+  cmdGridCancelCloseOrder,
+  cmdGridInstantTrigger,
+  cmdGridPositions,
+  cmdGridWithdrawIncome,
+  cmdGridComputeMarginBalance,
+  cmdGridMarginBalance,
+  cmdGridAdjustInvestment,
+  cmdGridAiParam,
+  cmdGridMinInvestment,
+  cmdGridRsiBackTesting,
+  cmdGridMaxQuantity,
+} from "./commands/bot-grid-ext.js";
+import {
+  cmdDcaMarginAdd,
+  cmdDcaMarginReduce,
+  cmdDcaSetTakeProfit,
+  cmdDcaSetReinvestment,
+  cmdDcaManualBuy,
+} from "./commands/bot-dca-ext.js";
+import {
+  cmdRecurringCreate,
+  cmdRecurringAmend,
+  cmdRecurringStop,
+  cmdRecurringOrders,
+  cmdRecurringDetails,
+  cmdRecurringSubOrders,
+} from "./commands/bot-recurring-ext.js";
+import {
+  cmdTwapPlace,
+  cmdTwapCancel,
+  cmdTwapOrders,
+  cmdTwapDetails,
+} from "./commands/bot-twap-ext.js";
+import {
   cmdOnchainEarnOffers,
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
@@ -781,11 +818,14 @@ export function handleFuturesCommand(
 
 export function handleBotGridCommand(
   run: ToolRunner,
+  client: OkxRestClient,
   v: CliValues,
   rest: string[],
   json: boolean
 ): Promise<void> | void {
   const subAction = rest[0];
+
+  // --- Existing commands (via ToolRunner) ---
   if (subAction === "orders")
     return cmdGridOrders(run, {
       algoOrdType: v.algoOrdType!,
@@ -821,6 +861,12 @@ export function handleBotGridCommand(
       lever: v.lever,
       sz: v.sz,
       basePos: v.basePos,
+      tpTriggerPx: v.tpTriggerPx,
+      slTriggerPx: v.slTriggerPx,
+      algoClOrdId: v.algoClOrdId,
+      tpRatio: v.tpRatio,
+      slRatio: v.slRatio,
+      tradeQuoteCcy: v.tradeQuoteCcy,
       json,
     });
   if (subAction === "stop")
@@ -831,10 +877,128 @@ export function handleBotGridCommand(
       stopType: v.stopType,
       json,
     });
+
+  // --- New commands (via OkxRestClient directly) ---
+  if (subAction === "amend-basic")
+    return cmdGridAmendBasicParam(client, {
+      algoId: v.algoId!,
+      minPx: v.minPx!,
+      maxPx: v.maxPx!,
+      gridNum: v.gridNum!,
+      topupAmount: v.topupAmount,
+      json,
+    });
+  if (subAction === "amend-order")
+    return cmdGridAmendOrder(client, {
+      algoId: v.algoId!,
+      instId: v.instId!,
+      slTriggerPx: v.slTriggerPx,
+      tpTriggerPx: v.tpTriggerPx,
+      tpRatio: v.tpRatio,
+      slRatio: v.slRatio,
+      topUpAmt: v.topUpAmt,
+      json,
+    });
+  if (subAction === "close-position")
+    return cmdGridClosePosition(client, {
+      algoId: v.algoId!,
+      mktClose: v.mktClose ?? false,
+      sz: v.sz,
+      px: v.px,
+      json,
+    });
+  if (subAction === "cancel-close")
+    return cmdGridCancelCloseOrder(client, {
+      algoId: v.algoId!,
+      ordId: v.ordId!,
+      json,
+    });
+  if (subAction === "instant-trigger")
+    return cmdGridInstantTrigger(client, {
+      algoId: v.algoId!,
+      topUpAmt: v.topUpAmt,
+      json,
+    });
+  if (subAction === "positions")
+    return cmdGridPositions(client, {
+      algoOrdType: v.algoOrdType!,
+      algoId: v.algoId!,
+      json,
+    });
+  if (subAction === "withdraw-income")
+    return cmdGridWithdrawIncome(client, {
+      algoId: v.algoId!,
+      json,
+    });
+  if (subAction === "compute-margin")
+    return cmdGridComputeMarginBalance(client, {
+      algoId: v.algoId!,
+      type: v.gridType!,
+      amt: v.amt,
+      json,
+    });
+  if (subAction === "margin-balance")
+    return cmdGridMarginBalance(client, {
+      algoId: v.algoId!,
+      type: v.gridType!,
+      amt: v.amt,
+      percent: v.percent,
+      json,
+    });
+  if (subAction === "adjust-investment")
+    return cmdGridAdjustInvestment(client, {
+      algoId: v.algoId!,
+      amt: v.amt!,
+      allowReinvestProfit: v.allowReinvestProfit,
+      json,
+    });
+  if (subAction === "ai-param")
+    return cmdGridAiParam(client, {
+      algoOrdType: v.algoOrdType!,
+      instId: v.instId!,
+      direction: v.direction,
+      duration: v.duration,
+      json,
+    });
+  if (subAction === "min-investment")
+    return cmdGridMinInvestment(client, {
+      instId: v.instId!,
+      algoOrdType: v.algoOrdType!,
+      gridNum: v.gridNum!,
+      maxPx: v.maxPx!,
+      minPx: v.minPx!,
+      runType: v.runType!,
+      direction: v.direction,
+      lever: v.lever,
+      basePos: v.basePos,
+      investmentType: v.investmentType,
+      json,
+    });
+  if (subAction === "rsi-back-testing")
+    return cmdGridRsiBackTesting(client, {
+      instId: v.instId!,
+      timeframe: v.timeframe!,
+      thold: v.thold!,
+      timePeriod: v.timePeriod!,
+      triggerCond: v.triggerCond,
+      duration: v.duration,
+      json,
+    });
+  if (subAction === "max-quantity")
+    return cmdGridMaxQuantity(client, {
+      instId: v.instId!,
+      runType: v.runType!,
+      algoOrdType: v.algoOrdType!,
+      maxPx: v.maxPx!,
+      minPx: v.minPx!,
+      lever: v.lever,
+      json,
+    });
 }
 
 export function handleBotDcaCommand(
   run: ToolRunner,
+  client: OkxRestClient,
   subAction: string,
   v: CliValues,
   json: boolean,
@@ -862,21 +1026,115 @@ export function handleBotDcaCommand(
       allowReinvest: v.allowReinvest,
       triggerStrategy: v.triggerStrategy,
       triggerPx: v.triggerPx,
+      triggerCond: v.triggerCond,
+      thold: v.thold,
+      timePeriod: v.timePeriod,
+      timeframe: v.timeframe,
+      trackingMode: v.trackingMode,
+      profitSharingRatio: v.profitSharingRatio,
       json,
     });
   if (subAction === "stop")
     return cmdDcaStop(run, { algoId: v.algoId!, json });
+
+  // --- Extended commands (via OkxRestClient directly) ---
+  if (subAction === "margin-add")
+    return cmdDcaMarginAdd(client, { algoId: v.algoId!, amt: v.amt!, json });
+  if (subAction === "margin-reduce")
+    return cmdDcaMarginReduce(client, { algoId: v.algoId!, amt: v.amt!, json });
+  if (subAction === "set-tp")
+    return cmdDcaSetTakeProfit(client, { algoId: v.algoId!, tpPrice: v.tpPrice!, json });
+  if (subAction === "set-reinvest")
+    return cmdDcaSetReinvestment(client, { algoId: v.algoId!, allowReinvest: v.allowReinvest!, json });
+  if (subAction === "manual-buy") {
+    if (!v.px) throw new Error("--px <price> is required for manual-buy");
+    return cmdDcaManualBuy(client, { algoId: v.algoId!, amt: v.amt!, px: v.px, json });
+  }
+}
+
+export function handleBotTwapCommand(
+  client: OkxRestClient,
+  subAction: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (subAction === "orders")
+    return cmdTwapOrders(client, { history: v.history ?? false, instId: v.instId, instType: v.instType, state: v.state, json });
+  if (subAction === "details")
+    return cmdTwapDetails(client, { algoId: v.algoId, algoClOrdId: v.algoClOrdId, json });
+  if (subAction === "place")
+    return cmdTwapPlace(client, {
+      instId: v.instId!,
+      tdMode: v.tdMode!,
+      side: v.side!,
+      sz: v.sz!,
+      szLimit: v.szLimit!,
+      pxLimit: v.pxLimit!,
+      timeInterval: v.timeInterval!,
+      posSide: v.posSide,
+      pxVar: v.pxVar,
+      pxSpread: v.pxSpread,
+      algoClOrdId: v.algoClOrdId,
+      ccy: v.ccy,
+      tradeQuoteCcy: v.tradeQuoteCcy,
+      reduceOnly: v.reduceOnly || undefined,
+      isTradeBorrowMode: v.isTradeBorrowMode || undefined,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdTwapCancel(client, { instId: v.instId!, algoId: v.algoId, algoClOrdId: v.algoClOrdId, json });
+}
+
+export function handleBotRecurringCommand(
+  client: OkxRestClient,
+  subAction: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (subAction === "orders")
+    return cmdRecurringOrders(client, { algoId: v.algoId, history: v.history ?? false, json });
+  if (subAction === "details")
+    return cmdRecurringDetails(client, { algoId: v.algoId!, json });
+  if (subAction === "sub-orders")
+    return cmdRecurringSubOrders(client, { algoId: v.algoId!, json });
+  if (subAction === "create")
+    return cmdRecurringCreate(client, {
+      stgyName: v.stgyName!,
+      recurringList: v.recurringList!,
+      period: v.period!,
+      recurringDay: v.recurringDay,
+      recurringTime: v.recurringTime!,
+      recurringHour: v.recurringHour,
+      timeZone: v.timeZone!,
+      amt: v.amt!,
+      investmentCcy: v.investmentCcy!,
+      tdMode: v.tdMode!,
+      tradeQuoteCcy: v.tradeQuoteCcy,
+      algoClOrdId: v.algoClOrdId,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdRecurringAmend(client, {
+      algoId: v.algoId!,
+      stgyName: v.stgyName!,
+      json,
+    });
+  if (subAction === "stop")
+    return cmdRecurringStop(client, { algoId: v.algoId!, json });
 }
 
 export function handleBotCommand(
   run: ToolRunner,
+  client: OkxRestClient,
   action: string,
   rest: string[],
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
-  if (action === "grid") return handleBotGridCommand(run, v, rest, json);
-  if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
+  if (action === "grid") return handleBotGridCommand(run, client, v, rest, json);
+  if (action === "dca") return handleBotDcaCommand(run, client, rest[0], v, json);
+  if (action === "twap") return handleBotTwapCommand(client, rest[0], v, json);
+  if (action === "recurring") return handleBotRecurringCommand(client, rest[0], v, json);
 }
 
 export function handleEarnCommand(
@@ -1061,7 +1319,7 @@ async function main(): Promise<void> {
     swap:    () => handleSwapCommand(run, action, rest, v, json),
     futures: () => handleFuturesCommand(run, action, rest, v, json),
     option:  () => handleOptionCommand(run, action, rest, v, json),
-    bot:     () => handleBotCommand(run, action, rest, v, json),
+    bot:     () => handleBotCommand(run, client, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
   };
   const handler = moduleHandlers[module];

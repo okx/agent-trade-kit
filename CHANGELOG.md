@@ -11,8 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`docs/cli-reference.md` — recurring buy example naming**: Renamed `stgyName` from `"BTC+ETH DCA"` to `"BTC+ETH Recurring Buy"` in the multi-asset recurring buy example to avoid confusion with DCA (Martingale) bots.
+
 ### Added
 
+- **`dca_create_order` — RSI trigger sub-parameters**: When `triggerStrategy='rsi'`, the tool now accepts `triggerCond` (cross_up/cross_down), `thold` (RSI threshold), `timePeriod` (default 14), and `timeframe` (3m/5m/15m/30m/1H/4H/1D). Validation ensures all required RSI params are present.
+- **`dca_create_order` — copy-trading params**: Added optional `trackingMode` (sync/async) and `profitSharingRatio` (0/0.1/0.2/0.3) for lead trader copy-trading scenarios.
+- **5 new DCA CLI commands** (CLI-only, no MCP tool): `margin-add`, `margin-reduce`, `set-tp`, `set-reinvest`, `manual-buy`. These cover 5 DCA management endpoints not exposed as MCP tools.
+- **Spot Recurring Buy CLI commands** (CLI-only, no MCP tool): `create`, `amend`, `stop`, `orders`, `details`, `sub-orders`. These 6 commands cover Spot Recurring Buy (定投) strategies via direct OKX REST API calls. CLI commands: `okx bot recurring create|amend|stop|orders|details|sub-orders`.
+- **`grid_create_order` — 6 new optional parameters**: `tpTriggerPx`, `slTriggerPx`, `algoClOrdId` (spot + contract), `tradeQuoteCcy` (spot only), `tpRatio`, `slRatio` (contract only). The tool handler now distinguishes spot vs. contract parameters — spot-only params are ignored for `contract_grid`, and vice versa.
+- **14 new grid CLI commands** (CLI-only, no MCP tool): `amend-basic-param`, `amend-order`, `close-position`, `cancel-close-order`, `instant-trigger`, `positions`, `withdraw-income`, `compute-margin-balance`, `margin-balance`, `adjust-investment`, `ai-param`, `min-investment`, `rsi-back-testing`, `max-quantity`. These cover 15 additional OKX grid trading bot OpenAPIs not previously implemented. 4 of these are public endpoints (no API key required).
+- **`OkxRestClient.publicPost()` method**: new method for public POST endpoints (used by grid `min-investment` API).
+- **Core exports**: `privateRateLimit`, `publicRateLimit`, `compactObject`, `normalizeResponse` are now exported from `@agent-tradekit/core` for use by CLI direct-client commands.
 - **`dcd_subscribe` tool** (`earn.dcd`): atomic DCD subscription that requests a quote and executes it in a single step, eliminating quote-expiry race conditions for MCP users. Accepts optional `minAnnualizedYield` (in percent) — if the actual quote yield falls below this threshold, the order is rejected before execution. Returns the trade result with a quote snapshot (`annualizedYield`, `absYield`). Not supported in demo mode.
 - **`dcd_redeem` tool** (`earn.dcd`): two-step early redemption designed for user confirmation before executing. First call (no `quoteId`): requests a redemption quote showing the early-exit cost. Second call (with `quoteId`): executes the redemption. If the quote has expired between the two calls, a fresh quote is automatically requested and executed atomically; response includes `autoRefreshedQuote: true`. Not supported in demo mode for the execute step.
 - **Removed low-level split DCD tools**: `dcd_request_quote`, `dcd_execute_quote`, `dcd_request_redeem_quote`, and `dcd_execute_redeem` have been removed. Use `dcd_subscribe` for subscribe flows and `dcd_redeem` for early redemption flows.
@@ -98,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **7 new futures core tools** for delivery contract (Phase 1 feature parity with swap): `futures_amend_order`, `futures_close_position`, `futures_set_leverage`, `futures_get_leverage`, `futures_batch_orders`, `futures_batch_amend`, `futures_batch_cancel`. These use futures-specific tool names (`futures_*`) instead of reusing swap tools, giving futures its own dedicated API surface. ([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
 - **5 new futures algo tools** (`registerFuturesAlgoTools`): `futures_place_algo_order`, `futures_place_move_stop_order`, `futures_amend_algo_order`, `futures_cancel_algo_orders`, `futures_get_algo_orders`. These are analogues of the swap algo tools but use `instType: "FUTURES"` and are registered under the `futures` module. ([#71](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/issues/71))
+- **TWAP CLI commands** (CLI-only, no MCP tool): `place`, `cancel`, `orders`, `details`. These 4 commands cover TWAP (Time-Weighted Average Price) strategy orders via direct OKX REST API calls. CLI commands: `okx bot twap place|cancel|orders|details`.
 
 ### Fixed
 
@@ -254,7 +267,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Contract DCA `side`/`direction` mismatch** (critical): MCP schema used `side` (`buy`/`sell`) but API requires `direction` (`long`/`short`). The `side` field was removed; `direction` is now used directly. Previously, short positions could not be created correctly.
-- **Contract DCA `safetyOrdAmt`, `pxSteps`, `pxStepsMult`, `volMult` conditionally required**: These 4 parameters are business-required when `maxSafetyOrds > 0` (API returns 400 if omitted), but API-optional when `maxSafetyOrds = 0`. They are now schema-optional with descriptions noting the conditional requirement.
+- **Contract DCA `safetyOrdAmt`, `pxSteps`, `pxStepsMult`, `volMult` conditionally required**: `safetyOrdAmt` and `pxSteps` are required when `maxSafetyOrds > 0`; `pxStepsMult` and `volMult` are required when `maxSafetyOrds > 1`. They are now schema-optional with descriptions noting the conditional requirement.
 - **Contract sub-orders sent unsupported pagination**: contract DCA orders-by-cycle path sent `after`/`before` params, but the API only supports `limit`. Removed `after`/`before` from this path.
 
 ---

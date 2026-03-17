@@ -46,6 +46,25 @@ export interface CliValues {
   basePos?: boolean;
   stopType?: string;
   live?: boolean;
+  // grid create extended
+  algoClOrdId?: string;
+  tpRatio?: string;
+  slRatio?: string;
+  tradeQuoteCcy?: string;
+  // grid extended commands
+  mktClose?: boolean;
+  topupAmount?: string;
+  topUpAmt?: string;
+  allowReinvestProfit?: string;
+  percent?: string;
+  gridType?: string;
+  investmentType?: string;
+  // rsi back testing / ai param
+  timeframe?: string;
+  thold?: string;
+  timePeriod?: string;
+  triggerCond?: string;
+  duration?: string;
   instType?: string;
   quoteCcy?: string;
   archive?: boolean;
@@ -72,7 +91,19 @@ export interface CliValues {
   allowReinvest?: string;
   triggerStrategy?: string;
   triggerPx?: string;
+  trackingMode?: string;
+  profitSharingRatio?: string;
+  tpPrice?: string;
   cycleId?: string;
+  // recurring buy
+  stgyName?: string;
+  recurringList?: string;
+  recurringDay?: string;
+  recurringTime?: string;
+  recurringHour?: string;
+  investmentCcy?: string;
+  period?: string;
+  timeZone?: string;
   lang?: string;
   // option
   uly?: string;
@@ -87,6 +118,14 @@ export interface CliValues {
   tool?: string;
   // config profile
   force?: boolean;
+  // twap bot
+  pxVar?: string;
+  pxSpread?: string;
+  szLimit?: string;
+  pxLimit?: string;
+  timeInterval?: string;
+  tgtCcy?: string;
+  isTradeBorrowMode?: boolean;
   // onchain-earn
   productId?: string;
   protocolType?: string;
@@ -173,6 +212,25 @@ export const CLI_OPTIONS = {
   basePos: { type: "boolean", default: true },
   stopType: { type: "string" },
   live: { type: "boolean", default: false },
+  // grid create extended
+  algoClOrdId: { type: "string" },
+  tpRatio: { type: "string" },
+  slRatio: { type: "string" },
+  tradeQuoteCcy: { type: "string" },
+  // grid extended commands
+  mktClose: { type: "boolean", default: false },
+  topupAmount: { type: "string" },
+  topUpAmt: { type: "string" },
+  allowReinvestProfit: { type: "string" },
+  percent: { type: "string" },
+  gridType: { type: "string" },
+  investmentType: { type: "string" },
+  // rsi back testing / ai param
+  timeframe: { type: "string" },
+  thold: { type: "string" },
+  timePeriod: { type: "string" },
+  triggerCond: { type: "string" },
+  duration: { type: "string" },
   // market extras
   instType: { type: "string" },
   quoteCcy: { type: "string" },
@@ -202,7 +260,19 @@ export const CLI_OPTIONS = {
   allowReinvest: { type: "string" },
   triggerStrategy: { type: "string" },
   triggerPx: { type: "string" },
+  trackingMode: { type: "string" },
+  profitSharingRatio: { type: "string" },
+  tpPrice: { type: "string" },
   cycleId: { type: "string" },
+  // recurring buy
+  stgyName: { type: "string" },
+  recurringList: { type: "string" },
+  recurringDay: { type: "string" },
+  recurringTime: { type: "string" },
+  recurringHour: { type: "string" },
+  investmentCcy: { type: "string" },
+  period: { type: "string" },
+  timeZone: { type: "string" },
   // i18n
   lang: { type: "string" },
   // option
@@ -218,6 +288,14 @@ export const CLI_OPTIONS = {
   tool: { type: "string" },
   // config profile
   force: { type: "boolean", default: false },
+  // twap bot
+  pxVar: { type: "string" },
+  pxSpread: { type: "string" },
+  szLimit: { type: "string" },
+  pxLimit: { type: "string" },
+  timeInterval: { type: "string" },
+  tgtCcy: { type: "string" },
+  isTradeBorrowMode: { type: "boolean", default: false },
   // onchain-earn
   productId: { type: "string" },
   protocolType: { type: "string" },
