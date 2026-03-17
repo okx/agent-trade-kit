@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.5-beta.3] - 2026-03-17
+
+### Removed
+
+- **`copytrading` module reverted**: Removed the 5 CLI copy-trading commands (`traders`, `trader-detail`, `status`, `follow`, `unfollow`), the `copytrading` MCP tool, related documentation (`docs/cli-reference.md` copytrading section), and README copy-trading entries introduced in v1.2.5-beta.2.
+
+---
+
 ## [1.2.5-beta.2] - 2026-03-17
 
 ### Fixed

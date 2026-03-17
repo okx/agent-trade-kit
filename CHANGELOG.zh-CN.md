@@ -9,6 +9,14 @@
 
 ---
 
+## [1.2.5-beta.3] - 2026-03-17
+
+### 移除
+
+- **`copytrading` 模块已回滚**：移除 v1.2.5-beta.2 中引入的 5 个跟单 CLI 命令（`traders`、`trader-detail`、`status`、`follow`、`unfollow`）、`copytrading` MCP 工具、相关文档（`docs/cli-reference.md` 跟单章节）及 README 跟单说明。
+
+---
+
 ## [1.2.5-beta.2] - 2026-03-17
 
 ### 修复
