@@ -1142,6 +1142,7 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   const payload = toToolErrorPayload(error);
   process.stderr.write(`Error: ${payload.message}\n`);
+  if (payload.code) process.stderr.write(`Code: ${payload.code}\n`);
   if (payload.traceId) process.stderr.write(`TraceId: ${payload.traceId}\n`);
   if (payload.suggestion) process.stderr.write(`Hint: ${payload.suggestion}\n`);
   process.stderr.write(`Version: @okx_ai/okx-trade-cli@${CLI_VERSION}\n`);
