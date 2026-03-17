@@ -180,6 +180,28 @@ describe('printHelp("bot", "dca") — dca bot subgroup detail', () => {
     const out = captureStdout(() => printHelp("bot", "dca"));
     assert.ok(out.includes("--lever"), "should include --lever flag");
   });
+
+  it("lists extended DCA commands (set-tp, margin-add, etc.)", () => {
+    const out = captureStdout(() => printHelp("bot", "dca"));
+    for (const cmd of ["set-tp", "margin-add", "margin-reduce", "set-reinvest", "manual-buy"]) {
+      assert.ok(out.includes(cmd), `should mention extended command '${cmd}'`);
+    }
+  });
+
+  it("create usage includes validation range hints", () => {
+    const out = captureStdout(() => printHelp("bot", "dca"));
+    assert.ok(out.includes("maxSafetyOrds [0,100]"), "should include maxSafetyOrds range");
+    assert.ok(out.includes("pxSteps [0.001,0.5]"), "should include pxSteps range");
+    assert.ok(out.includes("tpPct: long"), "should include tpPct direction-dependent range");
+    assert.ok(out.includes("slPct must > MPD"), "should include slPct MPD constraint");
+  });
+
+  it("set-tp description mentions direction constraint and tpPriceRange", () => {
+    const out = captureStdout(() => printHelp("bot", "dca"));
+    assert.ok(out.includes("tpPriceRange"), "should mention tpPriceRange from ongoing-list");
+    assert.ok(out.includes("Long") || out.includes("long"), "should mention long direction constraint");
+    assert.ok(out.includes("Short") || out.includes("short"), "should mention short direction constraint");
+  });
 });
 
 // ---------------------------------------------------------------------------

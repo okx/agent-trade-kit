@@ -218,41 +218,33 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       name: "swap_cancel_algo_orders",
       module: "swap",
       description:
-        "Cancel one or more pending SWAP/FUTURES algo orders (TP/SL). Accepts a list of {algoId, instId} objects.",
+        "Cancel one or more pending SWAP/FUTURES algo orders (TP/SL). Accepts a list of {algoId, instId} objects. " +
+        "Private endpoint. Rate limit: 20 req/s per UID.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
-          orders: {
-            type: "array",
-            description: "List of algo orders to cancel. Each item: {algoId, instId}.",
-            items: {
-              type: "object",
-              properties: {
-                algoId: {
-                  type: "string",
-                  description: "Algo order ID",
-                },
-                instId: {
-                  type: "string",
-                  description: "e.g. BTC-USDT-SWAP",
-                },
-              },
-              required: ["algoId", "instId"],
-            },
+          instId: {
+            type: "string",
+            description: "e.g. BTC-USDT-SWAP",
+          },
+          algoId: {
+            type: "string",
+            description: "Algo order ID",
           },
         },
-        required: ["orders"],
+        required: ["instId", "algoId"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const orders = args.orders;
-        if (!Array.isArray(orders) || orders.length === 0) {
-          throw new Error("orders must be a non-empty array.");
-        }
         const response = await context.client.privatePost(
           "/api/v5/trade/cancel-algos",
-          orders,
+          [
+            {
+              instId: requireString(args, "instId"),
+              algoId: requireString(args, "algoId"),
+            },
+          ],
           privateRateLimit("swap_cancel_algo_orders", 20),
         );
         return normalizeResponse(response);

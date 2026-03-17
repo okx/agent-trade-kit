@@ -690,6 +690,17 @@ try {
     await test("dca_get_orders contract history", async () => {
       assertOk(await client.callTool("dca_get_orders", { type: "contract", status: "history" }));
     });
+
+    // ── Phase 8: TWAP bot read (demo) ──────────────────────────────────────
+    section("TWAP bot read (demo)");
+
+    await test("twap_get_orders active", async () => {
+      assertOk(await client.callTool("twap_get_orders", { status: "active" }));
+    });
+
+    await test("twap_get_orders history", async () => {
+      assertOk(await client.callTool("twap_get_orders", { status: "history", state: "effective" }));
+    });
   }
 } finally {
   client.close();
