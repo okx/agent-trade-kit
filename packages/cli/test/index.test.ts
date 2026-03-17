@@ -15,7 +15,9 @@ import {
   handleBotGridCommand,
   handleBotDcaCommand,
   handleBotCommand,
+  handleSpotCommand,
   handleSwapCommand,
+  handleFuturesCommand,
   handleEarnCommand,
   handleCopyTradeCommand,
 } from "../src/index.js";
@@ -359,10 +361,6 @@ import {
   cmdDcdPairs,
   cmdDcdProducts,
   cmdDcdOrders,
-  cmdDcdQuote,
-  cmdDcdBuy,
-  cmdDcdRedeemQuote,
-  cmdDcdRedeem,
   cmdDcdRedeemExecute,
   cmdDcdOrderState,
   cmdDcdQuoteAndBuy,
@@ -517,14 +515,9 @@ describe("earn onchain CLI commands — full dispatch coverage", () => {
     assert.ok(result instanceof Promise, "dcd products should return a Promise");
   });
 
-  it("dispatches dcd quote (returns a Promise)", () => {
-    const result = handleEarnCommand(mockRunner, "dcd", ["quote"], { productId: "BTC-USDT-260327-77000-C", sz: "0.001", notionalCcy: "BTC" } as never, false);
-    assert.ok(result instanceof Promise, "dcd quote should return a Promise");
-  });
-
-  it("dispatches dcd buy (returns a Promise)", () => {
-    const result = handleEarnCommand(mockRunner, "dcd", ["buy"], { quoteId: "qtbcDCD-QUOTE123" } as never, false);
-    assert.ok(result instanceof Promise, "dcd buy should return a Promise");
+  it("dispatches dcd quote-and-buy (returns a Promise)", () => {
+    const result = handleEarnCommand(mockRunner, "dcd", ["quote-and-buy"], { productId: "BTC-USDT-260327-77000-C", sz: "0.001", notionalCcy: "BTC" } as never, false);
+    assert.ok(result instanceof Promise, "dcd quote-and-buy should return a Promise");
   });
 
   it("dispatches dcd orders (returns a Promise)", () => {
@@ -826,138 +819,22 @@ describe("cmdDcdProducts — client-side filters", () => {
 });
 
 // ---------------------------------------------------------------------------
-// DCD CLI — cmdDcdQuote
-// ---------------------------------------------------------------------------
-
-const dcdQuoteRunner: ToolRunner = async () => ({
-  endpoint: "/api/v5/finance/sfp/dcd/quote",
-  requestTime: "ts",
-  data: [{ quoteId: "q123", productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC", annualizedYield: "18.34", absYield: "0.00806", idxPx: "71000", validUntil: "1774598400000" }],
-});
-
-describe("cmdDcdQuote output", () => {
-  it("prints quote details when data exists", async () => {
-    const out = await captureStdout(() =>
-      cmdDcdQuote(dcdQuoteRunner, { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC", json: false })
-    );
-    assert.ok(out.includes("q123"), "should include quoteId");
-    assert.ok(out.includes("18.34"), "should include yield");
-  });
-
-  it("prints JSON when json=true", async () => {
-    const out = await captureStdout(() =>
-      cmdDcdQuote(dcdQuoteRunner, { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: true })
-    );
-    assert.doesNotThrow(() => JSON.parse(out));
-  });
-
-  it("prints empty message when no quote returned", async () => {
-    const out = await captureStdout(() =>
-      cmdDcdQuote(emptyRunner, { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: false })
-    );
-    assert.ok(out.includes("No quote returned"));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// DCD CLI — cmdDcdBuy
-// ---------------------------------------------------------------------------
-
-function makeDcdBuyRunner(ordId: string): ToolRunner {
-  return async (tool) => {
-    if (tool === "dcd_execute_quote") return { endpoint: "/test", requestTime: "ts", data: [{ ordId, quoteId: "q1", state: "INITIAL" }] };
-    return { endpoint: "/test", requestTime: "ts", data: [{ ordId, state: "LIVE" }] };
-  };
-}
-
-describe("cmdDcdBuy output", () => {
-  it("prints order and auto-queries state", async () => {
-    const out = await captureStdout(() =>
-      cmdDcdBuy(makeDcdBuyRunner("ord999"), { quoteId: "q1", json: false })
-    );
-    assert.ok(out.includes("Order placed"), "should confirm order placed");
-    assert.ok(out.includes("ord999"), "should show ordId");
-  });
-
-  it("prints JSON with order and state", async () => {
-    const out = await captureStdout(() =>
-      cmdDcdBuy(makeDcdBuyRunner("ord999"), { quoteId: "q1", json: true })
-    );
-    const parsed = JSON.parse(out);
-    assert.ok(parsed.order, "should include order");
-    assert.ok(parsed.state, "should include state");
-  });
-
-  it("prints empty when no response data", async () => {
-    const out = await captureStdout(() =>
-      cmdDcdBuy(emptyRunner, { quoteId: "q1", json: false })
-    );
-    assert.ok(out.includes("No response data"));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// DCD CLI — cmdDcdRedeemQuote
-// ---------------------------------------------------------------------------
-
-const dcdRedeemQuoteRunner: ToolRunner = async () => ({
-  endpoint: "/test", requestTime: "ts",
-  data: [{ ordId: "ord1", quoteId: "rq1", redeemSz: "0.00009979", redeemCcy: "BTC", termRate: "-0.21", validUntil: "1774598400000" }],
-});
-
-describe("cmdDcdRedeemQuote output", () => {
-  it("prints redeem quote details", async () => {
-    const out = await captureStdout(() => cmdDcdRedeemQuote(dcdRedeemQuoteRunner, { ordId: "ord1", json: false }));
-    assert.ok(out.includes("rq1"), "should include quoteId");
-    assert.ok(out.includes("-0.21%"), "should show termRate");
-  });
-
-  it("prints JSON when json=true", async () => {
-    const out = await captureStdout(() => cmdDcdRedeemQuote(dcdRedeemQuoteRunner, { ordId: "ord1", json: true }));
-    assert.doesNotThrow(() => JSON.parse(out));
-  });
-
-  it("prints empty when no redeem quote", async () => {
-    const out = await captureStdout(() => cmdDcdRedeemQuote(emptyRunner, { ordId: "ord1", json: false }));
-    assert.ok(out.includes("No redeem quote returned"));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// DCD CLI — cmdDcdRedeem
-// ---------------------------------------------------------------------------
-
-const dcdRedeemRunner: ToolRunner = async () => ({
-  endpoint: "/test", requestTime: "ts",
-  data: [{ ordId: "ord1", state: "PENDING_REDEEM_BOOKING" }],
-});
-
-describe("cmdDcdRedeem output", () => {
-  it("prints ordId and state", async () => {
-    const out = await captureStdout(() => cmdDcdRedeem(dcdRedeemRunner, { ordId: "ord1", quoteId: "rq1", json: false }));
-    assert.ok(out.includes("ord1"), "should show ordId");
-    assert.ok(out.includes("PENDING_REDEEM_BOOKING"), "should show state");
-  });
-
-  it("prints JSON when json=true", async () => {
-    const out = await captureStdout(() => cmdDcdRedeem(dcdRedeemRunner, { ordId: "ord1", quoteId: "rq1", json: true }));
-    assert.doesNotThrow(() => JSON.parse(out));
-  });
-
-  it("prints empty when no response data", async () => {
-    const out = await captureStdout(() => cmdDcdRedeem(emptyRunner, { ordId: "ord1", quoteId: "rq1", json: false }));
-    assert.ok(out.includes("No response data"));
-  });
-});
 
 // ---------------------------------------------------------------------------
 // DCD CLI — cmdDcdRedeemExecute
 // ---------------------------------------------------------------------------
 
 function makeDcdRedeemExecuteRunner(): ToolRunner {
+  let callCount = 0;
   return async (tool) => {
-    if (tool === "dcd_request_redeem_quote") {
-      return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", quoteId: "rq1", redeemSz: "0.0001", redeemCcy: "BTC", termRate: "-0.5", validUntil: "1774598400000" }] };
+    if (tool === "dcd_redeem") {
+      callCount++;
+      // First call (preview): return quote data
+      if (callCount === 1) {
+        return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", quoteId: "rq1", redeemSz: "0.0001", redeemCcy: "BTC", termRate: "-0.5" }] };
+      }
+      // Second call (execute): return redeem result
+      return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", state: "PENDING_REDEEM_BOOKING" }] };
     }
     return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", state: "PENDING_REDEEM_BOOKING" }] };
   };
@@ -1016,8 +893,14 @@ describe("cmdDcdOrderState output", () => {
 
 function makeDcdQuoteAndBuyRunner(): ToolRunner {
   return async (tool) => {
-    if (tool === "dcd_request_quote") return { endpoint: "/test", requestTime: "ts", data: [{ quoteId: "q1", annualizedYield: "18.34", absYield: "0.008", notionalSz: "0.001", notionalCcy: "BTC" }] };
-    if (tool === "dcd_execute_quote") return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", quoteId: "q1", state: "INITIAL" }] };
+    if (tool === "dcd_subscribe") {
+      return {
+        endpoint: "/test",
+        requestTime: "ts",
+        data: [{ ordId: "ord1", quoteId: "q1", state: "INITIAL" }],
+        quote: { quoteId: "q1", annualizedYield: "18.34", absYield: "0.008", notionalSz: "0.001", notionalCcy: "BTC" },
+      };
+    }
     return { endpoint: "/test", requestTime: "ts", data: [{ ordId: "ord1", state: "LIVE" }] };
   };
 }
@@ -1046,5 +929,54 @@ describe("cmdDcdQuoteAndBuy output", () => {
       cmdDcdQuoteAndBuy(emptyRunner, { productId: "p", notionalSz: "1", notionalCcy: "BTC", json: false })
     );
     assert.ok(out.includes("No quote returned"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// spot/swap cancel — instId must come from --instId flag, not positional args
+// ---------------------------------------------------------------------------
+
+describe("spot cancel passes --instId to tool", () => {
+  it("uses v.instId, not rest[0]", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const spy: ToolRunner = async (tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { code: "0", msg: "", data: [{ ordId: "123", sCode: "0", sMsg: "" }] };
+    };
+    await captureStdout(() =>
+      handleSpotCommand(spy, "cancel", [], { instId: "ETH-USDT", ordId: "123" } as never, false)
+    );
+    assert.equal(capturedArgs["instId"], "ETH-USDT", "instId should come from --instId flag");
+    assert.equal(capturedArgs["ordId"], "123");
+  });
+});
+
+describe("swap cancel passes --instId to tool", () => {
+  it("uses v.instId, not rest[0]", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const spy: ToolRunner = async (tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { code: "0", msg: "", data: [{ ordId: "456", sCode: "0", sMsg: "" }] };
+    };
+    await captureStdout(() =>
+      handleSwapCommand(spy, "cancel", [], { instId: "BTC-USDT-SWAP", ordId: "456" } as never, false)
+    );
+    assert.equal(capturedArgs["instId"], "BTC-USDT-SWAP", "instId should come from --instId flag");
+    assert.equal(capturedArgs["ordId"], "456");
+  });
+});
+
+describe("futures cancel passes --instId to tool", () => {
+  it("uses v.instId, not rest[0]", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const spy: ToolRunner = async (tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { code: "0", msg: "", data: [{ ordId: "789", sCode: "0", sMsg: "" }] };
+    };
+    await captureStdout(() =>
+      handleFuturesCommand(spy, "cancel", [], { instId: "BTC-USD-250328", ordId: "789" } as never, false)
+    );
+    assert.equal(capturedArgs["instId"], "BTC-USD-250328", "instId should come from --instId flag");
+    assert.equal(capturedArgs["ordId"], "789");
   });
 });

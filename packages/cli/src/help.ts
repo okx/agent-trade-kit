@@ -479,25 +479,9 @@ const HELP_TREE: HelpTree = {
             usage: "okx earn dcd products --baseCcy <ccy> --quoteCcy <ccy> --optType <C|P>\n                         [--minYield <n>] [--strikeNear <price>]\n                         [--termDays <n>] [--minTermDays <n>] [--maxTermDays <n>]\n                         [--expDate <YYYY-MM-DD|YYYY-MM-DDTHH:mm>]",
             description: "List active DCD products (baseCcy, quoteCcy, optType required). Client-side filters: minYield (e.g. 0.05=5%), strikeNear (±10%), term range, expDate",
           },
-          quote: {
-            usage: "okx earn dcd quote --productId <id> --sz <n> --notionalCcy <ccy>",
-            description: "Request a real-time DCD quote (TTL: 30 seconds)",
-          },
-          buy: {
-            usage: "okx earn dcd buy --quoteId <id> [--clOrdId <id>]",
-            description: "[CAUTION] Execute a DCD quote to place a trade. Auto-queries order state after placement",
-          },
           "quote-and-buy": {
-            usage: "okx earn dcd quote-and-buy --productId <id> --sz <n> --notionalCcy <ccy> [--clOrdId <id>]",
-            description: "[CAUTION] Request quote and execute immediately in one step (no confirmation — for AI agent use)",
-          },
-          "redeem-quote": {
-            usage: "okx earn dcd redeem-quote --ordId <id>",
-            description: "Request an early redemption quote for a live DCD order (TTL: 15 seconds)",
-          },
-          redeem: {
-            usage: "okx earn dcd redeem --ordId <id> --quoteId <id>",
-            description: "[CAUTION] Execute early redemption of a DCD position",
+            usage: "okx earn dcd quote-and-buy --productId <id> --sz <n> --notionalCcy <ccy> [--clOrdId <id>] [--minAnnualizedYield <pct>]",
+            description: "[CAUTION] Subscribe to a DCD product atomically (quote + execute in one step)",
           },
           "redeem-execute": {
             usage: "okx earn dcd redeem-execute --ordId <id>",
@@ -626,8 +610,8 @@ const HELP_TREE: HelpTree = {
   },
 
   diagnose: {
-    description: "Run network diagnostics (DNS, TCP, TLS, API, auth)",
-    usage: "okx diagnose [--profile <name>] [--demo]",
+    description: "Run network / MCP server diagnostics",
+    usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo] [--output <file>]",
   },
 };
 

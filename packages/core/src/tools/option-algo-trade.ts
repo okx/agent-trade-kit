@@ -16,10 +16,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
       name: "option_place_algo_order",
       module: "option",
       description:
-        "Place an OPTION algo order: TP/SL (conditional/oco). [CAUTION] Executes real trades. " +
-        "conditional: single TP, single SL, or both on one order. " +
-        "oco: TP+SL simultaneously — first trigger cancels the other. " +
-        "Set tpOrdPx='-1' or slOrdPx='-1' for market execution.",
+        "Place OPTION TP/SL algo order (conditional/oco). [CAUTION] Executes real trades. conditional=single TP/SL; oco=TP+SL pair. -1=market.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -45,33 +42,31 @@ export function registerOptionAlgoTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
+            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
           },
           tpTriggerPx: {
             type: "string",
-            description: "TP trigger price (conditional/oco only)",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
-            description: "TP order price; -1=market (conditional/oco only)",
+            description: "TP order price; -1=market",
           },
           tpTriggerPxType: {
             type: "string",
             enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
           },
           slTriggerPx: {
             type: "string",
-            description: "SL trigger price (conditional/oco only)",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
-            description: "SL order price; -1=market (recommended) (conditional/oco only)",
+            description: "SL order price; -1=market",
           },
           slTriggerPxType: {
             type: "string",
             enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
           },
           reduceOnly: {
             type: "boolean",
@@ -121,7 +116,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
           algoId: { type: "string", description: "Algo order ID" },
-          newSz: { type: "string", description: "New number of contracts" },
+          newSz: { type: "string", description: "New contracts count" },
           newTpTriggerPx: { type: "string", description: "New TP trigger price" },
           newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
           newSlTriggerPx: { type: "string", description: "New SL trigger price" },
@@ -151,14 +146,14 @@ export function registerOptionAlgoTools(): ToolSpec[] {
       name: "option_cancel_algo_orders",
       module: "option",
       description:
-        "Cancel one or more pending OPTION algo orders (TP/SL). Accepts a list of {algoId, instId} objects.",
+        "Cancel OPTION algo orders (TP/SL). Each item: {algoId, instId}.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           orders: {
             type: "array",
-            description: "List of algo orders to cancel. Each item: {algoId, instId}.",
+            description: "Array of {algoId, instId} to cancel.",
             items: {
               type: "object",
               properties: {
@@ -220,11 +215,11 @@ export function registerOptionAlgoTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this algo ID",
+            description: "Cursor: return older",
           },
           before: {
             type: "string",
-            description: "Pagination: after this algo ID",
+            description: "Cursor: return newer",
           },
           limit: {
             type: "number",
@@ -233,8 +228,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
           state: {
             type: "string",
             enum: ["effective", "canceled", "order_failed"],
-            description:
-              "Required when status=history. effective=triggered, canceled, order_failed. Defaults to effective.",
+            description: "When history: effective|canceled|order_failed",
           },
         },
       },

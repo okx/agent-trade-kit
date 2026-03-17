@@ -109,8 +109,13 @@ export interface CliValues {
   minTermDays?: string;
   maxTermDays?: string;
   expDate?: string;
-  // diagnostics
+  minAnnualizedYield?: string;
+  // diagnostics (diagnose-specific flags)
   verbose?: boolean;
+  mcp?: boolean;   // diagnose --mcp: run MCP server checks only
+  cli?: boolean;   // diagnose --cli: run CLI/general checks only (explicit alias for default)
+  all?: boolean;   // diagnose --all: run CLI checks then MCP checks
+  output?: string; // diagnose --output: save diagnostic report to file
   // copytrading
   uniqueCode?: string;
   lastDays?: string;
@@ -258,8 +263,13 @@ export const CLI_OPTIONS = {
   minTermDays: { type: "string" },
   maxTermDays: { type: "string" },
   expDate: { type: "string" },
-  // diagnostics
+  minAnnualizedYield: { type: "string" },
+  // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
+  mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks
+  cli: { type: "boolean", default: false }, // diagnose --cli only: CLI/general checks (explicit alias for default)
+  all: { type: "boolean", default: false }, // diagnose --all: run both CLI and MCP checks
+  output: { type: "string" },               // diagnose --output only: save report to file
   // copytrading
   uniqueCode: { type: "string" },
   lastDays: { type: "string" },

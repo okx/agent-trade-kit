@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `okx copytrading status` — current followed traders with cumulative P&L
   - `okx copytrading follow` — start copy trading: `smart_copy` (initialAmount + replicationRequired), `fixed_amount` (copyAmt), `ratio_copy` (copyRatio). Supports TP/SL, margin mode, custom instruments.
   - `okx copytrading unfollow` — stop copy trading with configurable position close type (`copy_close` / `market_close` / `manual_close`)
+- **`dcd_subscribe` tool** (`earn.dcd`): atomic DCD subscription that requests a quote and executes it in a single step, eliminating quote-expiry race conditions for MCP users. Accepts optional `minAnnualizedYield` (in percent) — if the actual quote yield falls below this threshold, the order is rejected before execution. Returns the trade result with a quote snapshot (`annualizedYield`, `absYield`). Not supported in demo mode.
+- **`dcd_redeem` tool** (`earn.dcd`): two-step early redemption designed for user confirmation before executing. First call (no `quoteId`): requests a redemption quote showing the early-exit cost. Second call (with `quoteId`): executes the redemption. If the quote has expired between the two calls, a fresh quote is automatically requested and executed atomically; response includes `autoRefreshedQuote: true`. Not supported in demo mode for the execute step.
+- **Removed low-level split DCD tools**: `dcd_request_quote`, `dcd_execute_quote`, `dcd_request_redeem_quote`, and `dcd_execute_redeem` have been removed. Use `dcd_subscribe` for subscribe flows and `dcd_redeem` for early redemption flows.
 
 ---
 
@@ -26,13 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Earn tool descriptions improved for better AI agent guidance**:
-  - `earn_get_savings_balance`: Added guidance to use `earn_get_lending_rate_history` (not `earn_get_lending_rate_summary`) when displaying market rates alongside balance.
-  - `earn_get_lending_history`: Clarified as "market lending rate history" to avoid confusion with Simple Earn lending records.
-  - `earn_get_lending_rate_summary`: Clarified this tool is for **coin lending market rates** (借币市场利率), NOT Simple Earn. Added description of returned fields (`avgRate`, `estRate`, `preRate`).
-  - `earn_get_lending_rate_history`: Clarified this is the correct tool for Simple Earn lending rates; added context for usage with savings balance display.
-  - `onchain_earn_get_offers`: Added instruction to always display `protocol` field and `earningData[].ccy` when showing offers to users.
-- **CLI earn help text updated**: Descriptions for `lending-history`, `rate-summary`, and `rate-history` sub-commands updated to match tool description changes.
+- **CLI `okx diagnose --mcp`**: New MCP server troubleshooting mode. Checks package versions, Node.js compatibility, MCP entry-point existence and executability, Claude Desktop `mcpServers` configuration, recent MCP log tail, module-load smoke test (`--version`), and a live stdio JSON-RPC handshake (5 s timeout). Zero external dependencies — uses Node.js built-ins only.
+- **`--output <file>` for `okx diagnose`**: Both the default and `--mcp` modes now accept `--output <path>` to save the diagnostic report to a file for sharing.
+- **`diagnose-utils.ts`** (internal): Shared `Report`, `ok`, `fail`, `section`, and `sanitize` helpers extracted from `diagnose.ts` to enable reuse by `diagnose-mcp.ts`.
+- **`sanitize()` utility**: Masks UUIDs, long hex strings (≥32 chars), and Bearer tokens in diagnostic output before sharing.
+- **`allToolSpecs()` exported from `@agent-tradekit/core`**: The function is now part of the public API, exposed for future external consumers that need to enumerate all registered tool specs (e.g. third-party MCP clients, testing utilities). It was already used internally by `buildTools()` and `createToolRunner()`; this change makes the export public-facing for anticipated downstream use, not for use within `diagnose-mcp.ts`.
 
 ---
 

@@ -17,14 +17,14 @@ export function registerOptionTools(): ToolSpec[] {
       name: "option_place_order",
       module: "option",
       description:
-        "Place an OPTION order (buy/sell call or put). instId format: {uly}-{expiry}-{strike}-{C|P}, e.g. BTC-USD-241227-50000-C. tdMode: cash (buyer) or cross/isolated (seller). [CAUTION] Executes real trades.",
+        "Place OPTION order. instId: {uly}-{expiry}-{strike}-C/P, e.g. BTC-USD-241227-50000-C. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           instId: {
             type: "string",
-            description: "e.g. BTC-USD-241227-50000-C (call) or BTC-USD-241227-50000-P (put)",
+            description: "e.g. BTC-USD-241227-50000-C",
           },
           tdMode: {
             type: "string",
@@ -38,11 +38,11 @@ export function registerOptionTools(): ToolSpec[] {
           ordType: {
             type: "string",
             enum: ["market", "limit", "post_only", "fok", "ioc"],
-            description: "market(no px)|limit(px req)|post_only(maker)|fok|ioc",
+            description: "market=no px; limit/fok/ioc=px req; post_only=maker",
           },
           sz: {
             type: "string",
-            description: "Number of contracts (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
+            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
           },
           px: {
             type: "string",
@@ -58,7 +58,7 @@ export function registerOptionTools(): ToolSpec[] {
           },
           tpTriggerPx: {
             type: "string",
-            description: "TP trigger price; attaches a take-profit algo order",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
@@ -66,11 +66,11 @@ export function registerOptionTools(): ToolSpec[] {
           },
           slTriggerPx: {
             type: "string",
-            description: "SL trigger price; attaches a stop-loss algo order",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
-            description: "SL order price; -1=market (recommended)",
+            description: "SL order price; -1=market",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -131,7 +131,7 @@ export function registerOptionTools(): ToolSpec[] {
       name: "option_batch_cancel",
       module: "option",
       description:
-        "[CAUTION] Batch cancel up to 20 OPTION orders. Each item: {instId, ordId?, clOrdId?}.",
+        "[CAUTION] Batch cancel up to 20 OPTION orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -170,7 +170,7 @@ export function registerOptionTools(): ToolSpec[] {
           instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
           ordId: { type: "string" },
           clOrdId: { type: "string" },
-          newSz: { type: "string", description: "New number of contracts (NOT USDT amount)" },
+          newSz: { type: "string", description: "New contracts count" },
           newPx: { type: "string", description: "New price" },
         },
         required: ["instId"],
@@ -202,7 +202,7 @@ export function registerOptionTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "e.g. BTC-USD-241227-50000-C" },
           ordId: { type: "string", description: "Provide ordId or clOrdId" },
-          clOrdId: { type: "string", description: "Provide ordId or clOrdId" },
+          clOrdId: { type: "string" },
         },
         required: ["instId"],
       },
@@ -238,8 +238,8 @@ export function registerOptionTools(): ToolSpec[] {
           instId: { type: "string", description: "Instrument filter" },
           ordType: { type: "string", description: "Order type filter" },
           state: { type: "string", description: "canceled|filled" },
-          after: { type: "string", description: "Pagination: before this order ID" },
-          before: { type: "string", description: "Pagination: after this order ID" },
+          after: { type: "string", description: "Cursor: return older" },
+          before: { type: "string", description: "Cursor: return newer" },
           begin: { type: "string", description: "Start time (ms)" },
           end: { type: "string", description: "End time (ms)" },
           limit: { type: "number", description: "Max results (default 100)" },
@@ -315,8 +315,8 @@ export function registerOptionTools(): ToolSpec[] {
           },
           instId: { type: "string", description: "Instrument filter" },
           ordId: { type: "string", description: "Order ID filter" },
-          after: { type: "string", description: "Pagination: before this bill ID" },
-          before: { type: "string", description: "Pagination: after this bill ID" },
+          after: { type: "string", description: "Cursor: return older" },
+          before: { type: "string", description: "Cursor: return newer" },
           begin: { type: "string", description: "Start time (ms)" },
           end: { type: "string", description: "End time (ms)" },
           limit: { type: "number", description: "Max results" },

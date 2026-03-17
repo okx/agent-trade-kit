@@ -46,7 +46,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 | `futures` | 18 | 交割合约下单/撤单/改单、持仓、成交记录、订单历史、平仓、杠杆设置、批量订单、算法单（止盈止损、OCO、追踪止损） | [→](docs/modules/futures.md) |
 | `option` | 10 | 期权交易：下单/撤单/改单/批量撤单、订单历史、持仓（含 Greeks）、成交记录、期权链、IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | 余额、账单（含归档）、持仓、持仓历史、手续费率、配置、仓位模式、最大可提币量、最大可用仓位、操作审计日志 | [→](docs/modules/account.md) |
-| `earn` | 21 | 简单赚币：余额、申购、赎回、出借利率管理 (7)。链上质押/DeFi (6)。双币赢/Dual Currency Deposit (8)。子模块：`earn.savings`、`earn.onchain`、`earn.dcd`。包含在 `all` 中。 | [→](docs/modules/earn.md) |
+| `earn` | 19 | 简单赚币：余额、申购、赎回、出借利率管理 (7)。链上质押/DeFi (6)。双币赢/Dual Currency Deposit (6)。子模块：`earn.savings`、`earn.onchain`、`earn.dcd`。包含在 `all` 中。 | [→](docs/modules/earn.md) |
 | `bot` | 10 | 交易机器人：网格 (5)、DCA (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
 | `copytrading` | 5 | 跟单交易：浏览带单员、跟单/取消跟单、查看跟单持仓。支持 SWAP 和 SPOT。**仅 CLI** — 不作为 MCP 工具暴露。 | [→](docs/cli-reference.md#copytrading--跟单交易) |
 

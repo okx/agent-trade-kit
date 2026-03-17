@@ -1,5 +1,5 @@
 export { OkxRestClient } from "./client/rest-client.js";
-export { buildTools, createToolRunner } from "./tools/index.js";
+export { buildTools, createToolRunner, allToolSpecs } from "./tools/index.js";
 export type { ToolResult, ToolRunner } from "./tools/index.js";
 export { toMcpTool } from "./tools/types.js";
 export { loadConfig } from "./config.js";
