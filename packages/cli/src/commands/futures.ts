@@ -267,6 +267,9 @@ export async function cmdFuturesAlgoPlace(
     slTriggerPx?: string;
     slOrdPx?: string;
     reduceOnly?: boolean;
+    callbackRatio?: string;
+    callbackSpread?: string;
+    activePx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -282,6 +285,9 @@ export async function cmdFuturesAlgoPlace(
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
     reduceOnly: opts.reduceOnly,
+    callbackRatio: opts.callbackRatio,
+    callbackSpread: opts.callbackSpread,
+    activePx: opts.activePx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

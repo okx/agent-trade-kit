@@ -112,6 +112,9 @@ export async function cmdSwapAlgoPlace(
     slTriggerPx?: string;
     slOrdPx?: string;
     reduceOnly?: boolean;
+    callbackRatio?: string;
+    callbackSpread?: string;
+    activePx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -127,6 +130,9 @@ export async function cmdSwapAlgoPlace(
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
     reduceOnly: opts.reduceOnly,
+    callbackRatio: opts.callbackRatio,
+    callbackSpread: opts.callbackSpread,
+    activePx: opts.activePx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -206,7 +212,7 @@ export async function cmdSwapAlgoCancel(
   algoId: string,
   json: boolean,
 ): Promise<void> {
-  const result = await run("swap_cancel_algo_orders", { instId, algoId });
+  const result = await run("swap_cancel_algo_orders", { orders: [{ instId, algoId }] });
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const r = data?.[0];

@@ -50,39 +50,33 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_create_order",
       module: "bot.dca",
       description:
-        "Create a Contract DCA (Martingale) bot order with leverage on futures/swaps. " +
-        "Required: instId, lever, direction, initOrdAmt, maxSafetyOrds, tpPct. " +
-        "Conditionally required (when maxSafetyOrds > 0): safetyOrdAmt, pxSteps. " +
-        "Conditionally required (when maxSafetyOrds > 1): pxStepsMult, volMult. " +
-        "Optional: slPct (requires slMode), slMode, allowReinvest, triggerStrategy, triggerPx, " +
-        "triggerCond, thold, timePeriod, timeframe (RSI sub-params when triggerStrategy='rsi'), " +
-        "trackingMode, profitSharingRatio (copy-trading lead trader params). " +
-        "[CAUTION] Executes real trades. Private endpoint. Rate limit: 20 req/2s.",
+        "Create Contract DCA (Martingale) bot. [CAUTION] Real trades. " +
+        "When maxSafetyOrds > 0: also need safetyOrdAmt, pxSteps. When maxSafetyOrds > 1: also need pxStepsMult, volMult.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
-          instId: { type: "string", description: "Instrument ID, e.g. BTC-USDT-SWAP" },
-          lever: { type: "string", description: "Leverage multiplier, e.g. '3'" },
-          direction: { type: "string", enum: ["long", "short"], description: "Strategy direction: 'long' or 'short'" },
+          instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
+          lever: { type: "string", description: "Leverage, e.g. '3'" },
+          direction: { type: "string", enum: ["long", "short"] },
           initOrdAmt: { type: "string", description: "Initial order amount (USDT)" },
-          maxSafetyOrds: { type: "string", description: "Max number of safety orders (integer, range [0, 100]), e.g. '3'" },
-          tpPct: { type: "string", description: "Take-profit ratio, e.g. '0.03' = 3%. Range: long direction [0.001, 10], short direction [0.001, 0.9999]. Precision: up to 4 decimal places (rounded down)" },
-          safetyOrdAmt: { type: "string", description: "Safety order amount (USDT). Required when maxSafetyOrds > 0" },
-          pxSteps: { type: "string", description: "Price drop % per safety order, e.g. '0.03' = 3%. Default range [0.001, 0.5] (varies by instrument). Precision: up to 4 decimal places. Required when maxSafetyOrds > 0" },
-          pxStepsMult: { type: "string", description: "Price step multiplier, e.g. '1.2'. Required when maxSafetyOrds > 1" },
-          volMult: { type: "string", description: "Safety order size multiplier, e.g. '1.5'. Required when maxSafetyOrds > 1" },
-          slPct: { type: "string", description: "Stop-loss ratio, e.g. '0.05' = 5%. Must exceed max price deviation (MPD = sum of pxSteps × pxStepsMult^i for all safety orders). Must be used together with slMode (optional)" },
-          slMode: { type: "string", enum: ["limit", "market"], description: "Stop-loss price type: 'limit' or 'market'. Must be used together with slPct (optional)" },
-          allowReinvest: { type: "string", enum: ["true", "false"], description: "Reinvest profit into the next cycle. Default 'true' (optional)" },
-          triggerStrategy: { type: "string", enum: ["instant", "price", "rsi"], default: "instant", description: "How the bot starts: 'instant' (default), 'price' (wait for trigger price), or 'rsi' (RSI signal) (optional)" },
-          triggerPx: { type: "string", description: "Trigger price — required when triggerStrategy='price' (optional)" },
-          triggerCond: { type: "string", enum: ["cross_up", "cross_down"], description: "RSI trigger condition: 'cross_up' (RSI crosses above threshold) or 'cross_down' (RSI crosses below threshold) — required when triggerStrategy='rsi' (optional)" },
-          thold: { type: "string", description: "RSI threshold value (e.g. '30' for oversold) — required when triggerStrategy='rsi' (optional)" },
-          timePeriod: { type: "string", description: "RSI calculation period (default '14') — applies when triggerStrategy='rsi' (optional)" },
-          timeframe: { type: "string", enum: ["3m", "5m", "15m", "30m", "1H", "4H", "1D"], description: "RSI K-line timeframe — required when triggerStrategy='rsi' (optional)" },
-          trackingMode: { type: "string", enum: ["sync", "async"], description: "Copy-trading lead trader tracking mode: 'sync' or 'async' (optional)" },
-          profitSharingRatio: { type: "string", enum: ["0", "0.1", "0.2", "0.3"], description: "Copy-trading profit sharing ratio (optional)" },
+          maxSafetyOrds: { type: "string", description: "Max safety orders, e.g. '3'" },
+          tpPct: { type: "string", description: "Take-profit ratio, e.g. '0.03' = 3%" },
+          safetyOrdAmt: { type: "string", description: "Safety order amount (USDT). Need when maxSafetyOrds > 0" },
+          pxSteps: { type: "string", description: "Price drop % per safety order, e.g. '0.03'. Need when maxSafetyOrds > 0" },
+          pxStepsMult: { type: "string", description: "Price step multiplier, e.g. '1.2'. Need when maxSafetyOrds > 1" },
+          volMult: { type: "string", description: "Safety order size multiplier, e.g. '1.5'. Need when maxSafetyOrds > 1" },
+          slPct: { type: "string", description: "Stop-loss ratio, e.g. '0.05' = 5%" },
+          slMode: { type: "string", enum: ["limit", "market"], description: "Stop-loss type. Default: market" },
+          allowReinvest: { type: "string", enum: ["true", "false"], description: "Reinvest profit. Default: 'true'" },
+          triggerStrategy: { type: "string", enum: ["instant", "price", "rsi"], default: "instant", description: "How bot starts. Default: instant" },
+          triggerPx: { type: "string", description: "Required when triggerStrategy='price'" },
+          triggerCond: { type: "string", enum: ["cross_up", "cross_down"], description: "RSI trigger condition. Required when triggerStrategy='rsi'" },
+          thold: { type: "string", description: "RSI threshold, e.g. '30'. Required when triggerStrategy='rsi'" },
+          timePeriod: { type: "string", description: "RSI period. Default: '14'" },
+          timeframe: { type: "string", enum: ["3m", "5m", "15m", "30m", "1H", "4H", "1D"], description: "RSI K-line timeframe. Required when triggerStrategy='rsi'" },
+          trackingMode: { type: "string", enum: ["sync", "async"], description: "Copy-trading tracking mode" },
+          profitSharingRatio: { type: "string", enum: ["0", "0.1", "0.2", "0.3"], description: "Copy-trading profit sharing ratio" },
         },
         required: ["instId", "lever", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
       },
@@ -193,12 +187,7 @@ export function registerDcaTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          algoId: {
-            type: "string",
-            description:
-              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
-              "This is NOT a normal trade order ID.",
-          },
+          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
         },
         required: ["algoId"],
       },
@@ -218,7 +207,7 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_get_orders",
       module: "bot.dca",
       description:
-        "Query Contract DCA bot orders. status='active' for running bots; status='history' for completed/stopped.",
+        "List DCA bots. status='active' for running; 'history' for stopped.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -228,16 +217,11 @@ export function registerDcaTools(): ToolSpec[] {
             enum: ["active", "history"],
             description: "active=running (default); history=stopped",
           },
-          algoId: {
-            type: "string",
-            description:
-              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
-              "This is NOT a normal trade order ID.",
-          },
-          instId: { type: "string", description: "Filter by instrument, e.g. BTC-USDT-SWAP (optional)" },
-          after: { type: "string", description: "Pagination: before this algo ID" },
-          before: { type: "string", description: "Pagination: after this algo ID" },
-          limit: { type: "number", description: "Max results (default 100)" },
+          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
+          instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
+          after: { type: "string", description: "Cursor for older records" },
+          before: { type: "string", description: "Cursor for newer records" },
+          limit: { type: "number", description: "Default 100" },
         },
         required: [],
       },
@@ -264,18 +248,12 @@ export function registerDcaTools(): ToolSpec[] {
     {
       name: "dca_get_order_details",
       module: "bot.dca",
-      description:
-        "Query details of a single Contract DCA bot by algo ID. Returns current position details.",
+      description: "Get DCA bot detail by algo ID. Returns current position details.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: {
-            type: "string",
-            description:
-              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
-              "This is NOT a normal trade order ID.",
-          },
+          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
         },
         required: ["algoId"],
       },
@@ -295,21 +273,16 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_get_sub_orders",
       module: "bot.dca",
       description:
-        "Query cycles or orders within a cycle of a Contract DCA bot. Omit cycleId for cycle list; provide cycleId for orders within a cycle.",
+        "Query DCA bot cycles or orders within a cycle. Omit cycleId for cycle list; provide cycleId for orders.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: {
-            type: "string",
-            description:
-              "DCA bot algo order ID (returned by dca_create_order or dca_get_orders). " +
-              "This is NOT a normal trade order ID.",
-          },
-          cycleId: { type: "string", description: "Omit to list all cycles; provide to get orders within a cycle" },
-          after: { type: "string", description: "Pagination cursor" },
-          before: { type: "string", description: "Pagination cursor" },
-          limit: { type: "number", description: "Max results (default 100)" },
+          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
+          cycleId: { type: "string", description: "Omit for cycle list; provide for orders within a cycle" },
+          after: { type: "string", description: "Cursor for older records (cycle-list mode only)" },
+          before: { type: "string", description: "Cursor for newer records (cycle-list mode only)" },
+          limit: { type: "number", description: "Default 100" },
         },
         required: ["algoId"],
       },

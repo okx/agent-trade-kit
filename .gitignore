@@ -10,3 +10,4 @@ _tmp_*
 scripts/smoke-test/report.md
 packages/*/scripts/postinstall.js
 .claude/settings.local.json
+scripts/mcp-token-stats.ts

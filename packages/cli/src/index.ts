@@ -103,6 +103,10 @@ import {
   cmdOptionCancel,
   cmdOptionAmend,
   cmdOptionBatchCancel,
+  cmdOptionAlgoPlace,
+  cmdOptionAlgoAmend,
+  cmdOptionAlgoCancel,
+  cmdOptionAlgoOrders,
 } from "./commands/option.js";
 import { cmdConfigShow, cmdConfigSet, cmdConfigInit, cmdConfigAddProfile, cmdConfigListProfile, cmdConfigUse } from "./commands/config.js";
 import type { Lang } from "./commands/config.js";
@@ -182,10 +186,6 @@ import {
 import {
   cmdDcdPairs,
   cmdDcdProducts,
-  cmdDcdQuote,
-  cmdDcdBuy,
-  cmdDcdRedeemQuote,
-  cmdDcdRedeem,
   cmdDcdRedeemExecute,
   cmdDcdOrderState,
   cmdDcdOrders,
@@ -346,7 +346,7 @@ function handleAccountCommand(
   return handleAccountWriteCommand(run, action, v, json);
 }
 
-function handleSpotAlgoCommand(
+export function handleSpotAlgoCommand(
   run: ToolRunner,
   subAction: string,
   v: CliValues,
@@ -374,6 +374,9 @@ function handleSpotAlgoCommand(
       tpOrdPx: v.tpOrdPx,
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -398,7 +401,7 @@ function handleSpotAlgoCommand(
     });
 }
 
-function handleSpotCommand(
+export function handleSpotCommand(
   run: ToolRunner,
   action: string,
   rest: string[],
@@ -439,14 +442,14 @@ function handleSpotCommand(
       json,
     });
   if (action === "cancel")
-    return cmdSpotCancel(run, rest[0], v.ordId!, json);
+    return cmdSpotCancel(run, v.instId!, v.ordId!, json);
   if (action === "algo")
     return handleSpotAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
     return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, json });
 }
 
-function handleSwapAlgoCommand(
+export function handleSwapAlgoCommand(
   run: ToolRunner,
   subAction: string,
   v: CliValues,
@@ -478,6 +481,9 @@ function handleSwapAlgoCommand(
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -552,7 +558,7 @@ export function handleSwapCommand(
       json,
     });
   if (action === "cancel")
-    return cmdSwapCancel(run, rest[0], v.ordId!, json);
+    return cmdSwapCancel(run, v.instId!, v.ordId!, json);
   if (action === "amend")
     return cmdSwapAmend(run, {
       instId: v.instId!,
@@ -576,10 +582,53 @@ export function handleSwapCommand(
     return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
 }
 
-function handleOptionCommand(
+export function handleOptionAlgoCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean
+): Promise<void> | void {
+  if (subAction === "place")
+    return cmdOptionAlgoPlace(run, {
+      instId: v.instId!,
+      tdMode: v.tdMode!,
+      side: v.side!,
+      ordType: v.ordType ?? "conditional",
+      sz: v.sz!,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
+      reduceOnly: v.reduceOnly,
+      clOrdId: v.clOrdId,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdOptionAlgoAmend(run, {
+      instId: v.instId!,
+      algoId: v.algoId!,
+      newSz: v.newSz,
+      newTpTriggerPx: v.newTpTriggerPx,
+      newTpOrdPx: v.newTpOrdPx,
+      newSlTriggerPx: v.newSlTriggerPx,
+      newSlOrdPx: v.newSlOrdPx,
+      json,
+    });
+  if (subAction === "cancel")
+    return cmdOptionAlgoCancel(run, { instId: v.instId!, algoId: v.algoId!, json });
+  if (subAction === "orders")
+    return cmdOptionAlgoOrders(run, {
+      instId: v.instId,
+      status: v.history ? "history" : "pending",
+      ordType: v.ordType,
+      json,
+    });
+}
+
+export function handleOptionCommand(
   run: ToolRunner,
   action: string,
-  _rest: string[],
+  rest: string[],
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
@@ -609,6 +658,10 @@ function handleOptionCommand(
       px: v.px,
       reduceOnly: v.reduceOnly,
       clOrdId: v.clOrdId,
+      tpTriggerPx: v.tpTriggerPx,
+      tpOrdPx: v.tpOrdPx,
+      slTriggerPx: v.slTriggerPx,
+      slOrdPx: v.slOrdPx,
       json,
     });
   if (action === "cancel")
@@ -624,9 +677,11 @@ function handleOptionCommand(
     });
   if (action === "batch-cancel")
     return cmdOptionBatchCancel(run, { orders: v.orders!, json });
+  if (action === "algo")
+    return handleOptionAlgoCommand(run, rest[0], v, json);
 }
 
-function handleFuturesAlgoCommand(
+export function handleFuturesAlgoCommand(
   run: ToolRunner,
   subAction: string,
   v: CliValues,
@@ -658,6 +713,9 @@ function handleFuturesAlgoCommand(
       slTriggerPx: v.slTriggerPx,
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
+      callbackRatio: v.callbackRatio,
+      callbackSpread: v.callbackSpread,
+      activePx: v.activePx,
       json,
     });
   if (subAction === "amend")
@@ -682,19 +740,21 @@ function handleFuturesAlgoCommand(
     });
 }
 
-function handleFuturesCommand(
+function resolveFuturesOrdersStatus(v: CliValues): "archive" | "history" | "open" {
+  if (v.archive) return "archive";
+  if (v.history) return "history";
+  return "open";
+}
+
+export function handleFuturesCommand(
   run: ToolRunner,
   action: string,
   rest: string[],
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
-  if (action === "orders") {
-    let status: "archive" | "history" | "open" = "open";
-    if (v.archive) status = "archive";
-    else if (v.history) status = "history";
-    return cmdFuturesOrders(run, { instId: v.instId, status, json });
-  }
+  if (action === "orders")
+    return cmdFuturesOrders(run, { instId: v.instId, status: resolveFuturesOrdersStatus(v), json });
   if (action === "positions") return cmdFuturesPositions(run, v.instId, json);
   if (action === "fills")
     return cmdFuturesFills(run, {
@@ -720,7 +780,7 @@ function handleFuturesCommand(
       json,
     });
   if (action === "cancel")
-    return cmdFuturesCancel(run, rest[0] ?? v.instId!, v.ordId!, json);
+    return cmdFuturesCancel(run, v.instId!, v.ordId!, json);
   if (action === "get")
     return cmdFuturesGet(run, { instId: rest[0] ?? v.instId!, ordId: v.ordId, json });
   if (action === "amend")
@@ -1160,22 +1220,15 @@ function handleEarnDcdCommand(
       expDate: v.expDate,
       json,
     });
-  if (action === "quote")
-    return cmdDcdQuote(run, { productId: v.productId!, notionalSz: v.sz!, notionalCcy: v.notionalCcy!, json });
-  if (action === "buy")
-    return cmdDcdBuy(run, { quoteId: v.quoteId!, clOrdId: v.clOrdId, json });
   if (action === "quote-and-buy")
     return cmdDcdQuoteAndBuy(run, {
       productId: v.productId!,
       notionalSz: v.sz!,
       notionalCcy: v.notionalCcy!,
       clOrdId: v.clOrdId,
+      minAnnualizedYield: v.minAnnualizedYield !== undefined ? parseFloat(v.minAnnualizedYield) : undefined,
       json,
     });
-  if (action === "redeem-quote")
-    return cmdDcdRedeemQuote(run, { ordId: v.ordId!, json });
-  if (action === "redeem")
-    return cmdDcdRedeem(run, { ordId: v.ordId!, quoteId: v.quoteId!, json });
   if (action === "redeem-execute")
     return cmdDcdRedeemExecute(run, { ordId: v.ordId!, json });
   if (action === "order")
@@ -1193,7 +1246,7 @@ function handleEarnDcdCommand(
       limit,
       json,
     });
-  process.stderr.write(`Unknown earn dcd command: ${action}\nValid: pairs, products, quote, buy, quote-and-buy, redeem-quote, redeem, redeem-execute, order, orders\n`);
+  process.stderr.write(`Unknown earn dcd command: ${action}\nValid: pairs, products, quote-and-buy, redeem-execute, order, orders\n`);
   process.exitCode = 1;
 }
 
@@ -1254,7 +1307,7 @@ async function main(): Promise<void> {
 
   if (config.verbose) printVerboseConfigSummary(config, v.profile);
 
-  if (module === "diagnose") return cmdDiagnose(config, v.profile ?? "default");
+  if (module === "diagnose") return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
 
   const client = new OkxRestClient(config);
   const run = createToolRunner(client, config);

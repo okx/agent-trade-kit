@@ -2733,13 +2733,13 @@ describe("grid tools algoId description", () => {
   const toolsWithAlgoOrdType = ["grid_get_order_details", "grid_get_sub_orders", "grid_stop_order"];
 
   for (const name of toolsWithAlgoOrdType) {
-    it(`${name} algoOrdType description mentions matching`, () => {
+    it(`${name} algoOrdType description explains enum values`, () => {
       const tool = tools.find((t) => t.name === name)!;
       const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+      const desc = props["algoOrdType"]["description"];
       assert.ok(
-        typeof props["algoOrdType"]["description"] === "string" &&
-          props["algoOrdType"]["description"].toLowerCase().includes("must match"),
-        `${name}.algoOrdType should mention that value must match the bot's actual type`,
+        typeof desc === "string" && desc.includes("grid") && desc.includes("contract_grid"),
+        `${name}.algoOrdType should describe the enum values (grid/contract_grid)`,
       );
     });
   }
@@ -3380,8 +3380,8 @@ describe("earn tools isWrite classification", () => {
 describe("dcd tools registration", () => {
   const tools = registerDcdTools();
 
-  it("registers exactly 8 dcd tools", () => {
-    assert.equal(tools.length, 8);
+  it("registers exactly 6 dcd tools", () => {
+    assert.equal(tools.length, 6);
   });
 
   it("all tools have module earn.dcd", () => {
@@ -3391,7 +3391,7 @@ describe("dcd tools registration", () => {
   });
 
   it("write tools have isWrite=true", () => {
-    for (const name of ["dcd_execute_quote", "dcd_execute_redeem"]) {
+    for (const name of ["dcd_subscribe", "dcd_redeem"]) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);
       assert.equal(tool!.isWrite, true, `${name} should have isWrite=true`);
@@ -3399,8 +3399,7 @@ describe("dcd tools registration", () => {
   });
 
   it("read tools have isWrite=false", () => {
-    for (const name of ["dcd_get_currency_pairs", "dcd_get_products", "dcd_request_quote",
-      "dcd_request_redeem_quote", "dcd_get_order_state", "dcd_get_orders"]) {
+    for (const name of ["dcd_get_currency_pairs", "dcd_get_products", "dcd_get_order_state", "dcd_get_orders"]) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);
       assert.equal(tool!.isWrite, false, `${name} should have isWrite=false`);
@@ -3440,107 +3439,181 @@ describe("dcd_get_products", () => {
   });
 });
 
-describe("dcd_request_quote", () => {
-  const tools = registerDcdTools();
-  const tool = tools.find((t) => t.name === "dcd_request_quote")!;
 
-  it("calls /api/v5/finance/sfp/dcd/quote via POST", async () => {
-    const { client, getLastCall } = makeMockClient();
+describe("dcd_subscribe", () => {
+  const tools = registerDcdTools();
+  const tool = tools.find((t) => t.name === "dcd_subscribe")!;
+
+  function makeSubscribeClient(quoteData: Record<string, unknown> = { quoteId: "q-sub-123", annualizedYield: "18.5" }) {
+    const calls: CapturedCall[] = [];
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "GET", endpoint, params });
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "GET", endpoint, params });
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "POST", endpoint, params });
+        if (endpoint === "/api/v5/finance/sfp/dcd/quote") {
+          return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [quoteData] };
+        }
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    return { client, getCalls: () => calls };
+  }
+
+  it("calls /dcd/quote then /dcd/trade in order", async () => {
+    const { client, getCalls } = makeSubscribeClient();
     await tool.handler(
-      { productId: "BTC-USDT-260327-77000-C", notionalSz: "1.5", notionalCcy: "BTC" },
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/quote");
-    assert.equal(getLastCall()?.method, "POST");
+    const calls = getCalls();
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].endpoint, "/api/v5/finance/sfp/dcd/quote");
+    assert.equal(calls[1].endpoint, "/api/v5/finance/sfp/dcd/trade");
   });
 
-  it("passes notionalSz and notionalCcy", async () => {
-    const { client, getLastCall } = makeMockClient();
+  it("passes productId, notionalSz, notionalCcy to quote", async () => {
+    const { client, getCalls } = makeSubscribeClient();
     await tool.handler(
-      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.001", notionalCcy: "BTC" },
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.5", notionalCcy: "BTC" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params.notionalSz, "0.001");
-    assert.equal(getLastCall()?.params.notionalCcy, "BTC");
-  });
-});
-
-describe("dcd_execute_quote", () => {
-  const tools = registerDcdTools();
-  const tool = tools.find((t) => t.name === "dcd_execute_quote")!;
-
-  it("calls /api/v5/finance/sfp/dcd/trade via POST", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ quoteId: "qtbcDCD-QUOTE123" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/trade");
-    assert.equal(getLastCall()?.method, "POST");
+    assert.equal(getCalls()[0].params.productId, "BTC-USDT-260327-77000-C");
+    assert.equal(getCalls()[0].params.notionalSz, "0.5");
+    assert.equal(getCalls()[0].params.notionalCcy, "BTC");
   });
 
-  it("passes optional clOrdId when provided", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ quoteId: "qtbcDCD-QUOTE123", clOrdId: "myOrder1" }, makeContext(client));
-    assert.equal(getLastCall()?.params.clOrdId, "myOrder1");
+  it("passes quoteId from quote response to trade", async () => {
+    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-abc-456", annualizedYield: "20" });
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC" },
+      makeContext(client),
+    );
+    assert.equal(getCalls()[1].params.quoteId, "q-abc-456");
+  });
+
+  it("passes optional clOrdId to trade when provided", async () => {
+    const { client, getCalls } = makeSubscribeClient();
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", clOrdId: "my-order-1" },
+      makeContext(client),
+    );
+    assert.equal(getCalls()[1].params.clOrdId, "my-order-1");
+  });
+
+  it("omits clOrdId from trade when not provided", async () => {
+    const { client, getCalls } = makeSubscribeClient();
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC" },
+      makeContext(client),
+    );
+    assert.equal(getCalls()[1].params.clOrdId, undefined);
+  });
+
+  it("rejects with YIELD_BELOW_MIN when quote yield is below minAnnualizedYield", async () => {
+    const { client } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "15" });
+    await assert.rejects(
+      () => tool.handler(
+        { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", minAnnualizedYield: 18 },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "YIELD_BELOW_MIN",
+    );
+  });
+
+  it("does not reject when quote yield meets minAnnualizedYield", async () => {
+    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "20" });
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", minAnnualizedYield: 18 },
+      makeContext(client),
+    );
+    assert.equal(getCalls().length, 2);
   });
 
   it("rejects in demo mode", async () => {
-    const { client } = makeMockClient();
-    const demoContext = {
-      client: client as ToolContext["client"],
-      config: { demo: true } as ToolContext["config"],
-    };
+    const { client } = makeSubscribeClient();
+    const demoContext = { client: client as ToolContext["client"], config: { demo: true } as ToolContext["config"] };
     await assert.rejects(
-      () => tool.handler({ quoteId: "qtbcDCD-QUOTE123" }, demoContext),
+      () => tool.handler(
+        { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC" },
+        demoContext,
+      ),
       (err: unknown) => err instanceof ConfigError,
     );
   });
 });
 
-describe("dcd_request_redeem_quote", () => {
+describe("dcd_redeem", () => {
   const tools = registerDcdTools();
-  const tool = tools.find((t) => t.name === "dcd_request_redeem_quote")!;
+  const tool = tools.find((t) => t.name === "dcd_redeem")!;
 
-  it("calls /api/v5/finance/sfp/dcd/redeem-quote via POST", async () => {
+  it("preview mode: calls /dcd/redeem-quote via POST (no quoteId)", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ordId: "987654321" }, makeContext(client));
+    await tool.handler({ ordId: "ord-123" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/redeem-quote");
     assert.equal(getLastCall()?.method, "POST");
   });
 
-  it("passes ordId", async () => {
+  it("preview mode: passes ordId to redeem-quote", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ordId: "111" }, makeContext(client));
-    assert.equal(getLastCall()?.params.ordId, "111");
+    await tool.handler({ ordId: "ord-456" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ordId, "ord-456");
   });
-});
 
-describe("dcd_execute_redeem", () => {
-  const tools = registerDcdTools();
-  const tool = tools.find((t) => t.name === "dcd_execute_redeem")!;
-
-  it("calls /api/v5/finance/sfp/dcd/redeem via POST", async () => {
+  it("execute mode: calls /dcd/redeem with ordId and quoteId", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ordId: "987654321", quoteId: "qtbcDCD-REDEEM123" }, makeContext(client));
+    await tool.handler({ ordId: "ord-123", quoteId: "q-redeem-456" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/finance/sfp/dcd/redeem");
-    assert.equal(getLastCall()?.method, "POST");
+    assert.equal(getLastCall()?.params.ordId, "ord-123");
+    assert.equal(getLastCall()?.params.quoteId, "q-redeem-456");
   });
 
-  it("passes ordId and quoteId", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ordId: "111", quoteId: "q222" }, makeContext(client));
-    assert.equal(getLastCall()?.params.ordId, "111");
-    assert.equal(getLastCall()?.params.quoteId, "q222");
-  });
-
-  it("rejects in demo mode", async () => {
-    const { client } = makeMockClient();
-    const demoContext = {
-      client: client as ToolContext["client"],
-      config: { demo: true } as ToolContext["config"],
+  it("execute mode: auto-refreshes quote on 52905 and sets autoRefreshedQuote=true", async () => {
+    const calls: Array<{ endpoint: string; params: Record<string, unknown> }> = [];
+    let redeemAttempt = 0;
+    const client = {
+      publicGet: async () => ({ endpoint: "", requestTime: "", data: [] }),
+      privateGet: async () => ({ endpoint: "", requestTime: "", data: [] }),
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ endpoint, params });
+        if (endpoint === "/api/v5/finance/sfp/dcd/redeem") {
+          redeemAttempt++;
+          if (redeemAttempt === 1) throw new OkxApiError("Quote expired", { code: "52905" });
+        }
+        if (endpoint === "/api/v5/finance/sfp/dcd/redeem-quote") {
+          return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [{ quoteId: "q-refreshed-789" }] };
+        }
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
     };
+    const result = await tool.handler(
+      { ordId: "ord-123", quoteId: "q-expired" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+    assert.equal(result["autoRefreshedQuote"], true);
+    assert.equal(calls.filter((c) => c.endpoint === "/api/v5/finance/sfp/dcd/redeem").length, 2);
+    assert.equal(calls.filter((c) => c.endpoint === "/api/v5/finance/sfp/dcd/redeem-quote").length, 1);
+  });
+
+  it("execute mode: rejects in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoContext = { client: client as ToolContext["client"], config: { demo: true } as ToolContext["config"] };
     await assert.rejects(
-      () => tool.handler({ ordId: "111", quoteId: "q222" }, demoContext),
+      () => tool.handler({ ordId: "ord-123", quoteId: "q-456" }, demoContext),
       (err: unknown) => err instanceof ConfigError,
     );
+  });
+
+  it("preview mode: does NOT reject in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoContext = { client: client as ToolContext["client"], config: { demo: true } as ToolContext["config"] };
+    await tool.handler({ ordId: "ord-123" }, demoContext);
   });
 });
 

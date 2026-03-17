@@ -18,13 +18,15 @@ import {
   cmdDcaOrders,
   cmdDcaDetails,
   cmdDcaSubOrders,
+} from "../src/commands/bot.js";
+import {
   cmdRecurringCreate,
   cmdRecurringAmend,
   cmdRecurringStop,
   cmdRecurringOrders,
   cmdRecurringDetails,
   cmdRecurringSubOrders,
-} from "../src/commands/bot.js";
+} from "../src/commands/bot-recurring-ext.js";
 
 // ---------------------------------------------------------------------------
 // Helpers

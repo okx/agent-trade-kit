@@ -367,7 +367,7 @@ describe('printHelp("earn", "dcd") — dcd subgroup detail', () => {
 
   it("lists all DCD commands", () => {
     const out = captureStdout(() => printHelp("earn", "dcd"));
-    for (const cmd of ["pairs", "products", "quote", "buy", "quote-and-buy", "redeem-quote", "redeem", "redeem-execute", "order", "orders"]) {
+    for (const cmd of ["pairs", "products", "quote-and-buy", "redeem-execute", "order", "orders"]) {
       assert.ok(out.includes(cmd), `should mention dcd '${cmd}' command`);
     }
   });
@@ -375,7 +375,6 @@ describe('printHelp("earn", "dcd") — dcd subgroup detail', () => {
   it("includes key flags in usage lines", () => {
     const out = captureStdout(() => printHelp("earn", "dcd"));
     assert.ok(out.includes("--productId"), "should include --productId flag");
-    assert.ok(out.includes("--quoteId"), "should include --quoteId flag");
     assert.ok(out.includes("--ordId"), "should include --ordId flag");
   });
 });

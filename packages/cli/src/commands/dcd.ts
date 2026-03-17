@@ -122,126 +122,18 @@ export async function cmdDcdProducts(
   })));
 }
 
-export async function cmdDcdQuote(
-  run: ToolRunner,
-  opts: { productId: string; notionalSz: string; notionalCcy: string; json: boolean },
-): Promise<void> {
-  const result = await run("dcd_request_quote", {
-    productId: opts.productId,
-    notionalSz: opts.notionalSz,
-    notionalCcy: opts.notionalCcy,
-  });
-  const data = extractArray(result);
-  if (opts.json) { printJson(data); return; }
-  const r = data[0];
-  if (!r) { process.stdout.write("No quote returned\n"); return; }
-  printKv({
-    quoteId: r["quoteId"],
-    productId: r["productId"],
-    notionalSz: r["notionalSz"],
-    notionalCcy: r["notionalCcy"],
-    // quote endpoint returns percentage directly (e.g. 18.34 = 18.34%) — no ×100 needed
-    annualizedYield: r["annualizedYield"] ? `${r["annualizedYield"]}%` : "—",
-    absYield: r["absYield"],
-    idxPx: r["idxPx"],
-    validUntil: r["validUntil"] ? new Date(Number(r["validUntil"])).toLocaleString() : "—",
-  });
-  process.stdout.write("\nQuote expires soon. Use 'earn dcd buy --quoteId <id>' to execute.\n");
-}
-
-export async function cmdDcdBuy(
-  run: ToolRunner,
-  opts: { quoteId: string; clOrdId?: string; json: boolean },
-): Promise<void> {
-  const result = await run("dcd_execute_quote", {
-    quoteId: opts.quoteId,
-    clOrdId: opts.clOrdId,
-  });
-  const data = extractArray(result);
-  const r = data[0];
-  if (!r) { process.stdout.write("No response data\n"); return; }
-
-  const ordId = r["ordId"] as string | undefined;
-
-  // Auto-query order state after placing.
-  // Wrapped in try/catch: a failure here must NOT mask the successful order placement.
-  let stateRow: Record<string, unknown> | undefined;
-  if (ordId) {
-    try {
-      const stateResult = await run("dcd_get_order_state", { ordId });
-      stateRow = extractArray(stateResult)[0];
-    } catch {
-      // Secondary query failed — order was already placed, do not propagate
-    }
-  }
-
-  if (opts.json) {
-    printJson({ order: r, state: stateRow ?? null });
-    return;
-  }
-
-  process.stdout.write("Order placed:\n");
-  printKv({ ordId: r["ordId"], quoteId: r["quoteId"], state: r["state"] });
-
-  if (stateRow) {
-    process.stdout.write("\nOrder state:\n");
-    printKv({
-      ordId: stateRow["ordId"],
-      state: stateRow["state"],
-    });
-  }
-}
-
-export async function cmdDcdRedeemQuote(
-  run: ToolRunner,
-  opts: { ordId: string; json: boolean },
-): Promise<void> {
-  const result = await run("dcd_request_redeem_quote", { ordId: opts.ordId });
-  const data = extractArray(result);
-  if (opts.json) { printJson(data); return; }
-  const r = data[0];
-  if (!r) { process.stdout.write("No redeem quote returned\n"); return; }
-  const redeemSzRaw = r["redeemSz"] as string | undefined;
-  const redeemSzDisplay = redeemSzRaw
-    ? `${parseFloat(redeemSzRaw).toFixed(8)} ${r["redeemCcy"]}`
-    : "—";
-  const termRateRaw = r["termRate"] as string | undefined;
-  const termRateDisplay = termRateRaw ? `${termRateRaw}%` : "—";
-  const validUntil = r["validUntil"] ? new Date(Number(r["validUntil"])).toLocaleString() : "—";
-  printKv({
-    ordId: r["ordId"],
-    quoteId: r["quoteId"],
-    redeemSz: redeemSzDisplay,
-    termRate: termRateDisplay,
-    validUntil,
-  });
-  process.stdout.write("\nQuote expires soon. Use 'earn dcd redeem-execute --ordId <id>' to execute.\n");
-}
-
-export async function cmdDcdRedeem(
-  run: ToolRunner,
-  opts: { ordId: string; quoteId: string; json: boolean },
-): Promise<void> {
-  const result = await run("dcd_execute_redeem", { ordId: opts.ordId, quoteId: opts.quoteId });
-  const data = extractArray(result);
-  if (opts.json) { printJson(data); return; }
-  const r = data[0];
-  if (!r) { process.stdout.write("No response data\n"); return; }
-  printKv({ ordId: r["ordId"], state: r["state"] });
-}
-
 export async function cmdDcdRedeemExecute(
   run: ToolRunner,
   opts: { ordId: string; json: boolean },
 ): Promise<void> {
-  // Step 1: fresh redeem quote (previous preview quote likely expired)
-  const quoteResult = await run("dcd_request_redeem_quote", { ordId: opts.ordId });
+  // Step 1: get redeem quote via dcd_redeem preview (no quoteId)
+  const quoteResult = await run("dcd_redeem", { ordId: opts.ordId });
   const quoteData = extractArray(quoteResult);
   const q = quoteData[0];
   if (!q) { process.stdout.write("Failed to get redeem quote\n"); return; }
 
-  // Step 2: execute immediately
-  const redeemResult = await run("dcd_execute_redeem", {
+  // Step 2: execute immediately via dcd_redeem with quoteId
+  const redeemResult = await run("dcd_redeem", {
     ordId: opts.ordId,
     quoteId: q["quoteId"] as string,
   });
@@ -259,7 +151,6 @@ export async function cmdDcdRedeemExecute(
     state: r["state"],
     redeemSz: q["redeemSz"] ? `${parseFloat(q["redeemSz"] as string).toFixed(8)} ${q["redeemCcy"]}` : "—",
     termRate: (q["termRate"] as string) ? `${q["termRate"]}%` : "—",
-    validUntil: q["validUntil"] ? new Date(Number(q["validUntil"])).toLocaleString() : "—",
   });
 }
 
@@ -328,34 +219,30 @@ export async function cmdDcdOrders(
 
 export async function cmdDcdQuoteAndBuy(
   run: ToolRunner,
-  opts: { productId: string; notionalSz: string; notionalCcy: string; clOrdId?: string; json: boolean },
+  opts: { productId: string; notionalSz: string; notionalCcy: string; clOrdId?: string; minAnnualizedYield?: number; json: boolean },
 ): Promise<void> {
-  // Step 1: request quote
-  const quoteResult = await run("dcd_request_quote", {
+  // Atomic subscribe via dcd_subscribe (quote + execute in one step)
+  const result = await run("dcd_subscribe", {
     productId: opts.productId,
     notionalSz: opts.notionalSz,
     notionalCcy: opts.notionalCcy,
-  });
-  const quoteData = extractArray(quoteResult);
-  const q = quoteData[0];
-  if (!q) { process.stdout.write("No quote returned\n"); return; }
-
-  // Step 2: execute quote immediately (no user confirmation — TTL ~30s)
-  const buyResult = await run("dcd_execute_quote", {
-    quoteId: q["quoteId"] as string,
     clOrdId: opts.clOrdId,
-  });
-  const buyData = extractArray(buyResult);
-  const r = buyData[0];
-  if (!r) { process.stdout.write("No order response\n"); return; }
+    minAnnualizedYield: opts.minAnnualizedYield,
+  }) as unknown as Record<string, unknown>;
 
-  // Step 3: auto-query order state.
+  const tradeData = extractArray(result);
+  const r = tradeData[0];
+  const q = result["quote"] as Record<string, unknown> | undefined;
+
+  if (!r) { process.stdout.write("No quote returned\n"); return; }
+
+  // Auto-query full order detail via dcd_get_orders (richer than dcd_get_order_state).
   // Wrapped in try/catch: a failure here must NOT mask the successful order placement.
   const ordId = r["ordId"] as string | undefined;
   let stateRow: Record<string, unknown> | undefined;
   if (ordId) {
     try {
-      const stateResult = await run("dcd_get_order_state", { ordId });
+      const stateResult = await run("dcd_get_orders", { ordId });
       stateRow = extractArray(stateResult)[0];
     } catch {
       // Secondary query failed — order was already placed, do not propagate
@@ -363,26 +250,32 @@ export async function cmdDcdQuoteAndBuy(
   }
 
   if (opts.json) {
-    printJson({ quote: q, order: r, state: stateRow ?? null });
+    printJson({ quote: q ?? null, order: r, state: stateRow ?? null });
     return;
   }
 
-  process.stdout.write("Quote:\n");
-  printKv({
-    quoteId: q["quoteId"],
-    // quote endpoint returns percentage directly (e.g. 18.34 = 18.34%) — no ×100 needed
-    annualizedYield: q["annualizedYield"] ? `${q["annualizedYield"]}%` : "—",
-    absYield: q["absYield"],
-    notionalSz: q["notionalSz"],
-    notionalCcy: q["notionalCcy"],
-  });
-  process.stdout.write("\nOrder placed:\n");
+  if (q) {
+    process.stdout.write("Quote:\n");
+    printKv({
+      quoteId: q["quoteId"],
+      annualizedYield: q["annualizedYield"] ? `${q["annualizedYield"]}%` : "—",
+      absYield: q["absYield"],
+      notionalSz: q["notionalSz"],
+      notionalCcy: q["notionalCcy"],
+    });
+    process.stdout.write("\n");
+  }
+  process.stdout.write("Order placed:\n");
   printKv({ ordId: r["ordId"], quoteId: r["quoteId"], state: r["state"] ?? r["status"] });
   if (stateRow) {
     process.stdout.write("\nOrder state:\n");
     printKv({
       ordId: stateRow["ordId"],
       state: stateRow["state"],
+      productId: stateRow["productId"],
+      strike: stateRow["strike"],
+      notionalSz: stateRow["notionalSz"],
+      settleTime: stateRow["settleTime"] ? new Date(Number(stateRow["settleTime"])).toLocaleDateString() : "",
     });
   }
 }

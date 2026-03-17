@@ -85,6 +85,9 @@ export async function cmdSpotAlgoPlace(
     tpOrdPx?: string;
     slTriggerPx?: string;
     slOrdPx?: string;
+    callbackRatio?: string;
+    callbackSpread?: string;
+    activePx?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -98,6 +101,9 @@ export async function cmdSpotAlgoPlace(
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
+    callbackRatio: opts.callbackRatio,
+    callbackSpread: opts.callbackSpread,
+    activePx: opts.activePx,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
