@@ -9,6 +9,19 @@
 
 ---
 
+## [Unreleased]
+
+### 新增
+
+- **CLI `copytrading` 模块**：5 个新命令，支持浏览带单员、跟单/取消跟单、查看跟单状态。支持 SWAP 和 SPOT。公开接口无需鉴权；`status` / `follow` / `unfollow` 需要 `--profile`。
+  - `okx copytrading traders` — 带单员排行榜，支持完整筛选：`--sortType`、`--state`、`--minLeadDays`、`--minAssets`、`--maxAssets`、`--minAum`、`--maxAum`、`--page`、`--dataVer`
+  - `okx copytrading trader-detail` — 带单员完整档案（每日盈亏 + 胜率统计 + 偏好币种）
+  - `okx copytrading status` — 我当前跟随的带单员（含累计盈亏）
+  - `okx copytrading follow` — 开始跟单，支持三种模式：`smart_copy`（initialAmount + replicationRequired）、`fixed_amount`（copyAmt）、`ratio_copy`（copyRatio）。支持止盈止损、保证金模式、自定义品种。
+  - `okx copytrading unfollow` — 停止跟单，可选持仓处理方式（`copy_close` / `market_close` / `manual_close`）
+
+---
+
 ## [1.2.5-beta.1] - 2026-03-16
 
 ### 变更
@@ -200,17 +213,6 @@
 
 - **Bot 工具：补充 `algoId`、`algoOrdType`、`groupId` 缺失的参数描述** — Grid 工具（`grid_get_orders`、`grid_get_order_details`、`grid_get_sub_orders`、`grid_stop_order`）和 DCA 工具（`dca_get_orders`、`dca_get_order_details`）缺少 `algoId` 描述，导致 AI agent 传入无效值（错误 `51000`）或 `algoOrdType` 不匹配（错误 `50016`）。同时补充了 `grid_get_sub_orders` 的 `groupId` 描述和 `spot_amend_algo_order` 的 `newSz` 描述。
 - **CLI：`okx bot dca orders` 新增 `--algoId` 和 `--instId` 过滤** — 此前 CLI 未将这些参数传递给底层 `dca_get_orders` 工具，尽管 MCP tool 已支持。现已与 `okx bot grid orders` 行为对齐。
-
-### 新增
-
-- **跟单交易模块**（`copytrading`）：5 个新 MCP 工具，支持浏览带单员、跟单/取消跟单、查看跟单状态
-  - `copytrading_get_lead_traders` — 带单员排行榜，支持多维筛选（排序类型、最低资产、最低 AUM、分页）
-  - `copytrading_get_trader_details` — 带单员完整档案（每日盈亏 + 胜率统计 + 偏好币种，一次返回）
-  - `copytrading_get_my_details` — 我当前跟随的交易员（含累计盈亏）
-  - `copytrading_set_copytrading` — 开始跟单，支持三种模式：`smart_copy`（智能跟单，默认，需提供 initialAmount + replicationRequired）、`fixed_amount`（固定金额，需提供 copyAmt）、`ratio_copy`（固定比例，需提供 copyRatio）。`replicationRequired` 仅适用于 `smart_copy` 模式。支持止盈止损、保证金模式、品种选择。支持 SWAP（默认）和 SPOT。
-  - `copytrading_stop_copy_trader` — 停止跟单，可选持仓处理方式
-- **CLI `copytrading` 模块**：5 个命令 — `traders`、`status`、`follow`、`unfollow`、`trader-detail`
-- 模块文档：`docs/modules/copytrading.md`（双语）
 
 ### 变更
 

@@ -71,11 +71,11 @@ describe("cmdCopyTradeTraders", () => {
     assert.doesNotThrow(() => JSON.parse(out), "should be valid JSON");
   });
 
-  it("defaults instType=SWAP when not provided", async () => {
+  it("forwards instType=undefined when not provided (core sets default)", async () => {
     const { runner, getCalls } = createCapturingRunner([]);
     await captureStdout(() => cmdCopyTradeTraders(runner, { json: false }));
     const call = getCalls()[0];
-    assert.equal((call?.args as Record<string, unknown>)?.["instType"], "SWAP");
+    assert.equal((call?.args as Record<string, unknown>)?.["instType"], undefined);
   });
 
   it("forwards custom limit", async () => {
@@ -130,6 +130,20 @@ describe("cmdCopyTradeMyStatus", () => {
     const { runner, getCalls } = createCapturingRunner();
     await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: false }));
     assert.equal(getCalls()[0]?.tool, "copytrading_get_my_details");
+  });
+
+  it("forwards instType=SPOT when provided", async () => {
+    const { runner, getCalls } = createCapturingRunner();
+    await captureStdout(() => cmdCopyTradeMyStatus(runner, { instType: "SPOT", json: false }));
+    const args = getCalls()[0]?.args as Record<string, unknown>;
+    assert.equal(args?.["instType"], "SPOT");
+  });
+
+  it("forwards instType=undefined when not provided (core sets default)", async () => {
+    const { runner, getCalls } = createCapturingRunner();
+    await captureStdout(() => cmdCopyTradeMyStatus(runner, { json: false }));
+    const args = getCalls()[0]?.args as Record<string, unknown>;
+    assert.equal(args?.["instType"], undefined);
   });
 });
 
@@ -304,13 +318,13 @@ describe("cmdCopyTradeUnfollow", () => {
     assert.equal(args?.["uniqueCode"], "STOP_TRADER");
   });
 
-  it("defaults subPosCloseType=copy_close when not provided", async () => {
+  it("forwards undefined for subPosCloseType when not provided (core sets default copy_close)", async () => {
     const { runner, getCalls } = createCapturingRunner([]);
     await captureStdout(() =>
       cmdCopyTradeUnfollow(runner, { uniqueCode: "TRADER456", json: false })
     );
     const args = getCalls()[0]?.args as Record<string, unknown>;
-    assert.equal(args?.["subPosCloseType"], "copy_close");
+    assert.equal(args?.["subPosCloseType"], undefined);
   });
 
   it("forwards custom subPosCloseType", async () => {
@@ -349,14 +363,14 @@ describe("cmdCopyTradeTraderDetail", () => {
     assert.equal(args?.["uniqueCode"], "TRADER789");
   });
 
-  it("defaults lastDays=2 and instType=SWAP", async () => {
+  it("forwards undefined for lastDays and instType when not provided (core sets defaults)", async () => {
     const { runner, getCalls } = createCapturingRunner();
     await captureStdout(() =>
       cmdCopyTradeTraderDetail(runner, { uniqueCode: "TRADER789", json: true })
     );
     const args = getCalls()[0]?.args as Record<string, unknown>;
-    assert.equal(args?.["lastDays"], "2");
-    assert.equal(args?.["instType"], "SWAP");
+    assert.equal(args?.["lastDays"], undefined);
+    assert.equal(args?.["instType"], undefined);
   });
 
   it("prints stats block in non-json mode when stats data exists", async () => {

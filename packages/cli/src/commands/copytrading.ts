@@ -7,10 +7,32 @@ function asRaw(result: unknown): Record<string, unknown> {
 
 export async function cmdCopyTradeTraders(
   run: ToolRunner,
-  opts: { instType?: string; limit?: number; json: boolean },
+  opts: {
+    instType?: string;
+    sortType?: string;
+    state?: string;
+    minLeadDays?: string;
+    minAssets?: string;
+    maxAssets?: string;
+    minAum?: string;
+    maxAum?: string;
+    page?: string;
+    dataVer?: string;
+    limit?: number;
+    json: boolean;
+  },
 ): Promise<void> {
   const result = await run("copytrading_get_lead_traders", {
-    instType: opts.instType ?? "SWAP",
+    instType: opts.instType,
+    sortType: opts.sortType,
+    state: opts.state,
+    minLeadDays: opts.minLeadDays,
+    minAssets: opts.minAssets,
+    maxAssets: opts.maxAssets,
+    minAum: opts.minAum,
+    maxAum: opts.maxAum,
+    page: opts.page,
+    dataVer: opts.dataVer,
     limit: opts.limit,
   });
   const raw = asRaw(result);
@@ -102,7 +124,7 @@ export async function cmdCopyTradeUnfollow(
 ): Promise<void> {
   const result = await run("copytrading_stop_copy_trader", {
     uniqueCode: opts.uniqueCode,
-    subPosCloseType: opts.subPosCloseType ?? "copy_close",
+    subPosCloseType: opts.subPosCloseType,
     instType: opts.instType,
   });
   const data = asRaw(result)["data"];
@@ -116,8 +138,8 @@ export async function cmdCopyTradeTraderDetail(
 ): Promise<void> {
   const result = await run("copytrading_get_trader_details", {
     uniqueCode: opts.uniqueCode,
-    lastDays: opts.lastDays ?? "2",
-    instType: opts.instType ?? "SWAP",
+    lastDays: opts.lastDays,
+    instType: opts.instType,
   });
   const raw = result as unknown as Record<string, unknown>;
   if (opts.json) return printJson(raw);

@@ -114,6 +114,14 @@ export interface CliValues {
   // copytrading
   uniqueCode?: string;
   lastDays?: string;
+  sortType?: string;
+  minLeadDays?: string;
+  minAssets?: string;
+  maxAssets?: string;
+  minAum?: string;
+  maxAum?: string;
+  page?: string;
+  dataVer?: string;
   copyMode?: string;
   copyRatio?: string;
   copyTotalAmt?: string;
@@ -255,6 +263,14 @@ export const CLI_OPTIONS = {
   // copytrading
   uniqueCode: { type: "string" },
   lastDays: { type: "string" },
+  sortType: { type: "string" },
+  minLeadDays: { type: "string" },
+  minAssets: { type: "string" },
+  maxAssets: { type: "string" },
+  minAum: { type: "string" },
+  maxAum: { type: "string" },
+  page: { type: "string" },
+  dataVer: { type: "string" },
   copyMode: { type: "string" },
   copyRatio: { type: "string" },
   copyTotalAmt: { type: "string" },

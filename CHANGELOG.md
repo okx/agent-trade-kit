@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **CLI `copytrading` module**: 5 new commands for browsing lead traders, following/unfollowing traders, and monitoring copy positions. Supports SWAP and SPOT. Public endpoints require no credentials; `status` / `follow` / `unfollow` require `--profile`.
+  - `okx copytrading traders` — ranked lead trader list with full filter support: `--sortType`, `--state`, `--minLeadDays`, `--minAssets`, `--maxAssets`, `--minAum`, `--maxAum`, `--page`, `--dataVer`
+  - `okx copytrading trader-detail` — aggregated trader profile: daily P&L, win-rate stats, and currency preference
+  - `okx copytrading status` — current followed traders with cumulative P&L
+  - `okx copytrading follow` — start copy trading: `smart_copy` (initialAmount + replicationRequired), `fixed_amount` (copyAmt), `ratio_copy` (copyRatio). Supports TP/SL, margin mode, custom instruments.
+  - `okx copytrading unfollow` — stop copy trading with configurable position close type (`copy_close` / `market_close` / `manual_close`)
+
+---
+
 ## [1.2.5-beta.1] - 2026-03-16
 
 ### Changed
@@ -200,17 +213,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Bot tools: added missing parameter descriptions for `algoId`, `algoOrdType`, and `groupId`** — Grid tools (`grid_get_orders`, `grid_get_order_details`, `grid_get_sub_orders`, `grid_stop_order`) and DCA tools (`dca_get_orders`, `dca_get_order_details`) were missing `algoId` descriptions, causing AI agents to pass invalid values (error `51000`) or mismatched `algoOrdType` (error `50016`). Also added `groupId` description for `grid_get_sub_orders` and `newSz` description for `spot_amend_algo_order`.
 - **CLI: `okx bot dca orders` now supports `--algoId` and `--instId` filters** — Previously the CLI did not pass these parameters to the underlying `dca_get_orders` tool, even though the MCP tool already supported them. Now aligned with `okx bot grid orders` behavior.
-
-### Added
-
-- **Copy trading module** (`copytrading`): 5 new MCP tools for browsing lead traders, following/unfollowing traders, and monitoring copy positions
-  - `copytrading_get_lead_traders` — ranked lead trader list with filters (sortType, minAssets, minAum, pagination)
-  - `copytrading_get_trader_details` — aggregated trader profile: daily P&L, win-rate stats, and currency preference
-  - `copytrading_get_my_details` — current followed traders with cumulative P&L
-  - `copytrading_set_copytrading` — start copy trading with configurable mode: `smart_copy` (default, initialAmount + replicationRequired required), `fixed_amount` (copyAmt required), `ratio_copy` (copyRatio required). `replicationRequired` is only applicable to `smart_copy` mode. Supports TP/SL, margin mode, instrument selection. Supports SWAP (default) and SPOT.
-  - `copytrading_stop_copy_trader` — stop copy trading with position close type selection
-- **CLI `copytrading` module**: 5 commands — `traders`, `status`, `follow`, `unfollow`, `trader-detail`
-- Module docs: `docs/modules/copytrading.md` (bilingual)
 
 ### Changed
 

@@ -36,7 +36,7 @@ function allToolSpecs(): ToolSpec[] {
 
 export function buildTools(config: OkxConfig): ToolSpec[] {
   const enabledModules = new Set(config.modules);
-  const tools = allToolSpecs().filter((tool) => enabledModules.has(tool.module));
+  const tools = allToolSpecs().filter((tool) => enabledModules.has(tool.module as ModuleId));
   if (!config.readOnly) {
     return tools;
   }

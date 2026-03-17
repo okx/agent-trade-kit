@@ -14,7 +14,8 @@ export interface ToolContext {
 
 export interface ToolSpec {
   name: string;
-  module: ModuleId;
+  /** MCP module ID, or a CLI-only module name (e.g. "copytrading") that is intentionally absent from MODULES and will never be exposed via MCP. */
+  module: ModuleId | (string & Record<never, never>);
   description: string;
   inputSchema: JsonSchema;
   isWrite: boolean;

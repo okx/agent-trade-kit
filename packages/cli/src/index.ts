@@ -886,7 +886,20 @@ export function handleCopyTradeCommand(
 ): Promise<void> | void {
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "traders")
-    return cmdCopyTradeTraders(run, { instType: v.instType, limit, json });
+    return cmdCopyTradeTraders(run, {
+      instType: v.instType,
+      sortType: v.sortType,
+      state: v.state,
+      minLeadDays: v.minLeadDays,
+      minAssets: v.minAssets,
+      maxAssets: v.maxAssets,
+      minAum: v.minAum,
+      maxAum: v.maxAum,
+      page: v.page,
+      dataVer: v.dataVer,
+      limit,
+      json,
+    });
   if (action === "status")
     return cmdCopyTradeMyStatus(run, { instType: v.instType, json });
   if (action === "follow")

@@ -36,7 +36,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SPOT for spot copy traders (现货带单员), SWAP for contract copy traders (合约带单员). Defaults to SWAP — always pass explicitly." },
           sortType: { type: "string", enum: ["overview", "pnl", "aum", "win_ratio", "pnl_ratio", "current_copy_trader_pnl"], description: "Sort by: overview (default), pnl, aum, win_ratio, pnl_ratio, current_copy_trader_pnl" },
           state: { type: "string", enum: ["0", "1"], description: "0=all traders (default), 1=only traders with open slots" },
           minLeadDays: { type: "string", enum: ["1", "2", "3", "4"], description: "Min lead trading days: 1=7d, 2=30d, 3=90d, 4=180d" },
@@ -89,7 +89,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code (16 chars)" },
-          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SPOT for spot copy traders (现货带单员), SWAP for contract copy traders (合约带单员). Defaults to SWAP — always pass explicitly." },
           lastDays: { type: "string", enum: ["1", "2", "3", "4"], description: "Time range for pnl and stats: 1=7d 2=30d 3=90d 4=365d (default: 2)" },
         },
         required: ["uniqueCode"],
@@ -131,7 +131,7 @@ export function registerCopyTradeTools(): ToolSpec[] {
       inputSchema: {
         type: "object",
         properties: {
-          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type. Must match what was used when following: SPOT for spot copy trades (现货跟单), SWAP for contract copy trades. Defaults to SWAP — always pass explicitly to query the correct list." },
         },
       },
       handler: async (rawArgs, context) => {
@@ -148,13 +148,13 @@ export function registerCopyTradeTools(): ToolSpec[] {
       name: "copytrading_set_copytrading",
       module: "copytrading",
       description:
-        "Start copy trading a lead trader. copyMode: smart_copy (default), fixed_amount, ratio_copy. [CAUTION] Allocates real funds. Private. Rate limit: 5/2s.",
+        "Start copy trading a lead trader. copyMode: smart_copy (default), fixed_amount, ratio_copy. [CAUTION] Allocates real funds unless running in demo/simulated mode (x-simulated-trading). Private. Rate limit: 5/2s.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code (16 chars)" },
-          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type. MUST be set explicitly: use SPOT for spot copy trading (现货跟单), SWAP for perpetual/contract copy trading (合约跟单). Defaults to SWAP if omitted — always pass this field to avoid silently creating the wrong type of copy trade." },
           copyMode: { type: "string", enum: ["smart_copy", "fixed_amount", "ratio_copy"], description: "Copy mode: smart_copy=smart copy, initialAmount+replicationRequired required (default); fixed_amount=fixed USDT per order, copyAmt required; ratio_copy=proportional copy, copyRatio required" },
           copyMgnMode: { type: "string", enum: ["cross", "isolated", "copy"], description: "Margin mode (non-smart_copy only): copy=follow trader (default), isolated, cross. For smart_copy: auto-set by instType (SWAP→copy, SPOT→isolated), user input ignored." },
           copyInstIdType: { type: "string", enum: ["copy", "custom"], description: "copy=follow trader's instruments (default); custom=user-defined (instId required)" },
@@ -218,14 +218,14 @@ export function registerCopyTradeTools(): ToolSpec[] {
       name: "copytrading_stop_copy_trader",
       module: "copytrading",
       description:
-        "Stop copy trading a lead trader. [CAUTION] Can close all positions. Private. Rate limit: 5/2s.",
+        "Stop copy trading a lead trader. [CAUTION] Can close all positions (no effect in demo/simulated mode). Private. Rate limit: 5/2s.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           uniqueCode: { type: "string", description: "Lead trader unique code" },
           subPosCloseType: { type: "string", enum: ["copy_close", "market_close", "manual_close"], description: "How to handle positions when stopping: copy_close=follow trader (default), market_close=close all immediately, manual_close=keep open" },
-          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type: SWAP (default) or SPOT." },
+          instType: { type: "string", enum: ["SWAP", "SPOT"], description: "Instrument type. Must match the type used when the copy trade was created: SPOT for spot copy trades, SWAP for contract copy trades. Defaults to SWAP — always pass explicitly." },
         },
         required: ["uniqueCode"],
       },

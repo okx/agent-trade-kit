@@ -48,7 +48,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
 | `earn` | 21 | Simple Earn: balance, purchase, redeem, lending rate (7). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (8). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`. Included in `all`. | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
-| `copytrading` | 5 | Copy trading: browse lead traders, follow/unfollow, monitor copy positions. Supports SWAP and SPOT. **CLI only** — not exposed as MCP tools. | [→](docs/modules/copytrading.md) |
+| `copytrading` | 5 | Copy trading: browse lead traders, follow/unfollow, monitor copy positions. Supports SWAP and SPOT. **CLI only** — not exposed as MCP tools. | [→](docs/cli-reference.md#copytrading--copy-trading) |
 
 ---
 

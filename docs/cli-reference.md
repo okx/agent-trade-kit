@@ -203,36 +203,36 @@ okx bot dca stop --algoId <algoId>
 
 ```bash
 # Browse top lead traders (default: SWAP)
-okx copytrading traders
-okx copytrading traders --limit 20
+okx copytrading traders [--instType SWAP|SPOT] [--limit 20]
 
 # View your currently followed lead traders and their cumulative P&L
-okx copytrading status
+okx --profile live copytrading status --instType SWAP
+okx --profile live copytrading status --instType SPOT
 
 # Start following a trader — smart_copy mode (default, allocates real funds)
-okx copytrading follow --uniqueCode <16-char-code> --initialAmount 1000 --replicationRequired 1
+okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --initialAmount 1000 --replicationRequired 1
 
 # Start following a trader — fixed_amount mode (fixed USDT per order)
-okx copytrading follow --uniqueCode <16-char-code> --copyMode fixed_amount --copyTotalAmt 5000 --copyAmt 100
+okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --copyMode fixed_amount --copyTotalAmt 5000 --copyAmt 100
 
 # Start following a trader — ratio_copy mode (copy by ratio)
-okx copytrading follow --uniqueCode <16-char-code> --copyMode ratio_copy --copyTotalAmt 5000 --copyRatio 0.1
+okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --copyMode ratio_copy --copyTotalAmt 5000 --copyRatio 0.1
 
 # With take-profit / stop-loss
-okx copytrading follow --uniqueCode <16-char-code> --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
+okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
 
 # Custom instruments only (copyInstIdType=custom requires --instId)
-okx copytrading follow --uniqueCode <16-char-code> --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
+okx --profile live copytrading follow --uniqueCode <16-char-code> --instType SWAP --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
 
 # Stop following a trader
-okx copytrading unfollow --uniqueCode <16-char-code>
+okx --profile live copytrading unfollow --uniqueCode <16-char-code> --instType SWAP
 
 # View a trader's stats, P&L, and currency preference
-okx copytrading trader-detail --uniqueCode <16-char-code>
-okx copytrading trader-detail --uniqueCode <16-char-code> --lastDays 1
+okx copytrading trader-detail --uniqueCode <16-char-code> [--instType SWAP|SPOT]
+okx copytrading trader-detail --uniqueCode <16-char-code> --instType SWAP --lastDays 1
 ```
 
-> **Note:** `copytrading` module is not loaded by default. Enable it with `--modules copytrading` or add it to your profile.
+> **Note:** The `copytrading` commands are available by default in the CLI — no `--modules` flag required.
 
 ---
 
@@ -470,36 +470,36 @@ okx bot dca stop --algoId <algoId>
 
 ```bash
 # 查看排行榜上的带单员（默认 SWAP，支持 SPOT）
-okx copytrading traders
-okx copytrading traders --limit 20
+okx copytrading traders [--instType SWAP|SPOT] [--limit 20]
 
 # 查看我当前跟随的带单员及累计盈亏
-okx copytrading status
+okx --profile live copytrading status --instType SWAP
+okx --profile live copytrading status --instType SPOT
 
 # 开始跟单 — 智能跟单模式（默认，会使用真实资金）
-okx copytrading follow --uniqueCode <16位代码> --initialAmount 1000 --replicationRequired 1
+okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --initialAmount 1000 --replicationRequired 1
 
 # 开始跟单 — 固定金额模式（每单固定 USDT）
-okx copytrading follow --uniqueCode <16位代码> --copyMode fixed_amount --copyTotalAmt 5000 --copyAmt 100
+okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --copyMode fixed_amount --copyTotalAmt 5000 --copyAmt 100
 
 # 开始跟单 — 固定比例模式（按比例跟单）
-okx copytrading follow --uniqueCode <16位代码> --copyMode ratio_copy --copyTotalAmt 5000 --copyRatio 0.1
+okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --copyMode ratio_copy --copyTotalAmt 5000 --copyRatio 0.1
 
 # 带止盈止损
-okx copytrading follow --uniqueCode <16位代码> --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
+okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --initialAmount 1000 --replicationRequired 1 --tpRatio 0.2 --slRatio 0.1
 
 # 自定义跟单品种（copyInstIdType=custom 时 --instId 必填）
-okx copytrading follow --uniqueCode <16位代码> --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
+okx --profile live copytrading follow --uniqueCode <16位代码> --instType SWAP --initialAmount 1000 --replicationRequired 1 --copyInstIdType custom --instId BTC-USDT-SWAP,ETH-USDT-SWAP
 
 # 停止跟单
-okx copytrading unfollow --uniqueCode <16位代码>
+okx --profile live copytrading unfollow --uniqueCode <16位代码> --instType SWAP
 
 # 查看带单员详情（统计数据、每日盈亏、偏好币种）
-okx copytrading trader-detail --uniqueCode <16位代码>
-okx copytrading trader-detail --uniqueCode <16位代码> --lastDays 1
+okx copytrading trader-detail --uniqueCode <16位代码> [--instType SWAP|SPOT]
+okx copytrading trader-detail --uniqueCode <16位代码> --instType SWAP --lastDays 1
 ```
 
-> **注意：** `copytrading` 模块默认不加载，使用 `--modules copytrading` 或在配置文件中启用。
+> **注意：** CLI 中 `copytrading` 命令默认可用，无需 `--modules` 参数。
 
 ---
 

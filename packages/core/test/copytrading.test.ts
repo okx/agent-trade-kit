@@ -189,10 +189,16 @@ describe("copytrading_get_my_details", () => {
     assert.equal(getCalls()[0]?.params["instType"], "SWAP");
   });
 
-  it("forwards instType when provided", async () => {
+  it("forwards instType=SWAP when provided", async () => {
     const { client, getCalls } = makeMockClient();
     await tool.handler({ instType: "SWAP" }, makeContext(client));
     assert.equal(getCalls()[0]?.params["instType"], "SWAP");
+  });
+
+  it("forwards instType=SPOT when provided", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ instType: "SPOT" }, makeContext(client));
+    assert.equal(getCalls()[0]?.params["instType"], "SPOT");
   });
 
   it("returns endpoint, requestTime, data fields", async () => {
