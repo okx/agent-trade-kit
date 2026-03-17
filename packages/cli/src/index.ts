@@ -149,10 +149,6 @@ import {
 import {
   cmdDcdPairs,
   cmdDcdProducts,
-  cmdDcdQuote,
-  cmdDcdBuy,
-  cmdDcdRedeemQuote,
-  cmdDcdRedeem,
   cmdDcdRedeemExecute,
   cmdDcdOrderState,
   cmdDcdOrders,
@@ -964,22 +960,15 @@ function handleEarnDcdCommand(
       expDate: v.expDate,
       json,
     });
-  if (action === "quote")
-    return cmdDcdQuote(run, { productId: v.productId!, notionalSz: v.sz!, notionalCcy: v.notionalCcy!, json });
-  if (action === "buy")
-    return cmdDcdBuy(run, { quoteId: v.quoteId!, clOrdId: v.clOrdId, json });
   if (action === "quote-and-buy")
     return cmdDcdQuoteAndBuy(run, {
       productId: v.productId!,
       notionalSz: v.sz!,
       notionalCcy: v.notionalCcy!,
       clOrdId: v.clOrdId,
+      minAnnualizedYield: v.minAnnualizedYield !== undefined ? parseFloat(v.minAnnualizedYield) : undefined,
       json,
     });
-  if (action === "redeem-quote")
-    return cmdDcdRedeemQuote(run, { ordId: v.ordId!, json });
-  if (action === "redeem")
-    return cmdDcdRedeem(run, { ordId: v.ordId!, quoteId: v.quoteId!, json });
   if (action === "redeem-execute")
     return cmdDcdRedeemExecute(run, { ordId: v.ordId!, json });
   if (action === "order")
@@ -997,7 +986,7 @@ function handleEarnDcdCommand(
       limit,
       json,
     });
-  process.stderr.write(`Unknown earn dcd command: ${action}\nValid: pairs, products, quote, buy, quote-and-buy, redeem-quote, redeem, redeem-execute, order, orders\n`);
+  process.stderr.write(`Unknown earn dcd command: ${action}\nValid: pairs, products, quote-and-buy, redeem-execute, order, orders\n`);
   process.exitCode = 1;
 }
 

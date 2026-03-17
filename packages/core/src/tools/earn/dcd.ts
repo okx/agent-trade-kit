@@ -106,127 +106,9 @@ export function registerDcdTools(): ToolSpec[] {
       },
     },
     {
-      name: "dcd_request_quote",
-      module: "earn.dcd",
-      description:
-        "Request quote for a DCD product. Check validUntil for expiry — execute before it expires. " +
-        "Yield reflects user's actual VIP tier rate.",
-      isWrite: false, // POST for payload, no state change
-      inputSchema: {
-        type: "object",
-        properties: {
-          productId: { type: "string", description: "Product ID, e.g. BTC-USDT-260327-77000-C" },
-          notionalSz: { type: "string", description: "Investment amount" },
-          notionalCcy: { type: "string", description: "Investment currency: baseCcy for CALL (C), quoteCcy for PUT (P)" },
-        },
-        required: ["productId", "notionalSz", "notionalCcy"],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        return withDcdErrors(async () => {
-          const response = await context.client.privatePost(
-            "/api/v5/finance/sfp/dcd/quote",
-            {
-              productId: requireString(args, "productId"),
-              notionalSz: requireString(args, "notionalSz"),
-              notionalCcy: requireString(args, "notionalCcy"),
-            },
-            privateRateLimit("dcd_request_quote", 5),
-          );
-          return normalizeResponse(response);
-        });
-      },
-    },
-    {
-      name: "dcd_execute_quote",
-      module: "earn.dcd",
-      description:
-        "Execute a DCD quote. [CAUTION] Moves real funds. " +
-        "Quote expires — call immediately after dcd_request_quote.",
-      isWrite: true,
-      inputSchema: {
-        type: "object",
-        properties: {
-          quoteId: { type: "string", description: "Quote ID from dcd_request_quote" },
-          clOrdId: { type: "string", description: "Client order ID for idempotency" },
-        },
-        required: ["quoteId"],
-      },
-      handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "dcd_execute_quote");
-        const args = asRecord(rawArgs);
-        return withDcdErrors(async () => {
-          const response = await context.client.privatePost(
-            "/api/v5/finance/sfp/dcd/trade",
-            compactObject({
-              quoteId: requireString(args, "quoteId"),
-              clOrdId: readString(args, "clOrdId"),
-            }),
-            privateRateLimit("dcd_execute_quote", 5),
-          );
-          return normalizeResponse(response);
-        });
-      },
-    },
-    {
-      name: "dcd_request_redeem_quote",
-      module: "earn.dcd",
-      description:
-        "Request early redemption quote for a DCD order. Check validUntil for expiry.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          ordId: { type: "string", description: "Order ID to redeem early" },
-        },
-        required: ["ordId"],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        return withDcdErrors(async () => {
-          const response = await context.client.privatePost(
-            "/api/v5/finance/sfp/dcd/redeem-quote",
-            { ordId: requireString(args, "ordId") },
-            privateRateLimit("dcd_request_redeem_quote", 5),
-          );
-          return normalizeResponse(response);
-        });
-      },
-    },
-    {
-      name: "dcd_execute_redeem",
-      module: "earn.dcd",
-      description:
-        "Execute early redemption. [CAUTION] Initiates early redemption of a DCD position.",
-      isWrite: true,
-      inputSchema: {
-        type: "object",
-        properties: {
-          ordId: { type: "string", description: "Order ID" },
-          quoteId: { type: "string", description: "Redeem quote ID from dcd_request_redeem_quote" },
-        },
-        required: ["ordId", "quoteId"],
-      },
-      handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "dcd_execute_redeem");
-        const args = asRecord(rawArgs);
-        return withDcdErrors(async () => {
-          const response = await context.client.privatePost(
-            "/api/v5/finance/sfp/dcd/redeem",
-            {
-              ordId: requireString(args, "ordId"),
-              quoteId: requireString(args, "quoteId"),
-            },
-            privateRateLimit("dcd_execute_redeem", 5),
-          );
-          return normalizeResponse(response);
-        });
-      },
-    },
-    {
       name: "dcd_get_order_state",
       module: "earn.dcd",
-      description: "Query DCD order state by order ID.",
+      description: "Check DCD order state after subscription (returns ordId + state only). For full order details (productId, strike, yield, settlement info), use dcd_get_orders instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -289,6 +171,184 @@ export function registerDcdTools(): ToolSpec[] {
             privateRateLimit("dcd_get_orders", 5),
           );
           return normalizeResponse(response);
+        });
+      },
+    },
+    {
+      name: "dcd_subscribe",
+      module: "earn.dcd",
+      description:
+        "Subscribe to a DCD product: get quote and execute atomically. " +
+        "Confirm product, amount, and currency with user before calling. " +
+        "Optional minAnnualizedYield (percent) rejects the order if quote yield falls below threshold. " +
+        "Returns order result with quote snapshot (annualizedYield, absYield).",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          productId: { type: "string", description: "Product ID, e.g. BTC-USDT-260327-77000-C" },
+          notionalSz: { type: "string", description: "Investment amount (the quantity to invest, e.g. '0.1' for 0.1 BTC). This is the 'sz' / 'size' field for DCD." },
+          notionalCcy: { type: "string", description: "Investment currency: baseCcy for CALL (C), quoteCcy for PUT (P)" },
+          clOrdId: { type: "string", description: "Client order ID for idempotency (optional)" },
+          minAnnualizedYield: {
+            type: "number",
+            description:
+              "Minimum acceptable annualized yield in percent (e.g. 18 means 18%). " +
+              "Order will NOT be placed if the quote yield is below this threshold.",
+          },
+        },
+        required: ["productId", "notionalSz", "notionalCcy"],
+      },
+      handler: async (rawArgs, context) => {
+        assertNotDemo(context.config, "dcd_subscribe");
+        const args = asRecord(rawArgs);
+        const productId = requireString(args, "productId");
+        const notionalSz = requireString(args, "notionalSz");
+        const notionalCcy = requireString(args, "notionalCcy");
+        const clOrdId = readString(args, "clOrdId");
+        const minAnnualizedYield = readNumber(args, "minAnnualizedYield");
+
+        return withDcdErrors(async () => {
+          // Step 1: request quote
+          const quoteResp = await context.client.privatePost(
+            "/api/v5/finance/sfp/dcd/quote",
+            { productId, notionalSz, notionalCcy },
+            privateRateLimit("dcd_subscribe", 5),
+          );
+          const quoteNorm = normalizeResponse(quoteResp);
+          const quoteList = Array.isArray(quoteNorm["data"])
+            ? (quoteNorm["data"] as Record<string, unknown>[])
+            : [];
+          const quote = quoteList[0];
+
+          if (!quote || !quote["quoteId"]) {
+            throw new OkxApiError("No quote returned by liquidity provider.", {
+              code: "52927",
+              suggestion: "Retry the subscription request.",
+            });
+          }
+
+          // Step 2: check minAnnualizedYield before executing
+          if (minAnnualizedYield !== undefined) {
+            const actualYield = parseFloat(quote["annualizedYield"] as string);
+            if (!isNaN(actualYield) && actualYield < minAnnualizedYield) {
+              throw new OkxApiError(
+                `Quote yield ${actualYield}% is below the minimum threshold of ${minAnnualizedYield}%.`,
+                {
+                  code: "YIELD_BELOW_MIN",
+                  suggestion: `Order not placed. Actual: ${actualYield}%, required: >= ${minAnnualizedYield}%. Try a different product or lower your minimum yield.`,
+                },
+              );
+            }
+          }
+
+          // Step 3: execute quote immediately
+          const tradeResp = await context.client.privatePost(
+            "/api/v5/finance/sfp/dcd/trade",
+            compactObject({
+              quoteId: quote["quoteId"] as string,
+              clOrdId,
+            }),
+            privateRateLimit("dcd_subscribe", 5),
+          );
+          const tradeNorm = normalizeResponse(tradeResp);
+
+          // Return trade result with quote snapshot attached
+          return {
+            ...tradeNorm,
+            quote: {
+              quoteId: quote["quoteId"],
+              annualizedYield: quote["annualizedYield"],
+              absYield: quote["absYield"],
+              notionalSz: quote["notionalSz"],
+              notionalCcy: quote["notionalCcy"],
+            },
+          };
+        });
+      },
+    },
+    {
+      name: "dcd_redeem",
+      module: "earn.dcd",
+      description:
+        "Early redemption of a DCD order, two-step flow. " +
+        "First call (no quoteId): returns redemption quote for user confirmation. " +
+        "Second call (with quoteId): executes redemption. If the quote expired, auto-refreshes and executes; response includes autoRefreshedQuote: true.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          ordId: { type: "string", description: "Order ID to redeem early" },
+          quoteId: {
+            type: "string",
+            description:
+              "Redeem quote ID returned by the first dcd_redeem call. " +
+              "Omit on the first call to preview the exit cost; provide on the second call to execute.",
+          },
+        },
+        required: ["ordId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const ordId = requireString(args, "ordId");
+        const quoteId = readString(args, "quoteId");
+
+        if (!quoteId) {
+          // First call: preview mode — request quote only, no state change
+          return withDcdErrors(async () => {
+            const resp = await context.client.privatePost(
+              "/api/v5/finance/sfp/dcd/redeem-quote",
+              { ordId },
+              privateRateLimit("dcd_redeem", 5),
+            );
+            return normalizeResponse(resp);
+          });
+        }
+
+        // Second call: execute mode
+        assertNotDemo(context.config, "dcd_redeem");
+        return withDcdErrors(async () => {
+          try {
+            const resp = await context.client.privatePost(
+              "/api/v5/finance/sfp/dcd/redeem",
+              { ordId, quoteId },
+              privateRateLimit("dcd_redeem", 5),
+            );
+            return normalizeResponse(resp);
+          } catch (error) {
+            // Quote expired: user already confirmed — re-request and execute atomically
+            if (error instanceof OkxApiError && error.code === "52905") {
+              const quoteResp = await context.client.privatePost(
+                "/api/v5/finance/sfp/dcd/redeem-quote",
+                { ordId },
+                privateRateLimit("dcd_redeem", 5),
+              );
+              const quoteNorm = normalizeResponse(quoteResp);
+              const quoteList = Array.isArray(quoteNorm["data"])
+                ? (quoteNorm["data"] as Record<string, unknown>[])
+                : [];
+              const newQuote = quoteList[0];
+              if (!newQuote?.["quoteId"]) {
+                throw error; // cannot recover, surface original expiry error
+              }
+              const redeemResp = await context.client.privatePost(
+                "/api/v5/finance/sfp/dcd/redeem",
+                { ordId, quoteId: newQuote["quoteId"] as string },
+                privateRateLimit("dcd_redeem", 5),
+              );
+              return {
+                ...normalizeResponse(redeemResp),
+                autoRefreshedQuote: true,
+                refreshedQuote: {
+                  quoteId: newQuote["quoteId"],
+                  redeemSz: newQuote["redeemSz"],
+                  redeemCcy: newQuote["redeemCcy"],
+                  termRate: newQuote["termRate"],
+                },
+              };
+            }
+            throw error;
+          }
         });
       },
     },

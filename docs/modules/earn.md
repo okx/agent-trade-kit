@@ -12,7 +12,7 @@ The `earn` module provides tools for OKX Earn products, split into three sub-mod
 |------------|-------|-------------|
 | `earn.savings` | 7 | Simple Earn: balance, purchase, redeem, lending rate management, rate history |
 | `earn.onchain` | 6 | On-chain Earn (staking/DeFi): offers, purchase, redeem, cancel, active orders, history |
-| `earn.dcd` | 8 | Dual Currency Deposit (双币赢): currency pairs, products, quote, buy, early redeem, order history |
+| `earn.dcd` | 6 | Dual Currency Deposit (双币赢): currency pairs, products, atomic subscribe, two-step early redeem, order history |
 
 ### earn.savings — Simple Earn
 
@@ -105,10 +105,8 @@ Requires API key with **Read** permission. Write operations (buy, redeem) requir
 |------|-------------|-------|
 | `dcd_get_currency_pairs` | Get available DCD currency pairs | No |
 | `dcd_get_products` | Get active DCD products with yield, strike, term info | No |
-| `dcd_request_quote` | Request a real-time quote (TTL ~30s) | No |
-| `dcd_execute_quote` | Execute a quote to place a DCD trade | Yes |
-| `dcd_request_redeem_quote` | Request an early redemption quote (TTL ~15s) | No |
-| `dcd_execute_redeem` | Execute early redemption | Yes |
+| `dcd_subscribe` | **Atomic subscribe**: request quote + execute in one step; optional `minAnnualizedYield` guard | Yes |
+| `dcd_redeem` | **Two-step early redeem**: first call returns quote for confirmation; second call executes (auto-refreshes expired quote) | Yes |
 | `dcd_get_order_state` | Query DCD order state by order ID | No |
 | `dcd_get_orders` | Get DCD order history with optional filters | No |
 
@@ -117,8 +115,8 @@ Requires API key with **Read** permission. Write operations (buy, redeem) requir
 ```
 "Show available DCD currency pairs"
 "List BTC-USDT CALL products with at least 5% annual yield"
-"Buy DCD product BTC-USDT-260327-77000-C with 0.001 BTC"
-"Show my active DCD positions"
+"Subscribe to BTC-USDT-260327-77000-C with 0.001 BTC, minimum yield 10%"
+"Show my DCD orders"
 "Redeem order 987654321 early"
 ```
 
@@ -131,20 +129,16 @@ okx earn dcd products --baseCcy BTC --quoteCcy USDT --optType C
 okx earn dcd products --baseCcy BTC --quoteCcy USDT --optType C --minYield 0.05 --maxTermDays 7
 okx earn dcd products --baseCcy BTC --quoteCcy USDT --optType C --strikeNear 72000
 
-# Subscribe (quote + buy in one step)
+# Subscribe (atomic: quote + execute in one step)
 okx --profile live earn dcd quote-and-buy --productId BTC-USDT-260327-77000-C --sz 0.001 --notionalCcy BTC
-
-# Two-step subscribe
-okx --profile live earn dcd quote --productId BTC-USDT-260327-77000-C --sz 0.001 --notionalCcy BTC
-okx --profile live earn dcd buy --quoteId <quoteId>
+okx --profile live earn dcd quote-and-buy --productId BTC-USDT-260327-77000-C --sz 0.001 --notionalCcy BTC --minAnnualizedYield 10
 
 # Order management
 okx --profile live earn dcd orders
 okx --profile live earn dcd orders --state live
 okx --profile live earn dcd order --ordId <ordId>
 
-# Early redemption (preview then execute)
-okx --profile live earn dcd redeem-quote --ordId <ordId>
+# Early redemption (atomic: re-quote + execute in one step)
 okx --profile live earn dcd redeem-execute --ordId <ordId>
 ```
 
@@ -178,7 +172,7 @@ okx-trade-mcp --modules earn.dcd
 |--------|--------|------|
 | `earn.savings` | 7 | 简单赚币：余额、申购、赎回、出借利率管理、利率历史 |
 | `earn.onchain` | 6 | 链上赚币（质押/DeFi）：产品列表、申购、赎回、取消、活跃订单、历史订单 |
-| `earn.dcd` | 8 | 双币赢（Dual Currency Deposit）：币对、产品、报价、申购、提前赎回、订单历史 |
+| `earn.dcd` | 6 | 双币赢（Dual Currency Deposit）：币对、产品、原子化申购、两阶段提前赎回、订单历史 |
 
 ### earn.savings — 简单赚币
 
@@ -271,10 +265,8 @@ okx-trade-mcp --modules earn.onchain
 |------|------|------|
 | `dcd_get_currency_pairs` | 获取可用双币赢币对 | 否 |
 | `dcd_get_products` | 获取活跃产品（含收益率、行权价、期限信息） | 否 |
-| `dcd_request_quote` | 请求实时报价（TTL 约 30 秒） | 否 |
-| `dcd_execute_quote` | 执行报价（申购） | 是 |
-| `dcd_request_redeem_quote` | 请求提前赎回报价（TTL 约 15 秒） | 否 |
-| `dcd_execute_redeem` | 执行提前赎回 | 是 |
+| `dcd_subscribe` | **原子化申购**：一步完成询价+下单；支持 `minAnnualizedYield` 最低年化保护 | 是 |
+| `dcd_redeem` | **两阶段提前赎回**：第一次调用返回赎回报价供确认；第二次调用执行（报价过期自动刷新） | 是 |
 | `dcd_get_order_state` | 按订单 ID 查询订单状态 | 否 |
 | `dcd_get_orders` | 获取订单历史（支持多种筛选条件） | 否 |
 
@@ -283,8 +275,8 @@ okx-trade-mcp --modules earn.onchain
 ```
 "查看双币赢支持的币对"
 "列出 BTC-USDT 高卖产品，年化至少 5%，7 天以内"
-"申购 BTC-USDT-260327-77000-C，投入 0.001 BTC"
-"查看我的双币赢持仓"
+"申购 BTC-USDT-260327-77000-C，投入 0.001 BTC，年化不低于 10%"
+"查看我的双币赢订单"
 "提前赎回订单 987654321"
 ```
 
@@ -297,20 +289,16 @@ okx earn dcd products --baseCcy BTC --quoteCcy USDT --optType C
 okx earn dcd products --baseCcy BTC --quoteCcy USDT --optType C --minYield 0.05 --maxTermDays 7
 okx earn dcd products --baseCcy BTC --quoteCcy USDT --optType C --strikeNear 72000
 
-# 一步申购（推荐）
+# 原子化申购（一步完成询价+下单）
 okx --profile live earn dcd quote-and-buy --productId BTC-USDT-260327-77000-C --sz 0.001 --notionalCcy BTC
-
-# 两步申购
-okx --profile live earn dcd quote --productId BTC-USDT-260327-77000-C --sz 0.001 --notionalCcy BTC
-okx --profile live earn dcd buy --quoteId <quoteId>
+okx --profile live earn dcd quote-and-buy --productId BTC-USDT-260327-77000-C --sz 0.001 --notionalCcy BTC --minAnnualizedYield 10
 
 # 订单管理
 okx --profile live earn dcd orders
 okx --profile live earn dcd orders --state live
 okx --profile live earn dcd order --ordId <ordId>
 
-# 提前赎回（预览 + 执行）
-okx --profile live earn dcd redeem-quote --ordId <ordId>
+# 提前赎回（原子化：重新询价+执行一步完成）
 okx --profile live earn dcd redeem-execute --ordId <ordId>
 ```
 
