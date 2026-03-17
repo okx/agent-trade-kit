@@ -205,12 +205,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
         const status = readString(args, "status") ?? "open";
         const instType = readString(args, "instType") ?? defaultType;
         assertEnum(instType, "instType", instTypes);
-        const path =
-          status === "archive"
-            ? "/api/v5/trade/orders-history-archive"
-            : status === "history"
-              ? "/api/v5/trade/orders-history"
-              : "/api/v5/trade/orders-pending";
+        let path = "/api/v5/trade/orders-pending";
+        if (status === "archive") {
+          path = "/api/v5/trade/orders-history-archive";
+        } else if (status === "history") {
+          path = "/api/v5/trade/orders-history";
+        }
         const response = await context.client.privateGet(
           path,
           compactObject({
