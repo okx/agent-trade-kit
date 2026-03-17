@@ -9,6 +9,14 @@
 
 ---
 
+## [1.2.5-beta.5] - 2026-03-17
+
+### 修复
+
+- **CLI `cancel` 命令支持 `--clOrdId`**：`okx spot/swap/futures cancel` 此前仅支持 `--ordId` 位置参数。现支持 `--ordId` 或 `--clOrdId`（客户自定义订单 ID）二选一；若两者均未提供则抛出明确错误。涉及 `spot_cancel_order`、`swap_cancel_order`、`futures_cancel_order`。
+
+---
+
 ## [1.2.5-beta.4] - 2026-03-17
 
 ### 移除

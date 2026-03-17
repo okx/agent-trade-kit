@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.5-beta.5] - 2026-03-17
+
+### Fixed
+
+- **CLI `cancel` commands now support `--clOrdId`**: `okx spot/swap/futures cancel` previously required `--ordId` as a positional argument. Now accepts either `--ordId` or `--clOrdId` (client order ID); throws a clear error if neither is provided. Affects `spot_cancel_order`, `swap_cancel_order`, `futures_cancel_order`.
+
+---
+
 ## [1.2.5-beta.4] - 2026-03-17
 
 ### Removed
