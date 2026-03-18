@@ -1,6 +1,3 @@
-// Cross-product algo order tools (requires auth, write operations).
-// Covers placing, amending, and cancelling algo orders (TP/SL, trailing stop, iceberg, TWAP)
-// for spot, swap, and futures instruments.
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,

@@ -1,5 +1,3 @@
-// DCD (Dual Currency Deposit) tools (requires auth, write operations).
-// Covers subscribing and querying DCD products — a structured earn product with principal at risk.
 import type { ToolSpec } from "../types.js";
 import {
   asRecord,

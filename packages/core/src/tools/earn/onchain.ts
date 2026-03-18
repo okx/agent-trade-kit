@@ -1,5 +1,3 @@
-// On-chain earn tools (requires auth, write operations).
-// Covers staking and DeFi yield products available via OKX on-chain earn.
 import type { ToolSpec } from "../types.js";
 import {
   asRecord,
@@ -20,25 +18,23 @@ export function registerOnchainEarnTools(): ToolSpec[] {
       name: "onchain_earn_get_offers",
       module: "earn.onchain",
       description:
-        "Get available on-chain earn (staking/DeFi) offers. Returns investment products with protocol name, APY, terms, and limits. " +
-        "Always display the protocol name (protocol field) and earnings currency (earningData[].ccy field) when showing offers to the user. " +
-        "Private endpoint. Rate limit: 3 req/s.",
+        "List staking/DeFi products with APY, terms, and limits. " +
+        "Always show protocol name (protocol field) and earnings currency (earningData[].ccy) when presenting results.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           productId: {
             type: "string",
-            description: "Specific product ID to query. Omit for all offers.",
+            description: "Product ID filter.",
           },
           protocolType: {
             type: "string",
-            description:
-              "Protocol type filter: staking, defi. Omit for all types.",
+            description: "staking|defi",
           },
           ccy: {
             type: "string",
-            description: "Currency filter, e.g. ETH. Omit for all currencies.",
+            description: "e.g. ETH",
           },
         },
       },
@@ -63,38 +59,34 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_purchase",
       module: "earn.onchain",
-      description:
-        "Purchase on-chain earn (staking/DeFi) product. [CAUTION] Moves real funds into staking/DeFi product. " +
-        "Not supported in demo/simulated trading mode. Private endpoint. Rate limit: 2 req/s.",
+      description: "Invest in a staking/DeFi product. [CAUTION] Moves real funds. Not available in demo mode.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           productId: {
             type: "string",
-            description: "Product ID to purchase",
+            description: "Product ID",
           },
           investData: {
             type: "array",
-            description:
-              "Investment data array: [{ccy, amt}]. Each item specifies currency and amount.",
+            description: "Array of {ccy, amt} to invest.",
             items: {
               type: "object",
               properties: {
-                ccy: { type: "string", description: "Currency, e.g. ETH" },
-                amt: { type: "string", description: "Amount to invest" },
+                ccy: { type: "string", description: "e.g. ETH" },
+                amt: { type: "string" },
               },
               required: ["ccy", "amt"],
             },
           },
           term: {
             type: "string",
-            description:
-              "Investment term in days. Required for fixed-term products.",
+            description: "Investment term in days, required for fixed-term products.",
           },
           tag: {
             type: "string",
-            description: "Order tag for tracking (optional).",
+            description: "Order tag.",
           },
         },
         required: ["productId", "investData"],
@@ -122,25 +114,22 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_redeem",
       module: "earn.onchain",
-      description:
-        "Redeem on-chain earn (staking/DeFi) investment. [CAUTION] Withdraws funds from staking/DeFi product. " +
-        "Some products may have lock periods. Not supported in demo mode. Private endpoint. Rate limit: 2 req/s.",
+      description: "Redeem a staking/DeFi investment. [CAUTION] Some products have lock periods, early redemption may incur penalties. Not available in demo mode.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           ordId: {
             type: "string",
-            description: "Order ID to redeem",
+            description: "Order ID",
           },
           protocolType: {
             type: "string",
-            description: "Protocol type: staking, defi",
+            description: "staking|defi",
           },
           allowEarlyRedeem: {
             type: "boolean",
-            description:
-              "Allow early redemption for fixed-term products (may incur penalties). Default false.",
+            description: "Allow early exit for fixed-term products, may incur penalties. Default: false.",
           },
         },
         required: ["ordId", "protocolType"],
@@ -167,20 +156,18 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_cancel",
       module: "earn.onchain",
-      description:
-        "Cancel pending on-chain earn purchase. [CAUTION] Cancels a pending investment order. " +
-        "Not supported in demo mode. Private endpoint. Rate limit: 2 req/s.",
+      description: "Cancel a pending staking/DeFi purchase order. [CAUTION] Not available in demo mode.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           ordId: {
             type: "string",
-            description: "Order ID to cancel",
+            description: "Order ID",
           },
           protocolType: {
             type: "string",
-            description: "Protocol type: staking, defi",
+            description: "staking|defi",
           },
         },
         required: ["ordId", "protocolType"],
@@ -206,29 +193,26 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_get_active_orders",
       module: "earn.onchain",
-      description:
-        "Get active on-chain earn orders. Returns current staking/DeFi investments. " +
-        "Private endpoint. Rate limit: 3 req/s.",
+      description: "List current active staking/DeFi investments.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           productId: {
             type: "string",
-            description: "Filter by product ID. Omit for all.",
+            description: "Product ID filter.",
           },
           protocolType: {
             type: "string",
-            description: "Filter by protocol type: staking, defi. Omit for all.",
+            description: "staking|defi",
           },
           ccy: {
             type: "string",
-            description: "Filter by currency, e.g. ETH. Omit for all.",
+            description: "e.g. ETH",
           },
           state: {
             type: "string",
-            description:
-              "Filter by state: 8 (pending), 13 (cancelling), 9 (onchain), 1 (earning), 2 (redeeming). Omit for all.",
+            description: "8=pending, 13=cancelling, 9=onchain, 1=earning, 2=redeeming",
           },
         },
       },
@@ -254,36 +238,34 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_get_order_history",
       module: "earn.onchain",
-      description:
-        "Get on-chain earn order history. Returns past staking/DeFi investments including redeemed orders. " +
-        "Private endpoint. Rate limit: 3 req/s.",
+      description: "List past staking/DeFi orders including redeemed ones.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           productId: {
             type: "string",
-            description: "Filter by product ID. Omit for all.",
+            description: "Product ID filter.",
           },
           protocolType: {
             type: "string",
-            description: "Filter by protocol type: staking, defi. Omit for all.",
+            description: "staking|defi",
           },
           ccy: {
             type: "string",
-            description: "Filter by currency, e.g. ETH. Omit for all.",
+            description: "e.g. ETH",
           },
           after: {
             type: "string",
-            description: "Pagination: return results before this order ID",
+            description: "Cursor: results older than this order ID.",
           },
           before: {
             type: "string",
-            description: "Pagination: return results after this order ID",
+            description: "Cursor: results newer than this order ID.",
           },
           limit: {
             type: "string",
-            description: "Max results to return (default 100, max 100)",
+            description: "Max results (default 100, max 100).",
           },
         },
       },

@@ -1,5 +1,3 @@
-// Options (OPTION) trading tools (requires auth, write operations).
-// Covers placing, amending, and cancelling option orders; querying positions and order history.
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,

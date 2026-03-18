@@ -1,6 +1,3 @@
-// Entry point for the tool registry.
-// buildTools() assembles all ToolSpecs filtered by enabled modules and read-only mode.
-// createToolRunner() returns a function the CLI uses to call any tool by name.
 import type { OkxConfig } from "../config.js";
 import type { OkxRestClient } from "../client/rest-client.js";
 import { MODULES, type ModuleId } from "../constants.js";

@@ -1,5 +1,3 @@
-// Spot trading tools (requires auth, write operations).
-// Covers placing, amending, and cancelling spot orders; querying open orders and order history.
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,
@@ -20,7 +18,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_place_order",
       module: "spot",
       description:
-        "Place a spot order. Optionally attach TP/SL via tpTriggerPx/slTriggerPx (assembled into attachAlgoOrds automatically). [CAUTION] Executes real trades.",
+        "Place a spot order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -32,7 +30,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           tdMode: {
             type: "string",
             enum: ["cash", "cross", "isolated"],
-            description: "cash=regular spot; cross/isolated=margin",
+            description: "cash=regular spot, cross/isolated=margin",
           },
           side: {
             type: "string",
@@ -45,7 +43,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Buy market: quote amount; all others: base amount",
+            description: "Buy market: quote amount, all others: base amount",
           },
           px: {
             type: "string",
@@ -57,19 +55,19 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           tpTriggerPx: {
             type: "string",
-            description: "TP trigger price; places TP at tpOrdPx",
+            description: "TP trigger price",
           },
           tpOrdPx: {
             type: "string",
-            description: "TP order price; -1=market",
+            description: "TP order price, -1=market",
           },
           slTriggerPx: {
             type: "string",
-            description: "SL trigger price; places SL at slOrdPx",
+            description: "SL trigger price",
           },
           slOrdPx: {
             type: "string",
-            description: "SL order price; -1=market",
+            description: "SL order price, -1=market",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -99,7 +97,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_cancel_order",
       module: "spot",
       description:
-        "Cancel an unfilled spot order by order ID or client order ID.",
+        "Cancel an unfilled spot order.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -113,7 +111,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           clOrdId: {
             type: "string",
-            description: "Client order ID",
           },
         },
         required: ["instId"],
@@ -147,23 +144,21 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           ordId: {
             type: "string",
-            description: "Order ID",
           },
           clOrdId: {
             type: "string",
-            description: "Client order ID",
           },
           newSz: {
             type: "string",
-            description: "New order size in base currency (e.g. BTC amount)",
+            description: "New size in base currency",
           },
           newPx: {
             type: "string",
-            description: "New order price",
+            description: "New price",
           },
           newClOrdId: {
             type: "string",
-            description: "New client order ID after amendment",
+            description: "Replacement client order ID",
           },
         },
         required: ["instId"],
@@ -189,7 +184,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_orders",
       module: "spot",
       description:
-        "Query spot open orders, order history (last 7 days), or order archive (up to 3 months).",
+        "Query spot orders. status: open(active)|history(7d)|archive(3mo).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -197,7 +192,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["open", "history", "archive"],
-            description: "open=active, history=7d, archive=3mo",
           },
           instId: {
             type: "string",
@@ -213,11 +207,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this order ID",
+            description: "Cursor: older than this order ID",
           },
           before: {
             type: "string",
-            description: "Pagination: after this order ID",
+            description: "Cursor: newer than this order ID",
           },
           begin: {
             type: "string",
@@ -264,10 +258,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_place_algo_order",
       module: "spot",
       description:
-        "Place a spot algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). " +
-        "For conditional/oco: use tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx. " +
-        "For move_order_stop: use callbackRatio (e.g. '0.01'=1%) OR callbackSpread, and optionally activePx. " +
-        "[CAUTION] Executes real trades.",
+        "Place a spot algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -279,7 +270,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           tdMode: {
             type: "string",
             enum: ["cash", "cross", "isolated"],
-            description: "cash=non-margin spot (default); cross/isolated=margin mode",
+            description: "cash(default)=spot, cross/isolated=margin",
           },
           side: {
             type: "string",
@@ -288,7 +279,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           ordType: {
             type: "string",
             enum: ["conditional", "oco", "move_order_stop"],
-            description: "conditional=single TP/SL; oco=TP+SL pair (one-cancels-other); move_order_stop=trailing stop",
+            description: "conditional=single TP/SL, oco=TP+SL pair, move_order_stop=trailing stop",
           },
           sz: {
             type: "string",
@@ -300,7 +291,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           tpOrdPx: {
             type: "string",
-            description: "TP order price; -1=market (conditional/oco only)",
+            description: "TP order price, -1=market (conditional/oco only)",
           },
           slTriggerPx: {
             type: "string",
@@ -308,19 +299,19 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           slOrdPx: {
             type: "string",
-            description: "SL order price; -1=market (conditional/oco only)",
+            description: "SL order price, -1=market (conditional/oco only)",
           },
           callbackRatio: {
             type: "string",
-            description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread (move_order_stop only)",
+            description: "Callback ratio e.g. 0.01=1%, use ratio or spread (move_order_stop only)",
           },
           callbackSpread: {
             type: "string",
-            description: "Callback spread in price units; provide either ratio or spread (move_order_stop only)",
+            description: "Callback spread in price units, use ratio or spread (move_order_stop only)",
           },
           activePx: {
             type: "string",
-            description: "Activation price; tracking starts after market reaches this level (move_order_stop only)",
+            description: "Activation price, trailing starts when market hits this (move_order_stop only)",
           },
         },
         required: ["instId", "side", "ordType", "sz"],
@@ -359,12 +350,12 @@ export function registerSpotTradeTools(): ToolSpec[] {
         type: "object",
         properties: {
           instId: { type: "string", description: "e.g. BTC-USDT" },
-          algoId: { type: "string", description: "Algo order ID" },
-          newSz: { type: "string", description: "New order size in base currency (e.g. BTC amount)" },
+          algoId: { type: "string" },
+          newSz: { type: "string", description: "New size in base currency" },
           newTpTriggerPx: { type: "string", description: "New TP trigger price" },
-          newTpOrdPx: { type: "string", description: "New TP order price; -1=market" },
+          newTpOrdPx: { type: "string", description: "New TP order price, -1=market" },
           newSlTriggerPx: { type: "string", description: "New SL trigger price" },
-          newSlOrdPx: { type: "string", description: "New SL order price; -1=market" },
+          newSlOrdPx: { type: "string", description: "New SL order price, -1=market" },
         },
         required: ["instId", "algoId"],
       },
@@ -401,7 +392,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           algoId: {
             type: "string",
-            description: "Algo order ID",
           },
         },
         required: ["instId", "algoId"],
@@ -433,7 +423,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           status: {
             type: "string",
             enum: ["pending", "history"],
-            description: "pending=active (default); history=completed",
+            description: "pending=active (default), history=completed",
           },
           instId: {
             type: "string",
@@ -442,15 +432,15 @@ export function registerSpotTradeTools(): ToolSpec[] {
           ordType: {
             type: "string",
             enum: ["conditional", "oco", "move_order_stop"],
-            description: "Filter by type; omit for all",
+            description: "Filter by type",
           },
           after: {
             type: "string",
-            description: "Pagination: before this algo ID",
+            description: "Cursor: older than this algo ID",
           },
           before: {
             type: "string",
-            description: "Pagination: after this algo ID",
+            description: "Cursor: newer than this algo ID",
           },
           limit: {
             type: "number",
@@ -459,8 +449,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           state: {
             type: "string",
             enum: ["effective", "canceled", "order_failed"],
-            description:
-              "Required when status=history. effective=triggered, canceled, order_failed. Defaults to effective.",
+            description: "Required for history. effective=triggered, canceled, order_failed. Default: effective.",
           },
         },
       },
@@ -511,14 +500,14 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_fills",
       module: "spot",
       description:
-        "Get spot transaction fill details. archive=false (default): last 3 days; archive=true: up to 3 months.",
+          "Get spot transaction fills. archive=false(3d, default)|true(up to 3mo).",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           archive: {
             type: "boolean",
-            description: "true=up to 3 months; false=last 3 days (default)",
+            description: "true=up to 3mo, false=3d (default)",
           },
           instId: {
             type: "string",
@@ -530,11 +519,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Pagination: before this bill ID",
+            description: "Cursor: older than this bill ID",
           },
           before: {
             type: "string",
-            description: "Pagination: after this bill ID",
+            description: "Cursor: newer than this bill ID",
           },
           begin: {
             type: "string",
@@ -575,7 +564,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_batch_orders",
       module: "spot",
       description:
-        "[CAUTION] Batch place/cancel/amend up to 20 spot orders in one request. Use action='place'/'cancel'/'amend'. Private. Rate limit: 60 req/s.",
+        "[CAUTION] Batch place/cancel/amend up to 20 spot orders. action: place|cancel|amend.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -583,12 +572,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
           action: {
             type: "string",
             enum: ["place", "cancel", "amend"],
-            description: "place|cancel|amend",
           },
           orders: {
             type: "array",
             description:
-              "Array (max 20). place: {instId,side,ordType,sz,tdMode?,px?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?} (tdMode defaults to cash for non-margin accounts; use cross for unified/margin accounts). cancel: {instId,ordId|clOrdId}. amend: {instId,ordId|clOrdId,newSz?,newPx?}.",
+                "Array (max 20). place: {instId,side,ordType,sz,tdMode(default cash; use cross for unified/margin accounts),px?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?}. cancel: {instId,ordId|clOrdId}. amend: {instId,ordId|clOrdId,newSz?,newPx?}.",
             items: {
               type: "object",
             },
@@ -639,7 +627,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_order",
       module: "spot",
       description:
-        "Get details of a single spot order by order ID or client order ID.",
+        "Get details of a single spot order.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -677,7 +665,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_batch_amend",
       module: "spot",
       description:
-        "[CAUTION] Batch amend up to 20 unfilled spot orders in one request. Modify price and/or size per order.",
+        "[CAUTION] Batch amend up to 20 unfilled spot orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -708,7 +696,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_batch_cancel",
       module: "spot",
       description:
-        "[CAUTION] Batch cancel up to 20 spot orders in one request. Provide instId plus ordId or clOrdId for each order.",
+        "[CAUTION] Batch cancel up to 20 spot orders.",
       isWrite: true,
       inputSchema: {
         type: "object",

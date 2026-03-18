@@ -1,6 +1,3 @@
-// Reusable helper functions for tool handlers.
-// Covers parameter extraction (readString, requireString, readNumber, etc.),
-// object sanitisation (compactObject), and response normalisation (normalizeResponse).
 import { ValidationError } from "../utils/errors.js";
 
 export function asRecord(value: unknown): Record<string, unknown> {

@@ -1,5 +1,3 @@
-// Delivery futures (FUTURES) trading tools (requires auth, write operations).
-// Covers placing, amending, and cancelling futures orders; querying positions, open orders, and order history.
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,

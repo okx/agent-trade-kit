@@ -1,5 +1,3 @@
-// Options algo order tools (requires auth, write operations).
-// Covers placing and cancelling algo orders specific to options (e.g. conditional orders).
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,

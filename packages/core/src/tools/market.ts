@@ -1,5 +1,3 @@
-// Market data tools (read-only, no auth required).
-// Covers tickers, order books, candlestick history, trades, and instrument info.
 import type { ToolSpec } from "./types.js";
 import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
