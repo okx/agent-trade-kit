@@ -1,3 +1,5 @@
+// On-chain earn tools (requires auth, write operations).
+// Covers staking and DeFi yield products available via OKX on-chain earn.
 import type { ToolSpec } from "../types.js";
 import {
   asRecord,

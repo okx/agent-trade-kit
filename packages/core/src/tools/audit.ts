@@ -1,3 +1,5 @@
+// Audit log tools (local, no API calls).
+// Reads the local trade audit log file written by TradeLogger so users can review past actions.
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";

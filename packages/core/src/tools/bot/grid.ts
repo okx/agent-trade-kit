@@ -1,3 +1,5 @@
+// Grid bot tools (requires auth, write operations).
+// Covers creating, stopping, and querying grid trading bots (spot and contract grid).
 import type { ToolSpec } from "../types.js";
 import {
   asRecord,

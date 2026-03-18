@@ -1,3 +1,5 @@
+// Simple Earn (flexible/fixed savings) tools (requires auth).
+// Covers subscribing, redeeming, and querying Simple Earn positions and history.
 import type { ToolSpec } from "../types.js";
 import {
   asRecord,

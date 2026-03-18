@@ -1,3 +1,5 @@
+// Shared constants and rate-limit config factories used across tool modules.
+// Includes OKX instrument types, candle bar intervals, and publicRateLimit/privateRateLimit helpers.
 import type { RateLimitConfig } from "../utils/rate-limiter.js";
 import { ConfigError } from "../utils/errors.js";
 import type { OkxConfig } from "../config.js";

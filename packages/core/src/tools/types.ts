@@ -1,3 +1,6 @@
+// Core type definitions for the tool system.
+// ToolSpec is the central interface every tool must implement: name, schema, handler, and metadata.
+// toMcpTool() converts a ToolSpec into the MCP wire format expected by AI clients.
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { OkxRestClient } from "../client/rest-client.js";
 import type { OkxConfig } from "../config.js";

@@ -1,3 +1,5 @@
+// Account management tools (requires auth, mostly read-only).
+// Covers balance, positions, leverage, margin mode, and account configuration.
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,

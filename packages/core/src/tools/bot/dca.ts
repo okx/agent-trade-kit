@@ -1,3 +1,5 @@
+// DCA (Dollar-Cost Averaging) bot tools (requires auth, write operations).
+// Covers creating, stopping, and querying DCA recurring-buy bots.
 import type { ToolSpec } from "../types.js";
 import {
   asRecord,
