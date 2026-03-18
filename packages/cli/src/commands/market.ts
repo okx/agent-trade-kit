@@ -1,4 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
+import { resolveIndicatorCode } from "@agent-tradekit/core";
 import { printJson, printKv, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
@@ -232,6 +233,74 @@ export async function cmdMarketCandles(
       open: o, high: h, low: l, close: c, vol,
     })),
   );
+}
+
+export async function cmdMarketIndicator(
+  run: ToolRunner,
+  indicator: string,
+  instId: string,
+  opts: {
+    bar?: string;
+    params?: string;
+    list?: boolean;
+    limit?: number;
+    backtestTime?: number;
+    json: boolean;
+  },
+): Promise<void> {
+  const params = opts.params
+    ? opts.params.split(",").map((p) => Number(p.trim())).filter((n) => !Number.isNaN(n))
+    : undefined;
+
+  const result = await run("market_get_indicator", {
+    instId,
+    indicator,
+    bar: opts.bar,
+    params: params && params.length > 0 ? params : undefined,
+    returnList: opts.list ?? false,
+    limit: opts.limit,
+    backtestTime: opts.backtestTime,
+  });
+
+  // Response shape: data = Array<{ data: [{instId, timeframes}], mode, summary, timestamp }>
+  const outerArray = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(outerArray);
+
+  if (!outerArray?.length) { process.stdout.write("No data\n"); return; }
+
+  const apiCode = resolveIndicatorCode(indicator);
+  const response = outerArray[0];
+  const innerArray = response["data"] as Record<string, unknown>[] | undefined;
+  const instData = innerArray?.[0];
+  const timeframes = instData?.["timeframes"] as Record<string, unknown> | undefined;
+
+  if (!timeframes) {
+    process.stdout.write(JSON.stringify(outerArray, null, 2) + "\n");
+    return;
+  }
+
+  for (const [tf, tfData] of Object.entries(timeframes)) {
+    const indicators = (tfData as Record<string, unknown>)?.["indicators"] as Record<string, unknown> | undefined;
+    const values = indicators?.[apiCode] as Record<string, unknown>[] | undefined;
+    if (!values?.length) continue;
+
+    process.stdout.write(`${instId} · ${apiCode} · ${tf}\n`);
+    process.stdout.write("─".repeat(40) + "\n");
+
+    if (opts.list) {
+      const tableRows = values.map((entry) => ({
+        ts: new Date(Number(entry["ts"])).toLocaleString(),
+        ...entry["values"] as Record<string, unknown>,
+      }));
+      printTable(tableRows);
+    } else {
+      const latest = values[0];
+      printKv({
+        ts: new Date(Number(latest["ts"])).toLocaleString(),
+        ...latest["values"] as Record<string, unknown>,
+      });
+    }
+  }
 }
 
 export async function cmdMarketStockTokens(

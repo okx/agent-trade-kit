@@ -1,4 +1,6 @@
 export { OkxRestClient } from "./client/rest-client.js";
+export { resolveIndicatorCode, INDICATOR_BARS } from "./tools/indicator.js";
+export type { IndicatorBar } from "./tools/indicator.js";
 export { buildTools, createToolRunner, allToolSpecs } from "./tools/index.js";
 export type { ToolResult, ToolRunner } from "./tools/index.js";
 export { toMcpTool } from "./tools/types.js";

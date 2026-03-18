@@ -110,6 +110,10 @@ export interface CliValues {
   maxTermDays?: string;
   expDate?: string;
   minAnnualizedYield?: string;
+  // indicator
+  params?: string;
+  list?: boolean;
+  "backtest-time"?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -241,6 +245,10 @@ export const CLI_OPTIONS = {
   maxTermDays: { type: "string" },
   expDate: { type: "string" },
   minAnnualizedYield: { type: "string" },
+  // indicator
+  params: { type: "string" },
+  list: { type: "boolean", default: false },
+  "backtest-time": { type: "string" },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks

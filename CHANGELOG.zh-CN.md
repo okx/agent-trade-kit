@@ -9,6 +9,15 @@
 
 ---
 
+## [Unreleased]
+
+### 新增
+
+- **`market_get_indicator` 工具**（`market`）：通过 OKX AIGC 指标接口查询任意交易对的技术指标值。支持 70+ 指标，覆盖 10 大分类——均线（MA/EMA/WMA/HMA 等）、趋势（MACD/SuperTrend/SAR/ADX 等）、一目均衡表、动量振荡器（RSI/KDJ/StochRSI 等）、波动率（BB/ATR/Keltner 等）、成交量（OBV/VWAP/MFI 等）、统计（LR/Slope/Sigma 等）、价格辅助（TP/MP）、K线形态（15种）、BTC 周期指标（BTCRAINBOW/AHR999）。无需 API 凭证。支持可选参数 `params`、`returnList`（历史序列）、`limit`、`backtestTime`（回测时间戳）。CLI 用法：`okx market indicator <名称> <instId> [--bar <周期>] [--params <p1,p2>] [--list] [--limit N]`。
+- **`OkxRestClient.publicPost()` 方法**：新增公开（免鉴权）POST 请求方法，与现有 `publicGet` 对称。`market_get_indicator` 内部使用。
+
+---
+
 ## [1.2.5] - 2026-03-18
 
 ### 新增
