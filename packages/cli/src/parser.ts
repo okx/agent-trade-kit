@@ -19,6 +19,7 @@ export interface CliValues {
   px?: string;
   posSide?: string;
   tdMode?: string;
+  tgtCcy?: string;
   lever?: string;
   mgnMode?: string;
   tpTriggerPx?: string;
@@ -145,6 +146,7 @@ export const CLI_OPTIONS = {
   px: { type: "string" },
   posSide: { type: "string" },
   tdMode: { type: "string" },
+  tgtCcy: { type: "string" },
   // leverage
   lever: { type: "string" },
   mgnMode: { type: "string" },

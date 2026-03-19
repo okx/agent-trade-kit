@@ -34,6 +34,7 @@ export async function cmdSpotPlace(
     side: string;
     ordType: string;
     sz: string;
+    tgtCcy?: string;
     px?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
@@ -48,6 +49,7 @@ export async function cmdSpotPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     px: opts.px,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,

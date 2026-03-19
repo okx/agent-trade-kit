@@ -75,6 +75,7 @@ export async function cmdFuturesPlace(
     ordType: string;
     sz: string;
     tdMode: string;
+    tgtCcy?: string;
     posSide?: string;
     px?: string;
     reduceOnly?: boolean;
@@ -91,6 +92,7 @@ export async function cmdFuturesPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     px: opts.px,
     reduceOnly: opts.reduceOnly,

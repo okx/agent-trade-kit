@@ -71,7 +71,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
+            description: "Contracts count by default. Set tgtCcy=quote_ccy to use USDT amount instead.",
+          },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
           },
           px: { type: "string", description: "Required for limit/post_only/fok/ioc" },
           reduceOnly: {
@@ -99,6 +104,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),

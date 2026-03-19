@@ -59,6 +59,7 @@ export async function cmdSwapPlace(
     posSide?: string;
     px?: string;
     tdMode: string;
+    tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -72,6 +73,7 @@ export async function cmdSwapPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     px: opts.px,
     tpTriggerPx: opts.tpTriggerPx,
