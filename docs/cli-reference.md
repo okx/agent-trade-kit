@@ -20,6 +20,28 @@ npm install -g @okx_ai/okx-trade-cli
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
 ```
 
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Any failure — network error, authentication error, argument validation error, or OKX business rejection (e.g. insufficient balance, invalid instrument) |
+
+Exit code 1 indicates failure.
+
+> **Partial batch failure:** if _any_ item in a batch request has `sCode != "0"`, the command exits with code 1. Agents and scripts should inspect the JSON output to identify which individual items failed.
+
+```bash
+# Safe to use in scripts — exit code 1 if order was rejected for any reason
+okx spot place --instId BTC-USDT --side buy --ordType market --sz 100 --json
+if [ $? -ne 0 ]; then
+  echo "Order failed"
+fi
+
+# Batch: exit code 1 even if only some orders fail — check each item's sCode
+okx spot batch place orders.json --json | jq '.[] | select(.sCode != "0")'
+```
+
 ---
 
 ## market — Market Data (no API key required)
@@ -248,6 +270,28 @@ npm install -g @okx_ai/okx-trade-cli
 ```bash
 # 配合 jq 使用
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
+```
+
+## 退出码
+
+| 退出码 | 含义 |
+|--------|------|
+| `0` | 成功 |
+| `1` | 任何失败——网络错误、鉴权错误、参数校验错误，或 OKX 业务拒绝（如余额不足、合约不存在） |
+
+退出码 1 表示失败。
+
+> **批量部分失败：** 只要批量请求中_任意一笔_的 `sCode != "0"`，命令即以退出码 1 退出。Agent 和脚本应检查 JSON 输出，以确定哪些具体条目失败。
+
+```bash
+# 脚本中可安全使用——任何原因导致的下单失败都会返回退出码 1
+okx spot place --instId BTC-USDT --side buy --ordType market --sz 100 --json
+if [ $? -ne 0 ]; then
+  echo "下单失败"
+fi
+
+# 批量：即使只有部分订单失败也会返回退出码 1——逐条检查 sCode
+okx spot batch place orders.json --json | jq '.[] | select(.sCode != "0")'
 ```
 
 ---

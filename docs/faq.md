@@ -77,6 +77,15 @@ Available modules: `market` `spot` `swap` `futures` `account` `bot`
 
 ## Troubleshooting
 
+### How do I detect errors when using the CLI?
+
+The CLI exits with code `1` on any failure. This covers network errors, authentication errors, argument validation errors, and OKX business rejections (e.g. insufficient balance, invalid instrument).
+
+```bash
+okx spot place --instId BTC-USDT --side buy --ordType market --sz 100 --json
+echo $?   # 0 = success, 1 = failed
+```
+
 ### How do I read an error from the MCP server?
 
 When a tool call fails, your AI client shows a structured error block:
@@ -293,6 +302,15 @@ okx-trade-mcp --profile live --modules market spot account
 ---
 
 ## 故障排查
+
+### 使用 CLI 时如何检测错误？
+
+CLI 在任何失败时都会以退出码 `1` 退出，涵盖：网络错误、鉴权错误、参数校验错误，以及 OKX 业务拒绝（如余额不足、合约不存在）。
+
+```bash
+okx spot place --instId BTC-USDT --side buy --ordType market --sz 100 --json
+echo $?   # 0 = 成功，1 = 失败
+```
 
 ### 如何读取 MCP Server 的报错？
 

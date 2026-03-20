@@ -1,3 +1,25 @@
+// OKX write endpoints return HTTP 200 with top-level code="0" even when an
+// individual order is rejected (e.g. insufficient balance). The real per-item
+// result is in each element's `sCode` field ("0" = success, anything else =
+// business failure). This function detects that case and sets exit code 1 so
+// that callers (LLMs, scripts) can rely on exit code alone to detect failure.
+export function markFailedIfSCodeError(data: unknown): void {
+  // Read-only endpoints return plain arrays without sCode — skip them.
+  if (!Array.isArray(data)) return;
+  for (const item of data) {
+    if (item !== null && typeof item === "object") {
+      const sCode = (item as Record<string, unknown>)["sCode"];
+      // sCode absent → not a write-response item, ignore.
+      // sCode "0" or 0 → success.
+      // anything else → business failure (e.g. "51008" = insufficient balance).
+      if (sCode !== undefined && sCode !== "0" && sCode !== 0) {
+        process.exitCode = 1;
+        return;
+      }
+    }
+  }
+}
+
 export function printJson(data: unknown): void {
   process.stdout.write(JSON.stringify(data, null, 2) + "\n");
 }

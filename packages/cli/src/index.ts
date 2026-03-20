@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner } from "@agent-tradekit/core";
+import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
 
 declare const __GIT_HASH__: string;
@@ -155,6 +155,7 @@ import {
   cmdDcdOrders,
   cmdDcdQuoteAndBuy,
 } from "./commands/dcd.js";
+import {markFailedIfSCodeError} from "./formatter.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -1098,7 +1099,15 @@ async function main(): Promise<void> {
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
 
   const client = new OkxRestClient(config);
-  const run = createToolRunner(client, config);
+  const baseRunner = createToolRunner(client, config);
+  const writeToolNames = new Set(allToolSpecs().filter((t) => t.isWrite).map((t) => t.name));
+  const run: ToolRunner = async (toolName, args) => {
+    const result = await baseRunner(toolName, args);
+    if (writeToolNames.has(toolName)) {
+      markFailedIfSCodeError(result.data);
+    }
+    return result;
+  };
 
   const moduleHandlers: Record<string, () => Promise<void> | void> = {
     market:  () => handleMarketCommand(run, action, rest, v, json),
