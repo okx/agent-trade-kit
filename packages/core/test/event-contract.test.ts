@@ -1,7 +1,8 @@
 /**
  * Unit tests for event contract tools.
  * Tests tool registration, isWrite classification, schema validation,
- * outcome mapping, assertNotDemo protection, and API parameter construction.
+ * outcome mapping, assertNotDemo protection, speedBump injection,
+ * and API parameter construction.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -64,8 +65,8 @@ function makeContext(client: unknown, demo = false): ToolContext {
 describe("event contract tool registration", () => {
   const tools = registerEventContractTools();
 
-  it("registers exactly 10 tools", () => {
-    assert.equal(tools.length, 10);
+  it("registers exactly 9 tools", () => {
+    assert.equal(tools.length, 9);
   });
 
   it("all tools have module='event'", () => {
@@ -80,7 +81,6 @@ describe("event contract tool registration", () => {
       "event_get_series",
       "event_get_events",
       "event_get_markets",
-      "event_get_ended",
       "event_get_max_size",
       "event_precheck_order",
       "event_get_orders",
@@ -91,6 +91,11 @@ describe("event contract tool registration", () => {
     for (const name of expected) {
       assert.ok(names.has(name), `Missing tool: ${name}`);
     }
+  });
+
+  it("event_get_ended is NOT registered (endpoint does not exist in API)", () => {
+    const names = new Set(tools.map((t) => t.name));
+    assert.ok(!names.has("event_get_ended"), "event_get_ended should not be registered");
   });
 
   it("isWrite is correct for each tool", () => {
@@ -107,7 +112,7 @@ describe("event contract tool registration", () => {
   it("event tools appear in allToolSpecs()", () => {
     const all = allToolSpecs();
     const eventTools = all.filter((t) => t.module === "event");
-    assert.equal(eventTools.length, 10);
+    assert.equal(eventTools.length, 9);
   });
 });
 
@@ -278,24 +283,6 @@ describe("event contract schema validation", () => {
       /ordId/i,
     );
   });
-
-  it("event_get_ended requires seriesId", async () => {
-    const tool = getByName("event_get_ended");
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({ method: "PRICE_ABOVE" }, makeContext(client)),
-      /seriesId/i,
-    );
-  });
-
-  it("event_get_ended requires method", async () => {
-    const tool = getByName("event_get_ended");
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)),
-      /method/i,
-    );
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -399,6 +386,33 @@ describe("event_place_order parameter construction", () => {
     );
     assert.equal(getLastCall()?.params["tdMode"], "cash");
   });
+
+  it("auto-sets speedBump=1 for market orders (required by exchange)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "5" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params["speedBump"], "1");
+  });
+
+  it("auto-sets speedBump=1 for limit orders", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "5", ordType: "limit", px: "0.45" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params["speedBump"], "1");
+  });
+
+  it("does NOT set speedBump for post_only orders", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "5", ordType: "post_only", px: "0.45" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params["speedBump"], undefined);
+  });
 });
 
 describe("event_get_markets passes filters to API", () => {
@@ -416,23 +430,40 @@ describe("event_get_markets passes filters to API", () => {
     assert.equal(call.params["seriesId"], "BTC-ABOVE-DAILY");
     assert.equal(call.params["state"], "live");
   });
-});
 
-describe("event_get_ended parameter construction", () => {
-  const tools = registerEventContractTools();
-  const tool = tools.find((t) => t.name === "event_get_ended")!;
-
-  it("calls correct endpoint with seriesId and method", async () => {
+  it("passes pagination params limit/before/after", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
-      { seriesId: "BTC-ABOVE-DAILY", method: "PRICE_ABOVE" },
+      { seriesId: "BTC-ABOVE-DAILY", limit: 10, before: "ts-abc", after: "ts-xyz" },
       makeContext(client),
     );
     const call = getLastCall()!;
-    assert.equal(call.endpoint, "/api/v5/public/event-contract/offlined");
-    assert.equal(call.method, "GET");
-    assert.equal(call.params["seriesId"], "BTC-ABOVE-DAILY");
-    assert.equal(call.params["method"], "PRICE_ABOVE");
+    assert.equal(call.params["limit"], 10);
+    assert.equal(call.params["before"], "ts-abc");
+    assert.equal(call.params["after"], "ts-xyz");
+  });
+});
+
+describe("event_get_events parameter construction", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_events")!;
+
+  it("passes eventId filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { seriesId: "BTC-ABOVE-DAILY", eventId: "BTC-ABOVE-DAILY-260224-1600" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params["eventId"], "BTC-ABOVE-DAILY-260224-1600");
+  });
+
+  it("passes settling state correctly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { seriesId: "BTC-ABOVE-DAILY", state: "settling" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.params["state"], "settling");
   });
 });
 

@@ -1,21 +1,25 @@
 /**
  * Event Contract tools — binary outcome prediction markets.
  *
- * Three product types (method field):
- *   - PRICE_UP_DOWN: BTC/ETH price UP (rises in period) or DOWN (falls in period)
- *   - PRICE_ABOVE:   BTC/ETH price at expiry above strike — YES (1) or NO (2)
- *   - ONE_TOUCH:     BTC/ETH price ever touches strike — YES (1) or NO (2)
+ * Three product types (settlement.method field in series response):
+ *   - price_up_down:    BTC/ETH price UP (rises in period) or DOWN (falls in period)
+ *   - price_above:      BTC/ETH price at expiry above strike — YES (1) or NO (2)
+ *   - price_once_touch: BTC/ETH price ever touches strike — YES (1) or NO (2)
  *
- * Outcome semantics:
- *   User input (CLI / MCP): UP / YES  →  API "1"
- *                           DOWN / NO →  API "2"
- *   API response (settled): UP / DOWN / YES / NO  (returned as-is, human-readable)
+ * Outcome semantics (input):
+ *   UP / YES  → API value "1"
+ *   DOWN / NO → API value "2"
+ *   Case-insensitive. Invalid values throw a clear error.
+ *
+ * Outcome semantics (response from markets endpoint):
+ *   "0" = not yet settled, "1" = YES won, "2" = NO won
  *
  * Key parameters unique to this module:
- *   outcome  "UP"/"YES"="1",  "DOWN"/"NO"="2"
- *   px       probability 0.00~1.00, NOT a regular asset price
- *   slippage 0~1, default "0.05"
- *   tdMode   always "cash" for event contracts
+ *   outcome   "UP"/"YES" → "1",  "DOWN"/"NO" → "2"
+ *   px        probability 0.00~1.00, NOT a regular asset price
+ *   slippage  0~1, default "0.05"
+ *   tdMode    always "cash" for event contracts
+ *   speedBump auto-set to "1" for non-post_only orders (required by exchange)
  */
 import type { ToolSpec } from "./types.js";
 import {
@@ -28,7 +32,10 @@ import {
 } from "./helpers.js";
 import { assertNotDemo, privateRateLimit, publicRateLimit } from "./common.js";
 
-
+/**
+ * Convert semantic outcome string to API numeric value.
+ * Accepts: UP / YES → "1",  DOWN / NO → "2"  (case-insensitive)
+ */
 function resolveOutcome(value: string): string {
   const map: Record<string, string> = {
     up: "1",
@@ -49,9 +56,9 @@ const OUTCOME_SCHEMA = {
   type: "string" as const,
   enum: ["UP", "YES", "DOWN", "NO"],
   description: `Which outcome to trade.
-PRICE_UP_DOWN series: UP (price rises during the period) or DOWN (price falls).
-PRICE_ABOVE / ONE_TOUCH series: YES (condition met) or NO (condition not met).
-Check the 'method' field from event_get_markets to determine which applies.
+price_up_down series: UP (price rises during the period) or DOWN (price falls).
+price_above / price_once_touch series: YES (condition met) or NO (condition not met).
+Check the settlement.method field from event_get_series to determine which applies.
 NOTE: px is a probability in 0.00~1.00, NOT a regular asset price.`,
 };
 
@@ -65,10 +72,10 @@ export function registerEventContractTools(): ToolSpec[] {
       module: "event",
       description: `List all available event contract product series — the top-level product catalog.
 Each series (e.g. BTC-ABOVE-DAILY, ETH-15MIN) groups recurring events of the same underlying asset and frequency.
-The 'method' field indicates the product type:
-  - PRICE_UP_DOWN: bet whether price rises (UP) or falls (DOWN) within the period
-  - PRICE_ABOVE: bet whether price is above a strike at expiry (YES/NO)
-  - ONE_TOUCH: bet whether price ever touches a strike level (YES/NO)`,
+The settlement.method field indicates the product type:
+  - price_up_down: bet whether price rises (UP) or falls (DOWN) within the period
+  - price_above: bet whether price is above a strike at expiry (YES/NO)
+  - price_once_touch: bet whether price ever touches a strike level (YES/NO)`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -94,7 +101,7 @@ The 'method' field indicates the product type:
       name: "event_get_events",
       module: "event",
       description:
-        "List events within a series. Each event corresponds to one expiry (e.g. BTC-ABOVE-DAILY-260224-1600). Use state=live for active events.",
+        "List events within a series. Each event = one expiry (e.g. BTC-ABOVE-DAILY-260224-1600). States: preopen → live → settling → expired.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -103,22 +110,26 @@ The 'method' field indicates the product type:
             type: "string",
             description: "Series ID, e.g. BTC-ABOVE-DAILY (required)",
           },
+          eventId: {
+            type: "string",
+            description: "Filter by event ID, e.g. BTC-ABOVE-DAILY-260224-1600",
+          },
           state: {
             type: "string",
-            enum: ["live", "settled", "expired"],
-            description: "Filter by event state",
+            enum: ["preopen", "live", "settling", "expired"],
+            description: "preopen=markets not yet trading; live=active; settling=awaiting settlement; expired=done",
           },
           limit: {
             type: "number",
-            description: "Max results (default 20)",
+            description: "Max results (default 100, max 100)",
           },
           before: {
             type: "string",
-            description: "Pagination: results before this event ID",
+            description: "Pagination: return records newer than this expTime",
           },
           after: {
             type: "string",
-            description: "Pagination: results after this event ID",
+            description: "Pagination: return records older than this expTime",
           },
         },
         required: ["seriesId"],
@@ -129,6 +140,7 @@ The 'method' field indicates the product type:
           "/api/v5/public/event-contract/events",
           compactObject({
             seriesId: requireString(args, "seriesId"),
+            eventId: readString(args, "eventId"),
             state: readString(args, "state"),
             limit: readNumber(args, "limit"),
             before: readString(args, "before"),
@@ -144,12 +156,12 @@ The 'method' field indicates the product type:
       name: "event_get_markets",
       module: "event",
       description: `List markets (instruments) within an event series. Each market is one strike/outcome pair.
-Key fields to understand the product structure:
-  - method: PRICE_UP_DOWN / PRICE_ABOVE / ONE_TOUCH — determines which outcome values apply
-  - stk (strike): the reference price level for PRICE_ABOVE and ONE_TOUCH
-  - freq: period duration for PRICE_UP_DOWN (e.g. "15m")
-  - outcome / settleValue: only present for expired/settled markets
-For expired events, response includes outcome (UP/DOWN/YES/NO) and settleValue.`,
+Key response fields:
+  - floorStrike: strike price (minimum expiry value that leads to YES settlement)
+  - outcome: "0"=not settled, "1"=YES won, "2"=NO won (only set when state=expired)
+  - settleValue: settlement reference price (only when state=expired)
+  - state: preopen → live → settling → expired
+For settled results, query with state=expired.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -168,8 +180,20 @@ For expired events, response includes outcome (UP/DOWN/YES/NO) and settleValue.`
           },
           state: {
             type: "string",
-            enum: ["live", "expired"],
-            description: "Filter by market state",
+            enum: ["preopen", "live", "settling", "expired"],
+            description: "preopen=not yet trading; live=active; settling=awaiting settlement; expired=settled",
+          },
+          limit: {
+            type: "number",
+            description: "Max results (default 100, max 100)",
+          },
+          before: {
+            type: "string",
+            description: "Pagination: return records newer than this expTime",
+          },
+          after: {
+            type: "string",
+            description: "Pagination: return records older than this expTime",
           },
         },
         required: ["seriesId"],
@@ -183,48 +207,11 @@ For expired events, response includes outcome (UP/DOWN/YES/NO) and settleValue.`
             eventId: readString(args, "eventId"),
             instId: readString(args, "instId"),
             state: readString(args, "state"),
+            limit: readNumber(args, "limit"),
+            before: readString(args, "before"),
+            after: readString(args, "after"),
           }),
           publicRateLimit("event_get_markets", 20),
-        );
-        return normalizeResponse(response);
-      },
-    },
-
-    // -----------------------------------------------------------------------
-    // Public — ended/settled contracts
-    // -----------------------------------------------------------------------
-    {
-      name: "event_get_ended",
-      module: "event",
-      description: `List recently ended/settled event contracts with outcomes (UP/DOWN/YES/NO).
-Useful for reviewing settlement results and understanding historical patterns.
-Returns up to 300 most recent ended contracts for the given series and method.
-The 'outcome' field shows the winning side: UP/DOWN for PRICE_UP_DOWN, YES/NO for PRICE_ABOVE/ONE_TOUCH.`,
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          seriesId: {
-            type: "string",
-            description: "Series ID, e.g. BTC-ABOVE-DAILY (required)",
-          },
-          method: {
-            type: "string",
-            enum: ["PRICE_UP_DOWN", "PRICE_ABOVE", "ONE_TOUCH"],
-            description: "Product method type (required). Must match the series method.",
-          },
-        },
-        required: ["seriesId", "method"],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
-          "/api/v5/public/event-contract/offlined",
-          compactObject({
-            seriesId: requireString(args, "seriesId"),
-            method: requireString(args, "method"),
-          }),
-          publicRateLimit("event_get_ended", 20),
         );
         return normalizeResponse(response);
       },
@@ -269,8 +256,8 @@ Returns maxBuySz and maxSellSz (number of contracts).`,
       name: "event_precheck_order",
       module: "event",
       description: `Dry-run an event contract order: returns estimated cost and risk without placing.
-**STRONGLY RECOMMENDED**: Always call this tool before event_place_order to validate parameters.
-- For limit orders: provide px (a probability value 0.00~1.00, NOT a regular price)
+STRONGLY RECOMMENDED: Always call this before event_place_order to validate parameters.
+- For limit orders: provide px (probability 0.00~1.00, NOT a regular price)
 - For market orders: provide slippage (default 0.05)`,
       isWrite: false,
       inputSchema: {
@@ -287,7 +274,7 @@ Returns maxBuySz and maxSellSz (number of contracts).`,
           outcome: OUTCOME_SCHEMA,
           ordType: {
             type: "string",
-            enum: ["market", "limit"],
+            enum: ["market", "limit", "post_only"],
             description: "Order type (default market)",
           },
           sz: {
@@ -371,8 +358,7 @@ Returns maxBuySz and maxSellSz (number of contracts).`,
     {
       name: "event_get_fills",
       module: "event",
-      description:
-        "Get event contract fill (trade) history.",
+      description: "Get event contract fill (trade) history.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -413,7 +399,7 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
-- tdMode is always cash — do not pass it`,
+- tdMode is always cash; speedBump is auto-set per exchange requirement — do not pass either`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -430,7 +416,7 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
           outcome: OUTCOME_SCHEMA,
           ordType: {
             type: "string",
-            enum: ["market", "limit"],
+            enum: ["market", "limit", "post_only"],
             description: "Order type (default market)",
           },
           sz: {
@@ -451,6 +437,9 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
       handler: async (rawArgs, context) => {
         assertNotDemo(context.config, "event_place_order");
         const args = asRecord(rawArgs);
+        const ordType = readString(args, "ordType") ?? "market";
+        // speedBump is required by the exchange for all non-post_only event contract orders.
+        const speedBump = ordType !== "post_only" ? "1" : undefined;
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -458,10 +447,11 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
             tdMode: "cash",
             side: requireString(args, "side"),
             outcome: resolveOutcome(requireString(args, "outcome")),
-            ordType: readString(args, "ordType") ?? "market",
+            ordType,
             sz: requireString(args, "sz"),
             px: readString(args, "px"),
             slippage: readString(args, "slippage"),
+            speedBump,
             tag: context.config.sourceTag,
           }),
           privateRateLimit("event_place_order", 60),

@@ -1186,8 +1186,6 @@ export function handleEventCommand(
     return cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json });
   if (action === "markets")
     return cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, json });
-  if (action === "ended")
-    return cmdEventEnded(run, { seriesId: (v.seriesId ?? rest[0])!, method: (v.method ?? rest[1])!, json });
   if (action === "max-size")
     return cmdEventMaxSize(run, { instId: (v.instId ?? rest[0])!, outcome: (v.outcome ?? rest[1])!, json });
   if (action === "precheck")

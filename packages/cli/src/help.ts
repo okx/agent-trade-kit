@@ -592,30 +592,26 @@ const HELP_TREE: HelpTree = {
     commands: {
       series: {
         usage: "okx event series [--seriesId <id>]",
-        description: "List event contract series with method (PRICE_UP_DOWN/PRICE_ABOVE/ONE_TOUCH)",
+        description: "List event contract series (settlement.method: price_up_down/price_above/price_once_touch)",
       },
       events: {
-        usage: "okx event events <seriesId> [--state <live|settled|expired>] [--limit <n>]",
+        usage: "okx event events <seriesId> [--state <preopen|live|settling|expired>] [--limit <n>]",
         description: "List events in a series (each event = one expiry)",
       },
       markets: {
-        usage: "okx event markets <seriesId> [--eventId <id>] [--state <live|expired>]",
-        description: "List markets with method/stk/freq; expired includes outcome (UP/DOWN/YES/NO) and settleValue",
-      },
-      ended: {
-        usage: "okx event ended <seriesId> <method> [--json]",
-        description: "List recently ended/settled contracts with outcomes (UP/DOWN/YES/NO)",
+        usage: "okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|expired>] [--limit <n>]",
+        description: "List markets; expired includes outcome (1=YES,2=NO) and settleValue",
       },
       "max-size": {
         usage: "okx event max-size <instId> <outcome>",
         description: "Get max order size (outcome: UP/YES or DOWN/NO)",
       },
       precheck: {
-        usage: "okx event precheck <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit>] [--slippage <ratio>]",
+        usage: "okx event precheck <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
         description: "Dry-run an event order: returns cost/risk estimate without placing (run before place)",
       },
       place: {
-        usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit>] [--slippage <ratio>]",
+        usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
         description: "[CAUTION] Place an event contract order (outcome: UP/YES or DOWN/NO; px=probability 0~1)",
       },
       cancel: {

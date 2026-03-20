@@ -6,26 +6,43 @@ function getData(result: unknown): unknown {
 }
 
 // ---------------------------------------------------------------------------
-// Display helpers — translate raw API enum values to human-readable strings
+// Display helpers
 // ---------------------------------------------------------------------------
 
 function fmtMethod(raw: unknown): string {
   const map: Record<string, string> = {
-    PRICE_ABOVE:   "Price Above",
-    PRICE_UP_DOWN: "Up/Down",
-    ONE_TOUCH:     "One Touch",
+    // API returns values in various cases; normalise to lowercase for lookup
+    price_above:      "Price Above",
+    price_up_down:    "Up/Down",
+    price_once_touch: "One Touch",
+    // Uppercase variants (in case API returns them)
+    PRICE_ABOVE:      "Price Above",
+    PRICE_UP_DOWN:    "Up/Down",
+    PRICE_ONCE_TOUCH: "One Touch",
   };
   return map[String(raw)] ?? String(raw ?? "");
 }
 
 function fmtFreq(raw: unknown): string {
   const map: Record<string, string> = {
-    DAILY:       "Daily",
+    fifteen_min: "15min",
+    daily:       "Daily",
+    hourly:      "1h",
+    weekly:      "Weekly",
     FIFTEEN_MIN: "15min",
+    DAILY:       "Daily",
     HOURLY:      "1h",
     WEEKLY:      "Weekly",
   };
   return map[String(raw)] ?? String(raw ?? "");
+}
+
+/** outcome field in markets response: "0"=pending, "1"=YES, "2"=NO */
+function fmtOutcome(raw: unknown): string {
+  if (raw === "0" || raw === 0 || raw === "") return "";
+  if (raw === "1" || raw === 1) return "YES";
+  if (raw === "2" || raw === 2) return "NO";
+  return String(raw ?? "");
 }
 
 function fmtTs(raw: unknown): string {
@@ -43,20 +60,24 @@ export async function cmdEventSeries(
   run: ToolRunner,
   opts: { seriesId?: string; json: boolean },
 ): Promise<void> {
-  const result = await run("event_get_series", {
-    seriesId: opts.seriesId,
-  });
+  const result = await run("event_get_series", { seriesId: opts.seriesId });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   printTable(
-    (data ?? []).map((s) => ({
-      seriesId:   s["seriesId"],
-      title:      s["title"] ?? s["baseCcy"],
-      type:       fmtMethod(s["method"]),
-      freq:       fmtFreq(s["freq"]),
-      underlying: s["underlying"] ?? s["baseCcy"],
-      state:      s["state"],
-    })),
+    (data ?? []).map((s) => {
+      // API may return settlement.method nested or flat at top level
+      const settlement = s["settlement"] as Record<string, unknown> | undefined;
+      const method = settlement?.["method"] ?? s["method"];
+      const underlying = settlement?.["underlying"] ?? s["underlying"] ?? s["baseCcy"];
+      return {
+        seriesId:   s["seriesId"],
+        title:      s["title"] ?? s["baseCcy"],
+        type:       fmtMethod(method),
+        freq:       fmtFreq(s["freq"]),
+        underlying,
+        state:      s["state"],
+      };
+    }),
   );
 }
 
@@ -96,33 +117,10 @@ export async function cmdEventMarkets(
   printTable(
     (data ?? []).map((m) => ({
       instId:      m["instId"],
-      type:        fmtMethod(m["method"]),
-      strike:      m["stk"] ?? m["floorStrike"],
-      freq:        fmtFreq(m["freq"]),
+      strike:      m["floorStrike"],
       state:       m["state"],
-      outcome:     m["outcome"] ?? "",
+      outcome:     fmtOutcome(m["outcome"]),
       settleValue: m["settleValue"] ?? "",
-    })),
-  );
-}
-
-export async function cmdEventEnded(
-  run: ToolRunner,
-  opts: { seriesId: string; method: string; json: boolean },
-): Promise<void> {
-  const result = await run("event_get_ended", {
-    seriesId: opts.seriesId,
-    method: opts.method,
-  });
-  const data = getData(result) as Record<string, unknown>[];
-  if (opts.json) return printJson(data);
-  printTable(
-    (data ?? []).map((m) => ({
-      instId:      m["instId"],
-      strike:      m["stk"],
-      outcome:     m["outcome"],
-      settleValue: m["settleValue"],
-      expTime:     fmtTs(m["expTime"]),
     })),
   );
 }
@@ -186,15 +184,15 @@ export async function cmdEventOrders(
   if (opts.json) return printJson(data);
   printTable(
     (data ?? []).map((o) => ({
-      ordId: o["ordId"],
-      instId: o["instId"],
-      side: o["side"],
+      ordId:   o["ordId"],
+      instId:  o["instId"],
+      side:    o["side"],
       outcome: o["outcome"],
-      type: o["ordType"],
-      price: o["px"],
-      size: o["sz"],
-      filled: o["fillSz"],
-      state: o["state"],
+      type:    o["ordType"],
+      price:   o["px"],
+      size:    o["sz"],
+      filled:  o["fillSz"],
+      state:   o["state"],
     })),
   );
 }
@@ -212,13 +210,13 @@ export async function cmdEventFills(
   printTable(
     (data ?? []).map((f) => ({
       tradeId: f["tradeId"],
-      ordId: f["ordId"],
-      instId: f["instId"],
-      side: f["side"],
+      ordId:   f["ordId"],
+      instId:  f["instId"],
+      side:    f["side"],
       outcome: f["outcome"],
-      fillPx: f["fillPx"],
-      fillSz: f["fillSz"],
-      time:   fmtTs(f["ts"]),
+      fillPx:  f["fillPx"],
+      fillSz:  f["fillSz"],
+      time:    fmtTs(f["ts"]),
     })),
   );
 }
