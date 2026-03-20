@@ -45,6 +45,48 @@ function fmtOutcome(raw: unknown): string {
   return String(raw ?? "");
 }
 
+/**
+ * Translate order/fill outcome field using instId to distinguish series type.
+ * price_up_down instIds contain "UPDOWN" → UP / DOWN
+ * price_above / price_once_touch → YES / NO
+ */
+function fmtOrderOutcome(instId: unknown, outcome: unknown): string {
+  const id = String(instId ?? "").toUpperCase();
+  const isUpDown = id.includes("UPDOWN") || id.includes("UP-DOWN");
+  if (outcome === "1" || outcome === 1) return isUpDown ? "UP" : "YES";
+  if (outcome === "2" || outcome === 2) return isUpDown ? "DOWN" : "NO";
+  return String(outcome ?? "");
+}
+
+/**
+ * Build a net PnL summary line from precheck response fields.
+ * estMaxWin = gross settlement payout (sz × 1.00), NOT net profit.
+ * Net max win  = estMaxWin  - estCost - estFee
+ * Net max loss = estCost    + estFee
+ */
+function buildPrecheckSummary(row: Record<string, unknown>): string {
+  const cost    = parseFloat(String(row["estCost"]  ?? "0")) || 0;
+  const fee     = parseFloat(String(row["estFee"]   ?? "0")) || 0;
+  const maxWin  = parseFloat(String(row["estMaxWin"] ?? "0")) || 0;
+  const netWin  = maxWin - cost - fee;
+  const netLoss = cost + fee;
+  const instId  = String(row["instId"] ?? "");
+  const side    = String(row["side"]   ?? "");
+  const sz      = String(row["sz"]     ?? row["maxBuy"] ? "" : "");
+  const px      = String(row["px"]     ?? "");
+  const ordType = String(row["ordType"] ?? "market");
+  const outcome = fmtOrderOutcome(instId, row["outcome"]);
+
+  const lines: string[] = [];
+  if (outcome) lines.push(`Direction: ${side.toUpperCase()} ${outcome}  ordType: ${ordType}${px ? `  px: ${px}` : ""}`);
+  lines.push(`Cost (premium):  ${cost.toFixed(4)} USDC`);
+  lines.push(`Fee:             ${fee.toFixed(4)} USDC`);
+  lines.push(`Total outlay:    ${netLoss.toFixed(4)} USDC  (max loss if ${outcome === "YES" || outcome === "UP" ? "NO" : "YES"} wins)`);
+  lines.push(`Net max win:     ${netWin >= 0 ? "+" : ""}${netWin.toFixed(4)} USDC  (if ${outcome} wins)`);
+  if (row["maxBuy"]) lines.push(`Max position:    ${row["maxBuy"]} contracts`);
+  return lines.join("\n  ");
+}
+
 function fmtTs(raw: unknown): string {
   if (!raw) return "";
   const n = Number(raw);
@@ -168,7 +210,20 @@ export async function cmdEventPrecheck(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const row = data?.[0];
-  if (row) printKv(row as Record<string, unknown>);
+  if (!row) {
+    process.stdout.write("(no precheck data)\n");
+    return;
+  }
+  // Show net figures first, then raw fields for AI context
+  const summary = buildPrecheckSummary({
+    ...row as Record<string, unknown>,
+    instId: opts.instId,
+    side:   opts.side,
+  });
+  process.stdout.write(`Precheck result:\n  ${summary}\n`);
+  // Also dump raw fields so AI can read exact values
+  process.stdout.write("\nRaw fields:\n");
+  printKv(row as Record<string, unknown>);
 }
 
 export async function cmdEventOrders(
@@ -187,7 +242,7 @@ export async function cmdEventOrders(
       ordId:   o["ordId"],
       instId:  o["instId"],
       side:    o["side"],
-      outcome: o["outcome"],
+      outcome: fmtOrderOutcome(o["instId"], o["outcome"]),
       type:    o["ordType"],
       price:   o["px"],
       size:    o["sz"],
@@ -213,7 +268,7 @@ export async function cmdEventFills(
       ordId:   f["ordId"],
       instId:  f["instId"],
       side:    f["side"],
-      outcome: f["outcome"],
+      outcome: fmtOrderOutcome(f["instId"], f["outcome"]),
       fillPx:  f["fillPx"],
       fillSz:  f["fillSz"],
       time:    fmtTs(f["ts"]),
