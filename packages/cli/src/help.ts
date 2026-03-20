@@ -587,6 +587,52 @@ const HELP_TREE: HelpTree = {
     },
   },
 
+  event: {
+    description: "Event contract trading — binary outcome prediction markets (Yes/No, Up/Down)",
+    commands: {
+      series: {
+        usage: "okx event series [--seriesId <id>]",
+        description: "List event contract series with method (PRICE_UP_DOWN/PRICE_ABOVE/ONE_TOUCH)",
+      },
+      events: {
+        usage: "okx event events <seriesId> [--state <live|settled|expired>] [--limit <n>]",
+        description: "List events in a series (each event = one expiry)",
+      },
+      markets: {
+        usage: "okx event markets <seriesId> [--eventId <id>] [--state <live|expired>]",
+        description: "List markets with method/stk/freq; expired includes outcome (UP/DOWN/YES/NO) and settleValue",
+      },
+      ended: {
+        usage: "okx event ended <seriesId> <method> [--json]",
+        description: "List recently ended/settled contracts with outcomes (UP/DOWN/YES/NO)",
+      },
+      "max-size": {
+        usage: "okx event max-size <instId> <outcome>",
+        description: "Get max order size (outcome: UP/YES or DOWN/NO)",
+      },
+      precheck: {
+        usage: "okx event precheck <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit>] [--slippage <ratio>]",
+        description: "Dry-run an event order: returns cost/risk estimate without placing (run before place)",
+      },
+      place: {
+        usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit>] [--slippage <ratio>]",
+        description: "[CAUTION] Place an event contract order (outcome: UP/YES or DOWN/NO; px=probability 0~1)",
+      },
+      cancel: {
+        usage: "okx event cancel <instId> <ordId>",
+        description: "Cancel a pending event contract order",
+      },
+      orders: {
+        usage: "okx event orders [--instId <id>] [--state live] [--limit <n>]",
+        description: "List event orders (state=live for pending; omit for history)",
+      },
+      fills: {
+        usage: "okx event fills [--instId <id>] [--limit <n>]",
+        description: "Get event contract fill history",
+      },
+    },
+  },
+
   config: {
     description: "Manage CLI configuration profiles",
     commands: {

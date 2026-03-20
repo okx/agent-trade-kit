@@ -175,6 +175,17 @@ import {
   cmdSkillList,
 } from "./commands/skill.js";
 import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext, setJsonEnvEnabled } from "./formatter.js";
+import {
+  cmdEventBrowse,
+  cmdEventSeries,
+  cmdEventEvents,
+  cmdEventMarkets,
+  cmdEventPlace,
+  cmdEventAmend,
+  cmdEventCancel,
+  cmdEventOrders,
+  cmdEventFills,
+} from "./commands/event-contract.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -1161,6 +1172,55 @@ export function handleSkillCommand(
   process.exitCode = 1;
 }
 
+export function handleEventCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  if (action === "series")
+    return cmdEventSeries(run, { seriesId: v.seriesId, json });
+  if (action === "events")
+    return cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json });
+  if (action === "markets")
+    return cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, json });
+  if (action === "ended")
+    return cmdEventEnded(run, { seriesId: (v.seriesId ?? rest[0])!, method: (v.method ?? rest[1])!, json });
+  if (action === "max-size")
+    return cmdEventMaxSize(run, { instId: (v.instId ?? rest[0])!, outcome: (v.outcome ?? rest[1])!, json });
+  if (action === "precheck")
+    return cmdEventPrecheck(run, {
+      instId: (v.instId ?? rest[0])!,
+      side: (v.side ?? rest[1])!,
+      outcome: (v.outcome ?? rest[2])!,
+      sz: (v.sz ?? rest[3])!,
+      px: v.px,
+      ordType: v.ordType,
+      slippage: v.slippage,
+      json,
+    });
+  if (action === "place")
+    return cmdEventPlace(run, {
+      instId: (v.instId ?? rest[0])!,
+      side: (v.side ?? rest[1])!,
+      outcome: (v.outcome ?? rest[2])!,
+      sz: (v.sz ?? rest[3])!,
+      px: v.px,
+      ordType: v.ordType,
+      slippage: v.slippage,
+      json,
+    });
+  if (action === "cancel")
+    return cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json });
+  if (action === "orders")
+    return cmdEventOrders(run, { instId: v.instId, state: v.state, limit, json });
+  if (action === "fills")
+    return cmdEventFills(run, { instId: v.instId, limit, json });
+  process.stderr.write(`Unknown event command: ${action}\n`);
+  process.exitCode = 1;
+}
 
 function outputResult(result: { endpoint: string; requestTime: string; data: unknown }, json: boolean): void {
   if (json) {
@@ -1272,6 +1332,7 @@ async function main(): Promise<void> {
     swap:    () => handleSwapCommand(run, action, rest, v, json),
     futures: () => handleFuturesCommand(run, action, rest, v, json),
     option:  () => handleOptionCommand(run, action, rest, v, json),
+    event:   () => handleEventCommand(run, action, rest, v, json),
     bot:     () => handleBotCommand(run, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
     skill:   () => handleSkillCommand(run, action, rest, v, json, config),

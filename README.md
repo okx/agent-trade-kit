@@ -47,6 +47,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `futures` | 18 | Delivery contract trading, positions, fills, order history, amend/close/leverage, batch orders, algo orders (TP/SL, OCO, trailing stop) | [→](docs/modules/futures.md) |
 | `option` | 10 | Options trading: place/cancel/amend/batch-cancel, order history, positions (with Greeks), fills, option chain, IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
+| `event` | 9 | Event contract trading: browse, series, events, markets (query); place, amend, cancel, orders, fills (private). Semantic outcome values: UP/YES/DOWN/NO | [→](docs/modules/event.md) |
 | `earn` | 22 | Simple Earn: balance, purchase, redeem, lending rate, **fixed-term orders** (10). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`. Included in `all`. | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 

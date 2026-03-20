@@ -205,7 +205,7 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           instType: {
             type: "string",
-            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
+            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION", "EVENTS"],
           },
           ccy: {
             type: "string",
@@ -272,7 +272,7 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           instType: {
             type: "string",
-            enum: ["SWAP", "FUTURES", "MARGIN", "OPTION"],
+            enum: ["SWAP", "FUTURES", "MARGIN", "OPTION", "EVENTS"],
             description: "Default SWAP",
           },
           instId: {
@@ -334,7 +334,7 @@ export function registerAccountTools(): ToolSpec[] {
         properties: {
           instType: {
             type: "string",
-            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION"],
+            enum: ["SPOT", "MARGIN", "SWAP", "FUTURES", "OPTION", "EVENTS"],
           },
           instId: {
             type: "string",
@@ -452,14 +452,14 @@ export function registerAccountTools(): ToolSpec[] {
       name: "account_get_positions",
       module: "account",
       description:
-        "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION). Use swap_get_positions for SWAP/FUTURES-only queries.",
+        "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION, EVENTS). Use swap_get_positions for SWAP/FUTURES-only queries.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           instType: {
             type: "string",
-            enum: ["MARGIN", "SWAP", "FUTURES", "OPTION"],
+            enum: ["MARGIN", "SWAP", "FUTURES", "OPTION", "EVENTS"],
           },
           instId: {
             type: "string",
