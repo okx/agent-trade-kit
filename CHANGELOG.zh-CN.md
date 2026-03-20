@@ -9,12 +9,23 @@
 
 ---
 
-## [Unreleased]
+## [1.2.6-beta.1] - 2026-03-20
 
 ### 新增
 
-- **`market_get_indicator` 工具**（`market`）：通过 OKX AIGC 指标接口查询任意交易对的技术指标值。支持 70+ 指标，覆盖 10 大分类——均线（MA/EMA/WMA/HMA 等）、趋势（MACD/SuperTrend/SAR/ADX 等）、一目均衡表、动量振荡器（RSI/KDJ/StochRSI 等）、波动率（BB/ATR/Keltner 等）、成交量（OBV/VWAP/MFI 等）、统计（LR/Slope/Sigma 等）、价格辅助（TP/MP）、K线形态（15种）、BTC 周期指标（BTCRAINBOW/AHR999）。无需 API 凭证。支持可选参数 `params`、`returnList`（历史序列）、`limit`、`backtestTime`（回测时间戳）。CLI 用法：`okx market indicator <名称> <instId> [--bar <周期>] [--params <p1,p2>] [--list] [--limit N]`。
-- **`OkxRestClient.publicPost()` 方法**：新增公开（免鉴权）POST 请求方法，与现有 `publicGet` 对称。`market_get_indicator` 内部使用。
+- **`market_get_indicator` 工具**（`market`）：通过 OKX AIGC 指标接口查询任意交易对的技术指标值。支持 70+ 指标，覆盖 10 大分类——均线（MA/EMA/WMA/HMA 等）、趋势（MACD/SuperTrend/SAR/ADX 等）、一目均衡表、动量振荡器（RSI/KDJ/StochRSI 等）、波动率（BB/ATR/Keltner 等）、成交量（OBV/VWAP/MFI 等）、统计（LR/Slope/Sigma 等）、价格辅助（TP/MP）、K 线形态（15 种）、BTC 周期指标（BTCRAINBOW/AHR999）。无需 API 凭证。支持可选参数 `params`、`returnList`、`limit`、`backtestTime`。CLI 用法：`okx market indicator <名称> <instId> [--bar <周期>] [--params <p1,p2>] [--list] [--limit N] [--backtest-time <ms>]`。
+- **`OkxRestClient.publicPost()` 方法**：新增免鉴权 POST 方法，与 `publicGet` 对称，供 `market_get_indicator` 内部使用。
+- **下单接口新增 `tgtCcy` 参数**：`spot_place_order`、`swap_place_order`、`futures_place_order` 新增 `tgtCcy` 参数。设为 `quote_ccy` 时可用 USDT 金额指定下单量，而非合约数/基础货币数量。
+
+### 修复
+
+- **CLI 业务失败时退出码为 1**：OKX 写入接口在订单被拒绝时仍返回 HTTP 200（如 `sCode="51008"`）。现在当响应中任意条目的 `sCode` 非零时，CLI 设置 `process.exitCode = 1`，脚本和 LLM 可通过退出码直接判断失败。
+- **`config.toml` passphrase 含特殊字符时给出友好提示**：passphrase 含 `#`、`\`、`"`、`'` 时，错误信息现在包含 TOML 引号转义指引，替代原来的模糊解析报错。
+- **余额不足错误提示优化**：错误码 `51008`（余额不足）、`51119`（保证金不足）、`51127`（可用保证金不足）的建议中，现在明确提示通过 `account_get_asset_balance` 检查资金账户，并通过 `account_transfer(from=18, to=6)` 转账后重试。
+
+### 变更
+
+- **CLI 输出层抽象重构**（内部）：统一 `process.stdout`/`stderr` 写入，对用户无感知行为变化。
 
 ---
 

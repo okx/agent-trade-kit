@@ -9,12 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.2.6-beta.1] - 2026-03-20
 
 ### Added
 
-- **`market_get_indicator` tool** (`market`): Query technical indicator values for any instrument via the OKX AIGC indicator API. Supports 70+ indicators across 10 categories — moving averages (MA, EMA, WMA, HMA…), trend (MACD, SuperTrend, SAR, ADX…), Ichimoku, momentum oscillators (RSI, KDJ, StochRSI…), volatility (BB, ATR, Keltner…), volume (OBV, VWAP, MFI…), statistics (LR, Slope, Sigma…), price auxiliary (TP, MP), candlestick patterns (15 types), and BTC crypto-cycle indicators (BTCRAINBOW, AHR999). No API credentials required. Accepts optional `params` array, `returnList` for historical series, `limit`, and `backtestTime`. CLI: `okx market indicator <name> <instId> [--bar <tf>] [--params <p1,p2>] [--list] [--limit N]`.
-- **`publicPost()` method on `OkxRestClient`**: New public (unauthenticated) POST request method, symmetric with the existing `publicGet`. Used internally by `market_get_indicator`.
+- **`market_get_indicator` tool** (`market`): Query technical indicator values for any instrument via the OKX AIGC indicator API. Supports 70+ indicators across 10 categories — moving averages (MA, EMA, WMA, HMA…), trend (MACD, SuperTrend, SAR, ADX…), Ichimoku, momentum oscillators (RSI, KDJ, StochRSI…), volatility (BB, ATR, Keltner…), volume (OBV, VWAP, MFI…), statistics (LR, Slope, Sigma…), price auxiliary (TP, MP), candlestick patterns (15 types), and BTC crypto-cycle indicators (BTCRAINBOW, AHR999). No API credentials required. Accepts optional `params`, `returnList`, `limit`, and `backtestTime`. CLI: `okx market indicator <name> <instId> [--bar <tf>] [--params <p1,p2>] [--list] [--limit N] [--backtest-time <ms>]`.
+- **`publicPost()` on `OkxRestClient`**: New unauthenticated POST method, symmetric with `publicGet`. Used internally by `market_get_indicator`.
+- **`tgtCcy` parameter for place orders**: `spot_place_order`, `swap_place_order`, and `futures_place_order` now accept `tgtCcy`. Set `tgtCcy=quote_ccy` to specify order size in USDT instead of contracts/base currency.
+
+### Fixed
+
+- **CLI exits with code 1 on OKX business failure**: Write endpoints return HTTP 200 even when an order is rejected (e.g. `sCode="51008"`). The CLI now sets `process.exitCode = 1` when any item in the response has a non-zero `sCode`, making failures detectable by scripts and LLMs via exit code alone.
+- **Friendly error for `config.toml` passphrase with special characters**: When a passphrase contains `#`, `\`, `"`, or `'`, the error now includes TOML quoting guidance instead of a cryptic parse error.
+- **Insufficient balance errors now hint to check funding account**: Error codes `51008` (insufficient balance), `51119` (insufficient margin), and `51127` (insufficient available margin) now include a suggestion to check the funding account via `account_get_asset_balance` and transfer with `account_transfer (from=18, to=6)`.
+
+### Changed
+
+- **CLI output layer abstracted** (internal): Raw `process.stdout`/`stderr` writes unified behind an output abstraction. No user-facing behavior change.
 
 ---
 
