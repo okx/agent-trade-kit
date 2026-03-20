@@ -37,9 +37,9 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
   "50110": { retry: false, suggestion: "API key expired. Generate a new API key." },
 
   // Insufficient funds / margin → do not retry
-  "51008": { retry: false, suggestion: "Insufficient balance. Top up account before retrying." },
-  "51119": { retry: false, suggestion: "Insufficient margin. Add margin before retrying." },
-  "51127": { retry: false, suggestion: "Insufficient available margin. Reduce position or add margin." },
+  "51008": { retry: false, suggestion: "Insufficient balance in trading account. Check funding account via account_get_asset_balance — funds may be there. Use account_transfer (from=18, to=6) to move funds to trading account, then retry." },
+  "51119": { retry: false, suggestion: "Insufficient margin. Add margin or check funding account (account_get_asset_balance). Transfer via account_transfer (from=18, to=6) if needed." },
+  "51127": { retry: false, suggestion: "Insufficient available margin. Reduce position, add margin, or transfer from funding account (account_transfer from=18 to=6)." },
 
   // Instrument unavailable → do not retry
   "51021": { retry: false, suggestion: "Instrument does not exist. Check instId." },
