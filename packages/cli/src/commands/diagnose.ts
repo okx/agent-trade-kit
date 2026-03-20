@@ -3,7 +3,7 @@ import net from "node:net";
 import os from "node:os";
 import tls from "node:tls";
 import type { OkxConfig } from "@agent-tradekit/core";
-import { OkxRestClient } from "@agent-tradekit/core";
+import { OkxRestClient, readFullConfig, configFilePath } from "@agent-tradekit/core";
 import { Report, ok, fail, section, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
 import { cmdDiagnoseMcp } from "./diagnose-mcp.js";
 
@@ -302,7 +302,7 @@ export interface DiagnoseOptions {
   output?: string;
 }
 
-export async function cmdDiagnose(config: OkxConfig, profile: string, options: DiagnoseOptions = {}): Promise<void> {
+export async function cmdDiagnose(config: OkxConfig | undefined, profile: string, options: DiagnoseOptions = {}): Promise<void> {
   // --mcp only: run MCP server checks
   if (options.mcp && !options.all) {
     return cmdDiagnoseMcp({ output: options.output });
@@ -318,20 +318,54 @@ export async function cmdDiagnose(config: OkxConfig, profile: string, options: D
   return runCliChecks(config, profile, options.output);
 }
 
-async function runCliChecks(config: OkxConfig, profile: string, outputPath?: string): Promise<void> {
+function checkConfigFile(report: Report): boolean {
+  section("Config File");
+  const path = configFilePath();
+  try {
+    readFullConfig();
+    ok("Config parse", `${path} OK`);
+    report.add("config_parse", "OK");
+    return true;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    fail("Config parse", msg, [
+      "If passphrase contains special characters (# \\ \" '), wrap in quotes:",
+      "  Contains # \\ \"  → passphrase = 'value'",
+      "  Contains '       → passphrase = \"value\"",
+      "  Contains both    → passphrase = '''value'''",
+      "Or re-run: okx config init",
+    ]);
+    report.add("config_parse", `FAIL ${msg}`);
+    return false;
+  }
+}
+
+async function runCliChecks(config: OkxConfig | undefined, profile: string, outputPath?: string): Promise<void> {
   process.stdout.write("\n  OKX Trade CLI Diagnostics\n");
   process.stdout.write("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n");
 
   const report = new Report();
   report.add("ts", new Date().toISOString());
 
+  const configFilePassed = checkConfigFile(report);
   const envPassed = checkEnvironment(report);
+
+  if (!config) {
+    // Config parse failed — skip remaining checks that need config
+    fail("Config", "Could not load config (see Config File check above)", []);
+    report.add("result", "FAIL");
+    report.print();
+    writeReportIfRequested(report, outputPath);
+    process.exitCode = 1;
+    return;
+  }
+
   const cfgPassed = checkConfig(config, profile, report);
   const client = new OkxRestClient(config);
   const netPassed = await checkNetwork(config, client, report);
   const authPassed = await checkAuth(client, config, report);
 
-  const allPassed = envPassed && cfgPassed && netPassed && authPassed;
+  const allPassed = configFilePassed && envPassed && cfgPassed && netPassed && authPassed;
 
   // --- Result ---
   process.stdout.write("\n");

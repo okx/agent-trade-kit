@@ -1084,11 +1084,18 @@ async function main(): Promise<void> {
   if (module === "config") return handleConfigCommand(action, rest, json, v.lang, v.force);
   if (module === "setup") return handleSetupCommand(v);
 
+  // diagnose runs before loadConfig — it must handle config parse errors itself
+  if (module === "diagnose") {
+    let config: ReturnType<typeof loadProfileConfig> | undefined;
+    try {
+      config = loadProfileConfig({ profile: v.profile, demo: v.demo, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+    } catch {
+      // Config parse failed — diagnose will detect and report it
+    }
+    return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
+  }
+
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
-
-  if (config.verbose) printVerboseConfigSummary(config, v.profile);
-
-  if (module === "diagnose") return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
 
   const client = new OkxRestClient(config);
   const run = createToolRunner(client, config);

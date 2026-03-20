@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config.js";
+import { readFullConfig } from "../src/config/toml.js";
 import { OKX_SITES } from "../src/constants.js";
 import { ConfigError } from "../src/utils/errors.js";
 
@@ -420,5 +421,89 @@ describe("loadConfig — proxy_url from toml profile", () => {
     writeToml('[profiles.default]\nproxy_url = ""\n');
     const config = loadConfig(BASE_CLI);
     assert.equal(config.proxyUrl, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TOML parse error — special characters in passphrase
+// ---------------------------------------------------------------------------
+
+describe("loadConfig — TOML parse error for special characters", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  function writeToml(content: string): void {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), content, "utf-8");
+  }
+
+  it("throws ConfigError with quoting hint when passphrase has bare hash", () => {
+    writeToml('[profiles.default]\npassphrase = abc#123\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("Failed to parse") &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("single quotes"),
+    );
+  });
+
+  it("throws ConfigError with quoting hint when passphrase has bare backslash", () => {
+    writeToml('[profiles.default]\npassphrase = abc\\def\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("okx config init"),
+    );
+  });
+
+  it("parses passphrase with special chars when properly single-quoted", () => {
+    writeToml("[profiles.default]\npassphrase = 'abc#123\\\\def'\n");
+    const config = readFullConfig();
+    assert.equal(config.profiles.default.passphrase, "abc#123\\\\def");
+  });
+
+  it("parses passphrase with single quote when double-quoted", () => {
+    writeToml('[profiles.default]\npassphrase = "abc\'def"\n');
+    const config = readFullConfig();
+    assert.equal(config.profiles.default.passphrase, "abc'def");
+  });
+
+  it("parses passphrase with mixed special chars using triple quotes", () => {
+    writeToml("[profiles.default]\npassphrase = '''abc'#def'''\n");
+    const config = readFullConfig();
+    assert.equal(config.profiles.default.passphrase, "abc'#def");
+  });
+
+  it("suggestion mentions triple quotes for complex cases", () => {
+    writeToml('[profiles.default]\npassphrase = abc#\'def\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("triple quotes"),
+    );
   });
 });

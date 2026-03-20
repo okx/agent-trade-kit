@@ -101,6 +101,25 @@ When a tool call fails, your AI client shows a structured error block:
 - **`traceId`** — Paste this when contacting OKX support; they can trace the server-side request.
 - **`serverVersion`** — Tells you which release you're running.
 
+### MCP server fails to start — config parse error
+
+**Cause**: Your `~/.okx/config.toml` contains special characters (`#`, `\`, `"`, `'`) in the passphrase or API keys that are not properly quoted.
+
+**Fix**: Open `~/.okx/config.toml` and wrap the value in the correct quotes:
+
+```toml
+# Contains # \ " → use single quotes
+passphrase = 'my#pass\word'
+
+# Contains ' → use double quotes
+passphrase = "my'pass"
+
+# Contains both ' and # \ " → use triple single quotes
+passphrase = '''my'#pass'''
+```
+
+Or re-run `okx config init` to regenerate the file (handles quoting automatically).
+
 ### `okx-trade-mcp` command not found after `npm install -g`
 
 **Cause**: The npm global `bin` directory is not in your `$PATH`. The executable is installed but the shell cannot find it.
@@ -298,6 +317,25 @@ okx-trade-mcp --profile live --modules market spot account
 - **`suggestion`** — Server 生成的操作建议。
 - **`traceId`** — 联系 OKX 客服时提供，可追溯服务端请求。
 - **`serverVersion`** — 当前运行的版本号。
+
+### MCP Server 启动失败 — 配置文件解析错误
+
+**原因**：`~/.okx/config.toml` 中的 passphrase 或 API Key 包含特殊字符（`#`、`\`、`"`、`'`），未正确加引号。
+
+**解决方法**：打开 `~/.okx/config.toml`，用正确的引号包裹：
+
+```toml
+# 包含 # \ " → 用单引号
+passphrase = 'my#pass\word'
+
+# 包含 ' → 用双引号
+passphrase = "my'pass"
+
+# 同时包含 ' 和 # \ " → 用三单引号
+passphrase = '''my'#pass'''
+```
+
+或重新运行 `okx config init` 自动生成（程序会自动处理引号）。
 
 ### `npm install -g` 安装后提示 `command not found`
 
