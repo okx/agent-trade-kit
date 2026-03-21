@@ -366,6 +366,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`event_get_events` handler: convert timestamps** — `expTime` and `settleTime` are now returned as ISO 8601 strings instead of raw millisecond integers; empty/zero `settleTime` is omitted from the response, removing "fixTime 为空" noise.
+- **`event_get_fills` handler: translate outcome codes** — outcome `"1"`/`"2"` now translated to `"YES"`/`"NO"` (consistent with `event_get_markets`); no more raw numeric values in fill responses.
+- **`account_get_positions` description (EVENTS)**: added HOW TO PRESENT guidance — frozen quantity explanation ("X 手因挂单冻结"), expiry time parsed from instId with relative time, sort by nearest expiry.
+- **`market_get_orderbook` description**: added null-data handling guidance — return user-friendly message instead of exposing `ok:true`, `data:null`, or API paths.
+- **`event_get_series` description**: strengthened orderbook routing — CRITICAL instruction to silently call `market_get_orderbook` without telling the user the tool doesn't exist; handle null response cleanly.
+- **`event_precheck_order` description**: added fee/cost ratio trigger — when `estFee/estCost > 30%`, show ⚠️ with fee percentage and suggest Maker order to reduce cost.
+
 - **`readNumber` helper: coerce numeric strings** — LLMs may pass `"2"` instead of `2` for number parameters; `readNumber` now accepts numeric strings and converts them automatically, preventing `ValidationError: Parameter "limit" must be a number` when the AI passes string values. Non-numeric strings still throw.
 - **Event contract orderbook routing** — added guidance in `event_get_series` description: for orderbook/ticker queries on event contract instIds, use `market_get_orderbook` / `market_get_ticker` directly. AI will no longer surface "event_get_orderbook not available" errors to users.
 - **`event_get_events` / `event_get_markets` descriptions**: explicitly forbid showing raw millisecond timestamps and null/empty fields to users; reinforce absolute+relative time format.

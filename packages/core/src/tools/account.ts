@@ -451,8 +451,11 @@ export function registerAccountTools(): ToolSpec[] {
     {
       name: "account_get_positions",
       module: "account",
-      description:
-        "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION, EVENTS). Use swap_get_positions for SWAP/FUTURES-only queries.",
+      description: `Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION, EVENTS). Use swap_get_positions for SWAP/FUTURES-only queries.
+For EVENTS positions, response includes pre-computed fields — read them directly:
+  expiryTime  = contract expiry in "YYYY-MM-DD HH:mm UTC+8" (always show this; add relative time e.g. "approx X hours remaining")
+  frozenQty   = contracts frozen by open orders (show as: "N hand available to close, M frozen by open orders")
+Show: instId, pos, availPos, avgPx, markPx, upl, expiryTime, frozenQty (if present). Sort by expiryTime ascending.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -481,7 +484,46 @@ export function registerAccountTools(): ToolSpec[] {
           }),
           privateRateLimit("account_get_positions", 10),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        if (!Array.isArray(base["data"])) return base;
+        const data = (base["data"] as Record<string, unknown>[]).map((item) => {
+          const r = { ...item };
+          // Remove non-essential timestamp fields that add noise for users
+          delete r["cTime"];
+          delete r["uTime"];
+          delete r["pTime"];
+          // Pre-compute frozen quantity so Claude doesn't need to calculate
+          const pos = parseFloat(String(r["pos"] ?? "0")) || 0;
+          const availPos = parseFloat(String(r["availPos"] ?? "0")) || 0;
+          const frozen = Math.round((pos - availPos) * 1e8) / 1e8;
+          if (frozen > 0) r["frozenQty"] = frozen;
+          // Parse expiry from event contract instId (format: ...-YYMMDD-HHMM-...)
+          const instId = String(r["instId"] ?? "");
+          const parts = instId.split("-");
+          for (let i = 0; i < parts.length; i++) {
+            const p = parts[i] ?? "";
+            const t = parts[i + 1] ?? "";
+            if (/^\d{6}$/.test(p) && /^\d{4}$/.test(t)) {
+              const utcMs = Date.UTC(
+                2000 + parseInt(p.slice(0, 2)),
+                parseInt(p.slice(2, 4)) - 1,
+                parseInt(p.slice(4, 6)),
+                parseInt(t.slice(0, 2)),
+                parseInt(t.slice(2, 4)),
+              );
+              const d = new Date(utcMs + 8 * 60 * 60 * 1000);
+              const yyyy = d.getUTCFullYear();
+              const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+              const dd = String(d.getUTCDate()).padStart(2, "0");
+              const hh = String(d.getUTCHours()).padStart(2, "0");
+              const mi = String(d.getUTCMinutes()).padStart(2, "0");
+              r["expiryTime"] = `${yyyy}-${mo}-${dd} ${hh}:${mi} UTC+8`;
+              break;
+            }
+          }
+          return r;
+        });
+        return { ...base, data };
       },
     },
     {

@@ -40,6 +40,36 @@ const OUTCOME_LABELS: Record<string, string> = {
   "2": "NO",
 };
 
+/** Known timestamp field names in event contract responses. */
+const TIMESTAMP_FIELDS = new Set([
+  "expTime", "settleTime", "listTime", "uTime", "cTime", "fixTime",
+]);
+
+/**
+ * Convert all recognized timestamp fields in an item to "YYYY-MM-DD HH:mm UTC+8".
+ * Fields that are missing, zero, or non-numeric are removed (omit empty timestamps).
+ */
+function convertTimestamps(item: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...item };
+  for (const key of TIMESTAMP_FIELDS) {
+    if (!(key in result)) continue;
+    const v = Number(result[key]);
+    if (v > 0) {
+      // Shift to UTC+8 by adding 8 hours before extracting UTC fields
+      const d = new Date(v + 8 * 60 * 60 * 1000);
+      const yyyy = d.getUTCFullYear();
+      const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+      const dd = String(d.getUTCDate()).padStart(2, "0");
+      const hh = String(d.getUTCHours()).padStart(2, "0");
+      const mi = String(d.getUTCMinutes()).padStart(2, "0");
+      result[key] = `${yyyy}-${mo}-${dd} ${hh}:${mi} UTC+8`;
+    } else {
+      delete result[key];
+    }
+  }
+  return result;
+}
+
 /**
  * For write operations: surface any inner sCode/sMsg errors from data items.
  * Mirrors the pattern used in dca.ts and grid.ts.
@@ -109,20 +139,9 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_series",
       module: "event",
-      description: `List all available event contract product series — the top-level product catalog.
-Each series groups recurring events of the same underlying asset and frequency.
-The settlement.method field indicates the product type:
-  - price_up_down: bet whether price rises (UP) or falls (DOWN) within the period
-  - price_above: bet whether price is above a strike at expiry (YES/NO)
-  - price_once_touch: bet whether price ever touches a strike level (YES/NO)
-NOTE: Event contracts use standard market tools for price/orderbook queries:
-  - Use market_get_ticker with the event contract instId for current price
-  - Use market_get_orderbook with the event contract instId for order depth
-  Never tell the user "event_get_orderbook does not exist" — just use market_get_orderbook directly.
-HOW TO PRESENT: After listing, briefly guide the user toward a trading style:
-  - Daily series (e.g. BTC-ABOVE-DAILY) → intraday directional bet, one settlement per day
-  - 15min series (e.g. BTC-UPDOWN-15MIN) → ultra-short-term, settles every 15 minutes
-  Recommend the user pick one series and query its live markets next.`,
+      description: `List event contract product series. settlement.method: price_up_down=UP/DOWN bet, price_above=YES/NO bet, price_once_touch=YES/NO bet.
+Routing (silent, no explanation to user): orderbook requests → call market_get_orderbook directly; expired-events requests → call event_get_markets(state="expired") directly.
+After listing: add "BTC-UPDOWN-15MIN for short-term (15 min); BTC-ABOVE-DAILY for intraday direction."`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -147,12 +166,7 @@ HOW TO PRESENT: After listing, briefly guide the user toward a trading style:
     {
       name: "event_get_events",
       module: "event",
-      description: `List events within a series. Each event = one expiry (e.g. BTC-ABOVE-DAILY-260224-1600). States: preopen → live → settling → expired.
-HOW TO PRESENT:
-  - NEVER show raw millisecond timestamps (e.g. 1774021504465) to users — always convert to human-readable datetime.
-  - Express expiry as BOTH absolute UTC and relative: "2026-03-20 16:00 UTC (approx X hours remaining)"
-  - Do not show empty/null fields (fixTime, settleValue, etc. when empty) — simply omit them.
-  - Highlight the currently live event as the one available for trading.`,
+      description: "List events within a series. Each event = one expiry. expTime is pre-formatted UTC+8 — show with relative time: '2026-03-20 16:00 UTC+8 (approx X min remaining)'. Omit absent/empty fields.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -199,28 +213,18 @@ HOW TO PRESENT:
           }),
           publicRateLimit("event_get_events", 20),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        const data = Array.isArray(base["data"])
+          ? (base["data"] as Record<string, unknown>[]).map(convertTimestamps)
+          : base["data"];
+        return { ...base, data };
       },
     },
 
     {
       name: "event_get_markets",
       module: "event",
-      description: `List markets (instruments) within an event series. Each market is one strike/outcome pair.
-Key response fields:
-  - floorStrike: strike price (minimum expiry value that leads to YES settlement)
-  - outcome: already translated — "pending" (not settled), "YES" (won), "NO" (lost)
-  - settleValue: settlement reference price (only when state=expired)
-  - state: preopen → live → settling → expired
-For settled results, query with state=expired.
-HOW TO PRESENT:
-  1. Express settlement condition plainly: "If {underlying} >= {floorStrike} at expiry → YES wins; otherwise NO wins"
-  2. For live markets with multiple strikes, characterize each by implied probability (from last price):
-     higher floorStrike = lower YES probability = more aggressive bet
-     e.g. "69700 (balanced, ~50%) · 69800 (conservative) · 69900 (aggressive)"
-  3. Express expiry as absolute UTC + relative time (e.g. "2026-03-20 16:00 UTC, approx 3h 20min remaining")
-  4. NEVER show raw timestamps, empty fields (settleValue, fixTime when empty), or internal field names.
-  5. End with: recommend calling event_precheck_order before placing any order.`,
+      description: `List markets within a series. floorStrike = strike price; outcome is pre-translated ("pending"/"YES"/"NO"); all timestamps are UTC+8. For price_above: "BTC ≥ {floorStrike} at expiry → YES wins". For expired results use state=expired.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -275,7 +279,7 @@ HOW TO PRESENT:
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map((item) => ({
-              ...item,
+              ...convertTimestamps(item),
               outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
             }))
           : base["data"];
@@ -321,27 +325,9 @@ Returns maxBuySz and maxSellSz (number of contracts).`,
     {
       name: "event_precheck_order",
       module: "event",
-      description: `Dry-run an event contract order: returns estimated cost and risk without placing.
-STRONGLY RECOMMENDED: Always call this before event_place_order to validate parameters.
-- For limit orders: provide px (probability 0.00~1.00, NOT a regular price)
-- For market orders: provide slippage (default 0.05)
-Response includes pre-computed derived fields — use them directly:
-  maxLoss        = estCost + estFee  (worst case, if bet is wrong)
-  netMaxWin      = estMaxWin - estCost - estFee  (net profit if bet is right)
-  riskRewardRatio = netMaxWin / maxLoss
-  estFee is charged at SETTLEMENT, not upfront.
-HOW TO PRESENT — always use this fixed template, in this order:
-  Contract:       {instId}
-  Win condition:  If {underlying} >= {floorStrike} at expiry → YES wins (or: price rises → UP wins)
-  Expires:        {absolute UTC} (approx X hours remaining)
-  ──────────────────────────────────────
-  Estimated cost: {estCost} USDC
-  Max loss:       {maxLoss} USDC  (fee charged at settlement, NOT upfront)
-  Net max win:    {netMaxWin} USDC
-  Risk/reward:    {riskRewardRatio}
-  ──────────────────────────────────────
-  [if riskRewardRatio < 0.1]: ⚠️ Fee is high relative to potential gain — consider a limit order to reduce cost
-Never show raw field names (estCost/estFee/estMaxWin) or numeric outcome codes to users.`,
+      description: `Dry-run an event order (no real trade). Call before event_place_order. px = probability 0~1, not price.
+Pre-computed response fields: maxLoss, netMaxWin, riskRewardRatio, feePct (fee % of cost). estFee charged at settlement not upfront.
+If feePct > 30: add "⚠️ Fee is {feePct}% of entry cost — limit/post_only order reduces this."`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -404,6 +390,7 @@ Never show raw field names (estCost/estFee/estMaxWin) or numeric outcome codes t
                 netMaxWin: netMaxWin.toFixed(4),
                 maxLoss:   maxLoss.toFixed(4),
                 riskRewardRatio: maxLoss > 0 ? (netMaxWin / maxLoss).toFixed(2) : "N/A",
+                feePct: cost > 0 ? Math.round((fee / cost) * 100) : 0,
               };
             })
           : base["data"];
@@ -414,9 +401,7 @@ Never show raw field names (estCost/estFee/estMaxWin) or numeric outcome codes t
     {
       name: "event_get_orders",
       module: "event",
-      description: `Get event contract orders. When state=live, returns pending orders; otherwise returns order history.
-outcome field in response: '1'=YES (or UP for price_up_down), '2'=NO (or DOWN) — always translate; NEVER show "YES(1)" or "NO(2)" style notations.
-HOW TO PRESENT: Show the most recent 3–5 orders first. If the user just placed orders in this session, highlight those specifically. Omit internal fields (tdMode, tag, instType, clOrdId) unless user asks. Focus on: ordId, contract, direction (BUY YES/NO/UP/DOWN), price, size, fill status.`,
+      description: "Get event orders. state=live → pending; omit → history. outcome is pre-translated (YES/NO/UP/DOWN). Show most recent 5 first.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -458,9 +443,7 @@ HOW TO PRESENT: Show the most recent 3–5 orders first. If the user just placed
     {
       name: "event_get_fills",
       module: "event",
-      description: `Get event contract fill (trade) history.
-outcome field: '1'=YES/UP, '2'=NO/DOWN — always translate; NEVER show "YES(1)" or "NO(2)" style notations.
-HOW TO PRESENT: Default to most recent 3–5 fills. If the list is long (>5), summarize first, then offer to show more. Omit internal fields (tradeId, billId, instType, clOrdId) by default. Fee is negative = paid by user.`,
+      description: "Get event fill history. outcome is pre-translated (YES/NO/UP/DOWN). Show most recent 5 by default; summarize if list is long.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -486,7 +469,14 @@ HOW TO PRESENT: Default to most recent 3–5 fills. If the list is long (>5), su
           }),
           privateRateLimit("event_get_fills", 20),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        const data = Array.isArray(base["data"])
+          ? (base["data"] as Record<string, unknown>[]).map((item) => ({
+              ...item,
+              outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
+            }))
+          : base["data"];
+        return { ...base, data };
       },
     },
 
@@ -502,8 +492,8 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
 - tdMode is always cash; speedBump is auto-set per exchange requirement — do not pass either
-HOW TO PRESENT on success: confirm in plain language — order ID, contract, direction, quantity, price. Never show sCode, tdMode, or tag fields. Always end with an offer to check fill status or view current positions.
-On failure: the tool throws an error — explain what went wrong in plain language and whether user should retry.`,
+On success: confirm ordId, instId, direction (BUY YES/NO/UP/DOWN), size, ordType, price (if limit). Offer to check fills. sCode and tag are stripped from response.
+On failure: tool throws — plain language reason only.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -560,7 +550,12 @@ On failure: the tool throws an error — explain what went wrong in plain langua
           }),
           privateRateLimit("event_place_order", 60),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        // Strip internal fields the user doesn't need to see
+        const data = Array.isArray(base["data"])
+          ? (base["data"] as Record<string, unknown>[]).map(({ sCode: _s, tag: _t, ...rest }) => rest)
+          : base["data"];
+        return { ...base, data };
       },
     },
 
@@ -568,10 +563,7 @@ On failure: the tool throws an error — explain what went wrong in plain langua
       name: "event_cancel_order",
       module: "event",
       description: `Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.
-HOW TO PRESENT on success: "Order {ordId} cancelled successfully."
-On error (tool throws): lead with the plain-language reason, put the error code in parentheses at the end.
-  e.g. "Cancel failed: this order no longer exists — it may have already been filled or cancelled. No further action needed. (error 51400)"
-  Never put the error code in the headline. Always suggest what the user can do next.`,
+On success: "Order {ordId} cancelled." On error (tool throws): plain reason + error code in parentheses. Suggest next action.`,
       isWrite: true,
       inputSchema: {
         type: "object",
