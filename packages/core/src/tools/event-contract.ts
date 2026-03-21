@@ -31,6 +31,45 @@ import {
   requireString,
 } from "./helpers.js";
 import { assertNotDemo, privateRateLimit, publicRateLimit } from "./common.js";
+import { OkxApiError } from "../utils/errors.js";
+
+/** Translate raw outcome codes to human-readable labels. */
+const OUTCOME_LABELS: Record<string, string> = {
+  "0": "pending",
+  "1": "YES",
+  "2": "NO",
+};
+
+/**
+ * For write operations: surface any inner sCode/sMsg errors from data items.
+ * Mirrors the pattern used in dca.ts and grid.ts.
+ */
+function normalizeWrite(response: {
+  endpoint: string;
+  requestTime: string;
+  data: unknown;
+}): Record<string, unknown> {
+  const data = response.data;
+  if (Array.isArray(data) && data.length > 0) {
+    const failed = data.filter(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        "sCode" in (item as object) &&
+        (item as Record<string, unknown>)["sCode"] !== "0",
+    ) as Record<string, unknown>[];
+    if (failed.length > 0) {
+      const messages = failed.map(
+        (item) => `[${item["sCode"]}] ${item["sMsg"] ?? "Operation failed"}`,
+      );
+      throw new OkxApiError(messages.join("; "), {
+        code: String(failed[0]!["sCode"] ?? ""),
+        endpoint: response.endpoint,
+      });
+    }
+  }
+  return { endpoint: response.endpoint, requestTime: response.requestTime, data };
+}
 
 /**
  * Convert semantic outcome string to API numeric value.
@@ -71,11 +110,19 @@ export function registerEventContractTools(): ToolSpec[] {
       name: "event_get_series",
       module: "event",
       description: `List all available event contract product series — the top-level product catalog.
-Each series (e.g. BTC-ABOVE-DAILY, ETH-15MIN) groups recurring events of the same underlying asset and frequency.
+Each series groups recurring events of the same underlying asset and frequency.
 The settlement.method field indicates the product type:
   - price_up_down: bet whether price rises (UP) or falls (DOWN) within the period
   - price_above: bet whether price is above a strike at expiry (YES/NO)
-  - price_once_touch: bet whether price ever touches a strike level (YES/NO)`,
+  - price_once_touch: bet whether price ever touches a strike level (YES/NO)
+NOTE: Event contracts use standard market tools for price/orderbook queries:
+  - Use market_get_ticker with the event contract instId for current price
+  - Use market_get_orderbook with the event contract instId for order depth
+  Never tell the user "event_get_orderbook does not exist" — just use market_get_orderbook directly.
+HOW TO PRESENT: After listing, briefly guide the user toward a trading style:
+  - Daily series (e.g. BTC-ABOVE-DAILY) → intraday directional bet, one settlement per day
+  - 15min series (e.g. BTC-UPDOWN-15MIN) → ultra-short-term, settles every 15 minutes
+  Recommend the user pick one series and query its live markets next.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -100,8 +147,12 @@ The settlement.method field indicates the product type:
     {
       name: "event_get_events",
       module: "event",
-      description:
-        "List events within a series. Each event = one expiry (e.g. BTC-ABOVE-DAILY-260224-1600). States: preopen → live → settling → expired.",
+      description: `List events within a series. Each event = one expiry (e.g. BTC-ABOVE-DAILY-260224-1600). States: preopen → live → settling → expired.
+HOW TO PRESENT:
+  - NEVER show raw millisecond timestamps (e.g. 1774021504465) to users — always convert to human-readable datetime.
+  - Express expiry as BOTH absolute UTC and relative: "2026-03-20 16:00 UTC (距今约 X 小时)"
+  - Do not show empty/null fields (fixTime、settleValue 为空 etc.) — simply omit them.
+  - Highlight the currently live event as the one available for trading.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -158,10 +209,18 @@ The settlement.method field indicates the product type:
       description: `List markets (instruments) within an event series. Each market is one strike/outcome pair.
 Key response fields:
   - floorStrike: strike price (minimum expiry value that leads to YES settlement)
-  - outcome: "0"=not settled, "1"=YES won, "2"=NO won (only set when state=expired)
+  - outcome: already translated — "pending" (not settled), "YES" (won), "NO" (lost)
   - settleValue: settlement reference price (only when state=expired)
   - state: preopen → live → settling → expired
-For settled results, query with state=expired.`,
+For settled results, query with state=expired.
+HOW TO PRESENT:
+  1. Express settlement condition as: "如果到期 {underlying} ≥ {floorStrike} → YES 获胜，否则 NO 获胜"
+  2. For live markets with multiple strikes, characterize each by implied probability (from last price):
+     higher floorStrike = lower YES probability = more aggressive bet
+     e.g. "69700 (均衡, ~50%) · 69800 (偏保守) · 69900 (激进)"
+  3. Express expiry as absolute UTC + relative time ("距今约 X 小时")
+  4. NEVER show raw timestamps, empty fields (settleValue 为空、fixTime 为空), or internal field names.
+  5. End with: recommend calling event_precheck_order before placing any order.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -213,7 +272,14 @@ For settled results, query with state=expired.`,
           }),
           publicRateLimit("event_get_markets", 20),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        const data = Array.isArray(base["data"])
+          ? (base["data"] as Record<string, unknown>[]).map((item) => ({
+              ...item,
+              outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
+            }))
+          : base["data"];
+        return { ...base, data };
       },
     },
 
@@ -258,7 +324,24 @@ Returns maxBuySz and maxSellSz (number of contracts).`,
       description: `Dry-run an event contract order: returns estimated cost and risk without placing.
 STRONGLY RECOMMENDED: Always call this before event_place_order to validate parameters.
 - For limit orders: provide px (probability 0.00~1.00, NOT a regular price)
-- For market orders: provide slippage (default 0.05)`,
+- For market orders: provide slippage (default 0.05)
+Response includes pre-computed derived fields — use them directly:
+  maxLoss        = estCost + estFee  (worst case, if bet is wrong)
+  netMaxWin      = estMaxWin - estCost - estFee  (net profit if bet is right)
+  riskRewardRatio = netMaxWin / maxLoss
+  estFee is charged at SETTLEMENT, not upfront.
+HOW TO PRESENT — always use this fixed template, in this order:
+  交易标的:   {instId}
+  赢的条件:   如果到期 {underlying} ≥ {floorStrike} → YES 获胜（or: 价格上涨 → UP 获胜）
+  到期时间:   {absolute UTC} (距今约 X 小时)
+  ──────────────────────────
+  预计成本:   {estCost} USDC
+  最大亏损:   {maxLoss} USDC  (手续费结算时收取，非预付)
+  净最大收益: {netMaxWin} USDC
+  风险收益比: {riskRewardRatio}
+  ──────────────────────────
+  [if riskRewardRatio < 0.1]: ⚠️ 手续费占比较高，净收益空间有限，建议用限价单降低成本
+Never show raw field names (estCost/estFee/estMaxWin) or numeric outcome codes to users.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -308,15 +391,32 @@ STRONGLY RECOMMENDED: Always call this before event_place_order to validate para
           }),
           privateRateLimit("event_precheck_order", 10),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        const data = Array.isArray(base["data"])
+          ? (base["data"] as Record<string, unknown>[]).map((item) => {
+              const cost    = parseFloat(String(item["estCost"]   ?? "0")) || 0;
+              const fee     = parseFloat(String(item["estFee"]    ?? "0")) || 0;
+              const maxWin  = parseFloat(String(item["estMaxWin"] ?? "0")) || 0;
+              const netMaxWin = maxWin - cost - fee;
+              const maxLoss   = cost + fee;
+              return {
+                ...item,
+                netMaxWin: netMaxWin.toFixed(4),
+                maxLoss:   maxLoss.toFixed(4),
+                riskRewardRatio: maxLoss > 0 ? (netMaxWin / maxLoss).toFixed(2) : "N/A",
+              };
+            })
+          : base["data"];
+        return { ...base, data };
       },
     },
 
     {
       name: "event_get_orders",
       module: "event",
-      description:
-        "Get event contract orders. When state=live, returns pending orders; otherwise returns order history.",
+      description: `Get event contract orders. When state=live, returns pending orders; otherwise returns order history.
+outcome field in response: '1'=YES (or UP for price_up_down), '2'=NO (or DOWN) — always translate; NEVER show "YES(1)" or "NO(2)" style notations.
+HOW TO PRESENT: Show the most recent 3–5 orders first. If the user just placed orders in this session, highlight those specifically. Omit internal fields (tdMode, tag, instType, clOrdId) unless user asks. Focus on: ordId, contract, direction (BUY YES/NO/UP/DOWN), price, size, fill status.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -358,7 +458,9 @@ STRONGLY RECOMMENDED: Always call this before event_place_order to validate para
     {
       name: "event_get_fills",
       module: "event",
-      description: "Get event contract fill (trade) history.",
+      description: `Get event contract fill (trade) history.
+outcome field: '1'=YES/UP, '2'=NO/DOWN — always translate; NEVER show "YES(1)" or "NO(2)" style notations.
+HOW TO PRESENT: Default to most recent 3–5 fills. If the list is long (>5), summarize first, then offer to show more. Omit internal fields (tradeId, billId, instType, clOrdId) by default. Fee is negative = paid by user.`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -399,7 +501,9 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
-- tdMode is always cash; speedBump is auto-set per exchange requirement — do not pass either`,
+- tdMode is always cash; speedBump is auto-set per exchange requirement — do not pass either
+HOW TO PRESENT on success: confirm in plain language — order ID, contract, direction, quantity, price. Never show sCode, tdMode, or tag fields. Always end with: "可以继续帮您查询是否成交，或查看当前持仓变化。"
+On failure: the tool throws an error — explain what went wrong in plain language and whether user should retry.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -463,8 +567,11 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
     {
       name: "event_cancel_order",
       module: "event",
-      description:
-        "Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.",
+      description: `Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.
+HOW TO PRESENT on success: "订单 {ordId} 已撤销成功。"
+On error (tool throws): lead with the plain-language reason, push error code to end in parentheses.
+  e.g. "撤单失败：该订单不存在，可能已成交或已撤销，无需再次操作。（错误码 51400）"
+  Never put the error code in the headline. Always suggest what the user can do next.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -491,7 +598,7 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
           },
           privateRateLimit("event_cancel_order", 60),
         );
-        return normalizeResponse(response);
+        return normalizeWrite(response);
       },
     },
   ];

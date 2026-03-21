@@ -29,6 +29,10 @@ export function readNumber(
   if (value === undefined || value === null) {
     return undefined;
   }
+  // Coerce numeric strings (LLMs may pass "2" instead of 2)
+  if (typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) {
+    return parseFloat(value);
+  }
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw new ValidationError(`Parameter "${key}" must be a number.`);
   }

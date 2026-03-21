@@ -508,3 +508,158 @@ describe("event_get_fills passes instType=EVENTS", () => {
     assert.equal(call.params["instType"], "EVENTS");
   });
 });
+
+// ---------------------------------------------------------------------------
+// 测试组 6：event_get_markets outcome 翻译
+// ---------------------------------------------------------------------------
+
+describe("event_get_markets outcome translation", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_markets")!;
+
+  function makeClientWithData(data: unknown[]) {
+    const client = {
+      publicGet: async (endpoint: string) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data,
+      }),
+      privateGet: async (endpoint: string) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data,
+      }),
+      privatePost: async (endpoint: string) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data,
+      }),
+    };
+    return client;
+  }
+
+  it("translates outcome '0' to 'pending'", async () => {
+    const client = makeClientWithData([{ instId: "X", outcome: "0" }]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["outcome"], "pending");
+  });
+
+  it("translates outcome '1' to 'YES'", async () => {
+    const client = makeClientWithData([{ instId: "X", outcome: "1" }]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["outcome"], "YES");
+  });
+
+  it("translates outcome '2' to 'NO'", async () => {
+    const client = makeClientWithData([{ instId: "X", outcome: "2" }]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["outcome"], "NO");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 7：event_precheck_order 衍生字段
+// ---------------------------------------------------------------------------
+
+describe("event_precheck_order derived fields", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_precheck_order")!;
+
+  function makeClientWithPrecheckData(estCost: string, estFee: string, estMaxWin: string) {
+    const client = {
+      publicGet: async (endpoint: string) => ({
+        endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [],
+      }),
+      privateGet: async (endpoint: string) => ({
+        endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [],
+      }),
+      privatePost: async (endpoint: string) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [{ estCost, estFee, estMaxWin, outcome: "1" }],
+      }),
+    };
+    return client;
+  }
+
+  it("computes netMaxWin = estMaxWin - estCost - estFee", async () => {
+    // estMaxWin=10, estCost=6, estFee=3, netMaxWin=1
+    const client = makeClientWithPrecheckData("6", "3", "10");
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+    const item = (result["data"] as Record<string, unknown>[])[0]!;
+    assert.equal(item["netMaxWin"], "1.0000");
+  });
+
+  it("computes maxLoss = estCost + estFee", async () => {
+    const client = makeClientWithPrecheckData("6", "3", "10");
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+    const item = (result["data"] as Record<string, unknown>[])[0]!;
+    assert.equal(item["maxLoss"], "9.0000");
+  });
+
+  it("computes riskRewardRatio = netMaxWin / maxLoss", async () => {
+    // netMaxWin=1, maxLoss=9, ratio=0.11
+    const client = makeClientWithPrecheckData("6", "3", "10");
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+    const item = (result["data"] as Record<string, unknown>[])[0]!;
+    assert.equal(item["riskRewardRatio"], "0.11");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 8：event_cancel_order normalizeWrite 错误抛出
+// ---------------------------------------------------------------------------
+
+describe("event_cancel_order normalizeWrite error handling", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_cancel_order")!;
+
+  function makeClientWithCancelData(sCode: string, sMsg: string) {
+    const client = {
+      publicGet: async (endpoint: string) => ({
+        endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [],
+      }),
+      privateGet: async (endpoint: string) => ({
+        endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [],
+      }),
+      privatePost: async (endpoint: string) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [{ ordId: "EVT-001", sCode, sMsg }],
+      }),
+    };
+    return client;
+  }
+
+  it("throws OkxApiError when sCode=51400 (order not found)", async () => {
+    const client = makeClientWithCancelData("51400", "Order does not exist");
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-ABOVE-DAILY-260224-1600-120000", ordId: "EVT-001" },
+        makeContext(client),
+      ),
+      /51400/,
+    );
+  });
+
+  it("resolves successfully when sCode=0", async () => {
+    const client = makeClientWithCancelData("0", "");
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", ordId: "EVT-001" },
+      makeContext(client),
+    );
+    assert.ok(result, "should return a result on success");
+  });
+});

@@ -364,6 +364,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Friendly error for `config.toml` passphrase with special characters**: When a passphrase contains `#`, `\`, `"`, or `'`, the error now includes TOML quoting guidance instead of a cryptic parse error.
 - **Insufficient balance errors now hint to check funding account**: Error codes `51008` (insufficient balance), `51119` (insufficient margin), and `51127` (insufficient available margin) now include a suggestion to check the funding account via `account_get_asset_balance` and transfer with `account_transfer (from=18, to=6)`.
 
+### Fixed
+
+- **`readNumber` helper: coerce numeric strings** — LLMs may pass `"2"` instead of `2` for number parameters; `readNumber` now accepts numeric strings and converts them automatically, preventing `ValidationError: Parameter "limit" must be a number` when the AI passes string values. Non-numeric strings still throw.
+- **Event contract orderbook routing** — added guidance in `event_get_series` description: for orderbook/ticker queries on event contract instIds, use `market_get_orderbook` / `market_get_ticker` directly. AI will no longer surface "event_get_orderbook not available" errors to users.
+- **`event_get_events` / `event_get_markets` descriptions**: explicitly forbid showing raw millisecond timestamps and null/empty fields to users; reinforce absolute+relative time format.
+- **`event_get_orders` / `event_get_fills` descriptions**: forbid "YES(1)" / "NO(2)" notation; default to showing most recent 3–5 entries; omit internal fields (tag, tdMode, clOrdId, billId) by default.
+
+### Changed
+
+- **`event` module — tool descriptions: HOW TO PRESENT guidelines** (MCP layer only, no handler changes):
+  - `event_get_series`: added trading-style recommendation (daily vs 15min) after listing series.
+  - `event_get_events`: instruct AI to always show expiry as absolute UTC + relative time ("距今约 X 小时").
+  - `event_get_markets`: instruct AI to express settlement condition as plain language ("如果到期 BTC ≥ {strike} → YES 获胜"), characterize each strike as balanced/conservative/aggressive, and recommend precheck next.
+  - `event_precheck_order`: defined a fixed 7-field response template (标的/赢的条件/到期时间/成本/最大亏损/净最大收益/风险收益比); add ⚠️ warning when riskRewardRatio < 0.1; never show raw field names.
+  - `event_place_order`: on success always append "可以继续帮您查询是否成交，或查看当前持仓变化。"
+  - `event_cancel_order`: error code moved to end in parentheses, not headline; always suggest next action.
+  - `event_get_orders`: show most recent 3–5 first, highlight session-placed orders, omit internal fields.
+  - `event_get_fills`: prioritize fills matching session orders; omit tradeId/billId/instType by default.
+
+### Fixed
+
+- **`event place` CLI output**: enhanced to show order details (side, outcome, sz, px, ordType) and a contextual state hint — market orders note "typically fills immediately", limit/post_only orders suggest checking with `okx event orders --state live`.
+- **`event_get_markets` outcome translation** (MCP layer): handler now translates raw outcome codes before returning — `"0"` → `"pending"`, `"1"` → `"YES"`, `"2"` → `"NO"`. AI and users never see numeric protocol values.
+- **`event_cancel_order` error surfacing**: replaced `normalizeResponse` with `normalizeWrite` — sCode `51400` (order not found) now throws `OkxApiError` instead of returning `ok: true` with a buried error code, consistent with DCA/Grid module behavior.
+- **`event_precheck_order` derived fields** (MCP layer): handler now appends `netMaxWin`, `maxLoss`, and `riskRewardRatio` to each response item so AI can present risk/reward directly without arithmetic.
+- **`event_precheck_order` / `event_place_order` tool descriptions**: added HOW TO PRESENT guidance — instruct AI to show `maxLoss`/`netMaxWin`/`riskRewardRatio` directly, clarify fee is settlement-only, and never expose raw sCode or outcome numbers.
+- **`event` precheck CLI output**: added settlement condition (e.g. "BTC ≥ 69,700 at expiry → YES wins") and expiry time parsed from `instId`; renamed "Total outlay" to "Max loss" for clarity; added note that fee is charged at settlement, not upfront — prevents users from misreading the fee as an upfront cost.
+- **`event_cancel_order` CLI**: friendly error message for sCode 51400 ("order not found — may be already filled or cancelled, no action needed") instead of raw sCode string.
+- **`event_get_orders` / `event_get_fills` tool descriptions**: added explicit guidance to translate outcome `"1"`/`"2"` to YES/NO (or UP/DOWN) when presenting to users.
+- **`event_cancel_order` tool description**: added plain-language error handling guidance for common error codes.
+
 ### Changed
 
 - **CLI output layer abstracted** (internal): Raw `process.stdout`/`stderr` writes unified behind an output abstraction. No user-facing behavior change.

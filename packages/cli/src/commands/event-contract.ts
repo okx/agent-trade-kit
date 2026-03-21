@@ -59,10 +59,67 @@ function fmtOrderOutcome(instId: unknown, outcome: unknown): string {
 }
 
 /**
+ * Parse instId to extract human-readable expiry time and settlement condition.
+ * Format: {UNDERLYING}-{TYPE}-{FREQ}-{YYMMDD}-{HHMM}[-{STRIKE}]
+ * e.g. BTC-ABOVE-DAILY-260320-1600-69700
+ *      BTC-UPDOWN-15MIN-260320-1615
+ */
+function parseInstMeta(instId: string): { expiry: string; condition: string } {
+  const parts = instId.split("-");
+  const upper = instId.toUpperCase();
+  const underlying = parts[0] ?? "";
+
+  let dateIdx = -1;
+  let expiry = "";
+  let strike = "";
+
+  // Find date part (exactly 6 digits = YYMMDD)
+  for (let i = 1; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i])) {
+      dateIdx = i;
+      const p = parts[i];
+      expiry = `20${p.slice(0, 2)}-${p.slice(2, 4)}-${p.slice(4, 6)}`;
+      break;
+    }
+  }
+
+  // Time is immediately after date (exactly 4 digits = HHMM)
+  if (dateIdx >= 0 && dateIdx + 1 < parts.length) {
+    const tp = parts[dateIdx + 1];
+    if (/^\d{4}$/.test(tp)) {
+      expiry += ` ${tp.slice(0, 2)}:${tp.slice(2)} UTC`;
+    }
+  }
+
+  // Strike is at dateIdx+2 (digits only)
+  if (dateIdx >= 0 && dateIdx + 2 < parts.length) {
+    const sp = parts[dateIdx + 2];
+    if (/^\d+$/.test(sp)) {
+      strike = Number(sp).toLocaleString("en-US");
+    }
+  }
+
+  let condition = "";
+  if (upper.includes("UPDOWN") || upper.includes("UP-DOWN")) {
+    condition = `${underlying} price rises during the period → UP wins; falls → DOWN wins`;
+  } else if (upper.includes("ABOVE")) {
+    condition = strike
+      ? `${underlying} ≥ ${strike} at expiry → YES wins`
+      : `${underlying} above strike at expiry → YES wins`;
+  } else if (upper.includes("TOUCH")) {
+    condition = strike
+      ? `${underlying} touches ${strike} anytime → YES wins`
+      : `${underlying} touches strike → YES wins`;
+  }
+
+  return { expiry, condition };
+}
+
+/**
  * Build a net PnL summary line from precheck response fields.
  * estMaxWin = gross settlement payout (sz × 1.00), NOT net profit.
  * Net max win  = estMaxWin  - estCost - estFee
- * Net max loss = estCost    + estFee
+ * Max loss     = estCost    + estFee
  */
 function buildPrecheckSummary(row: Record<string, unknown>): string {
   const cost    = parseFloat(String(row["estCost"]  ?? "0")) || 0;
@@ -72,18 +129,21 @@ function buildPrecheckSummary(row: Record<string, unknown>): string {
   const netLoss = cost + fee;
   const instId  = String(row["instId"] ?? "");
   const side    = String(row["side"]   ?? "");
-  const sz      = String(row["sz"]     ?? row["maxBuy"] ? "" : "");
   const px      = String(row["px"]     ?? "");
   const ordType = String(row["ordType"] ?? "market");
   const outcome = fmtOrderOutcome(instId, row["outcome"]);
+  const meta    = parseInstMeta(instId);
 
   const lines: string[] = [];
-  if (outcome) lines.push(`Direction: ${side.toUpperCase()} ${outcome}  ordType: ${ordType}${px ? `  px: ${px}` : ""}`);
-  lines.push(`Cost (premium):  ${cost.toFixed(4)} USDC`);
-  lines.push(`Fee:             ${fee.toFixed(4)} USDC`);
-  lines.push(`Total outlay:    ${netLoss.toFixed(4)} USDC  (max loss if ${outcome === "YES" || outcome === "UP" ? "NO" : "YES"} wins)`);
-  lines.push(`Net max win:     ${netWin >= 0 ? "+" : ""}${netWin.toFixed(4)} USDC  (if ${outcome} wins)`);
-  if (row["maxBuy"]) lines.push(`Max position:    ${row["maxBuy"]} contracts`);
+  if (outcome) lines.push(`Direction:    ${side.toUpperCase()} ${outcome}  ordType: ${ordType}${px ? `  px: ${px}` : ""}`);
+  if (meta.condition) lines.push(`Condition:    ${meta.condition}`);
+  if (meta.expiry)    lines.push(`Expires:      ${meta.expiry}`);
+  lines.push(`──────────────────────────────────────`);
+  lines.push(`Cost (premium): ${cost.toFixed(4)} USDC`);
+  lines.push(`Fee (settled):  ${fee.toFixed(4)} USDC  ← charged at settlement, not upfront`);
+  lines.push(`Max loss:       ${netLoss.toFixed(4)} USDC  (worst case: expires on wrong side)`);
+  lines.push(`Net max win:    ${netWin >= 0 ? "+" : ""}${netWin.toFixed(4)} USDC  (if ${outcome || "correct side"} wins, after all fees)`);
+  if (row["maxBuy"]) lines.push(`Max buy:        ${row["maxBuy"]} contracts`);
   return lines.join("\n  ");
 }
 
@@ -305,8 +365,21 @@ export async function cmdEventPlace(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const order = data?.[0];
+  const ok = order?.["sCode"] === "0";
+  if (!ok) {
+    process.stdout.write(`Order rejected: ${order?.["sMsg"] ?? "unknown error"}\n`);
+    return;
+  }
+  const ordType = opts.ordType ?? "market";
+  const stateHint =
+    ordType === "market"
+      ? "market order — typically fills immediately"
+      : `${ordType} order — may still be live; verify with: okx event orders --instId ${opts.instId} --state live`;
   process.stdout.write(
-    `Order placed: ${order?.["ordId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`,
+    `Order submitted: ${order?.["ordId"]}\n` +
+    `  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  sz: ${opts.sz}` +
+    `${opts.px ? `  px: ${opts.px}` : ""}  type: ${ordType}\n` +
+    `  (${stateHint})\n`,
   );
 }
 
@@ -321,7 +394,18 @@ export async function cmdEventCancel(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  process.stdout.write(
-    `Cancelled: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
-  );
+  if (r?.["sCode"] === "0") {
+    process.stdout.write(`Cancelled: ${r?.["ordId"]}\n`);
+  } else {
+    const sCode = String(r?.["sCode"] ?? "");
+    const sMsg  = String(r?.["sMsg"] ?? "unknown error");
+    const ordId = r?.["ordId"] ?? opts.ordId;
+    const hint  =
+      sCode === "51400"
+        ? "The order may have already been filled or cancelled. No further action needed."
+        : "";
+    process.stdout.write(
+      `Failed to cancel ${ordId}: ${sMsg}${hint ? `\n  ${hint}` : ""}\n`,
+    );
+  }
 }
