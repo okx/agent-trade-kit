@@ -150,8 +150,8 @@ HOW TO PRESENT: After listing, briefly guide the user toward a trading style:
       description: `List events within a series. Each event = one expiry (e.g. BTC-ABOVE-DAILY-260224-1600). States: preopen → live → settling → expired.
 HOW TO PRESENT:
   - NEVER show raw millisecond timestamps (e.g. 1774021504465) to users — always convert to human-readable datetime.
-  - Express expiry as BOTH absolute UTC and relative: "2026-03-20 16:00 UTC (距今约 X 小时)"
-  - Do not show empty/null fields (fixTime、settleValue 为空 etc.) — simply omit them.
+  - Express expiry as BOTH absolute UTC and relative: "2026-03-20 16:00 UTC (approx X hours remaining)"
+  - Do not show empty/null fields (fixTime, settleValue, etc. when empty) — simply omit them.
   - Highlight the currently live event as the one available for trading.`,
       isWrite: false,
       inputSchema: {
@@ -214,12 +214,12 @@ Key response fields:
   - state: preopen → live → settling → expired
 For settled results, query with state=expired.
 HOW TO PRESENT:
-  1. Express settlement condition as: "如果到期 {underlying} ≥ {floorStrike} → YES 获胜，否则 NO 获胜"
+  1. Express settlement condition plainly: "If {underlying} >= {floorStrike} at expiry → YES wins; otherwise NO wins"
   2. For live markets with multiple strikes, characterize each by implied probability (from last price):
      higher floorStrike = lower YES probability = more aggressive bet
-     e.g. "69700 (均衡, ~50%) · 69800 (偏保守) · 69900 (激进)"
-  3. Express expiry as absolute UTC + relative time ("距今约 X 小时")
-  4. NEVER show raw timestamps, empty fields (settleValue 为空、fixTime 为空), or internal field names.
+     e.g. "69700 (balanced, ~50%) · 69800 (conservative) · 69900 (aggressive)"
+  3. Express expiry as absolute UTC + relative time (e.g. "2026-03-20 16:00 UTC, approx 3h 20min remaining")
+  4. NEVER show raw timestamps, empty fields (settleValue, fixTime when empty), or internal field names.
   5. End with: recommend calling event_precheck_order before placing any order.`,
       isWrite: false,
       inputSchema: {
@@ -331,16 +331,16 @@ Response includes pre-computed derived fields — use them directly:
   riskRewardRatio = netMaxWin / maxLoss
   estFee is charged at SETTLEMENT, not upfront.
 HOW TO PRESENT — always use this fixed template, in this order:
-  交易标的:   {instId}
-  赢的条件:   如果到期 {underlying} ≥ {floorStrike} → YES 获胜（or: 价格上涨 → UP 获胜）
-  到期时间:   {absolute UTC} (距今约 X 小时)
-  ──────────────────────────
-  预计成本:   {estCost} USDC
-  最大亏损:   {maxLoss} USDC  (手续费结算时收取，非预付)
-  净最大收益: {netMaxWin} USDC
-  风险收益比: {riskRewardRatio}
-  ──────────────────────────
-  [if riskRewardRatio < 0.1]: ⚠️ 手续费占比较高，净收益空间有限，建议用限价单降低成本
+  Contract:       {instId}
+  Win condition:  If {underlying} >= {floorStrike} at expiry → YES wins (or: price rises → UP wins)
+  Expires:        {absolute UTC} (approx X hours remaining)
+  ──────────────────────────────────────
+  Estimated cost: {estCost} USDC
+  Max loss:       {maxLoss} USDC  (fee charged at settlement, NOT upfront)
+  Net max win:    {netMaxWin} USDC
+  Risk/reward:    {riskRewardRatio}
+  ──────────────────────────────────────
+  [if riskRewardRatio < 0.1]: ⚠️ Fee is high relative to potential gain — consider a limit order to reduce cost
 Never show raw field names (estCost/estFee/estMaxWin) or numeric outcome codes to users.`,
       isWrite: false,
       inputSchema: {
@@ -502,7 +502,7 @@ IMPORTANT: Call event_precheck_order first to validate parameters and confirm co
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
 - tdMode is always cash; speedBump is auto-set per exchange requirement — do not pass either
-HOW TO PRESENT on success: confirm in plain language — order ID, contract, direction, quantity, price. Never show sCode, tdMode, or tag fields. Always end with: "可以继续帮您查询是否成交，或查看当前持仓变化。"
+HOW TO PRESENT on success: confirm in plain language — order ID, contract, direction, quantity, price. Never show sCode, tdMode, or tag fields. Always end with an offer to check fill status or view current positions.
 On failure: the tool throws an error — explain what went wrong in plain language and whether user should retry.`,
       isWrite: true,
       inputSchema: {
@@ -568,9 +568,9 @@ On failure: the tool throws an error — explain what went wrong in plain langua
       name: "event_cancel_order",
       module: "event",
       description: `Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.
-HOW TO PRESENT on success: "订单 {ordId} 已撤销成功。"
-On error (tool throws): lead with the plain-language reason, push error code to end in parentheses.
-  e.g. "撤单失败：该订单不存在，可能已成交或已撤销，无需再次操作。（错误码 51400）"
+HOW TO PRESENT on success: "Order {ordId} cancelled successfully."
+On error (tool throws): lead with the plain-language reason, put the error code in parentheses at the end.
+  e.g. "Cancel failed: this order no longer exists — it may have already been filled or cancelled. No further action needed. (error 51400)"
   Never put the error code in the headline. Always suggest what the user can do next.`,
       isWrite: true,
       inputSchema: {
