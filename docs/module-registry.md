@@ -40,3 +40,4 @@ Unregistered modules will be rejected during review.
 4. Reviewer will verify this registry entry exists and is approved before merging
 
 See [MCP Design Guideline](mcp-design-guideline.md) for full design rules.
+| event | 📝 proposed | 9 | - | ~1800 | [doc](modules/event.md) | - | - |
