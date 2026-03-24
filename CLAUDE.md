@@ -58,3 +58,63 @@ curl -X POST 'https://open.larksuite.com/open-apis/bot/v2/hook/b9beca3e-ec61-40f
 1. **版本号**（与 tag 一致）
 2. **发布时间**（ISO 8601 或可读格式）
 3. **改动摘要**（从 CHANGELOG.md 中提取对应版本的 Added / Fixed / Changed 等条目）
+
+## Pre-MR Checklist
+
+- Update CHANGELOG.md (if user-facing change)
+- Update README feature/module counts (if applicable)
+- Run `pnpm test:unit` — all tests must pass
+- Run `pnpm build && pnpm typecheck` — no errors
+
+## Post-merge Verification
+
+- Checkout master, pull latest
+- Run full test suite, build, typecheck
+- Report pass/fail summary
+
+## CLI / MCP Feature Parity
+
+- `packages/mcp` and `packages/cli` must expose the same trading capabilities. Any feature available via MCP tool must also be available as a CLI command, and vice versa.
+- When adding or modifying an MCP tool, the corresponding CLI command must be created or updated in the same MR (and vice versa).
+- Shared business logic should live in `packages/core` — avoid duplicating logic between packages.
+
+## MCP Tool Design Principles
+
+以下原则适用于新增模块/工具的设计阶段。完整规范和示例见 `docs/mcp-design-guideline.md`。
+
+1. **MCP 优先** — AI agent 可能需要调用的功能必须有 MCP tool，CLI-only 仅限管理操作。
+2. **Description 面向意图** — 回答"做什么、什么场景用"，不写 API 路径/参数约束/错误码。
+3. **参数扁平化** — Tool 参数只用 string/number/boolean，嵌套 JSON 在 handler 内部组装。
+4. **分层暴露** — 每模块 5-8 个 MCP tool，全量 token 预算 ≤ 25,000。
+5. **新模块必须有 workflow 引导** — 在 agent-skills 仓库中有对应的 `workflows.md`。
+6. **命名格式** — `{module}_{action}_{object?}`，全小写 snake_case。查询用 `get`。
+
+## Reviewer MCP Checklist
+
+Review MCP 相关 MR 时按以下顺序检查（完整版见 `docs/mcp-design-guideline.md` Section 6）：
+
+1. **Registry**: 新模块已在 `docs/module-registry.md` 注册且 approved
+2. **Naming**: tool name 符合 `{module}_{action}` 格式
+3. **Description**: 面向意图，无 API 细节
+4. **Params**: 全部扁平化，金额/价格用 string
+5. **isWrite**: 资金变动 = true
+6. **Token**: 报告变化前后的 tool 数量和 token 数量，确认未超 25,000 预算
+7. **Parity**: MCP tool ↔ CLI command 同步
+8. **Workflow**: agent-skills 中有 workflows.md
+9. **Tests**: CLI 参数路由测试存在
+
+## CLI Parameter Routing Tests
+
+- CLI 路由层新增或修改命令时，必须有对应的参数传递测试。
+- 测试用 spy ToolRunner 捕获实际传入参数，断言关键参数来自 `v.xxx`（named flag），而非 `rest[N]`（positional arg）。
+- 原因：2026-03-06 重构时 instId 误用了 `rest[0]`，导致 `--instId` flag 不生效 11 天（issue #78）。
+
+## CLI ↔ Skills Sync
+
+- CLI 命令定义是 agent-hub Skills 的数据来源。新增或修改 CLI 命令后，必须在同一 MR 中同步更新 Skills 描述。
+
+## Code Style
+
+- pnpm monorepo: packages/core (SDK), packages/mcp (MCP server), packages/cli (CLI tool)
+- tsup for bundling, node:test for testing, zod for validation
+- Prefer explicit types over `any`
