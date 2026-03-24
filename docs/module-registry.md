@@ -41,3 +41,4 @@ Unregistered modules will be rejected during review.
 
 See [MCP Design Guideline](mcp-design-guideline.md) for full design rules.
 | event | 📝 proposed | 9 | - | ~1800 | [doc](modules/event.md) | - | - |
+| earn.auto | 📝 proposed | 5 | - | ~1000 | [doc](modules/earn.auto.md) | - | - |
