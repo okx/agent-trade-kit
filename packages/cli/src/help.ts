@@ -602,10 +602,6 @@ const HELP_TREE: HelpTree = {
         usage: "okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|expired>] [--limit <n>]",
         description: "List markets; expired includes outcome (1=YES,2=NO) and settleValue",
       },
-      "max-size": {
-        usage: "okx event max-size <instId> <outcome>",
-        description: "Get max order size (outcome: UP/YES or DOWN/NO)",
-      },
       precheck: {
         usage: "okx event precheck <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
         description: "Dry-run an event order: returns cost/risk estimate without placing (run before place)",

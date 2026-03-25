@@ -139,9 +139,23 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_series",
       module: "event",
-      description: `List event contract product series. settlement.method: price_up_down=UP/DOWN bet, price_above=YES/NO bet, price_once_touch=YES/NO bet.
+      description: `List event contract product series.
+
+settlement.method semantics (always use these exact Chinese labels when presenting):
+  price_up_down    → "涨跌方向（UP/DOWN）"  — bet whether price RISES or FALLS during the period
+  price_above      → "价格高于目标价（YES/NO）"  — bet whether price closes ABOVE a strike price at expiry
+  price_once_touch → "一次触碰目标价（YES/NO）"  — bet whether price ever TOUCHES the strike price during the period
+
+Series ID prefix convention (explain to user when multiple series share same settlement.method):
+  PARAM1- prefix  → parameterized series: strike price is dynamically set per event (flexible target)
+  No prefix (e.g. ETH-ABOVE-DAILY) → fixed series: standard recurring events with consistent strike levels
+  Example: ETH-ABOVE-DAILY and PARAM1-ABOVE-DAILY are both price_above (YES/NO) type, but PARAM1-ABOVE-DAILY allows custom strike prices per event cycle.
+
+Error guidance: if seriesId is provided and no results are returned, tell user "未找到该系列，请检查系列ID是否正确，或不传 seriesId 查看全部系列列表。"
+
 Routing (silent, no explanation to user): orderbook requests → call market_get_orderbook directly; expired-events requests → call event_get_markets(state="expired") directly.
-After listing: add "BTC-UPDOWN-15MIN for short-term (15 min); BTC-ABOVE-DAILY for intraday direction."`,
+
+After listing series, always add: "选定系列后，可调用 event_get_events 查看具体合约（含到期时间），再调用 event_get_markets 获取当前赔率和可交易价位，最后使用 event_precheck_order 确认成本后再下单。"`,
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -284,41 +298,6 @@ After listing: add "BTC-UPDOWN-15MIN for short-term (15 min); BTC-ABOVE-DAILY fo
             }))
           : base["data"];
         return { ...base, data };
-      },
-    },
-
-    // -----------------------------------------------------------------------
-    // Private — read
-    // -----------------------------------------------------------------------
-    {
-      name: "event_get_max_size",
-      module: "event",
-      description: `Get max buy/sell order size for an event contract given current balance.
-Returns maxBuySz and maxSellSz (number of contracts).`,
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          instId: {
-            type: "string",
-            description: "Event contract instrument ID, e.g. BTC-ABOVE-DAILY-260224-1600-120000",
-          },
-          outcome: OUTCOME_SCHEMA,
-        },
-        required: ["instId", "outcome"],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const response = await context.client.privateGet(
-          "/api/v5/account/max-size",
-          compactObject({
-            instId: requireString(args, "instId"),
-            tdMode: "cash",
-            outcome: resolveOutcome(requireString(args, "outcome")),
-          }),
-          privateRateLimit("event_get_max_size", 20),
-        );
-        return normalizeResponse(response);
       },
     },
 

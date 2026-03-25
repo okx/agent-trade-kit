@@ -227,24 +227,6 @@ export async function cmdEventMarkets(
   );
 }
 
-// ---------------------------------------------------------------------------
-// Private queries
-// ---------------------------------------------------------------------------
-
-export async function cmdEventMaxSize(
-  run: ToolRunner,
-  opts: { instId: string; outcome: string; json: boolean },
-): Promise<void> {
-  const result = await run("event_get_max_size", {
-    instId: opts.instId,
-    outcome: opts.outcome,
-  });
-  const data = getData(result) as Record<string, unknown>[];
-  if (opts.json) return printJson(data);
-  const row = data?.[0];
-  if (row) printKv(row as Record<string, unknown>);
-}
-
 export async function cmdEventPrecheck(
   run: ToolRunner,
   opts: {
