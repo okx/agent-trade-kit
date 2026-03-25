@@ -1982,6 +1982,164 @@ describe("grid_create_order basePos", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Grid — grid_create_order coin-margined (CoinM)
+// ---------------------------------------------------------------------------
+
+describe("grid_create_order coin-margined", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_create_order")!;
+
+  const coinMArgs = {
+    instId: "BTC-USD-SWAP",
+    algoOrdType: "contract_grid",
+    maxPx: "100000",
+    minPx: "80000",
+    gridNum: "20",
+    direction: "long",
+    lever: "5",
+    sz: "0.1",
+  };
+
+  it("passes coin-margined instId (BTC-USD-SWAP) correctly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(coinMArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.instId, "BTC-USD-SWAP");
+    assert.equal(params.algoOrdType, "contract_grid");
+  });
+
+  it("passes sz as coin amount for coin-margined contracts", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(coinMArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.sz, "0.1");
+  });
+
+  it("defaults basePos to true for coin-margined contract_grid", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(coinMArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.basePos, true);
+  });
+
+  it("tool description mentions coin-margined support", () => {
+    assert.ok(
+      tool.description.includes("coin-margined"),
+      "grid_create_order description should mention coin-margined",
+    );
+  });
+
+  it("instId description includes BTC-USD-SWAP example", () => {
+    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+    const desc = props["instId"]["description"] as string;
+    assert.ok(
+      desc.includes("BTC-USD-SWAP"),
+      "instId description should include BTC-USD-SWAP as coin-margined example",
+    );
+  });
+
+  it("sz description mentions coin unit for coin-margined", () => {
+    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+    const desc = props["sz"]["description"] as string;
+    assert.ok(
+      desc.includes("coin") || desc.includes("BTC"),
+      "sz description should mention coin-margined unit",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid — grid_create_order TP/SL params
+// ---------------------------------------------------------------------------
+
+describe("grid_create_order TP/SL params", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_create_order")!;
+
+  const contractArgs = {
+    instId: "BTC-USDT-SWAP",
+    algoOrdType: "contract_grid",
+    maxPx: "100000",
+    minPx: "80000",
+    gridNum: "10",
+    direction: "long",
+    lever: "5",
+    sz: "100",
+  };
+
+  it("passes tpTriggerPx and slTriggerPx to API", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...contractArgs, tpTriggerPx: "110000", slTriggerPx: "75000" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.tpTriggerPx, "110000");
+    assert.equal(params.slTriggerPx, "75000");
+  });
+
+  it("passes tpRatio and slRatio to API", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...contractArgs, tpRatio: "0.1", slRatio: "0.05" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.tpRatio, "0.1");
+    assert.equal(params.slRatio, "0.05");
+  });
+
+  it("omits TP/SL fields when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(contractArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.tpTriggerPx, undefined);
+    assert.equal(params.slTriggerPx, undefined);
+    assert.equal(params.tpRatio, undefined);
+    assert.equal(params.slRatio, undefined);
+  });
+
+  it("schema includes tpTriggerPx, slTriggerPx, tpRatio, slRatio", () => {
+    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+    assert.ok(props["tpTriggerPx"], "tpTriggerPx should exist in schema");
+    assert.ok(props["slTriggerPx"], "slTriggerPx should exist in schema");
+    assert.ok(props["tpRatio"], "tpRatio should exist in schema");
+    assert.ok(props["slRatio"], "slRatio should exist in schema");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid — grid_create_order algoClOrdId
+// ---------------------------------------------------------------------------
+
+describe("grid_create_order algoClOrdId", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_create_order")!;
+
+  const baseArgs = {
+    instId: "BTC-USDT",
+    algoOrdType: "grid",
+    maxPx: "100000",
+    minPx: "80000",
+    gridNum: "10",
+    quoteSz: "100",
+  };
+
+  it("passes algoClOrdId to API when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs, algoClOrdId: "myGrid001" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.algoClOrdId, "myGrid001");
+  });
+
+  it("omits algoClOrdId when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(baseArgs, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.algoClOrdId, undefined);
+  });
+
+  it("schema includes algoClOrdId", () => {
+    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, Record<string, unknown>>;
+    assert.ok(props["algoClOrdId"], "algoClOrdId should exist in schema");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // DCA tools
 // ---------------------------------------------------------------------------
 

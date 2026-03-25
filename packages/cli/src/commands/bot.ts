@@ -122,6 +122,11 @@ export async function cmdGridCreate(
     lever?: string;
     sz?: string;
     basePos?: boolean;
+    tpTriggerPx?: string;
+    slTriggerPx?: string;
+    tpRatio?: string;
+    slRatio?: string;
+    algoClOrdId?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -138,6 +143,11 @@ export async function cmdGridCreate(
     lever: opts.lever,
     sz: opts.sz,
     basePos: opts.basePos,
+    tpTriggerPx: opts.tpTriggerPx,
+    slTriggerPx: opts.slTriggerPx,
+    tpRatio: opts.tpRatio,
+    slRatio: opts.slRatio,
+    algoClOrdId: opts.algoClOrdId,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

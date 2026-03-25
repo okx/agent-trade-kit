@@ -869,6 +869,11 @@ export function handleBotGridCommand(
       lever: v.lever,
       sz: v.sz,
       basePos: v.basePos,
+      tpTriggerPx: v.tpTriggerPx,
+      slTriggerPx: v.slTriggerPx,
+      tpRatio: v.tpRatio,
+      slRatio: v.slRatio,
+      algoClOrdId: v.algoClOrdId,
       json,
     });
   if (subAction === "stop")

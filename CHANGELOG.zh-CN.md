@@ -13,7 +13,16 @@
 
 ### 新增
 
+- **合约网格支持币本位（反向）合约**（如 `BTC-USD-SWAP`）：更新 `grid_create_order`、`grid_get_orders`、`grid_stop_order` 工具描述，补充币本位 instId 示例和保证金单位说明。
+- **`grid_create_order` 新增止盈止损参数**：新增 `tpTriggerPx`、`slTriggerPx`（触发价格）和 `tpRatio`、`slRatio`（比例止盈止损，仅合约），用户创建网格时可同时设置止盈止损。
+- **`grid_create_order` 新增 `algoClOrdId`**：用户自定义策略订单 ID（字母数字，最长 32 位）。每用户唯一，支持幂等创建，后续可用于查询或停止策略。
 - **算法下单接口新增 `tgtCcy` 参数**：`spot_place_algo_order`、`swap_place_algo_order`、`futures_place_algo_order`、`option_place_algo_order` 新增 `tgtCcy` 参数。设为 `quote_ccy` 时可用 USDT 金额指定下单量，与 v1.2.6 中普通下单接口行为一致。(#86)
+
+### 变更
+
+- **`grid_create_order`：合约网格必须传 `direction`** — MCP 层新增客户端校验，`algoOrdType=contract_grid` 时缺少 `direction` 将立即返回错误，无需网络往返。
+- **`grid_stop_order`：`stopType` 默认值从 `"2"` 改为 `"1"`** — 省略 `stopType` 时默认为关停并平仓，而非保留资产。对现货和合约网格均更安全直观。
+- **`grid_create_order`：精简工具描述** — `grid_create_order` JSON schema 体积缩减约 20%（2,017 → 1,610 chars），精简 `sz`、`algoClOrdId`、TP/SL 等参数描述，信息量不变。
 
 ---
 

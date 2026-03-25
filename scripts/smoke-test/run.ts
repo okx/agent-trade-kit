@@ -162,6 +162,26 @@ const BASE_CASES: Record<string, TestCase> = {
   grid_stop_order:        probe({ algoId: FAKE, algoOrdType: "grid", instId: SPOT }),
 };
 
+// ─── coin-margined (CoinM) grid extra probes ────────────────────────────────
+// These are run as additional cases after the main loop to verify CoinM endpoints.
+
+const COINM_SWAP = "BTC-USD-SWAP";
+
+const COINM_CASES: Record<string, TestCase> = {
+  "grid_get_orders[coinM]":    { algoOrdType: "contract_grid", instId: COINM_SWAP },
+  "grid_create_order[coinM]":  probe({ instId: COINM_SWAP, algoOrdType: "contract_grid", maxPx: "100000", minPx: "80000", gridNum: "5", direction: "long", lever: "5", sz: "0.001" }),
+  "grid_stop_order[coinM]":    probe({ algoId: FAKE, algoOrdType: "contract_grid", instId: COINM_SWAP }),
+};
+
+// ─── TP/SL + algoClOrdId extra probes ────────────────────────────────────────
+// Verify the new grid_create_order params reach the API without schema errors.
+
+const TP_SL_CASES: Record<string, TestCase> = {
+  "grid_create_order[tpsl_trigger]": probe({ instId: SWAP, algoOrdType: "contract_grid", maxPx: "100000", minPx: "80000", gridNum: "5", direction: "long", lever: "5", sz: "100", tpTriggerPx: "999999", slTriggerPx: "1" }),
+  "grid_create_order[tpsl_ratio]":   probe({ instId: SWAP, algoOrdType: "contract_grid", maxPx: "100000", minPx: "80000", gridNum: "5", direction: "long", lever: "5", sz: "100", tpRatio: "0.1", slRatio: "0.05" }),
+  "grid_create_order[algoClOrdId]":  probe({ instId: SPOT, algoOrdType: "grid", maxPx: "100000", minPx: "1", gridNum: "2", quoteSz: "1", algoClOrdId: "smoketest001" }),
+};
+
 // ─── status ───────────────────────────────────────────────────────────────────
 
 const STATUS = {
@@ -353,6 +373,81 @@ async function main() {
 
     // Brief pause between calls to respect rate limits
     await new Promise((r) => setTimeout(r, 120));
+  }
+
+  // ── CoinM extra probes ──────────────────────────────────────────────────
+  // Re-use the actual grid tool handlers with coin-margined instIds.
+  if (!readOnly) {
+    const gridToolMap = new Map(tools.filter((t) => t.name.startsWith("grid_")).map((t) => [t.name, t]));
+    console.log("\n" + "─".repeat(76));
+    console.log("CoinM (coin-margined) extra probes:\n");
+
+    for (const [label, testCase] of Object.entries(COINM_CASES)) {
+      const baseName = label.replace(/\[.*\]$/, "");
+      const tool = gridToolMap.get(baseName);
+      const pad = label.padEnd(38);
+
+      if (!tool || testCase === "SKIP") {
+        results.push({ name: label, module: "bot.grid", isWrite: false, status: STATUS.SKIP, note: "no tool", ms: 0 });
+        console.log(`${STATUS.SKIP}  ${pad}`);
+        continue;
+      }
+
+      const isProbe = typeof testCase === "object" && "_probe" in testCase && testCase._probe === true;
+      const args = isProbe ? (testCase as ProbeCase).args : (testCase as Record<string, unknown>);
+
+      const t0 = Date.now();
+      try {
+        await tool.handler(args, { client, config });
+        const ms = Date.now() - t0;
+        results.push({ name: label, module: tool.module, isWrite: tool.isWrite, status: STATUS.PASS, note: "", ms });
+        console.log(`${STATUS.PASS}  ${pad} ${ms}ms`);
+      } catch (err) {
+        const ms = Date.now() - t0;
+        const [status, note] = classify(err, isProbe);
+        results.push({ name: label, module: tool.module, isWrite: tool.isWrite, status, note, ms });
+        console.log(`${status}  ${pad} ${note}`);
+      }
+
+      await new Promise((r) => setTimeout(r, 120));
+    }
+  }
+
+  // ── TP/SL + algoClOrdId extra probes ──────────────────────────────────
+  if (!readOnly) {
+    const gridToolMap = new Map(tools.filter((t) => t.name.startsWith("grid_")).map((t) => [t.name, t]));
+    console.log("\n" + "─".repeat(76));
+    console.log("TP/SL + algoClOrdId extra probes:\n");
+
+    for (const [label, testCase] of Object.entries(TP_SL_CASES)) {
+      const baseName = label.replace(/\[.*\]$/, "");
+      const tool = gridToolMap.get(baseName);
+      const pad = label.padEnd(38);
+
+      if (!tool || testCase === "SKIP") {
+        results.push({ name: label, module: "bot.grid", isWrite: true, status: STATUS.SKIP, note: "no tool", ms: 0 });
+        console.log(`${STATUS.SKIP}  ${pad}`);
+        continue;
+      }
+
+      const isProbe = typeof testCase === "object" && "_probe" in testCase && testCase._probe === true;
+      const args = isProbe ? (testCase as ProbeCase).args : (testCase as Record<string, unknown>);
+
+      const t0 = Date.now();
+      try {
+        await tool.handler(args, { client, config });
+        const ms = Date.now() - t0;
+        results.push({ name: label, module: tool.module, isWrite: tool.isWrite, status: STATUS.PASS, note: "", ms });
+        console.log(`${STATUS.PASS}  ${pad} ${ms}ms`);
+      } catch (err) {
+        const ms = Date.now() - t0;
+        const [status, note] = classify(err, isProbe);
+        results.push({ name: label, module: tool.module, isWrite: tool.isWrite, status, note, ms });
+        console.log(`${status}  ${pad} ${note}`);
+      }
+
+      await new Promise((r) => setTimeout(r, 120));
+    }
   }
 
   // Summary

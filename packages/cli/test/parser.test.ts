@@ -158,6 +158,33 @@ describe("dcd options", () => {
   });
 });
 
+describe("grid TP/SL and algoClOrdId options", () => {
+  it("--tpRatio sets tpRatio", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--tpRatio", "0.1"]);
+    assert.equal(values.tpRatio, "0.1");
+  });
+
+  it("--slRatio sets slRatio", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--slRatio", "0.05"]);
+    assert.equal(values.slRatio, "0.05");
+  });
+
+  it("--algoClOrdId sets algoClOrdId", () => {
+    const { values } = parseCli(["bot", "grid", "create", "--algoClOrdId", "myGrid001"]);
+    assert.equal(values.algoClOrdId, "myGrid001");
+  });
+
+  it("all three can be combined", () => {
+    const { values } = parseCli([
+      "bot", "grid", "create",
+      "--tpRatio", "0.1", "--slRatio", "0.05", "--algoClOrdId", "myGrid001",
+    ]);
+    assert.equal(values.tpRatio, "0.1");
+    assert.equal(values.slRatio, "0.05");
+    assert.equal(values.algoClOrdId, "myGrid001");
+  });
+});
+
 describe("earn --rate option", () => {
   it("parses --rate as string", () => {
     const { values } = parseCli(["earn", "purchase", "--ccy", "USDT", "--amt", "100", "--rate", "0.02"]);

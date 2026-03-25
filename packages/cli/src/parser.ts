@@ -45,6 +45,9 @@ export interface CliValues {
   baseSz?: string;
   direction?: string;
   basePos?: boolean;
+  tpRatio?: string;
+  slRatio?: string;
+  algoClOrdId?: string;
   stopType?: string;
   live?: boolean;
   instType?: string;
@@ -177,6 +180,9 @@ export const CLI_OPTIONS = {
   baseSz: { type: "string" },
   direction: { type: "string" },
   basePos: { type: "boolean", default: true },
+  tpRatio: { type: "string" },
+  slRatio: { type: "string" },
+  algoClOrdId: { type: "string" },
   stopType: { type: "string" },
   live: { type: "boolean", default: false },
   // market extras
