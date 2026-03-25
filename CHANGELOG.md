@@ -50,9 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - **Low-level DCD split tools removed**: `dcd_request_quote`, `dcd_execute_quote`, `dcd_request_redeem_quote`, and `dcd_execute_redeem` have been removed. Use `dcd_subscribe` for subscribe flows and `dcd_redeem` for early redemption flows.
+- **`earn_get_lending_rate_summary` tool removed** (`earn.savings`): The lending market rate summary endpoint has been removed from the MCP tool set. Use `earn_get_lending_rate_history` to query market lending rates instead.
 
 ### Fixed
 
+- **Tool description semantics for `rate` / `lendingRate` in Simple Earn tools**: Corrected misleading descriptions in `earn_get_savings_balance`, `earn_set_lending_rate`, `earn_get_lending_history`, and `earn_get_lending_rate_history`. The `rate` field is now clearly described as a *minimum lending rate threshold* (not market yield, not APY). The `lendingRate` field now documents the pro-rata dilution mechanism for stablecoins (USDT/USDC): when eligible supply exceeds borrowing demand, total interest is shared among all lenders so `lendingRate` < `rate`; for non-stablecoins, `lendingRate` equals `rate` with no dilution. Users should always use `lendingRate` as the true APY.
 - **CLI `cancel` commands now support `--clOrdId`**: `okx spot/swap/futures cancel` previously required `--ordId` as a positional argument. Now accepts either `--ordId` or `--clOrdId` (client order ID); throws a clear error if neither is provided. Affects `spot_cancel_order`, `swap_cancel_order`, `futures_cancel_order`.
 - **CLI `spot/swap/futures cancel` was ignoring `--instId` flag**: `cmdSpotCancel`, `cmdSwapCancel`, and `cmdFuturesCancel` used the positional argument (`rest[0]`) as `instId` instead of the `--instId` flag value, causing the cancel to silently use the wrong instrument ID. Fixed to correctly pass `v.instId`.
 

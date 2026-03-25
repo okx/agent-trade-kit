@@ -85,7 +85,7 @@ export function registerDcdTools(): ToolSpec[] {
         properties: {
           baseCcy: { type: "string", description: "Base currency, e.g. BTC" },
           quoteCcy: { type: "string", description: "Quote currency, e.g. USDT" },
-          optType: { type: "string", description: "Option type: C (Call/高卖) or P (Put/低买)" },
+          optType: { type: "string", description: "Option type: C (Call, sell high) or P (Put, buy low)" },
         },
         required: ["baseCcy", "quoteCcy", "optType"],
       },
