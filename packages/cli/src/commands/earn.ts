@@ -75,17 +75,6 @@ export async function cmdEarnLendingHistory(
   }));
 }
 
-export async function cmdEarnLendingRateSummary(
-  run: ToolRunner,
-  ccy: string | undefined,
-  json: boolean,
-): Promise<void> {
-  const data = extractData(await run("earn_get_lending_rate_summary", { ccy }));
-  printDataList(data, json, "No rate summary data", (r) => ({
-    ccy: r["ccy"], avgRate: r["avgRate"], estRate: r["estRate"], avgAmt: r["avgAmt"],
-  }));
-}
-
 export async function cmdEarnLendingRateHistory(
   run: ToolRunner,
   opts: { ccy?: string; limit?: number; json: boolean },

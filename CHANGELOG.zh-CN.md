@@ -50,9 +50,11 @@
 ### 移除
 
 - **低阶 DCD 拆分工具已删除**：`dcd_request_quote`、`dcd_execute_quote`、`dcd_request_redeem_quote`、`dcd_execute_redeem` 已删除。申购流程请使用 `dcd_subscribe`，提前赎回流程请使用 `dcd_redeem`。
+- **`earn_get_lending_rate_summary` 工具已删除**（`earn.savings`）：借币市场利率汇总接口已从 MCP 工具集中移除。如需查询市场借贷利率，请改用 `earn_get_lending_rate_history`。
 
 ### 修复
 
+- **Simple Earn 工具中 `rate` / `lendingRate` 字段语义说明修正**：修正了 `earn_get_savings_balance`、`earn_set_lending_rate`、`earn_get_lending_history`、`earn_get_lending_rate_history` 中具有误导性的描述。`rate` 字段现已明确说明为*最低借出利率阈值*（非市场收益率，非 APY）。`lendingRate` 字段新增稳定币 pro-rata 摊薄机制说明：当可出借的稳定币（USDT/USDC）供给超过借币需求时，总利息由所有出借方按比例分配，导致 `lendingRate` < `rate`；非稳定币无此摊薄机制，`lendingRate` 等于 `rate`。向用户展示收益时应始终使用 `lendingRate`。
 - **CLI `cancel` 命令支持 `--clOrdId`**：`okx spot/swap/futures cancel` 此前仅支持 `--ordId` 位置参数。现支持 `--ordId` 或 `--clOrdId`（客户自定义订单 ID）二选一；若两者均未提供则抛出明确错误。涉及 `spot_cancel_order`、`swap_cancel_order`、`futures_cancel_order`。
 - **CLI `spot/swap/futures cancel` 忽略 `--instId` 参数**：`cmdSpotCancel`、`cmdSwapCancel`、`cmdFuturesCancel` 错误地使用位置参数（`rest[0]`）作为 `instId`，导致 `--instId` 标志被静默忽略、以错误的合约 ID 执行撤单。已修复为正确读取 `v.instId`。
 

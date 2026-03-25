@@ -2466,8 +2466,8 @@ import { registerDcdTools } from "../src/tools/earn/dcd.js";
 describe("earn tools registration", () => {
   const tools = registerEarnTools();
 
-  it("registers exactly 7 earn tools", () => {
-    assert.equal(tools.length, 7);
+  it("registers exactly 6 earn tools", () => {
+    assert.equal(tools.length, 6);
   });
 
   it("all earn tools have module earn.savings", () => {
@@ -2741,30 +2741,9 @@ describe("earn_get_lending_history", () => {
   it("is not a write tool", () => {
     assert.equal(tool.isWrite, false);
   });
-});
 
-describe("earn_get_lending_rate_summary", () => {
-  const tools = registerEarnTools();
-  const tool = tools.find((t) => t.name === "earn_get_lending_rate_summary")!;
-
-  it("calls /finance/savings/lending-rate-summary via public GET", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({}, makeContext(client));
-    assert.equal(
-      getLastCall()?.endpoint,
-      "/api/v5/finance/savings/lending-rate-summary",
-    );
-    assert.equal(getLastCall()?.method, "GET");
-  });
-
-  it("passes ccy filter when provided", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ccy: "USDT" }, makeContext(client));
-    assert.equal(getLastCall()?.params.ccy, "USDT");
-  });
-
-  it("is not a write tool", () => {
-    assert.equal(tool.isWrite, false);
+  it("description identifies as personal lending records, not market rates", () => {
+    assert.ok(tool.description.includes("NOT for market rate queries"), "description must clarify it is not for market rates");
   });
 });
 
@@ -2901,7 +2880,7 @@ describe("earn tools isWrite classification", () => {
   });
 
   it("read tools have isWrite=false", () => {
-    const readNames = ["earn_get_savings_balance", "earn_get_lending_history", "earn_get_lending_rate_summary", "earn_get_lending_rate_history"];
+    const readNames = ["earn_get_savings_balance", "earn_get_lending_history", "earn_get_lending_rate_history"];
     for (const name of readNames) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);

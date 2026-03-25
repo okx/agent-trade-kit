@@ -474,7 +474,7 @@ describe('printHelp("earn", "savings") — savings subgroup detail', () => {
 
   it("lists all savings commands", () => {
     const out = captureStdout(() => printHelp("earn", "savings"));
-    for (const cmd of ["balance", "purchase", "redeem", "set-rate", "lending-history", "rate-summary", "rate-history"]) {
+    for (const cmd of ["balance", "purchase", "redeem", "set-rate", "lending-history", "rate-history"]) {
       assert.ok(out.includes(cmd), `should mention savings '${cmd}' command`);
     }
   });

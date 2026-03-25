@@ -17,7 +17,7 @@ The `earn` module provides tools for OKX Earn products, split into three sub-mod
 ### earn.savings — Simple Earn
 
 Requires API key with **Read** permission. Write operations (purchase, redeem, set-rate) require **Trade** permission.
-`earn_get_lending_rate_summary` and `earn_get_lending_rate_history` are public endpoints (no API key required).
+`earn_get_lending_rate_history` is a public endpoint (no API key required).
 
 | Tool | Description |
 |------|-------------|
@@ -25,8 +25,7 @@ Requires API key with **Read** permission. Write operations (purchase, redeem, s
 | `earn_savings_purchase` | Purchase Simple Earn product (move funds into savings) |
 | `earn_savings_redeem` | Redeem Simple Earn product (withdraw funds from savings) |
 | `earn_set_lending_rate` | Set your lending rate preference |
-| `earn_get_lending_history` | Get market lending rate history |
-| `earn_get_lending_rate_summary` | Get coin lending market rate summary (借币市场利率). NOT related to Simple Earn. Public, no auth. |
+| `earn_get_lending_history` | Get personal lending records (requires auth) |
 | `earn_get_lending_rate_history` | Query Simple Earn lending rates — use this when asking about current or historical lending rates (public, no auth) |
 
 ### earn.onchain — On-chain Earn (staking/DeFi)
@@ -67,9 +66,8 @@ okx earn savings purchase --ccy USDT --amt 1000
 okx earn savings purchase --ccy USDT --amt 1000 --rate 0.02
 okx earn savings redeem --ccy USDT --amt 500
 okx earn savings set-rate --ccy USDT --rate 0.02
-okx earn savings lending-history --ccy USDT
-okx earn savings rate-summary USDT
-okx earn savings rate-history --ccy USDT --limit 10
+okx earn savings lending-history --ccy USDT  # requires auth
+okx earn savings rate-history --ccy USDT --limit 10  # public
 
 # --- earn.onchain ---
 okx earn onchain offers
@@ -177,7 +175,7 @@ okx-trade-mcp --modules earn.dcd
 ### earn.savings — 简单赚币
 
 需要 API Key 的**读取**权限。申购、赎回、设置利率需额外**交易**权限。
-`earn_get_lending_rate_summary` 和 `earn_get_lending_rate_history` 为公开接口，无需认证。
+`earn_get_lending_rate_history` 为公开接口，无需认证。
 
 | 工具 | 说明 |
 |------|------|
@@ -185,8 +183,7 @@ okx-trade-mcp --modules earn.dcd
 | `earn_savings_purchase` | 申购简单赚币（将资金转入理财） |
 | `earn_savings_redeem` | 赎回简单赚币（将资金从理财取出） |
 | `earn_set_lending_rate` | 设置出借利率偏好 |
-| `earn_get_lending_history` | 查询市场借贷利率历史 |
-| `earn_get_lending_rate_summary` | 查询借币市场利率摘要，与简单赚币无关（公开接口，无需认证） |
+| `earn_get_lending_history` | 查询个人出借记录（需认证） |
 | `earn_get_lending_rate_history` | 查询简单赚币利率——用户询问当前或历史利率时调用此工具（公开接口，无需认证） |
 
 ### earn.onchain — 链上赚币（质押/DeFi）
@@ -227,9 +224,8 @@ okx earn savings purchase --ccy USDT --amt 1000
 okx earn savings purchase --ccy USDT --amt 1000 --rate 0.02
 okx earn savings redeem --ccy USDT --amt 500
 okx earn savings set-rate --ccy USDT --rate 0.02
-okx earn savings lending-history --ccy USDT
-okx earn savings rate-summary USDT
-okx earn savings rate-history --ccy USDT --limit 10
+okx earn savings lending-history --ccy USDT  # requires auth
+okx earn savings rate-history --ccy USDT --limit 10  # public
 
 # --- earn.onchain ---
 okx earn onchain offers

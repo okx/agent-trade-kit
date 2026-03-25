@@ -124,7 +124,6 @@ import {
   cmdEarnSavingsRedeem,
   cmdEarnSetLendingRate,
   cmdEarnLendingHistory,
-  cmdEarnLendingRateSummary,
   cmdEarnLendingRateHistory,
 } from "./commands/earn.js";
 import {
@@ -980,7 +979,6 @@ function handleEarnSavingsCommand(
   if (action === "redeem") return cmdEarnSavingsRedeem(run, { ccy: v.ccy!, amt: v.amt!, json });
   if (action === "set-rate") return cmdEarnSetLendingRate(run, { ccy: v.ccy!, rate: v.rate!, json });
   if (action === "lending-history") return cmdEarnLendingHistory(run, { ccy: v.ccy, limit, json });
-  if (action === "rate-summary") return cmdEarnLendingRateSummary(run, rest[0] ?? v.ccy, json);
   if (action === "rate-history") return cmdEarnLendingRateHistory(run, { ccy: v.ccy, limit, json });
   errorLine(`Unknown earn savings command: ${action}`);
   process.exitCode = 1;

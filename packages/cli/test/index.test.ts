@@ -314,11 +314,6 @@ describe("handleEarnCommand", () => {
     assert.ok(result instanceof Promise, "savings lending-history should return a Promise");
   });
 
-  it("dispatches savings rate-summary (returns a Promise)", () => {
-    const result = handleEarnCommand(mockRunner, "savings", ["rate-summary", "USDT"], {}, false);
-    assert.ok(result instanceof Promise, "savings rate-summary should return a Promise");
-  });
-
   it("dispatches savings rate-history (returns a Promise)", () => {
     const result = handleEarnCommand(mockRunner, "savings", ["rate-history"], {}, false);
     assert.ok(result instanceof Promise, "savings rate-history should return a Promise");
@@ -347,7 +342,6 @@ describe("handleEarnCommand", () => {
 import {
   cmdEarnSavingsBalance,
   cmdEarnLendingHistory,
-  cmdEarnLendingRateSummary,
   cmdEarnLendingRateHistory,
 } from "../src/commands/earn.js";
 import { cmdMarketStockTokens } from "../src/commands/market.js";
@@ -409,22 +403,6 @@ describe("cmdEarnLendingHistory output", () => {
   it("prints empty message when no data", async () => {
     const out = await captureStdout(() => cmdEarnLendingHistory(emptyRunner, { json: false }));
     assert.ok(out.includes("No lending history"));
-  });
-});
-
-describe("cmdEarnLendingRateSummary output", () => {
-  it("prints table when data exists", async () => {
-    const runner: ToolRunner = async () => ({
-      endpoint: "/api/v5/test", requestTime: "ts",
-      data: [{ ccy: "USDT", avgRate: "0.01", estRate: "0.02", avgAmt: "1000" }],
-    });
-    const out = await captureStdout(() => cmdEarnLendingRateSummary(runner, "USDT", false));
-    assert.ok(out.length > 0);
-  });
-
-  it("prints empty message when no data", async () => {
-    const out = await captureStdout(() => cmdEarnLendingRateSummary(emptyRunner, undefined, false));
-    assert.ok(out.includes("No rate summary data"));
   });
 });
 
