@@ -65,8 +65,8 @@ function makeContext(client: unknown, demo = false): ToolContext {
 describe("event contract tool registration", () => {
   const tools = registerEventContractTools();
 
-  it("registers exactly 9 tools", () => {
-    assert.equal(tools.length, 9);
+  it("registers exactly 8 tools", () => {
+    assert.equal(tools.length, 8);
   });
 
   it("all tools have module='event'", () => {
@@ -81,7 +81,6 @@ describe("event contract tool registration", () => {
       "event_get_series",
       "event_get_events",
       "event_get_markets",
-      "event_get_max_size",
       "event_precheck_order",
       "event_get_orders",
       "event_get_fills",
@@ -112,7 +111,7 @@ describe("event contract tool registration", () => {
   it("event tools appear in allToolSpecs()", () => {
     const all = allToolSpecs();
     const eventTools = all.filter((t) => t.module === "event");
-    assert.equal(eventTools.length, 9);
+    assert.equal(eventTools.length, 8);
   });
 });
 
@@ -123,7 +122,6 @@ describe("event contract tool registration", () => {
 describe("outcome semantic mapping", () => {
   const tools = registerEventContractTools();
   const placeOrder = tools.find((t) => t.name === "event_place_order")!;
-  const maxSize = tools.find((t) => t.name === "event_get_max_size")!;
   const precheck = tools.find((t) => t.name === "event_precheck_order")!;
 
   it("UP maps to outcome=1 in place_order", async () => {
@@ -191,15 +189,6 @@ describe("outcome semantic mapping", () => {
     );
   });
 
-  it("UP maps to outcome=1 in max_size", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await maxSize.handler(
-      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", outcome: "UP" },
-      makeContext(client),
-    );
-    assert.equal(getLastCall()?.params["outcome"], "1");
-  });
-
   it("NO maps to outcome=2 in precheck", async () => {
     const { client, getLastCall } = makeMockClient();
     await precheck.handler(
@@ -251,18 +240,6 @@ describe("event contract schema validation", () => {
         makeContext(client),
       ),
       /sz/i,
-    );
-  });
-
-  it("event_get_max_size requires outcome", async () => {
-    const tool = getByName("event_get_max_size");
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler(
-        { instId: "BTC-ABOVE-DAILY-260224-1600-120000" },
-        makeContext(client),
-      ),
-      /outcome/i,
     );
   });
 
