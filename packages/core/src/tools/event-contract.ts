@@ -146,10 +146,17 @@ settlement.method semantics (always use these exact Chinese labels when presenti
   price_above      → "价格高于目标价（YES/NO）"  — bet whether price closes ABOVE a strike price at expiry
   price_once_touch → "一次触碰目标价（YES/NO）"  — bet whether price ever TOUCHES the strike price during the period
 
-Series ID prefix convention (explain to user when multiple series share same settlement.method):
-  PARAM1- prefix  → parameterized series: strike price is dynamically set per event (flexible target)
-  No prefix (e.g. ETH-ABOVE-DAILY) → fixed series: standard recurring events with consistent strike levels
-  Example: ETH-ABOVE-DAILY and PARAM1-ABOVE-DAILY are both price_above (YES/NO) type, but PARAM1-ABOVE-DAILY allows custom strike prices per event cycle.
+Series ID format: API returns internal IDs that may be random strings (e.g. FMQRZ, GLUQI) or human-readable (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN). ALL returned IDs are valid seriesIds for subsequent calls to event_get_events and event_get_markets — use them as-is.
+
+Presentation rules:
+1. Group by settlement.method, show price_up_down first then price_above/price_once_touch.
+2. Highlight standard named series (BTC-ABOVE-DAILY, ETH-ABOVE-DAILY, BTC-UPDOWN-15MIN, etc.) with ⭐ as recommended entry points.
+3. Summarize random-prefix seriesIds (e.g. FMQRZ-ABOVE-DAILY) as "及 N 个更多 BTC-USDT 系列" — do not enumerate them individually.
+4. Always show the seriesId value so user can copy it for next step.
+
+Series ID prefix convention (explain when multiple series share same settlement.method):
+  PARAM1- prefix  → parameterized: strike dynamically set per event (flexible target)
+  No prefix (e.g. ETH-ABOVE-DAILY) → fixed: standard recurring events with consistent strike levels
 
 Error guidance: if seriesId is provided and no results are returned, tell user "未找到该系列，请检查系列ID是否正确，或不传 seriesId 查看全部系列列表。"
 
@@ -542,7 +549,10 @@ On failure: tool throws — plain language reason only.`,
       name: "event_cancel_order",
       module: "event",
       description: `Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.
-On success: "Order {ordId} cancelled." On error (tool throws): plain reason + error code in parentheses. Suggest next action.`,
+instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair like BTC-USDT.
+On success: "Order {ordId} cancelled."
+On error (tool throws): explain in plain language. For error 51001 (instrument not found): "合约 {instId} 不存在或已到期，无法撤单。请先调用 event_get_markets 查询当前有效的事件合约 ID，再重试。"
+On error 51401 (order may have just filled): "订单可能已成交，请检查成交记录。"`,
       isWrite: true,
       inputSchema: {
         type: "object",
