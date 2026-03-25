@@ -48,6 +48,7 @@ export const EARN_SUB_MODULE_IDS = [
   "earn.savings",
   "earn.onchain",
   "earn.dcd",
+  "earn.autoearn",
 ] as const;
 
 export type EarnSubModuleId = (typeof EARN_SUB_MODULE_IDS)[number];
