@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printKv, printTable } from "../formatter.js";
+import { printJson, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -116,35 +116,46 @@ function parseInstMeta(instId: string): { expiry: string; condition: string } {
 }
 
 /**
- * Build a net PnL summary line from precheck response fields.
- * estMaxWin = gross settlement payout (sz × 1.00), NOT net profit.
- * Net max win  = estMaxWin  - estCost - estFee
- * Max loss     = estCost    + estFee
+ * Convert instId to a short human-readable contract name.
+ * SOLVU-ABOVE-DAILY-260401-1600-70000  → "SOLVU 高于 70,000 · 4/1"
+ * TESTAAAA-UPDOWN-15MIN-260325-1830-1845 → "TESTAAAA 涨跌 · 3/25 18:30-18:45"
  */
-function buildPrecheckSummary(row: Record<string, unknown>): string {
-  const cost    = parseFloat(String(row["estCost"]  ?? "0")) || 0;
-  const fee     = parseFloat(String(row["estFee"]   ?? "0")) || 0;
-  const maxWin  = parseFloat(String(row["estMaxWin"] ?? "0")) || 0;
-  const netWin  = maxWin - cost - fee;
-  const netLoss = cost + fee;
-  const instId  = String(row["instId"] ?? "");
-  const side    = String(row["side"]   ?? "");
-  const px      = String(row["px"]     ?? "");
-  const ordType = String(row["ordType"] ?? "market");
-  const outcome = fmtOrderOutcome(instId, row["outcome"]);
-  const meta    = parseInstMeta(instId);
+function fmtContractName(instId: string): string {
+  const parts = instId.split("-");
+  const upper = instId.toUpperCase();
+  const seriesId = parts[0] ?? instId;
 
-  const lines: string[] = [];
-  if (outcome) lines.push(`Direction:    ${side.toUpperCase()} ${outcome}  ordType: ${ordType}${px ? `  px: ${px}` : ""}`);
-  if (meta.condition) lines.push(`Condition:    ${meta.condition}`);
-  if (meta.expiry)    lines.push(`Expires:      ${meta.expiry}`);
-  lines.push(`──────────────────────────────────────`);
-  lines.push(`Cost (premium): ${cost.toFixed(4)} USDC`);
-  lines.push(`Fee (settled):  ${fee.toFixed(4)} USDC  ← charged at settlement, not upfront`);
-  lines.push(`Max loss:       ${netLoss.toFixed(4)} USDC  (worst case: expires on wrong side)`);
-  lines.push(`Net max win:    ${netWin >= 0 ? "+" : ""}${netWin.toFixed(4)} USDC  (if ${outcome || "correct side"} wins, after all fees)`);
-  if (row["maxBuy"]) lines.push(`Max buy:        ${row["maxBuy"]} contracts`);
-  return lines.join("\n  ");
+  let dateIdx = -1;
+  for (let i = 1; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i])) { dateIdx = i; break; }
+  }
+  if (dateIdx < 0) return instId;
+
+  const d = parts[dateIdx];
+  const month = parseInt(d.slice(2, 4), 10);
+  const day   = parseInt(d.slice(4, 6), 10);
+  const dateStr = `${month}/${day}`;
+
+  if (upper.includes("UPDOWN") || upper.includes("UP-DOWN")) {
+    const t1 = parts[dateIdx + 1] ?? "";
+    const t2 = parts[dateIdx + 2] ?? "";
+    const fmtT = (t: string) => t.length === 4 ? `${t.slice(0, 2)}:${t.slice(2)}` : t;
+    const timeRange = t1 && t2 ? ` ${fmtT(t1)}-${fmtT(t2)}` : "";
+    return `${seriesId} Up/Down · ${dateStr}${timeRange}`;
+  }
+
+  const strike = parts[dateIdx + 2] ?? "";
+  const strikeStr = strike && /^\d+$/.test(strike)
+    ? Number(strike).toLocaleString("en-US")
+    : "";
+
+  if (upper.includes("ABOVE")) {
+    return strikeStr ? `${seriesId} above ${strikeStr} · ${dateStr}` : `${seriesId} · ${dateStr}`;
+  }
+  if (upper.includes("TOUCH")) {
+    return strikeStr ? `${seriesId} touch ${strikeStr} · ${dateStr}` : `${seriesId} · ${dateStr}`;
+  }
+  return `${seriesId} · ${dateStr}`;
 }
 
 function fmtTs(raw: unknown): string {
@@ -227,46 +238,6 @@ export async function cmdEventMarkets(
   );
 }
 
-export async function cmdEventPrecheck(
-  run: ToolRunner,
-  opts: {
-    instId: string;
-    side: string;
-    outcome: string;
-    sz: string;
-    px?: string;
-    ordType?: string;
-    slippage?: string;
-    json: boolean;
-  },
-): Promise<void> {
-  const result = await run("event_precheck_order", {
-    instId: opts.instId,
-    side: opts.side,
-    outcome: opts.outcome,
-    sz: opts.sz,
-    px: opts.px,
-    ordType: opts.ordType,
-    slippage: opts.slippage,
-  });
-  const data = getData(result) as Record<string, unknown>[];
-  if (opts.json) return printJson(data);
-  const row = data?.[0];
-  if (!row) {
-    process.stdout.write("(no precheck data)\n");
-    return;
-  }
-  // Show net figures first, then raw fields for AI context
-  const summary = buildPrecheckSummary({
-    ...row as Record<string, unknown>,
-    instId: opts.instId,
-    side:   opts.side,
-  });
-  process.stdout.write(`Precheck result:\n  ${summary}\n`);
-  // Also dump raw fields so AI can read exact values
-  process.stdout.write("\nRaw fields:\n");
-  printKv(row as Record<string, unknown>);
-}
 
 export async function cmdEventOrders(
   run: ToolRunner,
@@ -281,15 +252,13 @@ export async function cmdEventOrders(
   if (opts.json) return printJson(data);
   printTable(
     (data ?? []).map((o) => ({
-      ordId:   o["ordId"],
-      instId:  o["instId"],
-      side:    o["side"],
-      outcome: fmtOrderOutcome(o["instId"], o["outcome"]),
-      type:    o["ordType"],
-      price:   o["px"],
-      size:    o["sz"],
-      filled:  o["fillSz"],
-      state:   o["state"],
+      "Contract":   fmtContractName(String(o["instId"] ?? "")),
+      "Time":       fmtTs(o["cTime"]),
+      "Direction":  `${String(o["side"] ?? "").toUpperCase()} ${fmtOrderOutcome(o["instId"], o["outcome"]).toUpperCase()}`,
+      "Price":      o["px"],
+      "Size":       `${o["fillSz"] ?? 0} / ${o["sz"]}`,
+      "Status":     o["state"],
+      "Order ID":   o["ordId"],
     })),
   );
 }
@@ -306,14 +275,12 @@ export async function cmdEventFills(
   if (opts.json) return printJson(data);
   printTable(
     (data ?? []).map((f) => ({
-      tradeId: f["tradeId"],
-      ordId:   f["ordId"],
-      instId:  f["instId"],
-      side:    f["side"],
-      outcome: fmtOrderOutcome(f["instId"], f["outcome"]),
-      fillPx:  f["fillPx"],
-      fillSz:  f["fillSz"],
-      time:    fmtTs(f["ts"]),
+      "Contract":  fmtContractName(String(f["instId"] ?? "")),
+      "Direction": `${String(f["side"] ?? "").toUpperCase()} ${fmtOrderOutcome(f["instId"], f["outcome"]).toUpperCase()}`.trim(),
+      "Fill Price": f["fillPx"],
+      "Fill Size":  f["fillSz"],
+      "Time":       fmtTs(f["ts"]),
+      "Order ID":   f["ordId"],
     })),
   );
 }
@@ -347,7 +314,7 @@ export async function cmdEventPlace(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const order = data?.[0];
-  const ok = order?.["sCode"] === "0";
+  const ok = order?.["ordId"] && order["ordId"] !== "";
   if (!ok) {
     process.stdout.write(`Order rejected: ${order?.["sMsg"] ?? "unknown error"}\n`);
     return;

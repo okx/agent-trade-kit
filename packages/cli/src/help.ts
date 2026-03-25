@@ -602,10 +602,6 @@ const HELP_TREE: HelpTree = {
         usage: "okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|expired>] [--limit <n>]",
         description: "List markets; expired includes outcome (1=YES,2=NO) and settleValue",
       },
-      precheck: {
-        usage: "okx event precheck <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
-        description: "Dry-run an event order: returns cost/risk estimate without placing (run before place)",
-      },
       place: {
         usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
         description: "[CAUTION] Place an event contract order (outcome: UP/YES or DOWN/NO; px=probability 0~1)",

@@ -3,22 +3,21 @@
  *
  * Three product types (settlement.method field in series response):
  *   - price_up_down:    BTC/ETH price UP (rises in period) or DOWN (falls in period)
- *   - price_above:      BTC/ETH price at expiry above strike — YES (1) or NO (2)
- *   - price_once_touch: BTC/ETH price ever touches strike — YES (1) or NO (2)
+ *   - price_above:      BTC/ETH price at expiry above strike — YES or NO
+ *   - price_once_touch: BTC/ETH price ever touches strike — YES or NO
  *
  * Outcome semantics (input):
- *   UP / YES  → API value "1"
- *   DOWN / NO → API value "2"
- *   Case-insensitive. Invalid values throw a clear error.
+ *   UP / YES  → API value "yes"  (lowercase, case-insensitive input)
+ *   DOWN / NO → API value "no"   (lowercase, case-insensitive input)
  *
  * Outcome semantics (response from markets endpoint):
  *   "0" = not yet settled, "1" = YES won, "2" = NO won
  *
  * Key parameters unique to this module:
- *   outcome   "UP"/"YES" → "1",  "DOWN"/"NO" → "2"
+ *   outcome   "UP"/"YES" → "yes",  "DOWN"/"NO" → "no"
  *   px        probability 0.00~1.00, NOT a regular asset price
  *   slippage  0~1, default "0.05"
- *   tdMode    always "cash" for event contracts
+ *   tdMode    always "isolated" for event contracts
  *   speedBump auto-set to "1" for non-post_only orders (required by exchange)
  */
 import type { ToolSpec } from "./types.js";
@@ -102,20 +101,20 @@ function normalizeWrite(response: {
 }
 
 /**
- * Convert semantic outcome string to API numeric value.
- * Accepts: UP / YES → "1",  DOWN / NO → "2"  (case-insensitive)
+ * Convert semantic outcome string to API value.
+ * Accepts: UP / YES → "yes",  DOWN / NO → "no"  (case-insensitive)
  */
 function resolveOutcome(value: string): string {
   const map: Record<string, string> = {
-    up: "1",
-    yes: "1",
-    down: "2",
-    no: "2",
+    up: "yes",
+    yes: "yes",
+    down: "no",
+    no: "no",
   };
   const resolved = map[value.toLowerCase()];
   if (!resolved) {
     throw new Error(
-      `Invalid outcome "${value}". Use: UP or YES (outcome 1) for Up/Yes, DOWN or NO (outcome 2) for Down/No.`,
+      `Invalid outcome "${value}". Use: UP or YES for Up/Yes, DOWN or NO for Down/No.`,
     );
   }
   return resolved;
@@ -309,82 +308,6 @@ After listing series, always add: "选定系列后，可调用 event_get_events 
     },
 
     {
-      name: "event_precheck_order",
-      module: "event",
-      description: `Dry-run an event order (no real trade). Call before event_place_order. px = probability 0~1, not price.
-Pre-computed response fields: maxLoss, netMaxWin, riskRewardRatio, feePct (fee % of cost). estFee charged at settlement not upfront.
-If feePct > 30: add "⚠️ Fee is {feePct}% of entry cost — limit/post_only order reduces this."`,
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          instId: {
-            type: "string",
-            description: "Event contract instrument ID",
-          },
-          side: {
-            type: "string",
-            enum: ["buy", "sell"],
-          },
-          outcome: OUTCOME_SCHEMA,
-          ordType: {
-            type: "string",
-            enum: ["market", "limit", "post_only"],
-            description: "Order type (default market)",
-          },
-          sz: {
-            type: "string",
-            description: "Order size (number of contracts)",
-          },
-          px: {
-            type: "string",
-            description: "Limit price as probability 0.00~1.00 (e.g. 0.45 = 45% probability). Required when ordType=limit.",
-          },
-          slippage: {
-            type: "string",
-            description: "Max slippage ratio for market orders, 0~1 (default 0.05)",
-          },
-        },
-        required: ["instId", "side", "outcome", "sz"],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const response = await context.client.privatePost(
-          "/api/v5/trade/order-precheck",
-          compactObject({
-            instId: requireString(args, "instId"),
-            tdMode: "cash",
-            side: requireString(args, "side"),
-            outcome: resolveOutcome(requireString(args, "outcome")),
-            ordType: readString(args, "ordType") ?? "market",
-            sz: requireString(args, "sz"),
-            px: readString(args, "px"),
-            slippage: readString(args, "slippage"),
-          }),
-          privateRateLimit("event_precheck_order", 10),
-        );
-        const base = normalizeResponse(response);
-        const data = Array.isArray(base["data"])
-          ? (base["data"] as Record<string, unknown>[]).map((item) => {
-              const cost    = parseFloat(String(item["estCost"]   ?? "0")) || 0;
-              const fee     = parseFloat(String(item["estFee"]    ?? "0")) || 0;
-              const maxWin  = parseFloat(String(item["estMaxWin"] ?? "0")) || 0;
-              const netMaxWin = maxWin - cost - fee;
-              const maxLoss   = cost + fee;
-              return {
-                ...item,
-                netMaxWin: netMaxWin.toFixed(4),
-                maxLoss:   maxLoss.toFixed(4),
-                riskRewardRatio: maxLoss > 0 ? (netMaxWin / maxLoss).toFixed(2) : "N/A",
-                feePct: cost > 0 ? Math.round((fee / cost) * 100) : 0,
-              };
-            })
-          : base["data"];
-        return { ...base, data };
-      },
-    },
-
-    {
       name: "event_get_orders",
       module: "event",
       description: "Get event orders. state=live → pending; omit → history. outcome is pre-translated (YES/NO/UP/DOWN). Show most recent 5 first.",
@@ -473,11 +396,10 @@ If feePct > 30: add "⚠️ Fee is {feePct}% of entry cost — limit/post_only o
       name: "event_place_order",
       module: "event",
       description: `Place an event contract order. [CAUTION] Places a real order. Not supported in demo mode.
-IMPORTANT: Call event_precheck_order first to validate parameters and confirm cost.
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
-- tdMode is always cash; speedBump is auto-set per exchange requirement — do not pass either
+- tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either
 On success: confirm ordId, instId, direction (BUY YES/NO/UP/DOWN), size, ordType, price (if limit). Offer to check fills. sCode and tag are stripped from response.
 On failure: tool throws — plain language reason only.`,
       isWrite: true,
@@ -524,7 +446,7 @@ On failure: tool throws — plain language reason only.`,
           "/api/v5/trade/order",
           compactObject({
             instId: requireString(args, "instId"),
-            tdMode: "cash",
+            tdMode: "isolated",
             side: requireString(args, "side"),
             outcome: resolveOutcome(requireString(args, "outcome")),
             ordType,
