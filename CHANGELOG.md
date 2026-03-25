@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **`tgtCcy` parameter for algo place orders**: `spot_place_algo_order`, `swap_place_algo_order`, `futures_place_algo_order`, and `option_place_algo_order` now accept `tgtCcy`. Set `tgtCcy=quote_ccy` to specify order size in USDT instead of contracts/base currency, consistent with regular place order tools added in v1.2.6. (#86)
+
+---
+
 ## [1.2.6] - 2026-03-23
 
 ### Added

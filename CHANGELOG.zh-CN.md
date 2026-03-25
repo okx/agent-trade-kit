@@ -9,6 +9,14 @@
 
 ---
 
+## [Unreleased]
+
+### 新增
+
+- **算法下单接口新增 `tgtCcy` 参数**：`spot_place_algo_order`、`swap_place_algo_order`、`futures_place_algo_order`、`option_place_algo_order` 新增 `tgtCcy` 参数。设为 `quote_ccy` 时可用 USDT 金额指定下单量，与 v1.2.6 中普通下单接口行为一致。(#86)
+
+---
+
 ## [1.2.6] - 2026-03-23
 
 ### 新增
