@@ -68,6 +68,11 @@ export function registerOptionAlgoTools(): ToolSpec[] {
             type: "string",
             enum: ["last", "index", "mark"],
           },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT (may not be supported for options)",
+          },
           reduceOnly: {
             type: "boolean",
             description: "Ensure order only reduces position",
@@ -90,6 +95,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
             side: requireString(args, "side"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),

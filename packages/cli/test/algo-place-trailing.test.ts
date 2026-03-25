@@ -9,6 +9,7 @@ import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdSpotAlgoPlace } from "../src/commands/spot.js";
 import { cmdSwapAlgoPlace } from "../src/commands/swap.js";
 import { cmdFuturesAlgoPlace } from "../src/commands/futures.js";
+import { cmdOptionAlgoPlace } from "../src/commands/option.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
 beforeEach(() => setOutput({ out: () => {}, err: () => {} }));
@@ -245,5 +246,186 @@ describe("cmdFuturesAlgoPlace — trailing stop params passthrough", () => {
     assert.equal(capturedParams!["callbackRatio"], undefined);
     assert.equal(capturedParams!["callbackSpread"], undefined);
     assert.equal(capturedParams!["activePx"], undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// tgtCcy passthrough (issue #86)
+// ---------------------------------------------------------------------------
+describe("cmdSpotAlgoPlace — tgtCcy passthrough", () => {
+  it("passes tgtCcy=quote_ccy when provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSpotAlgoPlace(runner, {
+      instId: "BTC-USDT",
+      side: "buy",
+      ordType: "conditional",
+      sz: "100",
+      tgtCcy: "quote_ccy",
+      tpTriggerPx: "90000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], "quote_ccy");
+  });
+
+  it("omits tgtCcy when not provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSpotAlgoPlace(runner, {
+      instId: "BTC-USDT",
+      side: "buy",
+      ordType: "conditional",
+      sz: "0.01",
+      tpTriggerPx: "90000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], undefined);
+  });
+});
+
+describe("cmdSwapAlgoPlace — tgtCcy passthrough", () => {
+  it("passes tgtCcy=quote_ccy when provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSwapAlgoPlace(runner, {
+      instId: "BTC-USDT-SWAP",
+      side: "sell",
+      ordType: "conditional",
+      sz: "100",
+      tdMode: "cross",
+      tgtCcy: "quote_ccy",
+      tpTriggerPx: "100000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], "quote_ccy");
+  });
+
+  it("omits tgtCcy when not provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSwapAlgoPlace(runner, {
+      instId: "BTC-USDT-SWAP",
+      side: "sell",
+      ordType: "conditional",
+      sz: "1",
+      tdMode: "cross",
+      tpTriggerPx: "100000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], undefined);
+  });
+});
+
+describe("cmdFuturesAlgoPlace — tgtCcy passthrough", () => {
+  it("passes tgtCcy=quote_ccy when provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdFuturesAlgoPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "sell",
+      ordType: "conditional",
+      sz: "100",
+      tdMode: "cross",
+      tgtCcy: "quote_ccy",
+      tpTriggerPx: "100000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], "quote_ccy");
+  });
+
+  it("omits tgtCcy when not provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdFuturesAlgoPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "sell",
+      ordType: "conditional",
+      sz: "1",
+      tdMode: "cross",
+      tpTriggerPx: "100000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], undefined);
+  });
+});
+
+describe("cmdOptionAlgoPlace — tgtCcy passthrough", () => {
+  it("passes tgtCcy=quote_ccy when provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdOptionAlgoPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cross",
+      side: "sell",
+      ordType: "conditional",
+      sz: "1",
+      tgtCcy: "quote_ccy",
+      tpTriggerPx: "60000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], "quote_ccy");
+  });
+
+  it("omits tgtCcy when not provided", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdOptionAlgoPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cross",
+      side: "sell",
+      ordType: "conditional",
+      sz: "1",
+      tpTriggerPx: "60000",
+      tpOrdPx: "-1",
+      json: false,
+    });
+
+    assert.equal(capturedParams!["tgtCcy"], undefined);
   });
 });
