@@ -42,6 +42,13 @@ describe("cmdGridOrders", () => {
     await cmdGridOrders(runner, { algoOrdType: "grid", status: "active", json: true });
     assert.doesNotThrow(() => JSON.parse(out.join("")));
   });
+
+  it("queries CoinM contract grid orders", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "2", instId: "BTC-USD-SWAP", algoOrdType: "contract_grid", state: "running", pnlRatio: "0.01", gridNum: "20", maxPx: "100000", minPx: "80000", cTime: "0" }]);
+    await cmdGridOrders(runner, { algoOrdType: "contract_grid", status: "active", json: false });
+    assert.ok(out.join("").includes("BTC-USD-SWAP"));
+    assert.equal(err.join(""), "");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -82,6 +89,42 @@ describe("cmdGridCreate", () => {
     await cmdGridCreate(runner, { instId: "BTC-USDT", algoOrdType: "grid", maxPx: "50000", minPx: "40000", gridNum: "10", json: true });
     assert.doesNotThrow(() => JSON.parse(out.join("")));
   });
+
+  it("passes tpTriggerPx, slTriggerPx, tpRatio, slRatio, algoClOrdId to runner", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "GRID_TP_SL", sCode: "0", sMsg: "" }]);
+    };
+    await cmdGridCreate(spy, {
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
+      maxPx: "120000", minPx: "80000", gridNum: "5",
+      direction: "long", lever: "5", sz: "100",
+      tpTriggerPx: "130000", slTriggerPx: "75000",
+      tpRatio: "0.1", slRatio: "0.05",
+      algoClOrdId: "myGrid001",
+      json: false,
+    });
+    assert.equal(capturedArgs.tpTriggerPx, "130000");
+    assert.equal(capturedArgs.slTriggerPx, "75000");
+    assert.equal(capturedArgs.tpRatio, "0.1");
+    assert.equal(capturedArgs.slRatio, "0.05");
+    assert.equal(capturedArgs.algoClOrdId, "myGrid001");
+    assert.ok(out.join("").includes("GRID_TP_SL"));
+  });
+
+  it("creates CoinM contract grid with BTC-USD-SWAP", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "GRID_COINM_001", sCode: "0", sMsg: "" }]);
+    await cmdGridCreate(runner, {
+      instId: "BTC-USD-SWAP", algoOrdType: "contract_grid",
+      maxPx: "100000", minPx: "80000", gridNum: "20",
+      direction: "long", lever: "5", sz: "0.1",
+      json: false,
+    });
+    assert.ok(out.join("").includes("Grid bot created"));
+    assert.ok(out.join("").includes("GRID_COINM_001"));
+    assert.equal(err.join(""), "");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -103,6 +146,14 @@ describe("cmdGridStop", () => {
     assert.ok(err.join("").includes("Bot not running"));
     assert.ok(err.join("").includes("50013"));
     assert.equal(out.join(""), "");
+  });
+
+  it("stops CoinM contract grid bot", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "GRID_COINM_001", sCode: "0", sMsg: "" }]);
+    await cmdGridStop(runner, { algoId: "GRID_COINM_001", algoOrdType: "contract_grid", instId: "BTC-USD-SWAP", json: false });
+    assert.ok(out.join("").includes("Grid bot stopped"));
+    assert.ok(out.join("").includes("GRID_COINM_001"));
+    assert.equal(err.join(""), "");
   });
 });
 

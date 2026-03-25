@@ -26,6 +26,7 @@ import {
     handleFuturesAlgoCommand,
     handleOptionCommand,
     handleOptionAlgoCommand,
+    handleBotGridCommand,
 } from "../src/index.js";
 import type {CliValues} from "../src/index.js";
 
@@ -598,5 +599,47 @@ describe("handleOptionAlgoCommand — parameter routing", () => {
         assert.equal(captured.args["instId"], "BTC-USD-250328-50000-C");
         assert.equal(captured.args["side"], "buy");
         assert.equal(captured.args["sz"], "1");
+    });
+});
+
+// ===========================================================================
+// BOT GRID
+// ===========================================================================
+
+describe("handleBotGridCommand — parameter routing", () => {
+    it("create: tpTriggerPx and slTriggerPx come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
+            maxPx: "120000", minPx: "80000", gridNum: "5",
+            direction: "long", lever: "5", sz: "100",
+            tpTriggerPx: "130000", slTriggerPx: "75000",
+        }), ["create"], false);
+        assert.equal(captured.args["tpTriggerPx"], "130000");
+        assert.equal(captured.args["slTriggerPx"], "75000");
+    });
+
+    it("create: tpRatio, slRatio, algoClOrdId come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USDT-SWAP", algoOrdType: "contract_grid",
+            maxPx: "120000", minPx: "80000", gridNum: "5",
+            direction: "long", lever: "5", sz: "100",
+            tpRatio: "0.1", slRatio: "0.05", algoClOrdId: "myGrid001",
+        }), ["create"], false);
+        assert.equal(captured.args["tpRatio"], "0.1");
+        assert.equal(captured.args["slRatio"], "0.05");
+        assert.equal(captured.args["algoClOrdId"], "myGrid001");
+    });
+
+    it("create: instId and algoOrdType come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USD-SWAP", algoOrdType: "contract_grid",
+            maxPx: "100000", minPx: "80000", gridNum: "20",
+            direction: "long", lever: "5", sz: "0.1",
+        }), ["create"], false);
+        assert.equal(captured.args["instId"], "BTC-USD-SWAP");
+        assert.equal(captured.args["algoOrdType"], "contract_grid");
     });
 });

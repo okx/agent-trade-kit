@@ -162,8 +162,8 @@ okx bot grid create --instId BTC-USDT --algoOrdType grid \
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 --runType 2
 
-# Stop spot grid (stopType: 1=sell all holdings, 2=keep holdings)
-okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 1
+# Stop spot grid (stopType: 1=sell all holdings (default), 2=keep holdings)
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
 okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 2
 
 # ── Contract Grid (algoOrdType: contract_grid) ────────────────────────────────
@@ -188,8 +188,13 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction short --lever 3 --sz 100
 
-# Stop contract grid (stopType: 1=close position+stop, 2=keep position+stop)
-okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
+# Create coin-margined contract grid — sz is in BTC (not USDT)
+okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 20 \
+  --direction long --lever 5 --sz 0.1
+
+# Stop contract grid (stopType: 1=close position+stop (default), 2=keep position+stop)
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
 # ── Moon Grid (algoOrdType: moon_grid) — list/query only ─────────────────────
@@ -414,8 +419,8 @@ okx bot grid create --instId BTC-USDT --algoOrdType grid \
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 --runType 2
 
-# 停止现货网格（stopType: 1=卖出全部持仓, 2=保留持仓）
-okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 1
+# 停止现货网格（stopType: 1=卖出全部持仓（默认）, 2=保留持仓）
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
 okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 2
 
 # ── 合约网格（algoOrdType: contract_grid）────────────────────────────────────
@@ -440,8 +445,13 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction short --lever 3 --sz 100
 
-# 停止合约网格（stopType: 1=平仓并停止, 2=保留仓位并停止）
-okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
+# 创建币本位合约网格 — sz 单位为 BTC（非 USDT）
+okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 20 \
+  --direction long --lever 5 --sz 0.1
+
+# 停止合约网格（stopType: 1=平仓并停止（默认）, 2=保留仓位并停止）
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
 # ── 月网格（algoOrdType: moon_grid）— 仅支持查询 ─────────────────────────────

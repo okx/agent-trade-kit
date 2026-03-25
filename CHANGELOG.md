@@ -13,7 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Contract grid now supports coin-margined (inverse) instruments** (e.g. `BTC-USD-SWAP`): Updated `grid_create_order`, `grid_get_orders`, and `grid_stop_order` tool descriptions to document CoinM support, including coin-margined instId examples and margin unit clarification.
+- **`grid_create_order` now supports TP/SL params**: Added `tpTriggerPx`, `slTriggerPx` (trigger price) and `tpRatio`, `slRatio` (ratio-based, contract only) so users can set take-profit and stop-loss when creating a grid bot.
+- **`grid_create_order` now supports `algoClOrdId`**: User-defined algo order ID (alphanumeric, max 32 chars). Unique per user — enables idempotent creation and can be used to query or stop the bot later.
 - **`tgtCcy` parameter for algo place orders**: `spot_place_algo_order`, `swap_place_algo_order`, `futures_place_algo_order`, and `option_place_algo_order` now accept `tgtCcy`. Set `tgtCcy=quote_ccy` to specify order size in USDT instead of contracts/base currency, consistent with regular place order tools added in v1.2.6. (#86)
+
+### Changed
+
+- **`grid_create_order`: `direction` is now required for contract grids** — MCP-side validation rejects requests missing `direction` when `algoOrdType=contract_grid`, providing immediate client-side feedback without a network round-trip.
+- **`grid_stop_order`: default `stopType` changed from `"2"` to `"1"`** — omitting `stopType` now defaults to close-all (stop grid and close positions) instead of keep-assets, which is the safer and more intuitive default for both spot and contract grids.
+- **`grid_create_order`: shortened tool descriptions** — reduced `grid_create_order` JSON schema size by ~20% (2,017 → 1,610 chars) by tightening parameter descriptions (`sz`, `algoClOrdId`, TP/SL fields) without removing any information.
 
 ---
 
