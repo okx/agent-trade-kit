@@ -470,6 +470,23 @@ const HELP_TREE: HelpTree = {
           },
         },
       },
+      "auto-earn": {
+        description: "Auto-earn — automatically lend, stake, or earn on idle assets",
+        commands: {
+          status: {
+            usage: "okx earn auto-earn status [<ccy>]",
+            description: "Query auto-earn status for all or a specific currency",
+          },
+          on: {
+            usage: "okx earn auto-earn on <ccy>",
+            description: "Enable auto-earn for a currency (auto-detects lend/stake vs USDG earn)",
+          },
+          off: {
+            usage: "okx earn auto-earn off <ccy>",
+            description: "Disable auto-earn for a currency",
+          },
+        },
+      },
       dcd: {
         description: "DCD (Dual Currency Deposit) — structured products with fixed yield",
         commands: {
