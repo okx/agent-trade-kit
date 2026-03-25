@@ -128,6 +128,11 @@ import {
   cmdEarnLendingRateHistory,
 } from "./commands/earn.js";
 import {
+  cmdAutoEarnStatus,
+  cmdAutoEarnOn,
+  cmdAutoEarnOff,
+} from "./commands/auto-earn.js";
+import {
   cmdGridOrders,
   cmdGridDetails,
   cmdGridSubOrders,
@@ -927,15 +932,38 @@ export function handleEarnCommand(
   submodule: string,
   rest: string[],
   v: CliValues,
-  json: boolean
+  json: boolean,
 ): Promise<void> | void {
   const action = rest[0];
   const innerRest = rest.slice(1);
   if (submodule === "savings") return handleEarnSavingsCommand(run, action, innerRest, v, json);
   if (submodule === "onchain") return handleEarnOnchainCommand(run, action, v, json);
   if (submodule === "dcd") return handleEarnDcdCommand(run, action, v, json);
+  if (submodule === "auto-earn") return handleEarnAutoEarnCommand(run, action, innerRest, v, json);
   errorLine(`Unknown earn sub-module: ${submodule}`);
-  errorLine("Valid: savings, onchain, dcd");
+  errorLine("Valid: savings, onchain, dcd, auto-earn");
+  process.exitCode = 1;
+}
+
+function handleEarnAutoEarnCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const ccy = rest[0] ?? v.ccy;
+  if (action === "status") return cmdAutoEarnStatus(run, ccy, json);
+  if (action === "on") {
+    if (!ccy) { errorLine("Currency required: okx earn auto-earn on <ccy>"); process.exitCode = 1; return; }
+    return cmdAutoEarnOn(run, ccy, json);
+  }
+  if (action === "off") {
+    if (!ccy) { errorLine("Currency required: okx earn auto-earn off <ccy>"); process.exitCode = 1; return; }
+    return cmdAutoEarnOff(run, ccy, json);
+  }
+  errorLine(`Unknown auto-earn command: ${action}`);
+  errorLine("Valid: status, on, off");
   process.exitCode = 1;
 }
 
