@@ -128,6 +128,7 @@ export async function cmdSwapAlgoPlace(
     sz: string;
     posSide?: string;
     tdMode: string;
+    tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -145,6 +146,7 @@ export async function cmdSwapAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,

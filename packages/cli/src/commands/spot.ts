@@ -102,6 +102,7 @@ export async function cmdSpotAlgoPlace(
     side: string;
     ordType: string;
     sz: string;
+    tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -118,6 +119,7 @@ export async function cmdSpotAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,

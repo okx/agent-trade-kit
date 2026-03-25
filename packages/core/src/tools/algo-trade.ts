@@ -90,6 +90,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "Activation price; tracking starts after market reaches this level (move_order_stop only)",
           },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
+          },
           reduceOnly: {
             type: "boolean",
             description: "Ensure order only reduces position",
@@ -113,6 +118,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),
@@ -439,6 +445,11 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "Activation price; tracking starts after market reaches this level (move_order_stop only)",
           },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
+          },
           reduceOnly: {
             type: "boolean",
             description: "Ensure order only reduces position",
@@ -462,6 +473,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),
