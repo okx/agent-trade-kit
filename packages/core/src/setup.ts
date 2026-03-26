@@ -12,7 +12,7 @@ export interface SetupOptions {
   modules?: string;
 }
 
-const CLIENT_NAMES: Record<ClientId, string> = {
+export const CLIENT_NAMES: Record<ClientId, string> = {
   "claude-desktop": "Claude Desktop",
   cursor: "Cursor",
   windsurf: "Windsurf",

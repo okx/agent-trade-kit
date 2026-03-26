@@ -77,7 +77,6 @@ export interface CliValues {
   triggerStrategy?: string;
   triggerPx?: string;
   cycleId?: string;
-  algoClOrdId?: string;
   reserveFunds?: string;
   tradeQuoteCcy?: string;
   lang?: string;
@@ -218,7 +217,6 @@ export const CLI_OPTIONS = {
   triggerStrategy: { type: "string" },
   triggerPx: { type: "string" },
   cycleId: { type: "string" },
-  algoClOrdId: { type: "string" },
   reserveFunds: { type: "string" },
   tradeQuoteCcy: { type: "string" },
   // i18n
