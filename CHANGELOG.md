@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`okx diagnose --mcp` multi-client detection**: detects Cursor, Windsurf, Claude Code, and Claude Desktop configs; skips missing clients instead of failing; passes when at least one client is configured (#90)
 - **`okx diagnose --mcp` tool count limit check**: warns when total tool count exceeds known client limits (e.g. Cursor: 40/server, 80 total) and suggests `--modules` to reduce (#90)
-
+- **Cursor tool limit guidance**: added warning, recommended module combinations table, and safe configuration examples to `docs/configuration.md` and `docs/faq.md` for Cursor users affected by the ~40 tools/server limit (#88)
 - **Spot DCA support** (`bot.dca`): All 5 DCA tools now support both Spot DCA (`algoOrdType=spot_dca`) and Contract DCA (`algoOrdType=contract_dca`). New parameters: `algoOrdType` (required), `algoClOrdId`, `reserveFunds`, `tradeQuoteCcy` for `dca_create_order`; `algoOrdType` and `stopType` for `dca_stop_order`; `algoOrdType` filter for `dca_get_orders`; `algoOrdType` required for `dca_get_order_details` and `dca_get_sub_orders`. CLI commands updated with matching `--algoOrdType` option (defaults to `contract_dca` for backward compatibility). Help text and agent-skills documentation updated.
 
 ### Removed
