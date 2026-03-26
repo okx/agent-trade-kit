@@ -2150,7 +2150,7 @@ describe("dca_create_order", () => {
   it("calls /dca/create endpoint with algoOrdType=contract_dca", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2159,10 +2159,56 @@ describe("dca_create_order", () => {
     assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
   });
 
+  it("calls /dca/create with algoOrdType=spot_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT", algoOrdType: "spot_dca",
+      direction: "long",
+      initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
+      pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.05",
+    }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/create");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+  });
+
+  it("contract_dca throws without lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({
+        instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
+        direction: "long",
+        initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.02",
+      }, makeContext(client)),
+      { name: "OkxApiError" },
+    );
+  });
+
+  it("spot_dca with direction=short does not throw", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT", algoOrdType: "spot_dca",
+      direction: "short",
+      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.05",
+    }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "short");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+  });
+
+  it("spot_dca does not require lever", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT", algoOrdType: "spot_dca",
+      direction: "long",
+      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.05",
+    }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).lever, undefined);
+  });
+
   it("passes direction directly", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "short",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2173,7 +2219,7 @@ describe("dca_create_order", () => {
   it("passes slMode when provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2182,22 +2228,46 @@ describe("dca_create_order", () => {
     assert.equal((getLastCall()?.params as Record<string, unknown>).slMode, "limit");
   });
 
-  it("passes allowReinvest when provided", async () => {
+  it("passes allowReinvest=false as boolean", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
-      allowReinvest: "false",
+      allowReinvest: false,
     }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>).allowReinvest, "false");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).allowReinvest, false);
+  });
+
+  it("converts allowReinvest string 'true' to boolean true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
+      lever: "3", direction: "long",
+      initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
+      pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+      allowReinvest: "true",
+    }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).allowReinvest, true);
+  });
+
+  it("converts allowReinvest boolean true to true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
+      lever: "3", direction: "long",
+      initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
+      pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
+      allowReinvest: true,
+    }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).allowReinvest, true);
   });
 
   it("defaults triggerParams to instant strategy", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2212,7 +2282,7 @@ describe("dca_create_order", () => {
   it("builds triggerParams with price strategy and triggerPx", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2228,7 +2298,7 @@ describe("dca_create_order", () => {
     const { client } = makeMockClient();
     await assert.rejects(
       () => tool.handler({
-        instId: "BTC-USDT-SWAP",
+        instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
         lever: "3", direction: "long",
         initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
         pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2242,7 +2312,7 @@ describe("dca_create_order", () => {
     const { client, getLastCall } = makeMockClient();
     // Only pass the 6 schema-required fields — no safetyOrdAmt/pxSteps/pxStepsMult/volMult
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.02",
     }, makeContext(client));
@@ -2253,10 +2323,36 @@ describe("dca_create_order", () => {
     assert.equal(params.volMult, undefined);
   });
 
+  it("throws when maxSafetyOrds>0 but pxStepsMult is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({
+        instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
+        lever: "3", direction: "long",
+        initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
+        pxSteps: "0.03", volMult: "1", tpPct: "0.02",
+      }, makeContext(client)),
+      { name: "OkxApiError" },
+    );
+  });
+
+  it("throws when maxSafetyOrds>0 but volMult is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({
+        instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
+        lever: "3", direction: "long",
+        initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
+        pxSteps: "0.03", pxStepsMult: "1", tpPct: "0.02",
+      }, makeContext(client)),
+      { name: "OkxApiError" },
+    );
+  });
+
   it("does not send slMode/allowReinvest when omitted", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2269,7 +2365,7 @@ describe("dca_create_order", () => {
   it("passes slPct and slMode when provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50",
       maxSafetyOrds: "3", pxSteps: "0.02",
@@ -2284,7 +2380,7 @@ describe("dca_create_order", () => {
   it("omits slPct and slMode when not provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({
-      instId: "BTC-USDT-SWAP",
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
       lever: "3", direction: "long",
       initOrdAmt: "100", safetyOrdAmt: "50", maxSafetyOrds: "3",
       pxSteps: "0.03", pxStepsMult: "1", volMult: "1", tpPct: "0.02",
@@ -2292,6 +2388,55 @@ describe("dca_create_order", () => {
     const params = getLastCall()?.params as Record<string, unknown>;
     assert.equal(params.slPct, undefined);
     assert.equal(params.slMode, undefined);
+  });
+
+  it("injects tag from context.config.sourceTag", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca",
+      lever: "3", direction: "long",
+      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.02",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.tag, DEFAULT_SOURCE_TAG);
+  });
+
+  it("passes algoClOrdId when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT", algoOrdType: "spot_dca",
+      direction: "long",
+      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.05",
+      algoClOrdId: "myOrder123",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoClOrdId, "myOrder123");
+  });
+
+  it("passes reserveFunds and tradeQuoteCcy when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT", algoOrdType: "spot_dca",
+      direction: "long",
+      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.05",
+      reserveFunds: "false", tradeQuoteCcy: "USDT",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.reserveFunds, "false");
+    assert.equal(params.tradeQuoteCcy, "USDT");
+  });
+
+  it("omits algoClOrdId, reserveFunds, tradeQuoteCcy when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      instId: "BTC-USDT", algoOrdType: "spot_dca",
+      direction: "long",
+      initOrdAmt: "100", maxSafetyOrds: "0", tpPct: "0.05",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoClOrdId, undefined);
+    assert.equal(params.reserveFunds, undefined);
+    assert.equal(params.tradeQuoteCcy, undefined);
   });
 
 });
@@ -2302,9 +2447,38 @@ describe("dca_stop_order", () => {
 
   it("calls /dca/stop with algoOrdType=contract_dca", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "456" }, makeContext(client));
+    await tool.handler({ algoId: "456", algoOrdType: "contract_dca" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/stop");
     assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("calls /dca/stop with algoOrdType=spot_dca and stopType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "456", algoOrdType: "spot_dca", stopType: "1" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/stop");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).stopType, "1");
+  });
+
+  it("calls /dca/stop with algoOrdType=spot_dca and stopType=2", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "456", algoOrdType: "spot_dca", stopType: "2" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/stop");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).stopType, "2");
+  });
+
+  it("spot_dca throws without stopType", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "456", algoOrdType: "spot_dca" }, makeContext(client)),
+      { name: "OkxApiError" },
+    );
+  });
+
+  it("contract_dca does not require stopType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "456", algoOrdType: "contract_dca" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).stopType, undefined);
   });
 });
 
@@ -2316,13 +2490,23 @@ describe("dca_get_orders", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/ongoing-list");
-    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
   });
 
   it("calls /dca/history-list when status=history", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ status: "history" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/history-list");
+  });
+
+  it("passes algoOrdType filter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoOrdType: "spot_dca" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+  });
+
+  it("defaults to contract_dca when algoOrdType not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
   });
 
@@ -2357,9 +2541,16 @@ describe("dca_get_order_details", () => {
 
   it("calls /dca/position-details with algoOrdType=contract_dca", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "789" }, makeContext(client));
+    await tool.handler({ algoId: "789", algoOrdType: "contract_dca" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/position-details");
     assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("calls /dca/position-details with algoOrdType=spot_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "789", algoOrdType: "spot_dca" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/position-details");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
   });
 });
 
@@ -2369,16 +2560,31 @@ describe("dca_get_sub_orders", () => {
 
   it("without cycleId: calls /dca/cycle-list", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "123" }, makeContext(client));
+    await tool.handler({ algoId: "123", algoOrdType: "contract_dca" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/cycle-list");
     assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
   });
 
   it("with cycleId: calls /dca/orders", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "123", cycleId: "c001" }, makeContext(client));
+    await tool.handler({ algoId: "123", algoOrdType: "contract_dca", cycleId: "c001" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders");
     assert.equal((getLastCall()?.params as Record<string, unknown>).cycleId, "c001");
+  });
+
+  it("passes algoOrdType=spot_dca to cycle-list", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "123", algoOrdType: "spot_dca" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/cycle-list");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+  });
+
+  it("passes algoOrdType=spot_dca to orders with cycleId", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "123", algoOrdType: "spot_dca", cycleId: "c002" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).cycleId, "c002");
   });
 });
 

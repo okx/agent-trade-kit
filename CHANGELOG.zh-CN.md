@@ -11,8 +11,19 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **现货 DCA 支持**（`bot.dca`）：5 个 DCA 工具现在同时支持现货 DCA（`algoOrdType=spot_dca`）和合约 DCA（`algoOrdType=contract_dca`）。`dca_create_order` 新增参数：`algoOrdType`（必填）、`algoClOrdId`、`reserveFunds`、`tradeQuoteCcy`；`dca_stop_order` 新增 `algoOrdType` 和 `stopType`；`dca_get_orders` 新增 `algoOrdType` 过滤；`dca_get_order_details` 和 `dca_get_sub_orders` 新增 `algoOrdType`（必填）。CLI 命令同步新增 `--algoOrdType` 选项（省略时默认 `contract_dca`，保持向后兼容）。帮助文本和 agent-skills 文档同步更新。
+
+### 移除
+
+- **`dca_create_order` `triggerStrategy` 不再支持 `"rsi"`**：OKX DCA API 不支持 RSI 触发策略。`triggerStrategy` 枚举现在为 `["instant", "price"]`。之前传入 `triggerStrategy: "rsi"` 的用户将收到 schema 校验错误。
+
 ### 修复
 
+- **`dca_create_order` 缺少 `tag` 字段**：创建请求体中现在正确包含 `tag`（来自 `context.config.sourceTag`），与 `grid_create_order` 行为一致。
+- **`allowReinvest` 类型不匹配**：Schema 从字符串枚举改为布尔类型，匹配后端 `Boolean` 类型。Handler 同时兼容布尔值和字符串 "true"/"false"（CLI 兼容）。
+- **`cmdDcaSubOrders` 展示字段错误**：查询周期内子订单（传了 `--cycleId`）时，CLI 现在显示订单专有字段（`ordId`、`side`、`ordType`、`filledSz` 等），替代之前错误使用的周期列表字段。
 - **`okx market ticker` 的"24h change %"字段显示错误**：该字段原来错误地映射到 `sodUtc8`（UTC+8 当日开盘价），而非基于 `open24h` 计算涨跌幅。现已修复：新增 `24h open` 字段展示 `open24h` 值，并基于 `open24h` 与 `last` 计算 `24h change %`。
 
 ---
@@ -32,7 +43,6 @@
 - **`grid_create_order`：合约网格必须传 `direction`** — MCP 层新增客户端校验，`algoOrdType=contract_grid` 时缺少 `direction` 将立即返回错误，无需网络往返。
 - **`grid_stop_order`：`stopType` 默认值从 `"2"` 改为 `"1"`** — 省略 `stopType` 时默认为关停并平仓，而非保留资产。对现货和合约网格均更安全直观。
 - **`grid_create_order`：精简工具描述** — `grid_create_order` JSON schema 体积缩减约 20%（2,017 → 1,610 chars），精简 `sz`、`algoClOrdId`、TP/SL 等参数描述，信息量不变。
-
 ---
 
 ## [1.2.6] - 2026-03-23

@@ -10,6 +10,7 @@ import {
   cmdDcaDetails,
   cmdDcaCreate,
   cmdDcaStop,
+  cmdDcaSubOrders,
 } from "../src/commands/bot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -167,6 +168,41 @@ describe("cmdDcaOrders", () => {
     assert.ok(out.join("").includes("No DCA bots"));
     assert.equal(err.join(""), "");
   });
+
+  it("passes algoOrdType=spot_dca filter to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaOrders(runner, { algoOrdType: "spot_dca", history: false, json: false });
+    assert.equal(captured["algoOrdType"], "spot_dca");
+    assert.equal(captured["status"], "active");
+  });
+
+  it("passes status=history when history=true", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaOrders(runner, { history: true, json: false });
+    assert.equal(captured["status"], "history");
+  });
+
+  it("passes algoOrdType through to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaOrders(runner, { algoOrdType: "contract_dca", history: false, json: false });
+    assert.equal(captured["algoOrdType"], "contract_dca");
+  });
+
+  it("passes undefined algoOrdType when omitted", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaOrders(runner, { history: false, json: false });
+    assert.equal(captured["algoOrdType"], undefined);
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "1", instId: "BTC-USDT", algoOrdType: "spot_dca", state: "running", pnl: "10", pnlRatio: "0.01", cTime: "0" }]);
+    await cmdDcaOrders(runner, { history: false, json: true });
+    assert.doesNotThrow(() => JSON.parse(out.join("")));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -175,9 +211,29 @@ describe("cmdDcaOrders", () => {
 describe("cmdDcaDetails", () => {
   it("outputs 'DCA bot not found' to stdout when result is empty", async () => {
     const runner: ToolRunner = async () => fakeResult([]);
-    await cmdDcaDetails(runner, { algoId: "DCA001", json: false });
+    await cmdDcaDetails(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
     assert.ok(out.join("").includes("DCA bot not found"));
     assert.equal(err.join(""), "");
+  });
+
+  it("passes algoOrdType=spot_dca to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaDetails(runner, { algoId: "DCA001", algoOrdType: "spot_dca", json: false });
+    assert.equal(captured["algoOrdType"], "spot_dca");
+    assert.equal(captured["algoId"], "DCA001");
+  });
+
+  it("renders KV output for normal result", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      algoId: "DCA001", algoOrdType: "spot_dca", instId: "BTC-USDT",
+      sz: "0.01", avgPx: "30000", initPx: "30500", tpPx: "31500",
+      slPx: "", upl: "50", fee: "-1.5", fundingFee: "0",
+      curCycleId: "c1", fillSafetyOrds: "2", startTime: "1700000000000",
+    }]);
+    await cmdDcaDetails(runner, { algoId: "DCA001", algoOrdType: "spot_dca", json: false });
+    assert.ok(out.join("").includes("DCA001"));
+    assert.ok(out.join("").includes("BTC-USDT"));
   });
 });
 
@@ -186,7 +242,7 @@ describe("cmdDcaDetails", () => {
 // ---------------------------------------------------------------------------
 describe("cmdDcaCreate", () => {
   const baseOpts = {
-    instId: "BTC-USDT-SWAP", lever: "3", direction: "long",
+    instId: "BTC-USDT-SWAP", algoOrdType: "contract_dca", lever: "3", direction: "long",
     initOrdAmt: "100", maxSafetyOrds: "5", tpPct: "0.05", json: false,
   };
 
@@ -206,6 +262,28 @@ describe("cmdDcaCreate", () => {
     assert.ok(err.join("").includes("51008"));
     assert.equal(out.join(""), "");
   });
+
+  it("passes algoOrdType and new params to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([{ sCode: "0" }]); };
+    await cmdDcaCreate(runner, {
+      ...baseOpts,
+      algoOrdType: "spot_dca",
+      algoClOrdId: "myOrder123",
+      reserveFunds: "false",
+      tradeQuoteCcy: "USDT",
+    });
+    assert.equal(captured["algoOrdType"], "spot_dca");
+    assert.equal(captured["algoClOrdId"], "myOrder123");
+    assert.equal(captured["reserveFunds"], "false");
+    assert.equal(captured["tradeQuoteCcy"], "USDT");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "DCA001", sCode: "0" }]);
+    await cmdDcaCreate(runner, { ...baseOpts, json: true });
+    assert.doesNotThrow(() => JSON.parse(out.join("")));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -214,7 +292,7 @@ describe("cmdDcaCreate", () => {
 describe("cmdDcaStop", () => {
   it("outputs success message to stdout when sCode='0'", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "DCA001", sCode: "0", sMsg: "" }]);
-    await cmdDcaStop(runner, { algoId: "DCA001", json: false });
+    await cmdDcaStop(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
     assert.ok(out.join("").includes("DCA bot stopped"));
     assert.ok(out.join("").includes("DCA001"));
     assert.ok(out.join("").includes("OK"));
@@ -223,9 +301,72 @@ describe("cmdDcaStop", () => {
 
   it("outputs error to stderr when sCode is non-zero", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "", sCode: "50013", sMsg: "Bot not found" }]);
-    await cmdDcaStop(runner, { algoId: "DCA001", json: false });
+    await cmdDcaStop(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
     assert.ok(err.join("").includes("Bot not found"));
     assert.ok(err.join("").includes("50013"));
     assert.equal(out.join(""), "");
+  });
+
+  it("passes algoOrdType and stopType to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([{ sCode: "0" }]); };
+    await cmdDcaStop(runner, { algoId: "DCA001", algoOrdType: "spot_dca", stopType: "2", json: false });
+    assert.equal(captured["algoOrdType"], "spot_dca");
+    assert.equal(captured["stopType"], "2");
+    assert.equal(captured["algoId"], "DCA001");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaSubOrders
+// ---------------------------------------------------------------------------
+describe("cmdDcaSubOrders", () => {
+  it("passes algoOrdType to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "spot_dca", json: false });
+    assert.equal(captured["algoOrdType"], "spot_dca");
+    assert.equal(captured["algoId"], "DCA001");
+  });
+
+  it("outputs 'No sub-orders' when list is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    assert.ok(out.join("").includes("No sub-orders"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("renders cycle list format when cycleId is omitted", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      cycleId: "c001", cycleStatus: "running", currentCycle: true,
+      avgPx: "30000", tpPx: "31500", realizedPnl: "0", fee: "-1",
+      startTime: "1700000000000",
+    }]);
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "spot_dca", json: false });
+    assert.ok(out.join("").includes("c001"));
+  });
+
+  it("renders order list format when cycleId is provided", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      ordId: "ord001", side: "buy", ordType: "init_order",
+      px: "30000", filledSz: "0.01", avgFillPx: "30000",
+      state: "filled", fee: "-0.5",
+    }]);
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "spot_dca", cycleId: "c001", json: false });
+    assert.ok(out.join("").includes("ord001"));
+    assert.ok(out.join("").includes("buy"));
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ cycleId: "c001" }]);
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: true });
+    assert.doesNotThrow(() => JSON.parse(out.join("")));
+  });
+
+  it("passes cycleId to runner when provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", cycleId: "c001", json: false });
+    assert.equal(captured["cycleId"], "c001");
   });
 });
