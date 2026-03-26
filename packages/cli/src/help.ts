@@ -596,7 +596,7 @@ const HELP_TREE: HelpTree = {
       },
       series: {
         usage: "okx event series [--seriesId <id>]",
-        description: "List event contract series (settlement.method: price_up_down/price_above/price_once_touch)",
+        description: "List event contract series grouped by type (UP/DOWN direction or YES/NO price-target)",
       },
       events: {
         usage: "okx event events <seriesId> [--state <preopen|live|settling|expired>] [--limit <n>]",

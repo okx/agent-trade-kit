@@ -178,9 +178,9 @@ const OUTCOME_SCHEMA = {
   type: "string" as const,
   enum: ["UP", "YES", "DOWN", "NO"],
   description: `Which outcome to trade.
-price_up_down series: UP (price rises during the period) or DOWN (price falls).
-price_above / price_once_touch series: YES (condition met) or NO (condition not met).
-Check the settlement.method field from event_get_series to determine which applies.
+UP/DOWN direction contracts: UP (price rises during the period) or DOWN (price falls).
+YES/NO price-target or touch contracts: YES (condition met) or NO (condition not met).
+Check the series type from event_get_series to determine which applies.
 NOTE: px is a probability in 0.00~1.00, NOT a regular asset price.`,
 };
 
