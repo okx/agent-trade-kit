@@ -27,6 +27,7 @@
 - **`dca_create_order` 缺少 `tag` 字段**：创建请求体中现在正确包含 `tag`（来自 `context.config.sourceTag`），与 `grid_create_order` 行为一致。
 - **`allowReinvest` 类型不匹配**：Schema 从字符串枚举改为布尔类型，匹配后端 `Boolean` 类型。Handler 同时兼容布尔值和字符串 "true"/"false"（CLI 兼容）。
 - **`cmdDcaSubOrders` 展示字段错误**：查询周期内子订单（传了 `--cycleId`）时，CLI 现在显示订单专有字段（`ordId`、`side`、`ordType`、`filledSz` 等），替代之前错误使用的周期列表字段。
+- **`okx market ticker` 的"24h change %"字段显示错误**：该字段原来错误地映射到 `sodUtc8`（UTC+8 当日开盘价），而非基于 `open24h` 计算涨跌幅。现已修复：新增 `24h open` 字段展示 `open24h` 值，并基于 `open24h` 与 `last` 计算 `24h change %`。
 
 ---
 

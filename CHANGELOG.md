@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dca_create_order` missing `tag` field**: The `tag` field (from `context.config.sourceTag`) is now correctly included in the create request body, matching `grid_create_order` behavior.
 - **`allowReinvest` type mismatch**: Schema changed from string enum to boolean to match the backend `Boolean` type. Handler accepts both boolean and string "true"/"false" for CLI compatibility.
 - **`cmdDcaSubOrders` wrong table columns**: When querying orders within a cycle (with `--cycleId`), the CLI now displays order-specific fields (`ordId`, `side`, `ordType`, `filledSz`, etc.) instead of cycle-list fields.
+- **`okx market ticker` showed wrong "24h change %" field**: The field was incorrectly mapped to `sodUtc8` (UTC+8 daily open price) instead of being calculated from `open24h`. Now correctly displays `24h open` (the `open24h` value) and a computed `24h change %` (derived from `open24h` and `last`).
 
 ---
 

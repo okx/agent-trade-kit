@@ -33,13 +33,25 @@ describe("cmdMarketTicker", () => {
     assert.equal(err.join(""), "");
   });
 
-  it("outputs ticker fields when data is present", async () => {
+  it("outputs ticker fields including 24h open and computed change %", async () => {
     const runner: ToolRunner = async () => fakeResult([
-      { instId: "BTC-USDT", last: "50000", sodUtc8: "0.01", high24h: "51000", low24h: "49000", vol24h: "1000", ts: "1700000000000" },
+      { instId: "BTC-USDT", last: "51000", open24h: "50000", high24h: "52000", low24h: "49000", vol24h: "1000", ts: "1700000000000" },
     ]);
     await cmdMarketTicker(runner, "BTC-USDT", false);
-    assert.ok(out.join("").includes("BTC-USDT"));
-    assert.ok(out.join("").includes("50000"));
+    const combined = out.join("");
+    assert.ok(combined.includes("BTC-USDT"));
+    assert.ok(combined.includes("51000"));
+    assert.ok(combined.includes("50000")); // 24h open
+    assert.ok(combined.includes("2.00%")); // (51000-50000)/50000*100 = 2.00%
+    assert.equal(err.join(""), "");
+  });
+
+  it("shows N/A for 24h change % when open24h is 0", async () => {
+    const runner: ToolRunner = async () => fakeResult([
+      { instId: "BTC-USDT", last: "50000", open24h: "0", high24h: "51000", low24h: "49000", vol24h: "1000", ts: "1700000000000" },
+    ]);
+    await cmdMarketTicker(runner, "BTC-USDT", false);
+    assert.ok(out.join("").includes("N/A"));
     assert.equal(err.join(""), "");
   });
 
