@@ -78,6 +78,13 @@ export function fail(label: string, detail: string, hints: string[]): void {
   }
 }
 
+export function warn(label: string, detail: string, hints: string[] = []): void {
+  outputLine(`  \u26a0 ${label.padEnd(14)} ${detail}`);
+  for (const hint of hints) {
+    outputLine(`    \u2192 ${hint}`);
+  }
+}
+
 export function section(title: string): void {
   outputLine("");
   outputLine(`  ${title}`);
