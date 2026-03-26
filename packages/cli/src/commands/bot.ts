@@ -178,14 +178,15 @@ export async function cmdGridStop(
 }
 
 // ---------------------------------------------------------------------------
-// DCA (Contract) commands
+// DCA (Spot & Contract) commands
 // ---------------------------------------------------------------------------
 
 export async function cmdDcaCreate(
   run: ToolRunner,
   opts: {
     instId: string;
-    lever: string;
+    algoOrdType: string;
+    lever?: string;
     direction: string;
     initOrdAmt: string;
     maxSafetyOrds: string;
@@ -199,11 +200,15 @@ export async function cmdDcaCreate(
     allowReinvest?: string;
     triggerStrategy?: string;
     triggerPx?: string;
+    algoClOrdId?: string;
+    reserveFunds?: string;
+    tradeQuoteCcy?: string;
     json: boolean;
   },
 ): Promise<void> {
   const result = await run("dca_create_order", {
     instId: opts.instId,
+    algoOrdType: opts.algoOrdType,
     lever: opts.lever,
     direction: opts.direction,
     initOrdAmt: opts.initOrdAmt,
@@ -218,32 +223,36 @@ export async function cmdDcaCreate(
     allowReinvest: opts.allowReinvest,
     triggerStrategy: opts.triggerStrategy,
     triggerPx: opts.triggerPx,
+    algoClOrdId: opts.algoClOrdId,
+    reserveFunds: opts.reserveFunds,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
   emitWriteResult(data?.[0], "DCA bot created", "algoId");
 }
 
 export async function cmdDcaStop(
   run: ToolRunner,
-  opts: { algoId: string; json: boolean },
+  opts: { algoId: string; algoOrdType: string; stopType?: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_stop_order", {
     algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
+    stopType: opts.stopType,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
   emitWriteResult(data?.[0], "DCA bot stopped", "algoId");
 }
 
 export async function cmdDcaOrders(
   run: ToolRunner,
-  opts: { algoId?: string; instId?: string; history: boolean; json: boolean },
+  opts: { algoOrdType?: string; algoId?: string; instId?: string; history: boolean; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_orders", {
     status: opts.history ? "history" : "active",
+    algoOrdType: opts.algoOrdType,
     algoId: opts.algoId,
     instId: opts.instId,
   });
@@ -252,28 +261,31 @@ export async function cmdDcaOrders(
   if (!orders.length) { outputLine("No DCA bots"); return; }
   printTable(
     orders.map((o) => ({
-      algoId:    o["algoId"],
-      instId:    o["instId"],
-      state:     o["state"],
-      pnl:       o["pnl"],
-      pnlRatio:  o["pnlRatio"],
-      createdAt: new Date(Number(o["cTime"])).toLocaleString(),
+      algoId:      o["algoId"],
+      instId:      o["instId"],
+      type:        o["algoOrdType"],
+      state:       o["state"],
+      pnl:         o["pnl"],
+      pnlRatio:    o["pnlRatio"],
+      createdAt:   new Date(Number(o["cTime"])).toLocaleString(),
     })),
   );
 }
 
 export async function cmdDcaDetails(
   run: ToolRunner,
-  opts: { algoId: string; json: boolean },
+  opts: { algoId: string; algoOrdType: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_order_details", {
     algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
   });
   const detail = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
   if (!detail) { outputLine("DCA bot not found"); return; }
   if (opts.json) return printJson(detail);
   printKv({
     algoId:        detail["algoId"],
+    algoOrdType:   detail["algoOrdType"],
     instId:        detail["instId"],
     sz:            detail["sz"],
     avgPx:         detail["avgPx"],
@@ -291,25 +303,44 @@ export async function cmdDcaDetails(
 
 export async function cmdDcaSubOrders(
   run: ToolRunner,
-  opts: { algoId: string; cycleId?: string; json: boolean },
+  opts: { algoId: string; algoOrdType: string; cycleId?: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_sub_orders", {
     algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
     cycleId: opts.cycleId,
   });
-  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
-  if (opts.json) return printJson(orders);
-  if (!orders.length) { outputLine("No sub-orders"); return; }
-  printTable(
-    orders.map((o) => ({
-      cycleId:     o["cycleId"],
-      status:      o["cycleStatus"],
-      current:     o["currentCycle"] ? "yes" : "",
-      avgPx:       o["avgPx"],
-      tpPx:        o["tpPx"],
-      realizedPnl: o["realizedPnl"],
-      fee:         o["fee"],
-      startTime:   o["startTime"] ? new Date(Number(o["startTime"] as string)).toLocaleString() : "",
-    })),
-  );
+  const rows = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(rows);
+  if (!rows.length) { outputLine("No sub-orders"); return; }
+
+  if (opts.cycleId) {
+    // Orders within a cycle — fields from /orders endpoint
+    printTable(
+      rows.map((o) => ({
+        ordId:     o["ordId"],
+        side:      o["side"],
+        ordType:   o["ordType"],
+        px:        o["px"],
+        filledSz:  o["filledSz"],
+        avgFillPx: o["avgFillPx"],
+        state:     o["state"],
+        fee:       o["fee"],
+      })),
+    );
+  } else {
+    // Cycle list — fields from /cycle-list endpoint
+    printTable(
+      rows.map((o) => ({
+        cycleId:     o["cycleId"],
+        status:      o["cycleStatus"],
+        current:     o["currentCycle"] ? "yes" : "",
+        avgPx:       o["avgPx"],
+        tpPx:        o["tpPx"],
+        realizedPnl: o["realizedPnl"],
+        fee:         o["fee"],
+        startTime:   o["startTime"] ? new Date(Number(o["startTime"] as string)).toLocaleString() : "",
+      })),
+    );
+  }
 }

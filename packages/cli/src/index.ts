@@ -891,16 +891,20 @@ export function handleBotDcaCommand(
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
+  // CLI backward compatibility: default algoOrdType to contract_dca if not provided
+  const algoOrdType = v.algoOrdType ?? "contract_dca";
+
   if (subAction === "orders")
-    return cmdDcaOrders(run, { algoId: v.algoId, instId: v.instId, history: v.history ?? false, json });
+    return cmdDcaOrders(run, { algoOrdType, algoId: v.algoId, instId: v.instId, history: v.history ?? false, json });
   if (subAction === "details")
-    return cmdDcaDetails(run, { algoId: v.algoId!, json });
+    return cmdDcaDetails(run, { algoId: v.algoId!, algoOrdType, json });
   if (subAction === "sub-orders")
-    return cmdDcaSubOrders(run, { algoId: v.algoId!, cycleId: v.cycleId, json });
+    return cmdDcaSubOrders(run, { algoId: v.algoId!, algoOrdType, cycleId: v.cycleId, json });
   if (subAction === "create")
     return cmdDcaCreate(run, {
       instId: v.instId!,
-      lever: v.lever!,
+      algoOrdType,
+      lever: v.lever,
       direction: v.direction!,
       initOrdAmt: v.initOrdAmt!,
       maxSafetyOrds: v.maxSafetyOrds!,
@@ -914,10 +918,13 @@ export function handleBotDcaCommand(
       allowReinvest: v.allowReinvest,
       triggerStrategy: v.triggerStrategy,
       triggerPx: v.triggerPx,
+      algoClOrdId: v.algoClOrdId,
+      reserveFunds: v.reserveFunds,
+      tradeQuoteCcy: v.tradeQuoteCcy,
       json,
     });
   if (subAction === "stop")
-    return cmdDcaStop(run, { algoId: v.algoId!, json });
+    return cmdDcaStop(run, { algoId: v.algoId!, algoOrdType, stopType: v.stopType, json });
 }
 
 export function handleBotCommand(

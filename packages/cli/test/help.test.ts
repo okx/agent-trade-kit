@@ -113,7 +113,7 @@ describe('printHelp("bot") — bot module overview', () => {
     assert.ok(out.includes("grid"), "should mention grid strategy");
     assert.ok(out.includes("dca"), "should mention dca strategy");
     assert.ok(out.includes("Grid trading bot"), "should include grid description");
-    assert.ok(out.includes("Contract DCA"), "should include dca description");
+    assert.ok(out.includes("DCA (Martingale)"), "should include dca description");
   });
 
   it("hints to run bot <strategy> --help", () => {

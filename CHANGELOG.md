@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Spot DCA support** (`bot.dca`): All 5 DCA tools now support both Spot DCA (`algoOrdType=spot_dca`) and Contract DCA (`algoOrdType=contract_dca`). New parameters: `algoOrdType` (required), `algoClOrdId`, `reserveFunds`, `tradeQuoteCcy` for `dca_create_order`; `algoOrdType` and `stopType` for `dca_stop_order`; `algoOrdType` filter for `dca_get_orders`; `algoOrdType` required for `dca_get_order_details` and `dca_get_sub_orders`. CLI commands updated with matching `--algoOrdType` option (defaults to `contract_dca` for backward compatibility). Help text and agent-skills documentation updated.
+
+### Removed
+
+- **`dca_create_order` `triggerStrategy` no longer supports `"rsi"`**: OKX DCA API does not support RSI trigger for DCA bots. The `triggerStrategy` enum is now `["instant", "price"]`. Users previously passing `triggerStrategy: "rsi"` will receive a schema validation error.
+
+### Fixed
+
+- **`dca_create_order` missing `tag` field**: The `tag` field (from `context.config.sourceTag`) is now correctly included in the create request body, matching `grid_create_order` behavior.
+- **`allowReinvest` type mismatch**: Schema changed from string enum to boolean to match the backend `Boolean` type. Handler accepts both boolean and string "true"/"false" for CLI compatibility.
+- **`cmdDcaSubOrders` wrong table columns**: When querying orders within a cycle (with `--cycleId`), the CLI now displays order-specific fields (`ordId`, `side`, `ordType`, `filledSz`, etc.) instead of cycle-list fields.
+
 ---
 
 ## [1.2.7-beta.1] - 2026-03-26
@@ -28,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`grid_create_order`: `direction` is now required for contract grids** — MCP-side validation rejects requests missing `direction` when `algoOrdType=contract_grid`, providing immediate client-side feedback without a network round-trip.
 - **`grid_stop_order`: default `stopType` changed from `"2"` to `"1"`** — omitting `stopType` now defaults to close-all (stop grid and close positions) instead of keep-assets, which is the safer and more intuitive default for both spot and contract grids.
 - **`grid_create_order`: shortened tool descriptions** — reduced `grid_create_order` JSON schema size by ~20% (2,017 → 1,610 chars) by tightening parameter descriptions (`sz`, `algoClOrdId`, TP/SL fields) without removing any information.
-
 ---
 
 ## [1.2.6] - 2026-03-23
