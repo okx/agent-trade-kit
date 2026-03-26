@@ -233,15 +233,34 @@ Restart Claude Desktop after updating the config.
 
 Config file: `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project-level)
 
+> **⚠️ Cursor tool limit**: Cursor enforces a client-side limit of ~40 tools per MCP server and ~80 tools total (as of early 2026). okx-trade-mcp exposes **128 tools** across 13 modules — loading `--modules all` will cause all MCP servers to show **Error** status. You must select a subset using `--modules`.
+
+**Recommended module combinations:**
+
+| Use case | Modules | Tools |
+|----------|---------|-------|
+| Trading (spot + swap) | `market,account,spot,swap` | 61 |
+| Contract + Bot | `market,account,swap,bot.grid,bot.dca` | 55 |
+| Earn | `market,account,earn.savings,earn.onchain,earn.dcd,earn.autoearn` | 48 |
+| Minimal (market data + account) | `market,account` | 27 |
+
+> **Tip:** If you need more modules than fit in one server, register multiple server instances with different `--modules` sets. Tool counts from all servers are pooled toward the ~80-tool total, so plan your splits accordingly.
+
 ```json
 {
   "mcpServers": {
     "okx-trade": {
       "command": "npx",
-      "args": ["-y", "@okx_ai/okx-trade-mcp", "--profile", "demo", "--modules", "all"]
+      "args": ["-y", "@okx_ai/okx-trade-mcp", "--profile", "demo", "--modules", "market,account,spot,swap"]
     }
   }
 }
+```
+
+Or use the setup command with an explicit module list:
+
+```bash
+okx-trade-mcp setup --client cursor --modules market,account,spot,swap
 ```
 
 ### Claude Code CLI
@@ -613,15 +632,34 @@ okx-trade-mcp setup --client claude-desktop --profile live --modules market,spot
 
 配置文件：`~/.cursor/mcp.json`（全局）或 `.cursor/mcp.json`（项目级）
 
+> **⚠️ Cursor 工具数量限制**：Cursor 客户端限制每个 MCP Server 最多约 40 个工具，所有 Server 合计不超过约 80 个（截至 2026 年初）。okx-trade-mcp 共有 **128 个工具**（13 个模块），使用 `--modules all` 将导致所有 MCP Server 显示 **Error** 状态。必须通过 `--modules` 参数选择子集。
+
+**推荐模块组合：**
+
+| 使用场景 | 模块 | 工具数 |
+|----------|------|--------|
+| 交易（现货 + 合约） | `market,account,spot,swap` | 61 |
+| 合约 + 机器人 | `market,account,swap,bot.grid,bot.dca` | 55 |
+| 赚币 | `market,account,earn.savings,earn.onchain,earn.dcd,earn.autoearn` | 48 |
+| 最小化（行情 + 账户） | `market,account` | 27 |
+
+> **提示：** 如果需要的模块超出单个 Server 的工具上限，可以注册多个 Server 实例，每个实例指定不同的 `--modules`。所有实例的工具数量**合计**计入约 80 个总限额，规划时需综合考虑。
+
 ```json
 {
   "mcpServers": {
     "okx-trade": {
       "command": "npx",
-      "args": ["-y", "@okx_ai/okx-trade-mcp", "--profile", "demo", "--modules", "all"]
+      "args": ["-y", "@okx_ai/okx-trade-mcp", "--profile", "demo", "--modules", "market,account,spot,swap"]
     }
   }
 }
+```
+
+也可以用 setup 命令指定模块列表：
+
+```bash
+okx-trade-mcp setup --client cursor --modules market,account,spot,swap
 ```
 
 ### Claude Code CLI

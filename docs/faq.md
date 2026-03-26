@@ -188,6 +188,34 @@ Make sure you're on the right profile. If `default_profile = "demo"` in your con
 
 Open a GitHub issue and include the full error block (for MCP) or full stderr output (for CLI). The `traceId` and `serverVersion` fields are automatically included — no extra steps needed.
 
+### Cursor shows "Error" for all MCP servers
+
+**Cause**: Cursor enforces a client-side limit of ~40 tools per MCP server and ~80 tools total (as of early 2026). okx-trade-mcp has 128 tools across 13 modules — loading `--modules all` exceeds this limit and causes every MCP server in Cursor to show Error status.
+
+**Fix**: Use `--modules` to limit the tools loaded. Recommended combinations that fit within the Cursor limit:
+
+| Use case | Modules | Tools |
+|----------|---------|-------|
+| Trading (spot + swap) | `market,account,spot,swap` | 61 |
+| Contract + Bot | `market,account,swap,bot.grid,bot.dca` | 55 |
+| Earn | `market,account,earn.savings,earn.onchain,earn.dcd,earn.autoearn` | 48 |
+| Minimal (market data + account) | `market,account` | 27 |
+
+Update your `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "okx-trade": {
+      "command": "npx",
+      "args": ["-y", "@okx_ai/okx-trade-mcp", "--profile", "demo", "--modules", "market,account,spot,swap"]
+    }
+  }
+}
+```
+
+See [Client Setup — Cursor](configuration.md#cursor) for full details.
+
 ---
 
 ## API Coverage
@@ -413,6 +441,34 @@ okx-trade-mcp --help
 ### 如何提交 Bug？
 
 在 GitHub 开 Issue，附上完整错误块（MCP）或完整 stderr 输出（CLI）。`traceId` 和 `serverVersion` 会自动包含在错误信息中，无需额外步骤。
+
+### Cursor 中所有 MCP Server 显示 "Error"
+
+**原因**：Cursor 客户端限制每个 MCP Server 最多约 40 个工具，所有 Server 合计不超过约 80 个（截至 2026 年初）。okx-trade-mcp 共有 128 个工具（13 个模块），使用 `--modules all` 超出此限制，导致 Cursor 中所有 MCP Server 均显示 Error 状态。
+
+**解决方法**：使用 `--modules` 限制加载的工具数量。以下组合均在 Cursor 限制范围内：
+
+| 使用场景 | 模块 | 工具数 |
+|----------|------|--------|
+| 交易（现货 + 合约） | `market,account,spot,swap` | 61 |
+| 合约 + 机器人 | `market,account,swap,bot.grid,bot.dca` | 55 |
+| 赚币 | `market,account,earn.savings,earn.onchain,earn.dcd,earn.autoearn` | 48 |
+| 最小化（行情 + 账户） | `market,account` | 27 |
+
+更新 `~/.cursor/mcp.json`：
+
+```json
+{
+  "mcpServers": {
+    "okx-trade": {
+      "command": "npx",
+      "args": ["-y", "@okx_ai/okx-trade-mcp", "--profile", "demo", "--modules", "market,account,spot,swap"]
+    }
+  }
+}
+```
+
+详见 [客户端配置 — Cursor](configuration.md#cursor-1) 章节。
 
 ---
 

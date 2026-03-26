@@ -15,7 +15,7 @@
 
 - **`okx diagnose --mcp` 多客户端检测**：自动检测 Cursor、Windsurf、Claude Code、Claude Desktop 的 MCP 配置；未安装的客户端直接 skip 而非报错；至少一个客户端已配置即通过 (#90)
 - **`okx diagnose --mcp` Tool 数量限制检查**：统计已加载的 tool 总数，超出已知客户端限制（如 Cursor: 单服务器 40 个、总计 80 个）时发出警告并给出 `--modules` 缩减建议 (#90)
-
+- **Cursor 工具数量限制说明**：在 `docs/configuration.md` 和 `docs/faq.md` 中新增针对 Cursor 用户的工具数量限制警告、推荐模块组合表及安全配置示例（#88）
 - **现货 DCA 支持**（`bot.dca`）：5 个 DCA 工具现在同时支持现货 DCA（`algoOrdType=spot_dca`）和合约 DCA（`algoOrdType=contract_dca`）。`dca_create_order` 新增参数：`algoOrdType`（必填）、`algoClOrdId`、`reserveFunds`、`tradeQuoteCcy`；`dca_stop_order` 新增 `algoOrdType` 和 `stopType`；`dca_get_orders` 新增 `algoOrdType` 过滤；`dca_get_order_details` 和 `dca_get_sub_orders` 新增 `algoOrdType`（必填）。CLI 命令同步新增 `--algoOrdType` 选项（省略时默认 `contract_dca`，保持向后兼容）。帮助文本和 agent-skills 文档同步更新。
 
 ### 移除
