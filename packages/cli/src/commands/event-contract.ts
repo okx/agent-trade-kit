@@ -37,11 +37,10 @@ function fmtFreq(raw: unknown): string {
   return map[String(raw)] ?? String(raw ?? "");
 }
 
-/** outcome field in markets response: "0"=pending, "1"=YES, "2"=NO */
+/** outcome field in markets response: already translated by MCP — "YES", "NO", "UP", "DOWN", "pending", or empty */
 function fmtOutcome(raw: unknown): string {
-  if (raw === "0" || raw === 0 || raw === "") return "";
-  if (raw === "1" || raw === 1) return "YES";
-  if (raw === "2" || raw === 2) return "NO";
+  const s = String(raw ?? "").toLowerCase();
+  if (s === "" || s === "pending") return "";
   return String(raw ?? "");
 }
 
