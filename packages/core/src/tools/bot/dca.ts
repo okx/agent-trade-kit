@@ -50,35 +50,50 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_create_order",
       module: "bot.dca",
       description:
-        "Create Contract DCA (Martingale) bot. [CAUTION] Real trades. " +
-        "When maxSafetyOrds > 0: also need safetyOrdAmt, pxSteps, pxStepsMult, volMult.",
+        "Create a DCA (Martingale) bot. [CAUTION] Real trades. " +
+        "contract_dca requires lever; spot_dca must be long. " +
+        "If maxSafetyOrds>0: need safetyOrdAmt, pxSteps.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
-          instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
-          lever: { type: "string", description: "Leverage, e.g. '3'" },
+          instId: { type: "string", description: "BTC-USDT (spot) or BTC-USDT-SWAP (contract)" },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
+          lever: { type: "string", description: "Required for contract_dca" },
           direction: { type: "string", enum: ["long", "short"] },
-          initOrdAmt: { type: "string", description: "Initial order amount (USDT)" },
-          maxSafetyOrds: { type: "string", description: "Max safety orders, e.g. '3'" },
-          tpPct: { type: "string", description: "Take-profit ratio, e.g. '0.03' = 3%" },
-          safetyOrdAmt: { type: "string", description: "Safety order amount (USDT). Need when maxSafetyOrds > 0" },
-          pxSteps: { type: "string", description: "Price drop % per safety order, e.g. '0.03'. Need when maxSafetyOrds > 0" },
-          pxStepsMult: { type: "string", description: "Price step multiplier, e.g. '1.2'. Need when maxSafetyOrds > 0" },
-          volMult: { type: "string", description: "Safety order size multiplier, e.g. '1.5'. Need when maxSafetyOrds > 0" },
-          slPct: { type: "string", description: "Stop-loss ratio, e.g. '0.05' = 5%" },
-          slMode: { type: "string", enum: ["limit", "market"], description: "Stop-loss type. Default: market" },
-          allowReinvest: { type: "string", enum: ["true", "false"], description: "Reinvest profit. Default: 'true'" },
-          triggerStrategy: { type: "string", enum: ["instant", "price", "rsi"], default: "instant", description: "How bot starts. Default: instant" },
-          triggerPx: { type: "string", description: "Required when triggerStrategy='price'" },
+          initOrdAmt: { type: "string", description: "Initial amount in quote ccy" },
+          maxSafetyOrds: { type: "string", description: "0=no DCA, max 100" },
+          tpPct: { type: "string", description: "Take-profit ratio, 0.03=3%" },
+          safetyOrdAmt: { type: "string", description: "Safety order amount. Need if maxSafetyOrds>0" },
+          pxSteps: { type: "string", description: "Price drop per safety order. Need if maxSafetyOrds>0" },
+          pxStepsMult: { type: "string", description: "Step multiplier. Required when maxSafetyOrds>0, e.g. '1'" },
+          volMult: { type: "string", description: "Size multiplier. Required when maxSafetyOrds>0, e.g. '1'" },
+          slPct: { type: "string", description: "Stop-loss ratio, 0.05=5%" },
+          slMode: { type: "string", enum: ["limit", "market"] },
+          allowReinvest: { type: "boolean", description: "Default true" },
+          triggerStrategy: { type: "string", enum: ["instant", "price"] },
+          triggerPx: { type: "string", description: "Need if triggerStrategy=price" },
+          algoClOrdId: { type: "string", description: "Client order ID, 1-32 chars" },
+          // Backend expects boolean, but kept as string for backward compatibility with older clients.
+          reserveFunds: { type: "string", description: "'true' or 'false', default 'true'" },
+          tradeQuoteCcy: { type: "string" },
         },
-        required: ["instId", "lever", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
+        required: ["instId", "algoOrdType", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const instId = requireString(args, "instId");
+        const algoOrdType = requireString(args, "algoOrdType");
 
-        // Build triggerParams: default to instant; support price/rsi strategies
+        // Validate lever: required for contract_dca
+        if (algoOrdType === "contract_dca" && !readString(args, "lever")) {
+          throw new OkxApiError("lever is required for contract_dca", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/create`,
+          });
+        }
+
+        // Build triggerParams: default to instant; support price strategy
         const triggerStrategy = readString(args, "triggerStrategy") ?? "instant";
         const triggerParam: Record<string, string> = {
           triggerAction: "start",
@@ -88,24 +103,59 @@ export function registerDcaTools(): ToolSpec[] {
           triggerParam["triggerPx"] = requireString(args, "triggerPx");
         }
 
+        // Validate conditional required params when maxSafetyOrds > 0
+        const maxSafetyOrds = requireString(args, "maxSafetyOrds");
+        if (Number(maxSafetyOrds) > 0) {
+          if (!readString(args, "safetyOrdAmt")) {
+            throw new OkxApiError("safetyOrdAmt is required when maxSafetyOrds > 0", {
+              code: "VALIDATION",
+              endpoint: `${BASE}/create`,
+            });
+          }
+          if (!readString(args, "pxSteps")) {
+            throw new OkxApiError("pxSteps is required when maxSafetyOrds > 0", {
+              code: "VALIDATION",
+              endpoint: `${BASE}/create`,
+            });
+          }
+          if (!readString(args, "pxStepsMult")) {
+            throw new OkxApiError("pxStepsMult is required when maxSafetyOrds > 0", {
+              code: "VALIDATION",
+              endpoint: `${BASE}/create`,
+            });
+          }
+          if (!readString(args, "volMult")) {
+            throw new OkxApiError("volMult is required when maxSafetyOrds > 0", {
+              code: "VALIDATION",
+              endpoint: `${BASE}/create`,
+            });
+          }
+        }
+
         const response = await context.client.privatePost(
           `${BASE}/create`,
           compactObject({
             instId,
-            algoOrdType: "contract_dca",
-            lever: requireString(args, "lever"),
+            algoOrdType,
+            lever: readString(args, "lever"),
             direction: requireString(args, "direction"),
             initOrdAmt: requireString(args, "initOrdAmt"),
             safetyOrdAmt: readString(args, "safetyOrdAmt"),
-            maxSafetyOrds: requireString(args, "maxSafetyOrds"),
+            maxSafetyOrds,
             pxSteps: readString(args, "pxSteps"),
             pxStepsMult: readString(args, "pxStepsMult"),
             volMult: readString(args, "volMult"),
             tpPct: requireString(args, "tpPct"),
             slPct: readString(args, "slPct"),
             slMode: readString(args, "slMode"),
-            allowReinvest: readString(args, "allowReinvest"),
+            allowReinvest: args["allowReinvest"] !== undefined
+              ? (args["allowReinvest"] === true || args["allowReinvest"] === "true")
+              : undefined,
             triggerParams: [triggerParam],
+            tag: context.config.sourceTag,
+            algoClOrdId: readString(args, "algoClOrdId"),
+            reserveFunds: readString(args, "reserveFunds"),
+            tradeQuoteCcy: readString(args, "tradeQuoteCcy"),
           }),
           privateRateLimit("dca_create_order", 20),
         );
@@ -116,22 +166,34 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_stop_order",
       module: "bot.dca",
       description:
-        "Stop a running Contract DCA bot. [CAUTION] This will stop the bot.",
+        "Stop a running DCA bot. [CAUTION] spot_dca needs stopType: 1=sell, 2=keep.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
+          algoId: { type: "string", description: "Algo order ID" },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
+          stopType: { type: "string", enum: ["1", "2"], description: "Required for spot_dca: 1=sell all, 2=keep tokens" },
         },
-        required: ["algoId"],
+        required: ["algoId", "algoOrdType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
+        const algoOrdType = requireString(args, "algoOrdType");
+        const stopType = readString(args, "stopType");
+
+        // Validate stopType: required for spot_dca
+        if (algoOrdType === "spot_dca" && !stopType) {
+          throw new OkxApiError(
+            "stopType is required for spot_dca. Use '1' (sell all tokens) or '2' (keep tokens)",
+            { code: "VALIDATION", endpoint: `${BASE}/stop` },
+          );
+        }
 
         const response = await context.client.privatePost(
           `${BASE}/stop`,
-          { algoId, algoOrdType: "contract_dca" },
+          compactObject({ algoId, algoOrdType, stopType }),
           privateRateLimit("dca_stop_order", 20),
         );
         return normalizeWrite(response);
@@ -140,34 +202,32 @@ export function registerDcaTools(): ToolSpec[] {
     {
       name: "dca_get_orders",
       module: "bot.dca",
-      description:
-        "List DCA bots. status='active' for running; 'history' for stopped.",
+      description: "List DCA bots. Default: active (running). Use status=history for stopped.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          status: {
-            type: "string",
-            enum: ["active", "history"],
-            description: "active=running (default); history=stopped",
-          },
-          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
-          instId: { type: "string", description: "e.g. BTC-USDT-SWAP" },
-          after: { type: "string", description: "Cursor for older records" },
-          before: { type: "string", description: "Cursor for newer records" },
-          limit: { type: "number", description: "Default 100" },
+          status: { type: "string", enum: ["active", "history"] },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"], description: "Default: contract_dca" },
+          algoId: { type: "string", description: "Algo order ID" },
+          instId: { type: "string" },
+          after: { type: "string", description: "Pagination cursor" },
+          before: { type: "string", description: "Pagination cursor" },
+          limit: { type: "number" },
         },
         required: [],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const status = readString(args, "status") ?? "active";
-
         const path = status === "history" ? `${BASE}/history-list` : `${BASE}/ongoing-list`;
+        // Default to contract_dca for backward compatibility
+        const algoOrdType = readString(args, "algoOrdType") ?? "contract_dca";
+
         const response = await context.client.privateGet(
           path,
           compactObject({
-            algoOrdType: "contract_dca",
+            algoOrdType,
             algoId: readString(args, "algoId"),
             instId: readString(args, "instId"),
             after: readString(args, "after"),
@@ -182,22 +242,24 @@ export function registerDcaTools(): ToolSpec[] {
     {
       name: "dca_get_order_details",
       module: "bot.dca",
-      description: "Get DCA bot detail by algo ID. Returns current position details.",
+      description: "Get DCA bot position details (avgPx, upl, liqPx, etc).",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
+          algoId: { type: "string", description: "Algo order ID" },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
         },
-        required: ["algoId"],
+        required: ["algoId", "algoOrdType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
+        const algoOrdType = requireString(args, "algoOrdType");
 
         const response = await context.client.privateGet(
           `${BASE}/position-details`,
-          { algoId, algoOrdType: "contract_dca" },
+          { algoId, algoOrdType },
           privateRateLimit("dca_get_order_details", 20),
         );
         return normalizeResponse(response);
@@ -206,23 +268,24 @@ export function registerDcaTools(): ToolSpec[] {
     {
       name: "dca_get_sub_orders",
       module: "bot.dca",
-      description:
-        "Query DCA bot cycles or orders within a cycle. Omit cycleId for cycle list; provide cycleId for orders.",
+      description: "Get DCA cycles or orders in a cycle. Omit cycleId=cycle list; with cycleId=orders.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "DCA bot algo order ID (not a trade ordId)" },
-          cycleId: { type: "string", description: "Omit for cycle list; provide for orders within a cycle" },
-          after: { type: "string", description: "Cursor for older records (cycle-list mode only)" },
-          before: { type: "string", description: "Cursor for newer records (cycle-list mode only)" },
-          limit: { type: "number", description: "Default 100" },
+          algoId: { type: "string", description: "Algo order ID" },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
+          cycleId: { type: "string", description: "Omit for cycles; provide for orders" },
+          after: { type: "string", description: "Pagination cursor" },
+          before: { type: "string", description: "Pagination cursor" },
+          limit: { type: "number" },
         },
-        required: ["algoId"],
+        required: ["algoId", "algoOrdType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
+        const algoOrdType = requireString(args, "algoOrdType");
         const cycleId = readString(args, "cycleId");
 
         if (cycleId) {
@@ -231,7 +294,7 @@ export function registerDcaTools(): ToolSpec[] {
             `${BASE}/orders`,
             compactObject({
               algoId,
-              algoOrdType: "contract_dca",
+              algoOrdType,
               cycleId,
               limit: readNumber(args, "limit"),
             }),
@@ -244,7 +307,7 @@ export function registerDcaTools(): ToolSpec[] {
           `${BASE}/cycle-list`,
           compactObject({
             algoId,
-            algoOrdType: "contract_dca",
+            algoOrdType,
             after: readString(args, "after"),
             before: readString(args, "before"),
             limit: readNumber(args, "limit"),
