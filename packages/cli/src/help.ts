@@ -590,6 +590,10 @@ const HELP_TREE: HelpTree = {
   event: {
     description: "Event contract trading — binary outcome prediction markets (Yes/No, Up/Down)",
     commands: {
+      browse: {
+        usage: "okx event browse [--underlying <asset>]",
+        description: "Browse all active (in-progress) event contracts; optionally filter by underlying (e.g. BTC-USD)",
+      },
       series: {
         usage: "okx event series [--seriesId <id>]",
         description: "List event contract series (settlement.method: price_up_down/price_above/price_once_touch)",

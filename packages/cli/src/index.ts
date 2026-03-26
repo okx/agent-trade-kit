@@ -1180,8 +1180,10 @@ export function handleEventCommand(
   json: boolean,
 ): Promise<void> | void {
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  if (action === "browse")
+    return cmdEventBrowse(run, { underlying: v.underlying ?? rest[0], json });
   if (action === "series")
-    return cmdEventSeries(run, { seriesId: v.seriesId, json });
+    return cmdEventSeries(run, { seriesId: v.seriesId, all: v.all, json });
   if (action === "events")
     return cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json });
   if (action === "markets")

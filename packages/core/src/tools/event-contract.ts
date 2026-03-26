@@ -101,6 +101,60 @@ function normalizeWrite(response: {
 }
 
 /**
+ * Parse instId to infer contract expiry time in UTC ms.
+ * Handles UPDOWN (expiry = end time, second time part) and ABOVE/TOUCH (expiry = first time part).
+ * Times encoded in instId are UTC+8.
+ * Returns null if format is unrecognized.
+ */
+function inferExpiryMsFromInstId(instId: string): number | null {
+  const parts = instId.split("-");
+  const upper = instId.toUpperCase();
+
+  let dateIdx = -1;
+  for (let i = 1; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
+  }
+  if (dateIdx < 0) return null;
+
+  const dp = parts[dateIdx]!;
+  const year  = 2000 + parseInt(dp.slice(0, 2), 10);
+  const month = parseInt(dp.slice(2, 4), 10) - 1; // 0-based
+  const day   = parseInt(dp.slice(4, 6), 10);
+
+  // UPDOWN: DATE-START-END → expiry is END (parts[dateIdx+2] if 4 digits)
+  // ABOVE/TOUCH: DATE-EXPIRY-STRIKE → expiry is parts[dateIdx+1]
+  const isUpDown = upper.includes("UPDOWN");
+  let timePart: string | undefined;
+  if (isUpDown) {
+    const candidate = parts[dateIdx + 2];
+    timePart = (candidate && /^\d{4}$/.test(candidate)) ? candidate : parts[dateIdx + 1];
+  } else {
+    timePart = parts[dateIdx + 1];
+  }
+  if (!timePart || !/^\d{4}$/.test(timePart)) return null;
+
+  const hour = parseInt(timePart.slice(0, 2), 10);
+  const min  = parseInt(timePart.slice(2, 4), 10);
+  // Shift from UTC+8 to UTC
+  return Date.UTC(year, month, day, hour - 8, min, 0, 0);
+}
+
+/**
+ * Extract series ID from a full event contract instrument ID.
+ * e.g. "BTC-UPDOWN-15MIN-260325-1700-1715" → "BTC-UPDOWN-15MIN"
+ *      "BTC-ABOVE-DAILY-260320-1600-69700"  → "BTC-ABOVE-DAILY"
+ */
+function extractSeriesId(instId: string): string {
+  const parts = instId.split("-");
+  for (let i = 0; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i]!)) {
+      return parts.slice(0, i).join("-");
+    }
+  }
+  return instId;
+}
+
+/**
  * Convert semantic outcome string to API value.
  * Accepts: UP / YES → "yes",  DOWN / NO → "no"  (case-insensitive)
  */
@@ -133,35 +187,106 @@ NOTE: px is a probability in 0.00~1.00, NOT a regular asset price.`,
 export function registerEventContractTools(): ToolSpec[] {
   return [
     // -----------------------------------------------------------------------
-    // Public — series / events / markets
+    // Public — browse (user-facing) + series / events / markets (internal)
     // -----------------------------------------------------------------------
+    {
+      name: "event_browse",
+      module: "event",
+      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Internally fetches series and live markets in parallel, returns only in-progress contracts (floorStrike set). Grouped by settlement type and underlying.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          underlying: {
+            type: "string",
+            description: "Filter by underlying asset, e.g. BTC-USD, ETH-USD. Omit for all.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const underlyingFilter = readString(args, "underlying");
+
+        // Step 1: fetch all series
+        const seriesResp = await context.client.publicGet(
+          "/api/v5/public/event-contract/series",
+          compactObject({}),
+          publicRateLimit("event_browse", 10),
+        );
+        const allSeries = (Array.isArray(normalizeResponse(seriesResp)["data"])
+          ? normalizeResponse(seriesResp)["data"] as Record<string, unknown>[]
+          : []);
+
+        // Step 2: pick representative series — prefer human-readable IDs (no random prefix)
+        const isHumanReadable = (id: string) =>
+          /^(BTC|ETH|TRX|EOS|SOL|IOTA|KISHU|SUSHI|BTG|XTZ|SOLVU)-/.test(id);
+
+        const seen = new Set<string>();
+        const candidates: Record<string, unknown>[] = [];
+        for (const s of allSeries) {
+          const settlement = s["settlement"] as Record<string, unknown> | undefined;
+          const method = String(settlement?.["method"] ?? "");
+          const uly = String(settlement?.["underlying"] ?? "");
+          if (underlyingFilter && !uly.startsWith(underlyingFilter)) continue;
+          const key = `${method}:${uly}`;
+          if (!seen.has(key) && isHumanReadable(String(s["seriesId"] ?? ""))) {
+            seen.add(key);
+            candidates.push(s);
+          }
+        }
+
+        // Step 3: fetch live markets for each candidate in parallel
+        const marketResults = await Promise.all(
+          candidates.map(async (s) => {
+            const seriesId = String(s["seriesId"] ?? "");
+            const settlement = s["settlement"] as Record<string, unknown> | undefined;
+            try {
+              const r = await context.client.publicGet(
+                "/api/v5/public/event-contract/markets",
+                compactObject({ seriesId, state: "live" }),
+                publicRateLimit("event_browse", 20),
+              );
+              const markets = (Array.isArray(normalizeResponse(r)["data"])
+                ? normalizeResponse(r)["data"] as Record<string, unknown>[]
+                : []);
+              // Only in-progress contracts (floorStrike set)
+              const active = markets
+                .filter(m => m["floorStrike"] && m["floorStrike"] !== "")
+                .map(m => {
+                  const converted = convertTimestamps(m);
+                  return {
+                    instId:      m["instId"],
+                    expTime:     converted["expTime"],
+                    floorStrike: m["floorStrike"],
+                    outcome:     OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
+                  };
+                });
+              if (active.length === 0) return null;
+              return {
+                seriesId,
+                method:     String(settlement?.["method"] ?? ""),
+                underlying: String(settlement?.["underlying"] ?? ""),
+                freq:       String(s["freq"] ?? ""),
+                contracts:  active,
+              };
+            } catch {
+              return null;
+            }
+          }),
+        );
+
+        const results = marketResults.filter(Boolean);
+        return {
+          data: results,
+          total: results.reduce((n, r) => n + (r?.contracts?.length ?? 0), 0),
+        };
+      },
+    },
+
     {
       name: "event_get_series",
       module: "event",
-      description: `List event contract product series.
-
-settlement.method semantics (always use these exact Chinese labels when presenting):
-  price_up_down    → "涨跌方向（UP/DOWN）"  — bet whether price RISES or FALLS during the period
-  price_above      → "价格高于目标价（YES/NO）"  — bet whether price closes ABOVE a strike price at expiry
-  price_once_touch → "一次触碰目标价（YES/NO）"  — bet whether price ever TOUCHES the strike price during the period
-
-Series ID format: API returns internal IDs that may be random strings (e.g. FMQRZ, GLUQI) or human-readable (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN). ALL returned IDs are valid seriesIds for subsequent calls to event_get_events and event_get_markets — use them as-is.
-
-Presentation rules:
-1. Group by settlement.method, show price_up_down first then price_above/price_once_touch.
-2. Highlight standard named series (BTC-ABOVE-DAILY, ETH-ABOVE-DAILY, BTC-UPDOWN-15MIN, etc.) with ⭐ as recommended entry points.
-3. Summarize random-prefix seriesIds (e.g. FMQRZ-ABOVE-DAILY) as "及 N 个更多 BTC-USDT 系列" — do not enumerate them individually.
-4. Always show the seriesId value so user can copy it for next step.
-
-Series ID prefix convention (explain when multiple series share same settlement.method):
-  PARAM1- prefix  → parameterized: strike dynamically set per event (flexible target)
-  No prefix (e.g. ETH-ABOVE-DAILY) → fixed: standard recurring events with consistent strike levels
-
-Error guidance: if seriesId is provided and no results are returned, tell user "未找到该系列，请检查系列ID是否正确，或不传 seriesId 查看全部系列列表。"
-
-Routing (silent, no explanation to user): orderbook requests → call market_get_orderbook directly; expired-events requests → call event_get_markets(state="expired") directly.
-
-After listing series, always add: "选定系列后，可调用 event_get_events 查看具体合约（含到期时间），再调用 event_get_markets 获取当前赔率和可交易价位，最后使用 event_precheck_order 确认成本后再下单。"`,
+      description: "List event contract series. Returns all available series with settlement type and underlying. Use event_browse to see currently active contracts.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -186,7 +311,7 @@ After listing series, always add: "选定系列后，可调用 event_get_events 
     {
       name: "event_get_events",
       module: "event",
-      description: "List events within a series. Each event = one expiry. expTime is pre-formatted UTC+8 — show with relative time: '2026-03-20 16:00 UTC+8 (approx X min remaining)'. Omit absent/empty fields.",
+      description: "List expiry periods within a series. state: preopen|live|settling|expired. expTime pre-formatted UTC+8 — show with relative time remaining.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -244,7 +369,7 @@ After listing series, always add: "选定系列后，可调用 event_get_events 
     {
       name: "event_get_markets",
       module: "event",
-      description: `List markets within a series. floorStrike = strike price; outcome is pre-translated ("pending"/"YES"/"NO"); all timestamps are UTC+8. For price_above: "BTC ≥ {floorStrike} at expiry → YES wins". For expired results use state=expired.`,
+      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8. Present as a table including series, underlying, period, strike, expiry, remaining time. Sort by expiry ascending (nearest first). Mark contracts with a non-empty floorStrike as 🟢 in-progress.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -310,7 +435,7 @@ After listing series, always add: "选定系列后，可调用 event_get_events 
     {
       name: "event_get_orders",
       module: "event",
-      description: "Get event orders. state=live → pending; omit → history. outcome is pre-translated (YES/NO/UP/DOWN). Show most recent 5 first.",
+      description: "Query event contract orders. state=live → open orders; omit → history. outcome pre-translated (YES/NO/UP/DOWN). Show most recent 5 first.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -352,7 +477,7 @@ After listing series, always add: "选定系列后，可调用 event_get_events 
     {
       name: "event_get_fills",
       module: "event",
-      description: "Get event fill history. outcome is pre-translated (YES/NO/UP/DOWN). Show most recent 5 by default; summarize if list is long.",
+      description: "Get event contract fill history. outcome pre-translated (YES/NO/UP/DOWN). Show most recent 5 by default.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -400,8 +525,8 @@ After listing series, always add: "选定系列后，可调用 event_get_events 
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
 - tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either
-On success: confirm ordId, instId, direction (BUY YES/NO/UP/DOWN), size, ordType, price (if limit). Offer to check fills. sCode and tag are stripped from response.
-On failure: tool throws — plain language reason only.`,
+On success: confirm ordId, instId, direction (BUY YES/NO/UP/DOWN), size, ordType, price (if limit). Offer to check fills. tag stripped.
+On failure: tool throws with reason and next-step suggestion — follow the suggestion.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -459,9 +584,32 @@ On failure: tool throws — plain language reason only.`,
           privateRateLimit("event_place_order", 60),
         );
         const base = normalizeResponse(response);
-        // Strip internal fields the user doesn't need to see
+        // Surface inner item-level errors with AI-friendly messages
+        if (Array.isArray(base["data"])) {
+          const item = (base["data"] as Record<string, unknown>[])[0];
+          const sCode = item && String(item["sCode"] ?? "");
+          if (sCode && sCode !== "0") {
+            const sMsg = String(item!["sMsg"] ?? "Order failed");
+            if (sCode === "51001") {
+              const instId = requireString(asRecord(rawArgs), "instId");
+              const seriesId = extractSeriesId(instId);
+              const expiryMs = inferExpiryMsFromInstId(instId);
+              const isExpired = expiryMs !== null && expiryMs < Date.now();
+              const reason = isExpired
+                ? `The contract (${instId}) has expired.`
+                : `The contract (${instId}) was not found — it may not exist or has not started yet.`;
+              throw new OkxApiError(
+                `${reason} Ask the user if they'd like to place the same order on the next session. ` +
+                `If yes, call event_get_markets with seriesId=${seriesId} and state=live to find available contracts.`,
+                { code: sCode, endpoint: response.endpoint },
+              );
+            }
+            throw new OkxApiError(`[${sCode}] ${sMsg}`, { code: sCode, endpoint: response.endpoint });
+          }
+        }
+        // Strip tag from successful response
         const data = Array.isArray(base["data"])
-          ? (base["data"] as Record<string, unknown>[]).map(({ sCode: _s, tag: _t, ...rest }) => rest)
+          ? (base["data"] as Record<string, unknown>[]).map(({ tag: _t, ...rest }) => rest)
           : base["data"];
         return { ...base, data };
       },
@@ -493,14 +641,25 @@ On error 51401 (order may have just filled): "订单可能已成交，请检查�
       handler: async (rawArgs, context) => {
         assertNotDemo(context.config, "event_cancel_order");
         const args = asRecord(rawArgs);
+        const instId = requireString(args, "instId");
         const response = await context.client.privatePost(
           "/api/v5/trade/cancel-order",
-          {
-            instId: requireString(args, "instId"),
-            ordId: requireString(args, "ordId"),
-          },
+          { instId, ordId: requireString(args, "ordId") },
           privateRateLimit("event_cancel_order", 60),
         );
+        // Intercept 51001 before normalizeWrite to give AI a richer message
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const item = (response.data as Record<string, unknown>[])[0];
+          const sCode = item && String(item["sCode"] ?? "");
+          if (sCode === "51001") {
+            const expiryMs = inferExpiryMsFromInstId(instId);
+            const isExpired = expiryMs !== null && expiryMs < Date.now();
+            const reason = isExpired
+              ? `The contract (${instId}) has already expired — the order was auto-cancelled at settlement. Check event_get_fills to confirm the outcome.`
+              : `Instrument (${instId}) not found. Verify the instId with event_get_markets before retrying.`;
+            throw new OkxApiError(reason, { code: sCode, endpoint: response.endpoint });
+          }
+        }
         return normalizeWrite(response);
       },
     },

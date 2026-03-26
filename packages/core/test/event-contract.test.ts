@@ -78,10 +78,10 @@ describe("event contract tool registration", () => {
   it("contains all expected tool names", () => {
     const names = new Set(tools.map((t) => t.name));
     const expected = [
+      "event_browse",
       "event_get_series",
       "event_get_events",
       "event_get_markets",
-      "event_precheck_order",
       "event_get_orders",
       "event_get_fills",
       "event_place_order",
@@ -122,60 +122,60 @@ describe("event contract tool registration", () => {
 describe("outcome semantic mapping", () => {
   const tools = registerEventContractTools();
   const placeOrder = tools.find((t) => t.name === "event_place_order")!;
-  const precheck = tools.find((t) => t.name === "event_precheck_order")!;
 
-  it("UP maps to outcome=1 in place_order", async () => {
+  // resolveOutcome sends "yes"/"no" to the OKX API (not "1"/"2")
+  it("UP maps to outcome='yes' in place_order", async () => {
     const { client, getLastCall } = makeMockClient();
     await placeOrder.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "UP", sz: "10" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["outcome"], "1");
+    assert.equal(getLastCall()?.params["outcome"], "yes");
   });
 
-  it("YES maps to outcome=1 in place_order", async () => {
+  it("YES maps to outcome='yes' in place_order", async () => {
     const { client, getLastCall } = makeMockClient();
     await placeOrder.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["outcome"], "1");
+    assert.equal(getLastCall()?.params["outcome"], "yes");
   });
 
-  it("DOWN maps to outcome=2 in place_order", async () => {
+  it("DOWN maps to outcome='no' in place_order", async () => {
     const { client, getLastCall } = makeMockClient();
     await placeOrder.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "DOWN", sz: "5" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["outcome"], "2");
+    assert.equal(getLastCall()?.params["outcome"], "no");
   });
 
-  it("NO maps to outcome=2 in place_order", async () => {
+  it("NO maps to outcome='no' in place_order", async () => {
     const { client, getLastCall } = makeMockClient();
     await placeOrder.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "NO", sz: "5" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["outcome"], "2");
+    assert.equal(getLastCall()?.params["outcome"], "no");
   });
 
-  it("lowercase 'up' maps to outcome=1", async () => {
+  it("lowercase 'up' maps to outcome='yes'", async () => {
     const { client, getLastCall } = makeMockClient();
     await placeOrder.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "up", sz: "10" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["outcome"], "1");
+    assert.equal(getLastCall()?.params["outcome"], "yes");
   });
 
-  it("lowercase 'down' maps to outcome=2", async () => {
+  it("lowercase 'down' maps to outcome='no'", async () => {
     const { client, getLastCall } = makeMockClient();
     await placeOrder.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "down", sz: "5" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["outcome"], "2");
+    assert.equal(getLastCall()?.params["outcome"], "no");
   });
 
   it("invalid outcome throws a clear error", async () => {
@@ -187,15 +187,6 @@ describe("outcome semantic mapping", () => {
       ),
       /Invalid outcome/i,
     );
-  });
-
-  it("NO maps to outcome=2 in precheck", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await precheck.handler(
-      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "NO", sz: "3" },
-      makeContext(client),
-    );
-    assert.equal(getLastCall()?.params["outcome"], "2");
   });
 });
 
@@ -320,11 +311,11 @@ describe("event_place_order parameter construction", () => {
     assert.equal(call.method, "POST");
     assert.equal(call.params["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
     assert.equal(call.params["side"], "buy");
-    assert.equal(call.params["outcome"], "1");
+    assert.equal(call.params["outcome"], "yes");
     assert.equal(call.params["ordType"], "limit");
     assert.equal(call.params["sz"], "10");
     assert.equal(call.params["px"], "0.45");
-    assert.equal(call.params["tdMode"], "cash");
+    assert.equal(call.params["tdMode"], "isolated");
   });
 
   it("builds correct API body for market order with DOWN outcome", async () => {
@@ -341,7 +332,7 @@ describe("event_place_order parameter construction", () => {
       makeContext(client),
     );
     const call = getLastCall()!;
-    assert.equal(call.params["outcome"], "2");
+    assert.equal(call.params["outcome"], "no");
     assert.equal(call.params["ordType"], "market");
     assert.equal(call.params["slippage"], "0.03");
   });
@@ -355,13 +346,13 @@ describe("event_place_order parameter construction", () => {
     assert.equal(getLastCall()?.params["ordType"], "market");
   });
 
-  it("always sets tdMode=cash", async () => {
+  it("always sets tdMode=isolated", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "sell", outcome: "UP", sz: "3" },
       makeContext(client),
     );
-    assert.equal(getLastCall()?.params["tdMode"], "cash");
+    assert.equal(getLastCall()?.params["tdMode"], "isolated");
   });
 
   it("auto-sets speedBump=1 for market orders (required by exchange)", async () => {
@@ -538,65 +529,7 @@ describe("event_get_markets outcome translation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 测试组 7：event_precheck_order 衍生字段
-// ---------------------------------------------------------------------------
-
-describe("event_precheck_order derived fields", () => {
-  const tools = registerEventContractTools();
-  const tool = tools.find((t) => t.name === "event_precheck_order")!;
-
-  function makeClientWithPrecheckData(estCost: string, estFee: string, estMaxWin: string) {
-    const client = {
-      publicGet: async (endpoint: string) => ({
-        endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [],
-      }),
-      privateGet: async (endpoint: string) => ({
-        endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [],
-      }),
-      privatePost: async (endpoint: string) => ({
-        endpoint,
-        requestTime: "2024-01-01T00:00:00.000Z",
-        data: [{ estCost, estFee, estMaxWin, outcome: "1" }],
-      }),
-    };
-    return client;
-  }
-
-  it("computes netMaxWin = estMaxWin - estCost - estFee", async () => {
-    // estMaxWin=10, estCost=6, estFee=3, netMaxWin=1
-    const client = makeClientWithPrecheckData("6", "3", "10");
-    const result = await tool.handler(
-      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
-      makeContext(client),
-    ) as Record<string, unknown>;
-    const item = (result["data"] as Record<string, unknown>[])[0]!;
-    assert.equal(item["netMaxWin"], "1.0000");
-  });
-
-  it("computes maxLoss = estCost + estFee", async () => {
-    const client = makeClientWithPrecheckData("6", "3", "10");
-    const result = await tool.handler(
-      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
-      makeContext(client),
-    ) as Record<string, unknown>;
-    const item = (result["data"] as Record<string, unknown>[])[0]!;
-    assert.equal(item["maxLoss"], "9.0000");
-  });
-
-  it("computes riskRewardRatio = netMaxWin / maxLoss", async () => {
-    // netMaxWin=1, maxLoss=9, ratio=0.11
-    const client = makeClientWithPrecheckData("6", "3", "10");
-    const result = await tool.handler(
-      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "YES", sz: "10" },
-      makeContext(client),
-    ) as Record<string, unknown>;
-    const item = (result["data"] as Record<string, unknown>[])[0]!;
-    assert.equal(item["riskRewardRatio"], "0.11");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 测试组 8：event_cancel_order normalizeWrite 错误抛出
+// 测试组 7：event_cancel_order normalizeWrite 错误抛出
 // ---------------------------------------------------------------------------
 
 describe("event_cancel_order normalizeWrite error handling", () => {

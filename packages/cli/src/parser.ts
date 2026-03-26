@@ -142,6 +142,7 @@ export interface CliValues {
   page?: string;
   format?: string;
   // event contract
+  underlying?: string;
   seriesId?: string;
   eventId?: string;
   outcome?: string;
@@ -309,6 +310,7 @@ export const CLI_OPTIONS = {
   page: { type: "string" },
   format: { type: "string" },
   // event contract
+  underlying: { type: "string" },
   seriesId: { type: "string" },
   eventId: { type: "string" },
   outcome: { type: "string" },
