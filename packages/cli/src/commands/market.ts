@@ -173,10 +173,15 @@ export async function cmdMarketTicker(
   printKv({
     instId: t["instId"],
     last: t["last"],
-    "24h change %": t["sodUtc8"],
+    "24h open": t["open24h"],
     "24h high": t["high24h"],
     "24h low": t["low24h"],
     "24h vol": t["vol24h"],
+    "24h change %": (() => {
+      const last = Number(t["last"]);
+      const open24h = Number(t["open24h"]);
+      return open24h !== 0 ? (((last - open24h) / open24h) * 100).toFixed(2) + "%" : "N/A";
+    })(),
     time: new Date(Number(t["ts"])).toLocaleString(),
   });
 }

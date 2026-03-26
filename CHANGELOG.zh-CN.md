@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`okx market ticker` 的"24h change %"字段显示错误**：该字段原来错误地映射到 `sodUtc8`（UTC+8 当日开盘价），而非基于 `open24h` 计算涨跌幅。现已修复：新增 `24h open` 字段展示 `open24h` 值，并基于 `open24h` 与 `last` 计算 `24h change %`。
+
 ---
 
 ## [1.2.7-beta.1] - 2026-03-26
