@@ -1199,6 +1199,8 @@ export function handleEventCommand(
       slippage: v.slippage,
       json,
     });
+  if (action === "amend")
+    return cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json });
   if (action === "cancel")
     return cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json });
   if (action === "orders")

@@ -616,6 +616,43 @@ On failure: tool throws with reason and next-step suggestion — follow the sugg
     },
 
     {
+      name: "event_amend_order",
+      module: "event",
+      description: `Amend a pending event contract order (change price or size). [CAUTION] Modifies a real order.
+Only limit/post_only orders can be amended. Market orders cannot be amended.
+On success: confirm ordId and the new price/size.
+On failure (tool throws): explain in plain language and suggest cancelling and re-placing if needed.`,
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "Event contract instrument ID" },
+          ordId:  { type: "string", description: "Order ID to amend" },
+          newPx:  { type: "string", description: "New limit price as probability 0.00~1.00 (omit to keep current)" },
+          newSz:  { type: "string", description: "New size in contracts (omit to keep current)" },
+        },
+        required: ["instId", "ordId"],
+      },
+      handler: async (rawArgs, context) => {
+        assertNotDemo(context.config, "event_amend_order");
+        const args = asRecord(rawArgs);
+        const ordType = "limit"; // only limit orders can be amended; speedBump required for non-post_only
+        const response = await context.client.privatePost(
+          "/api/v5/trade/amend-order",
+          compactObject({
+            instId:  requireString(args, "instId"),
+            ordId:   requireString(args, "ordId"),
+            newPx:   readString(args, "newPx"),
+            newSz:   readString(args, "newSz"),
+            speedBump: ordType !== "post_only" ? "1" : undefined,
+          }),
+          privateRateLimit("event_amend_order", 60),
+        );
+        return normalizeWrite(response);
+      },
+    },
+
+    {
       name: "event_cancel_order",
       module: "event",
       description: `Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.

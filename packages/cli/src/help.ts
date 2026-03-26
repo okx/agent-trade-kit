@@ -610,6 +610,10 @@ const HELP_TREE: HelpTree = {
         usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
         description: "[CAUTION] Place an event contract order (outcome: UP/YES or DOWN/NO; px=probability 0~1)",
       },
+      amend: {
+        usage: "okx event amend <instId> <ordId> [--px <prob>] [--sz <n>]",
+        description: "[CAUTION] Amend a pending limit order (change price or size)",
+      },
       cancel: {
         usage: "okx event cancel <instId> <ordId>",
         description: "Cancel a pending event contract order",

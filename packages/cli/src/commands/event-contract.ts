@@ -565,6 +565,39 @@ export async function cmdEventPlace(
   );
 }
 
+export async function cmdEventAmend(
+  run: ToolRunner,
+  opts: { instId: string; ordId: string; px?: string; sz?: string; json: boolean },
+): Promise<void> {
+  let result: unknown;
+  try {
+    result = await run("event_amend_order", {
+      instId: opts.instId,
+      ordId:  opts.ordId,
+      newPx:  opts.px,
+      newSz:  opts.sz,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stdout.write(`Failed to amend order ${opts.ordId}: ${msg}\n`);
+    return;
+  }
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
+  if (r?.["sCode"] === "0") {
+    process.stdout.write(
+      `Amended: ${r?.["ordId"]}` +
+      `${opts.px ? `  new px: ${opts.px}` : ""}` +
+      `${opts.sz ? `  new sz: ${opts.sz}` : ""}\n`,
+    );
+  } else {
+    const sCode = String(r?.["sCode"] ?? "");
+    const sMsg  = String(r?.["sMsg"] ?? "unknown error");
+    process.stdout.write(`Failed to amend order ${opts.ordId}: [${sCode}] ${sMsg}\n`);
+  }
+}
+
 export async function cmdEventCancel(
   run: ToolRunner,
   opts: { instId: string; ordId: string; json: boolean },
