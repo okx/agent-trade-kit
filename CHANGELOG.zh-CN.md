@@ -11,8 +11,13 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.7-beta.1] - 2026-03-26
+
 ### 新增
 
+- **`earn_auto_set` 工具**（`earn.autoearn`）：为指定币种开启或关闭自动理财。`earnType='0'` 为自动借贷+质押（适用大多数币种），`earnType='1'` 为 USDG 理财（USDG、BUIDL）。开启后 24 小时内不可关闭。CLI 用法：`okx earn auto on <币种>` / `okx earn auto off <币种>`。
 - **合约网格支持币本位（反向）合约**（如 `BTC-USD-SWAP`）：更新 `grid_create_order`、`grid_get_orders`、`grid_stop_order` 工具描述，补充币本位 instId 示例和保证金单位说明。
 - **`grid_create_order` 新增止盈止损参数**：新增 `tpTriggerPx`、`slTriggerPx`（触发价格）和 `tpRatio`、`slRatio`（比例止盈止损，仅合约），用户创建网格时可同时设置止盈止损。
 - **`grid_create_order` 新增 `algoClOrdId`**：用户自定义策略订单 ID（字母数字，最长 32 位）。每用户唯一，支持幂等创建，后续可用于查询或停止策略。

@@ -11,8 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.7-beta.1] - 2026-03-26
+
 ### Added
 
+- **`earn_auto_set` tool** (`earn.autoearn`): Enable or disable auto-earn for a currency. Supports `earnType='0'` for auto-lend+stake (most currencies) and `earnType='1'` for USDG earn (USDG, BUIDL). Cannot disable within 24 hours of enabling. CLI: `okx earn auto on <ccy>` / `okx earn auto off <ccy>`.
 - **Contract grid now supports coin-margined (inverse) instruments** (e.g. `BTC-USD-SWAP`): Updated `grid_create_order`, `grid_get_orders`, and `grid_stop_order` tool descriptions to document CoinM support, including coin-margined instId examples and margin unit clarification.
 - **`grid_create_order` now supports TP/SL params**: Added `tpTriggerPx`, `slTriggerPx` (trigger price) and `tpRatio`, `slRatio` (ratio-based, contract only) so users can set take-profit and stop-loss when creating a grid bot.
 - **`grid_create_order` now supports `algoClOrdId`**: User-defined algo order ID (alphanumeric, max 32 chars). Unique per user — enables idempotent creation and can be used to query or stop the bot later.
