@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.7] - 2026-03-27
+
+### Added
+
+- **`earn_auto_set` tool** (`earn.autoearn`): Enable or disable auto-earn for a currency. Supports `earnType='0'` for auto-lend+stake (most currencies) and `earnType='1'` for USDG earn (USDG, BUIDL). Cannot disable within 24 hours of enabling. CLI: `okx earn auto on <ccy>` / `okx earn auto off <ccy>`.
+- **Contract grid supports coin-margined (inverse) instruments** (e.g. `BTC-USD-SWAP`): Updated `grid_create_order`, `grid_get_orders`, and `grid_stop_order` tool descriptions to document CoinM support, including coin-margined instId examples and margin unit clarification.
+- **`grid_create_order` TP/SL params**: Added `tpTriggerPx`, `slTriggerPx` (trigger price) and `tpRatio`, `slRatio` (ratio-based, contract only) so users can set take-profit and stop-loss when creating a grid bot.
+- **`grid_create_order` `algoClOrdId`**: User-defined algo order ID (alphanumeric, max 32 chars). Unique per user — enables idempotent creation and can be used to query or stop the bot later.
+- **`tgtCcy` parameter for algo place orders**: `spot_place_algo_order`, `swap_place_algo_order`, `futures_place_algo_order`, and `option_place_algo_order` now accept `tgtCcy`. Set `tgtCcy=quote_ccy` to specify order size in USDT instead of contracts/base currency. (#86)
+- **`okx diagnose --mcp` multi-client detection**: Detects Cursor, Windsurf, Claude Code, and Claude Desktop configs; skips missing clients instead of failing; passes when at least one client is configured. (#90)
+- **`okx diagnose --mcp` tool count limit check**: Warns when total tool count exceeds known client limits (e.g. Cursor: 40/server, 80 total) and suggests `--modules` to reduce. (#90)
+- **Cursor tool limit guidance**: Added warning, recommended module combinations table, and safe configuration examples to `docs/configuration.md` and `docs/faq.md` for Cursor users affected by the ~40 tools/server limit. (#88)
+- **Spot DCA support** (`bot.dca`): All 5 DCA tools now support both Spot DCA (`algoOrdType=spot_dca`) and Contract DCA (`algoOrdType=contract_dca`). New parameters: `algoOrdType` (required), `algoClOrdId`, `reserveFunds`, `tradeQuoteCcy` for `dca_create_order`; `algoOrdType` and `stopType` for `dca_stop_order`; `algoOrdType` filter for `dca_get_orders`; `algoOrdType` required for `dca_get_order_details` and `dca_get_sub_orders`. CLI commands updated with matching `--algoOrdType` option (defaults to `contract_dca` for backward compatibility).
+- **`dca_create_order` RSI trigger support**: `triggerStrategy` now accepts `"rsi"` for both spot and contract DCA. New RSI parameters: `triggerCond` (`cross_up` | `cross_down`), `thold` (RSI threshold, e.g. `"30"`), `timeframe` (e.g. `"15m"`), `timePeriod` (default `"14"`). Note: `price` trigger is only supported for `contract_dca`; `spot_dca` supports `instant` and `rsi` only.
+- **Agent Skills bundled in `skills/`**: All 5 skill modules (`okx-cex-market`, `okx-cex-trade`, `okx-cex-portfolio`, `okx-cex-bot`, `okx-cex-earn`) are now included directly in the repository under `skills/`. Includes `skills/README.md` and `skills/README.zh-CN.md` with usage guide.
+
+### Fixed
+
+- **`dca_create_order` missing `tag` field**: The `tag` field (from `context.config.sourceTag`) is now correctly included in the create request body, matching `grid_create_order` behavior.
+- **`allowReinvest` type mismatch**: Schema changed from string enum to boolean to match the backend `Boolean` type. Handler accepts both boolean and string "true"/"false" for CLI compatibility.
+- **`cmdDcaSubOrders` wrong table columns**: When querying orders within a cycle (with `--cycleId`), the CLI now displays order-specific fields (`ordId`, `side`, `ordType`, `filledSz`, etc.) instead of cycle-list fields.
+- **`okx market ticker` showed wrong "24h change %" field**: The field was incorrectly mapped to `sodUtc8` (UTC+8 daily open price) instead of being calculated from `open24h`. Now correctly displays `24h open` (the `open24h` value) and a computed `24h change %` (derived from `open24h` and `last`).
+- **`dca_create_order` `triggerStrategy` validation by `algoOrdType`**: `price` trigger is rejected for `spot_dca` at validation time with a clear error message.
+
+### Changed
+
+- **`grid_create_order`: `direction` is now required for contract grids** — MCP-side validation rejects requests missing `direction` when `algoOrdType=contract_grid`, providing immediate client-side feedback without a network round-trip.
+- **`grid_stop_order`: default `stopType` changed from `"2"` to `"1"`** — omitting `stopType` now defaults to close-all (stop grid and close positions) instead of keep-assets, which is the safer and more intuitive default for both spot and contract grids.
+- **`grid_create_order`: shortened tool descriptions** — reduced `grid_create_order` JSON schema size by ~20% (2,017 → 1,610 chars) by tightening parameter descriptions without removing any information.
+- **README updated with Agent Skills section**: Features table and Documentation table updated to reflect the bundled `skills/` directory.
+
+---
+
 ## [1.2.7-beta.3] - 2026-03-27
 
 ### Added

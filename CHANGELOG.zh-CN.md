@@ -13,6 +13,39 @@
 
 ---
 
+## [1.2.7] - 2026-03-27
+
+### 新增
+
+- **`earn_auto_set` 工具**（`earn.autoearn`）：为指定币种开启或关闭自动理财。`earnType='0'` 为自动借贷+质押（适用大多数币种），`earnType='1'` 为 USDG 理财（USDG、BUIDL）。开启后 24 小时内不可关闭。CLI 用法：`okx earn auto on <币种>` / `okx earn auto off <币种>`。
+- **合约网格支持币本位（反向）合约**（如 `BTC-USD-SWAP`）：更新 `grid_create_order`、`grid_get_orders`、`grid_stop_order` 工具描述，补充币本位 instId 示例和保证金单位说明。
+- **`grid_create_order` 新增止盈止损参数**：新增 `tpTriggerPx`、`slTriggerPx`（触发价格）和 `tpRatio`、`slRatio`（比例止盈止损，仅合约），用户创建网格时可同时设置止盈止损。
+- **`grid_create_order` 新增 `algoClOrdId`**：用户自定义策略订单 ID（字母数字，最长 32 位）。每用户唯一，支持幂等创建，后续可用于查询或停止策略。
+- **算法下单接口新增 `tgtCcy` 参数**：`spot_place_algo_order`、`swap_place_algo_order`、`futures_place_algo_order`、`option_place_algo_order` 新增 `tgtCcy` 参数，设为 `quote_ccy` 时可用 USDT 金额指定下单量。(#86)
+- **`okx diagnose --mcp` 多客户端检测**：自动检测 Cursor、Windsurf、Claude Code、Claude Desktop 的 MCP 配置；未安装的客户端直接 skip 而非报错；至少一个客户端已配置即通过。(#90)
+- **`okx diagnose --mcp` Tool 数量限制检查**：统计已加载的 tool 总数，超出已知客户端限制（如 Cursor: 单服务器 40 个、总计 80 个）时发出警告并给出 `--modules` 缩减建议。(#90)
+- **Cursor 工具数量限制说明**：在 `docs/configuration.md` 和 `docs/faq.md` 中新增针对 Cursor 用户的工具数量限制警告、推荐模块组合表及安全配置示例。(#88)
+- **现货 DCA 支持**（`bot.dca`）：5 个 DCA 工具现在同时支持现货 DCA（`algoOrdType=spot_dca`）和合约 DCA（`algoOrdType=contract_dca`）。`dca_create_order` 新增参数：`algoOrdType`（必填）、`algoClOrdId`、`reserveFunds`、`tradeQuoteCcy`；`dca_stop_order` 新增 `algoOrdType` 和 `stopType`；`dca_get_orders` 新增 `algoOrdType` 过滤；`dca_get_order_details` 和 `dca_get_sub_orders` 新增 `algoOrdType`（必填）。CLI 命令同步新增 `--algoOrdType` 选项（省略时默认 `contract_dca`，保持向后兼容）。
+- **`dca_create_order` 支持 RSI 触发策略**：`triggerStrategy` 现在接受 `"rsi"`，适用于现货 DCA 和合约 DCA。新增 RSI 参数：`triggerCond`（`cross_up` | `cross_down`）、`thold`（RSI 阈值，如 `"30"`）、`timeframe`（如 `"15m"`）、`timePeriod`（默认 `"14"`）。注意：`price` 触发仅支持 `contract_dca`；`spot_dca` 只支持 `instant` 和 `rsi`。
+- **Agent Skills 内置到 `skills/` 目录**：5 个 Skill 模块（`okx-cex-market`、`okx-cex-trade`、`okx-cex-portfolio`、`okx-cex-bot`、`okx-cex-earn`）现已直接收录在项目 `skills/` 目录中，并新增 `skills/README.md` 和 `skills/README.zh-CN.md` 使用说明。
+
+### 修复
+
+- **`dca_create_order` 缺少 `tag` 字段**：创建请求体中现在正确包含 `tag`（来自 `context.config.sourceTag`），与 `grid_create_order` 行为一致。
+- **`allowReinvest` 类型不匹配**：Schema 从字符串枚举改为布尔类型，匹配后端 `Boolean` 类型。Handler 同时兼容布尔值和字符串 "true"/"false"（CLI 兼容）。
+- **`cmdDcaSubOrders` 展示字段错误**：查询周期内子订单（传了 `--cycleId`）时，CLI 现在显示订单专有字段（`ordId`、`side`、`ordType`、`filledSz` 等），替代之前错误使用的周期列表字段。
+- **`okx market ticker` 的"24h change %"字段显示错误**：该字段原来错误地映射到 `sodUtc8`，现已修复为基于 `open24h` 与 `last` 计算涨跌幅，并新增 `24h open` 字段展示 `open24h` 值。
+- **`dca_create_order` `triggerStrategy` 按 `algoOrdType` 分类校验**：`price` 触发策略对 `spot_dca` 在校验阶段即返回明确错误。
+
+### 变更
+
+- **`grid_create_order`：合约网格必须传 `direction`** — MCP 层新增客户端校验，`algoOrdType=contract_grid` 时缺少 `direction` 将立即返回错误，无需网络往返。
+- **`grid_stop_order`：默认 `stopType` 从 `"2"` 改为 `"1"`** — 省略 `stopType` 时默认为平仓（停止网格并平仓），而非保留资产，对现货和合约网格均更安全直观。
+- **`grid_create_order`：缩短工具描述** — JSON schema 大小减少约 20%（2,017 → 1,610 字符），在不删除任何信息的前提下压缩参数描述。
+- **README 新增 Agent Skills 章节**：Features 表格和 Documentation 表格更新，反映 `skills/` 目录的引入。
+
+---
+
 ## [1.2.7-beta.3] - 2026-03-27
 
 ### 新增
