@@ -76,6 +76,10 @@ export interface CliValues {
   allowReinvest?: string;
   triggerStrategy?: string;
   triggerPx?: string;
+  triggerCond?: string;
+  thold?: string;
+  timeframe?: string;
+  timePeriod?: string;
   cycleId?: string;
   reserveFunds?: string;
   tradeQuoteCcy?: string;
@@ -216,6 +220,10 @@ export const CLI_OPTIONS = {
   allowReinvest: { type: "string" },
   triggerStrategy: { type: "string" },
   triggerPx: { type: "string" },
+  triggerCond: { type: "string" },
+  thold: { type: "string" },
+  timeframe: { type: "string" },
+  timePeriod: { type: "string" },
   cycleId: { type: "string" },
   reserveFunds: { type: "string" },
   tradeQuoteCcy: { type: "string" },
