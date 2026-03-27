@@ -34,6 +34,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 | **安全控制** | `--read-only` 只读模式、按模块过滤、内置限速器 |
 | **零基础设施** | 本地 stdio 进程，无需服务器或数据库 |
 | **MCP 标准** | 兼容 Claude Desktop、Cursor、openCxxW 及所有 MCP 客户端 |
+| **内置 Agent Skills** | 预置 AI agent skill 文件，覆盖行情、交易、账户、机器人、赚币，即插即用 |
 | **开源** | MIT 协议，API Key 不离开本机 |
 
 ## 模块概览
@@ -101,6 +102,22 @@ okx account balance
 
 ---
 
+## Agent Skills
+
+[`skills/`](skills/) 目录内置了供 AI agent 框架使用的 skill 文件。每个 skill 定义了 agent 的激活时机和 `okx` CLI 的使用方式。
+
+| Skill | 说明 | 需要鉴权 |
+|-------|------|:--------:|
+| [`okx-cex-market`](skills/okx-cex-market/SKILL.md) | 行情数据：价格、K线、盘口、资金费率、技术指标 | 否 |
+| [`okx-cex-trade`](skills/okx-cex-trade/SKILL.md) | 订单管理：现货、永续合约、交割合约、期权、算法单 | 是 |
+| [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | 账户：余额、持仓、盈亏、资金划转 | 是 |
+| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | 交易机器人：网格、DCA（现货 & 合约） | 是 |
+| [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | 赚币：简单赚币、链上质押、双币赢、自动赚币 | 是 |
+
+**[Skills 说明文档 →](skills/README.zh-CN.md)**
+
+---
+
 ## 报错反馈
 
 如果工具调用或命令失败，提 Issue 时请贴出完整报错内容。
@@ -157,4 +174,5 @@ packages/
 | [架构](ARCHITECTURE.zh-CN.md) | 系统设计与模块概览 |
 | [贡献指南](CONTRIBUTING.zh-CN.md) | 开发环境搭建与 PR 规范 |
 | [更新日志](CHANGELOG.zh-CN.md) | 版本历史 |
+| [Agent Skills](skills/README.zh-CN.md) | AI agent 框架预置 skill 文件 |
 | [安全政策](SECURITY.md) | 漏洞上报 |

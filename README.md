@@ -34,6 +34,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
 | **MCP standard** | Works with Claude Desktop, Cursor, openCxxW, and any MCP-compatible client |
+| **Agent Skills included** | Pre-built skill files for AI agent frameworks — drop-in instructions covering market data, trading, portfolio, bots, and earn |
 | **Open source** | MIT license, API keys never leave your machine |
 
 ## Modules
@@ -101,6 +102,22 @@ okx account balance
 
 ---
 
+## Agent Skills
+
+Pre-built skill files for AI agent frameworks are included in the [`skills/`](skills/) directory. Each skill tells the agent when to activate and how to use the `okx` CLI for a specific task category.
+
+| Skill | Description | Auth |
+|-------|-------------|:----:|
+| [`okx-cex-market`](skills/okx-cex-market/SKILL.md) | Market data: prices, candles, order books, funding rates, technical indicators | No |
+| [`okx-cex-trade`](skills/okx-cex-trade/SKILL.md) | Order management: spot, swap, futures, options, algo orders | Yes |
+| [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | Account: balances, positions, P&L, transfers | Yes |
+| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | Trading bots: grid and DCA (spot & contract) | Yes |
+| [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | Earn: Simple Earn, On-chain staking, Dual Investment, AutoEarn | Yes |
+
+**[Skills documentation →](skills/README.md)**
+
+---
+
 ## Reporting Issues
 
 If a tool call or CLI command fails, open an issue and include the full error output.
@@ -159,4 +176,5 @@ packages/
 | [Architecture](ARCHITECTURE.md) | System design and module overview |
 | [Contributing](CONTRIBUTING.md) | Development setup and PR guidelines |
 | [Changelog](CHANGELOG.md) | Version history |
+| [Agent Skills](skills/README.md) | Pre-built skills for AI agent frameworks |
 | [Security](SECURITY.md) | Vulnerability reporting |
