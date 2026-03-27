@@ -13,6 +13,23 @@
 
 ---
 
+## [1.2.7-beta.3] - 2026-03-27
+
+### 新增
+
+- **`dca_create_order` 支持 RSI 触发策略**：`triggerStrategy` 现在接受 `"rsi"`，适用于现货 DCA 和合约 DCA。新增 RSI 参数：`triggerCond`（`cross_up` | `cross_down`）、`thold`（RSI 阈值，如 `"30"`）、`timeframe`（如 `"15m"`）、`timePeriod`（默认 `"14"`）。RSI 触发同时支持 `spot_dca` 和 `contract_dca`。
+- **Agent Skills 内置到 `skills/` 目录**：5 个 Skill 模块（`okx-cex-market`、`okx-cex-trade`、`okx-cex-portfolio`、`okx-cex-bot`、`okx-cex-earn`）现已直接收录在项目 `skills/` 目录中，并新增 `skills/README.md` 和 `skills/README.zh-CN.md` 使用说明。
+
+### 修复
+
+- **`dca_create_order` `triggerStrategy` 按 `algoOrdType` 分类校验**：`price` 触发策略对 `spot_dca` 在校验阶段即返回明确错误（`spot_dca` 只支持 `instant` 和 `rsi`）。`contract_dca` 继续支持全部三种策略（`instant`、`price`、`rsi`）。
+
+### 变更
+
+- **README 新增 Agent Skills 章节**：Features 表格和 Documentation 表格更新，反映 `skills/` 目录的引入。
+
+---
+
 ## [1.2.7-beta.2] - 2026-03-27
 
 ### 新增

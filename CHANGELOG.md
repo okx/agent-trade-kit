@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.7-beta.3] - 2026-03-27
+
+### Added
+
+- **`dca_create_order` RSI trigger support**: `triggerStrategy` now accepts `"rsi"` for both spot and contract DCA. New RSI parameters: `triggerCond` (`cross_up` | `cross_down`), `thold` (RSI threshold, e.g. `"30"`), `timeframe` (e.g. `"15m"`), `timePeriod` (default `"14"`). RSI trigger is supported by both `spot_dca` and `contract_dca`.
+- **Agent Skills bundled in `skills/`**: All 5 skill modules (`okx-cex-market`, `okx-cex-trade`, `okx-cex-portfolio`, `okx-cex-bot`, `okx-cex-earn`) are now included directly in the repository under `skills/`. Includes `skills/README.md` and `skills/README.zh-CN.md` with usage guide.
+
+### Fixed
+
+- **`dca_create_order` `triggerStrategy` validation by `algoOrdType`**: `price` trigger is now rejected for `spot_dca` at validation time with a clear error message (`spot_dca` supports `instant` and `rsi` only). `contract_dca` continues to support all three strategies (`instant`, `price`, `rsi`).
+
+### Changed
+
+- **README updated with Agent Skills section**: Features table and Documentation table updated to reflect the bundled `skills/` directory.
+
+---
+
 ## [1.2.7-beta.2] - 2026-03-27
 
 ### Added
