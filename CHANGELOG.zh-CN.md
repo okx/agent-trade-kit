@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.7-beta.2] - 2026-03-27
+
 ### 新增
 
 - **`okx diagnose --mcp` 多客户端检测**：自动检测 Cursor、Windsurf、Claude Code、Claude Desktop 的 MCP 配置；未安装的客户端直接 skip 而非报错；至少一个客户端已配置即通过 (#90)

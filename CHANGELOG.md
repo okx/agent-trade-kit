@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.7-beta.2] - 2026-03-27
+
 ### Added
 
 - **`okx diagnose --mcp` multi-client detection**: detects Cursor, Windsurf, Claude Code, and Claude Desktop configs; skips missing clients instead of failing; passes when at least one client is configured (#90)
