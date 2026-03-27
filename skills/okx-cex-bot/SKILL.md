@@ -224,7 +224,8 @@ okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --directi
   --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <ratio> \
   [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <ratio>] [--pxStepsMult <mult>] [--volMult <mult>] \
   [--slPct <ratio>] [--slMode <limit|market>] [--allowReinvest] \
-  [--triggerStrategy <instant|price>] [--triggerPx <price>] \
+  [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>] \
+  [--triggerCond <cross_up|cross_down>] [--thold <threshold>] [--timeframe <timeframe>] [--timePeriod <period>] \
   [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>] [--json]
 ```
 
@@ -244,8 +245,12 @@ okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --directi
 | `--slPct` | No | - | Stop-loss ratio, must exceed MPD (e.g., `0.05` = 5%). Must be used with `--slMode` |
 | `--slMode` | No | `market` | Stop-loss type: `limit` or `market`. Must be used with `--slPct` |
 | `--allowReinvest` | No | `true` | Reinvest profit into the next DCA cycle |
-| `--triggerStrategy` | No | `instant` | How the bot starts: `instant` or `price` |
-| `--triggerPx` | No | - | Trigger price — required when `triggerStrategy=price` |
+| `--triggerStrategy` | No | `instant` | contract_dca: `instant`, `price`, `rsi`; spot_dca: `instant`, `rsi` |
+| `--triggerPx` | No | - | Trigger price — required when `triggerStrategy=price` (contract_dca only) |
+| `--triggerCond` | No | - | `cross_up` or `cross_down` — required when `triggerStrategy=rsi`, optional when `triggerStrategy=price` |
+| `--thold` | No | - | RSI threshold (e.g. `30`) — required when `triggerStrategy=rsi` |
+| `--timeframe` | No | - | RSI timeframe (e.g. `15m`) — required when `triggerStrategy=rsi` |
+| `--timePeriod` | No | `14` | RSI period — optional when `triggerStrategy=rsi` |
 | `--algoClOrdId` | No | - | Client-defined strategy order ID (1-32 alphanumeric) |
 | `--reserveFunds` | No | `true` | `true` or `false` — whether to reserve funds |
 | `--tradeQuoteCcy` | No | - | Trade quote currency |
@@ -410,7 +415,7 @@ okx bot dca orders --algoOrdType spot_dca
 - **Contract DCA lever**: required. If missing, the tool returns a validation error
 - **pxStepsMult**: `1.0` = equal spacing; `>1.0` = widen gaps between successive safety orders
 - **volMult**: `1.0` = equal sizes; `>1.0` = increase per safety order (Martingale scaling)
-- **triggerStrategy**: `instant` starts immediately; `price` waits for trigger price
+- **triggerStrategy**: `instant` starts immediately; `price` waits for trigger price (contract_dca only); `rsi` waits for RSI condition (both spot_dca and contract_dca)
 - **Already stopped bot**: stop returns error — check `bot dca orders --history` first
 - **Demo mode**: `okx --profile demo bot dca create ...` — safe testing, no real funds
 - **INVALID_PRICE_STEPS_MULTIPLIER error**: adjust `slPct`. Recalculate MPD = Σ(pxSteps × pxStepsMult^i) for i = 0..maxSafetyOrds−1, then set `slPct` > MPD
@@ -474,7 +479,7 @@ okx bot dca orders --algoOrdType spot_dca
 | `lever` | Leverage | 杠杆倍数 |
 | `direction` | Direction (long/short) | 方向（做多/做空） |
 | `allowReinvest` | Reinvest profit | 利润再投入 |
-| `triggerStrategy` | Trigger mode (instant/price) | 触发方式 |
+| `triggerStrategy` | Trigger mode (contract_dca: instant/price/rsi; spot_dca: instant/rsi) | 触发方式 |
 | `triggerPx` | Trigger price | 触发价格 |
 | `algoClOrdId` | Client order ID | 客户端策略订单 ID |
 | `stopType` | Stop type (sell all / keep tokens) | 停止类型（卖出/保留） |

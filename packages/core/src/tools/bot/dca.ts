@@ -71,8 +71,12 @@ export function registerDcaTools(): ToolSpec[] {
           slPct: { type: "string", description: "Stop-loss ratio, 0.05=5%" },
           slMode: { type: "string", enum: ["limit", "market"] },
           allowReinvest: { type: "boolean", description: "Default true" },
-          triggerStrategy: { type: "string", enum: ["instant", "price"] },
-          triggerPx: { type: "string", description: "Need if triggerStrategy=price" },
+          triggerStrategy: { type: "string", enum: ["instant", "price", "rsi"], description: "contract_dca: instant|price|rsi; spot_dca: instant|rsi. Default: instant" },
+          triggerPx: { type: "string", description: "Need if triggerStrategy=price (contract_dca only)" },
+          triggerCond: { type: "string", enum: ["cross_up", "cross_down"], description: "Required when triggerStrategy=rsi. Optional when triggerStrategy=price" },
+          thold: { type: "string", description: "RSI threshold (e.g. '30'). Need if triggerStrategy=rsi" },
+          timeframe: { type: "string", description: "RSI timeframe (e.g. '15m'). Need if triggerStrategy=rsi" },
+          timePeriod: { type: "string", description: "RSI period. Default '14'. Optional when triggerStrategy=rsi" },
           algoClOrdId: { type: "string", description: "Client order ID, 1-32 chars" },
           // Backend expects boolean, but kept as string for backward compatibility with older clients.
           reserveFunds: { type: "string", description: "'true' or 'false', default 'true'" },
@@ -93,14 +97,33 @@ export function registerDcaTools(): ToolSpec[] {
           });
         }
 
-        // Build triggerParams: default to instant; support price strategy
+        // Build triggerParams: default to instant; support price/rsi strategy
         const triggerStrategy = readString(args, "triggerStrategy") ?? "instant";
+
+        // Validate: price trigger is only supported for contract_dca
+        if (triggerStrategy === "price" && algoOrdType === "spot_dca") {
+          throw new OkxApiError("triggerStrategy 'price' is only supported for contract_dca. spot_dca supports: instant, rsi", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/create`,
+          });
+        }
+
         const triggerParam: Record<string, string> = {
           triggerAction: "start",
           triggerStrategy,
         };
         if (triggerStrategy === "price") {
           triggerParam["triggerPx"] = requireString(args, "triggerPx");
+          const triggerCond = readString(args, "triggerCond");
+          if (triggerCond) {
+            triggerParam["triggerCond"] = triggerCond;
+          }
+        } else if (triggerStrategy === "rsi") {
+          triggerParam["triggerCond"] = requireString(args, "triggerCond");
+          triggerParam["thold"] = requireString(args, "thold");
+          triggerParam["timeframe"] = requireString(args, "timeframe");
+          const timePeriod = readString(args, "timePeriod");
+          triggerParam["timePeriod"] = timePeriod ?? "14";
         }
 
         // Validate conditional required params when maxSafetyOrds > 0

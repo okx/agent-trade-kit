@@ -284,6 +284,38 @@ describe("cmdDcaCreate", () => {
     await cmdDcaCreate(runner, { ...baseOpts, json: true });
     assert.doesNotThrow(() => JSON.parse(out.join("")));
   });
+
+  it("passes rsi trigger params to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([{ sCode: "0" }]); };
+    await cmdDcaCreate(runner, {
+      ...baseOpts,
+      triggerStrategy: "rsi",
+      triggerCond: "cross_up",
+      thold: "30",
+      timeframe: "15m",
+      timePeriod: "14",
+    });
+    assert.equal(captured["triggerStrategy"], "rsi");
+    assert.equal(captured["triggerCond"], "cross_up");
+    assert.equal(captured["thold"], "30");
+    assert.equal(captured["timeframe"], "15m");
+    assert.equal(captured["timePeriod"], "14");
+  });
+
+  it("passes price trigger params to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([{ sCode: "0" }]); };
+    await cmdDcaCreate(runner, {
+      ...baseOpts,
+      triggerStrategy: "price",
+      triggerPx: "50000",
+      triggerCond: "cross_down",
+    });
+    assert.equal(captured["triggerStrategy"], "price");
+    assert.equal(captured["triggerPx"], "50000");
+    assert.equal(captured["triggerCond"], "cross_down");
+  });
 });
 
 // ---------------------------------------------------------------------------

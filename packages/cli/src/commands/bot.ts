@@ -200,6 +200,10 @@ export async function cmdDcaCreate(
     allowReinvest?: string;
     triggerStrategy?: string;
     triggerPx?: string;
+    triggerCond?: string;
+    thold?: string;
+    timeframe?: string;
+    timePeriod?: string;
     algoClOrdId?: string;
     reserveFunds?: string;
     tradeQuoteCcy?: string;
@@ -223,6 +227,10 @@ export async function cmdDcaCreate(
     allowReinvest: opts.allowReinvest,
     triggerStrategy: opts.triggerStrategy,
     triggerPx: opts.triggerPx,
+    triggerCond: opts.triggerCond,
+    thold: opts.thold,
+    timeframe: opts.timeframe,
+    timePeriod: opts.timePeriod,
     algoClOrdId: opts.algoClOrdId,
     reserveFunds: opts.reserveFunds,
     tradeQuoteCcy: opts.tradeQuoteCcy,
