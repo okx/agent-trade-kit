@@ -11,6 +11,9 @@
 
 ## [Unreleased]
 
+### 变更
+- **`account_get_asset_balance` 新增 `showValuation` 参数**：设置 `showValuation=true` 可同时返回各账户类型（交易/资金/理财等）的总资产估值汇总，底层调用 `/api/v5/asset/asset-valuation`。默认行为不变（向后兼容）。CLI 用法：`okx account asset-balance --valuation`。(#102)
+
 ---
 
 ## [1.2.7] - 2026-03-27

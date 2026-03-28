@@ -7,7 +7,7 @@ Account management tools. Requires API key with **Read** permission (Trade for w
 | Tool | Description |
 |------|-------------|
 | `account_get_balance` | Trading account balance (by currency or all) |
-| `account_get_asset_balance` | Funding account balance |
+| `account_get_asset_balance` | Funding account balance. Use `showValuation=true` to include total asset valuation across all account types (trading/funding/earn). |
 | `account_get_positions` | Current open positions across all instruments |
 | `account_get_positions_history` | Historical position records |
 | `account_get_bills` | Account bills / ledger (last 7 days) |
@@ -38,6 +38,7 @@ Account management tools. Requires API key with **Read** permission (Trade for w
 okx account balance
 okx account balance BTC,ETH
 okx account asset-balance
+okx account asset-balance --valuation        # include earn/funding/trading valuation summary
 
 # Positions
 okx account positions
@@ -68,7 +69,7 @@ okx account set-position-mode --posMode net_mode
 | 工具 | 说明 |
 |------|------|
 | `account_get_balance` | 交易账户余额（指定币种或全部） |
-| `account_get_asset_balance` | 资金账户余额 |
+| `account_get_asset_balance` | 资金账户余额。传入 `showValuation=true` 可同时返回交易/资金/理财等各账户类型的总资产估值。 |
 | `account_get_positions` | 当前所有持仓 |
 | `account_get_positions_history` | 历史持仓记录 |
 | `account_get_bills` | 账单流水（7天内） |
@@ -99,6 +100,7 @@ okx account set-position-mode --posMode net_mode
 okx account balance
 okx account balance BTC,ETH
 okx account asset-balance
+okx account asset-balance --valuation        # 同时显示理财/资金/交易账户估值汇总
 
 # 持仓
 okx account positions

@@ -33,12 +33,16 @@ export async function cmdAccountAssetBalance(
   run: ToolRunner,
   ccy: string | undefined,
   json: boolean,
+  showValuation?: boolean,
 ): Promise<void> {
-  const result = await run("account_get_asset_balance", { ccy });
-  const data = getData(result) as Record<string, unknown>[];
-  if (json) return printJson(data);
+  const result = await run("account_get_asset_balance", {
+    ccy,
+    ...(showValuation ? { showValuation: true } : {}),
+  }) as unknown as Record<string, unknown>;
+  const data = (result.data ?? []) as Record<string, unknown>[];
+  if (json) return printJson(showValuation ? { data, valuation: result.valuation } : data);
   printTable(
-    (data ?? [])
+    data
       .filter((r) => Number(r["bal"]) > 0)
       .map((r) => ({
         ccy: r["ccy"],
@@ -47,6 +51,23 @@ export async function cmdAccountAssetBalance(
         frozenBal: r["frozenBal"],
       })),
   );
+  if (showValuation && result.valuation) {
+    const valuationData = (result.valuation as Record<string, unknown>[]) ?? [];
+    outputLine("");
+    outputLine("Asset Valuation by Account Type:");
+    printTable(
+      valuationData.map((v) => {
+        const details = (v["details"] as Record<string, unknown>) ?? {};
+        return {
+          totalBal: v["totalBal"],
+          classic: details["classic"],
+          earn: details["earn"],
+          funding: details["funding"],
+          trading: details["trading"],
+        };
+      }),
+    );
+  }
 }
 
 export async function cmdAccountPositions(

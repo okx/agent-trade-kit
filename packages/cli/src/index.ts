@@ -302,7 +302,7 @@ function handleAccountCommand(
     return cmdAccountAudit({ limit: v.limit, tool: v.tool, since: v.since, json });
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "balance") return cmdAccountBalance(run, rest[0], json);
-  if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json);
+  if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json, v.valuation);
   if (action === "positions")
     return cmdAccountPositions(run, { instType: v.instType, instId: v.instId, json });
   if (action === "positions-history")
