@@ -53,6 +53,7 @@ export interface CliValues {
   instType?: string;
   quoteCcy?: string;
   archive?: boolean;
+  valuation?: boolean;
   posMode?: string;
   ccy?: string;
   from?: string;
@@ -196,6 +197,7 @@ export const CLI_OPTIONS = {
   quoteCcy: { type: "string" },
   // account extras
   archive: { type: "boolean", default: false },
+  valuation: { type: "boolean", default: false },
   posMode: { type: "string" },
   ccy: { type: "string" },
   from: { type: "string" },

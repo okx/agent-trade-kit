@@ -10,6 +10,7 @@ import {
   cmdAccountMaxAvailSize,
   cmdAccountTransfer,
   cmdAccountAudit,
+  cmdAccountAssetBalance,
 } from "../src/commands/account.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -212,5 +213,62 @@ describe("cmdAccountAudit", () => {
   it("outputs JSON array when json=true and no log files exist", () => {
     cmdAccountAudit({ json: true });
     assert.doesNotThrow(() => JSON.parse(out.join("")));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdAccountAssetBalance
+// ---------------------------------------------------------------------------
+describe("cmdAccountAssetBalance", () => {
+  it("calls account_get_asset_balance without showValuation by default", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return fakeResult([{ ccy: "USDT", bal: "100", availBal: "100", frozenBal: "0" }]);
+    };
+    await cmdAccountAssetBalance(runner, undefined, false);
+    assert.ok(!("showValuation" in capturedArgs));
+  });
+
+  it("passes showValuation=true when valuation=true", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return {
+        ...fakeResult([{ ccy: "USDT", bal: "100", availBal: "100", frozenBal: "0" }]),
+        valuation: [{ totalBal: "1000", details: { classic: "400", earn: "300", funding: "200", trading: "100" } }],
+      };
+    };
+    await cmdAccountAssetBalance(runner, undefined, false, true);
+    assert.equal(capturedArgs.showValuation, true);
+  });
+
+  it("outputs table rows for non-zero balances", async () => {
+    const runner: ToolRunner = async () => fakeResult([
+      { ccy: "USDT", bal: "500", availBal: "400", frozenBal: "100" },
+      { ccy: "BTC", bal: "0", availBal: "0", frozenBal: "0" },
+    ]);
+    await cmdAccountAssetBalance(runner, undefined, false);
+    const combined = out.join("");
+    assert.ok(combined.includes("USDT"));
+    assert.ok(!combined.includes("BTC") || combined.indexOf("500") !== -1);
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ ccy: "USDT", bal: "500" }]);
+    await cmdAccountAssetBalance(runner, undefined, true);
+    assert.doesNotThrow(() => JSON.parse(out.join("")));
+  });
+
+  it("outputs valuation summary when valuation data is present", async () => {
+    const runner: ToolRunner = async () => ({
+      ...fakeResult([{ ccy: "USDT", bal: "500", availBal: "500", frozenBal: "0" }]),
+      valuation: [{ totalBal: "1500", details: { classic: "500", earn: "1000", funding: "0", trading: "0" } }],
+    });
+    await cmdAccountAssetBalance(runner, undefined, false, true);
+    const combined = out.join("");
+    assert.ok(combined.includes("1500"), "totalBal should appear in output");
+    assert.ok(combined.includes("500"), "classic value should appear in output");
+    assert.ok(combined.includes("1000"), "earn value should appear in output");
   });
 });

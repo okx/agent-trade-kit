@@ -1407,6 +1407,57 @@ describe("account_get_asset_balance", () => {
     await tool.handler({ ccy: "ETH" }, makeContext(client));
     assert.equal(getLastCall()?.params.ccy, "ETH");
   });
+
+  it("does not include valuation field when showValuation is omitted", async () => {
+    const { client } = makeMockClient();
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    assert.ok(!("valuation" in result));
+  });
+
+  it("calls /asset/asset-valuation and returns valuation field when showValuation=true", async () => {
+    const calls: string[] = [];
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push(endpoint);
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push(endpoint);
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [{ totalBal: "1000" }] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push(endpoint);
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    const result = await tool.handler({ showValuation: true }, makeContext(client)) as Record<string, unknown>;
+    assert.ok(calls.includes("/api/v5/asset/balances"), "should call asset/balances");
+    assert.ok(calls.includes("/api/v5/asset/asset-valuation"), "should call asset/asset-valuation");
+    assert.ok("valuation" in result, "result should contain valuation field");
+  });
+
+  it("does not pass ccy to /asset/asset-valuation when showValuation=true", async () => {
+    const callParams: Record<string, Record<string, unknown>> = {};
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    await tool.handler({ ccy: "USDT", showValuation: true }, makeContext(client));
+    // ccy is a balance filter, not a quote currency — should not be forwarded to the valuation endpoint
+    assert.equal(callParams["/api/v5/asset/asset-valuation"]?.ccy, undefined);
+    // ccy should still be passed to the balances endpoint as a filter
+    assert.equal(callParams["/api/v5/asset/balances"]?.ccy, "USDT");
+  });
 });
 
 // ---------------------------------------------------------------------------
