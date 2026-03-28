@@ -60,7 +60,7 @@
 
 - 基于已批准的设计文档开发
 - 实现 MR 中必须将 registry status 更新为 `✅ approved`
-- 同步提交 agent-skills 仓库的 `workflows.md`
+- 在**同一 MR** 中更新 `skills/` 目录下对应的 SKILL.md 及 references/（新增工具必填；修改工具按影响范围更新）
 
 ### Step 4: 实现审核（Reviewer）
 
@@ -285,7 +285,7 @@ Reviewer 审核 MCP 相关 MR 时，必须逐条检查以下项目。
 - [ ] 共享逻辑在 packages/core 中
 
 ### 文档
-- [ ] agent-skills 中有对应的 workflows.md
+- [ ] `skills/` 目录下对应的 SKILL.md 已在本 MR 中更新（新增/修改工具必须同步，缺少则打回）
 - [ ] CHANGELOG 已更新
 - [ ] README 模块计数已更新（如适用）
 
