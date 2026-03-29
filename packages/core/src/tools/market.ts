@@ -2,6 +2,8 @@ import type { ToolSpec } from "./types.js";
 import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
 
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+
 export function registerMarketTools(): ToolSpec[] {
   return [
     {
@@ -105,7 +107,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_candles",
       module: "market",
       description:
-        "Get candlestick (OHLCV) data for an instrument. history=false (default): recent candles up to 1440 bars; history=true: older historical data.",
+        "Get candlestick (OHLCV) data for an instrument. Automatically retrieves historical data (back to 2021) when requesting older time ranges. Use the `after` parameter to paginate back in time (the old `history` parameter has been removed). IMPORTANT: Before fetching with `after`/`before`, estimate the number of candles: time_range_ms / bar_interval_ms. If the estimate exceeds ~500 candles, inform the user of the estimated count and ask for confirmation before proceeding.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -131,30 +133,38 @@ export function registerMarketTools(): ToolSpec[] {
             type: "number",
             description: "Max results (default 100)",
           },
-          history: {
-            type: "boolean",
-            description: "true=older historical data beyond recent window",
-          },
         },
         required: ["instId"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const isHistory = readBoolean(args, "history") ?? false;
-        const path = isHistory
-          ? "/api/v5/market/history-candles"
-          : "/api/v5/market/candles";
-        const response = await context.client.publicGet(
-          path,
-          compactObject({
-            instId: requireString(args, "instId"),
-            bar: readString(args, "bar"),
-            after: readString(args, "after"),
-            before: readString(args, "before"),
-            limit: readNumber(args, "limit"),
-          }),
-          publicRateLimit("market_get_candles", 40),
-        );
+        const afterTs = readString(args, "after");
+        const beforeTs = readString(args, "before");
+        const query = compactObject({
+          instId: requireString(args, "instId"),
+          bar: readString(args, "bar"),
+          after: afterTs,
+          before: beforeTs,
+          limit: readNumber(args, "limit"),
+        });
+        const rateLimit = publicRateLimit("market_get_candles", 40);
+
+        const hasTimestamp = afterTs !== undefined || beforeTs !== undefined;
+        // Only route to history based on `after`: `after=T` means "data older than T".
+        // `before=T` means "data newer than T" (paginating forward), so it always needs
+        // the recent endpoint — routing it to history would drop the latest 2 days.
+        const useHistory = afterTs !== undefined && Number(afterTs) < Date.now() - TWO_DAYS_MS;
+
+        const path = useHistory ? "/api/v5/market/history-candles" : "/api/v5/market/candles";
+        const response = await context.client.publicGet(path, query, rateLimit);
+
+        // Defensive fallback: if the recent endpoint returns empty for a timestamped request,
+        // the timestamp may straddle the 2-day boundary. Try history endpoint once.
+        // Trade-off: truly empty ranges also trigger a second request, which is acceptable
+        // since this case is rare and correctness matters more than avoiding one extra call.
+        if (!useHistory && hasTimestamp && Array.isArray(response.data) && response.data.length === 0) {
+          return normalizeResponse(await context.client.publicGet("/api/v5/market/history-candles", query, rateLimit));
+        }
         return normalizeResponse(response);
       },
     },

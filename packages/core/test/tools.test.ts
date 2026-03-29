@@ -37,7 +37,7 @@ function makeMockClient() {
   const fakeResponse = (endpoint: string) => ({
     endpoint,
     requestTime: "2024-01-01T00:00:00.000Z",
-    data: [],
+    data: [{ dummy: true }], // non-empty: prevents fallback from firing in routing tests
   });
 
   const client = {
@@ -76,28 +76,61 @@ describe("market_get_candles", () => {
   const tools = registerMarketTools();
   const tool = tools.find((t) => t.name === "market_get_candles")!;
 
-  it("calls /market/candles by default (history omitted)", async () => {
+  it("calls /market/candles by default (no timestamp)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ instId: "BTC-USDT" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/market/candles");
   });
 
-  it("calls /market/candles when history=false", async () => {
+  it("calls /market/candles when after is 1 hour ago", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler(
-      { instId: "BTC-USDT", history: false },
-      makeContext(client),
-    );
+    const oneHourAgo = String(Date.now() - 60 * 60 * 1000);
+    await tool.handler({ instId: "BTC-USDT", after: oneHourAgo }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/market/candles");
   });
 
-  it("calls /market/history-candles when history=true", async () => {
+  it("calls /market/history-candles when after is 3 days ago", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler(
-      { instId: "BTC-USDT", history: true },
-      makeContext(client),
-    );
+    const threeDaysAgo = String(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    await tool.handler({ instId: "BTC-USDT", after: threeDaysAgo }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/market/history-candles");
+  });
+
+  it("uses /market/candles (not history) when only before is 3 days ago", async () => {
+    // `before=T` means "data newer than T" (paginating forward) — recent endpoint is correct
+    // regardless of how old T is, to avoid dropping the latest 2 days.
+    const { client, getLastCall } = makeMockClient();
+    const threeDaysAgo = String(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    await tool.handler({ instId: "BTC-USDT", before: threeDaysAgo }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/market/candles");
+  });
+
+  it("falls back to /market/history-candles when recent returns empty and after is provided", async () => {
+    const calls: string[] = [];
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push(endpoint);
+        // Return empty data for recent endpoint, non-empty for history
+        return {
+          endpoint,
+          requestTime: "2024-01-01T00:00:00.000Z",
+          data: endpoint.includes("history") ? [["1672531200000", "16500", "16600", "16400", "16550", "100"]] : [],
+        };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [],
+      }),
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [],
+      }),
+    };
+    const oneHourAgo = String(Date.now() - 60 * 60 * 1000);
+    await tool.handler({ instId: "BTC-USDT", after: oneHourAgo }, makeContext(client));
+    assert.deepEqual(calls, ["/api/v5/market/candles", "/api/v5/market/history-candles"]);
   });
 });
 

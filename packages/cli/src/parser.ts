@@ -125,6 +125,9 @@ export interface CliValues {
   params?: string;
   list?: boolean;
   "backtest-time"?: string;
+  // market candle time range
+  after?: string;
+  before?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -146,6 +149,8 @@ export const CLI_OPTIONS = {
   bar: { type: "string" },
   limit: { type: "string" },
   sz: { type: "string" },
+  after: { type: "string" },
+  before: { type: "string" },
   // orders
   instId: { type: "string" },
   history: { type: "boolean", default: false },

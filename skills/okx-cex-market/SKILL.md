@@ -48,7 +48,7 @@ Demo mode has no effect on market commands — same public data is returned eith
 | 2 | `okx market tickers <instType>` | All tickers for SPOT / SWAP / FUTURES / OPTION |
 | 3 | `okx market instruments --instType <type> [--instId <id>]` | List instruments (instId, ctVal, lotSz, minSz, tickSz, state) |
 | 4 | `okx market orderbook <instId> [--sz <n>]` | Order book asks/bids (default top 5 per side, max 400) |
-| 5 | `okx market candles <instId> [--bar <bar>] [--limit <n>]` | OHLCV candles (default `--bar 1m`) |
+| 5 | `okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before <ts>]` | OHLCV candles (default `--bar 1m`); auto-routes to historical endpoint for data back to 2021; `--after` paginates back in time, `--before` paginates forward |
 | 6 | `okx market index-candles <instId> [--bar <bar>] [--limit <n>] [--history]` | Index OHLCV (use `BTC-USD` not `BTC-USDT`) |
 | 7 | `okx market funding-rate <instId> [--history] [--limit <n>]` | Current or historical funding rate (SWAP only) |
 | 8 | `okx market trades <instId> [--limit <n>]` | Recent public trades |
@@ -88,7 +88,8 @@ All commands in this skill are read-only.
 - **instId format**: SPOT `BTC-USDT` · SWAP `BTC-USDT-SWAP` · FUTURES `BTC-USDT-250328` · OPTION `BTC-USD-250328-95000-C` · Index `BTC-USD` · Stock token `TSLA-USDT-SWAP`
 - **OPTION listing**: `instruments --instType OPTION` requires `--uly BTC-USD`; if unknown, run `open-interest --instType OPTION` first to discover active instIds
 - **funding-rate / price-limit**: SWAP only · mark-price: SWAP / FUTURES / OPTION only
-- **candles `--bar`**: uppercase — `1H` not `1h`; index-candles supports `--history` for extended history
+- **candles `--bar`**: uppercase — `1H` not `1h`; use `--after <ts>` to paginate back into historical data (back to 2021); index-candles supports `--history` for extended history
+- **⚠️ Large historical range**: before fetching with `--after`/`--before`, estimate candle count = `time_range_ms / bar_interval_ms`. If estimate > 500, tell the user the estimated count and ask for confirmation before proceeding. This prevents silently filling the context window.
 - **indicator `--bar`**: uses `1Dutc` not `1D`, `1Wutc` not `1W` — different from candle bar values
 - **indicator arg order**: indicator name before instId — `okx market indicator rsi BTC-USDT`
 - **indicator `--params`**: comma-separated, no spaces — `--params 5,20`

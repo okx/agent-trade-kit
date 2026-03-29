@@ -201,6 +201,27 @@ describe("handleMarketDataCommand", () => {
     const result = handleMarketDataCommand(noopRunner, "noop", [], { limit: "50" }, false);
     assert.equal(result, undefined);
   });
+
+  function makeCaptureSpy(): { spy: ToolRunner; getCaptured: () => Record<string, unknown> } {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_tool, args) => {
+      captured = args as Record<string, unknown>;
+      return { endpoint: "GET /api/v5/market/candles", requestTime: new Date().toISOString(), data: [] };
+    };
+    return { spy, getCaptured: () => captured };
+  }
+
+  it("passes --after as named flag (v.after), not positional arg", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleMarketDataCommand(spy, "candles", ["BTC-USDT"], { after: "1672531200000" }, false);
+    assert.equal(getCaptured()["after"], "1672531200000");
+  });
+
+  it("passes --before as named flag (v.before), not positional arg", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleMarketDataCommand(spy, "candles", ["BTC-USDT"], { before: "1675209600000" }, false);
+    assert.equal(getCaptured()["before"], "1675209600000");
+  });
 });
 
 // ---------------------------------------------------------------------------
