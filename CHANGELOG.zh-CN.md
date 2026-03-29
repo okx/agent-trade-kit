@@ -12,6 +12,7 @@
 ## [Unreleased]
 
 ### 变更
+- **`market_get_candles` 自动路由历史端点**：当 `after`/`before` 时间戳超过 2 天前时，自动切换至 `/market/history-candles`，支持查询 2021 年至今的历史K线。新增兜底机制：若近期端点对带时间戳的请求返回空数据，自动重试历史端点。移除 `history` 参数，无需手动切换。CLI 用法：`okx market candles BTC-USDT --after <时间戳>`。(#101)
 - **`account_get_asset_balance` 新增 `showValuation` 参数**：设置 `showValuation=true` 可同时返回各账户类型（交易/资金/理财等）的总资产估值汇总，底层调用 `/api/v5/asset/asset-valuation`。默认行为不变（向后兼容）。CLI 用法：`okx account asset-balance --valuation`。(#102)
 
 ---

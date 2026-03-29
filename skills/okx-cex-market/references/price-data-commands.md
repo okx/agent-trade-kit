@@ -81,7 +81,7 @@ okx market trades BTC-USDT --limit 20
 ## candles — OHLCV Candlestick Data
 
 ```bash
-okx market candles <instId> [--bar <bar>] [--limit <n>] [--json]
+okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before <ts>] [--json]
 ```
 
 | Param | Required | Default | Description |
@@ -89,16 +89,23 @@ okx market candles <instId> [--bar <bar>] [--limit <n>] [--json]
 | `instId` | Yes | - | Instrument ID |
 | `--bar` | No | `1m` | Time granularity (see values below) |
 | `--limit` | No | 100 | Number of candles |
+| `--after` | No | - | Return candles **before** this timestamp (ms) — paginate backward in time |
+| `--before` | No | - | Return candles **after** this timestamp (ms) — paginate forward in time |
 
 `--bar` values: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
 
 > Use uppercase for hour/day/week/month — `1H` not `1h`.
+
+The command automatically routes to the historical endpoint when `--after` is older than ~2 days, supporting data back to 2021.
+
+> **OKX API pagination direction**: `--after <ts>` returns candles with timestamp **earlier** than `ts` (go further back in time). `--before <ts>` returns candles with timestamp **later** than `ts` (go toward the present).
 
 Returns columns: `time` · `open` · `high` · `low` · `close` · `vol` (base currency). Sorted newest-first.
 
 ```bash
 okx market candles BTC-USDT --bar 4H --limit 30
 okx market candles ETH-USDT-SWAP --bar 1H --limit 100
+okx market candles BTC-USDT --bar 1D --after 1672531200000   # candles before 2023-01-01
 ```
 
 ---

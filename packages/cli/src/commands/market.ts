@@ -228,9 +228,9 @@ export async function cmdMarketOrderbook(
 export async function cmdMarketCandles(
   run: ToolRunner,
   instId: string,
-  opts: { bar?: string; limit?: number; json: boolean },
+  opts: { bar?: string; limit?: number; after?: string; before?: string; json: boolean },
 ): Promise<void> {
-  const result = await run("market_get_candles", { instId, bar: opts.bar, limit: opts.limit });
+  const result = await run("market_get_candles", { instId, bar: opts.bar, limit: opts.limit, after: opts.after, before: opts.before });
   const candles = getData(result) as string[][];
   if (opts.json) return printJson(candles);
   printTable(

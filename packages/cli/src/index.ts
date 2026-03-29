@@ -244,7 +244,7 @@ export function handleMarketDataCommand(
   if (action === "orderbook")
     return cmdMarketOrderbook(run, rest[0], v.sz !== undefined ? Number(v.sz) : undefined, json);
   if (action === "candles")
-    return cmdMarketCandles(run, rest[0], { bar: v.bar, limit, json });
+    return cmdMarketCandles(run, rest[0], { bar: v.bar, limit, after: v.after, before: v.before, json });
   if (action === "funding-rate")
     return cmdMarketFundingRate(run, rest[0], { history: v.history ?? false, limit, json });
   if (action === "trades")
