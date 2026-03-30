@@ -7,7 +7,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolContext } from "../src/tools/types.js";
-import { registerEventContractTools } from "../src/tools/event-contract.js";
+import { registerEventContractTools } from "../src/tools/event-trade.js";
 import { allToolSpecs } from "../src/tools/index.js";
 import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
 
@@ -65,8 +65,8 @@ function makeContext(client: unknown, demo = false): ToolContext {
 describe("event contract tool registration", () => {
   const tools = registerEventContractTools();
 
-  it("registers exactly 8 tools", () => {
-    assert.equal(tools.length, 8);
+  it("registers exactly 9 tools", () => {
+    assert.equal(tools.length, 9);
   });
 
   it("all tools have module='event'", () => {
@@ -85,6 +85,7 @@ describe("event contract tool registration", () => {
       "event_get_orders",
       "event_get_fills",
       "event_place_order",
+      "event_amend_order",
       "event_cancel_order",
     ];
     for (const name of expected) {
@@ -98,7 +99,7 @@ describe("event contract tool registration", () => {
   });
 
   it("isWrite is correct for each tool", () => {
-    const writeTools = new Set(["event_place_order", "event_cancel_order"]);
+    const writeTools = new Set(["event_place_order", "event_amend_order", "event_cancel_order"]);
     for (const tool of tools) {
       if (writeTools.has(tool.name)) {
         assert.equal(tool.isWrite, true, `${tool.name} should be isWrite=true`);
@@ -111,7 +112,7 @@ describe("event contract tool registration", () => {
   it("event tools appear in allToolSpecs()", () => {
     const all = allToolSpecs();
     const eventTools = all.filter((t) => t.module === "event");
-    assert.equal(eventTools.length, 8);
+    assert.equal(eventTools.length, 9);
   });
 });
 
@@ -260,6 +261,7 @@ describe("event contract schema validation", () => {
 describe("assertNotDemo protection", () => {
   const tools = registerEventContractTools();
   const placeOrder = tools.find((t) => t.name === "event_place_order")!;
+  const amendOrder = tools.find((t) => t.name === "event_amend_order")!;
   const cancelOrder = tools.find((t) => t.name === "event_cancel_order")!;
 
   it("event_place_order throws in demo mode", async () => {
@@ -267,6 +269,17 @@ describe("assertNotDemo protection", () => {
     await assert.rejects(
       () => placeOrder.handler(
         { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "UP", sz: "10" },
+        makeContext(client, true),
+      ),
+      /demo|simulated/i,
+    );
+  });
+
+  it("event_amend_order throws in demo mode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => amendOrder.handler(
+        { instId: "BTC-ABOVE-DAILY-260224-1600-120000", ordId: "123456", newPx: "0.55" },
         makeContext(client, true),
       ),
       /demo|simulated/i,

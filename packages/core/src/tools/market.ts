@@ -17,7 +17,8 @@ export function registerMarketTools(): ToolSpec[] {
     {
       name: "market_get_ticker",
       module: "market",
-      description: "Get ticker data for a single instrument. For EVENTS contracts, response includes impliedProbabilityPct (last price × 100, rounded to 1 decimal) — always show this to users.",
+      description:
+        "Get ticker data for a single instrument.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -32,26 +33,13 @@ export function registerMarketTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const instId = requireString(args, "instId");
         const response = await context.client.publicGet(
           "/api/v5/market/ticker",
-          { instId },
+          { instId: requireString(args, "instId") },
           publicRateLimit("market_get_ticker", 20),
           readBoolean(args, "demo") ?? false,
         );
-        const base = normalizeResponse(response);
-        // For event contracts (instId contains YYMMDD-HHMM pattern), add implied probability
-        if (/\d{6}-\d{4}/.test(instId) && Array.isArray(base["data"])) {
-          const data = (base["data"] as Record<string, unknown>[]).map((item) => {
-            const last = parseFloat(String(item["last"] ?? "0"));
-            if (last > 0 && last <= 1) {
-              return { ...item, impliedProbabilityPct: Math.round(last * 1000) / 10 };
-            }
-            return item;
-          });
-          return { ...base, data };
-        }
-        return base;
+        return normalizeResponse(response);
       },
     },
     {
@@ -97,8 +85,8 @@ export function registerMarketTools(): ToolSpec[] {
     {
       name: "market_get_orderbook",
       module: "market",
-      description: `Get the order book (bids/asks) for an instrument. Works for all instTypes including EVENTS (event contracts).
-If data is null or empty, say "Orderbook data is temporarily unavailable. You can check bid/ask prices via market_get_ticker instead." — never expose API paths, ok:true, or data:null to users.`,
+      description:
+        "Get the order book (bids/asks) for an instrument.",
       isWrite: false,
       inputSchema: {
         type: "object",

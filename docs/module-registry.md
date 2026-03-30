@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~21,092 tokens | **Remaining:** ~3,908 tokens
+**Token Budget:** 25,000 tokens | **Current Usage:** ~22,892 tokens | **Remaining:** ~2,108 tokens
 
 ## Registered Modules
 
@@ -22,7 +22,8 @@ Unregistered modules will be rejected during review.
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~830 | _(founding module)_ | @Jasmine.Li | — |
 | skills | ✅ approved | 3 | 2 | 1 | ~500 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~165 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
-| **Total** | | **127** | **70** | **57** | **~21,092** | | | |
+| event | ✅ approved | 9 | 6 | 3 | ~1,800 | [event](designs/event.md) | @Jasmine.Li | 2026-03-30 |
+| **Total** | | **137** | **76** | **61** | **~22,892** | | | |
 
 ## Status Legend
 
@@ -46,6 +47,5 @@ See [MCP Design Guideline](mcp-design-guideline.md) for full design rules.
 
 | Module ID | Status | Tools (est.) | Token Est. | Design Doc | Approved By | Date |
 |-----------|--------|--------------|------------|------------|-------------|------|
-| event | 📝 proposed | 9 | ~1,800 | [doc](modules/event.md) | — | — |
 | earn.auto | 📝 proposed | 5 | ~1,000 | [doc](modules/earn.auto.md) | — | — |
 | news | ⏸️ deferred | 10 | ~2,000 | [doc](modules/news.md) | — | — |

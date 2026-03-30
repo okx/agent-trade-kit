@@ -29,6 +29,7 @@ import {
     handleBotGridCommand,
     handleEarnCommand,
     handleMarketCommand,
+    handleEventCommand,
 } from "../src/index.js";
 import type {CliValues} from "../src/index.js";
 
@@ -646,6 +647,7 @@ describe("handleBotGridCommand — parameter routing", () => {
     });
 });
 
+<<<<<<< HEAD
 // ---------------------------------------------------------------------------
 // Earn Savings Fixed — parameter routing
 // ---------------------------------------------------------------------------
@@ -770,5 +772,82 @@ describe("handleMarketCommand — demo flag routing", () => {
         const {spy, captured} = makeMarketSpy();
         await handleMarketCommand(spy, "instruments", [], vals({instType: "SWAP", demo: true}), false);
         assert.equal(captured.args["demo"], true);
+    });
+});
+
+// ===========================================================================
+// EVENT
+// ===========================================================================
+
+describe("handleEventCommand — parameter routing", () => {
+    it("place: instId, side, outcome, sz come from v (not rest)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "place", [], vals({
+            instId: "BTC-ABOVE-DAILY-260224-1600-120000",
+            side: "buy",
+            outcome: "UP",
+            sz: "10",
+        }), false);
+        assert.equal(captured.args["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
+        assert.equal(captured.args["side"], "buy");
+        assert.equal(captured.args["outcome"], "UP");
+        assert.equal(captured.args["sz"], "10");
+    });
+
+    it("place: --instId flag takes precedence over rest[0]", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "place", ["WRONG-ID"], vals({
+            instId: "BTC-ABOVE-DAILY-260224-1600-120000",
+            side: "buy",
+            outcome: "UP",
+            sz: "10",
+        }), false);
+        assert.equal(captured.args["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
+    });
+
+    it("cancel: instId and ordId come from v (not rest)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "cancel", [], vals({
+            instId: "BTC-ABOVE-DAILY-260224-1600-120000",
+            ordId: "123456",
+        }), false);
+        assert.equal(captured.args["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
+        assert.equal(captured.args["ordId"], "123456");
+    });
+
+    it("cancel: --instId flag takes precedence over rest[0]", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "cancel", ["WRONG-ID"], vals({
+            instId: "BTC-ABOVE-DAILY-260224-1600-120000",
+            ordId: "123456",
+        }), false);
+        assert.equal(captured.args["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
+    });
+
+    it("amend: instId and ordId come from v (not rest)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "amend", [], vals({
+            instId: "BTC-ABOVE-DAILY-260224-1600-120000",
+            ordId: "123456",
+            px: "0.55",
+        }), false);
+        assert.equal(captured.args["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
+        assert.equal(captured.args["ordId"], "123456");
+    });
+
+    it("events: seriesId comes from v (not rest)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "events", [], vals({
+            seriesId: "BTC-ABOVE-DAILY",
+        }), false);
+        assert.equal(captured.args["seriesId"], "BTC-ABOVE-DAILY");
+    });
+
+    it("markets: seriesId comes from v (not rest)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleEventCommand(spy, "markets", [], vals({
+            seriesId: "BTC-ABOVE-DAILY",
+        }), false);
+        assert.equal(captured.args["seriesId"], "BTC-ABOVE-DAILY");
     });
 });

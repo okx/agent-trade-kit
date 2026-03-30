@@ -7,7 +7,7 @@ import { registerAuditTools } from "./audit.js";
 import { registerSkillsTools } from "./skills.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerAllEarnTools } from "./earn/index.js";
-import { registerEventContractTools } from "./event-contract.js";
+import { registerEventContractTools } from "./event-trade.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerIndicatorTools } from "./indicator.js";
 import { registerMarketTools } from "./market.js";

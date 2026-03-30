@@ -311,7 +311,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_events",
       module: "event",
-      description: "List expiry periods within a series. state: preopen|live|settling|expired. expTime pre-formatted UTC+8 — show with relative time remaining.",
+      description: "List expiry periods within a series. state: preopen|live|settling|expired. expTime is pre-formatted UTC+8.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -369,7 +369,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_markets",
       module: "event",
-      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8. Present as a table including series, underlying, period, strike, expiry, remaining time. Sort by expiry ascending (nearest first). Mark contracts with a non-empty floorStrike as 🟢 in-progress.",
+      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -435,7 +435,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_orders",
       module: "event",
-      description: "Query event contract orders. state=live → open orders; omit → history. outcome pre-translated (YES/NO/UP/DOWN). Show most recent 5 first.",
+      description: "Query event contract orders. state=live for open orders; omit for history. outcome pre-translated (YES/NO/UP/DOWN).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -477,7 +477,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_fills",
       module: "event",
-      description: "Get event contract fill history. outcome pre-translated (YES/NO/UP/DOWN). Show most recent 5 by default.",
+      description: "Get event contract fill history. outcome pre-translated (YES/NO/UP/DOWN).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -524,9 +524,7 @@ export function registerEventContractTools(): ToolSpec[] {
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - For market orders: use slippage parameter (not px)
-- tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either
-On success: confirm ordId, instId, direction (BUY YES/NO/UP/DOWN), size, ordType, price (if limit). Offer to check fills. tag stripped.
-On failure: tool throws with reason and next-step suggestion — follow the suggestion.`,
+- tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -618,10 +616,7 @@ On failure: tool throws with reason and next-step suggestion — follow the sugg
     {
       name: "event_amend_order",
       module: "event",
-      description: `Amend a pending event contract order (change price or size). [CAUTION] Modifies a real order.
-Only limit/post_only orders can be amended. Market orders cannot be amended.
-On success: confirm ordId and the new price/size.
-On failure (tool throws): explain in plain language and suggest cancelling and re-placing if needed.`,
+      description: "Amend a pending event contract order (change price or size). [CAUTION] Modifies a real order. Only limit/post_only orders can be amended.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -636,7 +631,6 @@ On failure (tool throws): explain in plain language and suggest cancelling and r
       handler: async (rawArgs, context) => {
         assertNotDemo(context.config, "event_amend_order");
         const args = asRecord(rawArgs);
-        const ordType = "limit"; // only limit orders can be amended; speedBump required for non-post_only
         const response = await context.client.privatePost(
           "/api/v5/trade/amend-order",
           compactObject({
@@ -644,7 +638,7 @@ On failure (tool throws): explain in plain language and suggest cancelling and r
             ordId:   requireString(args, "ordId"),
             newPx:   readString(args, "newPx"),
             newSz:   readString(args, "newSz"),
-            speedBump: ordType !== "post_only" ? "1" : undefined,
+            speedBump: "1",
           }),
           privateRateLimit("event_amend_order", 60),
         );
@@ -655,11 +649,7 @@ On failure (tool throws): explain in plain language and suggest cancelling and r
     {
       name: "event_cancel_order",
       module: "event",
-      description: `Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode.
-instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair like BTC-USDT.
-On success: "Order {ordId} cancelled."
-On error (tool throws): explain in plain language. For error 51001 (instrument not found): "合约 {instId} 不存在或已到期，无法撤单。请先调用 event_get_markets 查询当前有效的事件合约 ID，再重试。"
-On error 51401 (order may have just filled): "订单可能已成交，请检查成交记录。"`,
+      description: "Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode. instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair.",
       isWrite: true,
       inputSchema: {
         type: "object",
