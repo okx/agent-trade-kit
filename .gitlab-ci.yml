@@ -19,6 +19,7 @@ unit-test:
   stage: test
   <<: *pnpm-setup
   script:
+    - pnpm build
     - pnpm test:coverage
   coverage: '/All files\s*\|\s*([\d.]+)/'
   artifacts:
