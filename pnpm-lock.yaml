@@ -34,7 +34,7 @@ importers:
         version: 6.23.0
     devDependencies:
       '@agent-tradekit/core':
-        specifier: workspace:*
+        specifier: file:../core
         version: link:../core
       '@types/node':
         specifier: ^25.2.2
@@ -93,7 +93,7 @@ importers:
         version: 6.23.0
     devDependencies:
       '@agent-tradekit/core':
-        specifier: workspace:*
+        specifier: file:../core
         version: link:../core
       '@types/node':
         specifier: ^25.2.2
