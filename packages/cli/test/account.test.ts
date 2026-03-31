@@ -11,6 +11,7 @@ import {
   cmdAccountTransfer,
   cmdAccountAudit,
   cmdAccountAssetBalance,
+  cmdAccountBalance,
 } from "../src/commands/account.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -284,5 +285,58 @@ describe("cmdAccountAssetBalance", () => {
     assert.ok(combined.includes("1500"), "totalBal should appear in output");
     assert.ok(combined.includes("500"), "classic value should appear in output");
     assert.ok(combined.includes("1000"), "earn value should appear in output");
+  });
+
+  it("outputs 'Total balance: 0' when all asset balances are zero", async () => {
+    const runner: ToolRunner = async () => fakeResult([
+      { ccy: "USDT", bal: "0", availBal: "0", frozenBal: "0" },
+      { ccy: "BTC", bal: "0", availBal: "0", frozenBal: "0" },
+    ]);
+    await cmdAccountAssetBalance(runner, undefined, false);
+    assert.ok(out.join("").includes("Total balance: 0"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdAccountBalance
+// ---------------------------------------------------------------------------
+describe("cmdAccountBalance", () => {
+  it("outputs table for currencies with non-zero equity", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      totalEq: "1000",
+      adjEq: "950",
+      details: [
+        { ccy: "USDT", eq: "1000", availEq: "900", frozenBal: "100" },
+        { ccy: "BTC", eq: "0", availEq: "0", frozenBal: "0" },
+      ],
+    }]);
+    await cmdAccountBalance(runner, undefined, false);
+    const combined = out.join("");
+    assert.ok(combined.includes("USDT"));
+    assert.ok(combined.includes("1000"));
+  });
+
+  it("outputs total equity row when all currency equities are zero", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      totalEq: "0",
+      adjEq: "0",
+      details: [
+        { ccy: "USDT", eq: "0", availEq: "0", frozenBal: "0" },
+      ],
+    }]);
+    await cmdAccountBalance(runner, undefined, false);
+    const combined = out.join("");
+    assert.ok(combined.includes("Total"), "should show Total row");
+    assert.ok(combined.includes("0"), "should show 0 equity");
+    assert.ok(!combined.includes("(no data)"), "should not show (no data)");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      totalEq: "0",
+      details: [],
+    }]);
+    await cmdAccountBalance(runner, undefined, true);
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });

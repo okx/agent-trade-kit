@@ -17,16 +17,19 @@ export async function cmdAccountBalance(
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const details = (data?.[0]?.["details"] as Record<string, unknown>[]) ?? [];
-  printTable(
-    details
-      .filter((d) => Number(d["eq"]) > 0)
-      .map((d) => ({
-        currency: d["ccy"],
-        equity: d["eq"],
-        available: d["availEq"],
-        frozen: d["frozenBal"],
-      })),
-  );
+  const rows = details
+    .filter((d) => Number(d["eq"]) > 0)
+    .map((d) => ({
+      currency: d["ccy"],
+      equity: d["eq"],
+      available: d["availEq"],
+      frozen: d["frozenBal"],
+    }));
+  if (rows.length === 0 && data?.[0]) {
+    printTable([{ currency: "Total", equity: data[0]["totalEq"] ?? "0", available: data[0]["adjEq"] ?? "0", frozen: "-" }]);
+    return;
+  }
+  printTable(rows);
 }
 
 export async function cmdAccountAssetBalance(
@@ -41,16 +44,19 @@ export async function cmdAccountAssetBalance(
   }) as unknown as Record<string, unknown>;
   const data = (result.data ?? []) as Record<string, unknown>[];
   if (json) return printJson(showValuation ? { data, valuation: result.valuation } : data);
-  printTable(
-    data
-      .filter((r) => Number(r["bal"]) > 0)
-      .map((r) => ({
-        ccy: r["ccy"],
-        bal: r["bal"],
-        availBal: r["availBal"],
-        frozenBal: r["frozenBal"],
-      })),
-  );
+  const assetRows = data
+    .filter((r) => Number(r["bal"]) > 0)
+    .map((r) => ({
+      ccy: r["ccy"],
+      bal: r["bal"],
+      availBal: r["availBal"],
+      frozenBal: r["frozenBal"],
+    }));
+  if (assetRows.length === 0 && data.length > 0) {
+    outputLine("Total balance: 0");
+  } else {
+    printTable(assetRows);
+  }
   if (showValuation && result.valuation) {
     const valuationData = (result.valuation as Record<string, unknown>[]) ?? [];
     outputLine("");
