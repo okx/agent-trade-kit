@@ -11,7 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.2] - 2026-03-31
+
+### Fixed
+
+- **`account_get_asset_balance` shows zero balance instead of "(no data)"**: When an account balance is exactly 0, the CLI now correctly displays `0` rather than the placeholder "(no data)" text.
+
 ### Changed
+
 - **`market_get_candles` now automatically routes to historical endpoint**: Automatically uses `/market/history-candles` when `after`/`before` timestamps are older than 2 days, enabling access to candlestick data back to 2021. Includes fallback: if the recent endpoint returns empty data for a timestamped request, it retries the history endpoint. The `history` parameter has been removed; no manual switching required. CLI: `okx market candles BTC-USDT --after <timestamp>`. (#101)
 - **`account_get_asset_balance` now supports `showValuation` parameter**: Set `showValuation=true` to also return total asset valuation breakdown across all account types (trading, funding, earn, etc.) via `/api/v5/asset/asset-valuation`. Default behavior is unchanged (backward compatible). CLI: `okx account asset-balance --valuation`. (#102)
 
