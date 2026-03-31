@@ -248,12 +248,14 @@ export function registerOptionTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const status = readString(args, "status") ?? "live";
-        const path =
-          status === "archive"
-            ? "/api/v5/trade/orders-history-archive"
-            : status === "history"
-              ? "/api/v5/trade/orders-history"
-              : "/api/v5/trade/orders-pending";
+        let path: string;
+        if (status === "archive") {
+          path = "/api/v5/trade/orders-history-archive";
+        } else if (status === "history") {
+          path = "/api/v5/trade/orders-history";
+        } else {
+          path = "/api/v5/trade/orders-pending";
+        }
         const response = await context.client.privateGet(
           path,
           compactObject({

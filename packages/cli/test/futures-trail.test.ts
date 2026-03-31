@@ -4,6 +4,20 @@ import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdFuturesAlgoTrailPlace } from "../src/commands/futures.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 
 beforeEach(() => {
@@ -110,7 +124,7 @@ describe("cmdFuturesAlgoTrailPlace", () => {
       json: true,
     });
 
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("outputs trailing stop placed message with algoId", async () => {

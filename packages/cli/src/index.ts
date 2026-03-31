@@ -159,7 +159,7 @@ import {
   cmdDcdOrders,
   cmdDcdQuoteAndBuy,
 } from "./commands/dcd.js";
-import { markFailedIfSCodeError, output, outputLine, errorOutput, errorLine, setOutput } from "./formatter.js";
+import { markFailedIfSCodeError, outputLine, errorLine, setOutput } from "./formatter.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";

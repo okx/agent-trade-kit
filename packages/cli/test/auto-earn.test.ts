@@ -9,6 +9,20 @@ import {
 } from "../src/commands/auto-earn.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -137,7 +151,7 @@ describe("cmdAutoEarnStatus", () => {
   it("outputs JSON when json=true", async () => {
     const runner = createRunner([solDetail]);
     await cmdAutoEarnStatus(runner, undefined, true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -184,7 +198,7 @@ describe("cmdAutoEarnOn", () => {
   it("outputs JSON when json=true", async () => {
     const runner = createRunner([solDetail]);
     await cmdAutoEarnOn(runner, "SOL", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -213,6 +227,6 @@ describe("cmdAutoEarnOff", () => {
   it("outputs JSON when json=true", async () => {
     const runner = createRunner([usdgDetail]);
     await cmdAutoEarnOff(runner, "USDG", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });

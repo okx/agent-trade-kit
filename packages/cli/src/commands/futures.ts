@@ -265,7 +265,7 @@ export async function cmdFuturesBatch(
     return;
   }
 
-  const result = await run(tool, tool === "futures_batch_orders" ? { orders: parsed } : { orders: parsed });
+  const result = await run(tool, { orders: parsed });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitBatchResults(data ?? []);

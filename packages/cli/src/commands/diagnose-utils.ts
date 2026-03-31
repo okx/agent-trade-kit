@@ -1,7 +1,7 @@
 import fs from "node:fs";
 
 import { createRequire } from "node:module";
-import { output, outputLine, errorLine } from "../formatter.js";
+import { outputLine, errorLine } from "../formatter.js";
 
 const _require = createRequire(import.meta.url);
 

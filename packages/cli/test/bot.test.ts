@@ -14,6 +14,20 @@ import {
 } from "../src/commands/bot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -41,7 +55,7 @@ describe("cmdGridOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "1", instId: "BTC-USDT", algoOrdType: "grid", state: "running", pnlRatio: "0", gridNum: "10", maxPx: "50000", minPx: "40000", cTime: "0" }]);
     await cmdGridOrders(runner, { algoOrdType: "grid", status: "active", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("queries CoinM contract grid orders", async () => {
@@ -88,7 +102,7 @@ describe("cmdGridCreate", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "GRID001", sCode: "0" }]);
     await cmdGridCreate(runner, { instId: "BTC-USDT", algoOrdType: "grid", maxPx: "50000", minPx: "40000", gridNum: "10", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("passes tpTriggerPx, slTriggerPx, tpRatio, slRatio, algoClOrdId to runner", async () => {
@@ -201,7 +215,7 @@ describe("cmdDcaOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "1", instId: "BTC-USDT", algoOrdType: "spot_dca", state: "running", pnl: "10", pnlRatio: "0.01", cTime: "0" }]);
     await cmdDcaOrders(runner, { history: false, json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -282,7 +296,7 @@ describe("cmdDcaCreate", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "DCA001", sCode: "0" }]);
     await cmdDcaCreate(runner, { ...baseOpts, json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("passes rsi trigger params to runner", async () => {
@@ -392,7 +406,7 @@ describe("cmdDcaSubOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ cycleId: "c001" }]);
     await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("passes cycleId to runner when provided", async () => {

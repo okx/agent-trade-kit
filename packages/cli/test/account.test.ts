@@ -14,6 +14,20 @@ import {
 } from "../src/commands/account.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -55,7 +69,7 @@ describe("cmdAccountPositions", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ instId: "BTC-USDT", pos: "1" }]);
     await cmdAccountPositions(runner, { json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -82,7 +96,7 @@ describe("cmdAccountFees", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ level: "Lv1" }]);
     await cmdAccountFees(runner, { instType: "SPOT", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -109,7 +123,7 @@ describe("cmdAccountConfig", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ uid: "12345" }]);
     await cmdAccountConfig(runner, true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -128,7 +142,7 @@ describe("cmdAccountSetPositionMode", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ posMode: "net_mode" }]);
     await cmdAccountSetPositionMode(runner, "net_mode", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -187,7 +201,7 @@ describe("cmdAccountTransfer", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ transId: "TXN001", ccy: "USDT", amt: "100" }]);
     await cmdAccountTransfer(runner, { ccy: "USDT", amt: "100", from: "18", to: "6", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -212,7 +226,7 @@ describe("cmdAccountAudit", () => {
 
   it("outputs JSON array when json=true and no log files exist", () => {
     cmdAccountAudit({ json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -257,7 +271,7 @@ describe("cmdAccountAssetBalance", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ ccy: "USDT", bal: "500" }]);
     await cmdAccountAssetBalance(runner, undefined, true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("outputs valuation summary when valuation data is present", async () => {

@@ -194,6 +194,72 @@ function checkClaudeCodeConfig(): "found" | "not-configured" | "parse-error" | "
 }
 
 /**
+ * Handle a single JSON-config client. Returns true if a failure was recorded.
+ */
+function handleJsonClient(
+  clientId: ClientId,
+  report: Report,
+  configuredClients: ClientId[],
+): boolean {
+  const configPath = getConfigPath(clientId);
+  if (!configPath) return false; // platform doesn't support this client
+
+  const name = CLIENT_NAMES[clientId];
+  const status = checkJsonMcpConfig(configPath);
+
+  if (status === "missing") return false; // client not installed — skip silently
+
+  if (status === "found") {
+    ok(name, `configured (${sanitize(configPath)})`);
+    report.add(`client_${clientId}`, `OK ${sanitize(configPath)}`);
+    configuredClients.push(clientId);
+    return false;
+  }
+
+  if (status === "not-configured") {
+    fail(name, "okx-trade-mcp not found in mcpServers", [`Run: okx setup --client ${clientId}`]);
+    report.add(`client_${clientId}`, "NOT_CONFIGURED");
+  } else {
+    fail(name, `JSON parse error in ${sanitize(configPath)}`, [
+      `Check ${sanitize(configPath)} for JSON syntax errors`,
+      `Then run: okx setup --client ${clientId}`,
+    ]);
+    report.add(`client_${clientId}`, "PARSE_ERROR");
+  }
+  return true;
+}
+
+/**
+ * Handle Claude Code client. Returns true if a hard failure was recorded.
+ * "not-configured" is a warning only — Claude Code may be used for other purposes.
+ */
+function handleClaudeCodeClient(report: Report, configuredClients: ClientId[]): boolean {
+  const status = checkClaudeCodeConfig();
+  if (status === "missing") return false;
+
+  const name = CLIENT_NAMES["claude-code"];
+
+  if (status === "found") {
+    ok(name, "configured");
+    report.add("client_claude-code", "OK");
+    configuredClients.push("claude-code");
+    return false;
+  }
+
+  if (status === "not-configured") {
+    warn(name, "installed but okx-trade-mcp not configured", [
+      "Run: okx setup --client claude-code",
+    ]);
+    report.add("client_claude-code", "NOT_CONFIGURED");
+    return false; // not a hard failure
+  }
+
+  fail(name, "settings file has JSON parse error", ["Run: okx setup --client claude-code"]);
+  report.add("client_claude-code", "PARSE_ERROR");
+  return true;
+}
+
+/**
  * Check all known MCP clients and return overall pass/fail and list of configured clients.
  * - Found + valid → ✓, added to configuredClients
  * - Found + invalid → ✗ with fix guidance
@@ -203,68 +269,16 @@ function checkClaudeCodeConfig(): "found" | "not-configured" | "parse-error" | "
 export function checkMcpClients(report: Report): { passed: boolean; configuredClients: ClientId[] } {
   section("MCP Client Config");
 
-  // Clients with JSON config files detectable globally
   const jsonClients: ClientId[] = ["claude-desktop", "cursor", "windsurf"];
   const configuredClients: ClientId[] = [];
   let anyFailed = false;
 
   for (const clientId of jsonClients) {
-    const configPath = getConfigPath(clientId);
-    if (!configPath) continue; // platform doesn't support this client
-
-    const name = CLIENT_NAMES[clientId];
-    const status = checkJsonMcpConfig(configPath);
-
-    if (status === "missing") {
-      // Client not installed — skip silently
-      continue;
-    }
-
-    if (status === "found") {
-      ok(name, `configured (${sanitize(configPath)})`);
-      report.add(`client_${clientId}`, `OK ${sanitize(configPath)}`);
-      configuredClients.push(clientId);
-    } else if (status === "not-configured") {
-      fail(name, "okx-trade-mcp not found in mcpServers", [
-        `Run: okx setup --client ${clientId}`,
-      ]);
-      report.add(`client_${clientId}`, "NOT_CONFIGURED");
-      anyFailed = true;
-    } else {
-      fail(name, `JSON parse error in ${sanitize(configPath)}`, [
-        `Check ${sanitize(configPath)} for JSON syntax errors`,
-        `Then run: okx setup --client ${clientId}`,
-      ]);
-      report.add(`client_${clientId}`, "PARSE_ERROR");
-      anyFailed = true;
-    }
+    if (handleJsonClient(clientId, report, configuredClients)) anyFailed = true;
   }
 
   // Claude Code — special handling (uses claude mcp add, config paths vary)
-  // "not-configured" is treated as a warning rather than a failure: Claude Code may
-  // be installed for other purposes and not used for OKX trading. Only a parse
-  // error is counted as a failure.
-  const claudeCodeStatus = checkClaudeCodeConfig();
-  if (claudeCodeStatus !== "missing") {
-    const name = CLIENT_NAMES["claude-code"];
-    if (claudeCodeStatus === "found") {
-      ok(name, "configured");
-      report.add("client_claude-code", "OK");
-      configuredClients.push("claude-code");
-    } else if (claudeCodeStatus === "not-configured") {
-      warn(name, "installed but okx-trade-mcp not configured", [
-        "Run: okx setup --client claude-code",
-      ]);
-      report.add("client_claude-code", "NOT_CONFIGURED");
-      // not set anyFailed — Claude Code may be used for other purposes
-    } else {
-      fail(name, "settings file has JSON parse error", [
-        "Run: okx setup --client claude-code",
-      ]);
-      report.add("client_claude-code", "PARSE_ERROR");
-      anyFailed = true;
-    }
-  }
+  if (handleClaudeCodeClient(report, configuredClients)) anyFailed = true;
 
   // vscode is project-level — skip for global diagnose
 
