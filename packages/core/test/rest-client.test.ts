@@ -11,6 +11,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { OkxRestClient } from "../src/client/rest-client.js";
+import type { DohResolver } from "../src/client/rest-client.js";
 import {
   NetworkError,
   OkxApiError,
@@ -35,6 +36,9 @@ const BASE_CONFIG: OkxConfig = {
   sourceTag: "test",
   verbose: false,
 };
+
+/** Disable DoH proxy for tests that don't need it. */
+const NO_DOH: { resolveDoh: null } = { resolveDoh: null };
 
 /** Mock globalThis.fetch for the duration of a single test. */
 async function withFetch(
@@ -82,7 +86,7 @@ function throwingFetch(error: unknown): typeof globalThis.fetch {
 describe("OkxRestClient: HTTP-level errors", () => {
   it("wraps fetch TypeError (connection refused) as NetworkError", async () => {
     await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err) => err instanceof NetworkError,
@@ -93,7 +97,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
   it("wraps AbortError (request timeout) as NetworkError", async () => {
     const abortErr = new DOMException("signal timed out", "TimeoutError");
     await withFetch(throwingFetch(abortErr), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err) => err instanceof NetworkError,
@@ -105,7 +109,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
     await withFetch(
       jsonFetch({ code: "1", msg: "Internal Server Error", data: [] }, 500),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -117,7 +121,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
 
   it("throws OkxApiError for HTTP 500 with non-JSON body", async () => {
     await withFetch(textFetch("upstream timeout", 500), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err: unknown) =>
@@ -130,7 +134,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
     await withFetch(
       jsonFetch({ code: "429", msg: "Too Many Requests", data: [] }, 429),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -142,7 +146,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
 
   it("OkxApiError carries endpoint path", async () => {
     await withFetch(jsonFetch({ code: "1", msg: "error" }, 503), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err: unknown) =>
@@ -162,7 +166,7 @@ describe("OkxRestClient: OKX API error codes", () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -176,7 +180,7 @@ describe("OkxRestClient: OKX API error codes", () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -191,7 +195,7 @@ describe("OkxRestClient: OKX API error codes", () => {
     await withFetch(
       jsonFetch({ code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err) => err instanceof AuthenticationError,
@@ -204,7 +208,7 @@ describe("OkxRestClient: OKX API error codes", () => {
     await withFetch(
       jsonFetch({ code: "50112", msg: "Invalid OK-ACCESS-SIGN", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err) => err instanceof AuthenticationError,
@@ -217,7 +221,7 @@ describe("OkxRestClient: OKX API error codes", () => {
     await withFetch(
       jsonFetch({ code: "50113", msg: "Invalid OK-ACCESS-PASSPHRASE", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err) => err instanceof AuthenticationError,
@@ -229,7 +233,7 @@ describe("OkxRestClient: OKX API error codes", () => {
   it("returns data successfully for sCode 0", async () => {
     const payload = [{ instId: "BTC-USDT", last: "50000" }];
     await withFetch(jsonFetch({ code: "0", msg: "", data: payload }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.deepEqual(result.data, payload);
     });
@@ -245,7 +249,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "50011", msg: "Requests too frequent", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) => err instanceof RateLimitError,
@@ -258,7 +262,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "50011", msg: "Requests too frequent", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -274,7 +278,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "50061", msg: "Too many connections", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) => err instanceof RateLimitError,
@@ -287,7 +291,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "51155", msg: "Requests from restricted location", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -304,7 +308,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "50013", msg: "System busy", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -321,7 +325,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -338,7 +342,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
     await withFetch(
       jsonFetch({ code: "99999", msg: "Unknown error", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -363,7 +367,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
     await withFetch(
       jsonFetch({ msg: "", data: [{ instId: "BTC-USDT" }] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.ok(result.data !== undefined);
       },
@@ -372,7 +376,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
 
   it("returns null data when `data` field is absent (code=0)", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "" }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.equal(result.data, null);
     });
@@ -380,7 +384,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
 
   it("returns null data when response is an empty JSON object", async () => {
     await withFetch(jsonFetch({}), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.equal(result.data, null);
     });
@@ -396,7 +400,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
         nested: { a: 1, b: [1, 2, 3] },
       }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.ok(Array.isArray(result.data));
       },
@@ -405,7 +409,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
 
   it("does not crash when `data` is an empty array", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.deepEqual(result.data, []);
     });
@@ -415,7 +419,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
     await withFetch(
       jsonFetch({ code: "0", msg: "", data: null }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.equal(result.data, null);
       },
@@ -425,7 +429,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
   it("throws NetworkError (not crash) when response body is plain text with HTTP 200", async () => {
     // Non-JSON body with 200 status — parse fails but does not crash the server.
     await withFetch(textFetch("OK", 200), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err) => err instanceof NetworkError,
@@ -435,7 +439,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
 
   it("result always includes endpoint and requestTime fields", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.ok(typeof result.endpoint === "string" && result.endpoint.length > 0);
       assert.ok(typeof result.requestTime === "string" && result.requestTime.length > 0);
@@ -456,7 +460,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         { "x-trace-id": "abc123def456" },
       ),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -474,7 +478,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         { "x-request-id": "req-999" },
       ),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -492,7 +496,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         { "x-trace-id": "trace-first", "x-request-id": "req-second" },
       ),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -506,7 +510,7 @@ describe("OkxRestClient: trace ID extraction", () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "error", data: [] }),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -524,7 +528,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         { "x-trace-id": "http-err-trace" },
       ),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -542,7 +546,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         { "x-trace-id": "auth-trace-42" },
       ),
       async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+        const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err: unknown) =>
@@ -571,7 +575,7 @@ function capturingFetch(capture: { req?: Request }): typeof globalThis.fetch {
 describe("OkxRestClient: User-Agent header", () => {
   it("sets User-Agent when userAgent is configured", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient({ ...BASE_CONFIG, userAgent: "okx-trade-mcp/1.0.2" });
+    const client = new OkxRestClient({ ...BASE_CONFIG, userAgent: "okx-trade-mcp/1.0.2" }, NO_DOH);
     await withFetch(capturingFetch(captured), () =>
       client.publicGet("/api/v5/market/ticker"),
     );
@@ -580,7 +584,7 @@ describe("OkxRestClient: User-Agent header", () => {
 
   it("does not set User-Agent when userAgent is not configured", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
+    const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
     await withFetch(capturingFetch(captured), () =>
       client.publicGet("/api/v5/market/ticker"),
     );
@@ -603,7 +607,7 @@ const AUTH_CONFIG: OkxConfig = {
 describe("OkxRestClient: privateGet / privatePost", () => {
   it("privateGet completes successfully with auth credentials", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(AUTH_CONFIG);
+      const client = new OkxRestClient(AUTH_CONFIG, NO_DOH);
       const result = await client.privateGet("/api/v5/account/balance");
       assert.ok(result.data !== undefined);
     });
@@ -613,7 +617,7 @@ describe("OkxRestClient: privateGet / privatePost", () => {
     await withFetch(
       jsonFetch({ code: "0", msg: "", data: [{ ordId: "123" }] }),
       async () => {
-        const client = new OkxRestClient(AUTH_CONFIG);
+        const client = new OkxRestClient(AUTH_CONFIG, NO_DOH);
         const result = await client.privatePost("/api/v5/trade/order", {
           instId: "BTC-USDT",
           side: "buy",
@@ -625,7 +629,7 @@ describe("OkxRestClient: privateGet / privatePost", () => {
 
   it("privateGet sets OK-ACCESS-KEY header", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(AUTH_CONFIG);
+    const client = new OkxRestClient(AUTH_CONFIG, NO_DOH);
     await withFetch(capturingFetch(captured), () =>
       client.privateGet("/api/v5/account/balance"),
     );
@@ -634,7 +638,7 @@ describe("OkxRestClient: privateGet / privatePost", () => {
 
   it("privatePost sets OK-ACCESS-PASSPHRASE header", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(AUTH_CONFIG);
+    const client = new OkxRestClient(AUTH_CONFIG, NO_DOH);
     await withFetch(capturingFetch(captured), () =>
       client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
     );
@@ -644,7 +648,7 @@ describe("OkxRestClient: privateGet / privatePost", () => {
   it("throws ConfigError when private endpoint called without credentials", async () => {
     const { ConfigError } = await import("../src/utils/errors.js");
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG); // no auth
+      const client = new OkxRestClient(BASE_CONFIG, NO_DOH); // no auth
       await assert.rejects(
         () => client.privateGet("/api/v5/account/balance"),
         (err: unknown) => err instanceof ConfigError,
@@ -678,7 +682,7 @@ describe("OkxRestClient: proxy dispatcher", () => {
     const client = new OkxRestClient({
       ...BASE_CONFIG,
       proxyUrl: "http://127.0.0.1:7890",
-    });
+    }, NO_DOH);
     await withFetch(capturingFetchInit(captured), () =>
       client.publicGet("/api/v5/market/ticker"),
     );
@@ -687,7 +691,7 @@ describe("OkxRestClient: proxy dispatcher", () => {
 
   it("does not pass dispatcher when proxyUrl is not configured", async () => {
     const captured: { init?: Record<string, unknown> } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
+    const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
     await withFetch(capturingFetchInit(captured), () =>
       client.publicGet("/api/v5/market/ticker"),
     );
@@ -699,7 +703,7 @@ describe("OkxRestClient: proxy dispatcher", () => {
     const client = new OkxRestClient({
       ...AUTH_CONFIG,
       proxyUrl: "http://proxy.example.com:8080",
-    });
+    }, NO_DOH);
     await withFetch(capturingFetchInit(captured), () =>
       client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
     );
@@ -714,7 +718,7 @@ describe("OkxRestClient: proxy dispatcher", () => {
 describe("OkxRestClient: query string building", () => {
   it("omits '?' when query object is empty", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
+    const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
     await withFetch(capturingFetch(captured), () =>
       client.publicGet("/api/v5/market/ticker", {}),
     );
@@ -723,7 +727,7 @@ describe("OkxRestClient: query string building", () => {
 
   it("joins array query values with commas", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
+    const client = new OkxRestClient(BASE_CONFIG, NO_DOH);
     await withFetch(capturingFetch(captured), () =>
       client.publicGet("/api/v5/market/tickers", {
         instId: ["BTC-USDT", "ETH-USDT"] as unknown as string,
@@ -759,7 +763,7 @@ describe("OkxRestClient: verbose mode", () => {
 
   it("writes request and response info to stderr when verbose=true", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(VERBOSE_CONFIG);
+      const client = new OkxRestClient(VERBOSE_CONFIG, NO_DOH);
       const output = await captureStderr(() => client.publicGet("/api/v5/market/ticker", { instId: "BTC-USDT" }));
       assert.ok(output.includes("[verbose]"), "should contain [verbose] prefix");
       assert.ok(output.includes("/api/v5/market/ticker"), "should contain request path");
@@ -769,7 +773,7 @@ describe("OkxRestClient: verbose mode", () => {
 
   it("does not write to stderr when verbose=false", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient({ ...BASE_CONFIG, verbose: false });
+      const client = new OkxRestClient({ ...BASE_CONFIG, verbose: false }, NO_DOH);
       const output = await captureStderr(() => client.publicGet("/api/v5/market/ticker"));
       assert.equal(output, "", "should not produce verbose output");
     });
@@ -777,7 +781,7 @@ describe("OkxRestClient: verbose mode", () => {
 
   it("logs network errors to stderr when verbose=true", async () => {
     await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
-      const client = new OkxRestClient(VERBOSE_CONFIG);
+      const client = new OkxRestClient(VERBOSE_CONFIG, NO_DOH);
       const output = await captureStderr(async () => {
         try { await client.publicGet("/api/v5/market/ticker"); } catch { /* expected */ }
       });
@@ -796,7 +800,7 @@ describe("OkxRestClient: verbose mode", () => {
       passphrase: "test-pass",
     };
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(authVerboseConfig);
+      const client = new OkxRestClient(authVerboseConfig, NO_DOH);
       const output = await captureStderr(() => client.privateGet("/api/v5/account/balance"));
       assert.ok(output.includes("abc***nop"), "should contain masked key");
       assert.ok(!output.includes("abcdefghijklmnop"), "should NOT contain full key");
@@ -807,12 +811,129 @@ describe("OkxRestClient: verbose mode", () => {
     await withFetch(
       jsonFetch({ code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] }),
       async () => {
-        const client = new OkxRestClient(VERBOSE_CONFIG);
+        const client = new OkxRestClient(VERBOSE_CONFIG, NO_DOH);
         const output = await captureStderr(async () => {
           try { await client.publicGet("/api/v5/account/balance"); } catch { /* expected */ }
         });
         assert.ok(output.includes("50111"), "should contain error code");
       },
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DoH proxy routing
+// ---------------------------------------------------------------------------
+
+const MOCK_DOH_NODE = { ip: "47.242.161.22", host: "okexweb.qqhrss.com", ttl: 120 };
+const mockDohResolver: DohResolver = async () => MOCK_DOH_NODE;
+const failingDohResolver: DohResolver = async () => { throw new Error("DoH unavailable"); };
+const nullDohResolver: DohResolver = async () => null;
+
+describe("OkxRestClient: DoH proxy routing", () => {
+  it("rewrites URL to use DoH proxy host", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: mockDohResolver });
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/public/time"),
+    );
+    const url = new URL(captured.req!.url);
+    assert.equal(url.hostname, "okexweb.qqhrss.com");
+    assert.equal(url.pathname, "/api/v5/public/time");
+    assert.equal(url.protocol, "https:");
+  });
+
+  it("sets User-Agent to OKX/2.7.2 when DoH is active", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: mockDohResolver });
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/public/time"),
+    );
+    assert.equal(captured.req?.headers.get("User-Agent"), "OKX/2.7.2");
+  });
+
+  it("passes dohAgent as dispatcher when DoH is active", async () => {
+    const captured: { init?: Record<string, unknown> } = {};
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: mockDohResolver });
+    await withFetch(capturingFetchInit(captured), () =>
+      client.publicGet("/api/v5/public/time"),
+    );
+    assert.ok(captured.init?.dispatcher !== undefined, "dohAgent dispatcher should be set");
+  });
+
+  it("falls back to direct when DoH resolver returns null", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: nullDohResolver });
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/public/time"),
+    );
+    const url = new URL(captured.req!.url);
+    assert.equal(url.hostname, "www.okx.com", "should fall back to direct URL");
+  });
+
+  it("falls back to direct when DoH resolver throws", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: failingDohResolver });
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/public/time"),
+    );
+    const url = new URL(captured.req!.url);
+    assert.equal(url.hostname, "www.okx.com", "should fall back to direct URL on error");
+  });
+
+  it("does not use DoH when proxy_url is configured (proxy_url takes priority)", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(
+      { ...BASE_CONFIG, proxyUrl: "http://127.0.0.1:7890" },
+      { resolveDoh: mockDohResolver },
+    );
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/public/time"),
+    );
+    const url = new URL(captured.req!.url);
+    assert.equal(url.hostname, "www.okx.com", "should use original URL when proxy_url is set");
+  });
+
+  it("DoH does not affect signature (requestPath stays the same)", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(
+      { ...AUTH_CONFIG },
+      { resolveDoh: mockDohResolver },
+    );
+    await withFetch(capturingFetch(captured), () =>
+      client.privateGet("/api/v5/account/balance"),
+    );
+    // Auth headers should be present (signature computed from requestPath, not hostname)
+    assert.ok(captured.req?.headers.get("OK-ACCESS-KEY"), "should have auth key header");
+    assert.ok(captured.req?.headers.get("OK-ACCESS-SIGN"), "should have signature header");
+  });
+
+  it("preserves query string in DoH-proxied URL", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: mockDohResolver });
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/market/ticker", { instId: "BTC-USDT" }),
+    );
+    const url = new URL(captured.req!.url);
+    assert.equal(url.hostname, "okexweb.qqhrss.com");
+    assert.equal(url.searchParams.get("instId"), "BTC-USDT");
+  });
+
+  it("resolves DoH only once across multiple requests", async () => {
+    let resolveCount = 0;
+    const countingResolver: DohResolver = async () => {
+      resolveCount++;
+      return MOCK_DOH_NODE;
+    };
+    const client = new OkxRestClient(BASE_CONFIG, { resolveDoh: countingResolver });
+    await withFetch(
+      jsonFetch({ code: "0", msg: "", data: [] }),
+      async () => {
+        await client.publicGet("/api/v5/public/time");
+        await client.publicGet("/api/v5/market/ticker");
+        await client.publicGet("/api/v5/public/instruments");
+      },
+    );
+    assert.equal(resolveCount, 1, "DoH resolver should only be called once");
   });
 });

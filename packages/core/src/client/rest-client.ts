@@ -1,4 +1,6 @@
-import { ProxyAgent } from "undici";
+import { Agent, ProxyAgent } from "undici";
+import { resolveDoh } from "../doh/resolver.js";
+import type { DohNode } from "../doh/types.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
   AuthenticationError,
@@ -102,16 +104,79 @@ function vlog(message: string): void {
   process.stderr.write(`[verbose] ${message}\n`);
 }
 
+export type DohResolver = (domain: string) => Promise<DohNode | null>;
+
 export class OkxRestClient {
   private readonly config: OkxConfig;
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
 
-  public constructor(config: OkxConfig) {
+  // DoH proxy state (lazy-resolved on first request)
+  private readonly dohResolverFn: DohResolver | null;
+  private dohResolved = false;
+  private dohNode: DohNode | null = null;
+  private dohAgent: Agent | null = null;
+  private dohBaseUrl: string | null = null;
+
+  /**
+   * @param config - OKX API client configuration
+   * @param options - Optional overrides (e.g. custom DoH resolver for testing).
+   *                  Pass `{ resolveDoh: null }` to disable DoH entirely.
+   */
+  public constructor(
+    config: OkxConfig,
+    options?: { resolveDoh?: DohResolver | null },
+  ) {
     this.config = config;
     this.rateLimiter = new RateLimiter(30_000, config.verbose);
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
+    }
+    this.dohResolverFn = options?.resolveDoh !== undefined
+      ? options.resolveDoh
+      : resolveDoh;
+  }
+
+  /**
+   * Lazily resolve the DoH proxy node on the first request.
+   * Skipped entirely when the user has configured proxy_url or DoH is disabled.
+   * On failure, silently falls back to direct connection.
+   */
+  private async ensureDoh(): Promise<void> {
+    if (this.dohResolved || this.dispatcher || !this.dohResolverFn) return;
+    this.dohResolved = true;
+    try {
+      const { hostname, protocol } = new URL(this.config.baseUrl);
+      const node = await this.dohResolverFn(hostname);
+      if (node) {
+        this.dohNode = node;
+        this.dohBaseUrl = `${protocol}//${node.host}`;
+        this.dohAgent = new Agent({
+          connect: {
+            lookup: (
+              _hostname,
+              options,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              callback: any,
+            ) => {
+              if ((options as { all?: boolean })?.all) {
+                callback(null, [{ address: node.ip, family: 4 }]);
+              } else {
+                callback(null, node.ip, 4);
+              }
+            },
+          },
+        });
+        if (this.config.verbose) {
+          vlog(`DoH proxy active: ${hostname} → ${node.host} (${node.ip}), ttl=${node.ttl}s`);
+        }
+      }
+    } catch (err) {
+      if (this.config.verbose) {
+        const cause = err instanceof Error ? err.message : String(err);
+        vlog(`DoH resolution failed, falling back to direct: ${cause}`);
+      }
+      this.dohNode = null;
     }
   }
 
@@ -310,9 +375,15 @@ export class OkxRestClient {
   private async request<TData = unknown>(
     reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
+    await this.ensureDoh();
+
     const queryString = buildQueryString(reqConfig.query);
     const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
-    const url = `${this.config.baseUrl}${requestPath}`;
+
+    // Route: proxy_url → DoH proxy → direct
+    const baseUrl = this.dohNode ? this.dohBaseUrl! : this.config.baseUrl;
+    const url = `${baseUrl}${requestPath}`;
+
     const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
     const timestamp = getNow();
 
@@ -327,7 +398,9 @@ export class OkxRestClient {
       Accept: "application/json",
     });
 
-    if (this.config.userAgent) {
+    if (this.dohNode) {
+      headers.set("User-Agent", "OKX/2.7.2");
+    } else if (this.config.userAgent) {
       headers.set("User-Agent", this.config.userAgent);
     }
 
@@ -350,6 +423,8 @@ export class OkxRestClient {
       };
       if (this.dispatcher) {
         fetchOptions.dispatcher = this.dispatcher;
+      } else if (this.dohAgent) {
+        fetchOptions.dispatcher = this.dohAgent;
       }
       response = await fetch(url, fetchOptions as RequestInit);
     } catch (error) {
