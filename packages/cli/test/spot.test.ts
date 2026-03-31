@@ -16,6 +16,20 @@ import {
 } from "../src/commands/spot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -62,7 +76,7 @@ describe("cmdSpotOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeOrdersResult;
     await cmdSpotOrders(runner, { status: "open", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_get_orders with status and optional instId", async () => {
@@ -110,7 +124,7 @@ describe("cmdSpotPlace", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeOrderResult;
     await cmdSpotPlace(runner, { ...baseOpts, json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_place_order with required params and defaults tdMode to cash", async () => {
@@ -186,7 +200,7 @@ describe("cmdSpotCancel", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeOrderResult;
     await cmdSpotCancel(runner, { instId: "BTC-USDT", ordId: "111222", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_cancel_order with ordId", async () => {
@@ -241,7 +255,7 @@ describe("cmdSpotAlgoPlace", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
     await cmdSpotAlgoPlace(runner, { ...baseOpts, json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_place_algo_order with required params and defaults tdMode to cash", async () => {
@@ -294,7 +308,7 @@ describe("cmdSpotAlgoAmend", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
     await cmdSpotAlgoAmend(runner, { instId: "BTC-USDT", algoId: "789012", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_amend_algo_order with correct params", async () => {
@@ -333,7 +347,7 @@ describe("cmdSpotAlgoCancel", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
     await cmdSpotAlgoCancel(runner, "BTC-USDT", "789012", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_cancel_algo_order with instId and algoId", async () => {
@@ -373,7 +387,7 @@ describe("cmdSpotGet", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeGetResult;
     await cmdSpotGet(runner, { instId: "BTC-USDT", ordId: "111222", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_get_order with instId and ordId", async () => {
@@ -420,7 +434,7 @@ describe("cmdSpotAmend", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeOrderResult;
     await cmdSpotAmend(runner, { instId: "BTC-USDT", ordId: "111222", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_amend_order with correct params", async () => {
@@ -460,7 +474,7 @@ describe("cmdSpotAlgoOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeAlgoOrdersResult;
     await cmdSpotAlgoOrders(runner, { status: "pending", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_get_algo_orders with status and optional params", async () => {
@@ -507,7 +521,7 @@ describe("cmdSpotFills", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeFillsResult;
     await cmdSpotFills(runner, { json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_get_fills with optional instId and ordId", async () => {
@@ -548,7 +562,7 @@ describe("cmdSpotBatch", () => {
       orders: '[{"instId":"BTC-USDT","side":"buy","ordType":"limit","sz":"0.01","px":"50000"}]',
       json: true,
     });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls spot_batch_orders for place action", async () => {

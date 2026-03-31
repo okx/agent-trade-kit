@@ -12,6 +12,53 @@ import { OkxApiError } from "../../utils/errors.js";
 
 const BASE = "/api/v5/tradingBot/dca";
 
+/** Build triggerParams for dca_create_order. */
+function buildTriggerParam(
+  args: Record<string, unknown>,
+  algoOrdType: string,
+): Record<string, string> {
+  const triggerStrategy = readString(args, "triggerStrategy") ?? "instant";
+
+  if (triggerStrategy === "price" && algoOrdType === "spot_dca") {
+    throw new OkxApiError(
+      "triggerStrategy 'price' is only supported for contract_dca. spot_dca supports: instant, rsi",
+      { code: "VALIDATION", endpoint: `${BASE}/create` },
+    );
+  }
+
+  const param: Record<string, string> = { triggerAction: "start", triggerStrategy };
+
+  if (triggerStrategy === "price") {
+    param["triggerPx"] = requireString(args, "triggerPx");
+    const triggerCond = readString(args, "triggerCond");
+    if (triggerCond) param["triggerCond"] = triggerCond;
+  } else if (triggerStrategy === "rsi") {
+    param["triggerCond"] = requireString(args, "triggerCond");
+    param["thold"] = requireString(args, "thold");
+    param["timeframe"] = requireString(args, "timeframe");
+    param["timePeriod"] = readString(args, "timePeriod") ?? "14";
+  }
+
+  return param;
+}
+
+/** Validate conditional required params when maxSafetyOrds > 0. */
+function validateSafetyOrderParams(
+  args: Record<string, unknown>,
+  maxSafetyOrds: string,
+): void {
+  if (Number(maxSafetyOrds) <= 0) return;
+  const required = ["safetyOrdAmt", "pxSteps", "pxStepsMult", "volMult"] as const;
+  for (const field of required) {
+    if (!readString(args, field)) {
+      throw new OkxApiError(`${field} is required when maxSafetyOrds > 0`, {
+        code: "VALIDATION",
+        endpoint: `${BASE}/create`,
+      });
+    }
+  }
+}
+
 /** For write operations: surface any inner sCode/sMsg errors from data items. */
 function normalizeWrite(response: {
   endpoint: string;
@@ -97,63 +144,14 @@ export function registerDcaTools(): ToolSpec[] {
           });
         }
 
-        // Build triggerParams: default to instant; support price/rsi strategy
-        const triggerStrategy = readString(args, "triggerStrategy") ?? "instant";
-
-        // Validate: price trigger is only supported for contract_dca
-        if (triggerStrategy === "price" && algoOrdType === "spot_dca") {
-          throw new OkxApiError("triggerStrategy 'price' is only supported for contract_dca. spot_dca supports: instant, rsi", {
-            code: "VALIDATION",
-            endpoint: `${BASE}/create`,
-          });
-        }
-
-        const triggerParam: Record<string, string> = {
-          triggerAction: "start",
-          triggerStrategy,
-        };
-        if (triggerStrategy === "price") {
-          triggerParam["triggerPx"] = requireString(args, "triggerPx");
-          const triggerCond = readString(args, "triggerCond");
-          if (triggerCond) {
-            triggerParam["triggerCond"] = triggerCond;
-          }
-        } else if (triggerStrategy === "rsi") {
-          triggerParam["triggerCond"] = requireString(args, "triggerCond");
-          triggerParam["thold"] = requireString(args, "thold");
-          triggerParam["timeframe"] = requireString(args, "timeframe");
-          const timePeriod = readString(args, "timePeriod");
-          triggerParam["timePeriod"] = timePeriod ?? "14";
-        }
-
-        // Validate conditional required params when maxSafetyOrds > 0
+        const triggerParam = buildTriggerParam(args, algoOrdType);
         const maxSafetyOrds = requireString(args, "maxSafetyOrds");
-        if (Number(maxSafetyOrds) > 0) {
-          if (!readString(args, "safetyOrdAmt")) {
-            throw new OkxApiError("safetyOrdAmt is required when maxSafetyOrds > 0", {
-              code: "VALIDATION",
-              endpoint: `${BASE}/create`,
-            });
-          }
-          if (!readString(args, "pxSteps")) {
-            throw new OkxApiError("pxSteps is required when maxSafetyOrds > 0", {
-              code: "VALIDATION",
-              endpoint: `${BASE}/create`,
-            });
-          }
-          if (!readString(args, "pxStepsMult")) {
-            throw new OkxApiError("pxStepsMult is required when maxSafetyOrds > 0", {
-              code: "VALIDATION",
-              endpoint: `${BASE}/create`,
-            });
-          }
-          if (!readString(args, "volMult")) {
-            throw new OkxApiError("volMult is required when maxSafetyOrds > 0", {
-              code: "VALIDATION",
-              endpoint: `${BASE}/create`,
-            });
-          }
-        }
+        validateSafetyOrderParams(args, maxSafetyOrds);
+
+        const allowReinvestRaw = args["allowReinvest"];
+        const allowReinvest = allowReinvestRaw !== undefined
+          ? allowReinvestRaw === true || allowReinvestRaw === "true"
+          : undefined;
 
         const response = await context.client.privatePost(
           `${BASE}/create`,
@@ -171,9 +169,7 @@ export function registerDcaTools(): ToolSpec[] {
             tpPct: requireString(args, "tpPct"),
             slPct: readString(args, "slPct"),
             slMode: readString(args, "slMode"),
-            allowReinvest: args["allowReinvest"] !== undefined
-              ? (args["allowReinvest"] === true || args["allowReinvest"] === "true")
-              : undefined,
+            allowReinvest,
             triggerParams: [triggerParam],
             tag: context.config.sourceTag,
             algoClOrdId: readString(args, "algoClOrdId"),

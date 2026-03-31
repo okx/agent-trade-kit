@@ -1,8 +1,7 @@
 import { readFullConfig, configFilePath, OKX_SITES, SITE_IDS, tomlStringify } from "@agent-tradekit/core";
-import type { SiteId } from "@agent-tradekit/core";
+import type { SiteId, OkxProfile, OkxTomlConfig } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
 import { output, errorOutput, outputLine, errorLine, printJson, printKv } from "../formatter.js";
-import type { OkxTomlConfig, OkxProfile } from "@agent-tradekit/core";
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
 
@@ -139,6 +138,71 @@ export function buildProfileEntry(
   return entry;
 }
 
+/** Tries to open a URL in the system browser; silently ignores failures. */
+function tryOpenUrl(url: string): void {
+  try {
+    let opener: string;
+    if (process.platform === "darwin") {
+      opener = "open";
+    } else if (process.platform === "win32") {
+      opener = "start";
+    } else {
+      opener = "xdg-open";
+    }
+    spawnSync(opener, [url], { stdio: "ignore", shell: process.platform === "win32" });
+  } catch {
+    // silently ignore
+  }
+}
+
+/** Prompts for API credentials and returns them, or null if any field is empty. */
+async function promptCredentials(
+  rl: ReturnType<typeof createInterface>,
+  t: (typeof messages)[Lang],
+): Promise<{ apiKey: string; secretKey: string; passphrase: string } | null> {
+  const apiKey = (await prompt(rl, "API Key: ")).trim();
+  if (!apiKey) {
+    errorLine(t.emptyApiKey);
+    process.exitCode = 1;
+    return null;
+  }
+
+  const secretKey = (await prompt(rl, "Secret Key: ")).trim();
+  if (!secretKey) {
+    errorLine(t.emptySecretKey);
+    process.exitCode = 1;
+    return null;
+  }
+
+  const passphrase = (await prompt(rl, "Passphrase: ")).trim();
+  if (!passphrase) {
+    errorLine(t.emptyPassphrase);
+    process.exitCode = 1;
+    return null;
+  }
+
+  return { apiKey, secretKey, passphrase };
+}
+
+/** Writes config to disk and outputs success messages, or prints manual fallback on error. */
+function saveConfig(config: OkxTomlConfig, profileName: string, t: (typeof messages)[Lang]): void {
+  const configPath = configFilePath();
+  try {
+    writeCliConfig(config);
+    output(t.saved(configPath));
+    output(t.defaultProfile(profileName));
+    output(t.usage);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const isPermission = err instanceof Error && "code" in err && (err.code === "EACCES" || err.code === "EPERM");
+    errorOutput(t.writeFailed(message));
+    if (isPermission) errorOutput(t.permissionDenied(configPath));
+    errorOutput(t.manualWrite(configPath));
+    outputLine(tomlStringify(config as unknown as Record<string, unknown>));
+    process.exitCode = 1;
+  }
+}
+
 export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
   const t = messages[lang];
   outputLine(t.title);
@@ -161,17 +225,9 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
 
     // Step 3: open targeted API creation page
     const apiUrl = buildApiUrl(siteKey, demo);
-    const hintText = demo ? t.hintDemo : t.hintLive;
     output(t.createApiKey(apiUrl));
-    output(t.hint(hintText));
-
-    // Try to open the URL; silently ignore failures
-    try {
-      const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-      spawnSync(opener, [apiUrl], { stdio: "ignore", shell: process.platform === "win32" });
-    } catch {
-      // silently ignore
-    }
+    output(t.hint(demo ? t.hintDemo : t.hintLive));
+    tryOpenUrl(apiUrl);
 
     const defaultProfileName = demo ? "okx-demo" : "okx-prod";
     const profileNameRaw = await prompt(rl, t.profilePrompt(defaultProfileName));
@@ -187,56 +243,19 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
       }
     }
 
-    const apiKey = (await prompt(rl, "API Key: ")).trim();
-    if (!apiKey) {
-      errorLine(t.emptyApiKey);
-      process.exitCode = 1;
-      return;
-    }
+    const credentials = await promptCredentials(rl, t);
+    if (!credentials) return;
 
-    const secretKey = (await prompt(rl, "Secret Key: ")).trim();
-    if (!secretKey) {
-      errorLine(t.emptySecretKey);
-      process.exitCode = 1;
-      return;
-    }
+    if (demo) outputLine(t.demoSelected);
 
-    const passphrase = (await prompt(rl, "Passphrase: ")).trim();
-    if (!passphrase) {
-      errorLine(t.emptyPassphrase);
-      process.exitCode = 1;
-      return;
-    }
-
-    if (demo) {
-      outputLine(t.demoSelected);
-    }
-
-    const profileEntry = buildProfileEntry(siteKey, apiKey, secretKey, passphrase, demo);
-    config.profiles[profileName] = profileEntry;
+    config.profiles[profileName] = buildProfileEntry(siteKey, credentials.apiKey, credentials.secretKey, credentials.passphrase, demo);
 
     // Auto-set as default_profile
     if (!config.default_profile || config.default_profile !== profileName) {
       config.default_profile = profileName;
     }
 
-    const configPath = configFilePath();
-    try {
-      writeCliConfig(config);
-      output(t.saved(configPath));
-      output(t.defaultProfile(profileName));
-      output(t.usage);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      const isPermission = err instanceof Error && "code" in err && (err.code === "EACCES" || err.code === "EPERM");
-      errorOutput(t.writeFailed(message));
-      if (isPermission) {
-        errorOutput(t.permissionDenied(configPath));
-      }
-      errorOutput(t.manualWrite(configPath));
-      outputLine(tomlStringify(config as unknown as Record<string, unknown>));
-      process.exitCode = 1;
-    }
+    saveConfig(config, profileName, t);
   } finally {
     rl.close();
   }

@@ -11,6 +11,20 @@ import {
 } from "../src/commands/dcd.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -46,7 +60,7 @@ describe("cmdDcdPairs", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ baseCcy: "BTC" }]);
     await cmdDcdPairs(runner, true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -80,7 +94,7 @@ describe("cmdDcdProducts", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => productsResult;
     await cmdDcdProducts(runner, { json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("filters by minYield", async () => {
@@ -128,7 +142,7 @@ describe("cmdDcdRedeemExecute", () => {
       { quoteId: "Q1", redeemSz: "0.01", redeemCcy: "BTC", termRate: "5", ordId: "ORD1", state: "filled" },
     ]);
     await cmdDcdRedeemExecute(runner, { ordId: "ORD1", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -155,7 +169,7 @@ describe("cmdDcdOrderState", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ ordId: "ORD1" }]);
     await cmdDcdOrderState(runner, { ordId: "ORD1", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -181,7 +195,7 @@ describe("cmdDcdOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ ordId: "ORD1" }]);
     await cmdDcdOrders(runner, { json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -237,6 +251,6 @@ describe("cmdDcdQuoteAndBuy", () => {
       quote: { quoteId: "Q1" },
     });
     await cmdDcdQuoteAndBuy(runner, { ...baseOpts, json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });

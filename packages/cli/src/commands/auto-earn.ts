@@ -52,7 +52,7 @@ async function getBalanceDetails(
 ): Promise<BalanceDetail[]> {
   const result = await run("account_get_balance", ccy ? { ccy } : {});
   const data = result.data as Record<string, unknown>[] | undefined;
-  const first = data?.[0] as Record<string, unknown> | undefined;
+  const first = data?.[0];
   return (first?.details as BalanceDetail[]) ?? [];
 }
 

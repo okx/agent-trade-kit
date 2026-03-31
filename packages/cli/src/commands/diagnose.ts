@@ -5,7 +5,7 @@ import tls from "node:tls";
 import type { OkxConfig } from "@agent-tradekit/core";
 import { OkxRestClient, readFullConfig, configFilePath } from "@agent-tradekit/core";
 import { Report, ok, fail, section, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
-import { output, outputLine } from "../formatter.js";
+import { outputLine } from "../formatter.js";
 import { cmdDiagnoseMcp } from "./diagnose-mcp.js";
 
 const CLI_VERSION = readCliVersion();

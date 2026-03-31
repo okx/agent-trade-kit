@@ -25,6 +25,20 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -319,7 +333,7 @@ describe("cmdAccountAudit", () => {
 
   it("outputs JSON in json mode", async () => {
     cmdAccountAudit({ json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 
   it("respects --tool filter", async () => {
@@ -340,7 +354,7 @@ describe("cmdAccountAudit", () => {
     process.env.HOME = tmpDir;
     try {
       cmdAccountAudit({ tool: "spot_place_order", json: true });
-      const entries = JSON.parse(out.join("")) as unknown[];
+      const entries = JSON.parse(findJson(out)) as unknown[];
       assert.equal(entries.length, 1, "should filter to 1 entry");
     } finally {
       process.env.HOME = origHome;

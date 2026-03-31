@@ -151,7 +151,6 @@ export async function cmdGridCreate(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
   emitWriteResult(data?.[0], "Grid bot created", "algoId");
 }
 
@@ -173,7 +172,6 @@ export async function cmdGridStop(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
   emitWriteResult(data?.[0], "Grid bot stopped", "algoId");
 }
 

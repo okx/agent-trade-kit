@@ -9,6 +9,20 @@ import {
 } from "../src/commands/market.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -58,7 +72,7 @@ describe("cmdMarketTicker", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ instId: "BTC-USDT", last: "50000" }]);
     await cmdMarketTicker(runner, "BTC-USDT", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
 
@@ -131,6 +145,6 @@ describe("cmdMarketOrderbook", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ asks: [], bids: [] }]);
     await cmdMarketOrderbook(runner, "BTC-USDT", undefined, true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")));
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });

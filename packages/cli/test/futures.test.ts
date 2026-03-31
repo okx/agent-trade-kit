@@ -16,6 +16,20 @@ import {
 } from "../src/commands/futures.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 let err: string[] = [];
 
@@ -63,7 +77,7 @@ describe("cmdFuturesAmend", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeOrderResult;
     await cmdFuturesAmend(runner, { instId: "BTC-USD-250328", ordId: "123456", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_amend_order with correct params", async () => {
@@ -122,7 +136,7 @@ describe("cmdFuturesAlgoPlace", () => {
       tdMode: "cross",
       json: true,
     });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_place_algo_order with required params", async () => {
@@ -200,7 +214,7 @@ describe("cmdFuturesAlgoAmend", () => {
       newTpTriggerPx: "62000",
       json: true,
     });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_amend_algo_order with correct params", async () => {
@@ -232,7 +246,7 @@ describe("cmdFuturesAlgoCancel", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
     await cmdFuturesAlgoCancel(runner, "BTC-USD-250328", "987654", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_cancel_algo_orders with instId and algoId", async () => {
@@ -256,7 +270,7 @@ describe("cmdFuturesAlgoOrders", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => ({ endpoint: "GET /api/v5/trade/orders-algo-pending", requestTime: new Date().toISOString(), data: [{ algoId: "987654", instId: "BTC-USD-250328", ordType: "conditional", side: "sell", sz: "1", state: "live" }] });
     await cmdFuturesAlgoOrders(runner, { status: "pending", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("outputs 'No algo orders' when result is empty", async () => {
@@ -301,7 +315,7 @@ describe("cmdFuturesBatch", () => {
       orders: '[{"instId":"BTC-USD-250328","side":"buy","ordType":"limit","sz":"1","px":"50000","tdMode":"cross"}]',
       json: true,
     });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("writes error for empty JSON array", async () => {
@@ -369,7 +383,7 @@ describe("cmdFuturesClose", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeCloseResult;
     await cmdFuturesClose(runner, { instId: "BTC-USD-250328", mgnMode: "cross", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_close_position with required params", async () => {
@@ -404,7 +418,7 @@ describe("cmdFuturesGetLeverage", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeGetLeverResult;
     await cmdFuturesGetLeverage(runner, { instId: "BTC-USD-250328", mgnMode: "cross", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_get_leverage with instId and mgnMode", async () => {
@@ -427,7 +441,7 @@ describe("cmdFuturesSetLeverage", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeLeverResult;
     await cmdFuturesSetLeverage(runner, { instId: "BTC-USD-250328", lever: "10", mgnMode: "cross", json: true });
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("calls futures_set_leverage with required params", async () => {

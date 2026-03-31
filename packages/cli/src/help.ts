@@ -1,7 +1,7 @@
 import { EOL } from "node:os";
 import { SUPPORTED_CLIENTS } from "./commands/client-setup.js";
 import { configFilePath } from "@agent-tradekit/core";
-import { output, outputLine, errorLine } from "./formatter.js";
+import { output, errorLine } from "./formatter.js";
 
 // ---------------------------------------------------------------------------
 // Help tree data structures
@@ -634,6 +634,53 @@ function printGlobalHelp(): void {
   output(lines.join(EOL));
 }
 
+/** Render pure-subgroup module body (e.g. bot). */
+function printSubgroupOnlyModule(lines: string[], moduleName: string, group: GroupInfo): void {
+  const subgroupNames = Object.keys(group.subgroups!);
+  const colWidth = Math.max(...subgroupNames.map((n) => n.length)) + 4;
+  lines.push(`Usage: okx ${moduleName} <strategy> <action> [args...]`);
+  lines.push("", `${group.description}.`, "");
+  lines.push("Strategies:");
+  for (const [sgName, sg] of Object.entries(group.subgroups!)) {
+    lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
+  }
+  lines.push("", `Run "okx ${moduleName} <strategy> --help" for details.`);
+}
+
+/** Render mixed module body (direct commands + subgroups, e.g. spot, swap). */
+function printMixedModule(lines: string[], moduleName: string, group: GroupInfo): void {
+  lines.push(`Usage: okx ${moduleName} <action> [args...]`);
+  lines.push("", `${group.description}.`, "", "Commands:");
+  printCommandList(lines, group.commands!);
+  lines.push("", "Subgroups:");
+  const subgroupEntries = Object.entries(group.subgroups!);
+  const colWidth = Math.max(...subgroupEntries.map(([n]) => n.length)) + 4;
+  for (const [sgName, sg] of subgroupEntries) {
+    lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
+  }
+  lines.push("", `Run "okx ${moduleName} <subgroup> --help" for subgroup details.`);
+}
+
+/** Render commands-only module body (e.g. market, account). */
+function printCommandsOnlyModule(lines: string[], moduleName: string, group: GroupInfo): void {
+  lines.push(`Usage: okx ${moduleName} <action> [args...]`);
+  lines.push("", `${group.description}.`, "", "Commands:");
+  printCommandList(lines, group.commands!);
+}
+
+/** Render custom-usage module body (e.g. setup). */
+function printUsageModule(lines: string[], group: GroupInfo): void {
+  lines.push(`Usage: ${group.usage}`);
+  lines.push("", `${group.description}.`);
+  if (group.commands) {
+    lines.push("");
+    for (const cmd of Object.values(group.commands)) {
+      lines.push(`  ${cmd.description}`);
+      lines.push(`  Usage: ${cmd.usage}`);
+    }
+  }
+}
+
 /** Render module-level help (one path argument, e.g. "spot"). */
 function printModuleHelp(moduleName: string): void {
   const group = HELP_TREE[moduleName];
@@ -649,44 +696,13 @@ function printModuleHelp(moduleName: string): void {
   const lines: string[] = [""];
 
   if (hasSubgroups && !hasCommands) {
-    // Pure subgroup module (e.g. bot)
-    const subgroupNames = Object.keys(group.subgroups!);
-    lines.push(`Usage: okx ${moduleName} <strategy> <action> [args...]`);
-    lines.push("", `${group.description}.`, "");
-    lines.push("Strategies:");
-    const colWidth = Math.max(...subgroupNames.map((n) => n.length)) + 4;
-    for (const [sgName, sg] of Object.entries(group.subgroups!)) {
-      lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
-    }
-    lines.push("", `Run "okx ${moduleName} <strategy> --help" for details.`);
+    printSubgroupOnlyModule(lines, moduleName, group);
   } else if (hasSubgroups && hasCommands) {
-    // Mixed: has both direct commands and subgroups (e.g. spot, swap)
-    lines.push(`Usage: okx ${moduleName} <action> [args...]`);
-    lines.push("", `${group.description}.`, "", "Commands:");
-    printCommandList(lines, group.commands!);
-    lines.push("", "Subgroups:");
-    const subgroupEntries = Object.entries(group.subgroups!);
-    const colWidth = Math.max(...subgroupEntries.map(([n]) => n.length)) + 4;
-    for (const [sgName, sg] of subgroupEntries) {
-      lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
-    }
-    lines.push("", `Run "okx ${moduleName} <subgroup> --help" for subgroup details.`);
+    printMixedModule(lines, moduleName, group);
   } else if (hasCommands) {
-    // Plain module with direct commands only (e.g. market, account)
-    lines.push(`Usage: okx ${moduleName} <action> [args...]`);
-    lines.push("", `${group.description}.`, "", "Commands:");
-    printCommandList(lines, group.commands!);
+    printCommandsOnlyModule(lines, moduleName, group);
   } else if (group.usage) {
-    // Module with no sub-commands (e.g. setup)
-    lines.push(`Usage: ${group.usage}`);
-    lines.push("", `${group.description}.`);
-    if (group.commands) {
-      lines.push("");
-      for (const cmd of Object.values(group.commands)) {
-        lines.push(`  ${cmd.description}`);
-        lines.push(`  Usage: ${cmd.usage}`);
-      }
-    }
+    printUsageModule(lines, group);
   }
 
   lines.push("");

@@ -9,6 +9,20 @@ import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdSwapAlgoCancel } from "../src/commands/swap.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
+}
+
+
 let out: string[] = [];
 
 beforeEach(() => {
@@ -59,7 +73,7 @@ describe("cmdSwapAlgoCancel — orders array format", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeCancelResult;
     await cmdSwapAlgoCancel(runner, "BTC-USDT-SWAP", "12345", true);
-    assert.doesNotThrow(() => JSON.parse(out.join("")), "output should be valid JSON");
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("outputs cancel confirmation with algoId when json=false", async () => {
