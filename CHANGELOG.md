@@ -11,7 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.1] - 2026-03-31
+
+### Added
+
+- **DoH (DNS-over-HTTPS) node resolution infrastructure**: Introduces `packages/core/src/doh/` with `DohNode` type and `resolveDoh()` resolver. The REST client now integrates DoH-based proxy node selection for improved connectivity in restricted network environments. Current beta uses a mock node; will be replaced by platform-specific native binaries (`@okx_ai/doh-darwin`, `doh-linux`, `doh-win32`) in a future release.
+
 ### Changed
+
 - **`market_get_candles` now automatically routes to historical endpoint**: Automatically uses `/market/history-candles` when `after`/`before` timestamps are older than 2 days, enabling access to candlestick data back to 2021. Includes fallback: if the recent endpoint returns empty data for a timestamped request, it retries the history endpoint. The `history` parameter has been removed; no manual switching required. CLI: `okx market candles BTC-USDT --after <timestamp>`. (#101)
 - **`account_get_asset_balance` now supports `showValuation` parameter**: Set `showValuation=true` to also return total asset valuation breakdown across all account types (trading, funding, earn, etc.) via `/api/v5/asset/asset-valuation`. Default behavior is unchanged (backward compatible). CLI: `okx account asset-balance --valuation`. (#102)
 

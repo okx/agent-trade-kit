@@ -11,7 +11,16 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.1] - 2026-03-31
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）节点解析基础设施**：新增 `packages/core/src/doh/` 模块，包含 `DohNode` 类型与 `resolveDoh()` 解析器。REST client 现已集成 DoH 代理节点选择，以改善受限网络环境下的连接稳定性。当前 beta 使用 mock 节点，后续版本将替换为平台专属原生二进制包（`@okx_ai/doh-darwin`、`doh-linux`、`doh-win32`）。
+
 ### 变更
+
 - **`market_get_candles` 自动路由历史端点**：当 `after`/`before` 时间戳超过 2 天前时，自动切换至 `/market/history-candles`，支持查询 2021 年至今的历史K线。新增兜底机制：若近期端点对带时间戳的请求返回空数据，自动重试历史端点。移除 `history` 参数，无需手动切换。CLI 用法：`okx market candles BTC-USDT --after <时间戳>`。(#101)
 - **`account_get_asset_balance` 新增 `showValuation` 参数**：设置 `showValuation=true` 可同时返回各账户类型（交易/资金/理财等）的总资产估值汇总，底层调用 `/api/v5/asset/asset-valuation`。默认行为不变（向后兼容）。CLI 用法：`okx account asset-balance --valuation`。(#102)
 
