@@ -13,6 +13,21 @@
 
 ---
 
+## [1.2.8-beta.3] - 2026-04-01
+
+### 新增
+
+- **三通道自动更新 + skill 版本同步**（`okx upgrade`）：支持 stable、beta、latest 三个 dist-tag 升级渠道，升级后自动同步内置 agent-skills 版本。core 包新增导出 `fetchLatestVersion`、`isNewerVersion`、`fetchDistTags`。
+
+### 修复
+
+- **`okx upgrade`：通过 `process.execPath` 动态解析 `npm` 路径**，避免依赖 PATH 环境变量导致升级失败（SonarQube S4036）。
+- **`okx upgrade`：消除 ReDoS 风险**——字符串替换从正则改为 `split`/`join` 实现（SonarQube S5852）。
+- **`okx upgrade`：`execSync` 替换为 `spawnSync`**，消除安全热点（SonarQube S4721）。
+- **预发布版本跳过 preflight drift 检查**：本地 CLI 版本含预发布后缀（如 `1.2.8-beta.3`）时，跳过版本漂移检查，避免误报。
+
+---
+
 ## [1.2.8-beta.2] - 2026-03-31
 
 ### 修复

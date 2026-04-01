@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8-beta.3] - 2026-04-01
+
+### Added
+
+- **Three-channel auto-update with skill version sync** (`okx upgrade`): Supports stable, beta, and latest dist-tag channels. Automatically syncs bundled agent-skills version after upgrade. Exports `fetchLatestVersion`, `isNewerVersion`, `fetchDistTags` from core for version resolution.
+
+### Fixed
+
+- **`okx upgrade`: resolve `npm` via `process.execPath`** instead of relying on `PATH` lookup, fixing upgrade failures in environments where `npm` is not on PATH (SonarQube S4036).
+- **`okx upgrade`: eliminate ReDoS hotspot** — replaced regex-based string replace with `split`/`join` (SonarQube S5852).
+- **`okx upgrade`: replace `execSync` with `spawnSync`** to silence security hotspot (SonarQube S4721).
+- **Preflight drift check skipped for prerelease CLI**: When the local CLI version contains a prerelease suffix (e.g. `1.2.8-beta.3`), the version drift check is now skipped to avoid false-positive warnings.
+
+---
+
 ## [1.2.8-beta.2] - 2026-03-31
 
 ### Fixed
