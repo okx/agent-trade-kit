@@ -20,8 +20,8 @@ This command:
 okx --version
 ```
 
-1. Strip any prerelease suffix from the output (e.g. `1.2.9-beta.1` → `1.2.9`).
-2. Compare the stable part against this skill's `metadata.version` (from the calling SKILL.md frontmatter).
+1. If the output contains a prerelease suffix (e.g. `-beta`, `-alpha`, `-rc`), **skip this step entirely** — the stable release has not yet shipped, so no drift exists.
+2. Otherwise (pure stable version, e.g. `1.2.8`), compare against this skill's `metadata.version` (from the calling SKILL.md frontmatter).
 3. If CLI stable version **>** skill `metadata.version`, show the following warning **once per session**:
 
    > ⚠️ CLI version is ahead of this skill. Some new commands may not be documented here. Consider refreshing your skill.
