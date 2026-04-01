@@ -108,7 +108,7 @@ export async function cmdUpgrade(
   }
 
   // Strip prerelease suffix before comparing against stable latest (Bug #1 fix)
-  const stableCurrentVersion = currentVersion.replace(/[-+].+$/, "");
+  const stableCurrentVersion = currentVersion.split(/[-+]/)[0] ?? currentVersion;
   const needsUpdate = options.force || isNewerVersion(stableCurrentVersion, latestVersion);
 
   if (!needsUpdate) {
