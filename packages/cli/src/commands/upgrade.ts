@@ -1,12 +1,16 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import { fetchLatestVersion, fetchDistTags, isNewerVersion } from "@agent-tradekit/core";
 
 const PACKAGES = ["@okx_ai/okx-trade-mcp", "@okx_ai/okx-trade-cli"];
 const CACHE_FILE = join(homedir(), ".okx", "last_check");
 const THROTTLE_MS = 12 * 60 * 60 * 1000; // 12 h
+
+// Resolve npm from the same bin directory as the active Node.js binary so we
+// never rely on the user's PATH for command resolution (avoids S4036).
+const NPM_BIN = join(dirname(process.execPath), process.platform === "win32" ? "npm.cmd" : "npm");
 
 export interface UpgradeOptions {
   beta?: boolean;
@@ -78,7 +82,7 @@ async function resolveLatestVersion(beta: boolean): Promise<string | null> {
 // Use spawnSync with array args (no shell interpreter) to avoid S4721.
 // Bug #2 fix: when --json, suppress npm stdout to avoid polluting JSON output.
 function runNpmInstall(json: boolean): boolean {
-  const result = spawnSync("npm", ["install", "-g", ...PACKAGES], {
+  const result = spawnSync(NPM_BIN, ["install", "-g", ...PACKAGES], {
     stdio: json ? ["inherit", "ignore", process.stderr] : "inherit",
     shell: false,
   });
