@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -111,11 +111,14 @@ export async function cmdUpgrade(
   }
 
   // Execute upgrade
-  // Bug #2 fix: when --json, suppress npm stdout to avoid polluting JSON output
+  // Use spawnSync with array args (no shell interpreter) to avoid S4721 false positives.
+  // Bug #2 fix: when --json, suppress npm stdout to avoid polluting JSON output.
   try {
-    execSync(`npm install -g ${PACKAGES.join(" ")}`, {
+    const result = spawnSync("npm", ["install", "-g", ...PACKAGES], {
       stdio: json ? ["inherit", "ignore", process.stderr] : "inherit",
+      shell: false,
     });
+    if (result.status !== 0) throw new Error("npm exited with non-zero status");
     writeLastCheck();
     printResult({ currentVersion, latestVersion, status: "updated", updated: true }, json);
   } catch {
