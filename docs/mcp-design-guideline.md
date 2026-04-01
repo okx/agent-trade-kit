@@ -130,6 +130,58 @@ Description 是 AI agent 选择工具的**唯一依据**，必须回答两个问
 - 不要在 description 中写 API 路径、参数约束、错误码
 - API 约束放在参数的 `description` 字段或 handler 的 error message 中
 
+#### 3.2.1 Behavioral Directive 模式
+
+Description 不仅是文档，而是**行为控制指令**。AI agent 根据 description 决定是否使用这个工具、何时使用、如何与其他工具配合。
+
+**模式 1: Negative Routing（跨工具边界）**
+
+明确告诉 agent 这个工具**不做什么**，引导到正确的替代工具：
+
+```
+✅ "Get current ticker price for a trading pair.
+    Do NOT use for historical prices — use market_get_klines.
+    Do NOT use for order book depth — use market_get_orderbook."
+
+❌ "Get ticker information for a trading pair."  ← 没有边界指引
+```
+
+规则：
+- 每个 tool 至少写一条 "Do NOT use for X — use Y instead"
+- 功能相近的 tool 之间必须互相引用
+- 同模块内的 get 类 tool 尤其需要区分（get_ticker vs get_klines vs get_orderbook）
+
+**模式 2: Precondition Declarations（前置条件）**
+
+告诉 agent 使用此工具前应先做什么：
+
+```
+✅ "Place a limit order. Before placing, use market_get_ticker to verify
+    current price is within expected range."
+
+✅ "Close a position. Use swap_get_positions first to confirm the position
+    exists and check current P&L."
+```
+
+规则：
+- 所有 write 类 tool 必须声明至少一个 precondition
+- Precondition 应引用具体的 read 工具名
+- 不要假设 agent 会自动先查再操作
+
+**模式 3: Self-Gating（使用/不使用条件）**
+
+对于容易被误用的工具，明确写出 When to Use / When NOT：
+
+```
+✅ "Batch cancel multiple orders at once.
+    Use when: cancelling 3+ orders simultaneously.
+    Do NOT use for single order cancellation — use swap_cancel_order instead (simpler, faster)."
+```
+
+规则：
+- batch 类工具必须写明触发阈值
+- 存在简单替代的工具必须写明分流条件
+
 ### 3.3 参数设计
 
 **核心原则：参数必须扁平化。** AI 不应构造 JSON 字符串。
@@ -273,6 +325,12 @@ Reviewer 审核 MCP 相关 MR 时，必须逐条检查以下项目。
 - [ ] 金额/价格类型为 string
 - [ ] isWrite 标注正确（涉及资金变动 = true）
 - [ ] 每个模块 tool 数量 ≤ 8（超出需说明理由）
+
+### Tool Description 质量（参照 §3.2.1）
+- [ ] Write 类 tool 有 precondition（引用了具体的 read 工具）
+- [ ] 与功能相近的 tool 有 negative routing（互相引用边界）
+- [ ] Batch 类 tool 有 self-gating（写明何时用 batch vs 单个操作）
+- [ ] Error message 包含 suggestion（告诉 agent 下一步该做什么）
 
 ### Token 预算
 - [ ] Review comment 中报告变化前后的 tool 数量和 token 数量
