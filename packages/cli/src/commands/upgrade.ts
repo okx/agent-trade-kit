@@ -62,32 +62,44 @@ function printResult(result: UpgradeResult, json: boolean): void {
   }
 }
 
+function isThrottled(options: UpgradeOptions): boolean {
+  if (options.force || options.check) return false;
+  return Date.now() - readLastCheck() * 1000 < THROTTLE_MS;
+}
+
+async function resolveLatestVersion(beta: boolean): Promise<string | null> {
+  if (beta) {
+    const tags = await fetchDistTags("@okx_ai/okx-trade-cli");
+    return tags?.["next"] ?? tags?.["latest"] ?? null;
+  }
+  return fetchLatestVersion("@okx_ai/okx-trade-cli");
+}
+
+// Use spawnSync with array args (no shell interpreter) to avoid S4721.
+// Bug #2 fix: when --json, suppress npm stdout to avoid polluting JSON output.
+function runNpmInstall(json: boolean): boolean {
+  const result = spawnSync("npm", ["install", "-g", ...PACKAGES], {
+    stdio: json ? ["inherit", "ignore", process.stderr] : "inherit",
+    shell: false,
+  });
+  return result.status === 0;
+}
+
 export async function cmdUpgrade(
   currentVersion: string,
   options: UpgradeOptions,
   json: boolean,
 ): Promise<void> {
-  // Throttle: skip silently if last check < 12 h ago (unless --force or --check)
-  if (!options.force && !options.check) {
-    const lastCheck = readLastCheck();
-    if (Date.now() - lastCheck * 1000 < THROTTLE_MS) {
-      if (json) {
-        process.stdout.write(
-          JSON.stringify({ currentVersion, latestVersion: currentVersion, status: "up-to-date", updated: false }) + "\n",
-        );
-      }
-      return;
+  if (isThrottled(options)) {
+    if (json) {
+      process.stdout.write(
+        JSON.stringify({ currentVersion, latestVersion: currentVersion, status: "up-to-date", updated: false }) + "\n",
+      );
     }
+    return;
   }
 
-  // Fetch latest version
-  let latestVersion: string | null = null;
-  if (options.beta) {
-    const tags = await fetchDistTags("@okx_ai/okx-trade-cli");
-    latestVersion = tags?.["next"] ?? tags?.["latest"] ?? null;
-  } else {
-    latestVersion = await fetchLatestVersion("@okx_ai/okx-trade-cli");
-  }
+  const latestVersion = await resolveLatestVersion(options.beta ?? false);
 
   if (!latestVersion) {
     printResult({ currentVersion, latestVersion: "unknown", status: "error", updated: false }, json);
@@ -110,18 +122,10 @@ export async function cmdUpgrade(
     return;
   }
 
-  // Execute upgrade
-  // Use spawnSync with array args (no shell interpreter) to avoid S4721 false positives.
-  // Bug #2 fix: when --json, suppress npm stdout to avoid polluting JSON output.
-  try {
-    const result = spawnSync("npm", ["install", "-g", ...PACKAGES], {
-      stdio: json ? ["inherit", "ignore", process.stderr] : "inherit",
-      shell: false,
-    });
-    if (result.status !== 0) throw new Error("npm exited with non-zero status");
+  if (runNpmInstall(json)) {
     writeLastCheck();
     printResult({ currentVersion, latestVersion, status: "updated", updated: true }, json);
-  } catch {
+  } else {
     printResult({ currentVersion, latestVersion, status: "error", updated: false }, json);
     process.exitCode = 1;
   }
