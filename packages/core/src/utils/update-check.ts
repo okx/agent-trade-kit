@@ -32,7 +32,7 @@ function writeCache(cache: UpdateCache): void {
   }
 }
 
-function isNewerVersion(current: string, latest: string): boolean {
+export function isNewerVersion(current: string, latest: string): boolean {
   const parse = (v: string) =>
     v
       .replace(/^v/, "")
@@ -45,7 +45,24 @@ function isNewerVersion(current: string, latest: string): boolean {
   return lPat > cPat;
 }
 
-async function fetchLatestVersion(packageName: string): Promise<string | null> {
+export async function fetchDistTags(packageName: string): Promise<Record<string, string> | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(packageName)}`, {
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { "dist-tags"?: Record<string, string> };
+    return data["dist-tags"] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchLatestVersion(packageName: string): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);

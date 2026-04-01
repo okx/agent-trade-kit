@@ -96,6 +96,9 @@ export interface CliValues {
   // audit
   since?: string;
   tool?: string;
+  // upgrade
+  beta?: boolean;
+  check?: boolean;
   // config profile
   force?: boolean;
   // onchain-earn
@@ -247,6 +250,9 @@ export const CLI_OPTIONS = {
   // audit
   since: { type: "string" },
   tool: { type: "string" },
+  // upgrade
+  beta:  { type: "boolean", default: false },
+  check: { type: "boolean", default: false },
   // config profile
   force: { type: "boolean", default: false },
   // onchain-earn

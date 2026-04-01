@@ -4,7 +4,7 @@ description: "This skill should be used when the user asks to 'buy BTC', 'sell E
 license: MIT
 metadata:
   author: okx
-  version: "1.0.0"
+  version: "1.2.7"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -20,6 +20,11 @@ metadata:
 # OKX CEX Trading CLI
 
 Spot, perpetual swap, delivery futures, and **options** order management on OKX exchange. Place, cancel, amend, and monitor orders; query option chains and Greeks; set take-profit/stop-loss and trailing stops; manage leverage and positions. **Requires API credentials.**
+
+## Preflight
+
+Before running any command, follow [`../_shared/preflight.md`](../_shared/preflight.md).
+Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ## Prerequisites
 
