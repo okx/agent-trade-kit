@@ -185,6 +185,38 @@ describe("grid TP/SL and algoClOrdId options", () => {
   });
 });
 
+describe("upgrade flags", () => {
+  it("--beta sets beta to true", () => {
+    const { values } = parseCli(["upgrade", "--beta"]);
+    assert.equal(values.beta, true);
+  });
+
+  it("--check sets check to true", () => {
+    const { values } = parseCli(["upgrade", "--check"]);
+    assert.equal(values.check, true);
+  });
+
+  it("--force sets force to true", () => {
+    const { values } = parseCli(["upgrade", "--force"]);
+    assert.equal(values.force, true);
+  });
+
+  it("beta defaults to false when absent", () => {
+    const { values } = parseCli(["upgrade"]);
+    assert.equal(values.beta, false);
+  });
+
+  it("check defaults to false when absent", () => {
+    const { values } = parseCli(["upgrade"]);
+    assert.equal(values.check, false);
+  });
+
+  it("upgrade positional is captured", () => {
+    const { positionals } = parseCli(["upgrade", "--check"]);
+    assert.deepEqual(positionals, ["upgrade"]);
+  });
+});
+
 describe("earn --rate option", () => {
   it("parses --rate as string", () => {
     const { values } = parseCli(["earn", "purchase", "--ccy", "USDT", "--amt", "100", "--rate", "0.02"]);
