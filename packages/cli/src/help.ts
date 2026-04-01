@@ -602,6 +602,11 @@ const HELP_TREE: HelpTree = {
     description: "Run network / MCP server diagnostics",
     usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo] [--output <file>]",
   },
+
+  upgrade: {
+    description: "Upgrade okx CLI and MCP server to the latest stable version",
+    usage: "okx upgrade [--check] [--beta] [--force] [--json]",
+  },
 };
 
 // ---------------------------------------------------------------------------

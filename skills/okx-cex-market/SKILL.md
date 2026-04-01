@@ -4,7 +4,7 @@ description: "Use this skill when the user asks for: price of any asset, ticker,
 license: MIT
 metadata:
   author: okx
-  version: "1.0.0"
+  version: "1.2.8"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -28,6 +28,11 @@ Public market data for OKX: prices, order books, candles, funding rates, open in
 - Account balance / positions → `okx-cex-portfolio`
 - Place / cancel orders → `okx-cex-trade`
 - Grid / DCA bots → `okx-cex-bot`
+
+## Preflight
+
+Before running any command, follow [`../_shared/preflight.md`](../_shared/preflight.md).
+Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ## Install
 

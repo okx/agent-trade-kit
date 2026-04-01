@@ -4,7 +4,7 @@ description: Manage Grid bots (spot/contract/coin-margined) and DCA Martingale b
 license: MIT
 metadata:
   author: okx
-  version: "1.1.0"
+  version: "1.2.8"
   homepage: "https://www.okx.com"
   agent:
     emoji: "🤖"
@@ -21,6 +21,11 @@ metadata:
 # OKX CEX Bot Trading
 
 Grid and DCA (Spot & Contract Martingale) bot management on OKX. All bots are **native OKX server-side** — they run on OKX and do not require a local process.
+
+## Preflight
+
+Before running any command, follow [`../_shared/preflight.md`](../_shared/preflight.md).
+Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ## Prerequisites
 

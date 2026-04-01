@@ -4,7 +4,7 @@ description: "This skill should be used when the user asks about 'account balanc
 license: MIT
 metadata:
   author: okx
-  version: "1.0.0"
+  version: "1.2.8"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -20,6 +20,11 @@ metadata:
 # OKX CEX Portfolio & Account CLI
 
 Account balance, positions, P&L, bills, fees, and fund transfers on OKX exchange. **Requires API credentials.**
+
+## Preflight
+
+Before running any command, follow [`../_shared/preflight.md`](../_shared/preflight.md).
+Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ## Prerequisites
 

@@ -4,7 +4,7 @@ description: "Manages OKX Simple Earn (flexible savings/lending), On-chain Earn 
 license: MIT
 metadata:
   author: okx
-  version: "1.0.0"
+  version: "1.2.8"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -18,6 +18,11 @@ metadata:
 ---
 
 # OKX CEX Earn CLI
+
+## Preflight
+
+Before running any command, follow [`../_shared/preflight.md`](../_shared/preflight.md).
+Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ## Prerequisites
 
