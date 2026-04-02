@@ -797,7 +797,7 @@ describe("account_get_config", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/account/config");
   });
 
-  it("strips settleCcy and settleCcyList from response", async () => {
+  it("preserves settleCcy and settleCcyList in response", async () => {
     const mockClient = {
       privateGet: async (endpoint: string) => ({
         endpoint,
@@ -807,8 +807,8 @@ describe("account_get_config", () => {
     };
     const result = await tool.handler({}, makeContext(mockClient)) as Record<string, unknown>;
     const row = (result.data as Record<string, unknown>[])[0];
-    assert.ok(!("settleCcy" in row), "settleCcy should be stripped");
-    assert.ok(!("settleCcyList" in row), "settleCcyList should be stripped");
+    assert.equal(row["settleCcy"], "USDT");
+    assert.deepEqual(row["settleCcyList"], ["USDT", "USDC"]);
     assert.equal(row["posMode"], "net_mode");
     assert.equal(row["uid"], "123");
   });
