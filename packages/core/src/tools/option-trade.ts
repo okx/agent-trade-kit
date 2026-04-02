@@ -17,7 +17,7 @@ export function registerOptionTools(): ToolSpec[] {
       name: "option_place_order",
       module: "option",
       description:
-        "Place OPTION order. instId: {uly}-{expiry}-{strike}-C/P, e.g. BTC-USD-241227-50000-C. [CAUTION] Executes real trades.",
+        "Place OPTION order. instId: {uly}-{expiry}-{strike}-C/P, e.g. BTC-USD-241227-50000-C. Before placing, use market_get_instruments to get ctVal (contract face value) — do NOT assume contract sizes. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",

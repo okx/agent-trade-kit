@@ -43,7 +43,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     {
       name: n("place_order"),
       module,
-      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.`,
+      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. Before placing, use market_get_instruments to get ctVal (contract face value) — do NOT assume contract sizes. [CAUTION] Executes real trades.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -71,7 +71,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts count by default. Set tgtCcy=quote_ccy to use USDT amount instead.",
+            description: "Number of contracts. Each contract = ctVal units (e.g. 0.1 ETH for ETH-USDT-SWAP). Query market_get_instruments for exact ctVal. Set tgtCcy=quote_ccy to specify sz in USDT instead.",
           },
           tgtCcy: {
             type: "string",

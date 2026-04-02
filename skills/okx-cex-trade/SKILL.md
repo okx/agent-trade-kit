@@ -112,13 +112,22 @@ Profile is the single control for 实盘/模拟盘 switching:
 
 ## Sz Handling for Derivatives
 
+### ⚠ CRITICAL: Always verify contract face value before placing orders
+
+Before placing any SWAP/FUTURES/OPTION order, call `market_get_instruments` to get `ctVal` (contract face value). **Do NOT assume contract sizes** — they vary by instrument (e.g. ETH-USDT-SWAP = 0.1 ETH/contract, BTC-USDT-SWAP = 0.01 BTC/contract).
+
+Use `ctVal` to:
+- Calculate the correct number of contracts from user's intended position size
+- Verify margin requirements before submitting the order
+- Show the user the actual position value: `sz × ctVal × price`
+
 ### SWAP and FUTURES orders
 
 **When user specifies a USDT amount** (e.g. "200U", "500 USDT", "$1000"):
 → Use `--tgtCcy quote_ccy` and pass the amount directly as `--sz`. The API converts to contracts automatically.
 
 **When user specifies contracts** (e.g. "2 张", "5 contracts"):
-→ Use `--sz` directly with the contract count. No `--tgtCcy` needed.
+→ First verify `ctVal` via `market_get_instruments`, then use `--sz` with the contract count. Confirm with user: "X contracts = X × ctVal underlying, total value ≈ $Y".
 
 **When user gives a plain number with no unit** (for swap/futures):
 → Ambiguous — ask before proceeding: "您输入的 X 是合约张数还是 USDT 金额？" Wait for the user's answer before continuing.
