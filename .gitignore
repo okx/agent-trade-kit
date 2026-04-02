@@ -13,3 +13,8 @@ packages/*/scripts/postinstall.js
 .claude/settings.local.json
 scripts/mcp-token-stats.ts
 .idea/
+skills-lock.json
+.agents/
+.claude/skills/
+aTempFiles/
+*.tgz

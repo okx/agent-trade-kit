@@ -4,6 +4,7 @@ import { MODULES, type ModuleId } from "../constants.js";
 import { registerAccountTools } from "./account.js";
 import { registerAlgoTradeTools, registerFuturesAlgoTools } from "./algo-trade.js";
 import { registerAuditTools } from "./audit.js";
+import { registerSkillsTools } from "./skills.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerAllEarnTools } from "./earn/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
@@ -40,6 +41,7 @@ export function allToolSpecs(): ToolSpec[] {
     ...registerBotTools(),
     ...registerAllEarnTools(),
     ...registerAuditTools(),
+    ...registerSkillsTools(),
   ];
 }
 

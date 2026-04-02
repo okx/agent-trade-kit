@@ -141,6 +141,10 @@ export interface CliValues {
   period?: string;
   points?: string;
   "sort-by"?: string;
+  // skill marketplace
+  categories?: string;
+  dir?: string;
+  page?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -302,6 +306,10 @@ export const CLI_OPTIONS = {
   period: { type: "string" },
   points: { type: "string" },
   "sort-by": { type: "string" },
+  // skill marketplace
+  categories: { type: "string" },
+  dir: { type: "string" },
+  page: { type: "string" },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks
