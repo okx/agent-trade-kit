@@ -49,6 +49,8 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
 import { RateLimiter } from "../utils/rate-limiter.js";
 import type { OkxConfig } from "../config.js";
 import type {
+  BinaryRequestOptions,
+  BinaryResult,
   OkxApiResponse,
   QueryParams,
   QueryValue,
@@ -309,6 +311,103 @@ export class OkxRestClient {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Binary (non-JSON) download — reuses auth, proxy, rate-limit, verbose
+  // ---------------------------------------------------------------------------
+
+  private static readonly DEFAULT_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
+
+  /**
+   * Try to parse a text body as OKX JSON error and throw the appropriate error.
+   * Re-throws OkxApiError / AuthenticationError / RateLimitError if matched.
+   * Returns the parsed message string (or fallback) if no specific error was thrown.
+   */
+  private tryThrowJsonError(text: string, path: string, traceId: string | undefined): string {
+    try {
+      const parsed = JSON.parse(text) as { code?: string; msg?: string };
+      if (parsed.code && parsed.code !== "0") {
+        this.throwOkxError(parsed.code, parsed.msg, { method: "POST", path, auth: "private" } as RequestConfig, traceId);
+      }
+      return parsed.msg ?? "";
+    } catch (e) {
+      if (e instanceof OkxApiError || e instanceof AuthenticationError || e instanceof RateLimitError) throw e;
+      return "";
+    }
+  }
+
+  /**
+   * Send a signed POST request and return the raw binary response.
+   * Inherits all client capabilities: auth, proxy, rate-limit, verbose, user-agent.
+   * Security: validates Content-Type and enforces maxBytes limit.
+   */
+  public async privatePostBinary(
+    path: string,
+    body?: Record<string, unknown>,
+    opts?: BinaryRequestOptions,
+  ): Promise<BinaryResult> {
+    const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
+    const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
+    const bodyJson = body ? JSON.stringify(body) : "";
+    const endpoint = `POST ${path}`;
+
+    this.logRequest("POST", `${this.config.baseUrl}${path}`, "private");
+
+    const reqConfig = { method: "POST", path, auth: "private" } as RequestConfig;
+    const headers = this.buildHeaders(reqConfig, path, bodyJson, getNow());
+
+    const t0 = Date.now();
+    const response = await this.fetchBinary(path, endpoint, headers, bodyJson, t0);
+    const elapsed = Date.now() - t0;
+    const traceId = extractTraceId(response.headers);
+
+    if (!response.ok) {
+      const text = await response.text();
+      this.logResponse(response.status, text.length, elapsed, traceId, String(response.status));
+      const msg = this.tryThrowJsonError(text, path, traceId) || `HTTP ${response.status}`;
+      throw new OkxApiError(msg, { code: String(response.status), endpoint, traceId });
+    }
+
+    const ct = response.headers.get("content-type") ?? "";
+    if (!ct.includes(expectedCT)) {
+      const text = await response.text();
+      this.logResponse(response.status, text.length, elapsed, traceId, "unexpected-ct");
+      this.tryThrowJsonError(text, path, traceId);
+      throw new OkxApiError(`Expected binary response (${expectedCT}) but got: ${ct}`, { code: "UNEXPECTED_CONTENT_TYPE", endpoint, traceId });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) {
+      throw new OkxApiError(`Response size ${buffer.length} bytes exceeds limit of ${maxBytes} bytes.`, { code: "RESPONSE_TOO_LARGE", endpoint, traceId });
+    }
+
+    if (this.config.verbose) {
+      vlog(`\u2190 ${response.status} | binary ${buffer.length}B | ${elapsed}ms | trace=${traceId ?? "-"}`);
+    }
+
+    return { endpoint, requestTime: new Date().toISOString(), data: buffer, contentType: ct, contentLength: buffer.length, traceId };
+  }
+
+  /** Execute fetch for binary endpoint, wrapping network errors. */
+  private async fetchBinary(path: string, endpoint: string, headers: Headers, bodyJson: string, t0: number): Promise<Response> {
+    try {
+      const fetchOptions: Record<string, unknown> = {
+        method: "POST", headers, body: bodyJson || undefined,
+        signal: AbortSignal.timeout(this.config.timeoutMs),
+      };
+      if (this.dispatcher) fetchOptions.dispatcher = this.dispatcher;
+      return await fetch(`${this.config.baseUrl}${path}`, fetchOptions as RequestInit);
+    } catch (error) {
+      if (this.config.verbose) {
+        vlog(`\u2717 NetworkError after ${Date.now() - t0}ms: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      throw new NetworkError(`Failed to call OKX endpoint ${endpoint}.`, endpoint, error);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Header building
+  // ---------------------------------------------------------------------------
+
   private buildHeaders(reqConfig: RequestConfig, requestPath: string, bodyJson: string, timestamp: string): Headers {
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -335,6 +434,10 @@ export class OkxRestClient {
 
     return headers;
   }
+
+  // ---------------------------------------------------------------------------
+  // JSON request
+  // ---------------------------------------------------------------------------
 
   private async request<TData = unknown>(
     reqConfig: RequestConfig,

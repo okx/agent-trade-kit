@@ -18,3 +18,17 @@ export { TradeLogger } from "./utils/logger.js";
 export type { LogLevel, LogEntry } from "./utils/logger.js";
 export { runSetup, printSetupUsage, getConfigPath, SUPPORTED_CLIENTS, CLIENT_NAMES } from "./setup.js";
 export type { ClientId, SetupOptions } from "./setup.js";
+export {
+  downloadSkillZip,
+  extractSkillZip,
+  readMetaJson,
+  validateSkillMdExists,
+  readRegistry as readSkillRegistry,
+  upsertSkillRecord,
+  removeSkillRecord,
+  getSkillRecord,
+  getRegistryPath as getSkillRegistryPath,
+} from "./skills/index.js";
+export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCategory } from "./skills/index.js";
+export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
+export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";

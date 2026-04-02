@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~23,427 tokens | **Remaining:** ~1,573 tokens
+**Token Budget:** 25,000 tokens | **Current Usage:** ~23,927 tokens | **Remaining:** ~1,073 tokens
 
 ## Registered Modules
 
@@ -23,7 +23,8 @@ Unregistered modules will be rejected during review.
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~167 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | audit | ✅ approved | 1 | 1 | 0 | ~200 | _(founding module)_ | @Jasmine.Li | — |
 | news | ✅ approved | 7 | 7 | 0 | ~1,400 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
-| **Total** | | **136** | **78** | **58** | **~23,427** | | | |
+| skills | ✅ approved | 3 | 2 | 1 | ~500 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
+| **Total** | | **139** | **80** | **59** | **~23,927** | | | |
 
 ## Status Legend
 

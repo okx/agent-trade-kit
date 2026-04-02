@@ -21,7 +21,8 @@
   "engines": { "node": ">=18" },
   "keywords": ["okx", "cli", "trading"],
   "dependencies": {
-    "undici": "^6.0.0"
+    "undici": "^6.0.0",
+    "yauzl": "^3.2.1"
   },
   "devDependencies": {
     "@agent-tradekit/core": "file:../core",

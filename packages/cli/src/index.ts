@@ -172,6 +172,15 @@ import {
   cmdDcdOrders,
   cmdDcdQuoteAndBuy,
 } from "./commands/dcd.js";
+import {
+  cmdSkillSearch,
+  cmdSkillCategories,
+  cmdSkillAdd,
+  cmdSkillDownload,
+  cmdSkillRemove,
+  cmdSkillCheck,
+  cmdSkillList,
+} from "./commands/skill.js";
 import { markFailedIfSCodeError, outputLine, errorLine, setOutput } from "./formatter.js";
 
 // Re-export for tests and external consumers
@@ -1137,6 +1146,52 @@ export function handleNewsCommand(
   process.exitCode = 1;
 }
 
+function requireSkillName(rest: string[], usage: string): string | undefined {
+  const name = rest[0];
+  if (!name) { errorLine(usage); process.exitCode = 1; }
+  return name;
+}
+
+function handleSkillAdd(rest: string[], config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
+  const n = requireSkillName(rest, "Usage: okx skill add <name>");
+  if (n) return cmdSkillAdd(n, config, json);
+}
+
+function handleSkillDownload(rest: string[], v: CliValues, config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
+  const n = requireSkillName(rest, "Usage: okx skill download <name> [--dir <path>]");
+  if (n) return cmdSkillDownload(n, v.dir ?? process.cwd(), config, json);
+}
+
+function handleSkillRemove(rest: string[], json: boolean): void {
+  const n = requireSkillName(rest, "Usage: okx skill remove <name>");
+  if (n) cmdSkillRemove(n, json);
+}
+
+function handleSkillCheck(run: ToolRunner, rest: string[], json: boolean): Promise<void> | void {
+  const n = requireSkillName(rest, "Usage: okx skill check <name>");
+  if (n) return cmdSkillCheck(run, n, json);
+}
+
+export function handleSkillCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+  config: import("@agent-tradekit/core").OkxConfig,
+): Promise<void> | void {
+  if (action === "search") return cmdSkillSearch(run, { keyword: rest[0] ?? v.keyword, categories: v.categories, page: v.page, limit: v.limit, json });
+  if (action === "categories") return cmdSkillCategories(run, json);
+  if (action === "list") return cmdSkillList(json);
+  if (action === "add") return handleSkillAdd(rest, config, json);
+  if (action === "download") return handleSkillDownload(rest, v, config, json);
+  if (action === "remove") return handleSkillRemove(rest, json);
+  if (action === "check") return handleSkillCheck(run, rest, json);
+  errorLine(`Unknown skill command: ${action}`);
+  errorLine("Valid: search, categories, add, download, remove, check, list");
+  process.exitCode = 1;
+}
+
 function outputResult(result: { endpoint: string; requestTime: string; data: unknown }, json: boolean): void {
   if (json) {
     outputLine(JSON.stringify(result, null, 2));
@@ -1229,6 +1284,7 @@ async function main(): Promise<void> {
     news:    () => handleNewsCommand(run, action, rest, v, json),
     bot:     () => handleBotCommand(run, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
+    skill:   () => handleSkillCommand(run, action, rest, v, json, config),
   };
   const handler = moduleHandlers[module];
   if (handler) return handler();
