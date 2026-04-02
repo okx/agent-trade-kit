@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Earn module: write operations now return a clear error in simulated trading (demo) mode** instead of hitting OKX API and receiving an opaque 500 server error. A unified `withDemoGuard` wrapper in `earn/index.ts` intercepts all earn write tools (savings purchase/redeem, DCD subscribe, on-chain staking, auto-earn) before execution and throws a `ConfigError` with the message: "Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode." — with suggestion to switch to a live account. Read-only tools (balance queries, rate history, offer listings) remain accessible in demo mode. `dcd_redeem` preview mode (no `quoteId`, read-only price check) is also permitted. New earn tools added in the future are automatically protected based on their `isWrite` flag.
+
 ---
 
 ## [1.2.8-beta.4] - 2026-04-02

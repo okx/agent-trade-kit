@@ -17,6 +17,7 @@ import { registerAlgoTradeTools, registerFuturesAlgoTools } from "../src/tools/a
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
 import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
+import { registerAllEarnTools } from "../src/tools/earn/index.js";
 import { assertNotDemo } from "../src/tools/common.js";
 import { ConfigError, OkxApiError } from "../src/utils/errors.js";
 import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
@@ -3144,7 +3145,7 @@ describe("onchain_earn_get_offers", () => {
 });
 
 describe("onchain_earn_purchase", () => {
-  const tools = registerOnchainEarnTools();
+  const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "onchain_earn_purchase")!;
 
   it("calls /finance/staking-defi/purchase via POST", async () => {
@@ -3206,7 +3207,7 @@ describe("earn_savings_redeem", () => {
 });
 
 describe("onchain_earn_redeem", () => {
-  const tools = registerOnchainEarnTools();
+  const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "onchain_earn_redeem")!;
 
   it("calls /finance/staking-defi/redeem via POST", async () => {
@@ -3314,7 +3315,7 @@ describe("earn_get_lending_rate_history", () => {
 
 });
 describe("onchain_earn_cancel", () => {
-  const tools = registerOnchainEarnTools();
+  const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "onchain_earn_cancel")!;
 
   it("calls /finance/staking-defi/cancel via POST", async () => {
@@ -3501,7 +3502,7 @@ describe("dcd_get_products", () => {
 
 
 describe("dcd_subscribe", () => {
-  const tools = registerDcdTools();
+  const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "dcd_subscribe")!;
 
   function makeSubscribeClient(quoteData: Record<string, unknown> = { quoteId: "q-sub-123", annualizedYield: "18.5" }) {
@@ -3610,7 +3611,7 @@ describe("dcd_subscribe", () => {
 });
 
 describe("dcd_redeem", () => {
-  const tools = registerDcdTools();
+  const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "dcd_redeem")!;
 
   it("preview mode: calls /dcd/redeem-quote via POST (no quoteId)", async () => {
@@ -3911,5 +3912,103 @@ describe("swap_get_algo_orders instType param", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ ordType: "conditional", instType: "FUTURES" }, makeContext(client));
     assert.equal(getLastCall()?.params.instType, "FUTURES");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// earn demo guard (earn/index.ts — withDemoGuard)
+// ---------------------------------------------------------------------------
+
+describe("earn demo guard", () => {
+  const tools = registerAllEarnTools();
+  // Guard only applies to write tools (isWrite: true), excluding dcd_redeem (has own check)
+  const guardedTools = tools.filter((t) => t.isWrite && t.name !== "dcd_redeem");
+  const readOnlyTools = tools.filter((t) => !t.isWrite);
+  const dcdRedeemTool = tools.find((t) => t.name === "dcd_redeem")!;
+
+  it("throws ConfigError with 'simulated trading' message when demo=true (all write tools)", async () => {
+    for (const tool of guardedTools) {
+      const { client } = makeMockClient();
+      const ctx: ToolContext = {
+        ...makeContext(client),
+        config: { ...makeContext(client).config, demo: true },
+      };
+      await assert.rejects(
+        () => tool.handler({}, ctx),
+        (err: unknown) => err instanceof ConfigError && /simulated trading/i.test((err as ConfigError).message),
+        `${tool.name} should be blocked by demo guard`,
+      );
+    }
+  });
+
+  it("dcd_redeem preview mode (no quoteId) is allowed in demo mode", async () => {
+    const { client } = makeMockClient();
+    const ctx: ToolContext = {
+      ...makeContext(client),
+      config: { ...makeContext(client).config, demo: true },
+    };
+    // Must NOT throw ConfigError — preview is read-only
+    let threw: unknown;
+    try {
+      await dcdRedeemTool.handler({ ordId: "ord-123" }, ctx);
+    } catch (err) {
+      threw = err;
+    }
+    assert.ok(
+      !(threw instanceof ConfigError),
+      "dcd_redeem preview should not throw ConfigError in demo mode",
+    );
+  });
+
+  it("dcd_redeem execute mode (with quoteId) rejects in demo mode", async () => {
+    const { client } = makeMockClient();
+    const ctx: ToolContext = {
+      ...makeContext(client),
+      config: { ...makeContext(client).config, demo: true },
+    };
+    await assert.rejects(
+      () => dcdRedeemTool.handler({ ordId: "ord-123", quoteId: "q-456" }, ctx),
+      (err: unknown) => err instanceof ConfigError,
+      "dcd_redeem execute mode should reject in demo",
+    );
+  });
+
+  it("read-only tools (isWrite: false) are NOT blocked in demo mode", async () => {
+    assert.ok(readOnlyTools.length > 0, "should have at least one read-only tool");
+    for (const tool of readOnlyTools) {
+      const { client } = makeMockClient();
+      const ctx: ToolContext = {
+        ...makeContext(client),
+        config: { ...makeContext(client).config, demo: true },
+      };
+      // Should NOT throw ConfigError — read-only tools are allowed in demo
+      try {
+        await tool.handler({}, ctx);
+      } catch (err) {
+        assert.ok(
+          !(err instanceof ConfigError && /simulated trading/i.test((err as ConfigError).message)),
+          `${tool.name} (read-only) should not be blocked by demo guard`,
+        );
+      }
+    }
+  });
+
+  it("does not throw demo guard when demo=false", async () => {
+    const { client } = makeMockClient();
+    const ctx: ToolContext = {
+      ...makeContext(client),
+      config: { ...makeContext(client).config, demo: false },
+    };
+    const tool = guardedTools[0]!;
+    // handler may throw for other reasons (e.g. missing required params / API error),
+    // but must NOT throw ConfigError due to the demo guard
+    try {
+      await tool.handler({}, ctx);
+    } catch (err) {
+      assert.ok(
+        !(err instanceof ConfigError && /simulated trading/i.test((err as ConfigError).message)),
+        "demo guard should not block when demo=false",
+      );
+    }
   });
 });

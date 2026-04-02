@@ -200,7 +200,6 @@ export function registerDcdTools(): ToolSpec[] {
         required: ["productId", "notionalSz", "notionalCcy"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "dcd_subscribe");
         const args = asRecord(rawArgs);
         const productId = requireString(args, "productId");
         const notionalSz = requireString(args, "notionalSz");

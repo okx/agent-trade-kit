@@ -7,7 +7,7 @@ import {
   readString,
   requireString,
 } from "../helpers.js";
-import { assertNotDemo, privateRateLimit, publicRateLimit } from "../common.js";
+import { privateRateLimit, publicRateLimit } from "../common.js";
 
 export function registerEarnTools(): ToolSpec[] {
   return [
@@ -65,7 +65,6 @@ export function registerEarnTools(): ToolSpec[] {
         required: ["ccy", "amt"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "earn_savings_purchase");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/savings/purchase-redempt",
@@ -101,7 +100,6 @@ export function registerEarnTools(): ToolSpec[] {
         required: ["ccy", "amt"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "earn_savings_redeem");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/savings/purchase-redempt",
@@ -136,7 +134,6 @@ export function registerEarnTools(): ToolSpec[] {
         required: ["ccy", "rate"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "earn_set_lending_rate");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/savings/set-lending-rate",
