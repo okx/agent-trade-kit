@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **Earn 模块：写操作在模拟盘（demo）模式下现在会立即返回语义明确的错误**，而不是打到 OKX API 拿到不透明的 500 服务器错误。在 `earn/index.ts` 注册层增加了统一的 `withDemoGuard` wrapper，所有 earn 写操作工具（savings 申购/赎回、DCD 认购、链上理财、自动申购）在执行前均会被拦截，抛出 `ConfigError`，错误信息为："Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode."，并提示切换为真实账户。只读工具（余额查询、利率历史、产品列表）在 demo 模式下仍可正常使用。`dcd_redeem` 的 preview 模式（不传 `quoteId`，只读价格查询）在 demo 模式下同样可用。未来新增的 earn 工具基于 `isWrite` 标志自动受到保护。
+
 ---
 
 ## [1.2.8-beta.4] - 2026-04-02
