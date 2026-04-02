@@ -360,7 +360,10 @@ export function registerAccountTools(): ToolSpec[] {
       name: "account_get_config",
       module: "account",
       description:
-        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc.",
+        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc. " +
+        "Note: `settleCcy` is the current settlement currency for USDS-margined contracts. " +
+        "`settleCcyList` is the list of available settlement currencies to choose from. " +
+        "These fields only apply to USDS-margined contracts and can be ignored for standard USDT/coin-margined trading.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -372,17 +375,7 @@ export function registerAccountTools(): ToolSpec[] {
           {},
           privateRateLimit("account_get_config", 5),
         );
-        // Strip USDS-contract-only fields to avoid model confusion
-        const result = normalizeResponse(response);
-        if (Array.isArray(result.data)) {
-          return {
-            ...result,
-            data: (result.data as Record<string, unknown>[]).map(
-              ({ settleCcy, settleCcyList, ...rest }) => rest,
-            ),
-          };
-        }
-        return result;
+        return normalizeResponse(response);
       },
     },
     {
