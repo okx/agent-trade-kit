@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`market_get_instruments_by_category` MCP tool and `okx market instruments-by-category` CLI command**: Discover tradeable instruments by `instCategory` — Stock tokens (3, e.g. AAPL-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP), Commodities (5, e.g. OIL-USDT-SWAP), Forex (6, e.g. EURUSDT-USDT-SWAP), Bonds (7, e.g. US30Y-USDT-SWAP). Accepts `--instCategory <3|4|5|6|7>`, optional `--instType` (default SWAP) and `--instId`. Supersedes `market_get_stock_tokens` / `okx market stock-tokens` for category 3. (#109)
+- **`okx-cex-market` skill updated**: Description, command index, instrument-commands reference, and workflows updated to cover all non-crypto asset categories. New "Non-crypto asset discovery" workflow guides agents from instrument discovery → price check → order sizing. (#109)
 - **`news` module** (7 tools): Real-time crypto news, full-text search, and sentiment analytics via Orbit News API. All tools are read-only and require no fund permissions. Activate with `--modules news`.
   - `news_get_latest` — Latest news sorted by time; supports importance filter (`high`/`medium`/`low`), coin filter, language, pagination.
   - `news_get_by_coin` — News for specific coins (comma-separated, e.g. `BTC,ETH`).
@@ -27,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `news_get_sentiment_ranking` — Rank coins by hotness or sentiment direction.
   - CLI: `okx news latest`, `okx news by-coin <coins>`, `okx news search <keyword>`, `okx news detail <id>`, `okx news domains`, `okx news sentiment <coins>`, `okx news sentiment-ranking`.
   - Agent Skill: `skills/okx-cex-news/` with workflows guide.
+
+### Deprecated
+- **`market_get_stock_tokens` MCP tool**: Replaced by `market_get_instruments_by_category` with `instCategory="3"`. Retained for backward compatibility; will be removed in a future major version.
+- **`okx market stock-tokens` CLI command**: Replaced by `okx market instruments-by-category --instCategory 3`. Retained for backward compatibility; will be removed in a future major version.
+
 - **`--live` flag for CLI and MCP server**: Forces live trading mode even when the active profile has `demo=true`. Mutually exclusive with `--demo` (passing both throws an error). CLI: `okx --live <module> <action>`. MCP: `--live` argument. (#108)
 
 ### Fixed

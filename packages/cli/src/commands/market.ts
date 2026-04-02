@@ -309,6 +309,39 @@ export async function cmdMarketIndicator(
   }
 }
 
+export async function cmdMarketInstrumentsByCategory(
+  run: ToolRunner,
+  opts: { instCategory: string; instType?: string; instId?: string; json: boolean },
+): Promise<void> {
+  const result = await run("market_get_instruments_by_category", {
+    instCategory: opts.instCategory,
+    instType: opts.instType,
+    instId: opts.instId,
+  });
+  const items = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(items);
+  const CATEGORY_LABELS: Record<string, string> = {
+    "3": "Stock tokens",
+    "4": "Metals",
+    "5": "Commodities",
+    "6": "Forex",
+    "7": "Bonds",
+  };
+  const label = CATEGORY_LABELS[opts.instCategory] ?? opts.instCategory;
+  process.stdout.write(`instCategory=${opts.instCategory} (${label}) — ${items?.length ?? 0} instruments\n\n`);
+  printTable(
+    (items ?? []).slice(0, 50).map((t) => ({
+      instId: t["instId"],
+      instCategory: t["instCategory"],
+      ctVal: t["ctVal"],
+      lotSz: t["lotSz"],
+      minSz: t["minSz"],
+      tickSz: t["tickSz"],
+      state: t["state"],
+    })),
+  );
+}
+
 export async function cmdMarketStockTokens(
   run: ToolRunner,
   opts: { instType?: string; instId?: string; json: boolean },

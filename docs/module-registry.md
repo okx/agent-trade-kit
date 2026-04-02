@@ -3,13 +3,13 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~23,167 tokens | **Remaining:** ~1,833 tokens
+**Token Budget:** 25,000 tokens | **Current Usage:** ~23,427 tokens | **Remaining:** ~1,573 tokens
 
 ## Registered Modules
 
 | Module ID | Status | Tools | Read | Write | Token Est. | Design Doc | Approved By | Date |
 |-----------|--------|-------|------|-------|------------|------------|-------------|------|
-| market | ✅ approved | 13 | 13 | 0 | ~1,800 | _(founding module)_ | @Jasmine.Li | — |
+| market | ✅ approved | 14 | 14 | 0 | ~2,060 | _(founding module)_ | @Jasmine.Li | — |
 | spot | ✅ approved | 16 | 5 | 11 | ~2,800 | _(founding module)_ | @Jasmine.Li | — |
 | swap | ✅ approved | 18 | 7 | 11 | ~3,100 | _(founding module)_ | @Jasmine.Li | — |
 | futures | ✅ approved | 18 | 7 | 11 | ~3,100 | _(founding module)_ | @Jasmine.Li | — |
@@ -23,7 +23,7 @@ Unregistered modules will be rejected during review.
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~167 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | audit | ✅ approved | 1 | 1 | 0 | ~200 | _(founding module)_ | @Jasmine.Li | — |
 | news | ✅ approved | 7 | 7 | 0 | ~1,400 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
-| **Total** | | **135** | **77** | **58** | **~23,167** | | | |
+| **Total** | | **136** | **78** | **58** | **~23,427** | | | |
 
 ## Status Legend
 

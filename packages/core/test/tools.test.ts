@@ -319,6 +319,102 @@ describe("market_get_stock_tokens", () => {
   });
 });
 
+describe("market_get_instruments_by_category", () => {
+  const tools = registerMarketTools();
+  const tool = tools.find((t) => t.name === "market_get_instruments_by_category")!;
+
+  it("is registered", () => {
+    assert.ok(tool, "market_get_instruments_by_category should be registered");
+  });
+
+  it("calls /public/instruments", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instCategory: "4" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/public/instruments");
+  });
+
+  it("defaults instType to SWAP when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instCategory: "6" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "SWAP");
+  });
+
+  it("passes explicit instType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instCategory: "4", instType: "SPOT" }, makeContext(client));
+    assert.equal(getLastCall()?.params.instType, "SPOT");
+  });
+
+  it("filters by the given instCategory", async () => {
+    const { client } = makeMockClient();
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [
+        { instId: "BTC-USDT-SWAP", instCategory: "1" },
+        { instId: "AAPL-USDT-SWAP", instCategory: "3" },
+        { instId: "XAUUSDT-USDT-SWAP", instCategory: "4" },
+        { instId: "OIL-USDT-SWAP", instCategory: "5" },
+        { instId: "EURUSDT-USDT-SWAP", instCategory: "6" },
+        { instId: "US30Y-USDT-SWAP", instCategory: "7" },
+      ],
+    });
+    const result = await tool.handler({ instCategory: "4" }, makeContext(client)) as { data: Array<{ instId: string }> };
+    assert.equal(result.data.length, 1);
+    assert.equal(result.data[0].instId, "XAUUSDT-USDT-SWAP");
+  });
+
+  it("filters stock tokens (instCategory=3) — replaces market_get_stock_tokens", async () => {
+    const { client } = makeMockClient();
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [
+        { instId: "BTC-USDT-SWAP", instCategory: "1" },
+        { instId: "AAPL-USDT-SWAP", instCategory: "3" },
+        { instId: "TSLA-USDT-SWAP", instCategory: "3" },
+        { instId: "XAUUSDT-USDT-SWAP", instCategory: "4" },
+      ],
+    });
+    const result = await tool.handler({ instCategory: "3" }, makeContext(client)) as { data: Array<{ instId: string }> };
+    assert.equal(result.data.length, 2);
+    assert.ok(result.data.every((i) => i.instId.match(/AAPL|TSLA/)));
+  });
+
+  it("filters commodities (instCategory=5)", async () => {
+    const { client } = makeMockClient();
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [
+        { instId: "XAUUSDT-USDT-SWAP", instCategory: "4" },
+        { instId: "OIL-USDT-SWAP", instCategory: "5" },
+        { instId: "GAS-USDT-SWAP", instCategory: "5" },
+      ],
+    });
+    const result = await tool.handler({ instCategory: "5" }, makeContext(client)) as { data: Array<{ instId: string }> };
+    assert.equal(result.data.length, 2);
+    assert.ok(result.data.every((i) => i.instId.match(/OIL|GAS/)));
+  });
+
+  it("returns empty array when no matching category", async () => {
+    const { client } = makeMockClient();
+    (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
+      endpoint,
+      params,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: [
+        { instId: "BTC-USDT-SWAP", instCategory: "1" },
+      ],
+    });
+    const result = await tool.handler({ instCategory: "7" }, makeContext(client)) as { data: unknown[] };
+    assert.equal(result.data.length, 0);
+  });
+});
+
 describe("market_get_index_ticker", () => {
   const tools = registerMarketTools();
   const tool = tools.find((t) => t.name === "market_get_index_ticker")!;

@@ -38,6 +38,7 @@ import {
   cmdMarketPriceLimit,
   cmdMarketOpenInterest,
   cmdMarketStockTokens,
+  cmdMarketInstrumentsByCategory,
   cmdMarketIndicator,
 } from "./commands/market.js";
 import {
@@ -231,6 +232,13 @@ export function handleMarketPublicCommand(
     return cmdMarketOpenInterest(run, { instType: v.instType!, instId: v.instId, json });
   if (action === "stock-tokens")
     return cmdMarketStockTokens(run, { instType: v.instType, instId: v.instId, json });
+  if (action === "instruments-by-category")
+    return cmdMarketInstrumentsByCategory(run, {
+      instCategory: v.instCategory!,
+      instType: v.instType,
+      instId: v.instId,
+      json,
+    });
   if (action === "indicator") {
     const limit = v.limit !== undefined ? Number(v.limit) : undefined;
     const backtestTime = v["backtest-time"] !== undefined ? Number(v["backtest-time"]) : undefined;

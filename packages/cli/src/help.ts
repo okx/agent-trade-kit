@@ -85,7 +85,11 @@ const HELP_TREE: HelpTree = {
       },
       "stock-tokens": {
         usage: "okx market stock-tokens [--instType <SPOT|SWAP>] [--instId <id>]",
-        description: "List all stock token instruments (instCategory=3, e.g. AAPL-USDT-SWAP)",
+        description: "[Deprecated: use instruments-by-category --instCategory 3] List all stock token instruments (instCategory=3, e.g. AAPL-USDT-SWAP)",
+      },
+      "instruments-by-category": {
+        usage: "okx market instruments-by-category --instCategory <4|5|6|7> [--instType <SPOT|SWAP>] [--instId <id>]",
+        description: "List instruments by asset category: 4=Metals (gold/silver), 5=Commodities (oil/gas), 6=Forex (EUR/USD), 7=Bonds",
       },
     },
   },

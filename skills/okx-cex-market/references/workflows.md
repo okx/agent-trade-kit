@@ -47,14 +47,40 @@ okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
 
 ---
 
+### Non-crypto asset discovery before trading (Metals / Commodities / Forex / Bonds)
+
+```
+# Step 1 — discover valid instIds for the asset class
+okx market instruments-by-category --instCategory 4   → Metals: find XAUUSDT-USDT-SWAP, XAGUSDT-USDT-SWAP
+okx market instruments-by-category --instCategory 5   → Commodities: find OIL-USDT-SWAP, GAS-USDT-SWAP
+okx market instruments-by-category --instCategory 6   → Forex: find EURUSDT-USDT-SWAP, GBPUSDT-USDT-SWAP
+okx market instruments-by-category --instCategory 7   → Bonds: find US30Y-USDT-SWAP
+
+# Step 2 — verify live price and check trading session is open
+okx market ticker XAUUSDT-USDT-SWAP                   → last price, 24h range (state must show active)
+okx market orderbook XAUUSDT-USDT-SWAP                → bid/ask spread and liquidity
+
+# Step 3 — get instrument specs for order sizing
+okx market instruments --instType SWAP --instId XAUUSDT-USDT-SWAP --json
+                                                       → ctVal, minSz, lotSz for quantity conversion
+
+# okx-cex-trade: user places order after confirming market is open
+```
+
+> **Important**: non-crypto instruments have trading-hour restrictions. Always confirm `state=live` in the instruments response and a non-zero last price in `ticker` before proceeding to order placement.
+
+---
+
 ### Stock token discovery before trading
 
 ```
-okx market stock-tokens                                         → list instIds and specs
+okx market instruments-by-category --instCategory 3            → list instIds and specs (preferred)
 okx market ticker TSLA-USDT-SWAP                               → current price and 24h range
 okx market instruments --instType SWAP --instId TSLA-USDT-SWAP --json
                                                                 → ctVal, minSz, lotSz for sz conversion
 ```
+
+> `okx market stock-tokens` is deprecated — use `instruments-by-category --instCategory 3` instead.
 
 ---
 
@@ -114,4 +140,5 @@ When using MCP tools directly (instead of CLI), the tool names map as follows:
 | `market price-limit` | `market_get_price_limit` |
 | `market open-interest` | `market_get_open_interest` |
 | `market stock-tokens` | `market_get_stock_tokens` |
+| `market instruments-by-category` | `market_get_instruments_by_category` |
 | `market indicator` | `market_get_indicator` |
