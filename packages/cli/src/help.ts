@@ -611,6 +611,52 @@ const HELP_TREE: HelpTree = {
     description: "Upgrade okx CLI and MCP server to the latest stable version",
     usage: "okx upgrade [--check] [--beta] [--force] [--json]",
   },
+
+  news: {
+    description: "Orbit News — crypto news feed, coin sentiment, and trend analysis",
+    commands: {
+      latest: {
+        usage: "okx news latest [--limit <n>] [--lang <zh_CN|en_US>]",
+        description: "Get latest crypto news",
+      },
+      important: {
+        usage: "okx news important [--limit <n>] [--lang <zh_CN|en_US>]",
+        description: "Get important / high-impact crypto news",
+      },
+      "by-coin": {
+        usage: "okx news by-coin --coins <BTC,ETH,...> [--limit <n>] [--lang <zh_CN|en_US>]",
+        description: "Get news filtered by coin(s)",
+      },
+      "by-sentiment": {
+        usage: "okx news by-sentiment --sentiment <bullish|bearish|neutral> [--limit <n>] [--lang <zh_CN|en_US>]",
+        description: "Get news filtered by sentiment",
+      },
+      search: {
+        usage: "okx news search --keyword <text> [--limit <n>] [--lang <zh_CN|en_US>]",
+        description: "Search news by keyword",
+      },
+      detail: {
+        usage: "okx news detail <articleId> [--lang <zh_CN|en_US>]",
+        description: "Get full article detail by ID",
+      },
+      domains: {
+        usage: "okx news domains",
+        description: "List available news source domains",
+      },
+      "coin-sentiment": {
+        usage: "okx news coin-sentiment --coins <BTC,ETH,...> [--period <1h|24h>]",
+        description: "Get sentiment score for specific coin(s)",
+      },
+      "coin-trend": {
+        usage: "okx news coin-trend <coin> [--period <1h|24h>] [--points <n>]",
+        description: "Get sentiment trend data points for a coin",
+      },
+      "sentiment-rank": {
+        usage: "okx news sentiment-rank [--period <1h|24h>] [--sort-by <hot|bullish|bearish>] [--limit <n>]",
+        description: "Get coin ranking by social hotness or sentiment direction",
+      },
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------

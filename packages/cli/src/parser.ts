@@ -132,6 +132,15 @@ export interface CliValues {
   // market candle time range
   after?: string;
   before?: string;
+  // news
+  coins?: string;
+  sentiment?: string;
+  importance?: string;
+  keyword?: string;
+  "detail-lvl"?: string;
+  period?: string;
+  points?: string;
+  "sort-by"?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -284,6 +293,15 @@ export const CLI_OPTIONS = {
   params: { type: "string" },
   list: { type: "boolean", default: false },
   "backtest-time": { type: "string" },
+  // news
+  coins: { type: "string" },
+  sentiment: { type: "string" },
+  importance: { type: "string" },
+  keyword: { type: "string" },
+  "detail-lvl": { type: "string" },
+  period: { type: "string" },
+  points: { type: "string" },
+  "sort-by": { type: "string" },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks

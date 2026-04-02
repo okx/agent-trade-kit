@@ -11,9 +11,24 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.4] - 2026-04-02
+
 ### 新增
+
 - **新增 MCP 工具 `market_get_instruments_by_category` 及 CLI 命令 `okx market instruments-by-category`**：通过 `instCategory` 字段发现可交易品种——股票代币（3，如 AAPL-USDT-SWAP）、贵金属（4，如 XAUUSDT-USDT-SWAP 黄金）、大宗商品（5，如 OIL-USDT-SWAP 原油）、外汇（6，如 EURUSDT-USDT-SWAP）、债券（7，如 US30Y-USDT-SWAP）。支持 `--instCategory <3|4|5|6|7>`，可选 `--instType`（默认 SWAP）和 `--instId`。category=3 场景替代原 `market_get_stock_tokens`。(#109)
 - **`okx-cex-market` skill 更新**：description、command index、instrument-commands 参考文档及 workflows 均已覆盖全部非加密资产类别。新增"非加密资产发现"工作流，引导 agent 完成：发现品种 → 查询行情 → 获取合约规格 → 下单。(#109)
+- **`news` 模块**（7 个工具）：通过 Orbit News API 提供实时加密新闻查询、全文搜索和情绪分析。所有工具均为只读，无需资金权限。启动参数：`--modules news`。
+  - `news_get_latest` — 按时间排序获取最新新闻；支持重要性筛选（`high`/`medium`/`low`）、币种筛选、语言、分页。
+  - `news_get_by_coin` — 获取指定币种的新闻（逗号分隔，如 `BTC,ETH`）。
+  - `news_search` — 按关键词全文搜索，支持币种、重要性、情绪、排序等过滤条件。
+  - `news_get_detail` — 通过新闻 ID 获取完整文章（标题 + AI 摘要 + 原文）。
+  - `news_get_domains` — 列出可用新闻来源域名（如 CoinDesk、CoinTelegraph）。
+  - `news_get_coin_sentiment` — 获取币种的看涨/看跌快照或时间序列趋势；传入 `trendPoints` 进入趋势模式。
+  - `news_get_sentiment_ranking` — 按热度或情绪方向对币种排名。
+  - CLI 用法：`okx news latest`、`okx news by-coin <coins>`、`okx news search <关键词>`、`okx news detail <id>`、`okx news domains`、`okx news sentiment <coins>`、`okx news sentiment-ranking`。
+  - Agent Skill：`skills/okx-cex-news/`，含 workflows 引导文档。
 
 ### 废弃
 - **MCP 工具 `market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代。保留以维持向后兼容，将在未来大版本中移除。

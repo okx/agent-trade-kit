@@ -11,9 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.4] - 2026-04-02
+
 ### Added
+
 - **`market_get_instruments_by_category` MCP tool and `okx market instruments-by-category` CLI command**: Discover tradeable instruments by `instCategory` — Stock tokens (3, e.g. AAPL-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP), Commodities (5, e.g. OIL-USDT-SWAP), Forex (6, e.g. EURUSDT-USDT-SWAP), Bonds (7, e.g. US30Y-USDT-SWAP). Accepts `--instCategory <3|4|5|6|7>`, optional `--instType` (default SWAP) and `--instId`. Supersedes `market_get_stock_tokens` / `okx market stock-tokens` for category 3. (#109)
 - **`okx-cex-market` skill updated**: Description, command index, instrument-commands reference, and workflows updated to cover all non-crypto asset categories. New "Non-crypto asset discovery" workflow guides agents from instrument discovery → price check → order sizing. (#109)
+- **`news` module** (7 tools): Real-time crypto news, full-text search, and sentiment analytics via Orbit News API. All tools are read-only and require no fund permissions. Activate with `--modules news`.
+  - `news_get_latest` — Latest news sorted by time; supports importance filter (`high`/`medium`/`low`), coin filter, language, pagination.
+  - `news_get_by_coin` — News for specific coins (comma-separated, e.g. `BTC,ETH`).
+  - `news_search` — Full-text keyword search with optional coin, importance, sentiment, and sort filters.
+  - `news_get_detail` — Full article content (title + AI summary + original text) by news ID.
+  - `news_get_domains` — List available news source domains (e.g. CoinDesk, CoinTelegraph).
+  - `news_get_coin_sentiment` — Bullish/bearish snapshot or time-series trend for coins; pass `trendPoints` for trend mode.
+  - `news_get_sentiment_ranking` — Rank coins by hotness or sentiment direction.
+  - CLI: `okx news latest`, `okx news by-coin <coins>`, `okx news search <keyword>`, `okx news detail <id>`, `okx news domains`, `okx news sentiment <coins>`, `okx news sentiment-ranking`.
+  - Agent Skill: `skills/okx-cex-news/` with workflows guide.
 
 ### Deprecated
 - **`market_get_stock_tokens` MCP tool**: Replaced by `market_get_instruments_by_category` with `instCategory="3"`. Retained for backward compatibility; will be removed in a future major version.

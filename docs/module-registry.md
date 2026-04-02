@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~22,027 tokens | **Remaining:** ~2,973 tokens
+**Token Budget:** 25,000 tokens | **Current Usage:** ~23,427 tokens | **Remaining:** ~1,573 tokens
 
 ## Registered Modules
 
@@ -22,7 +22,8 @@ Unregistered modules will be rejected during review.
 | earn.dcd | ✅ approved | 5 | 3 | 2 | ~1,100 | _(founding module)_ | @Jasmine.Li | — |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~167 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | audit | ✅ approved | 1 | 1 | 0 | ~200 | _(founding module)_ | @Jasmine.Li | — |
-| **Total** | | **129** | **71** | **58** | **~22,027** | | | |
+| news | ✅ approved | 7 | 7 | 0 | ~1,400 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
+| **Total** | | **136** | **78** | **58** | **~23,427** | | | |
 
 ## Status Legend
 
@@ -41,6 +42,3 @@ Unregistered modules will be rejected during review.
 4. Reviewer will verify this registry entry exists and is approved before merging
 
 See [MCP Design Guideline](mcp-design-guideline.md) for full design rules.
-| event | 📝 proposed | 9 | - | ~1800 | [doc](modules/event.md) | - | - |
-| earn.auto | 📝 proposed | 5 | - | ~1000 | [doc](modules/earn.auto.md) | - | - |
-| news | 📝 proposed | 10 | - | ~2000 | [doc](modules/news.md) | - | - |

@@ -153,6 +153,7 @@ export class OkxRestClient {
     path: string,
     query?: QueryParams,
     rateLimit?: RequestConfig["rateLimit"],
+    extraHeaders?: Record<string, string>,
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
       method: "GET",
@@ -160,6 +161,7 @@ export class OkxRestClient {
       auth: "private",
       query,
       rateLimit,
+      extraHeaders,
     });
   }
 
@@ -307,21 +309,7 @@ export class OkxRestClient {
     };
   }
 
-  private async request<TData = unknown>(
-    reqConfig: RequestConfig,
-  ): Promise<RequestResult<TData>> {
-    const queryString = buildQueryString(reqConfig.query);
-    const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
-    const url = `${this.config.baseUrl}${requestPath}`;
-    const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
-    const timestamp = getNow();
-
-    this.logRequest(reqConfig.method, url, reqConfig.auth);
-
-    if (reqConfig.rateLimit) {
-      await this.rateLimiter.consume(reqConfig.rateLimit);
-    }
-
+  private buildHeaders(reqConfig: RequestConfig, requestPath: string, bodyJson: string, timestamp: string): Headers {
     const headers = new Headers({
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -338,6 +326,32 @@ export class OkxRestClient {
     if (this.config.demo) {
       headers.set("x-simulated-trading", "1");
     }
+
+    if (reqConfig.extraHeaders) {
+      for (const [key, value] of Object.entries(reqConfig.extraHeaders)) {
+        headers.set(key, value);
+      }
+    }
+
+    return headers;
+  }
+
+  private async request<TData = unknown>(
+    reqConfig: RequestConfig,
+  ): Promise<RequestResult<TData>> {
+    const queryString = buildQueryString(reqConfig.query);
+    const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
+    const url = `${this.config.baseUrl}${requestPath}`;
+    const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
+    const timestamp = getNow();
+
+    this.logRequest(reqConfig.method, url, reqConfig.auth);
+
+    if (reqConfig.rateLimit) {
+      await this.rateLimiter.consume(reqConfig.rateLimit);
+    }
+
+    const headers = this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
 
     const t0 = Date.now();
     let response: Response;
