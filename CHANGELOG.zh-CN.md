@@ -11,7 +11,22 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.4] - 2026-04-02
+
 ### 新增
+
+- **`news` 模块**（7 个工具）：通过 Orbit News API 提供实时加密新闻查询、全文搜索和情绪分析。所有工具均为只读，无需资金权限。启动参数：`--modules news`。
+  - `news_get_latest` — 按时间排序获取最新新闻；支持重要性筛选（`high`/`medium`/`low`）、币种筛选、语言、分页。
+  - `news_get_by_coin` — 获取指定币种的新闻（逗号分隔，如 `BTC,ETH`）。
+  - `news_search` — 按关键词全文搜索，支持币种、重要性、情绪、排序等过滤条件。
+  - `news_get_detail` — 通过新闻 ID 获取完整文章（标题 + AI 摘要 + 原文）。
+  - `news_get_domains` — 列出可用新闻来源域名（如 CoinDesk、CoinTelegraph）。
+  - `news_get_coin_sentiment` — 获取币种的看涨/看跌快照或时间序列趋势；传入 `trendPoints` 进入趋势模式。
+  - `news_get_sentiment_ranking` — 按热度或情绪方向对币种排名。
+  - CLI 用法：`okx news latest`、`okx news by-coin <coins>`、`okx news search <关键词>`、`okx news detail <id>`、`okx news domains`、`okx news sentiment <coins>`、`okx news sentiment-ranking`。
+  - Agent Skill：`skills/okx-cex-news/`，含 workflows 引导文档。
 - **CLI 和 MCP 新增 `--live` 标志**：强制使用实盘交易模式，即使当前 profile 设置了 `demo=true` 也生效。与 `--demo` 互斥（同时传入会报错）。CLI 用法：`okx --live <模块> <命令>`；MCP 启动参数：`--live`。(#108)
 
 ### 修复

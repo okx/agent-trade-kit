@@ -11,7 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.4] - 2026-04-02
+
 ### Added
+
+- **`news` module** (7 tools): Real-time crypto news, full-text search, and sentiment analytics via Orbit News API. All tools are read-only and require no fund permissions. Activate with `--modules news`.
+  - `news_get_latest` — Latest news sorted by time; supports importance filter (`high`/`medium`/`low`), coin filter, language, pagination.
+  - `news_get_by_coin` — News for specific coins (comma-separated, e.g. `BTC,ETH`).
+  - `news_search` — Full-text keyword search with optional coin, importance, sentiment, and sort filters.
+  - `news_get_detail` — Full article content (title + AI summary + original text) by news ID.
+  - `news_get_domains` — List available news source domains (e.g. CoinDesk, CoinTelegraph).
+  - `news_get_coin_sentiment` — Bullish/bearish snapshot or time-series trend for coins; pass `trendPoints` for trend mode.
+  - `news_get_sentiment_ranking` — Rank coins by hotness or sentiment direction.
+  - CLI: `okx news latest`, `okx news by-coin <coins>`, `okx news search <keyword>`, `okx news detail <id>`, `okx news domains`, `okx news sentiment <coins>`, `okx news sentiment-ranking`.
+  - Agent Skill: `skills/okx-cex-news/` with workflows guide.
 - **`--live` flag for CLI and MCP server**: Forces live trading mode even when the active profile has `demo=true`. Mutually exclusive with `--demo` (passing both throws an error). CLI: `okx --live <module> <action>`. MCP: `--live` argument. (#108)
 
 ### Fixed
