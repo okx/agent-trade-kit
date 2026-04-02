@@ -17,6 +17,8 @@
 
 ### 新增
 
+- **新增 MCP 工具 `market_get_instruments_by_category` 及 CLI 命令 `okx market instruments-by-category`**：通过 `instCategory` 字段发现可交易品种——股票代币（3，如 AAPL-USDT-SWAP）、贵金属（4，如 XAUUSDT-USDT-SWAP 黄金）、大宗商品（5，如 OIL-USDT-SWAP 原油）、外汇（6，如 EURUSDT-USDT-SWAP）、债券（7，如 US30Y-USDT-SWAP）。支持 `--instCategory <3|4|5|6|7>`，可选 `--instType`（默认 SWAP）和 `--instId`。category=3 场景替代原 `market_get_stock_tokens`。(#109)
+- **`okx-cex-market` skill 更新**：description、command index、instrument-commands 参考文档及 workflows 均已覆盖全部非加密资产类别。新增"非加密资产发现"工作流，引导 agent 完成：发现品种 → 查询行情 → 获取合约规格 → 下单。(#109)
 - **Skills Marketplace 模块**（`skills`）：从 OKX Skills Marketplace 浏览、搜索和安装 AI 交易技能。默认启用，可通过 `--modules skills` 单独加载。
   - `skills_get_categories` — 列出所有可用技能分类；返回 `categoryId` 供 `skills_search` 使用。
   - `skills_search` — 按关键词和/或分类搜索技能，返回 `totalPage` 支持分页。
@@ -24,6 +26,10 @@
   - CLI 命令：`okx skill search <关键词>`、`okx skill categories`、`okx skill add <名称>`、`okx skill download <名称> [--dir]`、`okx skill remove <名称>`、`okx skill check <名称>`、`okx skill list`。
   - `okx skill add` 自动解压、校验 `SKILL.md`、执行 `npx skills add`，并将安装记录写入 `~/.okx/skills/registry.json`。
   - Agent Skill：`skills/okx-cex-skill-mp/SKILL.md`。
+
+### 废弃
+- **MCP 工具 `market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代。保留以维持向后兼容，将在未来大版本中移除。
+- **CLI 命令 `okx market stock-tokens`**：由 `okx market instruments-by-category --instCategory 3` 替代。保留以维持向后兼容，将在未来大版本中移除。
 
 ### 修复
 
@@ -36,8 +42,6 @@
 
 ### 新增
 
-- **新增 MCP 工具 `market_get_instruments_by_category` 及 CLI 命令 `okx market instruments-by-category`**：通过 `instCategory` 字段发现可交易品种——股票代币（3，如 AAPL-USDT-SWAP）、贵金属（4，如 XAUUSDT-USDT-SWAP 黄金）、大宗商品（5，如 OIL-USDT-SWAP 原油）、外汇（6，如 EURUSDT-USDT-SWAP）、债券（7，如 US30Y-USDT-SWAP）。支持 `--instCategory <3|4|5|6|7>`，可选 `--instType`（默认 SWAP）和 `--instId`。category=3 场景替代原 `market_get_stock_tokens`。(#109)
-- **`okx-cex-market` skill 更新**：description、command index、instrument-commands 参考文档及 workflows 均已覆盖全部非加密资产类别。新增"非加密资产发现"工作流，引导 agent 完成：发现品种 → 查询行情 → 获取合约规格 → 下单。(#109)
 - **`news` 模块**（7 个工具）：通过 Orbit News API 提供实时加密新闻查询、全文搜索和情绪分析。所有工具均为只读，无需资金权限。启动参数：`--modules news`。
   - `news_get_latest` — 按时间排序获取最新新闻；支持重要性筛选（`high`/`medium`/`low`）、币种筛选、语言、分页。
   - `news_get_by_coin` — 获取指定币种的新闻（逗号分隔，如 `BTC,ETH`）。
@@ -49,9 +53,7 @@
   - CLI 用法：`okx news latest`、`okx news by-coin <coins>`、`okx news search <关键词>`、`okx news detail <id>`、`okx news domains`、`okx news sentiment <coins>`、`okx news sentiment-ranking`。
   - Agent Skill：`skills/okx-cex-news/`，含 workflows 引导文档。
 
-### 废弃
-- **MCP 工具 `market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代。保留以维持向后兼容，将在未来大版本中移除。
-- **CLI 命令 `okx market stock-tokens`**：由 `okx market instruments-by-category --instCategory 3` 替代。保留以维持向后兼容，将在未来大版本中移除。
+### 新增
 
 - **CLI 和 MCP 新增 `--live` 标志**：强制使用实盘交易模式，即使当前 profile 设置了 `demo=true` 也生效。与 `--demo` 互斥（同时传入会报错）。CLI 用法：`okx --live <模块> <命令>`；MCP 启动参数：`--live`。(#108)
 
