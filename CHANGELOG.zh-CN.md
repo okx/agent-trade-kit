@@ -13,6 +13,15 @@
 
 ---
 
+## [1.2.8-beta.6] - 2026-04-02
+
+### 修复
+
+- **合约下单前强制 `ctVal` 查询**：`swap_place_order`、`futures_place_order`、`option_place_order` 的 tool description 新增前置要求——下单前必须先调用 `market_get_instruments` 获取 `ctVal`（合约面值），不得假设合约大小。`sz` 参数说明补充示例（如 ETH-USDT-SWAP：1 张合约 = 0.1 ETH）。`okx-cex-trade` SKILL.md 同步新增关键警告段落。(#113)
+- **`account_get_config`：回退字段剥离，改为 description 说明**：beta.5 中直接从响应移除 `settleCcy`/`settleCcyList` 的做法已回退。现保留这两个字段，并在 tool description 中注明其含义——仅适用于 USDS 合约，标准 USDT/coin-margined 交易可忽略。
+
+---
+
 ## [1.2.8-beta.5] - 2026-04-02
 
 ### 新增
@@ -34,7 +43,7 @@
 ### 修复
 
 - **Earn 模块：写操作在模拟盘（demo）模式下现在会立即返回语义明确的错误**，而不是打到 OKX API 拿到不透明的 500 服务器错误。在 `earn/index.ts` 注册层增加了统一的 `withDemoGuard` wrapper，所有 earn 写操作工具（savings 申购/赎回、DCD 认购、链上理财、自动申购）在执行前均会被拦截，抛出 `ConfigError`，错误信息为："Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode."，并提示切换为真实账户。只读工具（余额查询、利率历史、产品列表）在 demo 模式下仍可正常使用。`dcd_redeem` 的 preview 模式（不传 `quoteId`，只读价格查询）在 demo 模式下同样可用。未来新增的 earn 工具基于 `isWrite` 标志自动受到保护。
-- **`account_get_config` 响应剔除 `settleCcy` / `settleCcyList`**：这两个字段仅适用于 USDS 合约账户，现已从响应中移除，避免 AI 模型将其误解为通用账户设置。
+- **`account_get_config` 响应剔除 `settleCcy` / `settleCcyList`**：这两个字段仅适用于 USDS 合约账户，现已从响应中移除，避免 AI 模型将其误解为通用账户设置。*（已在 [1.2.8-beta.6] 中回退——字段保留，改为在 description 中说明。）*
 
 ---
 

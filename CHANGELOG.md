@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8-beta.6] - 2026-04-02
+
+### Fixed
+
+- **Contract order placement now requires `ctVal` lookup first**: `swap_place_order`, `futures_place_order`, and `option_place_order` tool descriptions now include a mandatory precondition to call `market_get_instruments` to retrieve `ctVal` (contract face value) before placing orders. The `sz` parameter description is also clarified with an example (e.g. ETH-USDT-SWAP: 1 contract = 0.1 ETH). `okx-cex-trade` SKILL.md updated with a critical warning section. (#113)
+- **`account_get_config`: revert field stripping, add description instead**: The beta.5 fix that stripped `settleCcy`/`settleCcyList` from the response has been reverted. These fields are now preserved and explained in the tool description — they only apply to USDS-margined contracts and can be ignored for standard USDT/coin-margined trading.
+
+---
+
 ## [1.2.8-beta.5] - 2026-04-02
 
 ### Added
@@ -34,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Earn module: write operations now return a clear error in simulated trading (demo) mode** instead of hitting OKX API and receiving an opaque 500 server error. A unified `withDemoGuard` wrapper in `earn/index.ts` intercepts all earn write tools (savings purchase/redeem, DCD subscribe, on-chain staking, auto-earn) before execution and throws a `ConfigError` with the message: "Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode." — with suggestion to switch to a live account. Read-only tools (balance queries, rate history, offer listings) remain accessible in demo mode. `dcd_redeem` preview mode (no `quoteId`, read-only price check) is also permitted. New earn tools added in the future are automatically protected based on their `isWrite` flag.
-- **`account_get_config` response strips `settleCcy` / `settleCcyList`**: These USDS-contract-only fields are now removed from the response to avoid confusing AI models that interpret them as general account settings.
+- **`account_get_config` response strips `settleCcy` / `settleCcyList`**: These USDS-contract-only fields are now removed from the response to avoid confusing AI models that interpret them as general account settings. *(Reverted in [1.2.8-beta.6] — fields are preserved with added description instead.)*
 
 ---
 
