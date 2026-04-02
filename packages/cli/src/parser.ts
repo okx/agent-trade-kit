@@ -51,6 +51,7 @@ export interface CliValues {
   stopType?: string;
   live?: boolean;
   instType?: string;
+  instCategory?: string;
   quoteCcy?: string;
   archive?: boolean;
   valuation?: boolean;
@@ -202,6 +203,7 @@ export const CLI_OPTIONS = {
   live: { type: "boolean", default: false },
   // market extras
   instType: { type: "string" },
+  instCategory: { type: "string" },
   quoteCcy: { type: "string" },
   // account extras
   archive: { type: "boolean", default: false },

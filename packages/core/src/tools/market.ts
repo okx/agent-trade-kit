@@ -503,7 +503,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_stock_tokens",
       module: "market",
       description:
-        "Get all stock token instruments (instCategory=3). Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP). Filters client-side by instCategory=3.",
+        "[Deprecated: use market_get_instruments_by_category with instCategory=\"3\" instead] Get all stock token instruments (instCategory=3). Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -532,6 +532,49 @@ export function registerMarketTools(): ToolSpec[] {
         const data = response.data;
         const filtered = Array.isArray(data)
           ? data.filter((item) => (item as Record<string, unknown>).instCategory === "3")
+          : data;
+        return normalizeResponse({ ...response, data: filtered });
+      },
+    },
+    {
+      name: "market_get_instruments_by_category",
+      module: "market",
+      description:
+        "Discover tradeable instruments by asset category. Stock tokens (instCategory=3, e.g. AAPL-USDT-SWAP, TSLA-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP for gold), Commodities (5, e.g. OIL-USDT-SWAP for crude oil), Forex (6, e.g. EURUSDT-USDT-SWAP for EUR/USD), Bonds (7, e.g. US30Y-USDT-SWAP). Use this to find instIds before querying prices or placing orders. Filters client-side by instCategory.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instCategory: {
+            type: "string",
+            enum: ["3", "4", "5", "6", "7"],
+            description: "Asset category: 3=Stock tokens, 4=Metals, 5=Commodities, 6=Forex, 7=Bonds",
+          },
+          instType: {
+            type: "string",
+            enum: ["SPOT", "SWAP"],
+            description: "Instrument type. Default: SWAP",
+          },
+          instId: {
+            type: "string",
+            description: "Optional: filter by specific instrument ID",
+          },
+        },
+        required: ["instCategory"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const instCategory = requireString(args, "instCategory");
+        const instType = readString(args, "instType") ?? "SWAP";
+        const instId = readString(args, "instId");
+        const response = await context.client.publicGet(
+          "/api/v5/public/instruments",
+          compactObject({ instType, instId }),
+          publicRateLimit("market_get_instruments_by_category", 20),
+        );
+        const data = response.data;
+        const filtered = Array.isArray(data)
+          ? data.filter((item) => (item as Record<string, unknown>).instCategory === instCategory)
           : data;
         return normalizeResponse({ ...response, data: filtered });
       },

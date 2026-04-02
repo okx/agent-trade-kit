@@ -12,6 +12,13 @@
 ## [Unreleased]
 
 ### 新增
+- **新增 MCP 工具 `market_get_instruments_by_category` 及 CLI 命令 `okx market instruments-by-category`**：通过 `instCategory` 字段发现可交易品种——股票代币（3，如 AAPL-USDT-SWAP）、贵金属（4，如 XAUUSDT-USDT-SWAP 黄金）、大宗商品（5，如 OIL-USDT-SWAP 原油）、外汇（6，如 EURUSDT-USDT-SWAP）、债券（7，如 US30Y-USDT-SWAP）。支持 `--instCategory <3|4|5|6|7>`，可选 `--instType`（默认 SWAP）和 `--instId`。category=3 场景替代原 `market_get_stock_tokens`。(#109)
+- **`okx-cex-market` skill 更新**：description、command index、instrument-commands 参考文档及 workflows 均已覆盖全部非加密资产类别。新增"非加密资产发现"工作流，引导 agent 完成：发现品种 → 查询行情 → 获取合约规格 → 下单。(#109)
+
+### 废弃
+- **MCP 工具 `market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代。保留以维持向后兼容，将在未来大版本中移除。
+- **CLI 命令 `okx market stock-tokens`**：由 `okx market instruments-by-category --instCategory 3` 替代。保留以维持向后兼容，将在未来大版本中移除。
+
 - **CLI 和 MCP 新增 `--live` 标志**：强制使用实盘交易模式，即使当前 profile 设置了 `demo=true` 也生效。与 `--demo` 互斥（同时传入会报错）。CLI 用法：`okx --live <模块> <命令>`；MCP 启动参数：`--live`。(#108)
 
 ### 修复
