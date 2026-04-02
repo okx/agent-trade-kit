@@ -11,9 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.5] - 2026-04-02
+
+### Added
+
+- **Skills Marketplace module** (`skills`): Browse, search, and install AI trading skills from the OKX Skills Marketplace. Enabled by default. Activate with `--modules skills`.
+  - `skills_get_categories` — List all available skill categories; use `categoryId` as input to `skills_search`.
+  - `skills_search` — Search skills by keyword and/or category; returns `totalPage` for pagination.
+  - `skills_download` — Download a skill zip to a local directory.
+  - CLI: `okx skill search <keyword>`, `okx skill categories`, `okx skill add <name>`, `okx skill download <name> [--dir]`, `okx skill remove <name>`, `okx skill check <name>`, `okx skill list`.
+  - `okx skill add` automatically extracts, validates `SKILL.md`, runs `npx skills add`, and records the install in `~/.okx/skills/registry.json`.
+  - Agent Skill: `skills/okx-cex-skill-mp/SKILL.md`.
+
 ### Fixed
 
 - **Earn module: write operations now return a clear error in simulated trading (demo) mode** instead of hitting OKX API and receiving an opaque 500 server error. A unified `withDemoGuard` wrapper in `earn/index.ts` intercepts all earn write tools (savings purchase/redeem, DCD subscribe, on-chain staking, auto-earn) before execution and throws a `ConfigError` with the message: "Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode." — with suggestion to switch to a live account. Read-only tools (balance queries, rate history, offer listings) remain accessible in demo mode. `dcd_redeem` preview mode (no `quoteId`, read-only price check) is also permitted. New earn tools added in the future are automatically protected based on their `isWrite` flag.
+- **`account_get_config` response strips `settleCcy` / `settleCcyList`**: These USDS-contract-only fields are now removed from the response to avoid confusing AI models that interpret them as general account settings.
 
 ---
 

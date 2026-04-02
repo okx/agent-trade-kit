@@ -11,9 +11,24 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.8-beta.5] - 2026-04-02
+
+### 新增
+
+- **Skills Marketplace 模块**（`skills`）：从 OKX Skills Marketplace 浏览、搜索和安装 AI 交易技能。默认启用，可通过 `--modules skills` 单独加载。
+  - `skills_get_categories` — 列出所有可用技能分类；返回 `categoryId` 供 `skills_search` 使用。
+  - `skills_search` — 按关键词和/或分类搜索技能，返回 `totalPage` 支持分页。
+  - `skills_download` — 将技能 zip 包下载到本地目录。
+  - CLI 命令：`okx skill search <关键词>`、`okx skill categories`、`okx skill add <名称>`、`okx skill download <名称> [--dir]`、`okx skill remove <名称>`、`okx skill check <名称>`、`okx skill list`。
+  - `okx skill add` 自动解压、校验 `SKILL.md`、执行 `npx skills add`，并将安装记录写入 `~/.okx/skills/registry.json`。
+  - Agent Skill：`skills/okx-cex-skill-mp/SKILL.md`。
+
 ### 修复
 
 - **Earn 模块：写操作在模拟盘（demo）模式下现在会立即返回语义明确的错误**，而不是打到 OKX API 拿到不透明的 500 服务器错误。在 `earn/index.ts` 注册层增加了统一的 `withDemoGuard` wrapper，所有 earn 写操作工具（savings 申购/赎回、DCD 认购、链上理财、自动申购）在执行前均会被拦截，抛出 `ConfigError`，错误信息为："Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode."，并提示切换为真实账户。只读工具（余额查询、利率历史、产品列表）在 demo 模式下仍可正常使用。`dcd_redeem` 的 preview 模式（不传 `quoteId`，只读价格查询）在 demo 模式下同样可用。未来新增的 earn 工具基于 `isWrite` 标志自动受到保护。
+- **`account_get_config` 响应剔除 `settleCcy` / `settleCcyList`**：这两个字段仅适用于 USDS 合约账户，现已从响应中移除，避免 AI 模型将其误解为通用账户设置。
 
 ---
 
