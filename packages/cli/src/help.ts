@@ -600,7 +600,7 @@ const HELP_TREE: HelpTree = {
 
   diagnose: {
     description: "Run network / MCP server diagnostics",
-    usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo] [--output <file>]",
+    usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo | --live] [--output <file>]",
   },
 
   upgrade: {
@@ -617,11 +617,12 @@ const HELP_TREE: HelpTree = {
 function printGlobalHelp(): void {
   const lines: string[] = [
     "",
-    `Usage: okx [--profile <name>] [--demo] [--json] <module> <action> [args...]`,
+    `Usage: okx [--profile <name>] [--demo | --live] [--json] <module> <action> [args...]`,
     "",
     "Global Options:",
     `  --profile <name>   Use a named profile from ${configFilePath()}`,
     "  --demo             Use simulated trading (demo) mode",
+    "  --live             Force live trading mode (overrides profile demo=true; mutually exclusive with --demo)",
     "  --json             Output raw JSON",
     "  --verbose          Show detailed network request/response info (stderr)",
     "  --version, -v      Show version",

@@ -6,7 +6,8 @@ import type { OkxProfile } from "./config/toml.js";
 export interface CliOptions {
   modules?: string;
   readOnly: boolean;
-  demo: boolean;
+  demo?: boolean;
+  live?: boolean;
   profile?: string;
   site?: string;
   userAgent?: string;
@@ -128,15 +129,26 @@ function resolveBaseUrl(site: SiteId, tomlBaseUrl?: string): string {
  *   2. toml profile base_url
  *   3. site's apiBaseUrl (auto-derived from site)
  */
+
+function resolveDemo(cli: CliOptions, toml: OkxProfile): boolean {
+  if (cli.demo && cli.live) {
+    throw new ConfigError(
+      "--demo and --live are mutually exclusive.",
+      "Use --demo for simulated trading or --live to force live mode, not both.",
+    );
+  }
+  if (cli.live === true) return false;
+  if (cli.demo === true) return true;
+  return process.env.OKX_DEMO === "1" ||
+    process.env.OKX_DEMO === "true" ||
+    (toml.demo ?? false);
+}
+
 export function loadConfig(cli: CliOptions): OkxConfig {
   const toml = readTomlProfile(cli.profile);
   const creds = loadCredentials(toml);
 
-  const demo =
-    cli.demo ||
-    process.env.OKX_DEMO === "1" ||
-    process.env.OKX_DEMO === "true" ||
-    (toml.demo ?? false);
+  const demo = resolveDemo(cli, toml);
 
   const site = resolveSite(cli.site, toml.site);
   const baseUrl = resolveBaseUrl(site, toml.base_url);

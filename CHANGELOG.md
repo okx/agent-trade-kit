@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`--live` flag for CLI and MCP server**: Forces live trading mode even when the active profile has `demo=true`. Mutually exclusive with `--demo` (passing both throws an error). CLI: `okx --live <module> <action>`. MCP: `--live` argument. (#108)
+
+### Fixed
+- **`--no-demo` flag now correctly overrides profile `demo=true`**: Previously, `cli.demo` was treated as always-truthy when the default was `false`, so `--no-demo` had no effect against a profile with `demo=true`. The resolution logic now uses a three-state check: `--live` forces live, `--demo` forces demo, otherwise env vars and profile are consulted. (#108)
+
 ---
 
 ## [1.2.8-beta.3] - 2026-04-01
@@ -38,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`market_get_candles` now automatically routes to historical endpoint**: Automatically uses `/market/history-candles` when `after`/`before` timestamps are older than 2 days, enabling access to candlestick data back to 2021. Includes fallback: if the recent endpoint returns empty data for a timestamped request, it retries the history endpoint. The `history` parameter has been removed; no manual switching required. CLI: `okx market candles BTC-USDT --after <timestamp>`. (#101)
 - **`account_get_asset_balance` now supports `showValuation` parameter**: Set `showValuation=true` to also return total asset valuation breakdown across all account types (trading, funding, earn, etc.) via `/api/v5/asset/asset-valuation`. Default behavior is unchanged (backward compatible). CLI: `okx account asset-balance --valuation`. (#102)
+- **`market_get_candles` auto-routes to historical endpoint**: The `history` parameter has been removed. The tool now automatically detects whether `after`/`before` timestamps are older than 2 days and routes to `/market/history-candles` accordingly. Supports candlestick data back to exchange launch (pre-2021). If the recent endpoint returns empty results with timestamps provided, it automatically falls back to the history endpoint. CLI: `okx market candles BTC-USDT --bar 1D --after <ms>` / `--before <ms>`. (#101)
 
 ---
 
