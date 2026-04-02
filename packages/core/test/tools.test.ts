@@ -796,6 +796,22 @@ describe("account_get_config", () => {
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/account/config");
   });
+
+  it("strips settleCcy and settleCcyList from response", async () => {
+    const mockClient = {
+      privateGet: async (endpoint: string) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [{ uid: "123", settleCcy: "USDT", settleCcyList: ["USDT", "USDC"], posMode: "net_mode" }],
+      }),
+    };
+    const result = await tool.handler({}, makeContext(mockClient)) as Record<string, unknown>;
+    const row = (result.data as Record<string, unknown>[])[0];
+    assert.ok(!("settleCcy" in row), "settleCcy should be stripped");
+    assert.ok(!("settleCcyList" in row), "settleCcyList should be stripped");
+    assert.equal(row["posMode"], "net_mode");
+    assert.equal(row["uid"], "123");
+  });
 });
 
 describe("account_get_max_withdrawal", () => {
