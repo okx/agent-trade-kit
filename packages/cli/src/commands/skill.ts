@@ -45,7 +45,7 @@ export async function cmdSkillSearch(
 
   const result = await run("skills_search", args);
   const data = result.data as unknown[];
-  const totalPage = (result as Record<string, unknown>).totalPage as string | undefined;
+  const totalPage = (result as unknown as Record<string, unknown>).totalPage as string | undefined;
 
   if (opts.json) {
     outputLine(JSON.stringify(result, null, 2));

@@ -181,7 +181,12 @@ export async function cmdNewsDetail(
   const article = items?.[0];
   if (!article) { outputLine("Article not found."); return; }
   const rawContent = article["content"] ? String(article["content"]) : undefined;
-  const content = rawContent ? (rawContent.length > 500 ? rawContent.slice(0, 500) + "... (use --json for full text)" : rawContent) : undefined;
+  let content: string | undefined;
+  if (rawContent && rawContent.length > 500) {
+    content = rawContent.slice(0, 500) + "... (use --json for full text)";
+  } else {
+    content = rawContent;
+  }
   printKv({
     id: article["id"],
     title: article["title"],
