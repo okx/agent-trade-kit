@@ -372,7 +372,17 @@ export function registerAccountTools(): ToolSpec[] {
           {},
           privateRateLimit("account_get_config", 5),
         );
-        return normalizeResponse(response);
+        // Strip USDS-contract-only fields to avoid model confusion
+        const result = normalizeResponse(response);
+        if (Array.isArray(result.data)) {
+          return {
+            ...result,
+            data: (result.data as Record<string, unknown>[]).map(
+              ({ settleCcy, settleCcyList, ...rest }) => rest,
+            ),
+          };
+        }
+        return result;
       },
     },
     {
