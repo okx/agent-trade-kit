@@ -41,7 +41,7 @@ npm install -g @okx_ai/okx-trade-cli
 okx market ticker BTC-USDT   # verify
 ```
 
-Demo mode has no effect on market commands — same public data is returned either way. No confirmation needed before running any market command. Add `--json` to any command for raw OKX API v5 response.
+Market data commands return the same public data regardless of demo/live mode — no API credentials required. If the user's profile has `demo=true` set and they want live data context, they can use `--live` to confirm they are in live mode (it has no effect on public market data but clarifies environment). Always inform the user which environment is active (demo or live) when it is relevant to their query. No confirmation needed before running any market command. Add `--json` to any command for raw OKX API v5 response.
 
 ---
 
@@ -109,4 +109,4 @@ All commands in this skill are read-only.
 - Rate limit: 20 req / 2 s per IP
 - Candle data is sorted newest-first
 - `vol24h` is in base currency (e.g., BTC for BTC-USDT)
-- `--profile` has no effect on market commands
+- `--profile` and `--demo`/`--live` do not affect market data results (public endpoints); they only determine the active trading environment context

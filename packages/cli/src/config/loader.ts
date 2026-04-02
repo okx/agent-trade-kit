@@ -6,6 +6,7 @@ export interface LoadProfileOptions {
   modules?: string;
   readOnly?: boolean;
   demo?: boolean;
+  live?: boolean;
   site?: string;
   userAgent?: string;
   sourceTag?: string;
@@ -22,7 +23,8 @@ export function loadProfileConfig(opts: LoadProfileOptions): OkxConfig {
     profile: opts.profile,
     modules: opts.modules,
     readOnly: opts.readOnly ?? false,
-    demo: opts.demo ?? false,
+    demo: opts.demo,
+    live: opts.live,
     site: opts.site,
     userAgent: opts.userAgent,
     sourceTag: opts.sourceTag,

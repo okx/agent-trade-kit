@@ -32,6 +32,7 @@ Options:
                        global → www.okx.com, eea → eea.okx.com, us → app.okx.com
   --read-only          Expose only read/query tools and disable write operations
   --demo               Enable simulated trading (injects x-simulated-trading: 1)
+  --live               Force live trading mode (overrides profile demo=true; mutually exclusive with --demo)
   --no-log             Disable audit logging (default: logging enabled)
   --log-level <level>  Minimum log level to write: error, warn, info, debug (default: info)
   --help               Show this help message
@@ -56,6 +57,7 @@ function parseCli(): {
   site?: string;
   readOnly: boolean;
   demo: boolean;
+  live: boolean;
   noLog: boolean;
   logLevel: string;
   help: boolean;
@@ -68,6 +70,7 @@ function parseCli(): {
       site: { type: "string" },
       "read-only": { type: "boolean", default: false },
       demo: { type: "boolean", default: false },
+      live: { type: "boolean", default: false },
       "no-log": { type: "boolean", default: false },
       "log-level": { type: "string", default: "info" },
       help: { type: "boolean", default: false },
@@ -82,6 +85,7 @@ function parseCli(): {
     site: parsed.values.site,
     readOnly: parsed.values["read-only"] ?? false,
     demo: parsed.values.demo ?? false,
+    live: parsed.values.live ?? false,
     noLog: parsed.values["no-log"] ?? false,
     logLevel: parsed.values["log-level"] ?? "info",
     help: parsed.values.help ?? false,
@@ -146,6 +150,7 @@ export async function main(): Promise<void> {
     site: cli.site,
     readOnly: cli.readOnly,
     demo: cli.demo,
+    live: cli.live,
     userAgent: `${SERVER_NAME}/${SERVER_VERSION}`,
     sourceTag: "MCP",
   });

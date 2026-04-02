@@ -507,3 +507,114 @@ describe("loadConfig — TOML parse error for special characters", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Demo / Live flag resolution
+// ---------------------------------------------------------------------------
+
+describe("loadConfig — demo/live flag resolution", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), '[profiles.default]\n', "utf-8");
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  it("defaults demo to false when no flag, no env, no toml", () => {
+    const config = loadConfig({ readOnly: false });
+    assert.equal(config.demo, false);
+  });
+
+  it("--demo sets demo to true", () => {
+    const config = loadConfig({ readOnly: false, demo: true });
+    assert.equal(config.demo, true);
+  });
+
+  it("--live sets demo to false", () => {
+    const config = loadConfig({ readOnly: false, live: true });
+    assert.equal(config.demo, false);
+  });
+
+  it("--demo and --live together throws ConfigError", () => {
+    assert.throws(
+      () => loadConfig({ readOnly: false, demo: true, live: true }),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("mutually exclusive"),
+    );
+  });
+
+  it("OKX_DEMO=1 sets demo to true when no CLI flag", () => {
+    process.env.OKX_DEMO = "1";
+    const config = loadConfig({ readOnly: false });
+    assert.equal(config.demo, true);
+  });
+
+  it("--live overrides OKX_DEMO=1", () => {
+    process.env.OKX_DEMO = "1";
+    const config = loadConfig({ readOnly: false, live: true });
+    assert.equal(config.demo, false);
+  });
+});
+
+describe("loadConfig — demo/live with toml profile", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  function writeToml(content: string): void {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), content, "utf-8");
+  }
+
+  it("toml demo=true is used when no CLI flag", () => {
+    writeToml('[profiles.default]\ndemo = true\n');
+    const config = loadConfig({ readOnly: false });
+    assert.equal(config.demo, true);
+  });
+
+  it("--live overrides toml demo=true", () => {
+    writeToml('[profiles.default]\ndemo = true\n');
+    const config = loadConfig({ readOnly: false, live: true });
+    assert.equal(config.demo, false);
+  });
+
+  it("--demo overrides toml demo=false", () => {
+    writeToml('[profiles.default]\ndemo = false\n');
+    const config = loadConfig({ readOnly: false, demo: true });
+    assert.equal(config.demo, true);
+  });
+});

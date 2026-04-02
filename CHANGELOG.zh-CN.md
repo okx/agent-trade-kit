@@ -11,6 +11,12 @@
 
 ## [Unreleased]
 
+### 新增
+- **CLI 和 MCP 新增 `--live` 标志**：强制使用实盘交易模式，即使当前 profile 设置了 `demo=true` 也生效。与 `--demo` 互斥（同时传入会报错）。CLI 用法：`okx --live <模块> <命令>`；MCP 启动参数：`--live`。(#108)
+
+### 修复
+- **`--no-demo` 标志现在可以正确覆盖 profile 中的 `demo=true`**：此前，由于 `cli.demo` 默认值为 `false`，布尔逻辑导致 `--no-demo` 无法覆盖 profile 配置。现已改为三态逻辑：`--live` 强制实盘、`--demo` 强制模拟盘，否则依次读取环境变量和 profile 配置。(#108)
+
 ---
 
 ## [1.2.8-beta.3] - 2026-04-01
@@ -38,6 +44,7 @@
 
 - **`market_get_candles` 自动路由历史端点**：当 `after`/`before` 时间戳超过 2 天前时，自动切换至 `/market/history-candles`，支持查询 2021 年至今的历史K线。新增兜底机制：若近期端点对带时间戳的请求返回空数据，自动重试历史端点。移除 `history` 参数，无需手动切换。CLI 用法：`okx market candles BTC-USDT --after <时间戳>`。(#101)
 - **`account_get_asset_balance` 新增 `showValuation` 参数**：设置 `showValuation=true` 可同时返回各账户类型（交易/资金/理财等）的总资产估值汇总，底层调用 `/api/v5/asset/asset-valuation`。默认行为不变（向后兼容）。CLI 用法：`okx account asset-balance --valuation`。(#102)
+- **`market_get_candles` 自动路由至历史端点**：移除 `history` 参数。工具现在自动检测 `after`/`before` 时间戳是否超过2天，并自动路由至 `/market/history-candles`。支持获取2021年前的历史K线数据。当最新端点返回空数据且提供了时间戳时，自动降级至历史端点重试。CLI 用法：`okx market candles BTC-USDT --bar 1D --after <毫秒时间戳>` / `--before <毫秒时间戳>`。(#101)
 
 ---
 
