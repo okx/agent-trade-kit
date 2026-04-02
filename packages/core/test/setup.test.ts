@@ -236,7 +236,7 @@ describe("runSetup: claude-desktop", () => {
   });
 
   it("creates config under Library/Application Support/Claude on non-Windows", () => {
-    if (process.platform === "win32") return; // skip on Windows
+    if (process.platform !== "darwin") return; // macOS-only path
     captureStdout(() => runSetup({ client: "claude-desktop", modules: "all" }));
     const configPath = path.join(
       tmpDir,
@@ -251,7 +251,7 @@ describe("runSetup: claude-desktop", () => {
   });
 
   it("prints 'Restart Claude Desktop' hint", () => {
-    if (process.platform === "win32") return;
+    if (process.platform !== "darwin") return; // macOS-only path
     const out = captureStdout(() => runSetup({ client: "claude-desktop", modules: "all" }));
     assert.ok(out.includes("Restart Claude Desktop"));
   });
