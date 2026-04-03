@@ -31,6 +31,10 @@ npm-debug.log*
 
 # Internal / not for open source
 sonar-project.properties
+docs/mcp-design-guideline.md
+docs/module-registry.md
+docs/modules/news.md
+docs/modules/event.md
 .gitlab-ci.yml
 scripts/smoke-test/report.md
 _tmp_*
