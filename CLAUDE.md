@@ -119,6 +119,23 @@ Review MCP 相关 MR 时按以下顺序检查（完整版见 `docs/mcp-design-gu
 
 - CLI 命令定义是 agent-hub Skills 的数据来源。新增或修改 CLI 命令后，必须在同一 MR 中同步更新 Skills 描述。
 
+## Stable Release: Skill Version Sync (MANDATORY)
+
+发布稳定版（non-prerelease，如 `1.2.8`）时，**必须**将所有 skill 的 `metadata.version` 同步更新为新的稳定版本号：
+
+```
+skills/okx-cex-trade/SKILL.md
+skills/okx-cex-market/SKILL.md
+skills/okx-cex-earn/SKILL.md
+skills/okx-cex-bot/SKILL.md
+skills/okx-cex-portfolio/SKILL.md
+skills/okx-cex-skill-mp/SKILL.md
+```
+
+每个文件的 frontmatter 中均有 `metadata.version` 字段，在版本 bump commit 中一并更新。所有 skill 统一使用与发布包相同的版本号。
+
+**Beta 版不更新** skill 版本号，仅稳定版发布时同步。
+
 ## Code Style
 
 - pnpm monorepo: packages/core (SDK), packages/mcp (MCP server), packages/cli (CLI tool)

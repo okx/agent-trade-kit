@@ -13,6 +13,39 @@
 
 ---
 
+## [1.2.8] - 2026-04-03
+
+### 新增
+
+- **`market_get_instruments_by_category` MCP 工具及 `okx market instruments-by-category` CLI 命令**：按 `instCategory` 发现可交易标的——股票代币（3）、金属（4）、大宗商品（5）、外汇（6）、债券（7）。取代 `market_get_stock_tokens`（分类 3）。(#109)
+- **技能市场模块**（`skills`）：浏览、搜索并安装 AI 交易技能。工具：`skills_get_categories`、`skills_search`、`skills_download`。CLI：`okx skill search/categories/add/download/remove/check/list`。默认启用。
+- **`--live` 标志**：即使当前 profile 设置了 `demo=true`，也强制使用实盘模式，与 `--demo` 互斥。(#108)
+- **三通道自动更新**（`okx upgrade`）：支持 stable、beta、latest 三个升级渠道，升级后自动同步内置 agent-skills 版本。
+- **`account_get_asset_balance` 新增 `showValuation` 参数**：返回各账户类型（交易/资金/理财等）总资产估值汇总。CLI：`okx account asset-balance --valuation`。(#102)
+- **`market_get_candles` 历史端点自动路由**：`after`/`before` 超过 2 天时自动切换至 `/market/history-candles`，`history` 参数已移除。(#101)
+- **`okx-cex-trade` SKILL.md 拆分重构**：将详细 CLI 参数表提取至 `references/` 子目录（spot/swap/futures/options/workflows/templates），支持 agent 按需加载。
+
+### 修复
+
+- **合约下单前强制 `ctVal` 查询**：`swap_place_order`、`futures_place_order`、`option_place_order` 均要求先调用 `market_get_instruments` 获取合约面值 `ctVal`。(#113)
+- **`account_get_config` 保留 `settleCcy`/`settleCcyList`**：字段不再剔除，改在 description 中说明，避免 AI 模型误解。
+- **Earn 写操作在 demo 模式下明确报错**：所有 earn 写工具在模拟交易模式下返回清晰的 `ConfigError`，而非 OKX API 返回的不透明 500 错误。
+- **`account_get_asset_balance` 余额零值显示**：余额为 0 时正确显示 `0` 而非 "(no data)"。
+- **`--no-demo` 正确覆盖 profile 中的 `demo=true`**：采用三态解析：`--live` 强制实盘，`--demo` 强制模拟，否则读取 profile。(#108)
+- **`okx upgrade` 安全修复**：通过 `process.execPath` 解析 npm（S4036）、消除 ReDoS 风险（S5852）、`execSync` 替换为 `spawnSync`（S4721）。
+- **预发布版本跳过 preflight drift 检查**：本地 CLI 含预发布后缀时不触发误报。
+
+### 废弃
+
+- **`market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代，保留向后兼容，未来主版本移除。
+- **`okx market stock-tokens`**：由 `okx market instruments-by-category --instCategory 3` 替代，保留向后兼容，未来主版本移除。
+
+### 移除
+
+- **`news` 模块**：Orbit News API 集成因等待监管合规审批而移除，审批通过后将重新上线。
+
+---
+
 ## [1.2.8-beta.7] - 2026-04-03
 
 ### 移除
@@ -84,6 +117,7 @@
 ### 新增
 
 - **三通道自动更新 + skill 版本同步**（`okx upgrade`）：支持 stable、beta、latest 三个 dist-tag 升级渠道，升级后自动同步内置 agent-skills 版本。core 包新增导出 `fetchLatestVersion`、`isNewerVersion`、`fetchDistTags`。
+- **`okx-cex-trade` SKILL.md 拆分重构**：将 1,594 行的单体 SKILL.md 精简为 342 行索引文件，详细 CLI 参数表和工作流提取至 `references/spot-commands.md`、`references/swap-commands.md`、`references/futures-commands.md`、`references/options-commands.md`、`references/workflows.md`、`references/templates.md`。与 `okx-cex-earn`、`okx-cex-market` 保持一致，支持 agent 按需动态加载。
 
 ### 修复
 
@@ -104,7 +138,14 @@
 
 - **`market_get_candles` 自动路由历史端点**：当 `after`/`before` 时间戳超过 2 天前时，自动切换至 `/market/history-candles`，支持查询 2021 年至今的历史K线。新增兜底机制：若近期端点对带时间戳的请求返回空数据，自动重试历史端点。移除 `history` 参数，无需手动切换。CLI 用法：`okx market candles BTC-USDT --after <时间戳>`。(#101)
 - **`account_get_asset_balance` 新增 `showValuation` 参数**：设置 `showValuation=true` 可同时返回各账户类型（交易/资金/理财等）的总资产估值汇总，底层调用 `/api/v5/asset/asset-valuation`。默认行为不变（向后兼容）。CLI 用法：`okx account asset-balance --valuation`。(#102)
-- **`market_get_candles` 自动路由至历史端点**：移除 `history` 参数。工具现在自动检测 `after`/`before` 时间戳是否超过2天，并自动路由至 `/market/history-candles`。支持获取2021年前的历史K线数据。当最新端点返回空数据且提供了时间戳时，自动降级至历史端点重试。CLI 用法：`okx market candles BTC-USDT --bar 1D --after <毫秒时间戳>` / `--before <毫秒时间戳>`。(#101)
+
+---
+
+## [1.2.8-beta.1] - 2026-03-31
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）节点解析基础设施** *（实验性——代码在后续 merge 中意外丢失，未包含在稳定版 1.2.8 中）*：新增 `packages/core/src/doh/` 模块（`DohNode` 类型与 `resolveDoh()` 解析器），REST client 集成 DoH 代理节点选择以改善受限网络下的连接稳定性。因依赖平台专属原生二进制包（`@okx_ai/doh-darwin`、`doh-linux`、`doh-win32`）未就绪，代码已从后续版本移除。
 
 ---
 

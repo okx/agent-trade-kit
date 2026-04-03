@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8] - 2026-04-03
+
+### Added
+
+- **`market_get_instruments_by_category` MCP tool and `okx market instruments-by-category` CLI command**: Discover tradeable instruments by `instCategory` — Stock tokens (3), Metals (4), Commodities (5), Forex (6), Bonds (7). Supersedes `market_get_stock_tokens` for category 3. (#109)
+- **Skills Marketplace module** (`skills`): Browse, search, and install AI trading skills. Tools: `skills_get_categories`, `skills_search`, `skills_download`. CLI: `okx skill search/categories/add/download/remove/check/list`. Enabled by default.
+- **`--live` flag**: Forces live trading mode even when the active profile has `demo=true`. Mutually exclusive with `--demo`. (#108)
+- **Three-channel auto-update** (`okx upgrade`): Supports stable, beta, and latest dist-tag channels with automatic skill version sync after upgrade.
+- **`account_get_asset_balance` `showValuation` parameter**: Returns total asset valuation breakdown across all account types (trading, funding, earn, etc.). CLI: `okx account asset-balance --valuation`. (#102)
+- **`market_get_candles` historical endpoint auto-routing**: Automatically routes to `/market/history-candles` when `after`/`before` timestamps are older than 2 days. The `history` parameter has been removed; no manual switching required. (#101)
+- **`okx-cex-trade` SKILL.md restructured with reference files**: Extracted detailed CLI param tables into `references/spot-commands.md`, `references/swap-commands.md`, `references/futures-commands.md`, `references/options-commands.md`, `references/workflows.md`, `references/templates.md` for lighter agent loading.
+
+### Fixed
+
+- **Contract order placement requires `ctVal` lookup**: `swap_place_order`, `futures_place_order`, and `option_place_order` now mandate calling `market_get_instruments` first to retrieve `ctVal` (contract face value) before placing orders. (#113)
+- **`account_get_config` `settleCcy`/`settleCcyList`**: These USDS-contract-only fields are now preserved in the response with added description to avoid AI model misinterpretation.
+- **Earn write tools blocked in demo mode**: All earn write operations now return a clear `ConfigError` in simulated trading mode instead of an opaque 500 error from OKX API.
+- **`account_get_asset_balance` zero balance display**: Correctly shows `0` instead of "(no data)" when account balance is exactly 0.
+- **`--no-demo` flag correctly overrides profile `demo=true`**: Three-state resolution: `--live` forces live, `--demo` forces demo, otherwise profile is consulted. (#108)
+- **`okx upgrade` security fixes**: Resolves `npm` via `process.execPath` (S4036), eliminates ReDoS hotspot (S5852), replaces `execSync` with `spawnSync` (S4721).
+- **Preflight drift check skipped for prerelease CLI**: Avoids false-positive warnings when local CLI version contains a prerelease suffix.
+
+### Deprecated
+
+- **`market_get_stock_tokens`**: Replaced by `market_get_instruments_by_category` with `instCategory="3"`. Retained for backward compatibility; will be removed in a future major version.
+- **`okx market stock-tokens`**: Replaced by `okx market instruments-by-category --instCategory 3`. Retained for backward compatibility; will be removed in a future major version.
+
+### Removed
+
+- **`news` module**: Orbit News API integration removed pending regulatory compliance approval. Will be re-introduced once approval is obtained.
+
+---
+
 ## [1.2.8-beta.7] - 2026-04-03
 
 ### Removed
@@ -84,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Three-channel auto-update with skill version sync** (`okx upgrade`): Supports stable, beta, and latest dist-tag channels. Automatically syncs bundled agent-skills version after upgrade. Exports `fetchLatestVersion`, `isNewerVersion`, `fetchDistTags` from core for version resolution.
+- **`okx-cex-trade` SKILL.md restructured with separate reference files**: Reduced the monolithic 1,594-line `SKILL.md` to a lean 342-line index by extracting CLI param tables and workflows into `references/spot-commands.md`, `references/swap-commands.md`, `references/futures-commands.md`, `references/options-commands.md`, `references/workflows.md`, and `references/templates.md`. Follows the same pattern as `okx-cex-earn` and `okx-cex-market`. Agents can dynamically load only the reference sections they need.
 
 ### Fixed
 
@@ -104,7 +138,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`market_get_candles` now automatically routes to historical endpoint**: Automatically uses `/market/history-candles` when `after`/`before` timestamps are older than 2 days, enabling access to candlestick data back to 2021. Includes fallback: if the recent endpoint returns empty data for a timestamped request, it retries the history endpoint. The `history` parameter has been removed; no manual switching required. CLI: `okx market candles BTC-USDT --after <timestamp>`. (#101)
 - **`account_get_asset_balance` now supports `showValuation` parameter**: Set `showValuation=true` to also return total asset valuation breakdown across all account types (trading, funding, earn, etc.) via `/api/v5/asset/asset-valuation`. Default behavior is unchanged (backward compatible). CLI: `okx account asset-balance --valuation`. (#102)
-- **`market_get_candles` auto-routes to historical endpoint**: The `history` parameter has been removed. The tool now automatically detects whether `after`/`before` timestamps are older than 2 days and routes to `/market/history-candles` accordingly. Supports candlestick data back to exchange launch (pre-2021). If the recent endpoint returns empty results with timestamps provided, it automatically falls back to the history endpoint. CLI: `okx market candles BTC-USDT --bar 1D --after <ms>` / `--before <ms>`. (#101)
+
+---
+
+## [1.2.8-beta.1] - 2026-03-31
+
+### Added
+
+- **DoH (DNS-over-HTTPS) node resolution infrastructure** *(experimental — code was subsequently removed from the codebase via merge conflict and is not included in the stable 1.2.8 release)*: Introduced `packages/core/src/doh/` with `DohNode` type and `resolveDoh()` resolver. The REST client integrated DoH-based proxy node selection for improved connectivity in restricted network environments. Removed pending platform-specific native binary integration (`@okx_ai/doh-darwin`, `doh-linux`, `doh-win32`).
 
 ---
 

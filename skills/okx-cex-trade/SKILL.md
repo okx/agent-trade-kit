@@ -4,7 +4,7 @@ description: "This skill should be used when the user asks to 'buy BTC', 'sell E
 license: MIT
 metadata:
   author: okx
-  version: "1.2.7"
+  version: "1.2.8"
   homepage: "https://www.okx.com"
   agent:
     requires:
