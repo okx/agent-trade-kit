@@ -21,7 +21,6 @@ export interface RequestConfig {
   query?: QueryParams;
   body?: JsonRecord | JsonRecord[];
   rateLimit?: RateLimitConfig;
-  extraHeaders?: Record<string, string>;
 }
 
 export interface RequestResult<TData = unknown> {

@@ -155,7 +155,6 @@ export class OkxRestClient {
     path: string,
     query?: QueryParams,
     rateLimit?: RequestConfig["rateLimit"],
-    extraHeaders?: Record<string, string>,
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
       method: "GET",
@@ -163,7 +162,6 @@ export class OkxRestClient {
       auth: "private",
       query,
       rateLimit,
-      extraHeaders,
     });
   }
 
@@ -426,11 +424,6 @@ export class OkxRestClient {
       headers.set("x-simulated-trading", "1");
     }
 
-    if (reqConfig.extraHeaders) {
-      for (const [key, value] of Object.entries(reqConfig.extraHeaders)) {
-        headers.set(key, value);
-      }
-    }
 
     return headers;
   }
@@ -455,6 +448,7 @@ export class OkxRestClient {
     }
 
     const headers = this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
+
 
     const t0 = Date.now();
     let response: Response;

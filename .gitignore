@@ -7,7 +7,6 @@ coverage/
 npm-debug.log*
 _tmp_*
 .cursor/
-.idea/
 scripts/smoke-test/report.md
 packages/*/scripts/postinstall.js
 .claude/settings.local.json

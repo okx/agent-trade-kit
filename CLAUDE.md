@@ -31,12 +31,6 @@ Follow [CONTRIBUTING.md](CONTRIBUTING.md) for branch workflow, testing, commit c
 - `docs/` 目录下的技术设计文档为内部文档，不要求双语
 - 文档间使用相对链接交叉引用，避免内容重复
 
-## Git Branch Rules (MANDATORY)
-
-- **所有新分支必须基于 `master` 创建**，不得基于其他 feature 分支
-- 基于错误的分支会把无关的未合并提交带入，污染工作区和测试结果
-- 创建分支前先确认：`git checkout master && git pull && git checkout -b feat/xxx`
-
 ## GitLab / Git Operations
 
 When working with GitLab, use `$DACS` as the home path for glab config. Ensure glab CLI token is configured before attempting any GitLab operations (MR comments, issue viewing).
