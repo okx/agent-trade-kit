@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.9-beta.1] - 2026-04-03
+
+### Added
+
+- **DoH (DNS-over-HTTPS) node acceleration**: The REST client now automatically downloads and invokes a platform-specific `okx-doh-resolver` binary to route API requests through the nearest proxy node, improving connectivity in restricted network environments. The binary is downloaded on `npm install` from `static.okx.com` (overseas) with fallback to `pcdoh.qcxex.com` (domestic) and placed in `~/.okx/bin/`. Supports `darwin-arm64`, `darwin-x64`, `linux-x64`, `win32-x64`. Override with `OKX_DOH_BINARY_PATH` env var. Falls back to direct connection silently if the binary is unavailable.
+
+---
+
 ## [1.2.8] - 2026-04-03
 
 ### Added

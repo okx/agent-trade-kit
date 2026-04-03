@@ -13,6 +13,14 @@
 
 ---
 
+## [1.2.9-beta.1] - 2026-04-03
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）节点加速**：REST 客户端现在会自动下载并调用平台专属的 `okx-doh-resolver` 二进制，将 API 请求路由至最近的代理节点，改善受限网络环境下的连通性。二进制在 `npm install` 时从 `static.okx.com`（海外）下载，国内备用源为 `pcdoh.qcxex.com`，安装至 `~/.okx/bin/`。支持 `darwin-arm64`、`darwin-x64`、`linux-x64`、`win32-x64`。可通过 `OKX_DOH_BINARY_PATH` 环境变量覆盖路径。二进制不可用时静默降级为直连。
+
+---
+
 ## [1.2.8] - 2026-04-03
 
 ### 新增
