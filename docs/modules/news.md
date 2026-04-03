@@ -12,20 +12,23 @@ Target users: retail traders and AI agents (unified underlying API; field design
 
 | Name | R/W | Description |
 |---|---|---|
-| news_get_latest | R | Latest news sorted by time; pass `importance=high` for breaking news only |
-| news_get_by_coin | R | News for specific coins (comma-separated) |
-| news_search | R | Full-text keyword search with optional filters (coins/importance/sentiment) |
-| news_get_detail | R | Full article content by news ID |
-| news_get_domains | R | List available news source domains |
-| news_get_coin_sentiment | R | Sentiment snapshot or time-series trend (pass `trendPoints` for trend mode) |
-| news_get_sentiment_ranking | R | Coin ranking by hotness or sentiment direction |
+| news_get_latest | R | Return latest news in reverse chronological order, filterable by coins/time/importance |
+| news_get_important | R | Return high-impact news reported by multiple sources (source_count ≥ 2) |
+| news_get_by_coin | R | Filter news by token symbol, supports multiple coins simultaneously |
+| news_get_by_sentiment | R | Filter news by sentiment direction (bullish/bearish/neutral) |
+| news_search | R | Full-text keyword search with combined filters for coins/importance/sentiment |
+| news_get_detail | R | Retrieve full article content (title + body) by news ID |
+| news_get_coin_sentiment | R | Snapshot of current bullish/bearish sentiment ratio for a given token |
+| news_get_coin_trend | R | Time-series sentiment trend for a token |
+| news_get_sentiment_ranking | R | Token hotness and sentiment leaderboard across all tracked coins |
+| news_list_domains | R | List all supported news source domains |
 
 ## Token 预算评估
 
-预估 ~1400 tokens (7 tools × ~200)
+预估 ~2000 tokens (10 tools × ~200)
 
 ## 典型 Workflow
 
-1. Scenario A — Agent generates daily market report: call news_get_latest (importance=high) to get today's top stories, call news_get_sentiment_ranking to summarize market mood, call news_get_coin_sentiment for major coin snapshots, compose report.
-2. Scenario B — User searches for a specific event (e.g. 'SEC ETF ruling'): call news_search with relevant keywords and optional coin/sentiment filters, present results list, call news_get_detail on selected article for full content.
-3. Scenario C — User asks about a specific coin: call news_get_by_coin (coins=BTC) to retrieve recent news, call news_get_coin_sentiment (coins=BTC) for bullish/bearish snapshot.
+1. Scenario A — User asks 'Why did BTC rise recently?': call news_get_by_coin (coin=BTC) to retrieve recent BTC news, then call news_get_by_sentiment (bullish) to surface positive drivers, optionally call news_get_detail for full article body.
+2. Scenario B — Agent generates daily market report: call news_get_latest to get today's top stories, call news_get_important to highlight high-impact items, call news_get_sentiment_ranking to summarize market mood, compose report.
+3. Scenario C — User searches for a specific event (e.g. 'SEC ETF ruling'): call news_search with relevant keywords and optional coin/sentiment filters, present results list, call news_get_detail on selected article for full content.

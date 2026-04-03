@@ -10,7 +10,6 @@ import { registerAllEarnTools } from "./earn/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerIndicatorTools } from "./indicator.js";
 import { registerMarketTools } from "./market.js";
-import { registerNewsTools } from "./news.js";
 import { registerOptionAlgoTools } from "./option-algo-trade.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
@@ -37,7 +36,6 @@ export function allToolSpecs(): ToolSpec[] {
     ...registerOptionAlgoTools(),
     ...registerAlgoTradeTools(),
     ...registerAccountTools(),
-    ...registerNewsTools(),
     ...registerBotTools(),
     ...registerAllEarnTools(),
     ...registerAuditTools(),

@@ -60,7 +60,6 @@ export const MODULES = [
   "futures",
   "option",
   "account",
-  "news",
   ...EARN_SUB_MODULE_IDS,
   ...BOT_SUB_MODULE_IDS,
   "skills",
