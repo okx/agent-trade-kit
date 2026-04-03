@@ -1,4 +1,8 @@
-import { ProxyAgent } from "undici";
+import { Agent, ProxyAgent } from "undici";
+import { unlink } from "node:fs/promises";
+import { resolveDoh } from "../doh/resolver.js";
+import { getDohCachePath } from "../doh/binary.js";
+import type { DohNode } from "../doh/types.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
   AuthenticationError,
@@ -104,16 +108,104 @@ function vlog(message: string): void {
   process.stderr.write(`[verbose] ${message}\n`);
 }
 
+export type DohResolver = (domain: string) => Promise<DohNode | null>;
+
 export class OkxRestClient {
   private readonly config: OkxConfig;
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
 
-  public constructor(config: OkxConfig) {
+  // DoH proxy state (lazy-resolved on first request)
+  private readonly dohResolverFn: DohResolver | null;
+  private dohResolved = false;
+  private dohNode: DohNode | null = null;
+  private dohAgent: Agent | null = null;
+  private dohBaseUrl: string | null = null;
+
+  /**
+   * @param config - OKX API client configuration
+   * @param options - Optional overrides (e.g. custom DoH resolver for testing).
+   *                  Pass `{ resolveDoh: null }` to disable DoH entirely.
+   */
+  public constructor(
+    config: OkxConfig,
+    options?: { resolveDoh?: DohResolver | null },
+  ) {
     this.config = config;
     this.rateLimiter = new RateLimiter(30_000, config.verbose);
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
+    }
+    this.dohResolverFn = options?.resolveDoh !== undefined
+      ? options.resolveDoh
+      : resolveDoh;
+  }
+
+  /**
+   * Lazily resolve the DoH proxy node on the first request.
+   * Skipped entirely when the user has configured proxy_url or DoH is disabled.
+   * On failure, silently falls back to direct connection.
+   */
+  private async ensureDoh(): Promise<void> {
+    if (this.dohResolved || this.dispatcher || !this.dohResolverFn) return;
+    this.dohResolved = true;
+    try {
+      const { hostname, protocol } = new URL(this.config.baseUrl);
+      const node = await this.dohResolverFn(hostname);
+      if (!node) return;
+
+      // If returned ip matches the original hostname, the user is overseas —
+      // direct connection is fastest, skip DoH proxy.
+      if (node.ip === hostname) {
+        if (this.config.verbose) {
+          vlog(`DoH: resolved ip matches hostname (${hostname}), using direct connection`);
+        }
+        return;
+      }
+
+      this.dohNode = node;
+      this.dohBaseUrl = `${protocol}//${node.host}`;
+      this.dohAgent = new Agent({
+        connect: {
+          lookup: (
+            _hostname,
+            options,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            callback: any,
+          ) => {
+            if ((options as { all?: boolean })?.all) {
+              callback(null, [{ address: node.ip, family: 4 }]);
+            } else {
+              callback(null, node.ip, 4);
+            }
+          },
+        },
+      });
+      if (this.config.verbose) {
+        vlog(`DoH proxy active: ${hostname} → ${node.host} (${node.ip}), ttl=${node.ttl}s`);
+      }
+    } catch (err) {
+      if (this.config.verbose) {
+        const cause = err instanceof Error ? err.message : String(err);
+        vlog(`DoH resolution failed, falling back to direct: ${cause}`);
+      }
+    }
+  }
+
+  /**
+   * Invalidate DoH state and delete the binary's cache file so the next
+   * resolution performs a fresh lookup.  Called on network-level failures
+   * when a DoH proxy node was in use.
+   */
+  private async invalidateDoh(): Promise<void> {
+    this.dohNode = null;
+    this.dohAgent = null;
+    this.dohBaseUrl = null;
+    this.dohResolved = false;
+    try {
+      await unlink(getDohCachePath());
+    } catch {
+      // cache file may not exist — ignore
     }
   }
 
@@ -343,15 +435,21 @@ export class OkxRestClient {
     body?: Record<string, unknown>,
     opts?: BinaryRequestOptions,
   ): Promise<BinaryResult> {
+    await this.ensureDoh();
+
     const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
     const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
     const bodyJson = body ? JSON.stringify(body) : "";
     const endpoint = `POST ${path}`;
+    const baseUrl = this.dohNode ? this.dohBaseUrl! : this.config.baseUrl;
 
-    this.logRequest("POST", `${this.config.baseUrl}${path}`, "private");
+    this.logRequest("POST", `${baseUrl}${path}`, "private");
 
     const reqConfig = { method: "POST", path, auth: "private" } as RequestConfig;
     const headers = this.buildHeaders(reqConfig, path, bodyJson, getNow());
+    if (this.dohNode) {
+      headers.set("User-Agent", "OKX/2.7.2");
+    }
 
     const t0 = Date.now();
     const response = await this.fetchBinary(path, endpoint, headers, bodyJson, t0);
@@ -388,12 +486,17 @@ export class OkxRestClient {
   /** Execute fetch for binary endpoint, wrapping network errors. */
   private async fetchBinary(path: string, endpoint: string, headers: Headers, bodyJson: string, t0: number): Promise<Response> {
     try {
+      const baseUrl = this.dohNode ? this.dohBaseUrl! : this.config.baseUrl;
       const fetchOptions: Record<string, unknown> = {
         method: "POST", headers, body: bodyJson || undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
       };
-      if (this.dispatcher) fetchOptions.dispatcher = this.dispatcher;
-      return await fetch(`${this.config.baseUrl}${path}`, fetchOptions as RequestInit);
+      if (this.dispatcher) {
+        fetchOptions.dispatcher = this.dispatcher;
+      } else if (this.dohAgent) {
+        fetchOptions.dispatcher = this.dohAgent;
+      }
+      return await fetch(`${baseUrl}${path}`, fetchOptions as RequestInit);
     } catch (error) {
       if (this.config.verbose) {
         vlog(`\u2717 NetworkError after ${Date.now() - t0}ms: ${error instanceof Error ? error.message : String(error)}`);
@@ -435,9 +538,14 @@ export class OkxRestClient {
   private async request<TData = unknown>(
     reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
+    await this.ensureDoh();
+
     const queryString = buildQueryString(reqConfig.query);
     const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
-    const url = `${this.config.baseUrl}${requestPath}`;
+
+    // Route: proxy_url → DoH proxy → direct
+    const baseUrl = this.dohNode ? this.dohBaseUrl! : this.config.baseUrl;
+    const url = `${baseUrl}${requestPath}`;
     const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
     const timestamp = getNow();
 
@@ -448,7 +556,9 @@ export class OkxRestClient {
     }
 
     const headers = this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
-
+    if (this.dohNode) {
+      headers.set("User-Agent", "OKX/2.7.2");
+    }
 
     const t0 = Date.now();
     let response: Response;
@@ -461,9 +571,20 @@ export class OkxRestClient {
       };
       if (this.dispatcher) {
         fetchOptions.dispatcher = this.dispatcher;
+      } else if (this.dohAgent) {
+        fetchOptions.dispatcher = this.dohAgent;
       }
       response = await fetch(url, fetchOptions as RequestInit);
     } catch (error) {
+      // Network-level failure while using DoH proxy → invalidate cache, retry once
+      if (this.dohNode) {
+        if (this.config.verbose) {
+          vlog(`DoH request failed, invalidating cache and retrying: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        await this.invalidateDoh();
+        return this.request(reqConfig);
+      }
+
       if (this.config.verbose) {
         const elapsed = Date.now() - t0;
         const cause = error instanceof Error ? error.message : String(error);

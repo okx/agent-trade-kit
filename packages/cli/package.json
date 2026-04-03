@@ -11,7 +11,7 @@
   "files": ["dist", "scripts", "README.md"],
   "publishConfig": { "access": "public" },
   "scripts": {
-    "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\"",
+    "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js');fs.copyFileSync('../../scripts/postinstall-download.js','scripts/postinstall-download.js')\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist scripts",
     "postinstall": "node scripts/postinstall.js || exit 0",
