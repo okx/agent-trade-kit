@@ -1,4 +1,6 @@
 export { OkxRestClient } from "./client/rest-client.js";
+export { resolveIndicatorCode, INDICATOR_BARS } from "./tools/indicator.js";
+export type { IndicatorBar } from "./tools/indicator.js";
 export { buildTools, createToolRunner, allToolSpecs } from "./tools/index.js";
 export type { ToolResult, ToolRunner } from "./tools/index.js";
 export { toMcpTool } from "./tools/types.js";
@@ -11,8 +13,22 @@ export type { ToolSpec, ToolContext, ToolArgs } from "./tools/types.js";
 export type { RequestResult } from "./client/types.js";
 export { readTomlProfile, readFullConfig, writeFullConfig, configFilePath, tomlStringify } from "./config/toml.js";
 export type { OkxProfile, OkxTomlConfig } from "./config/toml.js";
-export { checkForUpdates } from "./utils/update-check.js";
+export { checkForUpdates, fetchLatestVersion, isNewerVersion, fetchDistTags } from "./utils/update-check.js";
 export { TradeLogger } from "./utils/logger.js";
 export type { LogLevel, LogEntry } from "./utils/logger.js";
-export { runSetup, printSetupUsage, getConfigPath, SUPPORTED_CLIENTS } from "./setup.js";
+export { runSetup, printSetupUsage, getConfigPath, SUPPORTED_CLIENTS, CLIENT_NAMES } from "./setup.js";
 export type { ClientId, SetupOptions } from "./setup.js";
+export {
+  downloadSkillZip,
+  extractSkillZip,
+  readMetaJson,
+  validateSkillMdExists,
+  readRegistry as readSkillRegistry,
+  upsertSkillRecord,
+  removeSkillRecord,
+  getSkillRecord,
+  getRegistryPath as getSkillRegistryPath,
+} from "./skills/index.js";
+export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCategory } from "./skills/index.js";
+export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
+export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";

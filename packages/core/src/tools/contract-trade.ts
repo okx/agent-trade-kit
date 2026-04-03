@@ -43,7 +43,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     {
       name: n("place_order"),
       module,
-      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.`,
+      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. Before placing, use market_get_instruments to get ctVal (contract face value) — do NOT assume contract sizes. [CAUTION] Executes real trades.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -71,7 +71,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
+            description: "Number of contracts. Each contract = ctVal units (e.g. 0.1 ETH for ETH-USDT-SWAP). Query market_get_instruments for exact ctVal. Set tgtCcy=quote_ccy to specify sz in USDT instead.",
+          },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
           },
           px: { type: "string", description: "Required for limit/post_only/fok/ioc" },
           reduceOnly: {
@@ -99,6 +104,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),

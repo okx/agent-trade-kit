@@ -9,6 +9,7 @@ import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config.js";
+import { readFullConfig } from "../src/config/toml.js";
 import { OKX_SITES } from "../src/constants.js";
 import { ConfigError } from "../src/utils/errors.js";
 
@@ -420,5 +421,200 @@ describe("loadConfig — proxy_url from toml profile", () => {
     writeToml('[profiles.default]\nproxy_url = ""\n');
     const config = loadConfig(BASE_CLI);
     assert.equal(config.proxyUrl, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TOML parse error — special characters in passphrase
+// ---------------------------------------------------------------------------
+
+describe("loadConfig — TOML parse error for special characters", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  function writeToml(content: string): void {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), content, "utf-8");
+  }
+
+  it("throws ConfigError with quoting hint when passphrase has bare hash", () => {
+    writeToml('[profiles.default]\npassphrase = abc#123\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("Failed to parse") &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("single quotes"),
+    );
+  });
+
+  it("throws ConfigError with quoting hint when passphrase has bare backslash", () => {
+    writeToml('[profiles.default]\npassphrase = abc\\def\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("okx config init"),
+    );
+  });
+
+  it("parses passphrase with special chars when properly single-quoted", () => {
+    writeToml("[profiles.default]\npassphrase = 'abc#123\\\\def'\n");
+    const config = readFullConfig();
+    assert.equal(config.profiles.default.passphrase, "abc#123\\\\def");
+  });
+
+  it("parses passphrase with single quote when double-quoted", () => {
+    writeToml('[profiles.default]\npassphrase = "abc\'def"\n');
+    const config = readFullConfig();
+    assert.equal(config.profiles.default.passphrase, "abc'def");
+  });
+
+  it("parses passphrase with mixed special chars using triple quotes", () => {
+    writeToml("[profiles.default]\npassphrase = '''abc'#def'''\n");
+    const config = readFullConfig();
+    assert.equal(config.profiles.default.passphrase, "abc'#def");
+  });
+
+  it("suggestion mentions triple quotes for complex cases", () => {
+    writeToml('[profiles.default]\npassphrase = abc#\'def\n');
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        typeof err.suggestion === "string" &&
+        err.suggestion.includes("triple quotes"),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Demo / Live flag resolution
+// ---------------------------------------------------------------------------
+
+describe("loadConfig — demo/live flag resolution", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), '[profiles.default]\n', "utf-8");
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  it("defaults demo to false when no flag, no env, no toml", () => {
+    const config = loadConfig({ readOnly: false });
+    assert.equal(config.demo, false);
+  });
+
+  it("--demo sets demo to true", () => {
+    const config = loadConfig({ readOnly: false, demo: true });
+    assert.equal(config.demo, true);
+  });
+
+  it("--live sets demo to false", () => {
+    const config = loadConfig({ readOnly: false, live: true });
+    assert.equal(config.demo, false);
+  });
+
+  it("--demo and --live together throws ConfigError", () => {
+    assert.throws(
+      () => loadConfig({ readOnly: false, demo: true, live: true }),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("mutually exclusive"),
+    );
+  });
+
+  it("OKX_DEMO=1 sets demo to true when no CLI flag", () => {
+    process.env.OKX_DEMO = "1";
+    const config = loadConfig({ readOnly: false });
+    assert.equal(config.demo, true);
+  });
+
+  it("--live overrides OKX_DEMO=1", () => {
+    process.env.OKX_DEMO = "1";
+    const config = loadConfig({ readOnly: false, live: true });
+    assert.equal(config.demo, false);
+  });
+});
+
+describe("loadConfig — demo/live with toml profile", () => {
+  let saved: SavedEnv;
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  function writeToml(content: string): void {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), content, "utf-8");
+  }
+
+  it("toml demo=true is used when no CLI flag", () => {
+    writeToml('[profiles.default]\ndemo = true\n');
+    const config = loadConfig({ readOnly: false });
+    assert.equal(config.demo, true);
+  });
+
+  it("--live overrides toml demo=true", () => {
+    writeToml('[profiles.default]\ndemo = true\n');
+    const config = loadConfig({ readOnly: false, live: true });
+    assert.equal(config.demo, false);
+  });
+
+  it("--demo overrides toml demo=false", () => {
+    writeToml('[profiles.default]\ndemo = false\n');
+    const config = loadConfig({ readOnly: false, demo: true });
+    assert.equal(config.demo, true);
   });
 });

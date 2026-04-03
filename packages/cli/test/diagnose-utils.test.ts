@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import { Report, ok, fail, section, sanitize, writeReportIfRequested, readCliVersion } from "../src/commands/diagnose-utils.js";
+import { setOutput, resetOutput } from "../src/formatter.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -11,30 +12,22 @@ import { Report, ok, fail, section, sanitize, writeReportIfRequested, readCliVer
 
 function captureStdout(fn: () => void): string {
   const chunks: string[] = [];
-  const originalWrite = process.stdout.write;
-  process.stdout.write = ((chunk: string | Uint8Array) => {
-    chunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
-    return true;
-  }) as typeof process.stdout.write;
+  setOutput({ out: (m) => chunks.push(m), err: () => {} });
   try {
     fn();
   } finally {
-    process.stdout.write = originalWrite;
+    resetOutput();
   }
   return chunks.join("");
 }
 
 function captureStderr(fn: () => void): string {
   const chunks: string[] = [];
-  const originalWrite = process.stderr.write;
-  process.stderr.write = ((chunk: string | Uint8Array) => {
-    chunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
-    return true;
-  }) as typeof process.stderr.write;
+  setOutput({ out: () => {}, err: (m) => chunks.push(m) });
   try {
     fn();
   } finally {
-    process.stderr.write = originalWrite;
+    resetOutput();
   }
   return chunks.join("");
 }

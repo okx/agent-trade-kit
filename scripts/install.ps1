@@ -74,9 +74,37 @@ function Test-Npm {
 }
 
 # ---------------------------------------------------------------------------
-# Step 3 — Install package
+# Step 3 — Check if already up to date (skip install if so)
+# ---------------------------------------------------------------------------
+$script:SkipInstall = $false
+
+function Test-AlreadyInstalled {
+    $latest = npm view @okx_ai/okx-trade-cli version 2>$null
+    if (-not $latest) { return }
+
+    $localVer = $null
+    try {
+        $output = (okx -v 2>$null) | Select-Object -First 1
+        if ($output -match '(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)') { $localVer = $matches[1] }
+    } catch { }
+
+    if ($localVer -and $latest -eq $localVer) {
+        Write-Ok "Already up to date: $localVer"
+        $script:SkipInstall = $true
+        return
+    }
+
+    if ($localVer) {
+        Write-Info "Upgrading $localVer → $latest"
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Step 4 — Install package
 # ---------------------------------------------------------------------------
 function Install-Package {
+    if ($script:SkipInstall) { return }
+
     $pkgList = $PACKAGES -join " "
     Write-Info "Installing $pkgList ..."
 
@@ -230,6 +258,7 @@ Write-Host ""
 
 Test-Node
 Test-Npm
+Test-AlreadyInstalled
 Install-Package
 Test-Install
 Find-AndSetup-Clients

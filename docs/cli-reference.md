@@ -20,6 +20,28 @@ npm install -g @okx_ai/okx-trade-cli
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
 ```
 
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Any failure — network error, authentication error, argument validation error, or OKX business rejection (e.g. insufficient balance, invalid instrument) |
+
+Exit code 1 indicates failure.
+
+> **Partial batch failure:** if _any_ item in a batch request has `sCode != "0"`, the command exits with code 1. Agents and scripts should inspect the JSON output to identify which individual items failed.
+
+```bash
+# Safe to use in scripts — exit code 1 if order was rejected for any reason
+okx spot place --instId BTC-USDT --side buy --ordType market --sz 100 --json
+if [ $? -ne 0 ]; then
+  echo "Order failed"
+fi
+
+# Batch: exit code 1 even if only some orders fail — check each item's sCode
+okx spot batch place orders.json --json | jq '.[] | select(.sCode != "0")'
+```
+
 ---
 
 ## market — Market Data (no API key required)
@@ -140,8 +162,8 @@ okx bot grid create --instId BTC-USDT --algoOrdType grid \
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 --runType 2
 
-# Stop spot grid (stopType: 1=sell all holdings, 2=keep holdings)
-okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 1
+# Stop spot grid (stopType: 1=sell all holdings (default), 2=keep holdings)
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
 okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 2
 
 # ── Contract Grid (algoOrdType: contract_grid) ────────────────────────────────
@@ -166,8 +188,13 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction short --lever 3 --sz 100
 
-# Stop contract grid (stopType: 1=close position+stop, 2=keep position+stop)
-okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
+# Create coin-margined contract grid — sz is in BTC (not USDT)
+okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 20 \
+  --direction long --lever 5 --sz 0.1
+
+# Stop contract grid (stopType: 1=close position+stop (default), 2=keep position+stop)
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
 # ── Moon Grid (algoOrdType: moon_grid) — list/query only ─────────────────────
@@ -248,6 +275,28 @@ npm install -g @okx_ai/okx-trade-cli
 ```bash
 # 配合 jq 使用
 okx account balance --json | jq '.[] | {ccy: .ccy, eq: .eq}'
+```
+
+## 退出码
+
+| 退出码 | 含义 |
+|--------|------|
+| `0` | 成功 |
+| `1` | 任何失败——网络错误、鉴权错误、参数校验错误，或 OKX 业务拒绝（如余额不足、合约不存在） |
+
+退出码 1 表示失败。
+
+> **批量部分失败：** 只要批量请求中_任意一笔_的 `sCode != "0"`，命令即以退出码 1 退出。Agent 和脚本应检查 JSON 输出，以确定哪些具体条目失败。
+
+```bash
+# 脚本中可安全使用——任何原因导致的下单失败都会返回退出码 1
+okx spot place --instId BTC-USDT --side buy --ordType market --sz 100 --json
+if [ $? -ne 0 ]; then
+  echo "下单失败"
+fi
+
+# 批量：即使只有部分订单失败也会返回退出码 1——逐条检查 sCode
+okx spot batch place orders.json --json | jq '.[] | select(.sCode != "0")'
 ```
 
 ---
@@ -370,8 +419,8 @@ okx bot grid create --instId BTC-USDT --algoOrdType grid \
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 --quoteSz 100 --runType 2
 
-# 停止现货网格（stopType: 1=卖出全部持仓, 2=保留持仓）
-okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 1
+# 停止现货网格（stopType: 1=卖出全部持仓（默认）, 2=保留持仓）
+okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT
 okx bot grid stop --algoId <algoId> --algoOrdType grid --instId BTC-USDT --stopType 2
 
 # ── 合约网格（algoOrdType: contract_grid）────────────────────────────────────
@@ -396,8 +445,13 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 100000 --minPx 80000 --gridNum 10 \
   --direction short --lever 3 --sz 100
 
-# 停止合约网格（stopType: 1=平仓并停止, 2=保留仓位并停止）
-okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 1
+# 创建币本位合约网格 — sz 单位为 BTC（非 USDT）
+okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 20 \
+  --direction long --lever 5 --sz 0.1
+
+# 停止合约网格（stopType: 1=平仓并停止（默认）, 2=保留仓位并停止）
+okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
 # ── 月网格（algoOrdType: moon_grid）— 仅支持查询 ─────────────────────────────

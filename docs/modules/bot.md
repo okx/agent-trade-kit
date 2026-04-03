@@ -29,13 +29,17 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | `algoOrdType` | Description |
 |---------------|-------------|
 | `grid` | Spot grid — trades a spot pair within a price range |
-| `contract_grid` | Contract grid — trades a perpetual or delivery contract |
+| `contract_grid` | Contract grid — trades a perpetual or delivery contract (USDT-margined e.g. BTC-USDT-SWAP, or coin-margined e.g. BTC-USD-SWAP) |
 | `moon_grid` | Moon grid — geometric grid optimized for trending markets |
 
 ### Important: `algoId` and `algoOrdType` usage
 
 - **`algoId`** is a grid bot algo order ID (returned by `grid_create_order` or `grid_get_orders`). It is **NOT** a normal trade order ID — do not pass `ordId` values here.
 - **`algoOrdType`** must match the bot's actual type. Always use the `algoOrdType` value from `grid_get_orders` response — do not guess based on user description alone. Mismatched values will cause error `50016`.
+
+### Contract grid — required `direction`
+
+When creating a contract grid (`algoOrdType=contract_grid`), the `direction` parameter (`long`, `short`, or `neutral`) is **required**. Omitting it will return a validation error.
 
 ### Contract grid — `basePos` default
 
@@ -56,6 +60,7 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 **Grid:**
 - "List all my running grid bots"
 - "Create a spot grid on BTC-USDT: 100 USDT, 10 grids, range 63000–77000"
+- "Create a coin-margined contract grid on BTC-USD-SWAP: long, 5x lever, 0.1 BTC margin, 20 grids, range 80000–100000"
 - "Show filled sub-orders for grid bot algoId 12345"
 - "Stop my BTC-USDT grid bot and sell all holdings"
 
@@ -86,7 +91,12 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 77000 --minPx 63000 --gridNum 10 \
   --direction long --lever 5 --sz 100 --no-basePos
 
-okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT --stopType 2
+# Coin-margined contract grid (sz in BTC, not USDT)
+okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 20 \
+  --direction long --lever 5 --sz 0.1
+
+okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT
 
 # ── Contract DCA ──────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <id>] [--instId <id>]
@@ -142,13 +152,17 @@ okx bot dca stop --algoId <id>
 | `algoOrdType` | 说明 |
 |---------------|------|
 | `grid` | 现货网格——在价格区间内交易现货对 |
-| `contract_grid` | 合约网格——交易永续或交割合约 |
+| `contract_grid` | 合约网格——交易永续或交割合约（U 本位如 BTC-USDT-SWAP，币本位如 BTC-USD-SWAP） |
 | `moon_grid` | Moon Grid——几何级差网格，适合趋势行情 |
 
 ### 重要：`algoId` 和 `algoOrdType` 使用说明
 
 - **`algoId`** 是网格机器人的策略订单 ID（由 `grid_create_order` 或 `grid_get_orders` 返回），**不是**普通交易订单 ID——不要传 `ordId` 的值。
 - **`algoOrdType`** 必须与机器人的实际类型匹配。务必使用 `grid_get_orders` 返回结果中的 `algoOrdType` 值，不要仅凭用户描述猜测。类型不匹配会导致错误 `50016`。
+
+### 合约网格 — `direction` 必传
+
+创建合约网格（`algoOrdType=contract_grid`）时，`direction` 参数（`long`、`short` 或 `neutral`）为**必填**。缺少时会返回校验错误。
 
 ### 合约网格 — `basePos` 默认值
 
@@ -169,6 +183,7 @@ okx bot dca stop --algoId <id>
 **网格：**
 - "列出我所有运行中的网格机器人"
 - "在 BTC-USDT 创建现货网格：100 USDT，10 个格，区间 63000–77000"
+- "在 BTC-USD-SWAP 创建币本位合约网格：做多，5 倍杠杆，0.1 BTC 保证金，20 个格，区间 80000–100000"
 - "显示网格机器人 algoId 12345 的已成交子订单"
 - "停止我的 BTC-USDT 网格机器人并卖出所有持仓"
 
@@ -199,7 +214,12 @@ okx bot grid create --instId BTC-USDT-SWAP --algoOrdType contract_grid \
   --maxPx 77000 --minPx 63000 --gridNum 10 \
   --direction long --lever 5 --sz 100 --no-basePos
 
-okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT --stopType 2
+# 币本位合约网格（sz 单位为 BTC，非 USDT）
+okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
+  --maxPx 100000 --minPx 80000 --gridNum 20 \
+  --direction long --lever 5 --sz 0.1
+
+okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT
 
 # ── 合约 DCA ──────────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <id>] [--instId <id>]

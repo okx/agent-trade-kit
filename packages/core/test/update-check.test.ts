@@ -1,21 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-
-// isNewerVersion is not exported from the module, so we test it via a local
-// reimplementation that mirrors the production logic exactly.
-// If the implementation changes, update this test to match.
-function isNewerVersion(current: string, latest: string): boolean {
-  const parse = (v: string) =>
-    v
-      .replace(/^v/, "")
-      .split(".")
-      .map((n) => parseInt(n, 10));
-  const [cMaj, cMin, cPat] = parse(current);
-  const [lMaj, lMin, lPat] = parse(latest);
-  if (lMaj !== cMaj) return lMaj > cMaj;
-  if (lMin !== cMin) return lMin > cMin;
-  return lPat > cPat;
-}
+import { isNewerVersion } from "../src/utils/update-check.js";
 
 describe("isNewerVersion", () => {
   it("returns true when major is bumped", () => {
@@ -54,5 +39,20 @@ describe("isNewerVersion", () => {
   it("handles double-digit versions correctly", () => {
     assert.equal(isNewerVersion("1.9.0", "1.10.0"), true);
     assert.equal(isNewerVersion("1.10.0", "1.9.99"), false);
+  });
+
+  // Prerelease suffix behaviour (parseInt strips "-beta.x" naturally)
+  it("treats prerelease as equal to same numeric stable (beta suffix stripped by parseInt)", () => {
+    // "1.2.8-beta.2" → parsed patch = parseInt("8-beta") = 8; same as "1.2.8"
+    assert.equal(isNewerVersion("1.2.8-beta.2", "1.2.8"), false);
+    assert.equal(isNewerVersion("1.2.8", "1.2.8-beta.2"), false);
+  });
+
+  it("detects upgrade from stable to next minor even if current is prerelease", () => {
+    assert.equal(isNewerVersion("1.2.8-beta.2", "1.2.9"), true);
+  });
+
+  it("detects upgrade from older stable to prerelease of newer minor (--beta path)", () => {
+    assert.equal(isNewerVersion("1.2.7", "1.2.8-beta.2"), true);
   });
 });

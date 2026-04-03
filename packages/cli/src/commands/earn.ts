@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printTable, printKv } from "../formatter.js";
+import { outputLine, printJson, printKv, printTable } from "../formatter.js";
 
 function extractData(result: unknown): Record<string, unknown>[] {
   if (result && typeof result === "object") {
@@ -16,7 +16,7 @@ function printDataList(
   mapper: (r: Record<string, unknown>) => Record<string, unknown>,
 ): void {
   if (json) { printJson(data); return; }
-  if (!data.length) { process.stdout.write(emptyMsg + "\n"); return; }
+  if (!data.length) { outputLine(emptyMsg); return; }
   printTable(data.map(mapper));
 }
 
@@ -39,7 +39,7 @@ export async function cmdEarnSavingsPurchase(
   const data = extractData(await run("earn_savings_purchase", { ccy: opts.ccy, amt: opts.amt, rate: opts.rate }));
   if (opts.json) { printJson(data); return; }
   const r = data[0];
-  if (!r) { process.stdout.write("No response data\n"); return; }
+  if (!r) { outputLine("No response data"); return; }
   printKv({ ccy: r["ccy"], amt: r["amt"], side: r["side"], rate: r["rate"] });
 }
 
@@ -50,7 +50,7 @@ export async function cmdEarnSavingsRedeem(
   const data = extractData(await run("earn_savings_redeem", { ccy: opts.ccy, amt: opts.amt }));
   if (opts.json) { printJson(data); return; }
   const r = data[0];
-  if (!r) { process.stdout.write("No response data\n"); return; }
+  if (!r) { outputLine("No response data"); return; }
   printKv({ ccy: r["ccy"], amt: r["amt"], side: r["side"] });
 }
 
@@ -61,7 +61,7 @@ export async function cmdEarnSetLendingRate(
   const data = extractData(await run("earn_set_lending_rate", { ccy: opts.ccy, rate: opts.rate }));
   if (opts.json) { printJson(data); return; }
   const r = data[0];
-  process.stdout.write(`Lending rate set: ${r?.["ccy"]} → ${r?.["rate"]}\n`);
+  outputLine(`Lending rate set: ${r?.["ccy"]} → ${r?.["rate"]}`);
 }
 
 export async function cmdEarnLendingHistory(
@@ -72,17 +72,6 @@ export async function cmdEarnLendingHistory(
   printDataList(data, opts.json, "No lending history", (r) => ({
     ccy: r["ccy"], amt: r["amt"], earnings: r["earnings"],
     rate: r["rate"], ts: new Date(Number(r["ts"])).toLocaleString(),
-  }));
-}
-
-export async function cmdEarnLendingRateSummary(
-  run: ToolRunner,
-  ccy: string | undefined,
-  json: boolean,
-): Promise<void> {
-  const data = extractData(await run("earn_get_lending_rate_summary", { ccy }));
-  printDataList(data, json, "No rate summary data", (r) => ({
-    ccy: r["ccy"], avgRate: r["avgRate"], estRate: r["estRate"], avgAmt: r["avgAmt"],
   }));
 }
 

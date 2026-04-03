@@ -72,9 +72,37 @@ check_npm() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 3 — Install package
+# Step 3 — Check if already up to date (skip install if so)
+# ---------------------------------------------------------------------------
+SKIP_INSTALL=false
+
+check_version() {
+  local latest
+  latest=$(npm view @okx_ai/okx-trade-cli version 2>/dev/null) || return 0
+  [ -z "${latest}" ] && return 0
+
+  local local_ver
+  local_ver=$(okx --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -1 || true)
+
+  if [ -n "${local_ver}" ] && [ "${latest}" = "${local_ver}" ]; then
+    ok "Already up to date: ${local_ver}"
+    SKIP_INSTALL=true
+    return 0
+  fi
+
+  if [ -n "${local_ver}" ]; then
+    info "Upgrading ${local_ver} → ${latest}"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Step 4 — Install package
 # ---------------------------------------------------------------------------
 install_package() {
+  if [ "${SKIP_INSTALL}" = "true" ]; then
+    return
+  fi
+
   info "Installing ${PACKAGES} ..."
 
   # shellcheck disable=SC2086
@@ -101,7 +129,7 @@ install_package() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 4 — Verify
+# Step 5 — Verify
 # ---------------------------------------------------------------------------
 verify_install() {
   info "Verifying installation ..."
@@ -134,7 +162,7 @@ verify_install() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 5 — Detect clients & show next steps
+# Step 6 — Detect clients & show next steps
 # ---------------------------------------------------------------------------
 detect_and_setup_clients() {
   local home="${HOME:-}"
@@ -226,6 +254,7 @@ main() {
 
   check_node
   check_npm
+  check_version
   install_package
   verify_install
   detect_and_setup_clients

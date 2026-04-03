@@ -29,25 +29,26 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **106 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
+| **107 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
 | **MCP standard** | Works with Claude Desktop, Cursor, openCxxW, and any MCP-compatible client |
+| **Agent Skills included** | Pre-built skill files for AI agent frameworks — drop-in instructions covering market data, trading, portfolio, bots, and earn |
 | **Open source** | MIT license, API keys never leave your machine |
 
 ## Modules
 
 | Module | Tools | Description | Docs |
 |--------|-------|-------------|------|
-| `market` | 13 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens | [→](docs/modules/market.md) |
+| `market` | 14 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens, **technical indicators** (70+ indicators: MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 and more — no auth required) | [→](docs/modules/market.md) |
 | `spot` | 13 | Place/cancel/amend orders, batch orders, fills (+archive), order history (+archive), conditional orders, OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | Perpetual trading, batch orders, positions, leverage, conditional orders, OCO, trailing stop | [→](docs/modules/swap.md) |
 | `futures` | 18 | Delivery contract trading, positions, fills, order history, amend/close/leverage, batch orders, algo orders (TP/SL, OCO, trailing stop) | [→](docs/modules/futures.md) |
 | `option` | 10 | Options trading: place/cancel/amend/batch-cancel, order history, positions (with Greeks), fills, option chain, IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
 | `earn` | 19 | Simple Earn: balance, purchase, redeem, lending rate (7). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`. Included in `all`. | [→](docs/modules/earn.md) |
-| `bot` | 10 | Trading bots: Grid (5) and DCA (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
+| `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 
 ---
 
@@ -98,6 +99,22 @@ okx account balance
 ```
 
 **[Full CLI reference →](docs/cli-reference.md)**
+
+---
+
+## Agent Skills
+
+Pre-built skill files for AI agent frameworks are included in the [`skills/`](skills/) directory. Each skill tells the agent when to activate and how to use the `okx` CLI for a specific task category.
+
+| Skill | Description | Auth |
+|-------|-------------|:----:|
+| [`okx-cex-market`](skills/okx-cex-market/SKILL.md) | Market data: prices, candles, order books, funding rates, technical indicators | No |
+| [`okx-cex-trade`](skills/okx-cex-trade/SKILL.md) | Order management: spot, swap, futures, options, algo orders | Yes |
+| [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | Account: balances, positions, P&L, transfers | Yes |
+| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | Trading bots: grid and DCA (spot & contract) | Yes |
+| [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | Earn: Simple Earn, On-chain staking, Dual Investment, AutoEarn | Yes |
+
+**[Skills documentation →](skills/README.md)**
 
 ---
 
@@ -159,4 +176,5 @@ packages/
 | [Architecture](ARCHITECTURE.md) | System design and module overview |
 | [Contributing](CONTRIBUTING.md) | Development setup and PR guidelines |
 | [Changelog](CHANGELOG.md) | Version history |
+| [Agent Skills](skills/README.md) | Pre-built skills for AI agent frameworks |
 | [Security](SECURITY.md) | Vulnerability reporting |

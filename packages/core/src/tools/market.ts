@@ -2,6 +2,8 @@ import type { ToolSpec } from "./types.js";
 import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
 
+const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+
 export function registerMarketTools(): ToolSpec[] {
   return [
     {
@@ -105,7 +107,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_candles",
       module: "market",
       description:
-        "Get candlestick (OHLCV) data for an instrument. history=false (default): recent candles up to 1440 bars; history=true: older historical data.",
+        "Get candlestick (OHLCV) data for an instrument. Automatically retrieves historical data (back to 2021) when requesting older time ranges. Use the `after` parameter to paginate back in time (the old `history` parameter has been removed). IMPORTANT: Before fetching with `after`/`before`, estimate the number of candles: time_range_ms / bar_interval_ms. If the estimate exceeds ~500 candles, inform the user of the estimated count and ask for confirmation before proceeding.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -131,30 +133,38 @@ export function registerMarketTools(): ToolSpec[] {
             type: "number",
             description: "Max results (default 100)",
           },
-          history: {
-            type: "boolean",
-            description: "true=older historical data beyond recent window",
-          },
         },
         required: ["instId"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const isHistory = readBoolean(args, "history") ?? false;
-        const path = isHistory
-          ? "/api/v5/market/history-candles"
-          : "/api/v5/market/candles";
-        const response = await context.client.publicGet(
-          path,
-          compactObject({
-            instId: requireString(args, "instId"),
-            bar: readString(args, "bar"),
-            after: readString(args, "after"),
-            before: readString(args, "before"),
-            limit: readNumber(args, "limit"),
-          }),
-          publicRateLimit("market_get_candles", 40),
-        );
+        const afterTs = readString(args, "after");
+        const beforeTs = readString(args, "before");
+        const query = compactObject({
+          instId: requireString(args, "instId"),
+          bar: readString(args, "bar"),
+          after: afterTs,
+          before: beforeTs,
+          limit: readNumber(args, "limit"),
+        });
+        const rateLimit = publicRateLimit("market_get_candles", 40);
+
+        const hasTimestamp = afterTs !== undefined || beforeTs !== undefined;
+        // Only route to history based on `after`: `after=T` means "data older than T".
+        // `before=T` means "data newer than T" (paginating forward), so it always needs
+        // the recent endpoint — routing it to history would drop the latest 2 days.
+        const useHistory = afterTs !== undefined && Number(afterTs) < Date.now() - TWO_DAYS_MS;
+
+        const path = useHistory ? "/api/v5/market/history-candles" : "/api/v5/market/candles";
+        const response = await context.client.publicGet(path, query, rateLimit);
+
+        // Defensive fallback: if the recent endpoint returns empty for a timestamped request,
+        // the timestamp may straddle the 2-day boundary. Try history endpoint once.
+        // Trade-off: truly empty ranges also trigger a second request, which is acceptable
+        // since this case is rare and correctness matters more than avoiding one extra call.
+        if (!useHistory && hasTimestamp && Array.isArray(response.data) && response.data.length === 0) {
+          return normalizeResponse(await context.client.publicGet("/api/v5/market/history-candles", query, rateLimit));
+        }
         return normalizeResponse(response);
       },
     },
@@ -493,7 +503,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_stock_tokens",
       module: "market",
       description:
-        "Get all stock token instruments (instCategory=3). Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP). Filters client-side by instCategory=3.",
+        "[Deprecated: use market_get_instruments_by_category with instCategory=\"3\" instead] Get all stock token instruments (instCategory=3). Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -522,6 +532,49 @@ export function registerMarketTools(): ToolSpec[] {
         const data = response.data;
         const filtered = Array.isArray(data)
           ? data.filter((item) => (item as Record<string, unknown>).instCategory === "3")
+          : data;
+        return normalizeResponse({ ...response, data: filtered });
+      },
+    },
+    {
+      name: "market_get_instruments_by_category",
+      module: "market",
+      description:
+        "Discover tradeable instruments by asset category. Stock tokens (instCategory=3, e.g. AAPL-USDT-SWAP, TSLA-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP for gold), Commodities (5, e.g. OIL-USDT-SWAP for crude oil), Forex (6, e.g. EURUSDT-USDT-SWAP for EUR/USD), Bonds (7, e.g. US30Y-USDT-SWAP). Use this to find instIds before querying prices or placing orders. Filters client-side by instCategory.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instCategory: {
+            type: "string",
+            enum: ["3", "4", "5", "6", "7"],
+            description: "Asset category: 3=Stock tokens, 4=Metals, 5=Commodities, 6=Forex, 7=Bonds",
+          },
+          instType: {
+            type: "string",
+            enum: ["SPOT", "SWAP"],
+            description: "Instrument type. Default: SWAP",
+          },
+          instId: {
+            type: "string",
+            description: "Optional: filter by specific instrument ID",
+          },
+        },
+        required: ["instCategory"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const instCategory = requireString(args, "instCategory");
+        const instType = readString(args, "instType") ?? "SWAP";
+        const instId = readString(args, "instId");
+        const response = await context.client.publicGet(
+          "/api/v5/public/instruments",
+          compactObject({ instType, instId }),
+          publicRateLimit("market_get_instruments_by_category", 20),
+        );
+        const data = response.data;
+        const filtered = Array.isArray(data)
+          ? data.filter((item) => (item as Record<string, unknown>).instCategory === instCategory)
           : data;
         return normalizeResponse({ ...response, data: filtered });
       },

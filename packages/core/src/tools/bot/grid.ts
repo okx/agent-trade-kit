@@ -64,7 +64,7 @@ export function registerGridTools(): ToolSpec[] {
             enum: ["active", "history"],
             description: "active=running (default); history=stopped",
           },
-          instId: { type: "string", description: "e.g. BTC-USDT" },
+          instId: { type: "string", description: "e.g. BTC-USDT, BTC-USD-SWAP" },
           algoId: { type: "string", description: "Grid bot algo order ID (not a trade ordId)" },
           after: { type: "string", description: "Cursor for older records" },
           before: { type: "string", description: "Cursor for newer records" },
@@ -174,13 +174,13 @@ export function registerGridTools(): ToolSpec[] {
       name: "grid_create_order",
       module: "bot.grid",
       description:
-        "Create grid bot. [CAUTION] Real trades, locks funds. " +
-        "Spot('grid'): need quoteSz|baseSz. Contract('contract_grid'): need direction+lever+sz.",
+        "Create grid bot (spot, USDT-margined, or coin-margined contract). [CAUTION] Locks funds. " +
+        "Spot: quoteSz|baseSz. Contract: direction+lever+sz.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
-          instId: { type: "string", description: "e.g. BTC-USDT" },
+          instId: { type: "string", description: "e.g. BTC-USDT, BTC-USDT-SWAP, BTC-USD-SWAP (coin-margined)" },
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid"],
@@ -202,8 +202,13 @@ export function registerGridTools(): ToolSpec[] {
             description: "Contract only",
           },
           lever: { type: "string", description: "Leverage. Contract only" },
-          sz: { type: "string", description: "Margin amount. Contract only" },
+          sz: { type: "string", description: "Margin in USDT or base coin (CoinM). Contract only" },
           basePos: { type: "boolean", description: "Open base position for contract. Default: true" },
+          tpTriggerPx: { type: "string", description: "TP trigger price" },
+          slTriggerPx: { type: "string", description: "SL trigger price" },
+          tpRatio: { type: "string", description: "TP ratio e.g. 0.1=10%. Contract only" },
+          slRatio: { type: "string", description: "SL ratio e.g. 0.1=10%. Contract only" },
+          algoClOrdId: { type: "string", description: "User-defined ID. Alphanumeric, max 32, unique per user" },
         },
         required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
       },
@@ -222,9 +227,15 @@ export function registerGridTools(): ToolSpec[] {
           direction: readString(args, "direction"),
           lever: readString(args, "lever"),
           sz: readString(args, "sz"),
+          tpTriggerPx: readString(args, "tpTriggerPx"),
+          slTriggerPx: readString(args, "slTriggerPx"),
+          tpRatio: readString(args, "tpRatio"),
+          slRatio: readString(args, "slRatio"),
+          algoClOrdId: readString(args, "algoClOrdId"),
           tag: context.config.sourceTag,
         });
         if (algoOrdType === "contract_grid") {
+          requireString(args, "direction");
           body.triggerParams = [{ triggerAction: "start", triggerStrategy: "instant" }];
           body.basePos = readBoolean(args, "basePos") ?? true;
         }
@@ -252,11 +263,11 @@ export function registerGridTools(): ToolSpec[] {
             enum: ["grid", "contract_grid"],
             description: "grid=Spot, contract_grid=Contract",
           },
-          instId: { type: "string", description: "e.g. BTC-USDT" },
+          instId: { type: "string", description: "e.g. BTC-USDT, BTC-USD-SWAP" },
           stopType: {
             type: "string",
             enum: ["1", "2", "3", "5", "6"],
-            description: "1=close all; 2=keep assets (default); 3=limit close; 5=partial; 6=no sell",
+            description: "1=close all (default); 2=keep assets; 3=limit close; 5=partial; 6=no sell",
           },
         },
         required: ["algoId", "algoOrdType", "instId"],
@@ -269,7 +280,7 @@ export function registerGridTools(): ToolSpec[] {
             algoId: requireString(args, "algoId"),
             algoOrdType: requireString(args, "algoOrdType"),
             instId: requireString(args, "instId"),
-            stopType: readString(args, "stopType") ?? "2",
+            stopType: readString(args, "stopType") ?? "1",
           })],
           privateRateLimit("grid_stop_order", 20),
         );

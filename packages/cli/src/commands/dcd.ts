@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printTable, printKv } from "../formatter.js";
+import { outputLine, printJson, printKv, printTable } from "../formatter.js";
 
 function extractArray(result: unknown): Record<string, unknown>[] {
   if (result && typeof result === "object") {
@@ -24,7 +24,7 @@ export async function cmdDcdPairs(run: ToolRunner, json: boolean): Promise<void>
   const result = await run("dcd_get_currency_pairs", {});
   const data = extractArray(result);
   if (json) { printJson(data); return; }
-  if (!data.length) { process.stdout.write("No currency pairs available\n"); return; }
+  if (!data.length) { outputLine("No currency pairs available"); return; }
   printTable(data.map((r) => ({
     baseCcy: r["baseCcy"],
     quoteCcy: r["quoteCcy"],
@@ -108,7 +108,7 @@ export async function cmdDcdProducts(
   const data = applyProductFilters(extractProducts(result), opts);
 
   if (opts.json) { printJson(data); return; }
-  if (!data.length) { process.stdout.write("No products matched\n"); return; }
+  if (!data.length) { outputLine("No products matched"); return; }
   printTable(data.map((r) => ({
     productId: r["productId"],
     baseCcy: r["baseCcy"],
@@ -130,7 +130,7 @@ export async function cmdDcdRedeemExecute(
   const quoteResult = await run("dcd_redeem", { ordId: opts.ordId });
   const quoteData = extractArray(quoteResult);
   const q = quoteData[0];
-  if (!q) { process.stdout.write("Failed to get redeem quote\n"); return; }
+  if (!q) { outputLine("Failed to get redeem quote"); return; }
 
   // Step 2: execute immediately via dcd_redeem with quoteId
   const redeemResult = await run("dcd_redeem", {
@@ -139,7 +139,7 @@ export async function cmdDcdRedeemExecute(
   });
   const redeemData = extractArray(redeemResult);
   const r = redeemData[0];
-  if (!r) { process.stdout.write("No response data\n"); return; }
+  if (!r) { outputLine("No response data"); return; }
 
   if (opts.json) {
     printJson({ quote: q, redeem: r });
@@ -162,7 +162,7 @@ export async function cmdDcdOrderState(
   const data = extractArray(result);
   if (opts.json) { printJson(data); return; }
   const r = data[0];
-  if (!r) { process.stdout.write("Order not found\n"); return; }
+  if (!r) { outputLine("Order not found"); return; }
   printKv({
     ordId: r["ordId"],
     state: r["state"],
@@ -201,7 +201,7 @@ export async function cmdDcdOrders(
   });
   const data = extractArray(result);
   if (opts.json) { printJson(data); return; }
-  if (!data.length) { process.stdout.write("No orders found\n"); return; }
+  if (!data.length) { outputLine("No orders found"); return; }
   printTable(data.map((r) => ({
     ordId: r["ordId"],
     productId: r["productId"],
@@ -234,7 +234,7 @@ export async function cmdDcdQuoteAndBuy(
   const r = tradeData[0];
   const q = result["quote"] as Record<string, unknown> | undefined;
 
-  if (!r) { process.stdout.write("No quote returned\n"); return; }
+  if (!r) { outputLine("No quote returned"); return; }
 
   // Auto-query full order detail via dcd_get_orders (richer than dcd_get_order_state).
   // Wrapped in try/catch: a failure here must NOT mask the successful order placement.
@@ -255,7 +255,7 @@ export async function cmdDcdQuoteAndBuy(
   }
 
   if (q) {
-    process.stdout.write("Quote:\n");
+    outputLine("Quote:");
     printKv({
       quoteId: q["quoteId"],
       annualizedYield: q["annualizedYield"] ? `${q["annualizedYield"]}%` : "—",
@@ -263,12 +263,13 @@ export async function cmdDcdQuoteAndBuy(
       notionalSz: q["notionalSz"],
       notionalCcy: q["notionalCcy"],
     });
-    process.stdout.write("\n");
+    outputLine("");
   }
-  process.stdout.write("Order placed:\n");
+  outputLine("Order placed:");
   printKv({ ordId: r["ordId"], quoteId: r["quoteId"], state: r["state"] ?? r["status"] });
   if (stateRow) {
-    process.stdout.write("\nOrder state:\n");
+    outputLine("");
+    outputLine("Order state:");
     printKv({
       ordId: stateRow["ordId"],
       state: stateRow["state"],

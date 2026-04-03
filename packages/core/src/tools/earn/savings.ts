@@ -7,7 +7,7 @@ import {
   readString,
   requireString,
 } from "../helpers.js";
-import { assertNotDemo, privateRateLimit, publicRateLimit } from "../common.js";
+import { privateRateLimit, publicRateLimit } from "../common.js";
 
 export function registerEarnTools(): ToolSpec[] {
   return [
@@ -15,8 +15,10 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_savings_balance",
       module: "earn.savings",
       description:
-        "Get Simple Earn (savings/flexible earn) balance. Returns current holdings for all currencies or a specific one. " +
-        "To show market rates alongside balance (市场均利率), call earn_get_lending_rate_history — do NOT use earn_get_lending_rate_summary for this purpose.",
+        "Get Simple Earn (savings/flexible earn) balance. Returns current holdings, lent amount, pending interest, and the user's set rate. " +
+        "Response fields: amt (total held), loanAmt (actively lent), pendingAmt (awaiting match), earnings (cumulative interest), " +
+        "rate (user's own minimum lending rate setting — NOT market yield, NOT APY). " +
+        "To get the actual market lending rate, call earn_get_lending_rate_history instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -57,13 +59,12 @@ export function registerEarnTools(): ToolSpec[] {
           rate: {
             type: "string",
             description:
-              "Lending rate. Annual rate in decimal, e.g. 0.01 = 1%. Defaults to 0.01 (1%, minimum rate, easiest to match).",
+              "Minimum lending rate threshold (annual, decimal). e.g. 0.01 = 1%. Only matched when market rate ≥ this value. Defaults to 0.01. Keep at 0.01 to maximize matching probability — do NOT raise this to increase yield, as actual yield (lendingRate) is determined by market supply/demand, not this setting.",
           },
         },
         required: ["ccy", "amt"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "earn_savings_purchase");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/savings/purchase-redempt",
@@ -99,7 +100,6 @@ export function registerEarnTools(): ToolSpec[] {
         required: ["ccy", "amt"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "earn_savings_redeem");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/savings/purchase-redempt",
@@ -128,13 +128,12 @@ export function registerEarnTools(): ToolSpec[] {
           },
           rate: {
             type: "string",
-            description: "Lending rate. Annual rate in decimal, e.g. 0.01 = 1%",
+            description: "Minimum lending rate threshold (annual, decimal). e.g. 0.01 = 1%. Only matched when market rate ≥ this value. Keep at 0.01 to maximize matching probability — do NOT raise this to increase yield, as actual yield (lendingRate) is determined by market supply/demand, not this setting.",
           },
         },
         required: ["ccy", "rate"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "earn_set_lending_rate");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/savings/set-lending-rate",
@@ -151,8 +150,8 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_lending_history",
       module: "earn.savings",
       description:
-        "Get market lending rate history for Simple Earn. Use this tool to query market lending rates. " +
-        "Returns market lending records with amount, rate, and earnings data.",
+        "Get personal lending records for Simple Earn (your own lending history). NOT for market rate queries. " +
+        "Returns your lending records with amount, rate, and earnings data.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -191,40 +190,17 @@ export function registerEarnTools(): ToolSpec[] {
       },
     },
     {
-      name: "earn_get_lending_rate_summary",
-      module: "earn.savings",
-      description:
-        "Get coin lending market rate summary. NOT related to Simple Earn. " +
-        "Use this to query the lending/borrowing market rates (借币市场利率). " +
-        "Returns aggregate overview: average rate (avgRate), estimated next-cycle rate (estRate), previous-cycle rate (preRate), and available lending amounts.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          ccy: {
-            type: "string",
-            description: "e.g. USDT. Omit for all.",
-          },
-        },
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
-          "/api/v5/finance/savings/lending-rate-summary",
-          compactObject({ ccy: readString(args, "ccy") }),
-          publicRateLimit("earn_get_lending_rate_summary", 6),
-        );
-        return normalizeResponse(response);
-      },
-    },
-    {
       name: "earn_get_lending_rate_history",
       module: "earn.savings",
       description:
-        "Query Simple Earn lending rates. " +
+        "Query Simple Earn lending rates. Public endpoint (no API key required). " +
         "Use this tool when the user asks about current or historical lending rates for Simple Earn, " +
-        "or when displaying savings balance with market rate context (市场均利率). " +
-        "Returns actual settled lending rate records (lendingRate field) with timestamps, ordered newest-first.",
+        "or when displaying savings balance with market rate context. " +
+        "Response fields per record: " +
+        "rate (market lending rate — the rate borrowers pay this period; user's minimum setting must be ≤ this to be eligible), " +
+        "lendingRate (actual yield received by lenders; stablecoins e.g. USDT/USDC only: subject to pro-rata dilution — when eligible supply exceeds borrowing demand total interest is shared so lendingRate < rate; non-stablecoins: lendingRate = rate, no dilution; always use lendingRate as the true APY to show users), " +
+        "ts (settlement timestamp ms). " +
+        "To get current APY: use limit=1 and read lendingRate.",
       isWrite: false,
       inputSchema: {
         type: "object",

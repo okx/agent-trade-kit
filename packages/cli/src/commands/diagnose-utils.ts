@@ -1,5 +1,7 @@
 import fs from "node:fs";
+
 import { createRequire } from "node:module";
+import { outputLine, errorLine } from "../formatter.js";
 
 const _require = createRequire(import.meta.url);
 
@@ -32,13 +34,14 @@ export class Report {
   }
 
   print(): void {
-    const w = process.stdout.write.bind(process.stdout);
     const sep = "\u2500".repeat(52);
-    w(`\n  \u2500\u2500 Diagnostic Report (copy & share) ${sep.slice(35)}\n`);
+    outputLine("");
+    outputLine(`  \u2500\u2500 Diagnostic Report (copy & share) ${sep.slice(35)}`);
     for (const { key, value } of this.lines) {
-      w(`  ${key.padEnd(14)} ${value}\n`);
+      outputLine(`  ${key.padEnd(14)} ${value}`);
     }
-    w(`  ${sep}\n\n`);
+    outputLine(`  ${sep}`);
+    outputLine("");
   }
 
   /** Write report to a file path, returns true on success. */
@@ -65,18 +68,26 @@ export class Report {
 // ---------------------------------------------------------------------------
 
 export function ok(label: string, detail: string): void {
-  process.stdout.write(`  \u2713 ${label.padEnd(14)} ${detail}\n`);
+  outputLine(`  \u2713 ${label.padEnd(14)} ${detail}`);
 }
 
 export function fail(label: string, detail: string, hints: string[]): void {
-  process.stdout.write(`  \u2717 ${label.padEnd(14)} ${detail}\n`);
+  outputLine(`  \u2717 ${label.padEnd(14)} ${detail}`);
   for (const hint of hints) {
-    process.stdout.write(`    \u2192 ${hint}\n`);
+    outputLine(`    \u2192 ${hint}`);
+  }
+}
+
+export function warn(label: string, detail: string, hints: string[] = []): void {
+  outputLine(`  \u26a0 ${label.padEnd(14)} ${detail}`);
+  for (const hint of hints) {
+    outputLine(`    \u2192 ${hint}`);
   }
 }
 
 export function section(title: string): void {
-  process.stdout.write(`\n  ${title}\n`);
+  outputLine("");
+  outputLine(`  ${title}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -87,9 +98,9 @@ export function writeReportIfRequested(report: Report, outputPath?: string): voi
   if (!outputPath) return;
   const written = report.writeToFile(outputPath);
   if (written) {
-    process.stdout.write(`  Report saved to: ${outputPath}\n`);
+    outputLine(`  Report saved to: ${outputPath}`);
   } else {
-    process.stderr.write(`  Warning: failed to write report to: ${outputPath}\n`);
+    errorLine(`  Warning: failed to write report to: ${outputPath}`);
   }
 }
 

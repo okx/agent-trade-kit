@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import { runSetup, printSetupUsage, getConfigPath, SUPPORTED_CLIENTS } from "@agent-tradekit/core";
+import { outputLine } from "../formatter.js";
 import type { ClientId, SetupOptions } from "@agent-tradekit/core";
 
 export type { ClientId, SetupOptions };
@@ -29,11 +30,11 @@ export function cmdSetupClients(): void {
   }
 
   if (detected.length > 0) {
-    process.stdout.write(`Detected clients:\n`);
+    outputLine("Detected clients:");
     for (const { id, path } of detected) {
-      process.stdout.write(`  ${id.padEnd(16)} ${path}\n`);
+      outputLine(`  ${id.padEnd(16)} ${path}`);
     }
-    process.stdout.write(`\n`);
+    outputLine("");
   }
 
   printSetupUsage();

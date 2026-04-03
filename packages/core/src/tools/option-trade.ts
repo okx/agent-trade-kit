@@ -17,7 +17,7 @@ export function registerOptionTools(): ToolSpec[] {
       name: "option_place_order",
       module: "option",
       description:
-        "Place OPTION order. instId: {uly}-{expiry}-{strike}-C/P, e.g. BTC-USD-241227-50000-C. [CAUTION] Executes real trades.",
+        "Place OPTION order. instId: {uly}-{expiry}-{strike}-C/P, e.g. BTC-USD-241227-50000-C. Before placing, use market_get_instruments to get ctVal (contract face value) — do NOT assume contract sizes. [CAUTION] Executes real trades.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -248,12 +248,14 @@ export function registerOptionTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const status = readString(args, "status") ?? "live";
-        const path =
-          status === "archive"
-            ? "/api/v5/trade/orders-history-archive"
-            : status === "history"
-              ? "/api/v5/trade/orders-history"
-              : "/api/v5/trade/orders-pending";
+        let path: string;
+        if (status === "archive") {
+          path = "/api/v5/trade/orders-history-archive";
+        } else if (status === "history") {
+          path = "/api/v5/trade/orders-history";
+        } else {
+          path = "/api/v5/trade/orders-pending";
+        }
         const response = await context.client.privateGet(
           path,
           compactObject({

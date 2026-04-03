@@ -29,3 +29,21 @@ export interface RequestResult<TData = unknown> {
   data: TData;
   raw: OkxApiResponse<TData>;
 }
+
+/** Options for binary (non-JSON) download requests. */
+export interface BinaryRequestOptions {
+  /** Maximum response size in bytes. Default: 50 MB. */
+  maxBytes?: number;
+  /** Expected Content-Type prefix. Default: "application/octet-stream". */
+  expectedContentType?: string;
+}
+
+/** Result of a binary download request. */
+export interface BinaryResult {
+  endpoint: string;
+  requestTime: string;
+  data: Buffer;
+  contentType: string;
+  contentLength: number;
+  traceId?: string;
+}
