@@ -13,6 +13,14 @@
 
 ---
 
+## [1.2.8-beta.7] - 2026-04-03
+
+### 移除
+
+- **`news` 模块已移除，等待合规审批**：[1.2.8-beta.4] 引入的 Orbit News API 集成已回退。所有新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_domains`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）、CLI 命令（`okx news …`）及 `okx-cex-news` Agent Skill 均已移除，待监管合规审批通过后方可重新上线。`skills`（技能市场）模块不受影响。
+
+---
+
 ## [1.2.8-beta.6] - 2026-04-02
 
 ### 修复

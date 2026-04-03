@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.8-beta.7] - 2026-04-03
+
+### Removed
+
+- **`news` module removed pending compliance approval**: The Orbit News API integration introduced in [1.2.8-beta.4] has been reverted. All news tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_domains`, `news_get_coin_sentiment`, `news_get_sentiment_ranking`), CLI commands (`okx news …`), and the `okx-cex-news` agent skill have been removed until regulatory compliance approval is obtained. The `skills` (Skill Marketplace) module is unaffected.
+
+---
+
 ## [1.2.8-beta.6] - 2026-04-02
 
 ### Fixed
