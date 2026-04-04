@@ -21,6 +21,10 @@ metadata:
 
 Browse, search, install, and manage AI trading skills from the OKX Skills Marketplace. Skills are modular AI prompt packages that extend your trading assistant's capabilities — covering market analysis, trade execution, risk management, and portfolio optimization.
 
+> **⚠️ Third-Party Content Notice**
+> Skills available on the OKX Skills Marketplace are created and published by **independent third-party developers**, not by OKX. OKX does not author, review, endorse, or take responsibility for the content, accuracy, or behavior of any third-party skill. Always review a skill's SKILL.md before use, and only install skills from authors you trust.
+> When a skill is installed via `okx skill add`, it is downloaded from the marketplace and saved locally to your agent's skill directory (e.g., `~/.agents/skills/<skill-name>/`). The skill runs entirely on your local machine with your agent's full permissions — treat it with the same caution as installing any third-party software.
+
 **Skill routing**
 - Skill marketplace → `okx-cex-skill-mp` (this skill)
 - Market data / indicators → `okx-cex-market`

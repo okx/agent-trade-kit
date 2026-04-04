@@ -4,6 +4,8 @@
 
 `skills` 模块提供从 OKX Skills Marketplace 浏览、搜索和下载 AI 交易技能的工具。
 
+> **第三方内容声明：** OKX Skills Marketplace 上的技能由独立第三方开发者创建，OKX 不对其内容进行审核或背书。安装前请务必查看技能的 SKILL.md。
+
 ## 模块 ID
 
 `skills` — 默认启用。

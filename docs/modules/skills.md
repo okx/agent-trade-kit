@@ -4,6 +4,8 @@
 
 The `skills` module provides tools for browsing, searching, and downloading AI trading skills from the OKX Skills Marketplace.
 
+> **Third-Party Content Notice:** Skills on the OKX Skills Marketplace are created by independent third-party developers. OKX does not review or endorse their content. Always review a skill's SKILL.md before installation.
+
 ## Module ID
 
 `skills` — enabled by default.

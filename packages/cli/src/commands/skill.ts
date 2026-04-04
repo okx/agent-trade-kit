@@ -148,6 +148,7 @@ export async function cmdSkillAdd(
       outputLine(JSON.stringify({ name: meta.name, version: meta.version, status: "installed" }, null, 2));
     } else {
       outputLine(`✓ Skill "${meta.name}" v${meta.version} installed`);
+      outputLine(`  Note: This skill was created by a third-party developer, not by OKX. Review SKILL.md before use.`);
     }
   } finally {
     // Step 6: Cleanup
