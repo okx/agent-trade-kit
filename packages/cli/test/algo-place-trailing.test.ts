@@ -385,8 +385,8 @@ describe("cmdFuturesAlgoPlace — tgtCcy passthrough", () => {
   });
 });
 
-describe("cmdOptionAlgoPlace — tgtCcy passthrough", () => {
-  it("passes tgtCcy=quote_ccy when provided", async () => {
+describe("cmdOptionAlgoPlace — tgtCcy conversion (options use resolveQuoteCcySz)", () => {
+  it("passes tgtCcy=quote_ccy for conversion in handler", async () => {
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (_tool, params) => {
       capturedParams = params as Record<string, unknown>;

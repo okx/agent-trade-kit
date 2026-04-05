@@ -14,6 +14,7 @@ import { registerAccountTools } from "../src/tools/account.js";
 import { registerFuturesTools } from "../src/tools/futures-trade.js";
 import { registerOptionTools } from "../src/tools/option-trade.js";
 import { registerAlgoTradeTools, registerFuturesAlgoTools } from "../src/tools/algo-trade.js";
+import { registerOptionAlgoTools } from "../src/tools/option-algo-trade.js";
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
 import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
@@ -4026,5 +4027,76 @@ describe("earn demo guard", () => {
         "demo guard should not block when demo=false",
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// option_place_algo_order — tgtCcy conversion via resolveQuoteCcySz
+// ---------------------------------------------------------------------------
+
+describe("option_place_algo_order — tgtCcy conversion", () => {
+  const tools = registerOptionAlgoTools();
+  const tool = tools.find((t) => t.name === "option_place_algo_order")!;
+
+  it("calls resolveQuoteCcySz and sends converted sz to API", async () => {
+    // Mock client: instruments returns ctVal=1, ticker returns lastPx=84000
+    const calls: CapturedCall[] = [];
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "GET", endpoint, params });
+        if (endpoint.includes("/public/instruments")) {
+          return { endpoint, requestTime: "", data: [{ ctVal: "1" }] };
+        }
+        if (endpoint.includes("/market/ticker")) {
+          return { endpoint, requestTime: "", data: [{ last: "84000" }] };
+        }
+        return { endpoint, requestTime: "", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "POST", endpoint, params });
+        return { endpoint, requestTime: "", data: [{ sCode: "0", ordId: "123" }] };
+      },
+    };
+
+    // 200000 USDT / (1 * 84000) = 2.38 → floor = 2 contracts
+    await tool.handler(
+      {
+        instId: "BTC-USD-260405-90000-C",
+        tdMode: "cross",
+        side: "buy",
+        ordType: "conditional",
+        sz: "200000",
+        tgtCcy: "quote_ccy",
+        tpTriggerPx: "95000",
+        tpOrdPx: "-1",
+      },
+      makeContext(client),
+    );
+
+    // Should have called instruments + ticker (conversion) + privatePost (order)
+    const postCall = calls.find((c) => c.method === "POST");
+    assert.ok(postCall, "should make a POST call");
+    assert.equal(postCall!.params.sz, "2", "sz should be converted to 2 contracts");
+    assert.equal(postCall!.params.tgtCcy, undefined, "tgtCcy should be stripped after conversion");
+  });
+
+  it("passes sz unchanged when tgtCcy is not quote_ccy", async () => {
+    const { client, getLastCall } = makeMockClient();
+
+    await tool.handler(
+      {
+        instId: "BTC-USD-260405-90000-C",
+        tdMode: "cross",
+        side: "buy",
+        ordType: "conditional",
+        sz: "5",
+        tpTriggerPx: "95000",
+        tpOrdPx: "-1",
+      },
+      makeContext(client),
+    );
+
+    const call = getLastCall()!;
+    assert.equal(call.params.sz, "5", "sz should pass through unchanged");
   });
 });
