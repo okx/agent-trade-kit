@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **SWAP/FUTURES `tgtCcy=quote_ccy` 自动换算**：对 SWAP/FUTURES 下单（含 algo 单）设置 `tgtCcy=quote_ccy` 时，handler 现在会在请求发送至 OKX API 前自动将 USDT 金额换算为合约数量，防止因 OKX 静默忽略该参数而导致仓位放大（例如"100 USDT"变成"100 张合约 ≈$6,700"）。换算并行拉取 `ctVal` 和 `lastPx`，并在响应中附加 `_conversion` 字段说明换算过程。(#114)
+
 ---
 
 ## [1.2.8] - 2026-04-03
