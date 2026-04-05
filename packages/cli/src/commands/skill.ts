@@ -29,6 +29,10 @@ function resolveNpx(): string {
   return "npx";
 }
 
+/** Notice shown after installing a third-party skill. */
+export const THIRD_PARTY_INSTALL_NOTICE =
+  "Note: This skill was created by a third-party developer, not by OKX. Review SKILL.md before use.";
+
 // ---------------------------------------------------------------------------
 // okx skill search <keyword>
 // ---------------------------------------------------------------------------
@@ -144,11 +148,7 @@ export async function cmdSkillAdd(
     // Step 5: Update registry
     upsertSkillRecord(meta);
 
-    if (json) {
-      outputLine(JSON.stringify({ name: meta.name, version: meta.version, status: "installed" }, null, 2));
-    } else {
-      outputLine(`✓ Skill "${meta.name}" v${meta.version} installed`);
-    }
+    printSkillInstallResult(meta, json);
   } finally {
     // Step 6: Cleanup
     rmSync(tmpBase, { recursive: true, force: true });
@@ -284,4 +284,21 @@ export function cmdSkillList(json: boolean): void {
   }
   outputLine("");
   outputLine(`${skills.length} skills installed.`);
+}
+
+// ---------------------------------------------------------------------------
+// Install result output (extracted for testability)
+// ---------------------------------------------------------------------------
+
+/** Format and output the install-success message. */
+export function printSkillInstallResult(
+  meta: { name: string; version: string },
+  json: boolean,
+): void {
+  if (json) {
+    outputLine(JSON.stringify({ name: meta.name, version: meta.version, status: "installed" }, null, 2));
+  } else {
+    outputLine(`✓ Skill "${meta.name}" v${meta.version} installed`);
+    outputLine(`  ${THIRD_PARTY_INSTALL_NOTICE}`);
+  }
 }

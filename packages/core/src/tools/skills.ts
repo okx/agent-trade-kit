@@ -58,7 +58,7 @@ export function registerSkillsTools(): ToolSpec[] {
         "Download a skill zip file from OKX Skills Marketplace to a local directory. " +
         "Always call skills_search first to confirm the skill name exists. " +
         "Downloads the latest approved version. " +
-        "NOTE: This only downloads the zip — it does NOT install to agents. " +
+        "NOTE: Downloads third-party developer content as a zip — does NOT install to agents. " +
         "For full installation use CLI: okx skill add <name>. " +
         "Use when the user wants to inspect or manually install a skill package.",
       inputSchema: {

@@ -16,6 +16,8 @@ import {
   cmdSkillSearch,
   cmdSkillCategories,
   cmdSkillCheck,
+  THIRD_PARTY_INSTALL_NOTICE,
+  printSkillInstallResult,
 } from "../src/commands/skill.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 import type { CliValues } from "../src/index.js";
@@ -438,5 +440,26 @@ describe("handleSkillCommand — list route", () => {
     const parsed = JSON.parse(out.join(""));
     assert.ok("version" in parsed);
     assert.ok("skills" in parsed);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// printSkillInstallResult — third-party notice output
+// ---------------------------------------------------------------------------
+
+describe("printSkillInstallResult", () => {
+  it("outputs success message with third-party notice", () => {
+    printSkillInstallResult({ name: "my-skill", version: "1.0.0" }, false);
+    const output = out.join("");
+    assert.ok(output.includes('✓ Skill "my-skill" v1.0.0 installed'));
+    assert.ok(output.includes(THIRD_PARTY_INSTALL_NOTICE));
+  });
+
+  it("outputs JSON without third-party notice when --json is set", () => {
+    printSkillInstallResult({ name: "my-skill", version: "1.0.0" }, true);
+    const parsed = JSON.parse(out.join(""));
+    assert.equal(parsed.name, "my-skill");
+    assert.equal(parsed.version, "1.0.0");
+    assert.equal(parsed.status, "installed");
   });
 });
