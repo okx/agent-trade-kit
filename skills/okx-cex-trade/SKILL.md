@@ -124,7 +124,7 @@ Use `ctVal` to:
 ### SWAP and FUTURES orders
 
 **When user specifies a USDT amount** (e.g. "200U", "500 USDT", "$1000"):
-→ Use `--tgtCcy quote_ccy` and pass the amount directly as `--sz`. The API converts to contracts automatically.
+→ Use `--tgtCcy quote_ccy` and pass the amount directly as `--sz`. The system automatically converts the USDT amount to the equivalent number of contracts based on the current market price and contract face value.
 
 **When user specifies contracts** (e.g. "2 张", "5 contracts"):
 → First verify `ctVal` via `market_get_instruments`, then use `--sz` with the contract count. Confirm with user: "X contracts = X × ctVal underlying, total value ≈ $Y".
