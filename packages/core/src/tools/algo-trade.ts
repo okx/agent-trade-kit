@@ -8,6 +8,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
+import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
 
 export function registerAlgoTradeTools(): ToolSpec[] {
   return [
@@ -109,6 +110,13 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const resolved = await resolveQuoteCcySz(
+          requireString(args, "instId"),
+          requireString(args, "sz"),
+          readString(args, "tgtCcy"),
+          "SWAP",
+          context.client,
+        );
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
           compactObject({
@@ -117,8 +125,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             side: requireString(args, "side"),
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
-            sz: requireString(args, "sz"),
-            tgtCcy: readString(args, "tgtCcy"),
+            sz: resolved.sz,
+            tgtCcy: resolved.tgtCcy,
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),
@@ -135,7 +143,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_place_algo_order", 20),
         );
-        return normalizeResponse(response);
+        const result = normalizeResponse(response);
+        if (resolved.conversionNote) {
+          result._conversion = resolved.conversionNote;
+        }
+        return result;
       },
     },
     {
@@ -464,6 +476,13 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const resolved = await resolveQuoteCcySz(
+          requireString(args, "instId"),
+          requireString(args, "sz"),
+          readString(args, "tgtCcy"),
+          "FUTURES",
+          context.client,
+        );
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
           compactObject({
@@ -472,8 +491,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             side: requireString(args, "side"),
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
-            sz: requireString(args, "sz"),
-            tgtCcy: readString(args, "tgtCcy"),
+            sz: resolved.sz,
+            tgtCcy: resolved.tgtCcy,
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),
@@ -490,7 +509,11 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_place_algo_order", 20),
         );
-        return normalizeResponse(response);
+        const result = normalizeResponse(response);
+        if (resolved.conversionNote) {
+          result._conversion = resolved.conversionNote;
+        }
+        return result;
       },
     },
     {
