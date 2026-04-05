@@ -17,6 +17,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
+import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
 
 export interface ContractConfig {
   /** Tool name prefix, e.g. "swap" → "swap_place_order" */
@@ -95,6 +96,13 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
+        const resolved = await resolveQuoteCcySz(
+          requireString(args, "instId"),
+          requireString(args, "sz"),
+          readString(args, "tgtCcy"),
+          defaultType,
+          context.client,
+        );
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -103,8 +111,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             side: requireString(args, "side"),
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
-            sz: requireString(args, "sz"),
-            tgtCcy: readString(args, "tgtCcy"),
+            sz: resolved.sz,
+            tgtCcy: resolved.tgtCcy,
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
@@ -113,7 +121,11 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           }),
           privateRateLimit(n("place_order"), 60),
         );
-        return normalizeResponse(response);
+        const result = normalizeResponse(response);
+        if (resolved.conversionNote) {
+          result._conversion = resolved.conversionNote;
+        }
+        return result;
       },
     },
 
