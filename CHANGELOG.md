@@ -11,9 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.9-beta.2] - 2026-04-06
+
+### Added
+
+- **Skills Marketplace third-party disclaimer**: Added notices at key trust-decision points (SKILL.md agent prompt, `skills_download` tool description, CLI install output, and module docs) to inform users that skills are created by independent third-party developers before installation.
+
 ### Fixed
 
-- **SWAP/FUTURES `tgtCcy=quote_ccy` auto-conversion**: when `tgtCcy=quote_ccy` is set on SWAP or FUTURES orders (including algo orders), the handler now automatically converts the USDT amount to contract count before sending to the OKX API — preventing silent position amplification where e.g. "100 USDT" became "100 contracts (~$6,700)". Conversion fetches `ctVal` and `lastPx` in parallel and logs a `_conversion` note in the response. (#114)
+- **SWAP/FUTURES/options `tgtCcy=quote_ccy` auto-conversion**: when `tgtCcy=quote_ccy` is set on SWAP, FUTURES, or options algo orders, the handler now automatically converts the USDT amount to contract count before sending to the OKX API — preventing silent position amplification where e.g. "100 USDT" became "100 contracts (~$6,700)". Conversion fetches `ctVal` and `lastPx` in parallel and logs a `_conversion` note in the response. (#114)
 
 ---
 

@@ -11,9 +11,17 @@
 
 ## [Unreleased]
 
+---
+
+## [1.2.9-beta.2] - 2026-04-06
+
+### 新增
+
+- **Skills Marketplace 三方内容免责声明**：在关键信任决策节点（SKILL.md agent 提示、`skills_download` 工具描述、CLI 安装输出、模块文档）添加声明，提示用户 skill 由独立第三方开发者创建，请在安装前知悉。
+
 ### 修复
 
-- **SWAP/FUTURES `tgtCcy=quote_ccy` 自动换算**：对 SWAP/FUTURES 下单（含 algo 单）设置 `tgtCcy=quote_ccy` 时，handler 现在会在请求发送至 OKX API 前自动将 USDT 金额换算为合约数量，防止因 OKX 静默忽略该参数而导致仓位放大（例如"100 USDT"变成"100 张合约 ≈$6,700"）。换算并行拉取 `ctVal` 和 `lastPx`，并在响应中附加 `_conversion` 字段说明换算过程。(#114)
+- **SWAP/FUTURES/期权 `tgtCcy=quote_ccy` 自动换算**：对 SWAP、FUTURES 或期权 algo 下单设置 `tgtCcy=quote_ccy` 时，handler 现在会在请求发送至 OKX API 前自动将 USDT 金额换算为合约数量，防止因 OKX 静默忽略该参数而导致仓位放大（例如"100 USDT"变成"100 张合约 ≈$6,700"）。换算并行拉取 `ctVal` 和 `lastPx`，并在响应中附加 `_conversion` 字段说明换算过程。(#114)
 
 ---
 
