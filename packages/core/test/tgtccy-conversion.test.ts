@@ -301,3 +301,81 @@ describe("resolveQuoteCcySz — error cases", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Tests: OPTION instType (ctVal=1 for BTC options)
+// ---------------------------------------------------------------------------
+
+describe("resolveQuoteCcySz — OPTION instType", () => {
+  it("BTC option: ctVal=1, lastPx=84000, sz=100000 → contracts=1", async () => {
+    // 100000 / (1 * 84000) = 1.19... → floor = 1
+    const { client } = makeMockClient(
+      [{ ctVal: "1" }],
+      [{ last: "84000" }],
+    );
+    const result = await resolveQuoteCcySz(
+      "BTC-USD-260405-90000-C",
+      "100000",
+      "quote_ccy",
+      "OPTION",
+      client as never,
+    );
+    assert.equal(result.sz, "1");
+    assert.equal(result.tgtCcy, undefined);
+    assert.ok(result.conversionNote);
+  });
+
+  it("BTC option: ctVal=1, lastPx=84000, sz=200000 → contracts=2", async () => {
+    // 200000 / (1 * 84000) = 2.38... → floor = 2
+    const { client } = makeMockClient(
+      [{ ctVal: "1" }],
+      [{ last: "84000" }],
+    );
+    const result = await resolveQuoteCcySz(
+      "BTC-USD-260405-90000-C",
+      "200000",
+      "quote_ccy",
+      "OPTION",
+      client as never,
+    );
+    assert.equal(result.sz, "2");
+    assert.equal(result.tgtCcy, undefined);
+  });
+
+  it("BTC option: sz too small (1000 USDT < 1 contract) → throws", async () => {
+    // 1000 / (1 * 84000) = 0.011... → floor = 0
+    const { client } = makeMockClient(
+      [{ ctVal: "1" }],
+      [{ last: "84000" }],
+    );
+    await assert.rejects(
+      () =>
+        resolveQuoteCcySz(
+          "BTC-USD-260405-90000-C",
+          "1000",
+          "quote_ccy",
+          "OPTION",
+          client as never,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes("too small"));
+        return true;
+      },
+    );
+  });
+
+  it("OPTION passthrough: tgtCcy=undefined, no conversion", async () => {
+    const { client, calls } = makeMockClient([], []);
+    const result = await resolveQuoteCcySz(
+      "BTC-USD-260405-90000-C",
+      "5",
+      undefined,
+      "OPTION",
+      client as never,
+    );
+    assert.equal(result.sz, "5");
+    assert.equal(result.tgtCcy, undefined);
+    assert.equal(calls.length, 0);
+  });
+});

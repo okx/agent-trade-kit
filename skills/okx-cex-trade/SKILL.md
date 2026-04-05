@@ -136,7 +136,7 @@ Use `ctVal` to:
 
 ### Option orders
 
-Options do **NOT** support `tgtCcy`. When the user specifies a USDT amount for options, you must convert manually. For the full conversion formula and validation steps, read `{baseDir}/references/options-commands.md`.
+When the user specifies a USDT amount for options, use `--tgtCcy quote_ccy` and pass the amount as `--sz`. The system automatically converts the USDT amount to the equivalent number of contracts based on the current market price and contract face value. Note: option contracts typically have large face values (e.g. ctVal=1 BTC ≈ $84,000), so the minimum USDT amount for 1 contract is high.
 
 ## Quickstart
 
@@ -323,7 +323,7 @@ For cross-skill workflows and step-by-step examples, read `{baseDir}/references/
 **Write commands** (place, cancel, amend, close, leverage, algo): confirm the key order details once before executing:
 - Spot place: confirm `--instId`, `--side`, `--ordType`, `--sz` (and `--tgtCcy quote_ccy` if quote-currency amount)
 - Swap/Futures place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` if quote-currency amount)
-- Option place: Options do NOT support `--tgtCcy` — manually convert USDT to contracts using instrument metadata; confirm `--instId`, `--side`, `--sz`, `--tdMode`; do NOT attach TP/SL
+- Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` if quote-currency amount — system auto-converts); do NOT attach TP/SL
 - Swap/Futures close: confirm `--instId`, `--mgnMode`, `--posSide`
 - Leverage: confirm new leverage and impact on existing positions
 - Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx -1` for market execution
