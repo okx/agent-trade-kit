@@ -180,6 +180,7 @@ export async function cmdOptionPlace(
     side: string;
     ordType: string;
     sz: string;
+    tgtCcy?: string;
     px?: string;
     reduceOnly?: boolean;
     clOrdId?: string;
@@ -196,6 +197,7 @@ export async function cmdOptionPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     px: opts.px,
     reduceOnly: opts.reduceOnly,
     clOrdId: opts.clOrdId,
