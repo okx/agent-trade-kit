@@ -214,7 +214,7 @@ export async function cmdEventBrowse(
       contracts.map((c) => ({
         "Contract": c["instId"],
         "Expiry":   c["expTime"] ?? "",
-        "Strike":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
+        "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
         "Status":   String(c["outcome"] ?? "").toLowerCase() === "pending" ? "In Progress" : String(c["outcome"] ?? ""),
       })),
     );
@@ -476,7 +476,7 @@ export async function cmdEventPlace(
             active.slice(0, 3).map((m) => ({
               instId:  m["instId"],
               expTime: m["expTime"] ?? "",
-              strike:  m["floorStrike"] ?? "",
+              targetPrice:  m["floorStrike"] ?? "",
             })),
           );
           const next = active[0]!;
