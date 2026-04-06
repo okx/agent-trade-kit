@@ -14,7 +14,6 @@
 | event_get_series  R  列出事件合约 |
 | event_get_events  R  列出事件 |
 | event_get_markets R 列出市场的Yes/No概率 |
-| event_precheck_order R 下单预检 |
 | event_palce_order W  下单 |
 | event_cancel_order W 撤单 |
 | event_get_orders  R 查询订单 state=live为挂单 |
@@ -26,4 +25,4 @@
 
 ## 典型 Workflow
 
-看市场 -> 预检查 -> 下单
+看市场 -> 下单

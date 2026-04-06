@@ -51,7 +51,32 @@ After success: state ordId, order type, and offer to check fill status (`okx eve
 
 ---
 
-## Scenario 2b: Check Order Status After Placing
+## Scenario 3: Direction Analysis (UP/DOWN Contracts)
+
+> Trigger: user asks about UP/DOWN contracts without specifying direction, or asks "should I buy UP or DOWN?"
+
+Extract the underlying from the seriesId (e.g. `BTC-UPDOWN-15MIN` → `BTC-USDT`) and fetch candle data in parallel:
+
+```
+Step 1 (parallel):
+  okx market index-candles BTC-USDT --bar 15m --limit 20  → recent 20 candles of 15m OHLCV
+  okx market index-candles BTC-USDT --bar 1H --limit 8    → 8 candles of 1H for trend context
+```
+
+Analyze the raw OHLCV data and present:
+- Overall trend direction (based on recent closes and highs/lows pattern)
+- Short-term momentum (last few candles)
+- Recommended direction: **UP** or **DOWN**
+- Confidence: High / Medium / Low
+- Brief reasoning (2–3 sentences)
+
+Then ask: "Based on the analysis, I recommend **{UP/DOWN}** ({confidence}). Would you like to place the order in that direction, or choose differently?"
+
+This is a data-driven suggestion — the user makes the final call.
+
+---
+
+## Scenario 4: Check Order Status After Placing
 
 > User: "Has my order been filled?"
 
@@ -69,7 +94,7 @@ Response includes: fill price, quantity, current max loss (cost + fees), and a n
 
 ---
 
-## Scenario 3: Place 15min Contract (UP/DOWN)
+## Scenario 5: Place 15min Contract (UP/DOWN)
 
 > User: "Bet that BTC rises in the next 15 minutes — buy 5 contracts, market order"
 
@@ -86,7 +111,7 @@ For market orders: note that they fill immediately; offer to confirm via `okx ev
 
 ---
 
-## Scenario 4: Check Positions and Context
+## Scenario 6: Check Positions and Context
 
 > User: "What event contract positions do I currently have?"
 
@@ -111,15 +136,15 @@ Expired position response includes: ⚠️ warning, settlement price, outcome (Y
 > User: "Close my YES position"
 
 ```
-Step 1: okx event precheck BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market
-Step 2: show exit summary
-Step 3: [user confirms]
-okx event place BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market
+Step 1: [user confirms]
+okx event place BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market --close
 ```
+
+(`reduceOnly` is automatically applied for sell orders — do not pass it.)
 
 ---
 
-## Scenario 5: Check Settlement Result
+## Scenario 7: Check Settlement Result
 
 > User: "Has today's BTC contract settled? What was the outcome?"
 
@@ -132,40 +157,30 @@ Present as a table with date, strike, settlement price, and outcome (✅/❌).
 
 ---
 
-## Scenario 6: Error Handling — Cancel Non-existent Order
+## Scenario 8: Cancel Order
 
-> User: "Cancel order EVT-ORDER-001"
+> User: "Cancel order EVT-ORDER-001" / "Cancel my order 800000024"
 
-```
-okx event cancel BTC-ABOVE-DAILY-260320-1600-69700 --ordId EVT-ORDER-001
-→ exchange returns sCode: 51400
-```
-
-Never show `sCode`. Respond in user language: explain the order no longer exists (filled, cancelled, or wrong ID), then offer to check fills or current positions.
-
----
-
-## Scenario 6b: Cancel Order When User Only Has ordId (No instId)
-
-> User: "Cancel my order 800000024"
-
-`okx event cancel` requires both instId and ordId. Never ask the user for instId — look it up first.
+`okx event cancel` requires both instId and ordId. If the user only provides ordId, look up instId first — never ask the user for it.
 
 ```
 Step 1: okx event orders --state live
 → if ordId found: use that row's instId
-
-Step 1b (if not found): okx event orders [history, no --state flag]
-→ find matching ordId, extract instId
+→ if not found: okx event orders [history, no --state flag]
+   → find matching ordId, extract instId
 
 Step 2: okx event cancel <instId> <ordId>
+→ on sCode 51400: order no longer exists (filled, cancelled, or wrong ID)
+   → offer to check fills or current positions
 ```
 
 If ordId not found in any order list: explain it may be outside history range or the ID may be incorrect; ask the user for strike price and expiry date to help locate it.
 
+Never show `sCode`. Always give a next step.
+
 ---
 
-## Scenario 7: Order History and Fills
+## Scenario 9: Order History and Fills
 
 > User: "Show my recent event contract fills"
 
@@ -184,7 +199,7 @@ okx event orders --state live
 
 ## Key Rules for AI Agents
 
-1. **Always run precheck before placing**: mandatory — pull actual fee, then show max loss / max win / expiry condition / time remaining. Never state the fee formula.
+1. **Place directly after user confirms** — no pre-flight check required.
 2. **Check settlement.method**: determines which outcomes apply (UP/DOWN for `price_up_down`; YES/NO for `price_above`/`price_once_touch`).
 3. **Confirm outcome with user** if unclear.
 4. **px is probability, not price**: 0.00~1.00 (e.g. 0.55 = 55%). Always explain this.
