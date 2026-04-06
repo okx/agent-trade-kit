@@ -161,7 +161,7 @@ okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1000 \
 # Long 1 contract with attached TP/SL (one step)
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 \
   --tdMode cross --posSide long \
-  --tpTriggerPx 105000 --tpOrdPx -1 --slTriggerPx 88000 --slOrdPx -1
+  --tpTriggerPx 105000 --tpOrdPx=-1 --slTriggerPx 88000 --slOrdPx=-1
 
 # Close BTC perp long position entirely at market
 okx swap close --instId BTC-USDT-SWAP --mgnMode cross --posSide long
@@ -171,8 +171,8 @@ okx swap leverage --instId BTC-USDT-SWAP --lever 10 --mgnMode cross
 
 # Set TP/SL on a spot BTC position
 okx spot algo place --instId BTC-USDT --side sell --ordType oco --sz 0.01 \
-  --tpTriggerPx 105000 --tpOrdPx -1 \
-  --slTriggerPx 88000 --slOrdPx -1
+  --tpTriggerPx 105000 --tpOrdPx=-1 \
+  --slTriggerPx 88000 --slOrdPx=-1
 
 # Place trailing stop on BTC perp long (callback 2%)
 okx swap algo trail --instId BTC-USDT-SWAP --side sell --sz 1 \
@@ -326,7 +326,7 @@ For cross-skill workflows and step-by-step examples, read `{baseDir}/references/
 - Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` if quote-currency amount — system auto-converts); do NOT attach TP/SL
 - Swap/Futures close: confirm `--instId`, `--mgnMode`, `--posSide`
 - Leverage: confirm new leverage and impact on existing positions
-- Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx -1` for market execution
+- Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx=-1` for market execution
 - Algo trail: confirm `--callbackRatio` (e.g., `0.02` = 2%) or `--callbackSpread`
 
 For full parameter details per command, read the relevant reference file.

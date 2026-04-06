@@ -21,8 +21,8 @@
         ↓ user approves
 3. okx-cex-trade     okx swap place --instId BTC-USDT-SWAP --side buy \
                        --ordType market --sz 5 --tdMode cross --posSide long \
-                       --tpTriggerPx 105000 --tpOrdPx -1 \
-                       --slTriggerPx 88000 --slOrdPx -1
+                       --tpTriggerPx 105000 --tpOrdPx=-1 \
+                       --slTriggerPx 88000 --slOrdPx=-1
 4. okx-cex-trade     okx swap positions                     → confirm position opened
 ```
 
@@ -205,7 +205,7 @@ okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 10 \
 ```bash
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 10 \
   --tdMode cross --posSide long \
-  --tpTriggerPx 105000 --tpOrdPx -1 --slTriggerPx 88000 --slOrdPx -1
+  --tpTriggerPx 105000 --tpOrdPx=-1 --slTriggerPx 88000 --slOrdPx=-1
 # → Order placed: 7890123459 (OK) — TP/SL attached via attachAlgoOrds
 ```
 
@@ -213,8 +213,8 @@ okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 10 \
 ```bash
 okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType oco --sz 10 \
   --tdMode cross --posSide long \
-  --tpTriggerPx 105000 --tpOrdPx -1 \
-  --slTriggerPx 88000 --slOrdPx -1
+  --tpTriggerPx 105000 --tpOrdPx=-1 \
+  --slTriggerPx 88000 --slOrdPx=-1
 # → Algo order placed: ALGO456789 (OK)
 ```
 
@@ -280,8 +280,8 @@ okx futures leverage --instId BTC-USDT-260328 --lever 10 --mgnMode cross
 ```bash
 okx futures algo place --instId ETH-USDT-260328 --side sell --ordType oco --sz 5 \
   --tdMode cross --posSide long \
-  --tpTriggerPx 105000 --tpOrdPx -1 \
-  --slTriggerPx 88000 --slOrdPx -1
+  --tpTriggerPx 105000 --tpOrdPx=-1 \
+  --slTriggerPx 88000 --slOrdPx=-1
 # → Algo order placed: ALGO789012 (OK)
 ```
 
