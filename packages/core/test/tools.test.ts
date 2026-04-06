@@ -4124,3 +4124,69 @@ describe("option_place_algo_order — tgtCcy conversion", () => {
     assert.equal(call.params.sz, "5", "sz should pass through unchanged");
   });
 });
+
+// ---------------------------------------------------------------------------
+// option_place_order — tgtCcy conversion via resolveQuoteCcySz
+// ---------------------------------------------------------------------------
+
+describe("option_place_order — tgtCcy conversion", () => {
+  const tools = registerOptionTools();
+  const tool = tools.find((t) => t.name === "option_place_order")!;
+
+  it("converts tgtCcy=quote_ccy to contracts", async () => {
+    const calls: CapturedCall[] = [];
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "GET", endpoint, params });
+        if (endpoint.includes("/public/instruments")) {
+          return { endpoint, requestTime: "", data: [{ ctVal: "1" }] };
+        }
+        if (endpoint.includes("/market/ticker")) {
+          return { endpoint, requestTime: "", data: [{ last: "84000" }] };
+        }
+        return { endpoint, requestTime: "", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        calls.push({ method: "POST", endpoint, params });
+        return { endpoint, requestTime: "", data: [{ sCode: "0", ordId: "456" }] };
+      },
+    };
+
+    // 200000 USDT / (1 * 84000) = 2.38 → floor = 2
+    await tool.handler(
+      {
+        instId: "BTC-USD-260405-90000-C",
+        tdMode: "cross",
+        side: "buy",
+        ordType: "market",
+        sz: "200000",
+        tgtCcy: "quote_ccy",
+      },
+      makeContext(client),
+    );
+
+    const postCall = calls.find((c) => c.method === "POST");
+    assert.ok(postCall, "should POST");
+    assert.equal(postCall!.params.sz, "2", "200k USDT → 2 contracts");
+    assert.equal(postCall!.params.tgtCcy, undefined, "tgtCcy stripped");
+  });
+
+  it("passes sz unchanged without tgtCcy", async () => {
+    const { client, getLastCall } = makeMockClient();
+
+    await tool.handler(
+      {
+        instId: "BTC-USD-260405-90000-C",
+        tdMode: "cross",
+        side: "buy",
+        ordType: "market",
+        sz: "3",
+      },
+      makeContext(client),
+    );
+
+    const call = getLastCall()!;
+    assert.equal(call.params.sz, "3");
+    assert.equal(call.params.tgtCcy, undefined, "tgtCcy should not be passed when not specified");
+  });
+});

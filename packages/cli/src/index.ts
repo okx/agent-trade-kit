@@ -670,6 +670,7 @@ export function handleOptionCommand(
       side: v.side!,
       ordType: v.ordType!,
       sz: v.sz!,
+      tgtCcy: v.tgtCcy,
       px: v.px,
       reduceOnly: v.reduceOnly,
       clOrdId: v.clOrdId,

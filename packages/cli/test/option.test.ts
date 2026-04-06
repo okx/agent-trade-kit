@@ -172,6 +172,45 @@ describe("cmdOptionBatchCancel", () => {
   });
 });
 
+describe("cmdOptionPlace tgtCcy routing", () => {
+  it("passes tgtCcy to runner when provided", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "POST /api/v5/trade/order", requestTime: new Date().toISOString(), data: [{ ordId: "1", sCode: "0" }] };
+    };
+    await cmdOptionPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cash",
+      side: "buy",
+      ordType: "limit",
+      sz: "1",
+      px: "0.05",
+      tgtCcy: "USDT",
+      json: false,
+    });
+    assert.equal(capturedArgs["tgtCcy"], "USDT", "tgtCcy should be routed to runner");
+  });
+
+  it("tgtCcy is undefined when not provided", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return { endpoint: "POST /api/v5/trade/order", requestTime: new Date().toISOString(), data: [{ ordId: "1", sCode: "0" }] };
+    };
+    await cmdOptionPlace(runner, {
+      instId: "BTC-USD-241227-50000-C",
+      tdMode: "cash",
+      side: "buy",
+      ordType: "limit",
+      sz: "1",
+      px: "0.05",
+      json: false,
+    });
+    assert.equal(capturedArgs["tgtCcy"], undefined, "tgtCcy should be undefined when not passed");
+  });
+});
+
 describe("cmdOptionPlace with TP/SL", () => {
   it("passes tpTriggerPx and slTriggerPx to runner", async () => {
     let capturedArgs: Record<string, unknown> = {};

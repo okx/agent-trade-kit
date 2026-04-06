@@ -10,6 +10,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
+import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
 
 export function registerOptionTools(): ToolSpec[] {
   return [
@@ -42,7 +43,12 @@ export function registerOptionTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
+            description: "Contracts count by default. Set tgtCcy=quote_ccy to use USDT amount instead.",
+          },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT (auto-converted to contracts)",
           },
           px: {
             type: "string",
@@ -79,6 +85,13 @@ export function registerOptionTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
+        const resolved = await resolveQuoteCcySz(
+          requireString(args, "instId"),
+          requireString(args, "sz"),
+          readString(args, "tgtCcy"),
+          "OPTION",
+          context.client,
+        );
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -86,7 +99,8 @@ export function registerOptionTools(): ToolSpec[] {
             tdMode: requireString(args, "tdMode"),
             side: requireString(args, "side"),
             ordType: requireString(args, "ordType"),
-            sz: requireString(args, "sz"),
+            sz: resolved.sz,
+            tgtCcy: resolved.tgtCcy,
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
