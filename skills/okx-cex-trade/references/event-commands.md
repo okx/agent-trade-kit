@@ -97,30 +97,9 @@ Recommended workflow to obtain instId:
 1. `okx event series` → select a seriesId (e.g. `BTC-ABOVE-DAILY`)
 2. `okx event events <seriesId> --state live` → see active events and their eventId
 3. `okx event markets <seriesId> --state live` → see each tradeable instId with current probability
-4. Use the instId from step 3 in precheck / place / cancel commands
+4. Use the instId from step 3 in place / cancel commands
 
 ## Private Commands (API key required)
-
-### `okx event precheck`
-
-Dry-run an order. **Always run before placing.**
-
-```bash
-okx event precheck <instId> <side> <outcome> <sz> \
-  [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>] [--json]
-```
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `instId` | string | Yes | Instrument ID (positional) |
-| `side` | string | Yes | `buy` or `sell` (positional) |
-| `outcome` | string | Yes | `UP`, `YES`, `DOWN`, or `NO` (positional) |
-| `sz` | string | Yes | Number of contracts (positional) |
-| `--px` | string | No | Limit price as probability 0.00~1.00; required when `ordType=limit` |
-| `--ordType` | string | No | `market` (default), `limit`, or `post_only` |
-| `--slippage` | string | No | Max slippage ratio 0~1 (default `0.05`); market orders only |
-
----
 
 ### `okx event place` ⚠️ WRITE
 
@@ -136,7 +115,7 @@ okx event place <instId> <side> <outcome> <sz> \
 | `instId` | string | Yes | Instrument ID (positional) |
 | `side` | string | Yes | `buy` = open, `sell` = close (positional) |
 | `outcome` | string | Yes | `UP`, `YES`, `DOWN`, or `NO` (positional) |
-| `sz` | string | Yes | Number of contracts (positional) |
+| `sz` | string | Yes | For limit/post_only: number of contracts. For market: quote currency amount |
 | `--px` | string | No | Limit price as probability 0.00~1.00; required when `ordType=limit`; omit for market orders |
 | `--ordType` | string | No | `market` (default), `limit`, or `post_only` |
 | `--slippage` | string | No | Max slippage ratio 0~1 (default `0.05`); market orders only |

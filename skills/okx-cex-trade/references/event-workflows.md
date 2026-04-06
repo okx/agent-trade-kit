@@ -38,18 +38,11 @@ Buy YES = bet that BTC > strike at expiry; max gain per contract is (1 − entry
 Step 1: okx market ticker BTC-ABOVE-DAILY-260320-1600-69700
 → Check current ask; if user's limit px > ask, likely fills immediately
 
-Step 2 [MANDATORY]: okx event precheck BTC-ABOVE-DAILY-260320-1600-69700 buy YES 10 --px 0.6 --ordType limit
-→ Pull actual fee from response; compute net figures before showing summary
-```
+Step 2: Show summary before placing:
+→ Cost = sz × px (e.g. 10 × 0.6 = 6 USDT)
+→ Max gain = sz × (1 − px) (e.g. 10 × 0.4 = 4 USDT)
+→ Max loss = cost (6 USDT)
 
-Show summary before placing. Key fields to compute:
-- Max loss = `estCost + estFee`
-- Net max gain = `estMaxWin − estCost − estFee`
-- If `estFee > estCost`, warn user with ⚠️ before confirming.
-
-(`estMaxWin` = gross payout, NOT profit.)
-
-```
 Step 3: [user confirms]
 okx event place BTC-ABOVE-DAILY-260320-1600-69700 buy YES 10 --px 0.6 --ordType limit
 ```
@@ -84,11 +77,9 @@ Response includes: fill price, quantity, current max loss (cost + fees), and a n
 Step 1: okx event markets BTC-15MIN --state live
 → Find current live 15min event and its instId
 
-Step 2 [MANDATORY]: okx event precheck BTC-15MIN-260320-1600 buy UP 5 --ordType market
-→ Pull fee; compute max loss and max gain
-
-Step 3: [user confirms]
+Step 2: [user confirms]
 okx event place BTC-15MIN-260320-1600 buy UP 5 --ordType market
+→ For market orders, sz is quote currency amount (e.g. 5)
 ```
 
 For market orders: note that they fill immediately; offer to confirm via `okx event fills`.

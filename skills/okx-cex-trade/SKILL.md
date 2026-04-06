@@ -209,9 +209,6 @@ okx event series
 # Browse live markets in a series
 okx event markets BTC-ABOVE-DAILY --state live
 
-# Precheck before placing (dry-run)
-okx event precheck --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome YES --sz 10
-
 # Place event contract order
 okx event place --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome YES --sz 10
 ```
@@ -297,18 +294,17 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and edge cases, read `{baseDir}/references/options-commands.md`.
 
-### Event Contract Orders (8 commands)
+### Event Contract Orders (7 commands)
 
 | # | Command | Type | Description |
 |---|---|---|---|
 | 52 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
 | 53 | `okx event events <seriesId>` | READ | List events in a series |
 | 54 | `okx event markets <seriesId>` | READ | List markets; expired includes outcome/settleValue |
-| 55 | `okx event precheck ...` | READ | Dry-run order, returns cost/risk estimate |
-| 56 | `okx event place ...` | WRITE | Place event order (outcome required) |
-| 57 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
-| 58 | `okx event orders` | READ | Pending or historical orders |
-| 59 | `okx event fills` | READ | Fill history |
+| 55 | `okx event place ...` | WRITE | Place event order (outcome required) |
+| 56 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
+| 57 | `okx event orders` | READ | Pending or historical orders |
+| 58 | `okx event fills` | READ | Fill history |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/event-commands.md`.
 
@@ -362,17 +358,17 @@ Event contract trading flow:
 1. **Discover** → `okx event series` — present results grouped by type; highlight named series; always show the seriesId
 2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market
 3. **Check event details** → `okx event events <seriesId>`
-4. **Precheck** → `okx event precheck <instId> <side> <outcome> <sz>` — show max loss / max win / expiry condition to user
-5. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
-6. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
-7. **Exit or settle** → sell via `okx event place <instId> sell <outcome> <sz>`, or wait for `--state expired`
+4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
+5. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
+6. **Exit or settle** → sell via `okx event place <instId> sell <outcome> <sz>`, or wait for `--state expired`
 
 Edge cases:
 - **Settled results**: `okx event markets <seriesId> --state expired` — no separate ended tool
 
-**Event Contract sz Conversion Rules:**
+**Event Contract sz Rules:**
 
-Event contract `--sz` is number of contracts (integer, each contract = 1 USDT face value). When user specifies a USDT amount (e.g. "10U", "$50"), compute: `sz = floor(amount / px)` where `px` is the current market price (0–1 range). Always show the conversion to the user and wait for confirmation before placing.
+- **Market order** (`ordType=market`): `--sz` is quote currency amount.
+- **Limit order** (`ordType=limit` / `post_only`): `--sz` is number of contracts (integer). Each contract settles at 1 USDT; cost per contract = `px` (probability 0~1). E.g. 10 contracts at px=0.5 costs 5 USDT.
 
 For event contract workflows and step-by-step examples, read `{baseDir}/references/event-workflows.md`.
 

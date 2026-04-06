@@ -29,7 +29,7 @@ import {
   readString,
   requireString,
 } from "./helpers.js";
-import { assertNotDemo, privateRateLimit, publicRateLimit } from "./common.js";
+import { privateRateLimit, publicRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
 
 /** Translate raw outcome codes to human-readable labels. */
@@ -546,7 +546,7 @@ export function registerEventContractTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Order size (number of contracts)",
+            description: "For limit/post_only: number of contracts. For market: quote currency amount.",
           },
           px: {
             type: "string",
@@ -560,7 +560,6 @@ export function registerEventContractTools(): ToolSpec[] {
         required: ["instId", "side", "outcome", "sz"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "event_place_order");
         const args = asRecord(rawArgs);
         const ordType = readString(args, "ordType") ?? "market";
         // speedBump is required by the exchange for all non-post_only event contract orders.
@@ -629,7 +628,6 @@ export function registerEventContractTools(): ToolSpec[] {
         required: ["instId", "ordId"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "event_amend_order");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/trade/amend-order",
@@ -666,7 +664,6 @@ export function registerEventContractTools(): ToolSpec[] {
         required: ["instId", "ordId"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "event_cancel_order");
         const args = asRecord(rawArgs);
         const instId = requireString(args, "instId");
         const response = await context.client.privatePost(
