@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **SWAP/FUTURES/options `tgtCcy=quote_ccy` auto-conversion**: when `tgtCcy=quote_ccy` is set on SWAP, FUTURES, or options algo orders, the handler now automatically converts the USDT amount to contract count before sending to the OKX API — preventing silent position amplification where e.g. "100 USDT" became "100 contracts (~$6,700)". Conversion fetches `ctVal` and `lastPx` in parallel and logs a `_conversion` note in the response. (#114)
+- **`dcd_subscribe` yield threshold comparison**: OKX API returns `annualizedYield` as a decimal fraction (e.g. `0.18` = 18%), but `minAnnualizedYield` was compared directly against the raw value, causing all yield threshold checks to fail. Now correctly multiplies by 100 before comparison. Also rejects with `INVALID_YIELD_VALUE` when the quote returns a non-numeric yield.
+- **DCD tool descriptions**: Added yield unit clarification (`annualizedYield` is decimal, not percent) to `dcd_get_products`, `dcd_get_orders`, and `dcd_subscribe` descriptions to prevent LLM misinterpretation.
 
 ---
 

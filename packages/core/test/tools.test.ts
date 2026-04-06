@@ -3522,7 +3522,7 @@ describe("dcd_subscribe", () => {
   const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "dcd_subscribe")!;
 
-  function makeSubscribeClient(quoteData: Record<string, unknown> = { quoteId: "q-sub-123", annualizedYield: "18.5" }) {
+  function makeSubscribeClient(quoteData: Record<string, unknown> = { quoteId: "q-sub-123", annualizedYield: "0.185" }) {
     const calls: CapturedCall[] = [];
     const client = {
       publicGet: async (endpoint: string, params: Record<string, unknown>) => {
@@ -3568,7 +3568,7 @@ describe("dcd_subscribe", () => {
   });
 
   it("passes quoteId from quote response to trade", async () => {
-    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-abc-456", annualizedYield: "20" });
+    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-abc-456", annualizedYield: "0.20" });
     await tool.handler(
       { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC" },
       makeContext(client),
@@ -3595,7 +3595,8 @@ describe("dcd_subscribe", () => {
   });
 
   it("rejects with YIELD_BELOW_MIN when quote yield is below minAnnualizedYield", async () => {
-    const { client } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "15" });
+    // API returns annualizedYield as decimal: 0.15 = 15%
+    const { client } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "0.15" });
     await assert.rejects(
       () => tool.handler(
         { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", minAnnualizedYield: 18 },
@@ -3606,12 +3607,35 @@ describe("dcd_subscribe", () => {
   });
 
   it("does not reject when quote yield meets minAnnualizedYield", async () => {
-    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "20" });
+    // API returns annualizedYield as decimal: 0.20 = 20%
+    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "0.20" });
     await tool.handler(
       { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", minAnnualizedYield: 18 },
       makeContext(client),
     );
     assert.equal(getCalls().length, 2);
+  });
+
+  it("does not reject when quote yield exactly equals minAnnualizedYield", async () => {
+    // 0.18 * 100 = 18, threshold is 18 → should pass (uses < not <=)
+    const { client, getCalls } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "0.18" });
+    await tool.handler(
+      { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", minAnnualizedYield: 18 },
+      makeContext(client),
+    );
+    assert.equal(getCalls().length, 2);
+  });
+
+  // NaN guard only fires when minAnnualizedYield is set; without it, non-numeric yield is ignored
+  it("rejects with INVALID_YIELD_VALUE when annualizedYield is non-numeric", async () => {
+    const { client } = makeSubscribeClient({ quoteId: "q-test", annualizedYield: "not-a-number" });
+    await assert.rejects(
+      () => tool.handler(
+        { productId: "BTC-USDT-260327-77000-C", notionalSz: "0.1", notionalCcy: "BTC", minAnnualizedYield: 10 },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "INVALID_YIELD_VALUE",
+    );
   });
 
   it("rejects in demo mode", async () => {
