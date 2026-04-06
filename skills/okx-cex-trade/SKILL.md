@@ -1,6 +1,6 @@
 ---
 name: okx-cex-trade
-description: "This skill should be used when the user asks to 'buy BTC', 'sell ETH', 'place a limit order', 'place a market order', 'cancel my order', 'amend my order', 'long BTC perp', 'short ETH swap', 'open a position', 'close a position', 'set take profit', 'set stop loss', 'add a trailing stop', 'set leverage', 'check my orders', 'order status', 'fill history', 'trade history', 'buy a call', 'sell a put', 'buy call option', 'sell put option', 'option chain', 'implied volatility', 'IV', 'option Greeks', 'delta', 'gamma', 'theta', 'vega', 'delta hedge', 'option order', 'option position', 'option fills', or any request to place/cancel/amend spot, perpetual swap, delivery futures, or options orders on OKX CEX. Covers spot trading, swap/perpetual contracts, delivery futures, options (calls/puts, Greeks, IV), and conditional (TP/SL/trailing) algo orders. Requires API credentials. Do NOT use for market data (use okx-cex-market), account balance/positions (use okx-cex-portfolio), or grid/DCA bots (use okx-cex-bot)."
+description: "This skill should be used when the user asks to 'buy BTC', 'sell ETH', 'place a limit order', 'place a market order', 'cancel my order', 'amend my order', 'long BTC perp', 'short ETH swap', 'open a position', 'close a position', 'set take profit', 'set stop loss', 'add a trailing stop', 'set leverage', 'check my orders', 'order status', 'fill history', 'trade history', 'buy a call', 'sell a put', 'buy call option', 'sell put option', 'option chain', 'implied volatility', 'IV', 'option Greeks', 'delta', 'gamma', 'theta', 'vega', 'delta hedge', 'option order', 'option position', 'option fills', 'event contract', 'buy Yes', 'buy No', 'buy Up', 'buy Down', 'BTC above', 'price above', '15min price', 'prediction market', or any request to place/cancel/amend spot, perpetual swap, delivery futures, options, or event contract orders on OKX CEX. Covers spot trading, swap/perpetual contracts, delivery futures, options (calls/puts, Greeks, IV), event contracts (binary Yes/No or Up/Down outcomes), and conditional (TP/SL/trailing) algo orders. Requires API credentials. Do NOT use for market data (use okx-cex-market), account balance/positions (use okx-cex-portfolio), or grid/DCA bots (use okx-cex-bot)."
 license: MIT
 metadata:
   author: okx
@@ -19,7 +19,7 @@ metadata:
 
 # OKX CEX Trading CLI
 
-Spot, perpetual swap, delivery futures, and **options** order management on OKX exchange. Place, cancel, amend, and monitor orders; query option chains and Greeks; set take-profit/stop-loss and trailing stops; manage leverage and positions. **Requires API credentials.**
+Spot, perpetual swap, delivery futures, **options**, and **event contract** order management on OKX exchange. Place, cancel, amend, and monitor orders; query option chains and Greeks; trade binary outcome event contracts (Yes/No, Up/Down); set take-profit/stop-loss and trailing stops; manage leverage and positions. **Requires API credentials.**
 
 ## Preflight
 
@@ -108,6 +108,7 @@ Profile is the single control for 实盘/模拟盘 switching:
 - For market data (prices, charts, depth, funding rates) → use `okx-cex-market`
 - For account balance, P&L, positions, fees, transfers → use `okx-cex-portfolio`
 - For regular spot/swap/futures/options/algo orders → use `okx-cex-trade` (this skill)
+- For event contracts (prediction markets, binary outcomes) → use `okx-cex-trade` (this skill)
 - For grid and DCA trading bots → use `okx-cex-bot`
 
 ## Sz Handling for Derivatives
@@ -200,6 +201,19 @@ okx swap positions
 
 # Cancel a spot order
 okx spot cancel --instId BTC-USDT --ordId <ordId>
+
+# --- Event Contract ---
+# List event series
+okx event series
+
+# Browse live markets in a series
+okx event markets BTC-ABOVE-DAILY --state live
+
+# Precheck before placing (dry-run)
+okx event precheck --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome YES --sz 10
+
+# Place event contract order
+okx event place --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome YES --sz 10
 ```
 
 ## Command Index
@@ -283,6 +297,21 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and edge cases, read `{baseDir}/references/options-commands.md`.
 
+### Event Contract Orders (8 commands)
+
+| # | Command | Type | Description |
+|---|---|---|---|
+| 52 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
+| 53 | `okx event events <seriesId>` | READ | List events in a series |
+| 54 | `okx event markets <seriesId>` | READ | List markets; expired includes outcome/settleValue |
+| 55 | `okx event precheck ...` | READ | Dry-run order, returns cost/risk estimate |
+| 56 | `okx event place ...` | WRITE | Place event order (outcome required) |
+| 57 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
+| 58 | `okx event orders` | READ | Pending or historical orders |
+| 59 | `okx event fills` | READ | Fill history |
+
+For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/event-commands.md`.
+
 ## Operation Flow
 
 ### Step 0 — Credential & Profile Check
@@ -323,6 +352,30 @@ After every command result: append `[profile: live]` or `[profile: demo]`.
 - Query → `okx option orders/get/positions/fills`
 - **tdMode**: `cash` for buyers; `cross` or `isolated` for sellers
 
+**Event Contracts**:
+
+instId format: `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` for price_above/price_once_touch (e.g. `BTC-ABOVE-DAILY-260224-1600-70000`), or `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}` for price_up_down (e.g. `BTC-UPDOWN-15MIN-260224-1600`). Always obtain instId from `okx event markets <seriesId>` — never guess or use placeholders.
+
+seriesId: human-readable (e.g. `BTC-ABOVE-DAILY`, `BTC-UPDOWN-15MIN`) or internal random string (e.g. `FMQRZ`). Both are valid for subsequent commands. Obtain from `okx event series`.
+
+Event contract trading flow:
+1. **Discover** → `okx event series` — present results grouped by type; highlight named series; always show the seriesId
+2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market
+3. **Check event details** → `okx event events <seriesId>`
+4. **Precheck** → `okx event precheck <instId> <side> <outcome> <sz>` — show max loss / max win / expiry condition to user
+5. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
+6. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
+7. **Exit or settle** → sell via `okx event place <instId> sell <outcome> <sz>`, or wait for `--state expired`
+
+Edge cases:
+- **Settled results**: `okx event markets <seriesId> --state expired` — no separate ended tool
+
+**Event Contract sz Conversion Rules:**
+
+Event contract `--sz` is number of contracts (integer, each contract = 1 USDT face value). When user specifies a USDT amount (e.g. "10U", "$50"), compute: `sz = floor(amount / px)` where `px` is the current market price (0–1 range). Always show the conversion to the user and wait for confirmation before placing.
+
+For event contract workflows and step-by-step examples, read `{baseDir}/references/event-workflows.md`.
+
 For cross-skill workflows and step-by-step examples, read `{baseDir}/references/workflows.md`.
 
 ### Step 2 — Confirm profile, then confirm write parameters
@@ -338,6 +391,7 @@ For cross-skill workflows and step-by-step examples, read `{baseDir}/references/
 - Spot place: confirm `--instId`, `--side`, `--ordType`, `--sz` (and `--tgtCcy quote_ccy` if quote-currency amount)
 - Swap/Futures place: confirm `--instId`, `--side`, `--sz`, `--tdMode`, and **explicitly confirm order mode** when user specifies a USDT amount: `--tgtCcy quote_ccy` (notional value, sz = position value) or `--tgtCcy margin` (margin cost, actual position = sz * leverage). Always state which mode is being used.
 - Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` or `--tgtCcy margin` if USDT amount — system auto-converts); do NOT attach TP/SL
+- Event Contract place: confirm `--instId`, `--side`, `--outcome`, `--sz`, `--ordType`; for market orders sz is quote currency amount, for limit orders sz is number of contracts + `--px` required
 - Swap/Futures close: confirm `--instId`, `--mgnMode`, `--posSide`
 - Leverage: confirm new leverage and impact on existing positions
 - Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx=-1` for market execution
@@ -355,7 +409,9 @@ For full parameter details per command, read the relevant reference file.
 - After spot algo place/trail: run `okx spot algo orders` to confirm algo is active
 - After swap algo place/trail: run `okx swap algo orders` to confirm algo is active
 - After futures algo place/trail: run `okx futures algo orders` to confirm algo is active
-- After cancel: run `okx spot orders` / `okx swap orders` / `okx futures orders` to confirm order is gone
+- After cancel: run `okx spot orders` / `okx swap orders` / `okx futures orders` / `okx event orders` to confirm order is gone
+- After `event place`: run `okx event orders --state live` to confirm order is pending
+- After `event cancel`: run `okx event orders` to confirm order is gone
 
 ## Global Notes
 
