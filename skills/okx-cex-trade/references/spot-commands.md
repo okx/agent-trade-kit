@@ -20,8 +20,8 @@
 ```bash
 okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
   [--tgtCcy <base_ccy|quote_ccy>] [--px <price>] \
-  [--tpTriggerPx <p>] [--tpOrdPx <p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx <p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
   [--json]
 ```
 
@@ -34,9 +34,9 @@ okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--tgtCcy` | No | base_ccy | `base_ccy`: sz in base currency (e.g. SOL amount); `quote_ccy`: sz in quote currency (e.g. USDT amount) |
 | `--px` | Cond. | - | Price — required for `limit`, `post_only`, `fok`, `ioc` |
 | `--tpTriggerPx` | No | - | Attached take-profit trigger price |
-| `--tpOrdPx` | No | - | TP order price; use `-1` for market execution |
+| `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
-| `--slOrdPx` | No | - | SL order price; use `-1` for market execution |
+| `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
 
 ---
 
@@ -65,8 +65,8 @@ Must provide at least one of `--newSz` or `--newPx`.
 okx spot algo place --instId <id> --side <buy|sell> \
   --ordType <oco|conditional|move_order_stop> --sz <n> \
   [--tgtCcy <base_ccy|quote_ccy>] \
-  [--tpTriggerPx <p>] [--tpOrdPx <p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx <p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
   [--callbackRatio <r>] [--callbackSpread <s>] [--activePx <p>] \
   [--json]
 ```
@@ -79,9 +79,9 @@ okx spot algo place --instId <id> --side <buy|sell> \
 | `--sz` | Yes | - | Order size in base currency |
 | `--tgtCcy` | No | base_ccy | `base_ccy`: sz in base currency; `quote_ccy`: sz in quote currency (e.g. USDT) |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
-| `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution |
+| `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | Cond. | - | Stop-loss trigger price |
-| `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution |
+| `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |

@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **CLI 文档：负数值必须使用 `=` 形式**：更新所有 skill 参考文档（swap/futures/spot 命令文档、workflows、SKILL.md），将 `--tpOrdPx -1` / `--slOrdPx -1` 改为 `--tpOrdPx=-1` / `--slOrdPx=-1`，避免 Node `parseArgs()` 将 `-1` 误判为独立 flag。参数说明表中补充说明此语法限制。(#123，关联 #115)
+
 ---
 
 ## [1.2.9-beta.2] - 2026-04-06

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CLI docs: negative values must use `=` form**: Updated all skill references (swap/futures/spot command docs, workflows, SKILL.md) to use `--tpOrdPx=-1` / `--slOrdPx=-1` instead of the space form, which Node `parseArgs()` misinterprets as a flag. Added notes to parameter tables clarifying this requirement. (#123, closes #115)
+
 ---
 
 ## [1.2.9-beta.2] - 2026-04-06

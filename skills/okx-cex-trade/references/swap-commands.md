@@ -7,8 +7,8 @@ okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
   --tdMode <cross|isolated> \
   [--tgtCcy <base_ccy|quote_ccy>] \
   [--posSide <long|short>] [--px <price>] \
-  [--tpTriggerPx <p>] [--tpOrdPx <p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx <p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
   [--json]
 ```
 
@@ -23,9 +23,9 @@ okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--px` | Cond. | - | Price — required for limit orders |
 | `--tpTriggerPx` | No | - | Attached take-profit trigger price |
-| `--tpOrdPx` | No | - | TP order price; use `-1` for market execution |
+| `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
-| `--slOrdPx` | No | - | SL order price; use `-1` for market execution |
+| `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
 
 ---
 
@@ -100,8 +100,8 @@ okx swap algo place --instId <id> --side <buy|sell> \
   --tdMode <cross|isolated> \
   [--tgtCcy <base_ccy|quote_ccy>] \
   [--posSide <long|short>] [--reduceOnly] \
-  [--tpTriggerPx <p>] [--tpOrdPx <p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx <p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
   [--callbackRatio <r>] [--callbackSpread <s>] [--activePx <p>] \
   [--json]
 ```
@@ -117,9 +117,9 @@ okx swap algo place --instId <id> --side <buy|sell> \
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
-| `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution |
+| `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | Cond. | - | Stop-loss trigger price |
-| `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution |
+| `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |
@@ -130,7 +130,7 @@ For `move_order_stop`: provide `--callbackRatio` or `--callbackSpread` (one requ
 ```bash
 okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
   --sz 500 --tgtCcy quote_ccy --tdMode cross --posSide long \
-  --slTriggerPx 60000 --slOrdPx -1
+  --slTriggerPx 60000 --slOrdPx=-1
 ```
 
 ---
