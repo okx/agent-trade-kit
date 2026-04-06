@@ -109,7 +109,7 @@ okx --profile live earn dcd quote-and-buy --productId BTC-USDT-260327-72000-C --
 
 ```json
 {
-  "quote": { "quoteId": "...", "annualizedYield": "18.5", "absYield": "0.00356", "notionalSz": "0.1", "notionalCcy": "BTC" },
+  "quote": { "quoteId": "...", "annualizedYield": "0.185", "absYield": "0.00356", "notionalSz": "0.1", "notionalCcy": "BTC" },
   "order": { "ordId": "...", "state": "initial" },
   "state": { "ordId": "...", "state": "initial", "productId": "...", "strike": "72000", "notionalSz": "0.1", "settleTime": "..." }
 }

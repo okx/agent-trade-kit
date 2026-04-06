@@ -41,6 +41,8 @@ type ProductFilterOpts = {
   expDate?: string;
 };
 
+// Note: minYield is in decimal (0.05 = 5%), matching the raw API format.
+// This differs from --minAnnualizedYield in quote-and-buy which is in percent (18 = 18%).
 function filterByYield(data: Record<string, unknown>[], minYield: number): Record<string, unknown>[] {
   return data.filter((r) => {
     const y = parseFloat(r["annualizedYield"] as string);
@@ -150,7 +152,7 @@ export async function cmdDcdRedeemExecute(
     ordId: r["ordId"],
     state: r["state"],
     redeemSz: q["redeemSz"] ? `${parseFloat(q["redeemSz"] as string).toFixed(8)} ${q["redeemCcy"]}` : "—",
-    termRate: (q["termRate"] as string) ? `${q["termRate"]}%` : "—",
+    termRate: q["termRate"] ? `${(parseFloat(q["termRate"] as string) * 100).toFixed(2)}%` : "—",
   });
 }
 
@@ -210,7 +212,7 @@ export async function cmdDcdOrders(
     quoteCcy: r["quoteCcy"],
     strike: r["strike"],
     notionalSz: r["notionalSz"],
-    annualizedYield: r["annualizedYield"],
+    annualizedYield: r["annualizedYield"] ? `${(parseFloat(r["annualizedYield"] as string) * 100).toFixed(2)}%` : "—",
     yieldSz: r["yieldSz"],
     settleTime: r["settleTime"] ? new Date(Number(r["settleTime"])).toLocaleDateString() : "",   // scheduled settlement time
     settledTime: r["settledTime"] ? new Date(Number(r["settledTime"])).toLocaleDateString() : "", // actual settled time (non-empty only after settlement)
@@ -258,7 +260,7 @@ export async function cmdDcdQuoteAndBuy(
     outputLine("Quote:");
     printKv({
       quoteId: q["quoteId"],
-      annualizedYield: q["annualizedYield"] ? `${q["annualizedYield"]}%` : "—",
+      annualizedYield: q["annualizedYield"] ? `${(parseFloat(q["annualizedYield"] as string) * 100).toFixed(2)}%` : "—",
       absYield: q["absYield"],
       notionalSz: q["notionalSz"],
       notionalCcy: q["notionalCcy"],

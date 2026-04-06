@@ -22,6 +22,8 @@
 ### 修复
 
 - **SWAP/FUTURES/期权 `tgtCcy=quote_ccy` 自动换算**：对 SWAP、FUTURES 或期权 algo 下单设置 `tgtCcy=quote_ccy` 时，handler 现在会在请求发送至 OKX API 前自动将 USDT 金额换算为合约数量，防止因 OKX 静默忽略该参数而导致仓位放大（例如"100 USDT"变成"100 张合约 ≈$6,700"）。换算并行拉取 `ctVal` 和 `lastPx`，并在响应中附加 `_conversion` 字段说明换算过程。(#114)
+- **`dcd_subscribe` 收益率门槛比较**：OKX API 返回的 `annualizedYield` 为小数（如 `0.18` = 18%），但 `minAnnualizedYield` 直接与原始值比较，导致所有门槛检查均误判为不达标。现在正确乘以 100 后再比较。同时新增 `INVALID_YIELD_VALUE` 错误码，当 quote 返回非数值 yield 时明确拒绝。
+- **DCD 工具描述优化**：在 `dcd_get_products`、`dcd_get_orders`、`dcd_subscribe` 的 description 中补充 yield 单位说明（小数而非百分比），避免 LLM 误解。
 
 ---
 
