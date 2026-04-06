@@ -4,7 +4,7 @@ description: "Use this skill when the user asks for: price of any asset, ticker,
 license: MIT
 metadata:
   author: okx
-  version: "1.2.8"
+  version: "1.2.9"
   homepage: "https://www.okx.com"
   agent:
     requires:
