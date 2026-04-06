@@ -1,9 +1,11 @@
 {
   "name": "okx-hub",
   "private": true,
-  "version": "1.2.9-beta.2",
+  "version": "1.2.9",
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "pnpm --filter @agent-tradekit/core build && pnpm --filter @okx_ai/okx-trade-mcp build && pnpm --filter @okx_ai/okx-trade-cli build",
     "typecheck": "pnpm -r typecheck",
