@@ -607,8 +607,8 @@ const HELP_TREE: HelpTree = {
         description: "List markets; expired includes outcome (1=YES,2=NO) and settleValue",
       },
       place: {
-        usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>]",
-        description: "[CAUTION] Place an event contract order (outcome: UP/YES or DOWN/NO; px=probability 0~1)",
+        usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>]",
+        description: "[CAUTION] Place an event contract order. outcome: UP/YES or DOWN/NO. limit: sz=contracts, px required. market: sz=USDT amount, no px.",
       },
       amend: {
         usage: "okx event amend <instId> <ordId> [--px <prob>] [--sz <n>]",

@@ -1187,7 +1187,7 @@ export function handleEventCommand(
   if (action === "events")
     return cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json });
   if (action === "markets")
-    return cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, json });
+    return cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, limit, json });
   if (action === "place")
     return cmdEventPlace(run, {
       instId: (v.instId ?? rest[0])!,
@@ -1196,7 +1196,6 @@ export function handleEventCommand(
       sz: (v.sz ?? rest[3])!,
       px: v.px,
       ordType: v.ordType,
-      slippage: v.slippage,
       json,
     });
   if (action === "amend")

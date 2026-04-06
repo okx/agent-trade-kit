@@ -294,17 +294,18 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and edge cases, read `{baseDir}/references/options-commands.md`.
 
-### Event Contract Orders (7 commands)
+### Event Contract Orders (8 commands)
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 52 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
-| 53 | `okx event events <seriesId>` | READ | List events in a series |
-| 54 | `okx event markets <seriesId>` | READ | List markets; expired includes outcome/settleValue |
-| 55 | `okx event place ...` | WRITE | Place event order (outcome required) |
-| 56 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
-| 57 | `okx event orders` | READ | Pending or historical orders |
-| 58 | `okx event fills` | READ | Fill history |
+| 52 | `okx event browse` | READ | Browse active event contracts grouped by type (series + live markets in one call) |
+| 53 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
+| 54 | `okx event events <seriesId>` | READ | List events in a series |
+| 55 | `okx event markets <seriesId>` | READ | List markets; expired includes outcome/settleValue |
+| 56 | `okx event place ...` | WRITE | Place event order (outcome required) |
+| 57 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
+| 58 | `okx event orders` | READ | Pending or historical orders |
+| 59 | `okx event fills` | READ | Fill history |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/event-commands.md`.
 
@@ -355,7 +356,7 @@ instId format: `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` for price_above/pr
 seriesId: human-readable (e.g. `BTC-ABOVE-DAILY`, `BTC-UPDOWN-15MIN`) or internal random string (e.g. `FMQRZ`). Both are valid for subsequent commands. Obtain from `okx event series`.
 
 Event contract trading flow:
-1. **Discover** → `okx event series` — present results grouped by type; highlight named series; always show the seriesId
+1. **Discover** → `okx event browse` (preferred, returns series + live markets in one call) or `okx event series` — present results grouped by type; highlight named series; always show the seriesId
 2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market
 3. **Check event details** → `okx event events <seriesId>`
 4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms

@@ -16,7 +16,6 @@
  * Key parameters unique to this module:
  *   outcome   "UP"/"YES" → "yes",  "DOWN"/"NO" → "no"
  *   px        probability 0.00~1.00, NOT a regular asset price
- *   slippage  0~1, default "0.05"
  *   tdMode    always "isolated" for event contracts
  *   speedBump auto-set to "1" for non-post_only orders (required by exchange)
  */
@@ -98,6 +97,59 @@ function normalizeWrite(response: {
     }
   }
   return { endpoint: response.endpoint, requestTime: response.requestTime, data };
+}
+
+/**
+ * Fetch current index price for a given underlying (e.g. "BTC-USDT").
+ * Used to enrich event_get_markets response with the current spot price.
+ */
+async function fetchIdxPx(
+  client: { privateGet: Function },
+  underlying: string,
+): Promise<string | null> {
+  try {
+    const r = await client.privateGet(
+      "/api/v5/market/index-tickers",
+      { instId: underlying },
+    );
+    const data = (r as Record<string, unknown>)["data"];
+    if (Array.isArray(data) && data.length > 0) {
+      return String((data[0] as Record<string, unknown>)["idxPx"] ?? "") || null;
+    }
+  } catch { /* non-critical */ }
+  return null;
+}
+
+/**
+ * Fetch available USDT balance in the trading account.
+ * Used to show available funds alongside market data and after placing orders.
+ */
+async function fetchAvailableUsdt(
+  client: { privateGet: Function },
+): Promise<string | null> {
+  try {
+    const r = await client.privateGet(
+      "/api/v5/account/balance",
+      { ccy: "USDT" },
+    );
+    const data = (r as Record<string, unknown>)["data"];
+    if (Array.isArray(data) && data.length > 0) {
+      const details = (data[0] as Record<string, unknown>)["details"];
+      if (Array.isArray(details) && details.length > 0) {
+        return String((details[0] as Record<string, unknown>)["availBal"] ?? "") || null;
+      }
+    }
+  } catch { /* non-critical */ }
+  return null;
+}
+
+/**
+ * Extract underlying asset from seriesId for known patterns.
+ * e.g. "BTC-ABOVE-DAILY" → "BTC", "ETH-UPDOWN-15MIN" → "ETH"
+ */
+function extractUnderlying(seriesId: string): string | null {
+  const m = seriesId.match(/^(BTC|ETH|SOL)/i);
+  return m ? m[1].toUpperCase() : null;
 }
 
 /**
@@ -208,10 +260,10 @@ export function registerEventContractTools(): ToolSpec[] {
         const underlyingFilter = readString(args, "underlying");
 
         // Step 1: fetch all series
-        const seriesResp = await context.client.publicGet(
+        const seriesResp = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({}),
-          publicRateLimit("event_browse", 10),
+          privateRateLimit("event_browse", 10),
         );
         const allSeries = (Array.isArray(normalizeResponse(seriesResp)["data"])
           ? normalizeResponse(seriesResp)["data"] as Record<string, unknown>[]
@@ -241,17 +293,22 @@ export function registerEventContractTools(): ToolSpec[] {
             const seriesId = String(s["seriesId"] ?? "");
             const settlement = s["settlement"] as Record<string, unknown> | undefined;
             try {
-              const r = await context.client.publicGet(
+              const r = await context.client.privateGet(
                 "/api/v5/public/event-contract/markets",
                 compactObject({ seriesId, state: "live" }),
-                publicRateLimit("event_browse", 20),
+                privateRateLimit("event_browse", 20),
               );
               const markets = (Array.isArray(normalizeResponse(r)["data"])
                 ? normalizeResponse(r)["data"] as Record<string, unknown>[]
                 : []);
-              // Only in-progress contracts (floorStrike set)
+              // Only in-progress contracts (floorStrike set, not expired)
+              const now = Date.now();
               const active = markets
-                .filter(m => m["floorStrike"] && m["floorStrike"] !== "")
+                .filter(m => {
+                  if (!m["floorStrike"] || m["floorStrike"] === "") return false;
+                  const expMs = Number(m["expTime"] ?? 0);
+                  return expMs <= 0 || expMs > now;
+                })
                 .map(m => {
                   const converted = convertTimestamps(m);
                   return {
@@ -299,10 +356,10 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
+        const response = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({ seriesId: readString(args, "seriesId") }),
-          publicRateLimit("event_get_series", 20),
+          privateRateLimit("event_get_series", 20),
         );
         return normalizeResponse(response);
       },
@@ -346,7 +403,7 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
+        const response = await context.client.privateGet(
           "/api/v5/public/event-contract/events",
           compactObject({
             seriesId: requireString(args, "seriesId"),
@@ -356,7 +413,7 @@ export function registerEventContractTools(): ToolSpec[] {
             before: readString(args, "before"),
             after: readString(args, "after"),
           }),
-          publicRateLimit("event_get_events", 20),
+          privateRateLimit("event_get_events", 20),
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
@@ -408,27 +465,77 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
-          "/api/v5/public/event-contract/markets",
-          compactObject({
-            seriesId: requireString(args, "seriesId"),
-            eventId: readString(args, "eventId"),
-            instId: readString(args, "instId"),
-            state: readString(args, "state"),
-            limit: readNumber(args, "limit"),
-            before: readString(args, "before"),
-            after: readString(args, "after"),
-          }),
-          publicRateLimit("event_get_markets", 20),
-        );
-        const base = normalizeResponse(response);
-        const data = Array.isArray(base["data"])
-          ? (base["data"] as Record<string, unknown>[]).map((item) => ({
-              ...convertTimestamps(item),
-              outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
-            }))
-          : base["data"];
-        return { ...base, data };
+        const seriesId = requireString(args, "seriesId");
+
+        // Extract underlying from seriesId for known patterns
+        const knownUnderlying = extractUnderlying(seriesId);
+
+        const [marketsResp, seriesResp, idxPxFromKnown, availableUsdt] = await Promise.all([
+          context.client.privateGet(
+            "/api/v5/public/event-contract/markets",
+            compactObject({
+              seriesId,
+              eventId: readString(args, "eventId"),
+              instId: readString(args, "instId"),
+              state: readString(args, "state"),
+              before: readString(args, "before"),
+              after: readString(args, "after"),
+            }),
+            publicRateLimit("event_get_markets", 20),
+          ),
+          // Only fetch series if underlying is unknown
+          knownUnderlying
+            ? Promise.resolve(null)
+            : context.client.privateGet(
+                "/api/v5/public/event-contract/series",
+                compactObject({ seriesId }),
+                publicRateLimit("event_get_series", 20),
+              ),
+          // Fetch index price if underlying known
+          knownUnderlying ? fetchIdxPx(context.client, knownUnderlying + "-USDT") : Promise.resolve(null),
+          fetchAvailableUsdt(context.client),
+        ]);
+
+        // If underlying was unknown, extract from series response
+        let underlying = knownUnderlying ? knownUnderlying + "-USDT" : null;
+        if (!underlying && seriesResp) {
+          const sResp = seriesResp as unknown as Record<string, unknown>;
+          const sData = Array.isArray(sResp["data"])
+            ? sResp["data"] as Record<string, unknown>[]
+            : [];
+          if (sData.length > 0) {
+            const settlement = sData[0]!["settlement"] as Record<string, unknown> | undefined;
+            underlying = String(settlement?.["underlying"] ?? "") || null;
+          }
+        }
+
+        // If underlying was fetched from series, now fetch idxPx
+        const idxPx = idxPxFromKnown ?? (underlying ? await fetchIdxPx(context.client, underlying) : null);
+
+        const base = normalizeResponse(marketsResp);
+        const limit = readNumber(args, "limit");
+        const rawData = Array.isArray(base["data"]) ? base["data"] as Record<string, unknown>[] : [];
+        // Sort by expTime ascending (nearest first) before slicing
+        const sorted = [...rawData].sort((a, b) => {
+          const tA = Number(a["expTime"] ?? 0);
+          const tB = Number(b["expTime"] ?? 0);
+          return tA - tB;
+        });
+        const sliced = limit && limit > 0 ? sorted.slice(0, limit) : sorted;
+        const translated = sliced.map(item => {
+          const converted = convertTimestamps(item);
+          if (typeof converted["outcome"] === "string") {
+            converted["outcome"] = OUTCOME_LABELS[converted["outcome"]] ?? converted["outcome"];
+          }
+          return converted;
+        });
+        return {
+          ...base,
+          data: translated,
+          currentIdxPx: idxPx,
+          underlying,
+          availableUsdt,
+        };
       },
     },
 
@@ -470,14 +577,21 @@ export function registerEventContractTools(): ToolSpec[] {
           }),
           privateRateLimit("event_get_orders", 20),
         );
-        return normalizeResponse(response);
+        const base = normalizeResponse(response);
+        const data = Array.isArray(base["data"])
+          ? (base["data"] as Record<string, unknown>[]).map((item) => ({
+              ...item,
+              outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
+            }))
+          : base["data"];
+        return { ...base, data };
       },
     },
 
     {
       name: "event_get_fills",
       module: "event",
-      description: "Get event contract fill history. outcome pre-translated (YES/NO/UP/DOWN).",
+      description: "Get event contract fill history. outcome pre-translated (YES/NO/UP/DOWN). Each record includes a 'type' field: 'fill' (subType 410, opening trade) or 'settlement' (subType 414 win / subType 415 loss, contract expiry payout). Settlement records include 'settlementResult' (win/loss) and 'pnl' fields — no separate market lookup needed to determine outcome.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -505,10 +619,24 @@ export function registerEventContractTools(): ToolSpec[] {
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
-          ? (base["data"] as Record<string, unknown>[]).map((item) => ({
-              ...item,
-              outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
-            }))
+          ? (base["data"] as Record<string, unknown>[]).map((item) => {
+              const subType = String(item["subType"] ?? "");
+              // subType 414 = winning settlement, 415 = losing settlement
+              const isSettle = subType === "414" || subType === "415";
+              const fillPx = parseFloat(String(item["fillPx"] ?? "NaN"));
+              const fillPnl = parseFloat(String(item["fillPnl"] ?? "NaN"));
+              const enriched: Record<string, unknown> = {
+                ...item,
+                outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
+                type: isSettle ? "settlement" : "fill",
+              };
+              if (isSettle) {
+                const isWin = subType === "414" || (subType !== "415" && fillPx === 1);
+                enriched["settlementResult"] = isWin ? "win" : "loss";
+                enriched["pnl"] = isNaN(fillPnl) ? undefined : fillPnl;
+              }
+              return enriched;
+            })
           : base["data"];
         return { ...base, data };
       },
@@ -523,7 +651,6 @@ export function registerEventContractTools(): ToolSpec[] {
       description: `Place an event contract order. [CAUTION] Places a real order. Not supported in demo mode.
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
-- For market orders: use slippage parameter (not px)
 - tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either`,
       isWrite: true,
       inputSchema: {
@@ -546,15 +673,11 @@ export function registerEventContractTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "For limit/post_only: number of contracts. For market: quote currency amount.",
+            description: "For limit/post_only: number of contracts. For market: quote currency amount (server converts to contracts using best available price; actual fill count may differ).",
           },
           px: {
             type: "string",
             description: "Limit price as probability 0.00~1.00. Required when ordType=limit. Do NOT use for market orders.",
-          },
-          slippage: {
-            type: "string",
-            description: "Max slippage ratio for market orders, 0~1 (default 0.05). Do NOT use for limit orders.",
           },
         },
         required: ["instId", "side", "outcome", "sz"],
@@ -574,7 +697,6 @@ export function registerEventContractTools(): ToolSpec[] {
             ordType,
             sz: requireString(args, "sz"),
             px: readString(args, "px"),
-            slippage: readString(args, "slippage"),
             speedBump,
             tag: context.config.sourceTag,
           }),
@@ -608,7 +730,16 @@ export function registerEventContractTools(): ToolSpec[] {
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map(({ tag: _t, ...rest }) => rest)
           : base["data"];
-        return { ...base, data };
+        // Fetch available USDT after order placement for user context
+        const availableUsdt = await fetchAvailableUsdt(context.client);
+        const result: Record<string, unknown> = { ...base, data };
+        if (availableUsdt) result["availableUsdt"] = availableUsdt;
+
+        // Add note for market orders explaining sz semantics
+        if (ordType === "market") {
+          result["orderNote"] = "Market order: sz is a quote currency amount. The exchange converts it to contracts based on best available price.";
+        }
+        return result;
       },
     },
 

@@ -114,63 +114,6 @@ function inferExpiryMsFromInstId(instId: string): number | null {
 }
 
 /**
- * Parse instId to extract human-readable expiry time and settlement condition.
- * Format: {UNDERLYING}-{TYPE}-{FREQ}-{YYMMDD}-{HHMM}[-{STRIKE}]
- * e.g. BTC-ABOVE-DAILY-260320-1600-69700
- *      BTC-UPDOWN-15MIN-260320-1615
- */
-function parseInstMeta(instId: string): { expiry: string; condition: string } {
-  const parts = instId.split("-");
-  const upper = instId.toUpperCase();
-  const underlying = parts[0] ?? "";
-
-  let dateIdx = -1;
-  let expiry = "";
-  let strike = "";
-
-  // Find date part (exactly 6 digits = YYMMDD)
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i])) {
-      dateIdx = i;
-      const p = parts[i];
-      expiry = `20${p.slice(0, 2)}-${p.slice(2, 4)}-${p.slice(4, 6)}`;
-      break;
-    }
-  }
-
-  // Time is immediately after date (exactly 4 digits = HHMM)
-  if (dateIdx >= 0 && dateIdx + 1 < parts.length) {
-    const tp = parts[dateIdx + 1];
-    if (/^\d{4}$/.test(tp)) {
-      expiry += ` ${tp.slice(0, 2)}:${tp.slice(2)} UTC`;
-    }
-  }
-
-  // Strike is at dateIdx+2 (digits only)
-  if (dateIdx >= 0 && dateIdx + 2 < parts.length) {
-    const sp = parts[dateIdx + 2];
-    if (/^\d+$/.test(sp)) {
-      strike = Number(sp).toLocaleString("en-US");
-    }
-  }
-
-  let condition = "";
-  if (upper.includes("UPDOWN") || upper.includes("UP-DOWN")) {
-    condition = `${underlying} price rises during the period → UP wins; falls → DOWN wins`;
-  } else if (upper.includes("ABOVE")) {
-    condition = strike
-      ? `${underlying} ≥ ${strike} at expiry → YES wins`
-      : `${underlying} above strike at expiry → YES wins`;
-  } else if (upper.includes("TOUCH")) {
-    condition = strike
-      ? `${underlying} touches ${strike} anytime → YES wins`
-      : `${underlying} touches strike → YES wins`;
-  }
-
-  return { expiry, condition };
-}
-
-/**
  * Convert instId to a short human-readable contract name.
  * SOLVU-ABOVE-DAILY-260401-1600-70000  → "SOLVU 高于 70,000 · 4/1"
  * TESTAAAA-UPDOWN-15MIN-260325-1830-1845 → "TESTAAAA 涨跌 · 3/25 18:30-18:45"
@@ -369,16 +312,29 @@ export async function cmdEventEvents(
 
 export async function cmdEventMarkets(
   run: ToolRunner,
-  opts: { seriesId: string; eventId?: string; instId?: string; state?: string; json: boolean },
+  opts: { seriesId: string; eventId?: string; instId?: string; state?: string; limit?: number; json: boolean },
 ): Promise<void> {
   const result = await run("event_get_markets", {
     seriesId: opts.seriesId,
     eventId: opts.eventId,
     instId: opts.instId,
     state: opts.state,
+    limit: opts.limit,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
+
+  // Display current index price and available USDT if present in result
+  const ext = result as unknown as Record<string, unknown>;
+  const currentIdxPx = ext["currentIdxPx"];
+  const underlying = ext["underlying"];
+  const availableUsdt = ext["availableUsdt"];
+  if (currentIdxPx != null) {
+    process.stdout.write(
+      `${underlying ?? ""} current index price: $${currentIdxPx}  |  Available USDT: ${availableUsdt ?? "N/A"}\n`,
+    );
+  }
+
   const now = Date.now();
   // Sort by expiry ascending: nearest expiry first
   const sorted = [...(data ?? [])].sort((a, b) => {
@@ -398,9 +354,9 @@ export async function cmdEventMarkets(
       );
       return {
         instId,
-        status:      hasStarted ? "🟢 In Progress" : "⬜ Upcoming",
+        status:      !notExpired ? "Settled" : hasStarted ? "In Progress" : "Upcoming",
         expTime:     m["expTime"] ?? "",
-        strike:      m["floorStrike"] ?? "",
+        targetPrice: m["floorStrike"] ?? "",
         outcome:     fmtOutcome(m["outcome"]),
         settleValue: m["settleValue"] ?? "",
       };
@@ -488,7 +444,6 @@ export async function cmdEventPlace(
     sz: string;
     px?: string;
     ordType?: string;
-    slippage?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -501,7 +456,6 @@ export async function cmdEventPlace(
       sz: opts.sz,
       px: opts.px,
       ordType: opts.ordType,
-      slippage: opts.slippage,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -563,6 +517,9 @@ export async function cmdEventPlace(
     `${opts.px ? `  px: ${opts.px}` : ""}  type: ${ordType}\n` +
     `  (${stateHint})\n`,
   );
+  if (ordType === "market") {
+    process.stdout.write("  Note: exchange converts sz (amount) to contracts based on best available price\n");
+  }
 }
 
 export async function cmdEventAmend(
