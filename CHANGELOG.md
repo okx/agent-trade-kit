@@ -11,8 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.2.9] - 2026-04-06
+
+### Added
+
+- **Skills Marketplace third-party disclaimer**: Added notices at key trust-decision points (marketplace prompt, install/download descriptions, and CLI install flow) to make clear that listed skills are created by independent third-party developers before installation.
+
 ### Fixed
 
+- **SWAP/FUTURES/options `tgtCcy=quote_ccy` auto-conversion**: Order handlers now automatically convert quote-currency amounts (for example, USDT) into contract counts before sending SWAP, FUTURES, and options orders/algo orders to the OKX API, preventing oversized positions caused by treating quote amounts as raw contract size. (#114)
+- **`dcd_subscribe` yield threshold comparison**: `annualizedYield` is now converted from decimal to percent before comparing against `minAnnualizedYield`, so threshold filtering works correctly and invalid yield values are rejected.
+- **Skills docs `tgtCcy` wording**: Clarified that `tgtCcy` is handled by an internal conversion layer rather than passed through directly to the OKX API, reducing sizing confusion in skills documentation.
 - **CLI docs: negative values must use `=` form**: Updated all skill references (swap/futures/spot command docs, workflows, SKILL.md) to use `--tpOrdPx=-1` / `--slOrdPx=-1` instead of the space form, which Node `parseArgs()` misinterprets as a flag. Added notes to parameter tables clarifying this requirement. (#123, closes #115)
 
 ---
