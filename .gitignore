@@ -18,3 +18,4 @@ skills-lock.json
 .claude/skills/
 aTempFiles/
 *.tgz
+.worktrees/

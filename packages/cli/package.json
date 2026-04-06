@@ -1,6 +1,6 @@
 {
   "name": "@okx_ai/okx-trade-cli",
-  "version": "1.2.9-beta.2",
+  "version": "1.2.9",
   "description": "OKX CLI - Command line tool for OKX exchange",
   "type": "module",
   "license": "MIT",
@@ -8,8 +8,14 @@
   "bin": {
     "okx": "dist/index.js"
   },
-  "files": ["dist", "scripts", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "scripts",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\"",
     "typecheck": "tsc --noEmit",
@@ -18,8 +24,14 @@
     "test:unit": "node --import tsx/esm --test test/*.test.ts",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node --import tsx/esm --test test/*.test.ts"
   },
-  "engines": { "node": ">=18" },
-  "keywords": ["okx", "cli", "trading"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "okx",
+    "cli",
+    "trading"
+  ],
   "dependencies": {
     "undici": "^6.0.0",
     "yauzl": "^3.2.1"
