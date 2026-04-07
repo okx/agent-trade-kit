@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **CLI `--json` 输出新增环境元数据**：`--json` 输出从原始 OKX API 响应改为 `{"env", "profile", "data"}` 包装结构。使用 `jq '.[0].field'` 的脚本需改为 `jq '.data[0].field'`。表格输出现在会显示环境标题行（`Environment: live` / `Environment: demo (simulated trading)`）。(#207，关联 #117)
+
 ---
 
 ## [1.2.9] - 2026-04-06

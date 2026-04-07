@@ -26,6 +26,26 @@ export function resetOutput(): void {
   activeOutput = stdioOutput;
 }
 
+// ---------------------------------------------------------------------------
+// Environment context — injected once in main() after config load.
+// When null, all output functions behave as before (backward compat).
+// ---------------------------------------------------------------------------
+
+export interface EnvContext {
+  demo: boolean;
+  profile: string;
+}
+
+let envContext: EnvContext | null = null;
+
+export function setEnvContext(ctx: EnvContext): void {
+  envContext = ctx;
+}
+
+export function resetEnvContext(): void {
+  envContext = null;
+}
+
 // Emit a raw string to stdout. Use this when the message already
 // contains newlines (e.g. multi-line blocks, pre-formatted output).
 export function output(message: string): void {
@@ -55,10 +75,21 @@ export function errorLine(message: string): void {
 // ---------------------------------------------------------------------------
 
 export function printJson(data: unknown): void {
-  activeOutput.out(JSON.stringify(data, null, 2) + EOL);
+  const payload = envContext
+    ? {
+        env: envContext.demo ? "demo" : "live",
+        profile: envContext.profile,
+        data,
+      }
+    : data;
+  activeOutput.out(JSON.stringify(payload, null, 2) + EOL);
 }
 
 export function printTable(rows: Record<string, unknown>[]): void {
+  if (envContext) {
+    const envLabel = envContext.demo ? "demo (simulated trading)" : "live";
+    activeOutput.out(`Environment: ${envLabel}` + EOL + EOL);
+  }
   if (rows.length === 0) {
     activeOutput.out("(no data)" + EOL);
     return;

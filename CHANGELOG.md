@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CLI `--json` output now includes environment metadata**: `--json` output changed from raw OKX API response to `{"env", "profile", "data"}` wrapper. Scripts using `jq '.[0].field'` must update to `jq '.data[0].field'`. Table output now displays an environment header line (`Environment: live` / `Environment: demo (simulated trading)`). (#207, closes #117)
+
 ---
 
 ## [1.2.9] - 2026-04-06

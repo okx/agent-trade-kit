@@ -12,7 +12,125 @@ import {
   printJson,
   printTable,
   printKv,
+  setEnvContext,
+  resetEnvContext,
 } from "../src/formatter.js";
+
+// ---------------------------------------------------------------------------
+// envContext state management
+// ---------------------------------------------------------------------------
+describe("envContext state management", () => {
+  let out: string[] = [];
+
+  beforeEach(() => {
+    out = [];
+    setOutput({ out: (m) => out.push(m), err: () => {} });
+  });
+  afterEach(() => {
+    resetOutput();
+    resetEnvContext();
+  });
+
+  it("printTable has no Environment header when envContext is null (AC-6 backward compat)", () => {
+    printTable([{ instId: "BTC-USDT" }]);
+    assert.ok(!out.join("").includes("Environment:"), "Should not include Environment: when context is null");
+  });
+
+  it("printTable includes Environment: after setEnvContext (demo=true)", () => {
+    setEnvContext({ demo: true, profile: "hk-demo" });
+    printTable([{ instId: "BTC-USDT" }]);
+    assert.ok(out.join("").includes("Environment:"), "Should include Environment: after setEnvContext");
+  });
+
+  it("printTable has no Environment header after resetEnvContext", () => {
+    setEnvContext({ demo: true, profile: "hk-demo" });
+    resetEnvContext();
+    printTable([{ instId: "BTC-USDT" }]);
+    assert.ok(!out.join("").includes("Environment:"), "Should not include Environment: after resetEnvContext");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// printTable with envContext
+// ---------------------------------------------------------------------------
+describe("printTable with envContext", () => {
+  let out: string[] = [];
+
+  beforeEach(() => {
+    out = [];
+    setOutput({ out: (m) => out.push(m), err: () => {} });
+  });
+  afterEach(() => {
+    resetOutput();
+    resetEnvContext();
+  });
+
+  it("AC-1: first line is 'Environment: demo (simulated trading)' when demo=true", () => {
+    setEnvContext({ demo: true, profile: "hk-demo" });
+    printTable([{ instId: "BTC-USDT-SWAP", instType: "SWAP", last: "67085.1" }]);
+    const combined = out.join("");
+    const lines = combined.split("\n");
+    assert.equal(lines[0], "Environment: demo (simulated trading)");
+    assert.equal(lines[1], ""); // blank line
+  });
+
+  it("AC-2: first line is 'Environment: live' when demo=false", () => {
+    setEnvContext({ demo: false, profile: "main" });
+    printTable([{ instId: "BTC-USDT-SWAP" }]);
+    const lines = out.join("").split("\n");
+    assert.equal(lines[0], "Environment: live");
+    assert.equal(lines[1], ""); // blank line
+  });
+
+  it("AC-3: env header shown even with empty rows", () => {
+    setEnvContext({ demo: true, profile: "hk-demo" });
+    printTable([]);
+    const combined = out.join("");
+    assert.ok(combined.includes("Environment: demo (simulated trading)"), "Should show env header");
+    assert.ok(combined.includes("(no data)"), "Should show (no data)");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// printJson with envContext
+// ---------------------------------------------------------------------------
+describe("printJson with envContext", () => {
+  let out: string[] = [];
+
+  beforeEach(() => {
+    out = [];
+    setOutput({ out: (m) => out.push(m), err: () => {} });
+  });
+  afterEach(() => {
+    resetOutput();
+    resetEnvContext();
+  });
+
+  it("AC-4: wraps data with env metadata when demo=true", () => {
+    setEnvContext({ demo: true, profile: "hk-demo" });
+    printJson([{ instId: "BTC-USDT" }]);
+    const parsed = JSON.parse(out.join(""));
+    assert.equal(parsed.env, "demo");
+    assert.equal(parsed.profile, "hk-demo");
+    assert.deepEqual(parsed.data, [{ instId: "BTC-USDT" }]);
+  });
+
+  it("AC-5: wraps data with env=live when demo=false", () => {
+    setEnvContext({ demo: false, profile: "default" });
+    printJson({ key: "value" });
+    const parsed = JSON.parse(out.join(""));
+    assert.equal(parsed.env, "live");
+    assert.equal(parsed.profile, "default");
+    assert.deepEqual(parsed.data, { key: "value" });
+  });
+
+  it("AC-7: outputs data directly (no wrapper) when envContext is null (backward compat)", () => {
+    printJson([{ instId: "BTC-USDT" }]);
+    const parsed = JSON.parse(out.join(""));
+    assert.ok(!("env" in parsed), "Should not have env key at top level");
+    assert.deepEqual(parsed, [{ instId: "BTC-USDT" }]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // output / outputLine / setOutput / resetOutput
