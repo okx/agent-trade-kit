@@ -77,7 +77,7 @@ okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|ex
 | `--state` | string | No | `preopen`, `live`, `settling`, or `expired` |
 | `--limit` | number | No | Max results (default 100) |
 
-**Output fields**: `instId`, `floorStrike`, `state`, `outcome` (expired: `YES`/`NO`/`UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
+**Output fields**: `instId`, `floorStrike`, `state`, `outcome` (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
 
 - **CLI**: use `--state expired` to get settlement outcome; there is no `event ended` command in the CLI.
 - **MCP**: use `event_get_markets(seriesId, state="expired")` instead.
@@ -91,13 +91,13 @@ Event contract instIds are obtained from `okx event markets <seriesId>`. Never g
 | Series type | instId format | Example |
 |-------------|--------------|---------|
 | `price_above` / `price_once_touch` | `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` | `BTC-ABOVE-DAILY-260224-1600-70000` |
-| `price_up_down` | `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}` | `BTC-UPDOWN-15MIN-260224-1600` |
+| `price_up_down` | `{UNDERLYING}-{TYPE}-{YYMMDD}-{START}-{END}` | `BTC-UPDOWN-15MIN-260224-1600-1615` |
 
 Recommended workflow to obtain instId:
 1. `okx event series` → select a seriesId (e.g. `BTC-ABOVE-DAILY`)
 2. `okx event events <seriesId> --state live` → see active events and their eventId
-3. `okx event markets <seriesId> --state live` → see each tradeable instId with current probability
-4. Use the instId from step 3 in place / cancel commands
+3. `okx event markets <seriesId> --state live` → see each tradeable instId
+4. Use the instId from step 3 in place / amend / cancel commands
 
 ## Private Commands (API key required)
 
@@ -137,6 +137,23 @@ okx event cancel <instId> <ordId> [--json]
 |-----------|------|----------|-------------|
 | `instId` | string | Yes | Instrument ID (positional) |
 | `ordId` | string | Yes | Order ID to cancel (positional or `--ordId`) |
+
+---
+
+### `okx event amend` ⚠️ WRITE
+
+Amend a pending limit or post-only order.
+
+```bash
+okx event amend <instId> <ordId> [--px <prob>] [--sz <n>] [--json]
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `instId` | string | Yes | Instrument ID (positional) |
+| `ordId` | string | Yes | Order ID to amend (positional or `--ordId`) |
+| `--px` | string | No | New probability price 0.00~1.00 |
+| `--sz` | string | No | New number of contracts |
 
 ---
 

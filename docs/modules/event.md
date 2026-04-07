@@ -13,7 +13,7 @@
 | event_browse | R | 浏览当前活跃的事件合约 |
 | event_get_series | R | 列出事件合约系列 |
 | event_get_events | R | 列出事件（到期周期） |
-| event_get_markets | R | 列出市场的 Yes/No 概率 |
+| event_get_markets | R | 列出市场合约与结算结果（到期后返回 outcome / settleValue） |
 | event_place_order | W | 下单 |
 | event_amend_order | W | 改单 |
 | event_cancel_order | W | 撤单 |
@@ -28,4 +28,4 @@
 
 ## 典型 Workflow
 
-看市场 -> 下单
+浏览系列/市场 -> 下单 -> 查订单/成交

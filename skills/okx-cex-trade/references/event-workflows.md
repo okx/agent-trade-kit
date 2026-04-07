@@ -5,16 +5,16 @@
 > User: "What BTC event contracts are available?"
 
 ```
-Step 1: okx event series
-→ Check settlement.method to explain product type
+Step 1: okx event browse --underlying BTC-USD
+→ Preferred entry point: returns active contracts grouped by product type
 
-Step 2: okx event markets BTC-ABOVE-DAILY --state live
-→ Returns instId, strike, state — does NOT include current probability
+Step 2: if the user wants one specific series, refine with:
+okx event markets BTC-ABOVE-DAILY --state live
+→ Returns instId, strike, status, and settlement context
 
-Step 3 (per instId): okx market ticker <instId>
-→ Use `last` field as current probability (e.g. last=0.548 → 54.8%)
-→ If ticker fails or returns no data: "No live quote available (market may have low liquidity)"
-→ Format results as trading cards (not raw tables)
+Step 3:
+→ Present the available contracts directly from event results
+→ If multiple strikes/periods exist, explain the expiry window and what YES/NO or UP/DOWN means
 ```
 
 Trading card format:
@@ -35,15 +35,12 @@ Buy YES = bet that BTC > strike at expiry; max gain per contract is (1 − entry
 > User: "I want to buy 10 contracts of BTC above 69,700 (YES), limit price 0.6"
 
 ```
-Step 1: okx market ticker BTC-ABOVE-DAILY-260320-1600-69700
-→ Check current ask; if user's limit px > ask, likely fills immediately
-
-Step 2: Show summary before placing:
+Step 1: Show summary before placing:
 → Cost = sz × px (e.g. 10 × 0.6 = 6 USDT)
 → Max gain = sz × (1 − px) (e.g. 10 × 0.4 = 4 USDT)
 → Max loss = cost (6 USDT)
 
-Step 3: [user confirms]
+Step 2: [user confirms]
 okx event place BTC-ABOVE-DAILY-260320-1600-69700 buy YES 10 --px 0.6 --ordType limit
 ```
 
@@ -99,11 +96,11 @@ Response includes: fill price, quantity, current max loss (cost + fees), and a n
 > User: "Bet that BTC rises in the next 15 minutes — buy 5 contracts, market order"
 
 ```
-Step 1: okx event markets BTC-15MIN --state live
+Step 1: okx event markets BTC-UPDOWN-15MIN --state live
 → Find current live 15min event and its instId
 
 Step 2: [user confirms]
-okx event place BTC-15MIN-260320-1600 buy UP 5 --ordType market
+okx event place BTC-UPDOWN-15MIN-260320-1600-1615 buy UP 5 --ordType market
 → For market orders, sz is quote currency amount (e.g. 5)
 ```
 
@@ -140,7 +137,7 @@ Step 1: [user confirms]
 okx event place BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market
 ```
 
-(`reduceOnly` is automatically applied for sell orders — do not pass it.)
+Use the same outcome that the position was opened with. Do not pass extra exchange-internal fields such as `reduceOnly`, `tdMode`, or `speedBump`.
 
 ---
 
@@ -150,7 +147,7 @@ okx event place BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market
 
 ```
 okx event markets BTC-ABOVE-DAILY --state expired [--limit 5]
-→ outcome field: CLI returns "YES"/"NO"/"UP"/"DOWN" (translated from raw "1"/"2")
+→ outcome field: CLI returns translated "YES"/"NO"/"UP"/"DOWN"
 ```
 
 Present as a table with date, strike, settlement price, and outcome (✅/❌).
@@ -170,7 +167,7 @@ Step 1: okx event orders --state live
    → find matching ordId, extract instId
 
 Step 2: okx event cancel <instId> <ordId>
-→ on sCode 51400: order no longer exists (filled, cancelled, or wrong ID)
+→ if cancellation fails because the order no longer exists, it was likely filled or already cancelled
    → offer to check fills or current positions
 ```
 
@@ -209,7 +206,7 @@ okx event orders --state live
    - market order → "typically filled immediately — would you like me to confirm the fill?"
    - limit / post_only → "may still be resting in the order book — would you like me to check? (`okx event orders --state live`)"
 8. **Positions show PnL context**: current exit value + breakeven + time remaining + expiry condition.
-9. **Never expose implementation details**: outcome codes ("2"), speedBump, tdMode, MCP internals.
+9. **Never expose implementation details**: outcome codes, speedBump, tdMode, MCP internals.
 10. **Settled results**: use `okx event markets <seriesId> --state expired` (CLI) or `event_get_markets(seriesId, state="expired")` (MCP) — there is no separate `event ended` command.
 11. **Always append next-step suggestion**: every response ends with a concrete offer for what to do next.
 12. **Never expose raw CLI commands to users**: use natural language instead.
