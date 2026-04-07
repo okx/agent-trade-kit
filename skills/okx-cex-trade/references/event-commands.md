@@ -11,6 +11,7 @@
 
 - Check `settlement.method` from `event_get_series` to determine which values apply.
 - `px` is a **probability** in `0.00~1.00`, NOT a regular asset price.
+- For live event contracts, quote / order-book `px` is the market-implied probability. Example: `px=0.6` means the market is pricing the event at roughly 60%.
 
 ## Product Types (settlement.method)
 
@@ -77,7 +78,7 @@ okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|ex
 | `--state` | string | No | `preopen`, `live`, `settling`, or `expired` |
 | `--limit` | number | No | Max results (default 100) |
 
-**Output fields**: `instId`, `floorStrike`, `state`, `outcome` (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
+**Output fields**: `instId`, `floorStrike`, `px` (live quote / implied probability, when available), `state`, `outcome` (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
 
 - **CLI**: use `--state expired` to get settlement outcome; there is no `event ended` command in the CLI.
 - **MCP**: use `event_get_markets(seriesId, state="expired")` instead.

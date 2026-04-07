@@ -287,6 +287,7 @@ async function fetchActiveContractsForSeries(
           instId:      m["instId"],
           expTime:     converted["expTime"],
           floorStrike: m["floorStrike"],
+          px:          m["px"],
           outcome:     OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
         };
       });
@@ -405,7 +406,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_browse",
       module: "event",
-      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Internally fetches series and live markets in parallel, returns only in-progress contracts (floorStrike set). Grouped by settlement type and underlying.",
+      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Internally fetches series and live markets in parallel, returns only in-progress contracts (floorStrike set). If a live quote field px is present, treat it as the market-implied probability 0.00~1.00. Grouped by settlement type and underlying.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -529,7 +530,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_markets",
       module: "event",
-      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8.",
+      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; px (when present) is the live market-implied probability 0.00~1.00; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8.",
       isWrite: false,
       inputSchema: {
         type: "object",

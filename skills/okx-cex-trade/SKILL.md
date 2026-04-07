@@ -294,7 +294,7 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and edge cases, read `{baseDir}/references/options-commands.md`.
 
-### Event Contract Orders (8 commands)
+### Event Contract Orders (9 commands)
 
 | # | Command | Type | Description |
 |---|---|---|---|
@@ -303,9 +303,10 @@ For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and
 | 54 | `okx event events <seriesId>` | READ | List events in a series |
 | 55 | `okx event markets <seriesId>` | READ | List markets; expired includes outcome/settleValue |
 | 56 | `okx event place ...` | WRITE | Place event order (outcome required) |
-| 57 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
-| 58 | `okx event orders` | READ | Pending or historical orders |
-| 59 | `okx event fills` | READ | Fill history |
+| 57 | `okx event amend <instId> <ordId>` | WRITE | Amend event order (price/size) |
+| 58 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
+| 59 | `okx event orders` | READ | Pending or historical orders |
+| 60 | `okx event fills` | READ | Fill history |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/event-commands.md`.
 
@@ -351,13 +352,13 @@ After every command result: append `[profile: live]` or `[profile: demo]`.
 
 **Event Contracts**:
 
-instId format: `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` for price_above/price_once_touch (e.g. `BTC-ABOVE-DAILY-260224-1600-70000`), or `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}` for price_up_down (e.g. `BTC-UPDOWN-15MIN-260224-1600`). Always obtain instId from `okx event markets <seriesId>` — never guess or use placeholders.
+instId format: `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` for price_above/price_once_touch (e.g. `BTC-ABOVE-DAILY-260224-1600-70000`), or `{UNDERLYING}-{TYPE}-{YYMMDD}-{START}-{END}` for price_up_down (e.g. `BTC-UPDOWN-15MIN-260224-1600-1615`). Always obtain instId from `okx event markets <seriesId>` — never guess or use placeholders.
 
 seriesId: human-readable (e.g. `BTC-ABOVE-DAILY`, `BTC-UPDOWN-15MIN`) or internal random string (e.g. `FMQRZ`). Both are valid for subsequent commands. Obtain from `okx event series`.
 
 Event contract trading flow:
 1. **Discover** → `okx event browse` (preferred, returns series + live markets in one call) or `okx event series` — present results grouped by type; highlight named series; always show the seriesId
-2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market
+2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market; if live `px` is shown, treat it as the market-implied probability
 3. **Check event details** → `okx event events <seriesId>`
 4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
 5. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
@@ -370,6 +371,8 @@ Edge cases:
 
 - **Market order** (`ordType=market`): `--sz` is quote currency amount.
 - **Limit order** (`ordType=limit` / `post_only`): `--sz` is number of contracts (integer). Each contract settles at 1 USDT; cost per contract = `px` (probability 0~1). E.g. 10 contracts at px=0.5 costs 5 USDT.
+- **Probability semantics**: for event contracts, live quote / order-book price `px` is the market-implied probability. Example: `px=0.6` means the market is pricing the event at roughly 60%.
+- **Outcome display**: expired/result views show translated values. For `price_up_down`, treat `YES/NO` as `UP/DOWN`.
 
 For event contract workflows and step-by-step examples, read `{baseDir}/references/event-workflows.md`.
 

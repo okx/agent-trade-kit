@@ -13,7 +13,7 @@
 | event_browse | R | 浏览当前活跃的事件合约 |
 | event_get_series | R | 列出事件合约系列 |
 | event_get_events | R | 列出事件（到期周期） |
-| event_get_markets | R | 列出市场合约与结算结果（到期后返回 outcome / settleValue） |
+| event_get_markets | R | 列出市场合约与结算结果（live `px` 表示市场隐含概率；到期后返回 outcome / settleValue） |
 | event_place_order | W | 下单 |
 | event_amend_order | W | 改单 |
 | event_cancel_order | W | 撤单 |

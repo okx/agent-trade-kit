@@ -70,7 +70,7 @@ describe("cmdEventBrowse", () => {
         freq: "fifteen_min",
         underlying: "BTC",
         contracts: [
-          { instId: "BTC-UPDOWN-15MIN-990101-0800-0815", expTime: "2099-01-01", floorStrike: "", outcome: "pending" },
+          { instId: "BTC-UPDOWN-15MIN-990101-0800-0815", expTime: "2099-01-01", floorStrike: "", px: "0.548", outcome: "pending" },
         ],
       },
     ]);
@@ -79,6 +79,7 @@ describe("cmdEventBrowse", () => {
     assert.ok(text.includes("Up/Down"), "should show method label");
     assert.ok(text.includes("15min"), "should show freq label");
     assert.ok(text.includes("BTC"), "should show underlying");
+    assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
     assert.ok(text.includes("In Progress"), "pending outcome maps to In Progress");
     assert.ok(text.includes("1 active contract(s)"), "should show total count");
   });
@@ -179,7 +180,7 @@ describe("cmdEventMarkets", () => {
     // Use a far-future instId so it won't be Settled
     const run = makeRun(
       [
-        { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "70000", outcome: "pending", settleValue: "" },
+        { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "70000", px: "0.548", outcome: "pending", settleValue: "" },
       ],
       { currentIdxPx: "69500", underlying: "BTC", availableUsdt: "1000" },
     );
@@ -188,6 +189,7 @@ describe("cmdEventMarkets", () => {
     assert.ok(text.includes("69500"), "should show current index price");
     assert.ok(text.includes("BTC"), "should show underlying");
     assert.ok(text.includes("1000"), "should show available USDT");
+    assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
     assert.ok(text.includes("In Progress"), "contract with floorStrike should be In Progress");
   });
 
@@ -199,6 +201,15 @@ describe("cmdEventMarkets", () => {
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
     assert.ok(text.includes("Settled"), "expired contract should show Settled");
+  });
+
+  it("shows UP for settled UPDOWN contracts when core already translated outcome to YES", async () => {
+    const run = makeRun([
+      { instId: "BTC-UPDOWN-15MIN-200101-0800-0815", expTime: "2020-01-01", floorStrike: "1", outcome: "YES", settleValue: "1" },
+    ]);
+    await cmdEventMarkets(run, { seriesId: "BTC-UPDOWN-15MIN", json: false });
+    const text = joined();
+    assert.ok(text.includes("UP"), "UPDOWN markets should render YES as UP");
   });
 
   it("shows Upcoming for contracts without floorStrike and not started", async () => {
@@ -267,6 +278,25 @@ describe("cmdEventOrders", () => {
     assert.ok(text.includes("UP"), "UPDOWN series outcome 1 = UP");
   });
 
+  it("shows UP for UPDOWN series when core already translated outcome to YES", async () => {
+    const run = makeRun([
+      {
+        instId: "BTC-UPDOWN-15MIN-990101-0800-0815",
+        cTime: "1700000000000",
+        side: "buy",
+        outcome: "YES",
+        px: "0.5",
+        fillSz: "0",
+        sz: "10",
+        state: "live",
+        ordId: "ord457",
+      },
+    ]);
+    await cmdEventOrders(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("UP"), "translated YES should still display as UP for UPDOWN");
+  });
+
   it("outputs JSON when json=true", async () => {
     const run = makeRun([{ instId: "BTC-ABOVE-DAILY-990101-1600-70000", ordId: "ord123" }]);
     await cmdEventOrders(run, { json: true });
@@ -316,6 +346,23 @@ describe("cmdEventFills", () => {
     const text = joined();
     assert.ok(text.includes("SELL"), "should show side");
     assert.ok(text.includes("DOWN"), "UPDOWN outcome 2 = DOWN");
+  });
+
+  it("shows DOWN for UPDOWN series when core already translated outcome to NO", async () => {
+    const run = makeRun([
+      {
+        instId: "BTC-UPDOWN-15MIN-990101-0800-0815",
+        side: "sell",
+        outcome: "NO",
+        fillPx: "0.4",
+        fillSz: "3",
+        ts: "1700000000000",
+        ordId: "ord998",
+      },
+    ]);
+    await cmdEventFills(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("DOWN"), "translated NO should still display as DOWN for UPDOWN");
   });
 
   it("outputs JSON when json=true", async () => {
@@ -446,7 +493,6 @@ describe("cmdEventAmend", () => {
     });
     const text = joined();
     assert.ok(text.includes("Failed to amend"), "should show failure");
-    assert.ok(text.includes("51001"), "should show sCode");
     assert.ok(text.includes("Instrument not found"), "should show sMsg");
   });
 

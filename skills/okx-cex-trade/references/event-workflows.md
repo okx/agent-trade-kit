@@ -11,10 +11,12 @@ Step 1: okx event browse --underlying BTC-USD
 Step 2: if the user wants one specific series, refine with:
 okx event markets BTC-ABOVE-DAILY --state live
 → Returns instId, strike, status, and settlement context
+→ If live `px` is present, interpret it directly as the market-implied probability
 
 Step 3:
 → Present the available contracts directly from event results
 → If multiple strikes/periods exist, explain the expiry window and what YES/NO or UP/DOWN means
+→ Only show a probability number when a live `px`/quote is actually available from the response
 ```
 
 Trading card format:
@@ -27,6 +29,8 @@ Strike 69,900: No live quote available
 
 Buy YES = bet that BTC > strike at expiry; max gain per contract is (1 − entry price) USDC, max loss is entry price USDC.
 ```
+
+`Probability 54.8%` above is derived from `px=0.548`. For event contracts, live quote / order-book price is itself the market-implied probability.
 
 ---
 
@@ -117,7 +121,9 @@ okx account positions --instType EVENTS
 ```
 
 **Expiry check (MANDATORY before displaying anything):**
-- Infer expiry from instId date part: `YYMMDD-HHMM` → e.g. `260320-1600` = 2026-03-20 16:00 UTC
+- Infer expiry from instId:
+  - `price_above` / `price_once_touch`: `YYMMDD-HHMM` → e.g. `260320-1600` = 2026-03-20 16:00 UTC
+  - `price_up_down`: `YYMMDD-START-END` → expiry is the `END` time
 - If expired → **immediately run without asking**:
   ```
   okx event markets <seriesId> --state expired

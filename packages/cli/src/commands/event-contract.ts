@@ -44,6 +44,12 @@ function fmtOutcome(raw: unknown): string {
   return String(raw ?? "");
 }
 
+function fmtMarketOutcome(instId: unknown, outcome: unknown): string {
+  const formatted = fmtOutcome(outcome);
+  if (formatted === "") return "";
+  return fmtOrderOutcome(instId, formatted);
+}
+
 /**
  * Translate order/fill outcome field using instId to distinguish series type.
  * price_up_down instIds contain "UPDOWN" → UP / DOWN
@@ -52,8 +58,9 @@ function fmtOutcome(raw: unknown): string {
 function fmtOrderOutcome(instId: unknown, outcome: unknown): string {
   const id = String(instId ?? "").toUpperCase();
   const isUpDown = id.includes("UPDOWN") || id.includes("UP-DOWN");
-  if (outcome === "1" || outcome === 1 || outcome === "yes") return isUpDown ? "UP" : "YES";
-  if (outcome === "2" || outcome === 2 || outcome === "no")  return isUpDown ? "DOWN" : "NO";
+  const normalized = String(outcome ?? "").toLowerCase();
+  if (outcome === "1" || outcome === 1 || normalized === "yes") return isUpDown ? "UP" : "YES";
+  if (outcome === "2" || outcome === 2 || normalized === "no")  return isUpDown ? "DOWN" : "NO";
   return String(outcome ?? "");
 }
 
@@ -203,6 +210,13 @@ function fmtTs(raw: unknown): string {
   return new Date(n).toISOString().replace("T", " ").replace(".000Z", " UTC");
 }
 
+function fmtProbability(raw: unknown): string {
+  if (raw === "" || raw == null) return "";
+  const n = Number(raw);
+  if (Number.isNaN(n)) return String(raw);
+  return `${(n * 100).toFixed(1)}%`;
+}
+
 // ---------------------------------------------------------------------------
 // Public queries
 // ---------------------------------------------------------------------------
@@ -228,6 +242,7 @@ export async function cmdEventBrowse(
         "Contract": c["instId"],
         "Expiry":   c["expTime"] ?? "",
         "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
+        "Probability": fmtProbability(c["px"]),
         "Status":   String(c["outcome"] ?? "").toLowerCase() === "pending" ? "In Progress" : String(c["outcome"] ?? ""),
       })),
     );
@@ -401,7 +416,8 @@ export async function cmdEventMarkets(
       status:      computeMarketStatus(m, now),
       expTime:     m["expTime"] ?? "",
       targetPrice: m["floorStrike"] ?? "",
-      outcome:     fmtOutcome(m["outcome"]),
+      probability: fmtProbability(m["px"]),
+      outcome:     fmtMarketOutcome(m["instId"], m["outcome"]),
       settleValue: m["settleValue"] ?? "",
     })),
   );
@@ -605,9 +621,8 @@ export async function cmdEventAmend(
       `Amended: ${r?.["ordId"]}${pxPart}${szPart}\n`,
     );
   } else {
-    const sCode = String(r?.["sCode"] ?? "");
     const sMsg  = String(r?.["sMsg"] ?? "unknown error");
-    process.stdout.write(`Failed to amend order ${opts.ordId}: [${sCode}] ${sMsg}\n`);
+    process.stdout.write(`Failed to amend order ${opts.ordId}: ${sMsg}\n`);
   }
 }
 

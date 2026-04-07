@@ -592,7 +592,7 @@ const HELP_TREE: HelpTree = {
     commands: {
       browse: {
         usage: "okx event browse [--underlying <asset>]",
-        description: "Browse all active (in-progress) event contracts; optionally filter by underlying (e.g. BTC-USD)",
+        description: "Browse all active (in-progress) event contracts; live px/quote price, when present, is the market-implied probability",
       },
       series: {
         usage: "okx event series [--seriesId <id>]",
@@ -604,7 +604,7 @@ const HELP_TREE: HelpTree = {
       },
       markets: {
         usage: "okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|expired>] [--limit <n>]",
-        description: "List markets; expired includes outcome (1=YES,2=NO) and settleValue",
+        description: "List markets; live px/quote price, when present, is the market-implied probability; expired includes translated outcome and settleValue",
       },
       place: {
         usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>]",
