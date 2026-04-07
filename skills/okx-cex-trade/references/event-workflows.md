@@ -137,7 +137,7 @@ Expired position response includes: ⚠️ warning, settlement price, outcome (Y
 
 ```
 Step 1: [user confirms]
-okx event place BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market --close
+okx event place BTC-ABOVE-DAILY-260320-1600-69700 sell YES 10 --ordType market
 ```
 
 (`reduceOnly` is automatically applied for sell orders — do not pass it.)

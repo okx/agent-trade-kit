@@ -36,7 +36,7 @@ okx event series [--seriesId <id>] [--json]
 |-----------|------|----------|-------------|
 | `seriesId` | string | No | Filter by series ID |
 
-**Output fields**: `seriesId`, `title`, `freq`, `settlement.method`, `settlement.underlying`, `state`
+**Output fields**: `seriesId`, `title`, `freq`, `category`, `settlement.method`, `settlement.underlying`
 
 ---
 
@@ -57,7 +57,7 @@ okx event events <seriesId> [--eventId <id>] [--state <preopen|live|settling|exp
 
 State lifecycle: preopen → live → settling → expired
 
-**Output fields**: `eventId`, `state`, `expTime`, `settleTime`
+**Output fields**: `eventId`, `seriesId`, `state`, `expTime`
 
 ---
 
@@ -107,7 +107,7 @@ Places a real order.
 
 ```bash
 okx event place <instId> <side> <outcome> <sz> \
-  [--px <prob>] [--ordType <market|limit|post_only>] [--slippage <ratio>] [--json]
+  [--px <prob>] [--ordType <market|limit|post_only>] [--json]
 ```
 
 | Parameter | Type | Required | Description |
@@ -118,9 +118,7 @@ okx event place <instId> <side> <outcome> <sz> \
 | `sz` | string | Yes | For limit/post_only: number of contracts. For market: quote currency amount |
 | `--px` | string | No | Limit price as probability 0.00~1.00; required when `ordType=limit`; omit for market orders |
 | `--ordType` | string | No | `market` (default), `limit`, or `post_only` |
-| `--slippage` | string | No | Max slippage ratio 0~1 (default `0.05`); market orders only |
-
-- `tdMode` is always `cash` — do not pass it.
+- `tdMode` is always `isolated` — auto-set by the system, do not pass it.
 - `speedBump` is auto-set for non-post_only orders — do not pass it.
 
 **Output**: `ordId`, `sMsg` (empty on success). Success signal: `ordId` non-empty + `sMsg` empty.

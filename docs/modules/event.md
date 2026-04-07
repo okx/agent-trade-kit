@@ -10,14 +10,17 @@
 
 | Name | R/W | Description |
 |---|---|---|
-| 8个工具 |
-| event_get_series  R  列出事件合约 |
-| event_get_events  R  列出事件 |
-| event_get_markets R 列出市场的Yes/No概率 |
-| event_palce_order W  下单 |
-| event_cancel_order W 撤单 |
-| event_get_orders  R 查询订单 state=live为挂单 |
-| event_get_fills R 查询成交记录 |
+| event_browse | R | 浏览当前活跃的事件合约 |
+| event_get_series | R | 列出事件合约系列 |
+| event_get_events | R | 列出事件（到期周期） |
+| event_get_markets | R | 列出市场的 Yes/No 概率 |
+| event_place_order | W | 下单 |
+| event_amend_order | W | 改单 |
+| event_cancel_order | W | 撤单 |
+| event_get_orders | R | 查询订单 state=live 为挂单 |
+| event_get_fills | R | 查询成交记录 |
+
+9 个工具
 
 ## Token 预算评估
 
