@@ -226,6 +226,167 @@ function resolveOutcome(value: string): string {
   return resolved;
 }
 
+/** Filter series to pick one representative per method:underlying combo, preferring human-readable IDs. */
+function filterBrowseCandidates(
+  allSeries: Record<string, unknown>[],
+  underlyingFilter: string | undefined,
+): Record<string, unknown>[] {
+  const isHumanReadable = (id: string) =>
+    /^(BTC|ETH|TRX|EOS|SOL|IOTA|KISHU|SUSHI|BTG|XTZ|SOLVU)-/.test(id);
+
+  const seen = new Set<string>();
+  const candidates: Record<string, unknown>[] = [];
+  for (const s of allSeries) {
+    const settlement = s["settlement"] as Record<string, unknown> | undefined;
+    const method = String(settlement?.["method"] ?? "");
+    const uly = String(settlement?.["underlying"] ?? "");
+    if (underlyingFilter && !uly.startsWith(underlyingFilter)) continue;
+    const key = `${method}:${uly}`;
+    if (!seen.has(key) && isHumanReadable(String(s["seriesId"] ?? ""))) {
+      seen.add(key);
+      candidates.push(s);
+    }
+  }
+  return candidates;
+}
+
+interface BrowseSeriesResult {
+  seriesId: string;
+  method: string;
+  underlying: string;
+  freq: string;
+  contracts: Record<string, unknown>[];
+}
+
+/** Fetch live markets for a single series candidate and return only active (in-progress) contracts. */
+async function fetchActiveContractsForSeries(
+  client: { privateGet: Function },
+  s: Record<string, unknown>,
+): Promise<BrowseSeriesResult | null> {
+  const seriesId = String(s["seriesId"] ?? "");
+  const settlement = s["settlement"] as Record<string, unknown> | undefined;
+  try {
+    const r = await client.privateGet(
+      "/api/v5/public/event-contract/markets",
+      compactObject({ seriesId, state: "live" }),
+      privateRateLimit("event_browse", 20),
+    );
+    const markets = (Array.isArray(normalizeResponse(r)["data"])
+      ? normalizeResponse(r)["data"] as Record<string, unknown>[]
+      : []);
+    const now = Date.now();
+    const active = markets
+      .filter(m => {
+        if (!m["floorStrike"] || m["floorStrike"] === "") return false;
+        const expMs = Number(m["expTime"] ?? 0);
+        return expMs <= 0 || expMs > now;
+      })
+      .map(m => {
+        const converted = convertTimestamps(m);
+        return {
+          instId:      m["instId"],
+          expTime:     converted["expTime"],
+          floorStrike: m["floorStrike"],
+          outcome:     OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
+        };
+      });
+    if (active.length === 0) return null;
+    return {
+      seriesId,
+      method:     String(settlement?.["method"] ?? ""),
+      underlying: String(settlement?.["underlying"] ?? ""),
+      freq:       String(s["freq"] ?? ""),
+      contracts:  active,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve underlying from a series API response when it could not be inferred from seriesId. */
+function resolveUnderlyingFromSeriesResp(
+  seriesResp: unknown,
+): string | null {
+  if (!seriesResp) return null;
+  const sResp = seriesResp as Record<string, unknown>;
+  const sData = Array.isArray(sResp["data"])
+    ? sResp["data"] as Record<string, unknown>[]
+    : [];
+  if (sData.length > 0) {
+    const settlement = sData[0]!["settlement"] as Record<string, unknown> | undefined;
+    return String(settlement?.["underlying"] ?? "") || null;
+  }
+  return null;
+}
+
+/** Sort markets by expTime ascending, slice by limit, and translate outcome labels + timestamps. */
+function translateAndSortMarkets(
+  rawData: Record<string, unknown>[],
+  limit: number | undefined,
+): Record<string, unknown>[] {
+  const sorted = [...rawData].sort((a, b) => {
+    const tA = Number(a["expTime"] ?? 0);
+    const tB = Number(b["expTime"] ?? 0);
+    return tA - tB;
+  });
+  const sliced = limit && limit > 0 ? sorted.slice(0, limit) : sorted;
+  return sliced.map(item => {
+    const converted = convertTimestamps(item);
+    if (typeof converted["outcome"] === "string") {
+      converted["outcome"] = OUTCOME_LABELS[converted["outcome"]] ?? converted["outcome"];
+    }
+    return converted;
+  });
+}
+
+/** Enrich a single fill record with type, settlementResult, and pnl fields. */
+function enrichFill(item: Record<string, unknown>): Record<string, unknown> {
+  const subType = String(item["subType"] ?? "");
+  const isSettle = subType === "414" || subType === "415";
+  const enriched: Record<string, unknown> = {
+    ...item,
+    outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
+    type: isSettle ? "settlement" : "fill",
+  };
+  if (isSettle) {
+    const fillPx = parseFloat(String(item["fillPx"] ?? "NaN"));
+    const fillPnl = parseFloat(String(item["fillPnl"] ?? "NaN"));
+    const isWin = subType === "414" || (subType !== "415" && fillPx === 1);
+    enriched["settlementResult"] = isWin ? "win" : "loss";
+    enriched["pnl"] = isNaN(fillPnl) ? undefined : fillPnl;
+  }
+  return enriched;
+}
+
+/** Handle item-level sCode errors from place order response. Throws OkxApiError if error found. */
+function handlePlaceOrderError(
+  base: Record<string, unknown>,
+  rawArgs: Record<string, unknown>,
+  endpoint: string,
+): void {
+  if (!Array.isArray(base["data"])) return;
+  const item = (base["data"] as Record<string, unknown>[])[0];
+  const sCode = item && String(item["sCode"] ?? "");
+  if (!sCode || sCode === "0") return;
+
+  const sMsg = String(item["sMsg"] ?? "Order failed");
+  if (sCode === "51001") {
+    const instId = requireString(asRecord(rawArgs), "instId");
+    const seriesId = extractSeriesId(instId);
+    const expiryMs = inferExpiryMsFromInstId(instId);
+    const isExpired = expiryMs !== null && expiryMs < Date.now();
+    const reason = isExpired
+      ? `The contract (${instId}) has expired.`
+      : `The contract (${instId}) was not found — it may not exist or has not started yet.`;
+    throw new OkxApiError(
+      `${reason} Ask the user if they'd like to place the same order on the next session. ` +
+      `If yes, call event_get_markets with seriesId=${seriesId} and state=live to find available contracts.`,
+      { code: sCode, endpoint },
+    );
+  }
+  throw new OkxApiError(`[${sCode}] ${sMsg}`, { code: sCode, endpoint });
+}
+
 const OUTCOME_SCHEMA = {
   type: "string" as const,
   enum: ["UP", "YES", "DOWN", "NO"],
@@ -259,7 +420,6 @@ export function registerEventContractTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const underlyingFilter = readString(args, "underlying");
 
-        // Step 1: fetch all series
         const seriesResp = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({}),
@@ -269,67 +429,10 @@ export function registerEventContractTools(): ToolSpec[] {
           ? normalizeResponse(seriesResp)["data"] as Record<string, unknown>[]
           : []);
 
-        // Step 2: pick representative series — prefer human-readable IDs (no random prefix)
-        const isHumanReadable = (id: string) =>
-          /^(BTC|ETH|TRX|EOS|SOL|IOTA|KISHU|SUSHI|BTG|XTZ|SOLVU)-/.test(id);
+        const candidates = filterBrowseCandidates(allSeries, underlyingFilter);
 
-        const seen = new Set<string>();
-        const candidates: Record<string, unknown>[] = [];
-        for (const s of allSeries) {
-          const settlement = s["settlement"] as Record<string, unknown> | undefined;
-          const method = String(settlement?.["method"] ?? "");
-          const uly = String(settlement?.["underlying"] ?? "");
-          if (underlyingFilter && !uly.startsWith(underlyingFilter)) continue;
-          const key = `${method}:${uly}`;
-          if (!seen.has(key) && isHumanReadable(String(s["seriesId"] ?? ""))) {
-            seen.add(key);
-            candidates.push(s);
-          }
-        }
-
-        // Step 3: fetch live markets for each candidate in parallel
         const marketResults = await Promise.all(
-          candidates.map(async (s) => {
-            const seriesId = String(s["seriesId"] ?? "");
-            const settlement = s["settlement"] as Record<string, unknown> | undefined;
-            try {
-              const r = await context.client.privateGet(
-                "/api/v5/public/event-contract/markets",
-                compactObject({ seriesId, state: "live" }),
-                privateRateLimit("event_browse", 20),
-              );
-              const markets = (Array.isArray(normalizeResponse(r)["data"])
-                ? normalizeResponse(r)["data"] as Record<string, unknown>[]
-                : []);
-              // Only in-progress contracts (floorStrike set, not expired)
-              const now = Date.now();
-              const active = markets
-                .filter(m => {
-                  if (!m["floorStrike"] || m["floorStrike"] === "") return false;
-                  const expMs = Number(m["expTime"] ?? 0);
-                  return expMs <= 0 || expMs > now;
-                })
-                .map(m => {
-                  const converted = convertTimestamps(m);
-                  return {
-                    instId:      m["instId"],
-                    expTime:     converted["expTime"],
-                    floorStrike: m["floorStrike"],
-                    outcome:     OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
-                  };
-                });
-              if (active.length === 0) return null;
-              return {
-                seriesId,
-                method:     String(settlement?.["method"] ?? ""),
-                underlying: String(settlement?.["underlying"] ?? ""),
-                freq:       String(s["freq"] ?? ""),
-                contracts:  active,
-              };
-            } catch {
-              return null;
-            }
-          }),
+          candidates.map((s) => fetchActiveContractsForSeries(context.client, s)),
         );
 
         const results = marketResults.filter(Boolean);
@@ -467,7 +570,6 @@ export function registerEventContractTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const seriesId = requireString(args, "seriesId");
 
-        // Extract underlying from seriesId for known patterns
         const knownUnderlying = extractUnderlying(seriesId);
 
         const [marketsResp, seriesResp, idxPxFromKnown, availableUsdt] = await Promise.all([
@@ -483,7 +585,6 @@ export function registerEventContractTools(): ToolSpec[] {
             }),
             publicRateLimit("event_get_markets", 20),
           ),
-          // Only fetch series if underlying is unknown
           knownUnderlying
             ? Promise.resolve(null)
             : context.client.privateGet(
@@ -491,44 +592,21 @@ export function registerEventContractTools(): ToolSpec[] {
                 compactObject({ seriesId }),
                 publicRateLimit("event_get_series", 20),
               ),
-          // Fetch index price if underlying known
           knownUnderlying ? fetchIdxPx(context.client, knownUnderlying + "-USDT") : Promise.resolve(null),
           fetchAvailableUsdt(context.client),
         ]);
 
-        // If underlying was unknown, extract from series response
         let underlying = knownUnderlying ? knownUnderlying + "-USDT" : null;
-        if (!underlying && seriesResp) {
-          const sResp = seriesResp as unknown as Record<string, unknown>;
-          const sData = Array.isArray(sResp["data"])
-            ? sResp["data"] as Record<string, unknown>[]
-            : [];
-          if (sData.length > 0) {
-            const settlement = sData[0]!["settlement"] as Record<string, unknown> | undefined;
-            underlying = String(settlement?.["underlying"] ?? "") || null;
-          }
+        if (!underlying) {
+          underlying = resolveUnderlyingFromSeriesResp(seriesResp);
         }
 
-        // If underlying was fetched from series, now fetch idxPx
         const idxPx = idxPxFromKnown ?? (underlying ? await fetchIdxPx(context.client, underlying) : null);
 
         const base = normalizeResponse(marketsResp);
         const limit = readNumber(args, "limit");
         const rawData = Array.isArray(base["data"]) ? base["data"] as Record<string, unknown>[] : [];
-        // Sort by expTime ascending (nearest first) before slicing
-        const sorted = [...rawData].sort((a, b) => {
-          const tA = Number(a["expTime"] ?? 0);
-          const tB = Number(b["expTime"] ?? 0);
-          return tA - tB;
-        });
-        const sliced = limit && limit > 0 ? sorted.slice(0, limit) : sorted;
-        const translated = sliced.map(item => {
-          const converted = convertTimestamps(item);
-          if (typeof converted["outcome"] === "string") {
-            converted["outcome"] = OUTCOME_LABELS[converted["outcome"]] ?? converted["outcome"];
-          }
-          return converted;
-        });
+        const translated = translateAndSortMarkets(rawData, limit);
         return {
           ...base,
           data: translated,
@@ -619,24 +697,7 @@ export function registerEventContractTools(): ToolSpec[] {
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
-          ? (base["data"] as Record<string, unknown>[]).map((item) => {
-              const subType = String(item["subType"] ?? "");
-              // subType 414 = winning settlement, 415 = losing settlement
-              const isSettle = subType === "414" || subType === "415";
-              const fillPx = parseFloat(String(item["fillPx"] ?? "NaN"));
-              const fillPnl = parseFloat(String(item["fillPnl"] ?? "NaN"));
-              const enriched: Record<string, unknown> = {
-                ...item,
-                outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
-                type: isSettle ? "settlement" : "fill",
-              };
-              if (isSettle) {
-                const isWin = subType === "414" || (subType !== "415" && fillPx === 1);
-                enriched["settlementResult"] = isWin ? "win" : "loss";
-                enriched["pnl"] = isNaN(fillPnl) ? undefined : fillPnl;
-              }
-              return enriched;
-            })
+          ? (base["data"] as Record<string, unknown>[]).map(enrichFill)
           : base["data"];
         return { ...base, data };
       },
@@ -703,29 +764,7 @@ export function registerEventContractTools(): ToolSpec[] {
           privateRateLimit("event_place_order", 60),
         );
         const base = normalizeResponse(response);
-        // Surface inner item-level errors with AI-friendly messages
-        if (Array.isArray(base["data"])) {
-          const item = (base["data"] as Record<string, unknown>[])[0];
-          const sCode = item && String(item["sCode"] ?? "");
-          if (sCode && sCode !== "0") {
-            const sMsg = String(item!["sMsg"] ?? "Order failed");
-            if (sCode === "51001") {
-              const instId = requireString(asRecord(rawArgs), "instId");
-              const seriesId = extractSeriesId(instId);
-              const expiryMs = inferExpiryMsFromInstId(instId);
-              const isExpired = expiryMs !== null && expiryMs < Date.now();
-              const reason = isExpired
-                ? `The contract (${instId}) has expired.`
-                : `The contract (${instId}) was not found — it may not exist or has not started yet.`;
-              throw new OkxApiError(
-                `${reason} Ask the user if they'd like to place the same order on the next session. ` +
-                `If yes, call event_get_markets with seriesId=${seriesId} and state=live to find available contracts.`,
-                { code: sCode, endpoint: response.endpoint },
-              );
-            }
-            throw new OkxApiError(`[${sCode}] ${sMsg}`, { code: sCode, endpoint: response.endpoint });
-          }
-        }
+        handlePlaceOrderError(base, asRecord(rawArgs), response.endpoint);
         // Strip tag from successful response
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map(({ tag: _t, ...rest }) => rest)

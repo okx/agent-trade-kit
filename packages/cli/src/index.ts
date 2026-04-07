@@ -1180,16 +1180,12 @@ export function handleEventCommand(
   json: boolean,
 ): Promise<void> | void {
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
-  if (action === "browse")
-    return cmdEventBrowse(run, { underlying: v.underlying ?? rest[0], json });
-  if (action === "series")
-    return cmdEventSeries(run, { seriesId: v.seriesId, all: v.all, json });
-  if (action === "events")
-    return cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json });
-  if (action === "markets")
-    return cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, limit, json });
-  if (action === "place")
-    return cmdEventPlace(run, {
+  const handlers: Record<string, () => Promise<void> | void> = {
+    browse: () => cmdEventBrowse(run, { underlying: v.underlying ?? rest[0], json }),
+    series: () => cmdEventSeries(run, { seriesId: v.seriesId, all: v.all, json }),
+    events: () => cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json }),
+    markets: () => cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, limit, json }),
+    place: () => cmdEventPlace(run, {
       instId: (v.instId ?? rest[0])!,
       side: (v.side ?? rest[1])!,
       outcome: (v.outcome ?? rest[2])!,
@@ -1197,15 +1193,14 @@ export function handleEventCommand(
       px: v.px,
       ordType: v.ordType,
       json,
-    });
-  if (action === "amend")
-    return cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json });
-  if (action === "cancel")
-    return cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json });
-  if (action === "orders")
-    return cmdEventOrders(run, { instId: v.instId, state: v.state, limit, json });
-  if (action === "fills")
-    return cmdEventFills(run, { instId: v.instId, limit, json });
+    }),
+    amend: () => cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json }),
+    cancel: () => cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json }),
+    orders: () => cmdEventOrders(run, { instId: v.instId, state: v.state, limit, json }),
+    fills: () => cmdEventFills(run, { instId: v.instId, limit, json }),
+  };
+  const handler = handlers[action];
+  if (handler) return handler();
   process.stderr.write(`Unknown event command: ${action}\n`);
   process.exitCode = 1;
 }

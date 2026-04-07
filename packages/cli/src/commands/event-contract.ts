@@ -118,15 +118,38 @@ function inferExpiryMsFromInstId(instId: string): number | null {
  * SOLVU-ABOVE-DAILY-260401-1600-70000  → "SOLVU 高于 70,000 · 4/1"
  * TESTAAAA-UPDOWN-15MIN-260325-1830-1845 → "TESTAAAA 涨跌 · 3/25 18:30-18:45"
  */
+function findDateIdx(parts: string[]): number {
+  for (let i = 1; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i])) { return i; }
+  }
+  return -1;
+}
+
+function fmtTimeToken(t: string): string {
+  return t.length === 4 ? `${t.slice(0, 2)}:${t.slice(2)}` : t;
+}
+
+function fmtUpDownName(seriesId: string, dateStr: string, parts: string[], dateIdx: number): string {
+  const t1 = parts[dateIdx + 1] ?? "";
+  const t2 = parts[dateIdx + 2] ?? "";
+  const timeRange = t1 && t2 ? ` ${fmtTimeToken(t1)}-${fmtTimeToken(t2)}` : "";
+  return `${seriesId} Up/Down · ${dateStr}${timeRange}`;
+}
+
+function fmtStrikeName(seriesId: string, dateStr: string, label: string, parts: string[], dateIdx: number): string {
+  const strike = parts[dateIdx + 2] ?? "";
+  const strikeStr = strike && /^\d+$/.test(strike)
+    ? Number(strike).toLocaleString("en-US")
+    : "";
+  return strikeStr ? `${seriesId} ${label} ${strikeStr} · ${dateStr}` : `${seriesId} · ${dateStr}`;
+}
+
 function fmtContractName(instId: string): string {
   const parts = instId.split("-");
   const upper = instId.toUpperCase();
   const seriesId = parts[0] ?? instId;
 
-  let dateIdx = -1;
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i])) { dateIdx = i; break; }
-  }
+  const dateIdx = findDateIdx(parts);
   if (dateIdx < 0) return instId;
 
   const d = parts[dateIdx];
@@ -135,23 +158,13 @@ function fmtContractName(instId: string): string {
   const dateStr = `${month}/${day}`;
 
   if (upper.includes("UPDOWN") || upper.includes("UP-DOWN")) {
-    const t1 = parts[dateIdx + 1] ?? "";
-    const t2 = parts[dateIdx + 2] ?? "";
-    const fmtT = (t: string) => t.length === 4 ? `${t.slice(0, 2)}:${t.slice(2)}` : t;
-    const timeRange = t1 && t2 ? ` ${fmtT(t1)}-${fmtT(t2)}` : "";
-    return `${seriesId} Up/Down · ${dateStr}${timeRange}`;
+    return fmtUpDownName(seriesId, dateStr, parts, dateIdx);
   }
-
-  const strike = parts[dateIdx + 2] ?? "";
-  const strikeStr = strike && /^\d+$/.test(strike)
-    ? Number(strike).toLocaleString("en-US")
-    : "";
-
   if (upper.includes("ABOVE")) {
-    return strikeStr ? `${seriesId} above ${strikeStr} · ${dateStr}` : `${seriesId} · ${dateStr}`;
+    return fmtStrikeName(seriesId, dateStr, "above", parts, dateIdx);
   }
   if (upper.includes("TOUCH")) {
-    return strikeStr ? `${seriesId} touch ${strikeStr} · ${dateStr}` : `${seriesId} · ${dateStr}`;
+    return fmtStrikeName(seriesId, dateStr, "touch", parts, dateIdx);
   }
   return `${seriesId} · ${dateStr}`;
 }
@@ -232,6 +245,41 @@ const FEATURED_SERIES = new Set([
 // Well-known crypto prefixes — series with these underlying are shown by default.
 const KNOWN_PREFIXES = /^(BTC|ETH|TRX|SOL|EOS|BNB|XRP|ADA|DOGE|IOTA|SUSHI|KISHU|BTG|XTZ)-/i;
 
+function getSeriesMethod(s: Record<string, unknown>): string {
+  const settlement = s["settlement"] as Record<string, unknown> | undefined;
+  const method = settlement?.["method"] ?? s["method"];
+  return String(method ?? "").toLowerCase();
+}
+
+function isUpDownSeries(s: Record<string, unknown>): boolean {
+  const m = getSeriesMethod(s);
+  return m.includes("up_down") || m.includes("updown");
+}
+
+function isFeatured(s: Record<string, unknown>): boolean {
+  return FEATURED_SERIES.has(String(s["seriesId"] ?? ""));
+}
+
+function isKnownSeries(s: Record<string, unknown>): boolean {
+  return KNOWN_PREFIXES.test(String(s["seriesId"] ?? ""));
+}
+
+function classifySeries(all: Record<string, unknown>[]): {
+  featured: Record<string, unknown>[];
+  standard: Record<string, unknown>[];
+  testSeries: Record<string, unknown>[];
+} {
+  const featured: Record<string, unknown>[] = [];
+  const standard: Record<string, unknown>[] = [];
+  const testSeries: Record<string, unknown>[] = [];
+  for (const s of all) {
+    if (isFeatured(s)) featured.push(s);
+    else if (isKnownSeries(s)) standard.push(s);
+    else testSeries.push(s);
+  }
+  return { featured, standard, testSeries };
+}
+
 export async function cmdEventSeries(
   run: ToolRunner,
   opts: { seriesId?: string; all?: boolean; json: boolean },
@@ -256,27 +304,18 @@ export async function cmdEventSeries(
   };
 
   const all = data ?? [];
-  const featured   = all.filter(s => FEATURED_SERIES.has(String(s["seriesId"] ?? "")));
-  const standard   = all.filter(s => !FEATURED_SERIES.has(String(s["seriesId"] ?? "")) && KNOWN_PREFIXES.test(String(s["seriesId"] ?? "")));
-  const testSeries = all.filter(s => !FEATURED_SERIES.has(String(s["seriesId"] ?? "")) && !KNOWN_PREFIXES.test(String(s["seriesId"] ?? "")));
-
-  // Group by type: UPDOWN first, ABOVE second
-  const updown = [...featured, ...standard].filter(s => {
-    const method = (s["settlement"] as Record<string, unknown> | undefined)?.["method"] ?? s["method"];
-    return String(method ?? "").toLowerCase().includes("up_down") || String(method ?? "").toLowerCase().includes("updown");
-  });
-  const above = [...featured, ...standard].filter(s => {
-    const method = (s["settlement"] as Record<string, unknown> | undefined)?.["method"] ?? s["method"];
-    return !String(method ?? "").toLowerCase().includes("up_down") && !String(method ?? "").toLowerCase().includes("updown");
-  });
+  const { featured, standard, testSeries } = classifySeries(all);
+  const mainSeries = [...featured, ...standard];
+  const updown = mainSeries.filter(isUpDownSeries);
+  const above = mainSeries.filter(s => !isUpDownSeries(s));
 
   if (updown.length > 0) {
     process.stdout.write("\n── Up/Down ──\n");
-    printTable(updown.map(s => toRow(s, FEATURED_SERIES.has(String(s["seriesId"] ?? "")))));
+    printTable(updown.map(s => toRow(s, isFeatured(s))));
   }
   if (above.length > 0) {
     process.stdout.write("\n── Price Above ──\n");
-    printTable(above.map(s => toRow(s, FEATURED_SERIES.has(String(s["seriesId"] ?? "")))));
+    printTable(above.map(s => toRow(s, isFeatured(s))));
   }
 
   if (testSeries.length > 0) {
@@ -310,6 +349,26 @@ export async function cmdEventEvents(
   );
 }
 
+function sortByExpiry(data: Record<string, unknown>[]): Record<string, unknown>[] {
+  return [...data].sort((a, b) => {
+    const ea = inferExpiryMsFromInstId(String(a["instId"] ?? "")) ?? Infinity;
+    const eb = inferExpiryMsFromInstId(String(b["instId"] ?? "")) ?? Infinity;
+    return ea - eb;
+  });
+}
+
+function computeMarketStatus(m: Record<string, unknown>, now: number): string {
+  const instId = String(m["instId"] ?? "");
+  const expiryMs = inferExpiryMsFromInstId(instId);
+  const startMs = inferStartMsFromInstId(instId);
+  const notExpired = expiryMs === null || now < expiryMs;
+  if (!notExpired) return "Settled";
+  const hasStarted =
+    (m["floorStrike"] !== "" && m["floorStrike"] != null) ||
+    (startMs !== null && startMs <= now);
+  return hasStarted ? "In Progress" : "Upcoming";
+}
+
 export async function cmdEventMarkets(
   run: ToolRunner,
   opts: { seriesId: string; eventId?: string; instId?: string; state?: string; limit?: number; json: boolean },
@@ -324,7 +383,6 @@ export async function cmdEventMarkets(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
 
-  // Display current index price and available USDT if present in result
   const ext = result as unknown as Record<string, unknown>;
   const currentIdxPx = ext["currentIdxPx"];
   const underlying = ext["underlying"];
@@ -336,31 +394,16 @@ export async function cmdEventMarkets(
   }
 
   const now = Date.now();
-  // Sort by expiry ascending: nearest expiry first
-  const sorted = [...(data ?? [])].sort((a, b) => {
-    const ea = inferExpiryMsFromInstId(String(a["instId"] ?? "")) ?? Infinity;
-    const eb = inferExpiryMsFromInstId(String(b["instId"] ?? "")) ?? Infinity;
-    return ea - eb;
-  });
+  const sorted = sortByExpiry(data ?? []);
   printTable(
-    sorted.map((m) => {
-      const instId = String(m["instId"] ?? "");
-      const expiryMs  = inferExpiryMsFromInstId(instId);
-      const startMs   = inferStartMsFromInstId(instId);
-      const notExpired = expiryMs === null || now < expiryMs;
-      const hasStarted = notExpired && (
-        (m["floorStrike"] !== "" && m["floorStrike"] != null) ||
-        (startMs !== null && startMs <= now)
-      );
-      return {
-        instId,
-        status:      !notExpired ? "Settled" : hasStarted ? "In Progress" : "Upcoming",
-        expTime:     m["expTime"] ?? "",
-        targetPrice: m["floorStrike"] ?? "",
-        outcome:     fmtOutcome(m["outcome"]),
-        settleValue: m["settleValue"] ?? "",
-      };
-    }),
+    sorted.map((m) => ({
+      instId:      String(m["instId"] ?? ""),
+      status:      computeMarketStatus(m, now),
+      expTime:     m["expTime"] ?? "",
+      targetPrice: m["floorStrike"] ?? "",
+      outcome:     fmtOutcome(m["outcome"]),
+      settleValue: m["settleValue"] ?? "",
+    })),
   );
 }
 
@@ -435,6 +478,51 @@ function extractSeriesId(instId: string): string {
   return instId;
 }
 
+async function handleExpiredContractFallback(
+  run: ToolRunner,
+  opts: { instId: string; side: string; outcome: string; sz: string; px?: string; ordType?: string },
+): Promise<void> {
+  process.stdout.write(
+    `Order failed: Contract ${opts.instId} has expired.\n` +
+    `Checking next available contracts in this series...\n`,
+  );
+  const seriesId = extractSeriesId(opts.instId);
+  try {
+    const mkts = await run("event_get_markets", { seriesId, state: "live" });
+    const mData = (getData(mkts) as Record<string, unknown>[]) ?? [];
+    const active = mData.filter((m) => m["floorStrike"] && m["floorStrike"] !== "");
+    if (active.length > 0) {
+      printTable(
+        active.slice(0, 3).map((m) => ({
+          instId:  m["instId"],
+          expTime: m["expTime"] ?? "",
+          targetPrice:  m["floorStrike"] ?? "",
+        })),
+      );
+      const next = active[0]!;
+      const nextInstId  = String(next["instId"]);
+      const pxFlag      = opts.px      ? ` --px ${opts.px}`           : "";
+      const ordTypeFlag = opts.ordType ? ` --ordType ${opts.ordType}` : "";
+      process.stdout.write(
+        `\nTo place the same order on the next contract:\n` +
+        `  okx event place ${nextInstId} ${opts.side} ${opts.outcome} ${opts.sz}${pxFlag}${ordTypeFlag}\n`,
+      );
+    } else {
+      process.stdout.write(`No active contracts found in this series.\n`);
+    }
+  } catch {
+    // silently ignore — main message already printed
+  }
+}
+
+function handlePlaceOrderError(msg: string, instId: string): void {
+  if (msg.includes("not found") || msg.includes("51001")) {
+    process.stdout.write(`Order failed: Contract ${instId} not found or not yet available.\n`);
+  } else {
+    process.stdout.write(`Order failed: ${msg}\n`);
+  }
+}
+
 export async function cmdEventPlace(
   run: ToolRunner,
   opts: {
@@ -462,41 +550,9 @@ export async function cmdEventPlace(
     const expiryMs = inferExpiryMsFromInstId(opts.instId);
     const isExpired = expiryMs !== null && expiryMs < Date.now();
     if (isExpired) {
-      process.stdout.write(
-        `Order failed: Contract ${opts.instId} has expired.\n` +
-        `Checking next available contracts in this series...\n`,
-      );
-      const seriesId = extractSeriesId(opts.instId);
-      try {
-        const mkts = await run("event_get_markets", { seriesId, state: "live" });
-        const mData = (getData(mkts) as Record<string, unknown>[]) ?? [];
-        const active = mData.filter((m) => m["floorStrike"] && m["floorStrike"] !== "");
-        if (active.length > 0) {
-          printTable(
-            active.slice(0, 3).map((m) => ({
-              instId:  m["instId"],
-              expTime: m["expTime"] ?? "",
-              targetPrice:  m["floorStrike"] ?? "",
-            })),
-          );
-          const next = active[0]!;
-          const nextInstId  = String(next["instId"]);
-          const pxFlag      = opts.px      ? ` --px ${opts.px}`           : "";
-          const ordTypeFlag = opts.ordType ? ` --ordType ${opts.ordType}` : "";
-          process.stdout.write(
-            `\nTo place the same order on the next contract:\n` +
-            `  okx event place ${nextInstId} ${opts.side} ${opts.outcome} ${opts.sz}${pxFlag}${ordTypeFlag}\n`,
-          );
-        } else {
-          process.stdout.write(`No active contracts found in this series.\n`);
-        }
-      } catch {
-        // silently ignore — main message already printed
-      }
-    } else if (msg.includes("not found") || msg.includes("51001")) {
-      process.stdout.write(`Order failed: Contract ${opts.instId} not found or not yet available.\n`);
+      await handleExpiredContractFallback(run, opts);
     } else {
-      process.stdout.write(`Order failed: ${msg}\n`);
+      handlePlaceOrderError(msg, opts.instId);
     }
     return;
   }
@@ -510,11 +566,11 @@ export async function cmdEventPlace(
       ? "market order — typically fills immediately"
       : `${ordType} order — may still be live; verify with: okx event orders --instId ${opts.instId} --state live`;
   const period = fmtPeriodFromInstId(opts.instId);
+  const pxPart = opts.px ? `  px: ${opts.px}` : "";
   process.stdout.write(
     `Order submitted: ${order?.["ordId"]}\n` +
     `  Period: ${period}\n` +
-    `  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  sz: ${opts.sz}` +
-    `${opts.px ? `  px: ${opts.px}` : ""}  type: ${ordType}\n` +
+    `  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  sz: ${opts.sz}${pxPart}  type: ${ordType}\n` +
     `  (${stateHint})\n`,
   );
   if (ordType === "market") {
@@ -543,15 +599,29 @@ export async function cmdEventAmend(
   if (opts.json) return printJson(data);
   const r = data?.[0];
   if (r?.["sCode"] === "0") {
+    const pxPart = opts.px ? `  new px: ${opts.px}` : "";
+    const szPart = opts.sz ? `  new sz: ${opts.sz}` : "";
     process.stdout.write(
-      `Amended: ${r?.["ordId"]}` +
-      `${opts.px ? `  new px: ${opts.px}` : ""}` +
-      `${opts.sz ? `  new sz: ${opts.sz}` : ""}\n`,
+      `Amended: ${r?.["ordId"]}${pxPart}${szPart}\n`,
     );
   } else {
     const sCode = String(r?.["sCode"] ?? "");
     const sMsg  = String(r?.["sMsg"] ?? "unknown error");
     process.stdout.write(`Failed to amend order ${opts.ordId}: [${sCode}] ${sMsg}\n`);
+  }
+}
+
+function handleCancelCatchError(instId: string, ordId: string, err: unknown): void {
+  const msg = err instanceof Error ? err.message : String(err);
+  const expiryMs = inferExpiryMsFromInstId(instId);
+  const isExpired = expiryMs !== null && expiryMs < Date.now();
+  if (isExpired) {
+    process.stdout.write(
+      `Cannot cancel: contract ${instId} has already expired.\n` +
+      `  The order was auto-cancelled at settlement — no action needed.\n`,
+    );
+  } else {
+    process.stdout.write(`Failed to cancel order ${ordId}: ${msg}\n`);
   }
 }
 
@@ -566,17 +636,7 @@ export async function cmdEventCancel(
       ordId: opts.ordId,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const expiryMs = inferExpiryMsFromInstId(opts.instId);
-    const isExpired = expiryMs !== null && expiryMs < Date.now();
-    if (isExpired) {
-      process.stdout.write(
-        `Cannot cancel: contract ${opts.instId} has already expired.\n` +
-        `  The order was auto-cancelled at settlement — no action needed.\n`,
-      );
-    } else {
-      process.stdout.write(`Failed to cancel order ${opts.ordId}: ${msg}\n`);
-    }
+    handleCancelCatchError(opts.instId, opts.ordId, err);
     return;
   }
   const data = getData(result) as Record<string, unknown>[];
@@ -592,8 +652,9 @@ export async function cmdEventCancel(
       sCode === "51400"
         ? "The order may have already been filled or cancelled. No further action needed."
         : "";
+    const hintSuffix = hint ? `\n  ${hint}` : "";
     process.stdout.write(
-      `Failed to cancel ${ordId}: ${sMsg}${hint ? `\n  ${hint}` : ""}\n`,
+      `Failed to cancel ${ordId}: ${sMsg}${hintSuffix}\n`,
     );
   }
 }
