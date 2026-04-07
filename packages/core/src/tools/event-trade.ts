@@ -648,7 +648,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_place_order",
       module: "event",
-      description: `Place an event contract order. [CAUTION] Places a real order. Not supported in demo mode.
+      description: `Place an event contract order. [CAUTION] Places a real order.
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
 - For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
 - tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either`,
@@ -778,7 +778,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_cancel_order",
       module: "event",
-      description: "Cancel a pending event contract order. [CAUTION] Cancels a real order. Not supported in demo mode. instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair.",
+      description: "Cancel a pending event contract order. [CAUTION] Cancels a real order. instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair.",
       isWrite: true,
       inputSchema: {
         type: "object",
