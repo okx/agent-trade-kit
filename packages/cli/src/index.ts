@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs } from "@agent-tradekit/core";
+import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
 
 declare const __GIT_HASH__: string;
@@ -1189,6 +1189,25 @@ function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxCon
   errorLine(`[verbose] config: profile=${profile ?? "default"} site=${config.site} base=${config.baseUrl} auth=${authLabel} demo=${config.demo ? "on" : "off"} modules=${config.modules.join(",")}`);
 }
 
+/** Wrap a ToolRunner with audit logging via TradeLogger. */
+export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger): ToolRunner {
+  const writeToolNames = new Set(allToolSpecs().filter((t) => t.isWrite).map((t) => t.name));
+  return async (toolName, args) => {
+    const startTime = Date.now();
+    try {
+      const result = await baseRunner(toolName, args);
+      if (writeToolNames.has(toolName)) {
+        markFailedIfSCodeError(result.data);
+      }
+      logger.log("info", toolName, args, result, Date.now() - startTime);
+      return result;
+    } catch (error) {
+      logger.log("error", toolName, args, error, Date.now() - startTime);
+      throw error;
+    }
+  };
+}
+
 // Extracted to reduce cognitive complexity of main()
 async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<void> {
   let config: ReturnType<typeof loadProfileConfig> | undefined;
@@ -1237,14 +1256,8 @@ async function main(): Promise<void> {
 
   const client = new OkxRestClient(config);
   const baseRunner = createToolRunner(client, config);
-  const writeToolNames = new Set(allToolSpecs().filter((t) => t.isWrite).map((t) => t.name));
-  const run: ToolRunner = async (toolName, args) => {
-    const result = await baseRunner(toolName, args);
-    if (writeToolNames.has(toolName)) {
-      markFailedIfSCodeError(result.data);
-    }
-    return result;
-  };
+  const logger = new TradeLogger("info");
+  const run = wrapRunnerWithLogger(baseRunner, logger);
 
   const moduleHandlers: Record<string, () => Promise<void> | void> = {
     market:  () => handleMarketCommand(run, action, rest, v, json),
