@@ -361,7 +361,7 @@ For full parameter details per command, read the relevant reference file.
 
 - All write commands require valid credentials in `~/.okx/config.toml` or env vars
 - `--profile <name>` is required for all authenticated commands
-- `--json` returns `{"env": "<live|demo>", "profile": "<name>", "data": <OKX API v5 response>}` — `data` contains the raw API response; `env` and `profile` indicate the active environment and credential profile
+- `--json` returns the raw OKX API v5 response by default. Add `--env` to wrap the output as `{"env": "<live|demo>", "profile": "<name>", "data": <response>}` — useful when you need to know the active environment and credential profile
 - Rate limit: 60 order operations per 2 seconds per UID
 - Batch operations (batch cancel, batch amend) are available via MCP tools directly if needed
 - Position mode (`net` vs `long_short_mode`) affects whether `--posSide` is required

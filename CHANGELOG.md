@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CLI `--json` env wrapper is now opt-in via `--env` flag**: Reverts the breaking change from !207 where `--json` output was wrapped in `{env, profile, data}`. Now `--json` returns raw data by default (backward compatible). Use `--json --env` to get the wrapper with environment metadata. Table output environment header is unaffected. (#131)
+
 ### Added
 
 - **Simple Earn Fixed (定期赚币) tools** (`earn.savings`): Three new tools — `earn_get_fixed_order_list` (query fixed-term orders by ccy/state), `earn_fixed_purchase` (two-step purchase: preview with offer details then confirm; funds locked until maturity), `earn_fixed_redeem` (redeem a fixed-term order). `earn_get_lending_rate_history` now also returns available fixed-term offers with APR, term, min amount, and remaining quota. CLI: `okx earn savings fixed-orders`, `okx earn savings fixed-purchase`, `okx earn savings fixed-redeem`.

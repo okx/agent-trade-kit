@@ -526,7 +526,7 @@ okx account config
 - All write commands require valid credentials in `~/.okx/config.toml` or env vars
 - `--profile <name>` is required for all authenticated commands; see "Credential & Profile Check" section
 - Every command result includes a `[profile: <name>]` tag for audit reference
-- `--json` returns raw OKX API v5 response
+- `--json` returns the raw OKX API v5 response by default. Add `--env` to wrap the output as `{"env": "<live|demo>", "profile": "<name>", "data": <response>}`
 - Rate limit: 10 requests per 2 seconds for account endpoints
 - Positions shown are for the unified trading account; funding account assets are separate
 - Account types: `6`=Funding Account (deposits/withdrawals), `18`=Unified Trading Account (spot + derivatives)
