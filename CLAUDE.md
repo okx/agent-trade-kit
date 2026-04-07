@@ -104,7 +104,7 @@ Review MCP 相关 MR 时按以下顺序检查（完整版见 `docs/mcp-design-gu
 3. **Description**: 面向意图，无 API 细节
 4. **Params**: 全部扁平化，金额/价格用 string
 5. **isWrite**: 资金变动 = true
-6. **Token**: 报告变化前后的 tool 数量和 token 数量，确认未超 25,000 预算
+6. **Token**: 当 MR 涉及 tool 新增/删除/描述变更时，reviewer **必须**在 MR 评论中附上 token 预算变化表（模块级 + 全局级），包含变更前后的 tool 数量和 token 估算，确认未超 25,000 预算。（经验教训：MR !215 首轮 review 遗漏了 token 报告）
 7. **Parity**: MCP tool ↔ CLI command 同步
 8. **Workflow**: agent-skills 中有 workflows.md
 9. **Tests**: CLI 参数路由测试存在

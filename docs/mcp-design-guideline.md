@@ -333,7 +333,7 @@ Reviewer 审核 MCP 相关 MR 时，必须逐条检查以下项目。
 - [ ] Error message 包含 suggestion（告诉 agent 下一步该做什么）
 
 ### Token 预算
-- [ ] Review comment 中报告变化前后的 tool 数量和 token 数量
+- [ ] 当 MR 涉及 tool 新增/删除/描述变更时，Review comment 中**必须**附上 token 预算变化对比表（模块级 + 全局级），包含变更前后的 tool 数量和 token 估算
 - [ ] 运行统计命令：`node -e "const{allToolSpecs}=require('./packages/core/dist/index.js');const t=allToolSpecs();let c=0;t.forEach(x=>c+=JSON.stringify({name:x.name,description:x.description,inputSchema:x.inputSchema}).length);console.log(t.length+' tools, ~'+Math.round(c/4)+' tokens')"`
 - [ ] 总量未超出 25,000 tokens 上限
 
