@@ -20,6 +20,10 @@
 - **`earn_get_lending_rate_history` 新增认证 API 调用以获取定期产品**（`earn.savings`）：该工具现通过 `privateGet` 请求定期产品列表。此调用为 best-effort——若用户未配置 API key，工具仍正常返回活期借贷利率历史，`fixedOffers` 为空数组。
 - **`earn_get_lending_rate_history` 默认 limit 从 100 降为 7**（`earn.savings`）：未传 `limit` 时，工具现返回最近 7 条记录而非 100 条，减少 agent 对话中的 token 消耗。
 
+### 修复
+
+- **`tgtCcy=quote_ccy` 换算：使用 `minSz`/`lotSz` 替代 `Math.floor`**：USDT 转合约张数的换算现在按 `lotSz` 精度向下取整，并与 instruments API 返回的 `minSz` 比较，不再假设最小张数为整数。修复了 `minSz < 1` 的合约（如 BTC-USDT-SWAP `minSz=0.01`）误报"金额不足"的问题。(#127)
+
 ---
 
 ## [1.3.0-beta.1] - 2026-04-07

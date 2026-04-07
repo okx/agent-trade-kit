@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`earn_get_lending_rate_history` now fetches fixed-term offers via authenticated API** (`earn.savings`): This tool now makes an additional `privateGet` call to retrieve fixed-term product offers. The call is best-effort — if the user has no API key configured, the tool still returns flexible lending rate history as before, with an empty `fixedOffers` array.
 - **`earn_get_lending_rate_history` default limit reduced from 100 to 7** (`earn.savings`): When `limit` is omitted, the tool now returns the 7 most recent records instead of 100, reducing token usage in agent conversations.
 
+### Fixed
+
+- **`tgtCcy=quote_ccy` conversion: use `minSz`/`lotSz` instead of `Math.floor`**: The USDT-to-contract conversion now rounds down to `lotSz` precision and compares against `minSz` from the instruments API, instead of assuming integer contracts. Fixes false "too small" errors for instruments where `minSz < 1` (e.g. BTC-USDT-SWAP with `minSz=0.01`). (#127)
+
 ---
 
 ## [1.3.0-beta.1] - 2026-04-07
