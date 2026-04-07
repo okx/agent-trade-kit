@@ -171,7 +171,7 @@ import {
   cmdSkillCheck,
   cmdSkillList,
 } from "./commands/skill.js";
-import { markFailedIfSCodeError, outputLine, errorLine, setOutput } from "./formatter.js";
+import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext } from "./formatter.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -1183,6 +1183,17 @@ function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxCon
   errorLine(`[verbose] config: profile=${profile ?? "default"} site=${config.site} base=${config.baseUrl} auth=${authLabel} demo=${config.demo ? "on" : "off"} modules=${config.modules.join(",")}`);
 }
 
+// Extracted to reduce cognitive complexity of main()
+async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<void> {
+  let config: ReturnType<typeof loadProfileConfig> | undefined;
+  try {
+    config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  } catch {
+    // Config parse failed — diagnose will detect and report it
+  }
+  return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
+}
+
 async function main(): Promise<void> {
   setOutput({
     out: (m) => process.stdout.write(m),
@@ -1212,18 +1223,10 @@ async function main(): Promise<void> {
 
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
 
-  // diagnose runs before loadConfig — it must handle config parse errors itself
-  if (module === "diagnose") {
-    let config: ReturnType<typeof loadProfileConfig> | undefined;
-    try {
-      config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
-    } catch {
-      // Config parse failed — diagnose will detect and report it
-    }
-    return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
-  }
+  if (module === "diagnose") return runDiagnose(v);
 
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
 
   const client = new OkxRestClient(config);
   const baseRunner = createToolRunner(client, config);
