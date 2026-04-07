@@ -72,12 +72,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Number of contracts. Each contract = ctVal units (e.g. 0.1 ETH for ETH-USDT-SWAP). Query market_get_instruments for exact ctVal. Set tgtCcy=quote_ccy to specify sz in USDT instead.",
+            description: "Number of contracts. Each contract = ctVal units (e.g. 0.1 ETH for ETH-USDT-SWAP). Query market_get_instruments for exact ctVal. Set tgtCcy=quote_ccy to specify sz in USDT notional value; set tgtCcy=margin to specify sz as margin cost (notional = sz * leverage).",
           },
           tgtCcy: {
             type: "string",
-            enum: ["base_ccy", "quote_ccy"],
-            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
+            enum: ["base_ccy", "quote_ccy", "margin"],
+            description: "Size unit. base_ccy(default): sz in contracts; quote_ccy: sz in USDT notional value; margin: sz in USDT margin cost (actual position = sz * leverage)",
           },
           px: { type: "string", description: "Required for limit/post_only/fok/ioc" },
           reduceOnly: {
@@ -102,6 +102,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           readString(args, "tgtCcy"),
           defaultType,
           context.client,
+          readString(args, "tdMode"),
         );
         const response = await context.client.privatePost(
           "/api/v5/trade/order",

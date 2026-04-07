@@ -65,7 +65,13 @@
 
 ## tgtCcy Rule
 
-**Spot / Swap / Futures**: when user specifies a quote-currency amount (e.g. "30 USDT worth"), MUST use `--tgtCcy quote_ccy` and pass the USDT amount as `--sz`. Do NOT manually calculate base currency quantity or contract count — let the API handle the conversion. When user specifies base currency quantity or contract count, omit `--tgtCcy` (defaults to `base_ccy`). Options do NOT support `--tgtCcy` — manual conversion required (see `{baseDir}/references/options-commands.md`).
+**Spot**: when user specifies a quote-currency amount (e.g. "30 USDT worth"), MUST use `--tgtCcy quote_ccy` and pass the USDT amount as `--sz`. Do NOT manually calculate base currency quantity — let the API handle the conversion.
+
+**Swap / Futures / Options**: two USDT-based modes:
+- `--tgtCcy quote_ccy`: sz is USDT **notional value** (position value). Formula: `contracts = floor(sz / (ctVal * lastPx))`.
+- `--tgtCcy margin`: sz is USDT **margin cost**. The system queries current leverage and computes: `contracts = floor(sz * lever / (ctVal * lastPx))`.
+When user says "500U" for a leveraged instrument, this is **ambiguous** — ask whether they mean notional value or margin cost before proceeding. Do NOT manually calculate contract count.
+When user specifies contract count, omit `--tgtCcy` (defaults to `base_ccy`).
 
 ## Order Amount Safety Rules
 

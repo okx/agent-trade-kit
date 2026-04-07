@@ -123,20 +123,30 @@ Use `ctVal` to:
 
 ### SWAP and FUTURES orders
 
+**Three tgtCcy modes for USDT-denominated sizing:**
+
+| `--tgtCcy` | sz meaning | Conversion formula | Example: "500U" at 10x lever |
+|---|---|---|---|
+| `base_ccy` (default) | contract count | no conversion | 500 contracts |
+| `quote_ccy` | USDT notional value | `floor(sz / (ctVal * lastPx))` | 500 USDT notional |
+| `margin` | USDT margin cost | `floor(sz * lever / (ctVal * lastPx))` | 500 USDT margin = 5000 USDT notional |
+
 **When user specifies a USDT amount** (e.g. "200U", "500 USDT", "$1000"):
-→ Use `--tgtCcy quote_ccy` and pass the amount directly as `--sz`. The system automatically converts the USDT amount to the equivalent number of contracts based on the current market price and contract face value.
+→ **AMBIGUOUS** — this could mean notional value OR margin cost. You MUST ask: "您输入的 500U 是名义价值（notional value）还是保证金成本（margin cost）？名义价值模式下 500U 直接买入 500U 等值合约；保证金模式下 500U 保证金以当前杠杆计算，实际仓位 = 500U × 杠杆倍数。" Wait for the user's answer before continuing.
+- If notional value → use `--tgtCcy quote_ccy`
+- If margin cost → use `--tgtCcy margin`
 
 **When user specifies contracts** (e.g. "2 张", "5 contracts"):
 → First verify `ctVal` via `market_get_instruments`, then use `--sz` with the contract count. Confirm with user: "X contracts = X × ctVal underlying, total value ≈ $Y".
 
 **When user gives a plain number with no unit** (for swap/futures):
-→ Ambiguous — ask before proceeding: "您输入的 X 是合约张数还是 USDT 金额？" Wait for the user's answer before continuing.
+→ Ambiguous — ask before proceeding: "您输入的 X 是合约张数、USDT 名义价值还是 USDT 保证金成本？" Wait for the user's answer before continuing.
 
-⚠ **Inverse contracts** (`*-USD-SWAP`, `*-USD-YYMMDD`): `tgtCcy=quote_ccy` also works (note: `quote_ccy` = USD, not USDT, for inverse instruments). Always warn: "This is an inverse contract. Margin and P&L are settled in BTC, not USDT."
+⚠ **Inverse contracts** (`*-USD-SWAP`, `*-USD-YYMMDD`): `tgtCcy=quote_ccy` and `tgtCcy=margin` also work (note: `quote_ccy` = USD, not USDT, for inverse instruments). Always warn: "This is an inverse contract. Margin and P&L are settled in BTC, not USDT."
 
 ### Option orders
 
-When the user specifies a USDT amount for options, use `--tgtCcy quote_ccy` and pass the amount as `--sz`. The system automatically converts the USDT amount to the equivalent number of contracts based on the current market price and contract face value. Note: option contracts typically have large face values (e.g. ctVal=1 BTC ≈ $84,000), so the minimum USDT amount for 1 contract is high.
+When the user specifies a USDT amount for options, use `--tgtCcy quote_ccy` (notional) or `--tgtCcy margin` (margin cost) and pass the amount as `--sz`. The system automatically converts to contracts. Note: option contracts typically have large face values (e.g. ctVal=1 BTC ≈ $84,000), so the minimum USDT amount for 1 contract is high. For option sellers (`cross`/`isolated` tdMode), `margin` mode accounts for leverage automatically.
 
 ## Quickstart
 
@@ -154,9 +164,13 @@ okx spot place --instId BTC-USDT --side sell --ordType limit --sz 0.01 --px 1000
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 \
   --tdMode cross --posSide long
 
-# Long 1000 USDT worth of BTC perp (auto-convert to contracts)
+# Long 1000 USDT notional value of BTC perp (auto-convert to contracts)
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1000 \
   --tgtCcy quote_ccy --tdMode cross --posSide long
+
+# Long with 500 USDT margin at current leverage (e.g. 10x → 5000 USDT notional)
+okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 500 \
+  --tgtCcy margin --tdMode cross --posSide long
 
 # Long 1 contract with attached TP/SL (one step)
 okx swap place --instId BTC-USDT-SWAP --side buy --ordType market --sz 1 \
@@ -322,8 +336,8 @@ For cross-skill workflows and step-by-step examples, read `{baseDir}/references/
 
 **Write commands** (place, cancel, amend, close, leverage, algo): confirm the key order details once before executing:
 - Spot place: confirm `--instId`, `--side`, `--ordType`, `--sz` (and `--tgtCcy quote_ccy` if quote-currency amount)
-- Swap/Futures place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` if quote-currency amount)
-- Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` if quote-currency amount — system auto-converts); do NOT attach TP/SL
+- Swap/Futures place: confirm `--instId`, `--side`, `--sz`, `--tdMode`, and **explicitly confirm order mode** when user specifies a USDT amount: `--tgtCcy quote_ccy` (notional value, sz = position value) or `--tgtCcy margin` (margin cost, actual position = sz * leverage). Always state which mode is being used.
+- Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` or `--tgtCcy margin` if USDT amount — system auto-converts); do NOT attach TP/SL
 - Swap/Futures close: confirm `--instId`, `--mgnMode`, `--posSide`
 - Leverage: confirm new leverage and impact on existing positions
 - Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx=-1` for market execution

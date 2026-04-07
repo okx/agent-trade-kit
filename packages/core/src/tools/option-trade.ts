@@ -43,12 +43,12 @@ export function registerOptionTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts count by default. Set tgtCcy=quote_ccy to use USDT amount instead.",
+            description: "Contracts count by default. Set tgtCcy=quote_ccy to specify USDT notional value; set tgtCcy=margin to specify USDT margin cost (notional = sz * leverage).",
           },
           tgtCcy: {
             type: "string",
-            enum: ["base_ccy", "quote_ccy"],
-            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT (auto-converted to contracts)",
+            enum: ["base_ccy", "quote_ccy", "margin"],
+            description: "Size unit. base_ccy(default): sz in contracts; quote_ccy: sz in USDT notional value; margin: sz in USDT margin cost (actual position = sz * leverage)",
           },
           px: {
             type: "string",
@@ -91,6 +91,7 @@ export function registerOptionTools(): ToolSpec[] {
           readString(args, "tgtCcy"),
           "OPTION",
           context.client,
+          readString(args, "tdMode"),
         );
         const response = await context.client.privatePost(
           "/api/v5/trade/order",

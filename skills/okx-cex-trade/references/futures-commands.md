@@ -5,7 +5,7 @@
 ```bash
 okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
   --tdMode <cross|isolated> \
-  [--tgtCcy <base_ccy|quote_ccy>] \
+  [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--px <price>] [--reduceOnly] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
   [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
@@ -19,7 +19,7 @@ okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--ordType` | Yes | - | `market`, `limit`, `post_only`, `fok`, `ioc` |
 | `--sz` | Yes | - | Order size — unit depends on `--tgtCcy` |
 | `--tdMode` | Yes | - | `cross` or `isolated` |
-| `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT amount |
+| `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT notional value; `margin`: sz in USDT margin cost (position = sz * leverage) |
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--px` | Cond. | - | Price — required for limit orders |
 | `--reduceOnly` | No | false | Close-only; will not open a new position |
@@ -141,7 +141,7 @@ okx futures get --instId <id> [--ordId <id>] [--json]
 okx futures algo place --instId <id> --side <buy|sell> \
   --ordType <oco|conditional|move_order_stop> --sz <n> \
   --tdMode <cross|isolated> \
-  [--tgtCcy <base_ccy|quote_ccy>] \
+  [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--reduceOnly] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
   [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
@@ -156,7 +156,7 @@ okx futures algo place --instId <id> --side <buy|sell> \
 | `--ordType` | Yes | - | `oco`, `conditional`, or `move_order_stop` |
 | `--sz` | Yes | - | Number of contracts |
 | `--tdMode` | Yes | - | `cross` or `isolated` |
-| `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT amount |
+| `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT notional value; `margin`: sz in USDT margin cost (position = sz * leverage) |
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
@@ -218,8 +218,8 @@ okx futures algo orders [--instId <id>] [--history] [--ordType <type>] [--json]
 
 ## Edge Cases — Futures / Delivery
 
-- **sz unit**: number of contracts, or a USDT amount when using `--tgtCcy quote_ccy`. If the user specifies a USDT amount, pass it directly as `--sz` with `--tgtCcy quote_ccy` — do NOT manually convert to contracts
-- **Linear vs inverse**: `BTC-USDT-<YYMMDD>` is linear; `BTC-USD-<YYMMDD>` is inverse (USD face value, BTC settlement). For inverse, use `--tgtCcy quote_ccy` to specify a USD amount (note: `quote_ccy` = USD, not USDT for inverse instruments); warn the user that margin and P&L are settled in BTC
+- **sz unit**: number of contracts (default), USDT notional value (`--tgtCcy quote_ccy`), or USDT margin cost (`--tgtCcy margin`). If the user specifies a USDT amount, clarify whether it is notional value or margin cost, then pass directly as `--sz` with the appropriate `--tgtCcy` — do NOT manually convert to contracts. With `margin` mode, the system queries current leverage and calculates: `contracts = floor(margin * lever / (ctVal * lastPx))`
+- **Linear vs inverse**: `BTC-USDT-<YYMMDD>` is linear; `BTC-USD-<YYMMDD>` is inverse (USD face value, BTC settlement). For inverse, use `--tgtCcy quote_ccy` or `--tgtCcy margin` to specify a USD amount (note: `quote_ccy` = USD, not USDT for inverse instruments); warn the user that margin and P&L are settled in BTC
 - **instId format**: delivery futures use date suffix: `BTC-USDT-<YYMMDD>` (e.g., `BTC-USDT-260328` for March 28, 2026 expiry)
 - **Expiry**: futures expire on the delivery date — all positions auto-settle; do not hold through expiry unless intended
 - **Close position**: use `futures close` to close the **entire** position at market price — same semantics as `swap close`; to partial close, use `futures place` with `--reduceOnly`
