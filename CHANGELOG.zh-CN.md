@@ -11,8 +11,18 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.0-beta.1] - 2026-04-07
+
+### 新增
+
+- **`market_list_indicators` MCP 工具及 `okx market indicator list` CLI 命令**：列出 OKX 市场指标，支持按类别、分页和数量过滤。支持区间过滤参数（`--fearGreedIndexMin/Max`、`--longShortRatioMin/Max` 等），便于 AI 进行市场情绪筛选。(#124)
+
 ### 修复
 
+- **Indicator range-filter 代码映射修复**：修正区间过滤参数的内部代码映射，并移除 OKX API 不支持的指标类型，避免返回静默空结果。
+- **Skills 文档 indicator 同步**：将所有指标相关说明和示例输出更新为与当前后端数据结构和新增 CLI 命令一致。
 - **Skills 文档转账账户类型码写反**：修正 portfolio 和 earn 技能文档中的账户类型码，正确映射为 `6`=资金账户 / `18`=交易账户（此前写反）。(#126)
 
 ### 变更

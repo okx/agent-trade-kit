@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **107 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
+| **109 tools across 8 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -41,7 +41,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Module | Tools | Description | Docs |
 |--------|-------|-------------|------|
-| `market` | 14 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens, **technical indicators** (70+ indicators: MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 and more — no auth required) | [→](docs/modules/market.md) |
+| `market` | 16 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens, **technical indicators** (70+ indicators: MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 and more — no auth required), **indicator list** (browse all supported indicators by category) | [→](docs/modules/market.md) |
 | `spot` | 13 | Place/cancel/amend orders, batch orders, fills (+archive), order history (+archive), conditional orders, OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | Perpetual trading, batch orders, positions, leverage, conditional orders, OCO, trailing stop | [→](docs/modules/swap.md) |
 | `futures` | 18 | Delivery contract trading, positions, fills, order history, amend/close/leverage, batch orders, algo orders (TP/SL, OCO, trailing stop) | [→](docs/modules/futures.md) |

@@ -11,8 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.0-beta.1] - 2026-04-07
+
+### Added
+
+- **`market_list_indicators` MCP tool and `okx market indicator list` CLI command**: List OKX market indicators with filtering by category, page, and limit. Supports range-filter flags (`--fearGreedIndexMin/Max`, `--longShortRatioMin/Max`, etc.) for AI-driven market sentiment screening. (#124)
+
 ### Fixed
 
+- **Indicator range-filter code mapping**: Corrected internal code mappings for range-filter parameters and removed indicator types unsupported by the OKX API, preventing silent empty results.
+- **Skills docs indicator sync**: Updated all indicator-related descriptions and example outputs in skills docs to match the live backend data schema and new CLI commands.
 - **Skills docs account transfer type codes swapped**: Corrected `6`=funding / `18`=trading in portfolio and earn skills documentation — previously written in reverse. (#126)
 
 ### Changed

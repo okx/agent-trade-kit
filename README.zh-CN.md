@@ -29,7 +29,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 特性 | 说明 |
 |------|------|
-| **107 个工具，8 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 |
+| **109 个工具，8 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 |
 | **内置算法单** | 条件单、OCO 止盈止损、追踪止损 |
 | **安全控制** | `--read-only` 只读模式、按模块过滤、内置限速器 |
 | **零基础设施** | 本地 stdio 进程，无需服务器或数据库 |
@@ -41,7 +41,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 模块 | 工具数 | 说明 | 文档 |
 |------|--------|------|------|
-| `market` | 14 | Ticker、盘口、K线（含历史）、指数行情、指数K线、涨跌停、资金费率、标记价格、持仓量、股票代币、**技术指标**（70+ 指标：MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 等，无需鉴权） | [→](docs/modules/market.md) |
+| `market` | 16 | Ticker、盘口、K线（含历史）、指数行情、指数K线、涨跌停、资金费率、标记价格、持仓量、股票代币、**技术指标**（70+ 指标：MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 等，无需鉴权）、**指标列表**（按分类浏览所有支持的指标） | [→](docs/modules/market.md) |
 | `spot` | 13 | 下单/改单/撤单、批量操作、成交记录（含归档）、订单历史（含归档）、条件单、OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | 永续合约交易、批量操作、持仓、杠杆、条件单、OCO、追踪止损 | [→](docs/modules/swap.md) |
 | `futures` | 18 | 交割合约下单/撤单/改单、持仓、成交记录、订单历史、平仓、杠杆设置、批量订单、算法单（止盈止损、OCO、追踪止损） | [→](docs/modules/futures.md) |
