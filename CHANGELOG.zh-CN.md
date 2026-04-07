@@ -19,6 +19,7 @@
 
 - **简单赚币定期（Simple Earn Fixed）工具**（`earn.savings`）：新增三个工具——`earn_get_fixed_order_list`（按币种/状态查询定期订单）、`earn_fixed_purchase`（两步申购：先预览产品详情再确认，资金锁定至到期）、`earn_fixed_redeem`（赎回定期订单）。`earn_get_lending_rate_history` 现同时返回可用定期产品的年化利率、期限、最低金额和剩余额度。CLI 命令：`okx earn savings fixed-orders`、`okx earn savings fixed-purchase`、`okx earn savings fixed-redeem`。
 - **按保证金下单模式（`tgtCcy=margin`）**：SWAP、FUTURES 及期权下单/算法单工具新增 `tgtCcy=margin` 参数值。当 `tgtCcy=margin` 时，`sz` 表示投入的 USDT 保证金成本，系统自动查询当前杠杆倍数并换算为正确的合约张数（公式：`contracts = floor(margin * lever / (ctVal * lastPx))`）。原有 `quote_ccy`（名义价值）和 `base_ccy`（合约张数）模式行为不变。Skills 确认模板现在要求 agent 在用户说"500U"时显性确认是名义价值还是保证金成本。(#128)
+- **CLI 审计日志**：CLI 现在会将所有工具执行记录写入 `~/.okx/logs/trade-YYYY-MM-DD.log`，与 MCP server 行为一致。`okx account audit-log` 命令对 CLI 用户不再返回空。(#129)
 
 ### 变更
 
