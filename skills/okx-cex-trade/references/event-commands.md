@@ -103,7 +103,7 @@ Recommended workflow to obtain instId:
 
 ### `okx event place` ⚠️ WRITE
 
-Places a real order. Not available in demo mode.
+Places a real order.
 
 ```bash
 okx event place <instId> <side> <outcome> <sz> \
@@ -129,7 +129,7 @@ okx event place <instId> <side> <outcome> <sz> \
 
 ### `okx event cancel` ⚠️ WRITE
 
-Cancel a pending order. Not available in demo mode.
+Cancel a pending order.
 
 ```bash
 okx event cancel <instId> <ordId> [--json]
