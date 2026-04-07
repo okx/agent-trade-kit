@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Skills docs account transfer type codes swapped**: Corrected `6`=funding / `18`=trading in portfolio and earn skills documentation — previously written in reverse. (#126)
+
 ### Changed
 
 - **CLI `--json` output now includes environment metadata**: `--json` output changed from raw OKX API response to `{"env", "profile", "data"}` wrapper. Scripts using `jq '.[0].field'` must update to `jq '.data[0].field'`. Table output now displays an environment header line (`Environment: live` / `Environment: demo (simulated trading)`). (#207, closes #117)

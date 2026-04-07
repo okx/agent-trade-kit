@@ -140,8 +140,8 @@ okx account bills
 # My trading fee tier
 okx account fees --instType SPOT
 
-# Transfer 100 USDT from funding (18) to trading (6)
-okx account transfer --ccy USDT --amt 100 --from 18 --to 6
+# Transfer 100 USDT from funding (6) to trading (18)
+okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 ```
 
 ## Command Index
@@ -206,7 +206,7 @@ okx account transfer --ccy USDT --amt 100 --from 18 --to 6
 ```
 1. okx-cex-portfolio okx account asset-balance USDT         → confirm funding balance ≥ 500
         ↓ user approves
-2. okx-cex-portfolio okx account transfer --ccy USDT --amt 500 --from 18 --to 6
+2. okx-cex-portfolio okx account transfer --ccy USDT --amt 500 --from 6 --to 18
 3. okx-cex-portfolio okx account balance USDT               → confirm trading balance updated
         ↓ ready to trade
 4. okx-cex-trade     okx spot place ...
@@ -263,7 +263,7 @@ Before any authenticated command:
 **Write commands** (11–12): confirm once before executing.
 
 - `set-position-mode`: confirm mode (`net` = one-directional, `long_short_mode` = hedge mode); switching may affect open positions
-- `transfer`: confirm `--ccy`, `--amt`, `--from`, `--to` (account types: `6`=trading, `18`=funding); verify source balance first
+- `transfer`: confirm `--ccy`, `--amt`, `--from`, `--to` (account types: `6`=funding, `18`=trading); verify source balance first
 
 ### Step 3: Verify after writes
 
@@ -432,8 +432,8 @@ okx account transfer --ccy <ccy> --amt <n> --from <acctType> --to <acctType> \
 |---|---|---|---|
 | `--ccy` | Yes | - | Currency to transfer (e.g., `USDT`) |
 | `--amt` | Yes | - | Amount to transfer |
-| `--from` | Yes | - | Source account type: `6`=trading, `18`=funding |
-| `--to` | Yes | - | Destination account type: `6`=trading, `18`=funding |
+| `--from` | Yes | - | Source account type: `6`=funding, `18`=trading |
+| `--to` | Yes | - | Destination account type: `6`=funding, `18`=trading |
 | `--transferType` | No | `0` | `0`=within account, `1`=to sub-account, `2`=from sub-account |
 | `--subAcct` | No | - | Sub-account name (required for sub-account transfers) |
 
@@ -501,7 +501,7 @@ okx account max-size --instId BTC-USDT-SWAP --tdMode cross
 
 **"Transfer 200 USDT from funding to trading"**
 ```bash
-okx account transfer --ccy USDT --amt 200 --from 18 --to 6
+okx account transfer --ccy USDT --amt 200 --from 6 --to 18
 # → Transfer: TXN123456 (USDT 200)
 ```
 
@@ -517,7 +517,7 @@ okx account config
 - **Positions command returns empty**: no open contracts; spot holdings are not shown here (use `account balance`)
 - **bills --archive**: required for transactions older than 7 days (default window); may be slower
 - **set-position-mode**: cannot switch to `net` if you have both long and short positions on the same instrument
-- **transfer --from/--to codes**: `6`=trading account, `18`=funding account; other values exist for sub-account flows
+- **transfer --from/--to codes**: `6`=funding account, `18`=trading account; other values exist for sub-account flows
 - **max-size vs max-avail-size**: `max-size` is the theoretical maximum; `max-avail-size` accounts for existing orders and reserved margin
 - **Demo mode**: `okx --profile demo account balance` shows simulated balances, not real funds
 
@@ -529,4 +529,4 @@ okx account config
 - `--json` returns raw OKX API v5 response
 - Rate limit: 10 requests per 2 seconds for account endpoints
 - Positions shown are for the unified trading account; funding account assets are separate
-- Account types: `6`=Unified Trading Account (spot + derivatives), `18`=Funding Account (deposits/withdrawals)
+- Account types: `6`=Funding Account (deposits/withdrawals), `18`=Unified Trading Account (spot + derivatives)
