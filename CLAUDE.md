@@ -118,6 +118,7 @@ Review MCP 相关 MR 时按以下顺序检查（完整版见 `docs/mcp-design-gu
 ## CLI ↔ Skills Sync
 
 - CLI 命令定义是 agent-hub Skills 的数据来源。新增或修改 CLI 命令后，必须在同一 MR 中同步更新 Skills 描述。
+- **特别注意输出格式变更**：修改 CLI 输出行为（如 `--json` 返回结构、表格格式）时，必须同步检查并更新 `SKILL.md` 中对应的输出说明。此类变更容易遗漏，因为代码 diff 不涉及 skills 文件。（经验教训：MR !207 修改了 `--json` 输出格式但未更新 SKILL.md，被 review 打回）
 
 ## Stable Release: Skill Version Sync (MANDATORY)
 
