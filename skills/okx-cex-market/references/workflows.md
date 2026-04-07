@@ -113,10 +113,8 @@ okx market indicator supertrend BTC-USDT --bar 4H              → direction sig
 Run in parallel — no ordering dependency:
 
 ```
-okx market indicator ahr999 BTC-USDT        → accumulate / DCA / bubble zone
-okx market indicator rainbow BTC-USDT       → Rainbow Chart valuation band
-okx market indicator pi-cycle-top BTC-USDT  → 111-day MA vs 350-day MA×2 cross signal
-okx market indicator mayer BTC-USDT         → price / 200-day MA ratio
+okx market indicator ahr999 BTC-USDT    → accumulate / DCA / bubble zone
+okx market indicator rainbow BTC-USDT   → Rainbow Chart valuation band
 ```
 
 ---
@@ -141,4 +139,5 @@ When using MCP tools directly (instead of CLI), the tool names map as follows:
 | `market open-interest` | `market_get_open_interest` |
 | `market stock-tokens` | `market_get_stock_tokens` |
 | `market instruments-by-category` | `market_get_instruments_by_category` |
-| `market indicator` | `market_get_indicator` |
+| `market indicator list` | `market_list_indicators` |
+| `market indicator <name> <instId>` | `market_get_indicator` |
