@@ -27,6 +27,7 @@ import {
     handleOptionCommand,
     handleOptionAlgoCommand,
     handleBotGridCommand,
+    handleEarnCommand,
 } from "../src/index.js";
 import type {CliValues} from "../src/index.js";
 
@@ -641,5 +642,80 @@ describe("handleBotGridCommand — parameter routing", () => {
         }), ["create"], false);
         assert.equal(captured.args["instId"], "BTC-USD-SWAP");
         assert.equal(captured.args["algoOrdType"], "contract_grid");
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Earn Savings Fixed — parameter routing
+// ---------------------------------------------------------------------------
+
+const fakeEarnResult = {
+    endpoint: "GET /api/v5/finance/simple-earn-fixed/order-list",
+    requestTime: new Date().toISOString(),
+    data: [],
+};
+
+const fakeEarnPreview = {
+    preview: true,
+    ccy: "USDT",
+    amt: "100",
+    term: "90D",
+    offer: null,
+    currentFlexibleRate: null,
+    warning: "test warning",
+};
+
+function makeEarnSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<string, unknown> } } {
+    const captured = {tool: "", args: {} as Record<string, unknown>};
+    const spy: ToolRunner = async (tool, args) => {
+        captured.tool = tool as string;
+        captured.args = args as Record<string, unknown>;
+        if (tool === "earn_fixed_purchase") return fakeEarnPreview;
+        return fakeEarnResult;
+    };
+    return {spy, captured};
+}
+
+describe("earn savings fixed-orders: params come from v (named flags)", () => {
+    it("ccy and state come from v.ccy and v.state", async () => {
+        const {spy, captured} = makeEarnSpy();
+        await handleEarnCommand(spy, "savings", ["fixed-orders"], vals({
+            ccy: "USDT", state: "earning",
+        }), false);
+        assert.equal(captured.tool, "earn_get_fixed_order_list");
+        assert.equal(captured.args["ccy"], "USDT");
+        assert.equal(captured.args["state"], "earning");
+    });
+});
+
+describe("earn savings fixed-purchase: params come from v (named flags)", () => {
+    it("ccy, amt, term, confirm come from v", async () => {
+        const {spy, captured} = makeEarnSpy();
+        await handleEarnCommand(spy, "savings", ["fixed-purchase"], vals({
+            ccy: "USDT", amt: "100", term: "90D", confirm: false,
+        }), false);
+        assert.equal(captured.tool, "earn_fixed_purchase");
+        assert.equal(captured.args["ccy"], "USDT");
+        assert.equal(captured.args["amt"], "100");
+        assert.equal(captured.args["term"], "90D");
+        assert.equal(captured.args["confirm"], false);
+    });
+});
+
+describe("earn savings fixed-redeem: reqId comes from v (named flag)", () => {
+    it("reqId from v.reqId, not rest[0]", async () => {
+        const {spy, captured} = makeEarnSpy();
+        await handleEarnCommand(spy, "savings", ["fixed-redeem"], vals({
+            reqId: "REQ-FROM-FLAG",
+        }), false);
+        assert.equal(captured.tool, "earn_fixed_redeem");
+        assert.equal(captured.args["reqId"], "REQ-FROM-FLAG");
+    });
+
+    it("does NOT fall back to rest[0] — positional args are ignored (issue #78)", async () => {
+        const {spy, captured} = makeEarnSpy();
+        await handleEarnCommand(spy, "savings", ["fixed-redeem", "REQ-FROM-POS"], vals({}), false);
+        assert.equal(captured.tool, "earn_fixed_redeem");
+        assert.equal(captured.args["reqId"], undefined, "reqId must come from v.reqId, not rest[0]");
     });
 });

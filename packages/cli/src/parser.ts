@@ -94,6 +94,8 @@ export interface CliValues {
   orders?: string;
   // earn
   rate?: string;
+  reqId?: string;
+  confirm?: boolean;
   // audit
   since?: string;
   tool?: string;
@@ -254,6 +256,8 @@ export const CLI_OPTIONS = {
   orders: { type: "string" },
   // earn
   rate: { type: "string" },
+  reqId: { type: "string" },
+  confirm: { type: "boolean", default: false },
   // audit
   since: { type: "string" },
   tool: { type: "string" },

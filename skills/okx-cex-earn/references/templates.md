@@ -37,6 +37,20 @@ Notes:
 
 ---
 
+## Simple Earn Fixed Order List Template
+
+```
+| # | Order ID | Currency | Amount | Term | APR | Earnings | Status | Purchase Time | Expiry Time |
+|---|----------|----------|--------|------|-----|----------|--------|---------------|-------------|
+| 1 | req123 | USDT | 1,000 USDT | 7d | 4.50% | 0.86 USDT | Earning | 2026/3/18 10:00 | 2026/3/25 10:00 |
+```
+
+- Status: always translate using state table in `savings-commands.md` — never show raw state value
+- For `pending` orders: note that early redemption is available
+- Earnings: show `—` if not yet accrued
+
+---
+
 ## Formatting Reference
 
 - **Numbers:** Full precision with currency unit — e.g. `1,234.567890 USDT`

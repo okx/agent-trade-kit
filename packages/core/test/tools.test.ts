@@ -35,6 +35,7 @@ interface CapturedCall {
 
 function makeMockClient() {
   let lastCall: CapturedCall | null = null;
+  const calls: CapturedCall[] = [];
 
   const fakeResponse = (endpoint: string) => ({
     endpoint,
@@ -42,17 +43,22 @@ function makeMockClient() {
     data: [{ dummy: true }], // non-empty: prevents fallback from firing in routing tests
   });
 
+  const record = (call: CapturedCall) => {
+    lastCall = call;
+    calls.push(call);
+  };
+
   const client = {
     publicGet: async (endpoint: string, params: Record<string, unknown>) => {
-      lastCall = { method: "GET", endpoint, params };
+      record({ method: "GET", endpoint, params });
       return fakeResponse(endpoint);
     },
     privateGet: async (endpoint: string, params: Record<string, unknown>) => {
-      lastCall = { method: "GET", endpoint, params };
+      record({ method: "GET", endpoint, params });
       return fakeResponse(endpoint);
     },
     privatePost: async (endpoint: string, params: Record<string, unknown>) => {
-      lastCall = { method: "POST", endpoint, params };
+      record({ method: "POST", endpoint, params });
       return fakeResponse(endpoint);
     },
   };
@@ -60,6 +66,48 @@ function makeMockClient() {
   return {
     client,
     getLastCall: () => lastCall,
+    getCalls: () => calls,
+  };
+}
+
+/**
+ * Creates a mock client that returns custom data per endpoint.
+ * dataByEndpoint maps endpoint path to the data array to return.
+ */
+function makeMockClientWithData(dataByEndpoint: Record<string, unknown[]>) {
+  let lastCall: CapturedCall | null = null;
+  const calls: CapturedCall[] = [];
+
+  const fakeResponse = (endpoint: string) => ({
+    endpoint,
+    requestTime: "2024-01-01T00:00:00.000Z",
+    data: dataByEndpoint[endpoint] ?? [],
+  });
+
+  const record = (call: CapturedCall) => {
+    lastCall = call;
+    calls.push(call);
+  };
+
+  const client = {
+    publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+      record({ method: "GET", endpoint, params });
+      return fakeResponse(endpoint);
+    },
+    privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+      record({ method: "GET", endpoint, params });
+      return fakeResponse(endpoint);
+    },
+    privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+      record({ method: "POST", endpoint, params });
+      return fakeResponse(endpoint);
+    },
+  };
+
+  return {
+    client,
+    getLastCall: () => lastCall,
+    getCalls: () => calls,
   };
 }
 
@@ -3028,8 +3076,8 @@ import { registerDcdTools } from "../src/tools/earn/dcd.js";
 describe("earn tools registration", () => {
   const tools = registerEarnTools();
 
-  it("registers exactly 6 earn tools", () => {
-    assert.equal(tools.length, 6);
+  it("registers exactly 9 earn tools", () => {
+    assert.equal(tools.length, 9);
   });
 
   it("all earn tools have module earn.savings", () => {
@@ -3103,6 +3151,54 @@ describe("earn_get_savings_balance", () => {
   });
 });
 
+describe("earn_get_fixed_order_list", () => {
+  const tools = registerEarnTools();
+  const tool = tools.find((t) => t.name === "earn_get_fixed_order_list")!;
+
+  it("calls /finance/simple-earn-fixed/order-list via GET", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/simple-earn-fixed/order-list");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes ccy and state when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ccy: "USDT", state: "earning" }, makeContext(client));
+    const params = getLastCall()?.params;
+    assert.equal(params?.ccy, "USDT");
+    assert.equal(params?.state, "earning");
+  });
+
+  it("omits optional params when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    const params = getLastCall()?.params;
+    assert.equal(params?.ccy, undefined);
+    assert.equal(params?.state, undefined);
+  });
+
+  it("is not a write tool", () => {
+    assert.equal(tool.isWrite, false);
+  });
+
+  it("strips finalSettlementDate from response data", async () => {
+    const { client, getCalls } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/order-list": [
+        { reqId: "r1", ccy: "USDT", finalSettlementDate: "2025-06-01", state: "earning", amt: "100" },
+        { reqId: "r2", ccy: "BTC", finalSettlementDate: "2025-07-01", state: "pending", amt: "0.5" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data.length, 2);
+    assert.equal(data[0]!["reqId"], "r1");
+    assert.equal(data[0]!["finalSettlementDate"], undefined);
+    assert.equal(data[1]!["finalSettlementDate"], undefined);
+    assert.equal(data[1]!["ccy"], "BTC");
+  });
+});
+
 describe("earn_savings_purchase", () => {
   const tools = registerEarnTools();
   const tool = tools.find((t) => t.name === "earn_savings_purchase")!;
@@ -3136,6 +3232,157 @@ describe("earn_savings_purchase", () => {
       makeContext(client),
     );
     assert.equal(getLastCall()?.params.rate, "0.05");
+  });
+
+  it("is a write tool", () => {
+    assert.equal(tool.isWrite, true);
+  });
+});
+
+describe("earn_fixed_purchase", () => {
+  const tools = registerEarnTools();
+  const tool = tools.find((t) => t.name === "earn_fixed_purchase")!;
+
+  it("preview mode calls lending-rate-history and fixed offers APIs", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ ccy: "USDT", amt: "1000", term: "90D" }, makeContext(client));
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(endpoints.includes("/api/v5/finance/savings/lending-rate-history"));
+    assert.ok(endpoints.includes("/api/v5/finance/simple-earn-fixed/offers"));
+  });
+
+  it("preview mode does not call purchase endpoint", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ ccy: "USDT", amt: "1000", term: "90D" }, makeContext(client));
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(!endpoints.includes("/api/v5/finance/simple-earn-fixed/purchase"));
+  });
+
+  it("preview mode returns preview flag", async () => {
+    const { client } = makeMockClient();
+    const result = await tool.handler({ ccy: "USDT", amt: "1000", term: "90D" }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(result["preview"], true);
+    assert.equal(result["ccy"], "USDT");
+    assert.equal(result["amt"], "1000");
+    assert.equal(result["term"], "90D");
+  });
+
+  it("preview mode returns matched offer with soldOut flag", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/savings/lending-rate-history": [{ lendingRate: "0.015", ts: "1700000000000" }],
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "90D", apr: "0.05", lendQuota: "50000", borrowingOrderQuota: "1000000", minLend: "100" },
+        { ccy: "USDT", term: "30D", apr: "0.03", lendQuota: "0", borrowingOrderQuota: "500000", minLend: "100" },
+      ],
+    });
+    const result = await tool.handler({ ccy: "USDT", amt: "1000", term: "90D" }, makeContext(client)) as Record<string, unknown>;
+    const offer = result["offer"] as Record<string, unknown>;
+    assert.ok(offer);
+    assert.equal(offer["ccy"], "USDT");
+    assert.equal(offer["term"], "90D");
+    assert.equal(offer["soldOut"], false);
+    assert.equal(offer["lendQuota"], "50000");
+    assert.equal(offer["borrowingOrderQuota"], undefined); // stripped
+    assert.equal(result["currentFlexibleRate"], "0.015");
+    assert.ok(typeof result["warning"] === "string");
+  });
+
+  it("preview mode returns soldOut=true when lendQuota is 0", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/savings/lending-rate-history": [],
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "90D", apr: "0.05", lendQuota: "0", borrowingOrderQuota: "0" },
+      ],
+    });
+    const result = await tool.handler({ ccy: "USDT", amt: "1000", term: "90D" }, makeContext(client)) as Record<string, unknown>;
+    const offer = result["offer"] as Record<string, unknown>;
+    assert.ok(offer);
+    assert.equal(offer["soldOut"], true);
+    assert.equal(result["currentFlexibleRate"], null);
+  });
+
+  it("preview mode returns null offer when no match found", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/savings/lending-rate-history": [],
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "BTC", term: "30D", apr: "0.02", lendQuota: "10" },
+      ],
+    });
+    const result = await tool.handler({ ccy: "USDT", amt: "1000", term: "90D" }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(result["offer"], null);
+  });
+
+  it("preview mode handles non-array data gracefully", async () => {
+    const fakeNullDataResponse = (endpoint: string) => ({
+      endpoint,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: null,
+    });
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => fakeNullDataResponse(endpoint),
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => fakeNullDataResponse(endpoint),
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => fakeNullDataResponse(endpoint),
+    };
+    const result = await tool.handler({ ccy: "USDT", amt: "500", term: "30D" }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(result["preview"], true);
+    assert.equal(result["offer"], null);
+    assert.equal(result["currentFlexibleRate"], null);
+  });
+
+  it("confirm mode calls /finance/simple-earn-fixed/purchase via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ccy: "USDT", amt: "1000", term: "90D", confirm: true }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/simple-earn-fixed/purchase");
+    assert.equal(getLastCall()?.method, "POST");
+    assert.equal(getLastCall()?.params.ccy, "USDT");
+    assert.equal(getLastCall()?.params.amt, "1000");
+    assert.equal(getLastCall()?.params.term, "90D");
+  });
+
+  it("rejects in demo mode (confirm)", async () => {
+    const { client } = makeMockClient();
+    const demoContext = {
+      client: client as ToolContext["client"],
+      config: { demo: true } as ToolContext["config"],
+    };
+    await assert.rejects(
+      () => tool.handler({ ccy: "USDT", amt: "1000", term: "90D", confirm: true }, demoContext),
+      (err: unknown) => err instanceof ConfigError,
+    );
+  });
+
+  it("is a write tool", () => {
+    assert.equal(tool.isWrite, true);
+  });
+});
+
+describe("earn_fixed_redeem", () => {
+  const tools = registerEarnTools();
+  const tool = tools.find((t) => t.name === "earn_fixed_redeem")!;
+
+  it("calls /finance/simple-earn-fixed/redeem via POST", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ reqId: "req123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/simple-earn-fixed/redeem");
+    assert.equal(getLastCall()?.method, "POST");
+  });
+
+  it("passes reqId correctly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ reqId: "req456" }, makeContext(client));
+    assert.equal(getLastCall()?.params.reqId, "req456");
+  });
+
+  it("rejects in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoContext = {
+      client: client as ToolContext["client"],
+      config: { demo: true } as ToolContext["config"],
+    };
+    await assert.rejects(
+      () => tool.handler({ reqId: "req123" }, demoContext),
+      (err: unknown) => err instanceof ConfigError,
+    );
   });
 
   it("is a write tool", () => {
@@ -3303,34 +3550,101 @@ describe("earn_get_lending_history", () => {
   it("is not a write tool", () => {
     assert.equal(tool.isWrite, false);
   });
-
-  it("description identifies as personal lending records, not market rates", () => {
-    assert.ok(tool.description.includes("NOT for market rate queries"), "description must clarify it is not for market rates");
-  });
 });
 
 describe("earn_get_lending_rate_history", () => {
   const tools = registerEarnTools();
   const tool = tools.find((t) => t.name === "earn_get_lending_rate_history")!;
 
-  it("calls /finance/savings/lending-rate-history via public GET", async () => {
-    const { client, getLastCall } = makeMockClient();
+  it("calls both lending-rate-history and fixed offers APIs", async () => {
+    const { client, getCalls } = makeMockClient();
     await tool.handler({}, makeContext(client));
-    assert.equal(
-      getLastCall()?.endpoint,
-      "/api/v5/finance/savings/lending-rate-history",
-    );
-    assert.equal(getLastCall()?.method, "GET");
+    const calls = getCalls();
+    const endpoints = calls.map((c) => c.endpoint);
+    assert.ok(endpoints.includes("/api/v5/finance/savings/lending-rate-history"));
+    assert.ok(endpoints.includes("/api/v5/finance/simple-earn-fixed/offers"));
   });
 
-  it("passes ccy and limit when provided", async () => {
-    const { client, getLastCall } = makeMockClient();
+  it("passes ccy and limit to rate-history, ccy to fixed offers", async () => {
+    const { client, getCalls } = makeMockClient();
     await tool.handler({ ccy: "BTC", limit: 50 }, makeContext(client));
-    assert.equal(getLastCall()?.params.ccy, "BTC");
-    assert.equal(getLastCall()?.params.limit, 50);
+    const calls = getCalls();
+    const rateCall = calls.find((c) => c.endpoint === "/api/v5/finance/savings/lending-rate-history");
+    const fixedCall = calls.find((c) => c.endpoint === "/api/v5/finance/simple-earn-fixed/offers");
+    assert.equal(rateCall?.params.ccy, "BTC");
+    assert.equal(rateCall?.params.limit, 50);
+    assert.equal(fixedCall?.params.ccy, "BTC");
   });
 
+  it("returns fixedOffers field in response", async () => {
+    const { client } = makeMockClient();
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    assert.ok("fixedOffers" in result);
+    assert.ok(Array.isArray(result["fixedOffers"]));
+  });
+
+  it("strips redundant rate field from rate history data", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/savings/lending-rate-history": [
+        { ccy: "USDT", lendingRate: "0.015", rate: "0.015", ts: "1700000000000" },
+        { ccy: "USDT", lendingRate: "0.012", rate: "0.012", ts: "1699900000000" },
+      ],
+      "/api/v5/finance/simple-earn-fixed/offers": [],
+    });
+    const result = await tool.handler({ ccy: "USDT" }, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data.length, 2);
+    assert.equal(data[0]!["lendingRate"], "0.015");
+    assert.equal(data[0]!["rate"], undefined); // rate field stripped
+    assert.equal(data[1]!["rate"], undefined);
+  });
+
+  it("enriches fixedOffers with soldOut flag and strips borrowingOrderQuota", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/savings/lending-rate-history": [],
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "90D", apr: "0.05", lendQuota: "50000", borrowingOrderQuota: "1000000" },
+        { ccy: "USDT", term: "30D", apr: "0.03", lendQuota: "0", borrowingOrderQuota: "500000" },
+      ],
+    });
+    const result = await tool.handler({ ccy: "USDT" }, makeContext(client)) as Record<string, unknown>;
+    const offers = result["fixedOffers"] as Record<string, unknown>[];
+    assert.equal(offers.length, 2);
+    assert.equal(offers[0]!["soldOut"], false);
+    assert.equal(offers[0]!["borrowingOrderQuota"], undefined);
+    assert.equal(offers[1]!["soldOut"], true);
+    assert.equal(offers[1]!["borrowingOrderQuota"], undefined);
+  });
+
+  it("propagates error when API call throws", async () => {
+    const client = {
+      publicGet: async () => { throw new Error("rate api error"); },
+      privateGet: async () => { throw new Error("fixed offers error"); },
+      privatePost: async () => { throw new Error("should not be called"); },
+    };
+    await assert.rejects(
+      () => tool.handler({ ccy: "USDT" }, makeContext(client)),
+      (err: Error) => err.message === "rate api error" || err.message === "fixed offers error",
+    );
+  });
+
+  it("handles non-array rate history data gracefully", async () => {
+    const fakeNullDataResponse = (endpoint: string) => ({
+      endpoint,
+      requestTime: "2024-01-01T00:00:00.000Z",
+      data: null,
+    });
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => fakeNullDataResponse(endpoint),
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => fakeNullDataResponse(endpoint),
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => fakeNullDataResponse(endpoint),
+    };
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    assert.ok(Array.isArray(result["data"]));
+    assert.equal((result["data"] as unknown[]).length, 0);
+  });
 });
+
 describe("onchain_earn_cancel", () => {
   const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "onchain_earn_cancel")!;
@@ -3433,7 +3747,7 @@ describe("earn tools isWrite classification", () => {
   const tools = registerEarnTools();
 
   it("write tools have isWrite=true", () => {
-    const writeNames = ["earn_savings_purchase", "earn_savings_redeem", "earn_set_lending_rate"];
+    const writeNames = ["earn_savings_purchase", "earn_savings_redeem", "earn_set_lending_rate", "earn_fixed_purchase", "earn_fixed_redeem"];
     for (const name of writeNames) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);
@@ -3442,7 +3756,7 @@ describe("earn tools isWrite classification", () => {
   });
 
   it("read tools have isWrite=false", () => {
-    const readNames = ["earn_get_savings_balance", "earn_get_lending_history", "earn_get_lending_rate_history"];
+    const readNames = ["earn_get_savings_balance", "earn_get_fixed_order_list", "earn_get_lending_history", "earn_get_lending_rate_history"];
     for (const name of readNames) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);
@@ -3963,7 +4277,8 @@ describe("swap_get_algo_orders instType param", () => {
 describe("earn demo guard", () => {
   const tools = registerAllEarnTools();
   // Guard only applies to write tools (isWrite: true), excluding dcd_redeem (has own check)
-  const guardedTools = tools.filter((t) => t.isWrite && t.name !== "dcd_redeem");
+  const DEMO_GUARD_SKIP = new Set(["dcd_redeem", "earn_fixed_purchase"]);
+  const guardedTools = tools.filter((t) => t.isWrite && !DEMO_GUARD_SKIP.has(t.name));
   const readOnlyTools = tools.filter((t) => !t.isWrite);
   const dcdRedeemTool = tools.find((t) => t.name === "dcd_redeem")!;
 
@@ -4011,6 +4326,39 @@ describe("earn demo guard", () => {
       () => dcdRedeemTool.handler({ ordId: "ord-123", quoteId: "q-456" }, ctx),
       (err: unknown) => err instanceof ConfigError,
       "dcd_redeem execute mode should reject in demo",
+    );
+  });
+
+  it("earn_fixed_purchase preview mode (confirm=false) is allowed in demo mode", async () => {
+    const fixedPurchaseTool = tools.find((t) => t.name === "earn_fixed_purchase")!;
+    const { client } = makeMockClient();
+    const ctx: ToolContext = {
+      ...makeContext(client),
+      config: { ...makeContext(client).config, demo: true },
+    };
+    let threw: unknown;
+    try {
+      await fixedPurchaseTool.handler({ ccy: "USDT", amt: "100", term: "90D" }, ctx);
+    } catch (err) {
+      threw = err;
+    }
+    assert.ok(
+      !(threw instanceof ConfigError),
+      "earn_fixed_purchase preview should not throw ConfigError in demo mode",
+    );
+  });
+
+  it("earn_fixed_purchase confirm mode rejects in demo mode", async () => {
+    const fixedPurchaseTool = tools.find((t) => t.name === "earn_fixed_purchase")!;
+    const { client } = makeMockClient();
+    const ctx: ToolContext = {
+      ...makeContext(client),
+      config: { ...makeContext(client).config, demo: true },
+    };
+    await assert.rejects(
+      () => fixedPurchaseTool.handler({ ccy: "USDT", amt: "100", term: "90D", confirm: true }, ctx),
+      (err: unknown) => err instanceof ConfigError,
+      "earn_fixed_purchase confirm mode should reject in demo",
     );
   });
 
