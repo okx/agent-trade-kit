@@ -5,7 +5,7 @@
  * orders when tgtCcy=quote_ccy is set, since OKX API silently ignores tgtCcy
  * for non-SPOT instruments.
  *
- * Formula: contracts = Math.floor(usdtAmount / (ctVal * lastPx))
+ * Formula: contracts = floor(usdtAmount / (ctVal * lastPx), lotSz precision)
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -91,10 +91,10 @@ describe("resolveQuoteCcySz — passthrough (no conversion)", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveQuoteCcySz — conversion (tgtCcy=quote_ccy)", () => {
-  it("BTC-USDT-SWAP: ctVal=0.01, lastPx=84000, sz=10000 → contracts=11", async () => {
-    // 10000 / (0.01 * 84000) = 10000 / 840 = 11.904... → floor = 11
+  it("BTC-USDT-SWAP: ctVal=0.01, lastPx=84000, sz=10000, lotSz=1, minSz=1 → contracts=11", async () => {
+    // 10000 / (0.01 * 84000) = 10000 / 840 = 11.904... → floor(11.904/1)*1 = 11
     const { client } = makeMockClient(
-      [{ ctVal: "0.01" }],
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
       [{ last: "84000" }],
     );
     const result = await resolveQuoteCcySz(
@@ -115,12 +115,20 @@ describe("resolveQuoteCcySz — conversion (tgtCcy=quote_ccy)", () => {
       result.conversionNote!.includes("11"),
       "conversionNote should mention resulting contract count",
     );
+    assert.ok(
+      result.conversionNote!.includes("minSz=1"),
+      "conversionNote should mention minSz",
+    );
+    assert.ok(
+      result.conversionNote!.includes("lotSz=1"),
+      "conversionNote should mention lotSz",
+    );
   });
 
-  it("ETH-USDT-SWAP: ctVal=0.1, lastPx=3200, sz=1000 → contracts=3", async () => {
-    // 1000 / (0.1 * 3200) = 1000 / 320 = 3.125 → floor = 3
+  it("ETH-USDT-SWAP: ctVal=0.1, lastPx=3200, sz=1000, lotSz=1, minSz=1 → contracts=3", async () => {
+    // 1000 / (0.1 * 3200) = 1000 / 320 = 3.125 → floor(3.125/1)*1 = 3
     const { client } = makeMockClient(
-      [{ ctVal: "0.1" }],
+      [{ ctVal: "0.1", minSz: "1", lotSz: "1" }],
       [{ last: "3200" }],
     );
     const result = await resolveQuoteCcySz(
@@ -136,7 +144,7 @@ describe("resolveQuoteCcySz — conversion (tgtCcy=quote_ccy)", () => {
 
   it("makes exactly 2 parallel API calls (instruments + ticker)", async () => {
     const { client, calls } = makeMockClient(
-      [{ ctVal: "0.01" }],
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
       [{ last: "84000" }],
     );
     await resolveQuoteCcySz(
@@ -160,7 +168,7 @@ describe("resolveQuoteCcySz — conversion (tgtCcy=quote_ccy)", () => {
 
   it("tgtCcy is removed (set to undefined) in result after conversion", async () => {
     const { client } = makeMockClient(
-      [{ ctVal: "0.01" }],
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
       [{ last: "50000" }],
     );
     const result = await resolveQuoteCcySz(
@@ -172,6 +180,22 @@ describe("resolveQuoteCcySz — conversion (tgtCcy=quote_ccy)", () => {
     );
     assert.equal(result.tgtCcy, undefined);
   });
+
+  it("defaults minSz=1, lotSz=1 when instrument response omits them", async () => {
+    // Backward compatibility: old mock data without minSz/lotSz
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01" }],
+      [{ last: "84000" }],
+    );
+    const result = await resolveQuoteCcySz(
+      "BTC-USDT-SWAP",
+      "10000",
+      "quote_ccy",
+      "SWAP",
+      client as never,
+    );
+    assert.equal(result.sz, "11");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -179,10 +203,10 @@ describe("resolveQuoteCcySz — conversion (tgtCcy=quote_ccy)", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveQuoteCcySz — error cases", () => {
-  it("sz too small: floor=0 → throws descriptive error", async () => {
-    // 100 / (0.01 * 84000) = 100 / 840 = 0.119... → floor = 0
+  it("sz too small: contracts < minSz → throws descriptive error", async () => {
+    // 100 / (0.01 * 84000) = 100 / 840 = 0.119... → floor(0.119/1)*1 = 0 < minSz=1
     const { client } = makeMockClient(
-      [{ ctVal: "0.01" }],
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
       [{ last: "84000" }],
     );
     await assert.rejects(
@@ -198,8 +222,8 @@ describe("resolveQuoteCcySz — error cases", () => {
         assert.ok(err instanceof Error);
         assert.ok(
           err.message.includes("too small") ||
-            err.message.includes("minimum") ||
-            err.message.includes("at least"),
+            err.message.includes("Minimum") ||
+            err.message.includes("minSz"),
           `Expected error about minimum amount, got: ${err.message}`,
         );
         return true;
@@ -308,9 +332,9 @@ describe("resolveQuoteCcySz — error cases", () => {
 
 describe("resolveQuoteCcySz — OPTION instType", () => {
   it("BTC option: ctVal=1, lastPx=84000, sz=100000 → contracts=1", async () => {
-    // 100000 / (1 * 84000) = 1.19... → floor = 1
+    // 100000 / (1 * 84000) = 1.19... → floor(1.19/1)*1 = 1
     const { client } = makeMockClient(
-      [{ ctVal: "1" }],
+      [{ ctVal: "1", minSz: "1", lotSz: "1" }],
       [{ last: "84000" }],
     );
     const result = await resolveQuoteCcySz(
@@ -326,9 +350,9 @@ describe("resolveQuoteCcySz — OPTION instType", () => {
   });
 
   it("BTC option: ctVal=1, lastPx=84000, sz=200000 → contracts=2", async () => {
-    // 200000 / (1 * 84000) = 2.38... → floor = 2
+    // 200000 / (1 * 84000) = 2.38... → floor(2.38/1)*1 = 2
     const { client } = makeMockClient(
-      [{ ctVal: "1" }],
+      [{ ctVal: "1", minSz: "1", lotSz: "1" }],
       [{ last: "84000" }],
     );
     const result = await resolveQuoteCcySz(
@@ -343,9 +367,9 @@ describe("resolveQuoteCcySz — OPTION instType", () => {
   });
 
   it("BTC option: sz too small (1000 USDT < 1 contract) → throws", async () => {
-    // 1000 / (1 * 84000) = 0.011... → floor = 0
+    // 1000 / (1 * 84000) = 0.011... → floor(0.011/1)*1 = 0 < minSz=1
     const { client } = makeMockClient(
-      [{ ctVal: "1" }],
+      [{ ctVal: "1", minSz: "1", lotSz: "1" }],
       [{ last: "84000" }],
     );
     await assert.rejects(
@@ -377,5 +401,171 @@ describe("resolveQuoteCcySz — OPTION instType", () => {
     assert.equal(result.sz, "5");
     assert.equal(result.tgtCcy, undefined);
     assert.equal(calls.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: fractional minSz and lotSz (#127)
+// ---------------------------------------------------------------------------
+
+describe("resolveQuoteCcySz — fractional minSz/lotSz (#127)", () => {
+  it("lotSz=0.01: rounds down to lotSz precision", async () => {
+    // ctVal=0.01, lastPx=84000 → contractValue=840
+    // 1000 / 840 = 1.1904... → floor(1.1904/0.01)*0.01 = 1.19
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "0.01", lotSz: "0.01" }],
+      [{ last: "84000" }],
+    );
+    const result = await resolveQuoteCcySz(
+      "BTC-USDT-SWAP",
+      "1000",
+      "quote_ccy",
+      "SWAP",
+      client as never,
+    );
+    assert.equal(result.sz, "1.19");
+    assert.equal(result.tgtCcy, undefined);
+  });
+
+  it("lotSz=0.1: rounds down to lotSz precision", async () => {
+    // ctVal=0.01, lastPx=84000 → contractValue=840
+    // 1000 / 840 = 1.1904... → floor(1.1904/0.1)*0.1 = 1.1
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "0.1", lotSz: "0.1" }],
+      [{ last: "84000" }],
+    );
+    const result = await resolveQuoteCcySz(
+      "BTC-USDT-SWAP",
+      "1000",
+      "quote_ccy",
+      "SWAP",
+      client as never,
+    );
+    assert.equal(result.sz, "1.1");
+    assert.equal(result.tgtCcy, undefined);
+  });
+
+  it("minSz=0.5, lotSz=0.01: result between lotSz and minSz throws", async () => {
+    // ctVal=0.01, lastPx=84000 → contractValue=840
+    // 100 / 840 = 0.1190... → floor(0.1190/0.01)*0.01 = 0.11 < minSz=0.5
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "0.5", lotSz: "0.01" }],
+      [{ last: "84000" }],
+    );
+    await assert.rejects(
+      () =>
+        resolveQuoteCcySz(
+          "BTC-USDT-SWAP",
+          "100",
+          "quote_ccy",
+          "SWAP",
+          client as never,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.includes("too small") && err.message.includes("0.5"),
+          `Expected error about minSz=0.5, got: ${err.message}`,
+        );
+        return true;
+      },
+    );
+  });
+
+  it("minSz=0.01, lotSz=0.01: small but valid amount succeeds", async () => {
+    // ctVal=0.001, lastPx=100 → contractValue=0.1
+    // 0.01 / 0.1 = 0.1 → floor(0.1/0.01)*0.01 = 0.10 → 0.10 >= minSz=0.01
+    const { client } = makeMockClient(
+      [{ ctVal: "0.001", minSz: "0.01", lotSz: "0.01" }],
+      [{ last: "100" }],
+    );
+    const result = await resolveQuoteCcySz(
+      "SOME-USDT-SWAP",
+      "0.01",
+      "quote_ccy",
+      "SWAP",
+      client as never,
+    );
+    assert.equal(result.sz, "0.10");
+    assert.equal(result.tgtCcy, undefined);
+  });
+
+  it("error message includes minSz and minimum USDT amount", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "0.5", lotSz: "0.01" }],
+      [{ last: "84000" }],
+    );
+    await assert.rejects(
+      () =>
+        resolveQuoteCcySz(
+          "BTC-USDT-SWAP",
+          "100",
+          "quote_ccy",
+          "SWAP",
+          client as never,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.includes("minSz=0.5"),
+          `Expected error to mention minSz, got: ${err.message}`,
+        );
+        assert.ok(
+          err.message.includes("420.00"),
+          `Expected error to show min USDT (0.5*840=420), got: ${err.message}`,
+        );
+        return true;
+      },
+    );
+  });
+
+  it("lotSz=0 → throws validation error", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "0" }],
+      [{ last: "84000" }],
+    );
+    await assert.rejects(
+      () =>
+        resolveQuoteCcySz(
+          "BTC-USDT-SWAP",
+          "10000",
+          "quote_ccy",
+          "SWAP",
+          client as never,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.toLowerCase().includes("lotsz"),
+          `Expected error about lotSz, got: ${err.message}`,
+        );
+        return true;
+      },
+    );
+  });
+
+  it("minSz=0 → throws validation error", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "0", lotSz: "1" }],
+      [{ last: "84000" }],
+    );
+    await assert.rejects(
+      () =>
+        resolveQuoteCcySz(
+          "BTC-USDT-SWAP",
+          "10000",
+          "quote_ccy",
+          "SWAP",
+          client as never,
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(
+          err.message.toLowerCase().includes("minsz"),
+          `Expected error about minSz, got: ${err.message}`,
+        );
+        return true;
+      },
+    );
   });
 });
