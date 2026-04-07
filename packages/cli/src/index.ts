@@ -29,6 +29,7 @@ import {
   cmdMarketStockTokens,
   cmdMarketInstrumentsByCategory,
   cmdMarketIndicator,
+  cmdMarketIndicatorList,
 } from "./commands/market.js";
 import {
   cmdAccountBalance,
@@ -238,6 +239,7 @@ export function handleMarketPublicCommand(
       json,
     });
   if (action === "indicator") {
+    if (rest[0] === "list") return cmdMarketIndicatorList(json);
     const limit = v.limit !== undefined ? Number(v.limit) : undefined;
     const backtestTime = v["backtest-time"] !== undefined ? Number(v["backtest-time"]) : undefined;
     return cmdMarketIndicator(run, rest[0], rest[1], {

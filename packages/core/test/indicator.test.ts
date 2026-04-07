@@ -6,7 +6,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { resolveIndicatorCode, INDICATOR_BARS, registerIndicatorTools } from "../src/tools/indicator.js";
+import { resolveIndicatorCode, INDICATOR_BARS, KNOWN_INDICATORS, registerIndicatorTools } from "../src/tools/indicator.js";
 import { OkxRestClient } from "../src/client/rest-client.js";
 import type { OkxConfig } from "../src/config.js";
 import type { ModuleId } from "../src/constants.js";
@@ -16,6 +16,7 @@ import type { ModuleId } from "../src/constants.js";
 // ---------------------------------------------------------------------------
 
 describe("resolveIndicatorCode — CLI name → API code", () => {
+  // Overrides: names that deviate from the default toUpperCase + hyphen→underscore rule
   it("rainbow → BTCRAINBOW (override)", () => {
     assert.equal(resolveIndicatorCode("rainbow"), "BTCRAINBOW");
   });
@@ -24,24 +25,70 @@ describe("resolveIndicatorCode — CLI name → API code", () => {
     assert.equal(resolveIndicatorCode("Rainbow"), "BTCRAINBOW");
   });
 
-  it("range-filter → RANGEFILTER (override)", () => {
-    assert.equal(resolveIndicatorCode("range-filter"), "RANGEFILTER");
-  });
-
-  it("stoch-rsi → STOCHRSI (override)", () => {
+  it("stoch-rsi → STOCHRSI (override, not STOCH_RSI)", () => {
     assert.equal(resolveIndicatorCode("stoch-rsi"), "STOCHRSI");
   });
 
-  it("pi-cycle-top → PI_CYCLE_TOP (override)", () => {
-    assert.equal(resolveIndicatorCode("pi-cycle-top"), "PI_CYCLE_TOP");
-  });
-
-  it("pi-cycle-bottom → PI_CYCLE_BOTTOM (override)", () => {
-    assert.equal(resolveIndicatorCode("pi-cycle-bottom"), "PI_CYCLE_BOTTOM");
-  });
-
-  it("boll → BB (override)", () => {
+  it("boll → BB (alias override)", () => {
     assert.equal(resolveIndicatorCode("boll"), "BB");
+  });
+
+  // Candlestick pattern overrides (hyphen names → no-separator backend codes)
+  it("bull-engulf → BULLENGULF (override, not BULL_ENGULF)", () => {
+    assert.equal(resolveIndicatorCode("bull-engulf"), "BULLENGULF");
+  });
+
+  it("bear-engulf → BEARENGULF (override)", () => {
+    assert.equal(resolveIndicatorCode("bear-engulf"), "BEARENGULF");
+  });
+
+  it("bull-harami → BULLHARAMI (override)", () => {
+    assert.equal(resolveIndicatorCode("bull-harami"), "BULLHARAMI");
+  });
+
+  it("bear-harami → BEARHARAMI (override)", () => {
+    assert.equal(resolveIndicatorCode("bear-harami"), "BEARHARAMI");
+  });
+
+  it("bull-harami-cross → BULLHARAMICROSS (override)", () => {
+    assert.equal(resolveIndicatorCode("bull-harami-cross"), "BULLHARAMICROSS");
+  });
+
+  it("bear-harami-cross → BEARHARAMICROSS (override)", () => {
+    assert.equal(resolveIndicatorCode("bear-harami-cross"), "BEARHARAMICROSS");
+  });
+
+  it("three-soldiers → THREESOLDIERS (override)", () => {
+    assert.equal(resolveIndicatorCode("three-soldiers"), "THREESOLDIERS");
+  });
+
+  it("three-crows → THREECROWS (override)", () => {
+    assert.equal(resolveIndicatorCode("three-crows"), "THREECROWS");
+  });
+
+  it("hanging-man → HANGINGMAN (override)", () => {
+    assert.equal(resolveIndicatorCode("hanging-man"), "HANGINGMAN");
+  });
+
+  it("inverted-hammer → INVERTEDH (override, backend uses abbreviated code)", () => {
+    assert.equal(resolveIndicatorCode("inverted-hammer"), "INVERTEDH");
+  });
+
+  it("shooting-star → SHOOTINGSTAR (override)", () => {
+    assert.equal(resolveIndicatorCode("shooting-star"), "SHOOTINGSTAR");
+  });
+
+  it("nvi-pvi → NVIPVI (override)", () => {
+    assert.equal(resolveIndicatorCode("nvi-pvi"), "NVIPVI");
+  });
+
+  it("top-long-short → TOPLONGSHORT (override)", () => {
+    assert.equal(resolveIndicatorCode("top-long-short"), "TOPLONGSHORT");
+  });
+
+  // Default rule: toUpperCase + hyphen→underscore (no override needed)
+  it("range-filter → RANGE_FILTER (default rule, no override needed)", () => {
+    assert.equal(resolveIndicatorCode("range-filter"), "RANGE_FILTER");
   });
 
   it("ma → MA (default uppercase transform)", () => {
@@ -58,10 +105,6 @@ describe("resolveIndicatorCode — CLI name → API code", () => {
 
   it("halftrend → HALFTREND (default uppercase transform)", () => {
     assert.equal(resolveIndicatorCode("halftrend"), "HALFTREND");
-  });
-
-  it("mayer → MAYER (default uppercase transform)", () => {
-    assert.equal(resolveIndicatorCode("mayer"), "MAYER");
   });
 
   it("UPPERCASE passthrough unchanged", () => {
@@ -88,36 +131,94 @@ describe("INDICATOR_BARS constant", () => {
 });
 
 // ---------------------------------------------------------------------------
+// KNOWN_INDICATORS
+// ---------------------------------------------------------------------------
+
+describe("KNOWN_INDICATORS", () => {
+  it("is a non-empty array", () => {
+    assert.ok(Array.isArray(KNOWN_INDICATORS));
+    assert.ok(KNOWN_INDICATORS.length > 0);
+  });
+
+  it("every entry has name and description strings", () => {
+    for (const entry of KNOWN_INDICATORS) {
+      assert.equal(typeof entry.name, "string");
+      assert.equal(typeof entry.description, "string");
+      assert.ok(entry.name.length > 0, `empty name in entry: ${JSON.stringify(entry)}`);
+      assert.ok(entry.description.length > 0, `empty description for: ${entry.name}`);
+    }
+  });
+
+  it("no duplicate names", () => {
+    const names = KNOWN_INDICATORS.map(e => e.name);
+    const unique = new Set(names);
+    assert.equal(unique.size, names.length, `duplicate names: ${names.filter((n, i) => names.indexOf(n) !== i)}`);
+  });
+
+  it("includes core indicators: ma, rsi, macd, bb, ahr999, rainbow", () => {
+    const names = new Set(KNOWN_INDICATORS.map(e => e.name));
+    for (const name of ["ma", "rsi", "macd", "bb", "ahr999", "rainbow"]) {
+      assert.ok(names.has(name), `missing: ${name}`);
+    }
+  });
+
+  it("includes candlestick patterns: bull-engulf, doji, shooting-star", () => {
+    const names = new Set(KNOWN_INDICATORS.map(e => e.name));
+    for (const name of ["bull-engulf", "doji", "shooting-star"]) {
+      assert.ok(names.has(name), `missing: ${name}`);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // registerIndicatorTools — spec shape
 // ---------------------------------------------------------------------------
 
 describe("registerIndicatorTools — tool spec", () => {
   const tools = registerIndicatorTools();
+  const getTool = (name: string) => tools.find(t => t.name === name)!;
 
-  it("registers exactly one tool", () => {
-    assert.equal(tools.length, 1);
+  it("registers exactly two tools", () => {
+    assert.equal(tools.length, 2);
   });
 
-  it("tool name is market_get_indicator", () => {
+  it("first tool is market_get_indicator", () => {
     assert.equal(tools[0]!.name, "market_get_indicator");
   });
 
-  it("tool module is market", () => {
-    assert.equal(tools[0]!.module, "market");
+  it("second tool is market_list_indicators", () => {
+    assert.equal(tools[1]!.name, "market_list_indicators");
   });
 
-  it("isWrite is false", () => {
-    assert.equal(tools[0]!.isWrite, false);
+  it("market_get_indicator: module is market", () => {
+    assert.equal(getTool("market_get_indicator").module, "market");
   });
 
-  it("inputSchema requires instId and indicator", () => {
-    const schema = tools[0]!.inputSchema as { required: string[] };
+  it("market_get_indicator: isWrite is false", () => {
+    assert.equal(getTool("market_get_indicator").isWrite, false);
+  });
+
+  it("market_get_indicator: inputSchema requires instId and indicator", () => {
+    const schema = getTool("market_get_indicator").inputSchema as { required: string[] };
     assert.ok(schema.required.includes("instId"));
     assert.ok(schema.required.includes("indicator"));
   });
 
-  it("handler is a function", () => {
-    assert.equal(typeof tools[0]!.handler, "function");
+  it("market_get_indicator: handler is a function", () => {
+    assert.equal(typeof getTool("market_get_indicator").handler, "function");
+  });
+
+  it("market_list_indicators: module is market", () => {
+    assert.equal(getTool("market_list_indicators").module, "market");
+  });
+
+  it("market_list_indicators: isWrite is false", () => {
+    assert.equal(getTool("market_list_indicators").isWrite, false);
+  });
+
+  it("market_list_indicators: handler returns KNOWN_INDICATORS", async () => {
+    const result = await getTool("market_list_indicators").handler({}, {} as never) as { data: unknown };
+    assert.deepEqual(result.data, KNOWN_INDICATORS);
   });
 });
 
