@@ -1,6 +1,6 @@
 import type { ToolRunner } from "@agent-tradekit/core";
 import { outputLine, printJson, printKv, printTable } from "../formatter.js";
-import { resolveIndicatorCode } from "@agent-tradekit/core";
+import { resolveIndicatorCode, KNOWN_INDICATORS } from "@agent-tradekit/core";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -239,6 +239,11 @@ export async function cmdMarketCandles(
       open: o, high: h, low: l, close: c, vol,
     })),
   );
+}
+
+export function cmdMarketIndicatorList(json: boolean): void {
+  if (json) return printJson(KNOWN_INDICATORS);
+  printTable(KNOWN_INDICATORS.map(({ name, description }) => ({ name, description })));
 }
 
 export async function cmdMarketIndicator(
