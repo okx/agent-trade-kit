@@ -19,13 +19,11 @@ export type IndicatorBar = (typeof INDICATOR_BARS)[number];
 
 // Overrides for CLI names whose API code differs from simple uppercase + underscore
 const INDICATOR_CODE_OVERRIDES: Record<string, string> = {
-  "rainbow":         "BTCRAINBOW",
-  "range-filter":    "RANGEFILTER",
-  "stoch-rsi":       "STOCHRSI",
-  "pi-cycle-top":    "PI_CYCLE_TOP",
-  "pi-cycle-bottom": "PI_CYCLE_BOTTOM",
+  "rainbow":      "BTCRAINBOW",
+  "range-filter": "RANGE_FILTER",
+  "stoch-rsi":    "STOCHRSI",
   // boll is an alias for bb; server supports BB not BOLL
-  "boll":            "BB",
+  "boll":         "BB",
 };
 
 export function resolveIndicatorCode(name: string): string {
@@ -61,7 +59,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           indicator: {
             type: "string",
             description:
-              "Indicator name (case-insensitive). Examples: ma, ema, rsi, macd, bb, kdj, supertrend, ahr999, rainbow, pi-cycle-top, pi-cycle-bottom, mayer, envelope, halftrend, alphatrend, pmax, waddah, tdi, qqe, range-filter",
+              "Indicator name (case-insensitive). Examples: ma, ema, rsi, macd, bb, kdj, supertrend, ahr999, rainbow, envelope, halftrend, alphatrend, pmax, waddah, tdi, qqe, stoch-rsi, range-filter",
           },
           bar: {
             type: "string",
