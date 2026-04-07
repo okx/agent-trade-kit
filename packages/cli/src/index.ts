@@ -238,19 +238,26 @@ export function handleMarketPublicCommand(
       instId: v.instId,
       json,
     });
-  if (action === "indicator") {
-    if (rest[0] === "list") return cmdMarketIndicatorList(json);
-    const limit = v.limit !== undefined ? Number(v.limit) : undefined;
-    const backtestTime = v["backtest-time"] !== undefined ? Number(v["backtest-time"]) : undefined;
-    return cmdMarketIndicator(run, rest[0], rest[1], {
-      bar: v.bar,
-      params: v.params,
-      list: v.list,
-      limit,
-      backtestTime,
-      json,
-    });
-  }
+  if (action === "indicator") return handleIndicatorAction(run, rest, v, json);
+}
+
+function handleIndicatorAction(
+  run: ToolRunner,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (rest[0] === "list") return cmdMarketIndicatorList(json);
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  const backtestTime = v["backtest-time"] !== undefined ? Number(v["backtest-time"]) : undefined;
+  return cmdMarketIndicator(run, rest[0], rest[1], {
+    bar: v.bar,
+    params: v.params,
+    list: v.list,
+    limit,
+    backtestTime,
+    json,
+  });
 }
 
 export function handleMarketDataCommand(
