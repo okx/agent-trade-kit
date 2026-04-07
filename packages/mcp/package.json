@@ -1,6 +1,6 @@
 {
   "name": "@okx_ai/okx-trade-mcp",
-  "version": "1.3.0-beta.1",
+  "version": "1.3.0-beta.2",
   "description": "OKX MCP Server - Model Context Protocol server for OKX exchange",
   "type": "module",
   "license": "MIT",

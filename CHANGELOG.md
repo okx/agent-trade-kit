@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+---
 
-- **CLI `--json` env wrapper is now opt-in via `--env` flag**: Reverts the breaking change from !207 where `--json` output was wrapped in `{env, profile, data}`. Now `--json` returns raw data by default (backward compatible). Use `--json --env` to get the wrapper with environment metadata. Table output environment header is unaffected. (#131)
+## [1.3.0-beta.2] - 2026-04-07
 
 ### Added
 
@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CLI `--json` env wrapper is now opt-in via `--env` flag**: Reverts the breaking change from 1.3.0-beta.1 where `--json` output was wrapped in `{env, profile, data}`. Now `--json` returns raw data by default (backward compatible). Use `--json --env` to get the wrapper with environment metadata. Table output environment header is unaffected. (#131)
 - **`tgtCcy=quote_ccy` conversion: use `minSz`/`lotSz` instead of `Math.floor`**: The USDT-to-contract conversion now rounds down to `lotSz` precision and compares against `minSz` from the instruments API, instead of assuming integer contracts. Fixes false "too small" errors for instruments where `minSz < 1` (e.g. BTC-USDT-SWAP with `minSz=0.01`). (#127)
 
 ---
