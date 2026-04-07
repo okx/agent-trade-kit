@@ -93,8 +93,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           tgtCcy: {
             type: "string",
-            enum: ["base_ccy", "quote_ccy"],
-            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
+            enum: ["base_ccy", "quote_ccy", "margin"],
+            description: "Size unit. base_ccy(default): sz in contracts; quote_ccy: sz in USDT notional value; margin: sz in USDT margin cost (actual position = sz * leverage)",
           },
           reduceOnly: {
             type: "boolean",
@@ -116,6 +116,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           readString(args, "tgtCcy"),
           "SWAP",
           context.client,
+          readString(args, "tdMode"),
         );
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
@@ -459,8 +460,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           },
           tgtCcy: {
             type: "string",
-            enum: ["base_ccy", "quote_ccy"],
-            description: "Size unit. base_ccy(default): sz in contracts, quote_ccy: sz in USDT",
+            enum: ["base_ccy", "quote_ccy", "margin"],
+            description: "Size unit. base_ccy(default): sz in contracts; quote_ccy: sz in USDT notional value; margin: sz in USDT margin cost (actual position = sz * leverage)",
           },
           reduceOnly: {
             type: "boolean",
@@ -482,6 +483,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           readString(args, "tgtCcy"),
           "FUTURES",
           context.client,
+          readString(args, "tdMode"),
         );
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",

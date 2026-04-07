@@ -23,6 +23,7 @@ interface MockPublicGetCall {
 function makeMockClient(
   instrumentsResponse: unknown[],
   tickerResponse: unknown[],
+  leverageResponse?: unknown[],
 ) {
   const calls: MockPublicGetCall[] = [];
 
@@ -44,6 +45,17 @@ function makeMockClient(
         };
       }
       throw new Error(`Unexpected endpoint: ${endpoint}`);
+    },
+    privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+      calls.push({ endpoint, params });
+      if (endpoint.includes("/account/leverage-info")) {
+        return {
+          endpoint,
+          requestTime: "2026-01-01T00:00:00.000Z",
+          data: leverageResponse ?? [],
+        };
+      }
+      throw new Error(`Unexpected private endpoint: ${endpoint}`);
     },
   };
 
@@ -567,5 +579,120 @@ describe("resolveQuoteCcySz — fractional minSz/lotSz (#127)", () => {
         return true;
       },
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: margin mode (tgtCcy=margin)
+// ---------------------------------------------------------------------------
+
+describe("resolveQuoteCcySz — margin mode (tgtCcy=margin)", () => {
+  it("BTC-USDT-SWAP: margin=500, lever=10, ctVal=0.01, lastPx=84000 → 5 contracts", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
+      [{ last: "84000" }],
+      [{ lever: "10" }],
+    );
+    const result = await resolveQuoteCcySz("BTC-USDT-SWAP", "500", "margin", "SWAP", client as never, "cross");
+    assert.equal(result.sz, "5");
+    assert.equal(result.tgtCcy, undefined);
+    assert.ok(result.conversionNote!.includes("margin"));
+    assert.ok(result.conversionNote!.includes("10x"));
+  });
+
+  it("ETH-USDT-SWAP: margin=100, lever=20, ctVal=0.1, lastPx=3200 → 6 contracts", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.1", minSz: "1", lotSz: "1" }],
+      [{ last: "3200" }],
+      [{ lever: "20" }],
+    );
+    const result = await resolveQuoteCcySz("ETH-USDT-SWAP", "100", "margin", "SWAP", client as never, "isolated");
+    assert.equal(result.sz, "6");
+    assert.equal(result.tgtCcy, undefined);
+  });
+
+  it("makes 3 parallel API calls (instruments + ticker + leverage-info)", async () => {
+    const { client, calls } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
+      [{ last: "84000" }],
+      [{ lever: "10" }],
+    );
+    await resolveQuoteCcySz("BTC-USDT-SWAP", "1000", "margin", "SWAP", client as never, "cross");
+    assert.equal(calls.length, 3);
+    assert.ok(calls.some((c) => c.endpoint.includes("/public/instruments")));
+    assert.ok(calls.some((c) => c.endpoint.includes("/market/ticker")));
+    assert.ok(calls.some((c) => c.endpoint.includes("/account/leverage-info")));
+  });
+
+  it("passes correct mgnMode to leverage-info API", async () => {
+    const { client, calls } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
+      [{ last: "84000" }],
+      [{ lever: "10" }],
+    );
+    await resolveQuoteCcySz("BTC-USDT-SWAP", "1000", "margin", "SWAP", client as never, "isolated");
+    const leverageCall = calls.find((c) => c.endpoint.includes("/account/leverage-info"));
+    assert.ok(leverageCall);
+    assert.equal(leverageCall!.params.mgnMode, "isolated");
+  });
+
+  it("throws when tdMode is not provided for margin mode", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
+      [{ last: "84000" }],
+      [{ lever: "10" }],
+    );
+    await assert.rejects(
+      () => resolveQuoteCcySz("BTC-USDT-SWAP", "500", "margin", "SWAP", client as never),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes("tdMode"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when leverage-info returns empty response", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
+      [{ last: "84000" }],
+      [],
+    );
+    await assert.rejects(
+      () => resolveQuoteCcySz("BTC-USDT-SWAP", "500", "margin", "SWAP", client as never, "cross"),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes("leverage") || err.message.includes("lever"));
+        return true;
+      },
+    );
+  });
+
+  it("margin too small: throws descriptive error", async () => {
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "1", lotSz: "1" }],
+      [{ last: "84000" }],
+      [{ lever: "10" }],
+    );
+    await assert.rejects(
+      () => resolveQuoteCcySz("BTC-USDT-SWAP", "5", "margin", "SWAP", client as never, "cross"),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes("too small"));
+        return true;
+      },
+    );
+  });
+
+  it("margin mode respects lotSz precision", async () => {
+    // margin=100, lever=10, notional=1000, contractValue=0.01*68862=688.62
+    // 1000/688.62=1.4522 → lotSz=0.01 → floor(round(1.4522/0.01))*0.01 = 1.45
+    const { client } = makeMockClient(
+      [{ ctVal: "0.01", minSz: "0.01", lotSz: "0.01" }],
+      [{ last: "68862" }],
+      [{ lever: "10" }],
+    );
+    const result = await resolveQuoteCcySz("BTC-USDT-SWAP", "100", "margin", "SWAP", client as never, "cross");
+    assert.equal(result.sz, "1.45");
   });
 });
