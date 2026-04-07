@@ -34,7 +34,7 @@
 1. `okx --profile live earn savings balance USDT` → check redeemable amount; show summary, wait for confirmation
 2. `okx --profile live earn savings redeem --ccy USDT --amt <amt>`
 3. _(Optional — requires **Withdraw** permission on the API key)_
-   `okx --profile live account transfer --ccy USDT --amt <amt> --from 18 --to 6` (CLI account type IDs: 18=funding, 6=trading)
+   `okx --profile live account transfer --ccy USDT --amt <amt> --from 6 --to 18` (CLI account type IDs: 6=funding, 18=trading)
 
    If step 3 fails with a permission error, inform the user that their API key does not have Withdraw permission and they should complete the transfer manually in the OKX app.
 
