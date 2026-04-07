@@ -640,6 +640,7 @@ function printGlobalHelp(): void {
     "  --demo             Use simulated trading (demo) mode",
     "  --live             Force live trading mode (overrides profile demo=true; mutually exclusive with --demo)",
     "  --json             Output raw JSON",
+    "  --env              With --json, wrap output as {env, profile, data}",
     "  --verbose          Show detailed network request/response info (stderr)",
     "  --version, -v      Show version",
     "  --help             Show this help",

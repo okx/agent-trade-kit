@@ -72,7 +72,7 @@ Never skip `add` and go straight to `download` unless `add` has already failed.
 | 7 | `okx skill check <name>` | Check if a newer version is available |
 | 8 | `okx skill remove <name>` | Uninstall a skill |
 
-Add `--json` to any command for raw JSON output.
+Add `--json` to any command for raw JSON output. Add `--env` to wrap the output as `{"env", "profile", "data"}`.
 
 ---
 

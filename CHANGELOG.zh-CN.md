@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **CLI `--json` 环境包装改为 opt-in（通过 `--env` 标志）**：回退 !207 中的破坏性变更，该变更将 `--json` 输出包装为 `{env, profile, data}` 结构。现在 `--json` 默认返回原始数据（向后兼容）。使用 `--json --env` 可获取带环境元数据的包装格式。表格输出的环境标题行不受影响。(#131)
+
 ### 新增
 
 - **简单赚币定期（Simple Earn Fixed）工具**（`earn.savings`）：新增三个工具——`earn_get_fixed_order_list`（按币种/状态查询定期订单）、`earn_fixed_purchase`（两步申购：先预览产品详情再确认，资金锁定至到期）、`earn_fixed_redeem`（赎回定期订单）。`earn_get_lending_rate_history` 现同时返回可用定期产品的年化利率、期限、最低金额和剩余额度。CLI 命令：`okx earn savings fixed-orders`、`okx earn savings fixed-purchase`、`okx earn savings fixed-redeem`。

@@ -74,8 +74,24 @@ export function errorLine(message: string): void {
 // Structured output helpers (always write to stdout)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Opt-in JSON env wrapper — controlled by the --env CLI flag.
+// When disabled (default), printJson outputs raw data for backward compat.
+// When enabled, printJson wraps the data with {env, profile, data}.
+// ---------------------------------------------------------------------------
+
+let jsonEnvEnabled = false;
+
+export function setJsonEnvEnabled(enabled: boolean): void {
+  jsonEnvEnabled = enabled;
+}
+
+export function resetJsonEnvEnabled(): void {
+  jsonEnvEnabled = false;
+}
+
 export function printJson(data: unknown): void {
-  const payload = envContext
+  const payload = jsonEnvEnabled && envContext
     ? {
         env: envContext.demo ? "demo" : "live",
         profile: envContext.profile,

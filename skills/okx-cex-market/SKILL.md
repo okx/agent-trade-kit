@@ -41,7 +41,7 @@ npm install -g @okx_ai/okx-trade-cli
 okx market ticker BTC-USDT   # verify
 ```
 
-Market data commands return the same public data regardless of demo/live mode — no API credentials required. If the user's profile has `demo=true` set and they want live data context, they can use `--live` to confirm they are in live mode (it has no effect on public market data but clarifies environment). Always inform the user which environment is active (demo or live) when it is relevant to their query. No confirmation needed before running any market command. Add `--json` to any command for raw OKX API v5 response.
+Market data commands return the same public data regardless of demo/live mode — no API credentials required. If the user's profile has `demo=true` set and they want live data context, they can use `--live` to confirm they are in live mode (it has no effect on public market data but clarifies environment). Always inform the user which environment is active (demo or live) when it is relevant to their query. No confirmation needed before running any market command. Add `--json` to any command for raw OKX API v5 response. Add `--env` to wrap the output as `{"env", "profile", "data"}`.
 
 ---
 

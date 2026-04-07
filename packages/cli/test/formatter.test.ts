@@ -14,6 +14,8 @@ import {
   printKv,
   setEnvContext,
   resetEnvContext,
+  setJsonEnvEnabled,
+  resetJsonEnvEnabled,
 } from "../src/formatter.js";
 
 // ---------------------------------------------------------------------------
@@ -104,10 +106,12 @@ describe("printJson with envContext", () => {
   afterEach(() => {
     resetOutput();
     resetEnvContext();
+    resetJsonEnvEnabled();
   });
 
-  it("AC-4: wraps data with env metadata when demo=true", () => {
+  it("AC-4: wraps data with env metadata when --env is enabled and demo=true", () => {
     setEnvContext({ demo: true, profile: "hk-demo" });
+    setJsonEnvEnabled(true);
     printJson([{ instId: "BTC-USDT" }]);
     const parsed = JSON.parse(out.join(""));
     assert.equal(parsed.env, "demo");
@@ -115,8 +119,9 @@ describe("printJson with envContext", () => {
     assert.deepEqual(parsed.data, [{ instId: "BTC-USDT" }]);
   });
 
-  it("AC-5: wraps data with env=live when demo=false", () => {
+  it("AC-5: wraps data with env=live when --env is enabled and demo=false", () => {
     setEnvContext({ demo: false, profile: "default" });
+    setJsonEnvEnabled(true);
     printJson({ key: "value" });
     const parsed = JSON.parse(out.join(""));
     assert.equal(parsed.env, "live");
@@ -129,6 +134,24 @@ describe("printJson with envContext", () => {
     const parsed = JSON.parse(out.join(""));
     assert.ok(!("env" in parsed), "Should not have env key at top level");
     assert.deepEqual(parsed, [{ instId: "BTC-USDT" }]);
+  });
+
+  it("outputs raw data when envContext is set but --env is NOT enabled (backward compat)", () => {
+    setEnvContext({ demo: true, profile: "hk-demo" });
+    // jsonEnvEnabled defaults to false — simulates --json without --env
+    printJson([{ instId: "BTC-USDT" }]);
+    const parsed = JSON.parse(out.join(""));
+    assert.ok(!("env" in parsed), "Should not have env key when --env is not passed");
+    assert.deepEqual(parsed, [{ instId: "BTC-USDT" }]);
+  });
+
+  it("wraps data only when both envContext is set AND --env is enabled", () => {
+    // Without envContext, even --env=true should not wrap
+    setJsonEnvEnabled(true);
+    printJson({ key: "value" });
+    const parsed = JSON.parse(out.join(""));
+    assert.ok(!("env" in parsed), "Should not wrap when envContext is null");
+    assert.deepEqual(parsed, { key: "value" });
   });
 });
 
@@ -197,6 +220,7 @@ describe("setOutput / resetOutput", () => {
     printJson({ key: "value" });
     assert.ok(out.join("").includes("value"));
     assert.equal(err.join(""), "");
+    resetJsonEnvEnabled();
   });
 });
 

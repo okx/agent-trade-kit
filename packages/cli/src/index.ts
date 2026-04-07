@@ -174,7 +174,7 @@ import {
   cmdSkillCheck,
   cmdSkillList,
 } from "./commands/skill.js";
-import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext } from "./formatter.js";
+import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext, setJsonEnvEnabled } from "./formatter.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -1233,6 +1233,7 @@ async function main(): Promise<void> {
 
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
+  setJsonEnvEnabled(v.env ?? false);
 
   const client = new OkxRestClient(config);
   const baseRunner = createToolRunner(client, config);
