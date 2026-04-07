@@ -14,8 +14,10 @@ const EARN_DEMO_SUGGESTION = "Switch to a live account to use Earn features.";
 /** Tools that bypass the blanket demo guard:
  *  - isWrite=false tools are skipped by the guard condition
  *  - dcd_redeem: isWrite=true but has CONDITIONAL demo check inside
- *    (preview/no quoteId is read-only and allowed; execute mode has assertNotDemo) */
-const DEMO_GUARD_SKIP = new Set(["dcd_redeem"]);
+ *    (preview/no quoteId is read-only and allowed; execute mode has assertNotDemo)
+ *  - earn_fixed_purchase: isWrite=true but preview (confirm=false) is read-only;
+ *    execute path (confirm=true) has assertNotDemo inside the handler */
+const DEMO_GUARD_SKIP = new Set(["dcd_redeem", "earn_fixed_purchase"]);
 
 function withDemoGuard(tool: ToolSpec): ToolSpec {
   if (!tool.isWrite || DEMO_GUARD_SKIP.has(tool.name)) return tool;

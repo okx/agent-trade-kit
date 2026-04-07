@@ -10,14 +10,13 @@ The `earn` module provides tools for OKX Earn products, split into three sub-mod
 
 | Sub-module | Tools | Description |
 |------------|-------|-------------|
-| `earn.savings` | 7 | Simple Earn: balance, purchase, redeem, lending rate management, rate history |
+| `earn.savings` | 9 | Simple Earn: balance, purchase, redeem, lending rate management, rate history; Fixed-term: order list, purchase (two-step), redeem |
 | `earn.onchain` | 6 | On-chain Earn (staking/DeFi): offers, purchase, redeem, cancel, active orders, history |
 | `earn.dcd` | 6 | Dual Currency Deposit (双币赢): currency pairs, products, atomic subscribe, two-step early redeem, order history |
 
 ### earn.savings — Simple Earn
 
 Requires API key with **Read** permission. Write operations (purchase, redeem, set-rate) require **Trade** permission.
-`earn_get_lending_rate_history` is a public endpoint (no API key required).
 
 | Tool | Description |
 |------|-------------|
@@ -26,7 +25,10 @@ Requires API key with **Read** permission. Write operations (purchase, redeem, s
 | `earn_savings_redeem` | Redeem Simple Earn product (withdraw funds from savings) |
 | `earn_set_lending_rate` | Set your lending rate preference |
 | `earn_get_lending_history` | Get personal lending records (requires auth) |
-| `earn_get_lending_rate_history` | Query Simple Earn lending rates — use this when asking about current or historical lending rates (public, no auth) |
+| `earn_get_lending_rate_history` | Query Simple Earn lending rates and fixed-term offers — use this when asking about current or historical lending rates (requires auth) |
+| `earn_get_fixed_order_list` | Get fixed-term earn order list (filter by ccy/state) |
+| `earn_fixed_purchase` | Purchase fixed-term earn product (two-step: preview then confirm). Funds locked until maturity |
+| `earn_fixed_redeem` | Redeem a fixed-term earn order (full amount) |
 
 ### earn.onchain — On-chain Earn (staking/DeFi)
 
@@ -51,6 +53,10 @@ Requires API key with **Read** permission. Write operations require **Trade** pe
 "Set my USDT lending rate to 2%"
 "Show my lending history"
 "What is the current USDT lending rate?"
+"Show available fixed-term earn products for USDT"
+"Purchase 1000 USDT into 90-day fixed earn"
+"Show my fixed-term earn orders"
+"Redeem my fixed-term order"
 "Show me available ETH staking offers"
 "What are my current on-chain earn positions?"
 "Redeem my staking order 12345"
@@ -66,8 +72,15 @@ okx earn savings purchase --ccy USDT --amt 1000
 okx earn savings purchase --ccy USDT --amt 1000 --rate 0.02
 okx earn savings redeem --ccy USDT --amt 500
 okx earn savings set-rate --ccy USDT --rate 0.02
-okx earn savings lending-history --ccy USDT  # requires auth
-okx earn savings rate-history --ccy USDT --limit 10  # public
+okx earn savings lending-history --ccy USDT
+okx earn savings rate-history --ccy USDT --limit 10
+
+# --- earn.savings (fixed-term 定期) ---
+okx earn savings fixed-orders
+okx earn savings fixed-orders --ccy USDT --state earning
+okx earn savings fixed-purchase --ccy USDT --amt 1000 --term 90D
+okx earn savings fixed-purchase --ccy USDT --amt 1000 --term 90D --confirm
+okx earn savings fixed-redeem <reqId>
 
 # --- earn.onchain ---
 okx earn onchain offers
@@ -168,14 +181,13 @@ okx-trade-mcp --modules earn.dcd
 
 | 子模块 | 工具数 | 说明 |
 |--------|--------|------|
-| `earn.savings` | 7 | 简单赚币：余额、申购、赎回、出借利率管理、利率历史 |
+| `earn.savings` | 9 | 简单赚币：余额、申购、赎回、出借利率管理、利率历史；定期赚币：订单列表、申购（两步确认）、赎回 |
 | `earn.onchain` | 6 | 链上赚币（质押/DeFi）：产品列表、申购、赎回、取消、活跃订单、历史订单 |
 | `earn.dcd` | 6 | 双币赢（Dual Currency Deposit）：币对、产品、原子化申购、两阶段提前赎回、订单历史 |
 
 ### earn.savings — 简单赚币
 
 需要 API Key 的**读取**权限。申购、赎回、设置利率需额外**交易**权限。
-`earn_get_lending_rate_history` 为公开接口，无需认证。
 
 | 工具 | 说明 |
 |------|------|
@@ -184,7 +196,10 @@ okx-trade-mcp --modules earn.dcd
 | `earn_savings_redeem` | 赎回简单赚币（将资金从理财取出） |
 | `earn_set_lending_rate` | 设置出借利率偏好 |
 | `earn_get_lending_history` | 查询个人出借记录（需认证） |
-| `earn_get_lending_rate_history` | 查询简单赚币利率——用户询问当前或历史利率时调用此工具（公开接口，无需认证） |
+| `earn_get_lending_rate_history` | 查询简单赚币利率及定期产品——用户询问当前或历史利率时调用此工具（需认证） |
+| `earn_get_fixed_order_list` | 查询定期赚币订单列表（支持按币种/状态过滤） |
+| `earn_fixed_purchase` | 申购定期赚币产品（两步流程：预览后确认）。资金锁定至到期 |
+| `earn_fixed_redeem` | 赎回定期赚币订单（全额赎回） |
 
 ### earn.onchain — 链上赚币（质押/DeFi）
 
@@ -209,6 +224,10 @@ okx-trade-mcp --modules earn.dcd
 "将 USDT 出借利率设为 2%"
 "查看我的出借记录"
 "当前 USDT 的市场出借利率是多少？"
+"查看 USDT 定期赚币产品"
+"申购 1000 USDT 的 90 天定期赚币"
+"查看我的定期赚币订单"
+"赎回定期赚币订单"
 "显示 ETH 的链上赚币产品"
 "我目前有哪些链上赚币仓位？"
 "赎回我的质押订单 12345"
@@ -225,7 +244,14 @@ okx earn savings purchase --ccy USDT --amt 1000 --rate 0.02
 okx earn savings redeem --ccy USDT --amt 500
 okx earn savings set-rate --ccy USDT --rate 0.02
 okx earn savings lending-history --ccy USDT  # requires auth
-okx earn savings rate-history --ccy USDT --limit 10  # public
+okx earn savings rate-history --ccy USDT --limit 10
+
+# --- earn.savings (fixed-term 定期) ---
+okx earn savings fixed-orders
+okx earn savings fixed-orders --ccy USDT --state earning
+okx earn savings fixed-purchase --ccy USDT --amt 1000 --term 90D
+okx earn savings fixed-purchase --ccy USDT --amt 1000 --term 90D --confirm
+okx earn savings fixed-redeem <reqId>
 
 # --- earn.onchain ---
 okx earn onchain offers

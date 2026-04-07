@@ -413,7 +413,7 @@ const HELP_TREE: HelpTree = {
     description: "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
     subgroups: {
       savings: {
-        description: "Simple Earn — flexible savings and lending",
+        description: "Simple Earn — flexible savings, fixed-term, and lending",
         commands: {
           balance: {
             usage: "okx earn savings balance [<ccy>]",
@@ -437,7 +437,19 @@ const HELP_TREE: HelpTree = {
           },
           "rate-history": {
             usage: "okx earn savings rate-history [--ccy <ccy>] [--limit <n>]",
-            description: "Query Simple Earn lending rates (public, no auth needed)",
+            description: "Query Simple Earn lending rates and fixed-term offers (requires auth)",
+          },
+          "fixed-orders": {
+            usage: "okx earn savings fixed-orders [--ccy <ccy>] [--state <pending|earning|expired|settled|cancelled>]",
+            description: "List fixed-term earn orders",
+          },
+          "fixed-purchase": {
+            usage: "okx earn savings fixed-purchase --ccy <ccy> --amt <n> --term <term> [--confirm]",
+            description: "Purchase Simple Earn Fixed (定期). Preview by default; add --confirm to execute. Funds locked until maturity",
+          },
+          "fixed-redeem": {
+            usage: "okx earn savings fixed-redeem <reqId>",
+            description: "Redeem a fixed-term earn order (full amount)",
           },
         },
       },

@@ -7,7 +7,7 @@
 1. `okx --profile live account asset-balance <ccy>` → idle funds in funding account
 2. `okx --profile live account balance <ccy>` → idle funds in trading account
 3. `okx --profile live earn savings balance <ccy>` → already in earn
-4. `okx --profile live earn savings rate-history --ccy <ccy> --limit 1 --json` → current `rate` (threshold) and `lendingRate` (actual yield)
+4. `okx --profile live earn savings rate-history --ccy <ccy> --limit 1 --json` → current `lendingRate` (actual yield)
 → summarize idle funds and suggest subscribing if lendingRate is acceptable
 
 ---
@@ -37,6 +37,36 @@
    `okx --profile live account transfer --ccy USDT --amt <amt> --from 6 --to 18` (CLI account type IDs: 6=funding, 18=trading)
 
    If step 3 fails with a permission error, inform the user that their API key does not have Withdraw permission and they should complete the transfer manually in the OKX app.
+
+---
+
+## Simple Earn Fixed — subscribe with preview
+
+"帮我申购 USDT 定期赚币，7天" / "subscribe USDT fixed earn for 7 days"
+
+1. Run in parallel:
+   - `okx --profile live earn savings rate-history --ccy USDT --json` → verify 7-day term exists and has quota
+   - `okx --profile live account asset-balance USDT` → verify balance ≥ requested amount
+2. If term not available or sold out → inform user, suggest alternative terms from offers list
+3. Preview: `okx --profile live earn savings fixed-purchase --ccy USDT --amt 1000 --term 7D --json` (without `--confirm`)
+4. Show confirmation summary (see `savings-commands.md` Fixed-Term Confirmation Templates), wait for user confirmation
+5. Execute: `okx --profile live earn savings fixed-purchase --ccy USDT --amt 1000 --term 7D --confirm --json`
+6. Verify: `okx --profile live earn savings fixed-orders --ccy USDT --state pending --json` → confirm order created
+
+---
+
+## Simple Earn Fixed — early redemption
+
+"赎回我的定期赚币订单" / "redeem my fixed earn order"
+
+1. `okx --profile live earn savings fixed-orders --json` → display numbered order list; let user pick by number (do not expect them to type reqId manually)
+2. Check order state:
+   - `pending` → proceed to step 3
+   - `earning` → inform user: locked period active, cannot redeem early. Show expiry date.
+   - `settled` / `cancelled` → inform user: order already completed
+3. Show redemption summary (see `savings-commands.md` Fixed-Term Confirmation Templates), wait for confirmation
+4. `okx --profile live earn savings fixed-redeem <id> --json`
+5. `okx --profile live earn savings fixed-orders --json` → confirm order cancelled
 
 ---
 

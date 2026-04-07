@@ -11,6 +11,15 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **简单赚币定期（Simple Earn Fixed）工具**（`earn.savings`）：新增三个工具——`earn_get_fixed_order_list`（按币种/状态查询定期订单）、`earn_fixed_purchase`（两步申购：先预览产品详情再确认，资金锁定至到期）、`earn_fixed_redeem`（赎回定期订单）。`earn_get_lending_rate_history` 现同时返回可用定期产品的年化利率、期限、最低金额和剩余额度。CLI 命令：`okx earn savings fixed-orders`、`okx earn savings fixed-purchase`、`okx earn savings fixed-redeem`。
+
+### 变更
+
+- **`earn_get_lending_rate_history` 新增认证 API 调用以获取定期产品**（`earn.savings`）：该工具现通过 `privateGet` 请求定期产品列表。此调用为 best-effort——若用户未配置 API key，工具仍正常返回活期借贷利率历史，`fixedOffers` 为空数组。
+- **`earn_get_lending_rate_history` 默认 limit 从 100 降为 7**（`earn.savings`）：未传 `limit` 时，工具现返回最近 7 条记录而非 100 条，减少 agent 对话中的 token 消耗。
+
 ---
 
 ## [1.3.0-beta.1] - 2026-04-07

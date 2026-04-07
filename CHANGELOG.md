@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Simple Earn Fixed (定期赚币) tools** (`earn.savings`): Three new tools — `earn_get_fixed_order_list` (query fixed-term orders by ccy/state), `earn_fixed_purchase` (two-step purchase: preview with offer details then confirm; funds locked until maturity), `earn_fixed_redeem` (redeem a fixed-term order). `earn_get_lending_rate_history` now also returns available fixed-term offers with APR, term, min amount, and remaining quota. CLI: `okx earn savings fixed-orders`, `okx earn savings fixed-purchase`, `okx earn savings fixed-redeem`.
+
+### Changed
+
+- **`earn_get_lending_rate_history` now fetches fixed-term offers via authenticated API** (`earn.savings`): This tool now makes an additional `privateGet` call to retrieve fixed-term product offers. The call is best-effort — if the user has no API key configured, the tool still returns flexible lending rate history as before, with an empty `fixedOffers` array.
+- **`earn_get_lending_rate_history` default limit reduced from 100 to 7** (`earn.savings`): When `limit` is omitted, the tool now returns the 7 most recent records instead of 100, reducing token usage in agent conversations.
+
 ---
 
 ## [1.3.0-beta.1] - 2026-04-07

@@ -1,6 +1,6 @@
 ---
 name: okx-cex-earn
-description: "Manages OKX Simple Earn (flexible savings/lending), On-chain Earn (staking/DeFi), Dual Investment (DCD/双币赢), and AutoEarn (自动赚币) via the okx CLI. Use this skill whenever the user wants to check earn balances, subscribe or redeem earn products, view or set lending rates, monitor on-chain staking orders, interact with dual investment structured products, or manage auto-earn — even if phrased casually as 活期赚币, 赚币, 申购, 赎回, 链上赚币, 质押, 理财, 双币赢, 双币理财, 双币申购, 高卖, 低买, dual investment, DCD, buy low, sell high structured product, earn with target price, 目标价, 自动赚币, auto earn, auto-earn, 自动借出, 自动质押, auto lend, auto staking, USDG earn, USDG 赚币, 闲置资金自动理财. Also use when the user asks about idle funds and whether to earn on them."
+description: "Manages OKX Simple Earn (flexible savings/lending), On-chain Earn (staking/DeFi), Dual Investment (DCD/双币赢), and AutoEarn (自动赚币) via the okx CLI. Use this skill whenever the user wants to check earn balances, subscribe or redeem earn products, view or set lending rates, monitor on-chain staking orders, interact with dual investment structured products, or manage auto-earn — even if phrased casually as 活期赚币, 定期赚币, 赚币, 申购, 赎回, 链上赚币, 质押, 理财, 双币赢, 双币理财, 双币申购, 高卖, 低买, dual investment, DCD, buy low, sell high structured product, earn with target price, 目标价, 自动赚币, auto earn, auto-earn, 自动借出, 自动质押, auto lend, auto staking, USDG earn, USDG 赚币, 闲置资金自动理财, fixed earn, fixed deposit, term deposit, 定期理财, 定期. Also use when the user asks about idle funds and whether to earn on them."
 license: MIT
 metadata:
   author: okx
@@ -67,16 +67,19 @@ OKX Earn does not support demo mode. Always use `--profile live` silently — do
 
 ## Command Index
 
-### earn savings — Simple Earn (6 commands)
+### earn savings — Simple Earn (9 commands)
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `earn savings balance [ccy]` | READ | Required | Savings balance (all or specific currency) |
-| `earn savings purchase --ccy --amt` | WRITE | Required | Subscribe funds to Simple Earn |
-| `earn savings redeem --ccy --amt` | WRITE | Required | Redeem funds from Simple Earn |
+| `earn savings balance [ccy]` | READ | Required | Savings balance (all or specific currency). Also fetch fixed-term orders for a complete picture. |
+| `earn savings purchase --ccy --amt [--rate]` | WRITE | Required | Subscribe funds to Simple Earn (活期) |
+| `earn savings redeem --ccy --amt` | WRITE | Required | Redeem funds from Simple Earn (活期) |
 | `earn savings set-rate --ccy --rate` | WRITE | Required | Set minimum lending rate |
 | `earn savings lending-history` | READ | Required | User's personal lending records with earnings detail |
-| `earn savings rate-history` | READ | Public | Simple Earn lending rates (简单赚币利率) |
+| `earn savings rate-history` | READ | Required | Simple Earn lending rates and fixed-term offers (require auth) |
+| `earn savings fixed-orders [--ccy] [--state]` | READ | Required | Query fixed-term (定期) orders. States: pending/earning/expired/settled/cancelled |
+| `earn savings fixed-purchase --ccy --amt --term [--confirm]` | WRITE | Required | Subscribe to Simple Earn Fixed (定期). Without `--confirm`: preview only |
+| `earn savings fixed-redeem <reqId>` | WRITE | Required | Redeem a fixed-term order (full amount). Only `pending` state orders can be redeemed early |
 
 For full command syntax, rate field semantics, and confirmation templates, read `{baseDir}/references/savings-commands.md`.
 
@@ -130,20 +133,30 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 
 ### Step 1 — Identify earn intent
 
-**Simple Earn / On-chain Earn:**
+**Simple Earn Flexible (活期):**
 - Query balance / history / rates → READ command, proceed directly.
-- Subscribe / redeem / set-rate / on-chain purchase → WRITE command, go to Step 2.
+- Subscribe / redeem / set-rate → WRITE command, go to Step 2.
+
+**Simple Earn Fixed (定期):**
+- Query offers / order list → READ command, proceed directly.
+- Subscribe (two-step: preview then confirm) / redeem (pending state only) → WRITE command, go to Step 2. Read `{baseDir}/references/savings-commands.md` for pre-execution checklists and confirmation templates.
+- For multi-step workflows (subscribe with preview, early redemption), read `{baseDir}/references/workflows.md`.
+
+**On-chain Earn:**
+- Query offers / orders / history → READ command, proceed directly.
+- Purchase / redeem / cancel → WRITE command, go to Step 2.
 
 **AutoEarn (自动赚币):**
 - Query auto-earn status → READ, proceed directly.
 - Enable / disable auto-earn → WRITE, go to Step 2. Read `{baseDir}/references/autoearn-commands.md` for confirmation templates and earnType inference.
 
-When user asks to view "earn positions" or "赚币持仓" (regardless of whether they mention DCD explicitly), query all three simultaneously:
+When user asks to view "earn positions" or "赚币持仓" (regardless of whether they mention DCD explicitly), query all four simultaneously:
 
 ```bash
-okx --profile live earn savings balance --json    # Simple Earn
-okx --profile live earn onchain orders --json     # On-chain Earn
-okx --profile live earn dcd orders --json         # Dual Investment (双币赢)
+okx --profile live earn savings balance --json        # Simple Earn Flexible (活期)
+okx --profile live earn savings fixed-orders --json   # Simple Earn Fixed (定期)
+okx --profile live earn onchain orders --json         # On-chain Earn
+okx --profile live earn dcd orders --json             # Dual Investment (双币赢)
 ```
 
 Only present sections that have actual holdings. For DCD: translate state codes using the table in `{baseDir}/references/dcd-commands.md`.
@@ -168,11 +181,16 @@ For Simple Earn confirmation dialog format, read `{baseDir}/references/savings-c
 After any purchase, verify based on product type:
 - **DCD** `quote-and-buy` succeeded → run `earn dcd orders --json`, show only the matching order.
 - **On-chain** purchase (response contains `ordId`) → run `earn onchain orders --json`, show only the matching order.
-- **Simple Earn** purchase (no `ordId` in response) → run `earn savings balance --ccy <ccy> --json`.
+- **Simple Earn Flexible** purchase (no `ordId` in response) → run `earn savings balance --ccy <ccy> --json`.
+- **Simple Earn Fixed** purchase → run `earn savings fixed-orders --ccy <ccy> --state pending --json`, show the new order.
 
-**Simple Earn purchase:** Run in parallel — `earn savings balance --ccy <ccy>` and `earn savings rate-history --ccy <ccy> --limit 1 --json`. For output format, read `{baseDir}/references/savings-commands.md`.
+**Simple Earn Flexible purchase:** Run in parallel — `earn savings balance --ccy <ccy>` and `earn savings rate-history --ccy <ccy> --limit 1 --json`. For output format, read `{baseDir}/references/savings-commands.md`.
 
-**Simple Earn redeem:** Run `earn savings balance --ccy <ccy>` to confirm updated balance. Inform user funds returned to funding account.
+**Simple Earn Flexible redeem:** Run `earn savings balance --ccy <ccy>` to confirm updated balance. Inform user funds returned to funding account.
+
+**Simple Earn Fixed purchase:** Run `earn savings fixed-orders --ccy <ccy> --state pending --json` to confirm the order was created. Show order details including APR, term, and expected expiry date.
+
+**Simple Earn Fixed redeem:** Run `earn savings fixed-orders --json` to confirm the order state changed to `cancelled`. Inform user full principal returned to funding account — no interest earned for early cancellation.
 
 **On-chain redeem:** Query `earn onchain orders` to confirm state. Show `estSettlementTime` as estimated arrival time.
 

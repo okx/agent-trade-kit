@@ -17,13 +17,13 @@ Unregistered modules will be rejected during review.
 | account | ✅ approved | 14 | 12 | 2 | ~2,500 | _(founding module)_ | @Jasmine.Li | — |
 | bot.grid | ✅ approved | 5 | 3 | 2 | ~1,200 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,200 | _(founding module)_ | @Jasmine.Li | — |
-| earn.savings | ✅ approved | 8 | 4 | 4 | ~1,500 | _(founding module)_ | @Jasmine.Li | — |
-| earn.onchain | ✅ approved | 7 | 3 | 4 | ~1,400 | _(founding module)_ | @Jasmine.Li | — |
+| earn.savings | ✅ approved | 9 | 4 | 5 | ~1,700 | _(founding module)_ | @Jasmine.Li | — |
+| earn.onchain | ✅ approved | 6 | 3 | 3 | ~1,200 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 5 | 3 | 2 | ~1,100 | _(founding module)_ | @Jasmine.Li | — |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~167 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | audit | ✅ approved | 1 | 1 | 0 | ~200 | _(founding module)_ | @Jasmine.Li | — |
 | skills | ✅ approved | 3 | 2 | 1 | ~500 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
-| **Total** | | **132** | **73** | **59** | **~22,527** | | | |
+| **Total** | | **132** | **72** | **60** | **~22,527** | | | |
 
 ## Status Legend
 
