@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0-beta.3] - 2026-04-07
+
+### Added
+
+- **DNS over HTTPS (DoH) resolver**: The HTTP client now uses a bundled DoH binary to resolve DNS queries, fixing connectivity errors in restricted network environments where standard DNS is unavailable or blocked. The resolver includes an in-memory cache and automatic fallback. DoH binary is downloaded on postinstall.
+
+---
+
 ## [1.2.8] - 2026-04-03
 
 ### Added
