@@ -1,0 +1,538 @@
+import { describe, it, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import type { ToolRunner } from "@agent-tradekit/core";
+import {
+  cmdEventBrowse,
+  cmdEventSeries,
+  cmdEventEvents,
+  cmdEventMarkets,
+  cmdEventOrders,
+  cmdEventFills,
+  cmdEventPlace,
+  cmdEventAmend,
+  cmdEventCancel,
+} from "../src/commands/event-contract.js";
+import { setOutput, resetOutput } from "../src/formatter.js";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+let out: string[];
+let err: string[];
+const originalWrite = process.stdout.write;
+
+beforeEach(() => {
+  out = [];
+  err = [];
+  // Capture formatter output (printTable, printJson)
+  setOutput({ out: (m) => out.push(m), err: (m) => err.push(m) });
+  // Capture direct process.stdout.write calls in the source
+  process.stdout.write = ((chunk: string | Buffer) => {
+    out.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
+});
+afterEach(() => {
+  resetOutput();
+  process.stdout.write = originalWrite;
+});
+
+function joined(): string {
+  return out.join("");
+}
+
+function makeRun(data: unknown, extras?: Record<string, unknown>): ToolRunner {
+  return async () => ({ data, ...extras });
+}
+
+/** Sequential runner: each call returns the next response in order. */
+function makeRunSequence(
+  responses: Array<{ data?: unknown; error?: Error; extras?: Record<string, unknown> }>,
+): ToolRunner {
+  let callIdx = 0;
+  return async () => {
+    const resp = responses[callIdx++];
+    if (resp?.error) throw resp.error;
+    return { data: resp?.data ?? [], ...resp?.extras };
+  };
+}
+
+// ---------------------------------------------------------------------------
+// cmdEventBrowse
+// ---------------------------------------------------------------------------
+
+describe("cmdEventBrowse", () => {
+  it("prints table with contract info", async () => {
+    const run = makeRun([
+      {
+        method: "price_up_down",
+        freq: "fifteen_min",
+        underlying: "BTC",
+        contracts: [
+          { instId: "BTC-UPDOWN-15MIN-990101-0800-0815", expTime: "2099-01-01", floorStrike: "", outcome: "pending" },
+        ],
+      },
+    ]);
+    await cmdEventBrowse(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("Up/Down"), "should show method label");
+    assert.ok(text.includes("15min"), "should show freq label");
+    assert.ok(text.includes("BTC"), "should show underlying");
+    assert.ok(text.includes("In Progress"), "pending outcome maps to In Progress");
+    assert.ok(text.includes("1 active contract(s)"), "should show total count");
+  });
+
+  it("prints empty message when no data", async () => {
+    const run = makeRun([]);
+    await cmdEventBrowse(run, { json: false });
+    assert.ok(joined().includes("No active event contracts found"));
+  });
+
+  it("prints empty message when data is null", async () => {
+    const run = makeRun(null);
+    await cmdEventBrowse(run, { json: false });
+    assert.ok(joined().includes("No active event contracts found"));
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ method: "price_above", contracts: [] }]);
+    await cmdEventBrowse(run, { json: true });
+    assert.doesNotThrow(() => JSON.parse(joined()), "should output valid JSON");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventSeries
+// ---------------------------------------------------------------------------
+
+describe("cmdEventSeries", () => {
+  it("groups Up/Down and Price Above sections", async () => {
+    const run = makeRun([
+      { seriesId: "BTC-UPDOWN-15MIN", settlement: { method: "price_up_down", underlying: "BTC" }, freq: "fifteen_min", state: "live" },
+      { seriesId: "ETH-ABOVE-DAILY", settlement: { method: "price_above", underlying: "ETH" }, freq: "daily", state: "live" },
+    ]);
+    await cmdEventSeries(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("Up/Down"), "should have Up/Down section");
+    assert.ok(text.includes("Price Above"), "should have Price Above section");
+    assert.ok(text.includes("BTC-UPDOWN-15MIN"), "should list featured series");
+  });
+
+  it("hides test series by default and shows count", async () => {
+    const run = makeRun([
+      { seriesId: "BTC-UPDOWN-15MIN", settlement: { method: "price_up_down", underlying: "BTC" }, freq: "fifteen_min", state: "live" },
+      { seriesId: "TESTAAAA-UPDOWN-15MIN", settlement: { method: "price_up_down", underlying: "TESTAAAA" }, freq: "fifteen_min", state: "live" },
+    ]);
+    await cmdEventSeries(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("1 test series hidden"), "should show hidden test series count");
+    assert.ok(text.includes("--all"), "should hint about --all flag");
+    assert.ok(!text.includes("TESTAAAA"), "test series should not appear in output");
+  });
+
+  it("shows test series when --all is set", async () => {
+    const run = makeRun([
+      { seriesId: "TESTAAAA-UPDOWN-15MIN", settlement: { method: "price_up_down", underlying: "TESTAAAA" }, freq: "fifteen_min", state: "live" },
+    ]);
+    await cmdEventSeries(run, { all: true, json: false });
+    const text = joined();
+    assert.ok(text.includes("Test / Other"), "should show Test / Other section");
+    assert.ok(text.includes("TESTAAAA"), "test series should appear when --all");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ seriesId: "BTC-UPDOWN-15MIN" }]);
+    await cmdEventSeries(run, { json: true });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventEvents
+// ---------------------------------------------------------------------------
+
+describe("cmdEventEvents", () => {
+  it("prints events table", async () => {
+    const run = makeRun([
+      { eventId: "evt001", state: "live", expTime: "1700000000000", settleTime: "1700003600000" },
+    ]);
+    await cmdEventEvents(run, { seriesId: "BTC-UPDOWN-15MIN", json: false });
+    const text = joined();
+    assert.ok(text.includes("evt001"), "should show eventId");
+    assert.ok(text.includes("live"), "should show state");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ eventId: "evt001" }]);
+    await cmdEventEvents(run, { seriesId: "BTC-UPDOWN-15MIN", json: true });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventMarkets
+// ---------------------------------------------------------------------------
+
+describe("cmdEventMarkets", () => {
+  it("displays index price header and computes status", async () => {
+    // Use a far-future instId so it won't be Settled
+    const run = makeRun(
+      [
+        { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "70000", outcome: "pending", settleValue: "" },
+      ],
+      { currentIdxPx: "69500", underlying: "BTC", availableUsdt: "1000" },
+    );
+    await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
+    const text = joined();
+    assert.ok(text.includes("69500"), "should show current index price");
+    assert.ok(text.includes("BTC"), "should show underlying");
+    assert.ok(text.includes("1000"), "should show available USDT");
+    assert.ok(text.includes("In Progress"), "contract with floorStrike should be In Progress");
+  });
+
+  it("shows Settled for expired contracts", async () => {
+    // Past date instId
+    const run = makeRun([
+      { instId: "BTC-ABOVE-DAILY-200101-0800-70000", expTime: "2020-01-01", floorStrike: "70000", outcome: "YES", settleValue: "1" },
+    ]);
+    await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
+    const text = joined();
+    assert.ok(text.includes("Settled"), "expired contract should show Settled");
+  });
+
+  it("shows Upcoming for contracts without floorStrike and not started", async () => {
+    // Far-future UPDOWN without started time
+    const run = makeRun([
+      { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "", outcome: "", settleValue: "" },
+    ]);
+    await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
+    const text = joined();
+    assert.ok(text.includes("Upcoming"), "contract without floorStrike should be Upcoming");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ instId: "BTC-ABOVE-DAILY-990101-0800-70000" }]);
+    await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: true });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventOrders
+// ---------------------------------------------------------------------------
+
+describe("cmdEventOrders", () => {
+  it("displays contract name, direction, price, size, status", async () => {
+    const run = makeRun([
+      {
+        instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+        cTime: "1700000000000",
+        side: "buy",
+        outcome: "1",
+        px: "0.65",
+        fillSz: "5",
+        sz: "10",
+        state: "live",
+        ordId: "ord123",
+      },
+    ]);
+    await cmdEventOrders(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("BTC above 70,000"), "should show formatted contract name");
+    assert.ok(text.includes("BUY"), "should show direction");
+    assert.ok(text.includes("YES"), "ABOVE series outcome 1 = YES");
+    assert.ok(text.includes("0.65"), "should show price");
+    assert.ok(text.includes("5 / 10"), "should show fill/total size");
+    assert.ok(text.includes("live"), "should show status");
+    assert.ok(text.includes("ord123"), "should show order ID");
+  });
+
+  it("shows UP for UPDOWN series outcome 1", async () => {
+    const run = makeRun([
+      {
+        instId: "BTC-UPDOWN-15MIN-990101-0800-0815",
+        cTime: "1700000000000",
+        side: "buy",
+        outcome: "1",
+        px: "0.5",
+        fillSz: "0",
+        sz: "10",
+        state: "live",
+        ordId: "ord456",
+      },
+    ]);
+    await cmdEventOrders(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("UP"), "UPDOWN series outcome 1 = UP");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ instId: "BTC-ABOVE-DAILY-990101-1600-70000", ordId: "ord123" }]);
+    await cmdEventOrders(run, { json: true });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventFills
+// ---------------------------------------------------------------------------
+
+describe("cmdEventFills", () => {
+  it("displays fill data with direction", async () => {
+    const run = makeRun([
+      {
+        instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+        side: "buy",
+        outcome: "1",
+        fillPx: "0.65",
+        fillSz: "5",
+        ts: "1700000000000",
+        ordId: "ord789",
+      },
+    ]);
+    await cmdEventFills(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("BUY"), "should show side");
+    assert.ok(text.includes("YES"), "should show outcome");
+    assert.ok(text.includes("0.65"), "should show fill price");
+    assert.ok(text.includes("5"), "should show fill size");
+    assert.ok(text.includes("ord789"), "should show order ID");
+  });
+
+  it("shows DOWN for UPDOWN series outcome 2", async () => {
+    const run = makeRun([
+      {
+        instId: "BTC-UPDOWN-15MIN-990101-0800-0815",
+        side: "sell",
+        outcome: "2",
+        fillPx: "0.4",
+        fillSz: "3",
+        ts: "1700000000000",
+        ordId: "ord999",
+      },
+    ]);
+    await cmdEventFills(run, { json: false });
+    const text = joined();
+    assert.ok(text.includes("SELL"), "should show side");
+    assert.ok(text.includes("DOWN"), "UPDOWN outcome 2 = DOWN");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ instId: "BTC-ABOVE-DAILY-990101-1600-70000" }]);
+    await cmdEventFills(run, { json: true });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventPlace
+// ---------------------------------------------------------------------------
+
+describe("cmdEventPlace", () => {
+  it("outputs successful order with period and hints", async () => {
+    const run = makeRun([{ ordId: "ord-place-1" }]);
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      side: "buy",
+      outcome: "1",
+      sz: "10",
+      px: "0.65",
+      ordType: "limit",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("ord-place-1"), "should show ordId");
+    assert.ok(text.includes("Period:"), "should show period");
+    assert.ok(text.includes("2099-01-01"), "should show date from instId");
+    assert.ok(text.includes("BUY"), "should show side");
+    assert.ok(text.includes("sz: 10"), "should show size");
+    assert.ok(text.includes("px: 0.65"), "should show price");
+    assert.ok(text.includes("limit order"), "should show order type hint");
+  });
+
+  it("market order shows conversion note", async () => {
+    const run = makeRun([{ ordId: "ord-mkt-1" }]);
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      side: "buy",
+      outcome: "1",
+      sz: "10",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("market order"), "should mention market order");
+    assert.ok(text.includes("converts sz"), "should show conversion note for market orders");
+  });
+
+  it("handles expired contract error with fallback suggestions", async () => {
+    // Past-date instId so inferExpiryMsFromInstId returns a past timestamp
+    const run = makeRunSequence([
+      { error: new Error("Contract expired") },
+      {
+        data: [
+          { instId: "BTC-ABOVE-DAILY-990201-1600-70000", expTime: "2020-02-01", floorStrike: "70000" },
+        ],
+      },
+    ]);
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-200101-1600-70000",
+      side: "buy",
+      outcome: "1",
+      sz: "10",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("has expired"), "should mention expired");
+    assert.ok(text.includes("next available"), "should suggest next contracts");
+    assert.ok(text.includes("BTC-ABOVE-DAILY-990201-1600-70000"), "should show fallback contract");
+  });
+
+  it("handles generic error for non-expired contract", async () => {
+    // Far-future instId so it's NOT expired
+    const run: ToolRunner = async () => { throw new Error("51001 instrument not found"); };
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      side: "buy",
+      outcome: "1",
+      sz: "10",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Order failed"), "should show order failed");
+    assert.ok(text.includes("not found"), "should show error detail");
+  });
+
+  it("outputs JSON when json=true on success", async () => {
+    const run = makeRun([{ ordId: "ord-json-1" }]);
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      side: "buy",
+      outcome: "1",
+      sz: "10",
+      json: true,
+    });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventAmend
+// ---------------------------------------------------------------------------
+
+describe("cmdEventAmend", () => {
+  it("outputs successful amend", async () => {
+    const run = makeRun([{ ordId: "ord-amend-1", sCode: "0", sMsg: "" }]);
+    await cmdEventAmend(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-amend-1",
+      px: "0.70",
+      sz: "20",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Amended: ord-amend-1"), "should confirm amend");
+    assert.ok(text.includes("new px: 0.70"), "should show new price");
+    assert.ok(text.includes("new sz: 20"), "should show new size");
+  });
+
+  it("shows failure with sCode error", async () => {
+    const run = makeRun([{ ordId: "ord-amend-2", sCode: "51001", sMsg: "Instrument not found" }]);
+    await cmdEventAmend(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-amend-2",
+      px: "0.70",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Failed to amend"), "should show failure");
+    assert.ok(text.includes("51001"), "should show sCode");
+    assert.ok(text.includes("Instrument not found"), "should show sMsg");
+  });
+
+  it("handles thrown error", async () => {
+    const run: ToolRunner = async () => { throw new Error("Network timeout"); };
+    await cmdEventAmend(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-amend-3",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Failed to amend order ord-amend-3"), "should show ordId in error");
+    assert.ok(text.includes("Network timeout"), "should show error message");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ ordId: "ord-amend-1", sCode: "0" }]);
+    await cmdEventAmend(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-amend-1",
+      json: true,
+    });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventCancel
+// ---------------------------------------------------------------------------
+
+describe("cmdEventCancel", () => {
+  it("outputs successful cancel", async () => {
+    const run = makeRun([{ ordId: "ord-cancel-1", sCode: "0", sMsg: "" }]);
+    await cmdEventCancel(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-cancel-1",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Cancelled: ord-cancel-1"), "should confirm cancel");
+  });
+
+  it("shows expired contract message when cancel fails on expired instId", async () => {
+    // Past-date instId
+    const run: ToolRunner = async () => { throw new Error("Contract expired"); };
+    await cmdEventCancel(run, {
+      instId: "BTC-ABOVE-DAILY-200101-1600-70000",
+      ordId: "ord-cancel-2",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("already expired"), "should mention expired");
+    assert.ok(text.includes("auto-cancelled"), "should mention auto-cancelled");
+  });
+
+  it("shows generic error for non-expired cancel failure", async () => {
+    const run: ToolRunner = async () => { throw new Error("Server error"); };
+    await cmdEventCancel(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-cancel-3",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Failed to cancel order ord-cancel-3"), "should show failure");
+    assert.ok(text.includes("Server error"), "should show error message");
+  });
+
+  it("shows 51400 error with hint", async () => {
+    const run = makeRun([{ ordId: "ord-cancel-4", sCode: "51400", sMsg: "Cancellation failed" }]);
+    await cmdEventCancel(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-cancel-4",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Failed to cancel"), "should show failure");
+    assert.ok(text.includes("51400") || text.includes("already been filled"), "should show hint for 51400");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const run = makeRun([{ ordId: "ord-cancel-1", sCode: "0" }]);
+    await cmdEventCancel(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      ordId: "ord-cancel-1",
+      json: true,
+    });
+    assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});

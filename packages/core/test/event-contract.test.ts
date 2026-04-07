@@ -666,3 +666,401 @@ describe("P2-3: event_get_fills subType 415 mapped to settlement with loss", () 
     assert.equal(items[0]!["settlementResult"], undefined);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 测试组 8：convertTimestamps (via event_get_events)
+// ---------------------------------------------------------------------------
+
+describe("convertTimestamps via event_get_events", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_events")!;
+
+  function makeClientWithEventsData(data: unknown[]) {
+    return {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data }),
+      privateGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data }),
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data }),
+    };
+  }
+
+  it("converts expTime ms to YYYY-MM-DD HH:mm UTC+8 format", async () => {
+    // 1711929600000 = 2024-04-01 00:00:00 UTC = 2024-04-01 08:00 UTC+8
+    const client = makeClientWithEventsData([
+      { eventId: "E1", expTime: "1711929600000" },
+    ]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["expTime"], "2024-04-01 08:00 UTC+8");
+  });
+
+  it("removes expTime when value is zero", async () => {
+    const client = makeClientWithEventsData([
+      { eventId: "E2", expTime: "0" },
+    ]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["expTime"], undefined);
+  });
+
+  it("converts settleTime when present", async () => {
+    // 1711972800000 = 2024-04-01 12:00:00 UTC = 2024-04-01 20:00 UTC+8
+    const client = makeClientWithEventsData([
+      { eventId: "E3", settleTime: "1711972800000" },
+    ]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["settleTime"], "2024-04-01 20:00 UTC+8");
+  });
+
+  it("removes settleTime when value is zero", async () => {
+    const client = makeClientWithEventsData([
+      { eventId: "E4", settleTime: "0", expTime: "1711929600000" },
+    ]);
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["settleTime"], undefined);
+    // expTime should still be converted
+    assert.equal(items[0]!["expTime"], "2024-04-01 08:00 UTC+8");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 9：event_browse handler
+// ---------------------------------------------------------------------------
+
+describe("event_browse handler", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_browse")!;
+
+  it("returns only human-readable series with active contracts", async () => {
+    const btcSeries = {
+      seriesId: "BTC-ABOVE-DAILY",
+      freq: "daily",
+      settlement: { method: "price_above", underlying: "BTC-USDT" },
+    };
+    const testSeries = {
+      seriesId: "TESTXYZ-ABOVE-DAILY",
+      freq: "daily",
+      settlement: { method: "price_above", underlying: "TESTXYZ-USDT" },
+    };
+
+    // Future expiry timestamp (well in the future)
+    const futureExpTime = String(Date.now() + 86400000);
+
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string, params?: Record<string, unknown>) => {
+        if (ep.includes("/series")) {
+          return { endpoint: ep, requestTime: "t", data: [btcSeries, testSeries] };
+        }
+        if (ep.includes("/markets")) {
+          const sid = params?.["seriesId"];
+          if (sid === "BTC-ABOVE-DAILY") {
+            return {
+              endpoint: ep, requestTime: "t",
+              data: [{ instId: "BTC-ABOVE-DAILY-260401-1600-50000", floorStrike: "50000", expTime: futureExpTime, outcome: "0" }],
+            };
+          }
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        if (ep.includes("/index-tickers")) {
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        if (ep.includes("/balance")) {
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Array<Record<string, unknown>>;
+    // BTC-ABOVE-DAILY is human-readable, TESTXYZ is not in the known prefixes
+    assert.equal(data.length, 1);
+    assert.equal(data[0]!["seriesId"], "BTC-ABOVE-DAILY");
+    assert.ok((result["total"] as number) > 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 10：event_get_markets with limit (client-side slicing)
+// ---------------------------------------------------------------------------
+
+describe("event_get_markets with limit (client-side slicing)", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_markets")!;
+
+  it("slices result to limit count", async () => {
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      instId: `BTC-ABOVE-DAILY-260401-1600-${50000 + i * 1000}`,
+      outcome: "0",
+      expTime: String(1711929600000 + i * 60000),
+    }));
+
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: items }),
+      privateGet: async (ep: string) => {
+        if (ep.includes("/markets")) {
+          return { endpoint: ep, requestTime: "t", data: items };
+        }
+        if (ep.includes("/index-tickers")) {
+          return { endpoint: ep, requestTime: "t", data: [{ idxPx: "65000" }] };
+        }
+        if (ep.includes("/balance")) {
+          return { endpoint: ep, requestTime: "t", data: [{ details: [{ availBal: "100" }] }] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY", limit: 2 }, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data.length, 2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 11：event_get_markets with unknown underlying (series fallback)
+// ---------------------------------------------------------------------------
+
+describe("event_get_markets unknown underlying series fallback", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_markets")!;
+
+  it("resolves underlying from series response for unknown series", async () => {
+    const marketData = [
+      { instId: "NEWCOIN-ABOVE-DAILY-260401-1600-100", outcome: "0", expTime: "1711929600000" },
+    ];
+    const seriesData = [
+      { seriesId: "NEWCOIN-ABOVE-DAILY", settlement: { underlying: "NEWCOIN-USDT", method: "price_above" } },
+    ];
+
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string, params?: Record<string, unknown>) => {
+        if (ep.includes("/markets")) {
+          return { endpoint: ep, requestTime: "t", data: marketData };
+        }
+        if (ep.includes("/series")) {
+          return { endpoint: ep, requestTime: "t", data: seriesData };
+        }
+        if (ep.includes("/index-tickers")) {
+          return { endpoint: ep, requestTime: "t", data: [{ idxPx: "5.5" }] };
+        }
+        if (ep.includes("/balance")) {
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({ seriesId: "NEWCOIN-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(result["underlying"], "NEWCOIN-USDT");
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data.length, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 12：event_place_order market order — orderNote and availableUsdt
+// ---------------------------------------------------------------------------
+
+describe("event_place_order market order — orderNote and availableUsdt", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_place_order")!;
+
+  it("returns orderNote for market orders and availableUsdt from balance", async () => {
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string) => {
+        if (ep.includes("/balance")) {
+          return { endpoint: ep, requestTime: "t", data: [{ details: [{ availBal: "500.5" }] }] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({
+        endpoint: ep, requestTime: "t",
+        data: [{ ordId: "123", sCode: "0", sMsg: "", tag: "abc" }],
+      }),
+    };
+
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "UP", sz: "10" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+
+    assert.equal(result["availableUsdt"], "500.5");
+    assert.ok(typeof result["orderNote"] === "string");
+    assert.ok((result["orderNote"] as string).includes("Market order"));
+  });
+
+  it("strips tag from successful order response", async () => {
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string) => {
+        if (ep.includes("/balance")) {
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({
+        endpoint: ep, requestTime: "t",
+        data: [{ ordId: "123", sCode: "0", sMsg: "", tag: "shouldBeRemoved" }],
+      }),
+    };
+
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "UP", sz: "10" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["tag"], undefined);
+    assert.equal(items[0]!["ordId"], "123");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 13：event_cancel_order — 51001 error with expired contract
+// ---------------------------------------------------------------------------
+
+describe("event_cancel_order 51001 error with expired contract", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_cancel_order")!;
+
+  it("mentions 'expired' for an instId with past expiry date", async () => {
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privatePost: async (ep: string) => ({
+        endpoint: ep, requestTime: "t",
+        data: [{ ordId: "X", sCode: "51001", sMsg: "Instrument ID does not exist" }],
+      }),
+    };
+
+    // 240101-0800 = 2024-01-01 08:00 UTC+8 = 2024-01-01 00:00 UTC (well in the past)
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-ABOVE-DAILY-240101-0800-50000", ordId: "X" },
+        makeContext(client),
+      ),
+      (err: Error) => {
+        assert.ok(err.message.includes("expired"), `Expected 'expired' in message, got: ${err.message}`);
+        return true;
+      },
+    );
+  });
+
+  it("mentions 'not found' for an instId with future expiry date", async () => {
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privatePost: async (ep: string) => ({
+        endpoint: ep, requestTime: "t",
+        data: [{ ordId: "X", sCode: "51001", sMsg: "Instrument ID does not exist" }],
+      }),
+    };
+
+    // 391231-0800 = 2039-12-31 08:00 UTC+8 (well in the future)
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-ABOVE-DAILY-391231-0800-50000", ordId: "X" },
+        makeContext(client),
+      ),
+      (err: Error) => {
+        assert.ok(err.message.includes("not found") || err.message.includes("not exist"), `Expected 'not found' in message, got: ${err.message}`);
+        return true;
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 14：event_amend_order parameter construction
+// ---------------------------------------------------------------------------
+
+describe("event_amend_order parameter construction", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_amend_order")!;
+
+  it("always sends speedBump=1", async () => {
+    const { client, getCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", ordId: "ORD123", newPx: "0.55" },
+      makeContext(client),
+    );
+    const call = getCall("/api/v5/trade/amend-order")!;
+    assert.equal(call.params["speedBump"], "1");
+  });
+
+  it("passes newPx and newSz through", async () => {
+    const { client, getCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", ordId: "ORD123", newPx: "0.60", newSz: "20" },
+      makeContext(client),
+    );
+    const call = getCall("/api/v5/trade/amend-order")!;
+    assert.equal(call.params["newPx"], "0.60");
+    assert.equal(call.params["newSz"], "20");
+  });
+
+  it("passes instId and ordId correctly", async () => {
+    const { client, getCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", ordId: "ORD456" },
+      makeContext(client),
+    );
+    const call = getCall("/api/v5/trade/amend-order")!;
+    assert.equal(call.params["instId"], "BTC-ABOVE-DAILY-260224-1600-120000");
+    assert.equal(call.params["ordId"], "ORD456");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 15：event_get_fills settlement enrichment details
+// ---------------------------------------------------------------------------
+
+describe("event_get_fills settlement enrichment details", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_fills")!;
+
+  function makeClientWithFillDataEx(data: unknown[]) {
+    return {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data }),
+      privateGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data }),
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data }),
+    };
+  }
+
+  it("settlement win (414) includes pnl field", async () => {
+    const client = makeClientWithFillDataEx([
+      { fillId: "f1", subType: "414", fillPx: "1", fillPnl: "85.5", outcome: "1" },
+    ]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["settlementResult"], "win");
+    assert.equal(items[0]!["pnl"], 85.5);
+  });
+
+  it("settlement loss (415) includes pnl field", async () => {
+    const client = makeClientWithFillDataEx([
+      { fillId: "f2", subType: "415", fillPx: "0", fillPnl: "-10.0", outcome: "2" },
+    ]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["settlementResult"], "loss");
+    assert.equal(items[0]!["pnl"], -10.0);
+  });
+
+  it("settlement with NaN pnl sets pnl to undefined", async () => {
+    const client = makeClientWithFillDataEx([
+      { fillId: "f3", subType: "414", fillPx: "1", fillPnl: "abc", outcome: "1" },
+    ]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["pnl"], undefined);
+  });
+});
