@@ -566,6 +566,59 @@ export class OkxRestClient {
   // JSON request
   // ---------------------------------------------------------------------------
 
+  /**
+   * Handle network error during a JSON request: refresh DoH and maybe retry.
+   * Always either returns a retry result or throws NetworkError.
+   */
+  private async handleRequestNetworkError<TData>(
+    error: unknown,
+    reqConfig: RequestConfig,
+    requestPath: string,
+    t0: number,
+  ): Promise<RequestResult<TData>> {
+    // Network failure → refresh DoH state for subsequent requests
+    if (!this.dohRetried) {
+      if (this.config.verbose) {
+        const cause = error instanceof Error ? error.message : String(error);
+        vlog(`Network failure, refreshing DoH: ${cause}`);
+      }
+      const shouldRetry = await this.handleDohNetworkFailure();
+      // Only auto-retry GET (safe & idempotent).
+      // POST/write requests (orders, transfers) must NOT auto-retry:
+      // DoH re-resolution takes seconds, price may have moved.
+      if (shouldRetry && reqConfig.method === "GET") {
+        return this.request(reqConfig);
+      }
+    }
+
+    if (this.config.verbose) {
+      const elapsed = Date.now() - t0;
+      const cause = error instanceof Error ? error.message : String(error);
+      vlog(`\u2717 NetworkError after ${elapsed}ms: ${cause}`);
+    }
+    throw new NetworkError(
+      `Failed to call OKX endpoint ${reqConfig.method} ${requestPath}.`,
+      `${reqConfig.method} ${requestPath}`,
+      error,
+    );
+  }
+
+  /**
+   * After a successful HTTP response on direct connection, cache mode=direct.
+   * (Even if the business response is an error, the network path is valid.)
+   */
+  private cacheDirectConnectionIfNeeded(): void {
+    if (!this.directUnverified || this.dohNode) return;
+    this.directUnverified = false;
+    const { hostname } = new URL(this.config.baseUrl);
+    writeCache(hostname, {
+      mode: "direct", node: null, failedNodes: [], updatedAt: Date.now(),
+    });
+    if (this.config.verbose) {
+      vlog("DoH: direct connection succeeded, cached mode=direct");
+    }
+  }
+
   private async request<TData = unknown>(
     reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
@@ -602,48 +655,14 @@ export class OkxRestClient {
       };
       response = await fetch(url, fetchOptions as RequestInit);
     } catch (error) {
-      // Network failure → always refresh DoH state for subsequent requests
-      if (!this.dohRetried) {
-        if (this.config.verbose) {
-          vlog(`Network failure, refreshing DoH: ${error instanceof Error ? error.message : String(error)}`);
-        }
-        const shouldRetry = await this.handleDohNetworkFailure();
-        // Only auto-retry GET (safe & idempotent).
-        // POST/write requests (orders, transfers) must NOT auto-retry:
-        // DoH re-resolution takes seconds, price may have moved.
-        if (shouldRetry && reqConfig.method === "GET") {
-          return this.request(reqConfig);
-        }
-      }
-
-      if (this.config.verbose) {
-        const elapsed = Date.now() - t0;
-        const cause = error instanceof Error ? error.message : String(error);
-        vlog(`\u2717 NetworkError after ${elapsed}ms: ${cause}`);
-      }
-      throw new NetworkError(
-        `Failed to call OKX endpoint ${reqConfig.method} ${requestPath}.`,
-        `${reqConfig.method} ${requestPath}`,
-        error,
-      );
+      return await this.handleRequestNetworkError<TData>(error, reqConfig, requestPath, t0);
     }
 
     const rawText = await response.text();
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
 
-    // HTTP response received → direct connection works, cache it
-    // (even if the business response is an error, the network path is valid)
-    if (this.directUnverified && !this.dohNode) {
-      this.directUnverified = false;
-      const { hostname: h } = new URL(this.config.baseUrl);
-      writeCache(h, {
-        mode: "direct", node: null, failedNodes: [], updatedAt: Date.now(),
-      });
-      if (this.config.verbose) {
-        vlog("DoH: direct connection succeeded, cached mode=direct");
-      }
-    }
+    this.cacheDirectConnectionIfNeeded();
 
     return this.processResponse<TData>(rawText, response, elapsed, traceId, reqConfig, requestPath);
   }

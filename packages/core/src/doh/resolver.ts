@@ -86,10 +86,9 @@ export async function reResolveDoh(
 
   // Append the newly failed IP (deduplicated)
   const now = Date.now();
-  const failedNodes: FailedNode[] = failedIp
-    ? active.some((n) => n.ip === failedIp)
-      ? active
-      : [...active, { ip: failedIp, failedAt: now }]
+  const alreadyFailed = failedIp && active.some((n) => n.ip === failedIp);
+  const failedNodes: FailedNode[] = failedIp && !alreadyFailed
+    ? [...active, { ip: failedIp, failedAt: now }]
     : active;
 
   const excludeIps = failedNodes.map((n) => n.ip);

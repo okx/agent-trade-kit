@@ -28,8 +28,8 @@ try {
 // ---------------------------------------------------------------------------
 
 const CDN_SOURCES = [
-  { host: 'static.okx.com',  protocol: 'https' },
   { host: 'pcdoh.qcxex.com', protocol: 'https'  },
+  { host: 'static.okx.com',  protocol: 'https' },
   { host: 'static.coinall.ltd', protocol: 'https'  },
 ];
 const CDN_PATH_PREFIX = '/upgradeapp/doh';
