@@ -3,27 +3,26 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~22,527 tokens | **Remaining:** ~2,473 tokens
+**Token Budget:** 25,000 tokens | **Current Usage:** ~21,092 tokens | **Remaining:** ~3,908 tokens
 
 ## Registered Modules
 
 | Module ID | Status | Tools | Read | Write | Token Est. | Design Doc | Approved By | Date |
 |-----------|--------|-------|------|-------|------------|------------|-------------|------|
-| market | ✅ approved | 14 | 14 | 0 | ~2,060 | _(founding module)_ | @Jasmine.Li | — |
-| spot | ✅ approved | 16 | 5 | 11 | ~2,800 | _(founding module)_ | @Jasmine.Li | — |
-| swap | ✅ approved | 18 | 7 | 11 | ~3,100 | _(founding module)_ | @Jasmine.Li | — |
-| futures | ✅ approved | 18 | 7 | 11 | ~3,100 | _(founding module)_ | @Jasmine.Li | — |
-| option | ✅ approved | 17 | 8 | 9 | ~2,900 | _(founding module)_ | @Jasmine.Li | — |
-| account | ✅ approved | 14 | 12 | 2 | ~2,500 | _(founding module)_ | @Jasmine.Li | — |
-| bot.grid | ✅ approved | 5 | 3 | 2 | ~1,200 | _(founding module)_ | @Jasmine.Li | — |
-| bot.dca | ✅ approved | 5 | 3 | 2 | ~1,200 | _(founding module)_ | @Jasmine.Li | — |
-| earn.savings | ✅ approved | 9 | 4 | 5 | ~1,700 | _(founding module)_ | @Jasmine.Li | — |
-| earn.onchain | ✅ approved | 6 | 3 | 3 | ~1,200 | _(founding module)_ | @Jasmine.Li | — |
-| earn.dcd | ✅ approved | 5 | 3 | 2 | ~1,100 | _(founding module)_ | @Jasmine.Li | — |
-| earn.autoearn | ✅ approved | 1 | 0 | 1 | ~167 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
-| audit | ✅ approved | 1 | 1 | 0 | ~200 | _(founding module)_ | @Jasmine.Li | — |
+| futures | ✅ approved | 18 | 6 | 12 | ~2,990 | _(founding module)_ | @Jasmine.Li | — |
+| swap | ✅ approved | 17 | 6 | 11 | ~2,820 | _(founding module)_ | @Jasmine.Li | — |
+| market | ✅ approved | 16 | 16 | 0 | ~2,660 | _(founding module)_ | @Jasmine.Li | — |
+| option | ✅ approved | 14 | 7 | 7 | ~2,320 | _(founding module)_ | @Jasmine.Li | — |
+| account | ✅ approved | 14 | 12 | 2 | ~2,320 | _(founding module)_ | @Jasmine.Li | — |
+| spot | ✅ approved | 13 | 4 | 9 | ~2,160 | _(founding module)_ | @Jasmine.Li | — |
+| earn.savings | ✅ approved | 9 | 4 | 5 | ~1,500 | _(founding module)_ | @Jasmine.Li | — |
+| earn.onchain | ✅ approved | 6 | 3 | 3 | ~1,000 | _(founding module)_ | @Jasmine.Li | — |
+| earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,000 | _(founding module)_ | @Jasmine.Li | — |
+| bot.grid | ✅ approved | 5 | 3 | 2 | ~830 | _(founding module)_ | @Jasmine.Li | — |
+| bot.dca | ✅ approved | 5 | 3 | 2 | ~830 | _(founding module)_ | @Jasmine.Li | — |
 | skills | ✅ approved | 3 | 2 | 1 | ~500 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
-| **Total** | | **132** | **72** | **60** | **~22,527** | | | |
+| earn.autoearn | ✅ approved | 1 | 0 | 1 | ~165 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
+| **Total** | | **127** | **70** | **57** | **~21,092** | | | |
 
 ## Status Legend
 
@@ -42,6 +41,11 @@ Unregistered modules will be rejected during review.
 4. Reviewer will verify this registry entry exists and is approved before merging
 
 See [MCP Design Guideline](mcp-design-guideline.md) for full design rules.
-| event | 📝 proposed | 9 | - | ~1800 | [doc](modules/event.md) | - | - |
-| earn.auto | 📝 proposed | 5 | - | ~1000 | [doc](modules/earn.auto.md) | - | - |
-| news | ⏸️ deferred | 10 | - | ~2000 | [doc](modules/news.md) | - | - |
+
+## Proposed / Deferred Modules
+
+| Module ID | Status | Tools (est.) | Token Est. | Design Doc | Approved By | Date |
+|-----------|--------|--------------|------------|------------|-------------|------|
+| event | 📝 proposed | 9 | ~1,800 | [doc](modules/event.md) | — | — |
+| earn.auto | 📝 proposed | 5 | ~1,000 | [doc](modules/earn.auto.md) | — | — |
+| news | ⏸️ deferred | 10 | ~2,000 | [doc](modules/news.md) | — | — |
