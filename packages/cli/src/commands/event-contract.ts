@@ -539,20 +539,5 @@ export async function cmdEventCancel(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  if (r?.["sCode"] === "0") {
-    process.stdout.write(`Cancelled: ${r?.["ordId"]}\n`);
-  } else {
-    // Defensive: normalizeWrite throws on sCode !== "0", but guard in case runner bypasses MCP
-    const sCode = String(r?.["sCode"] ?? "");
-    const sMsg  = String(r?.["sMsg"] ?? "unknown error");
-    const ordId = r?.["ordId"] ?? opts.ordId;
-    const hint  =
-      sCode === "51400"
-        ? "The order may have already been filled or cancelled. No further action needed."
-        : "";
-    const hintSuffix = hint ? `\n  ${hint}` : "";
-    process.stdout.write(
-      `Failed to cancel ${ordId}: ${sMsg}${hintSuffix}\n`,
-    );
-  }
+  process.stdout.write(`Cancelled: ${r?.["ordId"] ?? opts.ordId}\n`);
 }
