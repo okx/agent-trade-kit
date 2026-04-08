@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Skill download `format` parameter**: `skills_download` MCP tool and `okx skill download` CLI command now accept a `format` option (`"zip"` or `"skill"`). MCP defaults to `"skill"` (so agents like Claude Desktop can auto-detect the file type), CLI defaults to `"zip"` (backward-compatible). The file content is identical — only the extension changes.
+- **Market tools `demo` parameter**: All 14 market MCP tools now accept an optional `demo: boolean` parameter, and CLI market commands now respect the global `--demo` flag. When `demo=true` / `--demo`, the request targets OKX's simulated trading market data environment (`x-simulated-trading: 1`). When omitted or `false` (default), live market data is always returned — independent of whether the server is started with `--demo`.
 
 ### Fixed
 
+- **Market data defaults to live regardless of server demo mode**: Previously, starting the server with `--demo` caused all market data requests to return simulated trading data. Now market tools explicitly pass `simulatedTrading: false` by default, overriding the server-level demo flag. Users can pass `demo: true` to explicitly query simulated market data. Other modules (trading, account, earn, indicators) are unaffected and continue to follow the server demo flag.
 - **Unknown `tgtCcy` values now throw `ValidationError` instead of silent passthrough**: Previously, typos like `--tgtCcy margin_ccy` or `--tgtCcy QUOTE_CCY` were silently ignored and `sz` was sent to the API unconverted. Now only `base_ccy`, `quote_ccy`, and `margin` are accepted; any other value throws a `ValidationError` with a helpful suggestion. (#133)
 - **`--verbose` flag now affects CLI audit log output**: Previously, `TradeLogger` was always constructed with `"info"` level and all success logs used `"info"`, so `--verbose` had no effect on log file content. Now, verbose mode sets log level to `"debug"` and writes an additional debug-level entry with full request args and response data for each successful tool call, while non-verbose mode only records a compact summary. (#130)
 

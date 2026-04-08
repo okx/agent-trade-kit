@@ -21,6 +21,16 @@ export interface RequestConfig {
   query?: QueryParams;
   body?: JsonRecord | JsonRecord[];
   rateLimit?: RateLimitConfig;
+  /**
+   * Explicitly control whether x-simulated-trading header is sent.
+   * When set, takes precedence over config.demo for this request.
+   * When omitted, falls back to config.demo (preserving original behavior).
+   *
+   * Market tools always set this explicitly (default false = live data),
+   * so they ignore the server-level demo flag for market queries.
+   * All other tools leave this unset and continue to follow config.demo.
+   */
+  simulatedTrading?: boolean;
 }
 
 export interface RequestResult<TData = unknown> {

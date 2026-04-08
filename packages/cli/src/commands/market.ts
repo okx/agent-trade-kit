@@ -8,9 +8,9 @@ function getData(result: unknown): unknown {
 
 export async function cmdMarketInstruments(
   run: ToolRunner,
-  opts: { instType: string; instId?: string; json: boolean },
+  opts: { instType: string; instId?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_instruments", { instType: opts.instType, instId: opts.instId });
+  const result = await run("market_get_instruments", { instType: opts.instType, instId: opts.instId, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -28,9 +28,9 @@ export async function cmdMarketInstruments(
 export async function cmdMarketFundingRate(
   run: ToolRunner,
   instId: string,
-  opts: { history: boolean; limit?: number; json: boolean },
+  opts: { history: boolean; limit?: number; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_funding_rate", { instId, history: opts.history, limit: opts.limit });
+  const result = await run("market_get_funding_rate", { instId, history: opts.history, limit: opts.limit, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   if (opts.history) {
@@ -57,9 +57,9 @@ export async function cmdMarketFundingRate(
 
 export async function cmdMarketMarkPrice(
   run: ToolRunner,
-  opts: { instType: string; instId?: string; json: boolean },
+  opts: { instType: string; instId?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_mark_price", { instType: opts.instType, instId: opts.instId });
+  const result = await run("market_get_mark_price", { instType: opts.instType, instId: opts.instId, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -75,9 +75,9 @@ export async function cmdMarketMarkPrice(
 export async function cmdMarketTrades(
   run: ToolRunner,
   instId: string,
-  opts: { limit?: number; json: boolean },
+  opts: { limit?: number; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_trades", { instId, limit: opts.limit });
+  const result = await run("market_get_trades", { instId, limit: opts.limit, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -93,9 +93,9 @@ export async function cmdMarketTrades(
 
 export async function cmdMarketIndexTicker(
   run: ToolRunner,
-  opts: { instId?: string; quoteCcy?: string; json: boolean },
+  opts: { instId?: string; quoteCcy?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_index_ticker", { instId: opts.instId, quoteCcy: opts.quoteCcy });
+  const result = await run("market_get_index_ticker", { instId: opts.instId, quoteCcy: opts.quoteCcy, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -112,9 +112,9 @@ export async function cmdMarketIndexTicker(
 export async function cmdMarketIndexCandles(
   run: ToolRunner,
   instId: string,
-  opts: { bar?: string; limit?: number; history: boolean; json: boolean },
+  opts: { bar?: string; limit?: number; history: boolean; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_index_candles", { instId, bar: opts.bar, limit: opts.limit, history: opts.history });
+  const result = await run("market_get_index_candles", { instId, bar: opts.bar, limit: opts.limit, history: opts.history, demo: opts.demo ?? false });
   const candles = getData(result) as string[][];
   if (opts.json) return printJson(candles);
   printTable(
@@ -129,8 +129,9 @@ export async function cmdMarketPriceLimit(
   run: ToolRunner,
   instId: string,
   json: boolean,
+  demo?: boolean,
 ): Promise<void> {
-  const result = await run("market_get_price_limit", { instId });
+  const result = await run("market_get_price_limit", { instId, demo: demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (json) return printJson(items);
   const r = items?.[0];
@@ -145,9 +146,9 @@ export async function cmdMarketPriceLimit(
 
 export async function cmdMarketOpenInterest(
   run: ToolRunner,
-  opts: { instType: string; instId?: string; json: boolean },
+  opts: { instType: string; instId?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_open_interest", { instType: opts.instType, instId: opts.instId });
+  const result = await run("market_get_open_interest", { instType: opts.instType, instId: opts.instId, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -164,8 +165,9 @@ export async function cmdMarketTicker(
   run: ToolRunner,
   instId: string,
   json: boolean,
+  demo?: boolean,
 ): Promise<void> {
-  const result = await run("market_get_ticker", { instId });
+  const result = await run("market_get_ticker", { instId, demo: demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (json) return printJson(items);
   if (!items?.length) { outputLine("No data"); return; }
@@ -190,8 +192,9 @@ export async function cmdMarketTickers(
   run: ToolRunner,
   instType: string,
   json: boolean,
+  demo?: boolean,
 ): Promise<void> {
-  const result = await run("market_get_tickers", { instType });
+  const result = await run("market_get_tickers", { instType, demo: demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (json) return printJson(items);
   printTable(
@@ -210,8 +213,9 @@ export async function cmdMarketOrderbook(
   instId: string,
   sz: number | undefined,
   json: boolean,
+  demo?: boolean,
 ): Promise<void> {
-  const result = await run("market_get_orderbook", { instId, sz });
+  const result = await run("market_get_orderbook", { instId, sz, demo: demo ?? false });
   const data = getData(result);
   if (json) return printJson(data);
   const book = (data as Record<string, unknown>[])[0];
@@ -228,9 +232,9 @@ export async function cmdMarketOrderbook(
 export async function cmdMarketCandles(
   run: ToolRunner,
   instId: string,
-  opts: { bar?: string; limit?: number; after?: string; before?: string; json: boolean },
+  opts: { bar?: string; limit?: number; after?: string; before?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_candles", { instId, bar: opts.bar, limit: opts.limit, after: opts.after, before: opts.before });
+  const result = await run("market_get_candles", { instId, bar: opts.bar, limit: opts.limit, after: opts.after, before: opts.before, demo: opts.demo ?? false });
   const candles = getData(result) as string[][];
   if (opts.json) return printJson(candles);
   printTable(
@@ -316,12 +320,13 @@ export async function cmdMarketIndicator(
 
 export async function cmdMarketInstrumentsByCategory(
   run: ToolRunner,
-  opts: { instCategory: string; instType?: string; instId?: string; json: boolean },
+  opts: { instCategory: string; instType?: string; instId?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
   const result = await run("market_get_instruments_by_category", {
     instCategory: opts.instCategory,
     instType: opts.instType,
     instId: opts.instId,
+    demo: opts.demo ?? false,
   });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
@@ -349,9 +354,9 @@ export async function cmdMarketInstrumentsByCategory(
 
 export async function cmdMarketStockTokens(
   run: ToolRunner,
-  opts: { instType?: string; instId?: string; json: boolean },
+  opts: { instType?: string; instId?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_stock_tokens", { instType: opts.instType, instId: opts.instId });
+  const result = await run("market_get_stock_tokens", { instType: opts.instType, instId: opts.instId, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(

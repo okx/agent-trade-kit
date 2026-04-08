@@ -110,3 +110,5 @@ Returns: `instId` · `idxPx` · `high24h` · `low24h`
 okx market index-ticker --instId BTC-USD
 okx market index-ticker --quoteCcy USD
 ```
+
+> **Demo market data**: All commands above support `--demo` (CLI) or `demo: true` (MCP) to query OKX's simulated trading market data. Default is live data.

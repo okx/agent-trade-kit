@@ -28,6 +28,7 @@ import {
     handleOptionAlgoCommand,
     handleBotGridCommand,
     handleEarnCommand,
+    handleMarketCommand,
 } from "../src/index.js";
 import type {CliValues} from "../src/index.js";
 
@@ -717,5 +718,57 @@ describe("earn savings fixed-redeem: reqId comes from v (named flag)", () => {
         await handleEarnCommand(spy, "savings", ["fixed-redeem", "REQ-FROM-POS"], vals({}), false);
         assert.equal(captured.tool, "earn_fixed_redeem");
         assert.equal(captured.args["reqId"], undefined, "reqId must come from v.reqId, not rest[0]");
+    });
+});
+
+// ===========================================================================
+// MARKET — demo flag routing
+// ===========================================================================
+
+const fakeMarketResult = {
+    endpoint: "GET /api/v5/market/ticker",
+    requestTime: new Date().toISOString(),
+    data: [],
+};
+
+function makeMarketSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<string, unknown> } } {
+    const captured = {tool: "", args: {} as Record<string, unknown>};
+    const spy: ToolRunner = async (tool, args) => {
+        captured.tool = tool as string;
+        captured.args = args as Record<string, unknown>;
+        return fakeMarketResult;
+    };
+    return {spy, captured};
+}
+
+describe("handleMarketCommand — demo flag routing", () => {
+    it("ticker: demo=true comes from v.demo", async () => {
+        const {spy, captured} = makeMarketSpy();
+        await handleMarketCommand(spy, "ticker", ["BTC-USDT"], vals({demo: true}), false);
+        assert.equal(captured.args["demo"], true);
+    });
+
+    it("ticker: demo defaults to false when v.demo absent", async () => {
+        const {spy, captured} = makeMarketSpy();
+        await handleMarketCommand(spy, "ticker", ["BTC-USDT"], vals({}), false);
+        assert.equal(captured.args["demo"], false);
+    });
+
+    it("candles: demo=true comes from v.demo", async () => {
+        const {spy, captured} = makeMarketSpy();
+        await handleMarketCommand(spy, "candles", ["BTC-USDT"], vals({demo: true}), false);
+        assert.equal(captured.args["demo"], true);
+    });
+
+    it("funding-rate: demo=true comes from v.demo", async () => {
+        const {spy, captured} = makeMarketSpy();
+        await handleMarketCommand(spy, "funding-rate", ["BTC-USDT-SWAP"], vals({demo: true}), false);
+        assert.equal(captured.args["demo"], true);
+    });
+
+    it("instruments: demo=true comes from v.demo", async () => {
+        const {spy, captured} = makeMarketSpy();
+        await handleMarketCommand(spy, "instruments", [], vals({instType: "SWAP", demo: true}), false);
+        assert.equal(captured.args["demo"], true);
     });
 });

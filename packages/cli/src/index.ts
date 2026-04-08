@@ -221,25 +221,26 @@ export function handleMarketPublicCommand(
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
-  if (action === "ticker") return cmdMarketTicker(run, rest[0], json);
-  if (action === "tickers") return cmdMarketTickers(run, rest[0], json);
+  if (action === "ticker") return cmdMarketTicker(run, rest[0], json, v.demo);
+  if (action === "tickers") return cmdMarketTickers(run, rest[0], json, v.demo);
   if (action === "instruments")
-    return cmdMarketInstruments(run, { instType: v.instType!, instId: v.instId, json });
+    return cmdMarketInstruments(run, { instType: v.instType!, instId: v.instId, json, demo: v.demo });
   if (action === "mark-price")
-    return cmdMarketMarkPrice(run, { instType: v.instType!, instId: v.instId, json });
+    return cmdMarketMarkPrice(run, { instType: v.instType!, instId: v.instId, json, demo: v.demo });
   if (action === "index-ticker")
-    return cmdMarketIndexTicker(run, { instId: v.instId, quoteCcy: v.quoteCcy, json });
-  if (action === "price-limit") return cmdMarketPriceLimit(run, rest[0], json);
+    return cmdMarketIndexTicker(run, { instId: v.instId, quoteCcy: v.quoteCcy, json, demo: v.demo });
+  if (action === "price-limit") return cmdMarketPriceLimit(run, rest[0], json, v.demo);
   if (action === "open-interest")
-    return cmdMarketOpenInterest(run, { instType: v.instType!, instId: v.instId, json });
+    return cmdMarketOpenInterest(run, { instType: v.instType!, instId: v.instId, json, demo: v.demo });
   if (action === "stock-tokens")
-    return cmdMarketStockTokens(run, { instType: v.instType, instId: v.instId, json });
+    return cmdMarketStockTokens(run, { instType: v.instType, instId: v.instId, json, demo: v.demo });
   if (action === "instruments-by-category")
     return cmdMarketInstrumentsByCategory(run, {
       instCategory: v.instCategory!,
       instType: v.instType,
       instId: v.instId,
       json,
+      demo: v.demo,
     });
   if (action === "indicator") return handleIndicatorAction(run, rest, v, json);
 }
@@ -272,15 +273,15 @@ export function handleMarketDataCommand(
 ): Promise<void> | void {
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "orderbook")
-    return cmdMarketOrderbook(run, rest[0], v.sz !== undefined ? Number(v.sz) : undefined, json);
+    return cmdMarketOrderbook(run, rest[0], v.sz !== undefined ? Number(v.sz) : undefined, json, v.demo);
   if (action === "candles")
-    return cmdMarketCandles(run, rest[0], { bar: v.bar, limit, after: v.after, before: v.before, json });
+    return cmdMarketCandles(run, rest[0], { bar: v.bar, limit, after: v.after, before: v.before, json, demo: v.demo });
   if (action === "funding-rate")
-    return cmdMarketFundingRate(run, rest[0], { history: v.history ?? false, limit, json });
+    return cmdMarketFundingRate(run, rest[0], { history: v.history ?? false, limit, json, demo: v.demo });
   if (action === "trades")
-    return cmdMarketTrades(run, rest[0], { limit, json });
+    return cmdMarketTrades(run, rest[0], { limit, json, demo: v.demo });
   if (action === "index-candles")
-    return cmdMarketIndexCandles(run, rest[0], { bar: v.bar, limit, history: v.history ?? false, json });
+    return cmdMarketIndexCandles(run, rest[0], { bar: v.bar, limit, history: v.history ?? false, json, demo: v.demo });
 }
 
 export function handleMarketCommand(
