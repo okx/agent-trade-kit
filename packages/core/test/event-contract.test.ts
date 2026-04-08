@@ -865,14 +865,14 @@ describe("event_get_markets unknown underlying series fallback", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 测试组 12：event_place_order market order — orderNote and availableUsdt
+// 测试组 12：event_place_order market order — orderNote and availableBalance
 // ---------------------------------------------------------------------------
 
-describe("event_place_order market order — orderNote and availableUsdt", () => {
+describe("event_place_order market order — orderNote and availableBalance", () => {
   const tools = registerEventContractTools();
   const tool = tools.find((t) => t.name === "event_place_order")!;
 
-  it("returns orderNote for market orders and availableUsdt from balance", async () => {
+  it("returns orderNote for market orders and availableBalance from balance", async () => {
     const client = {
       publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
       privateGet: async (ep: string) => {
@@ -892,7 +892,7 @@ describe("event_place_order market order — orderNote and availableUsdt", () =>
       makeContext(client),
     ) as Record<string, unknown>;
 
-    assert.equal(result["availableUsdt"], "500.5");
+    assert.equal(result["availableBalance"], "500.5");
     assert.ok(typeof result["orderNote"] === "string");
     assert.ok((result["orderNote"] as string).includes("Market order"));
   });
@@ -1062,5 +1062,143 @@ describe("event_get_fills settlement enrichment details", () => {
     const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
     const items = result["data"] as Record<string, unknown>[];
     assert.equal(items[0]!["pnl"], undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Layer 1: formatDisplayTitle pure function tests
+// ---------------------------------------------------------------------------
+
+import { formatDisplayTitle } from "../src/utils/event-format.js";
+
+describe("formatDisplayTitle", () => {
+  it("formats ABOVE instId", () => {
+    assert.equal(
+      formatDisplayTitle("BTC-ABOVE-DAILY-260407-1600-70000"),
+      "BTC above 70,000 · 4/7",
+    );
+  });
+
+  it("formats UPDOWN instId with time range", () => {
+    assert.equal(
+      formatDisplayTitle("BTC-UPDOWN-15MIN-260407-1600-1615"),
+      "BTC Up/Down · 4/7 16:00-16:15",
+    );
+  });
+
+  it("formats TOUCH instId", () => {
+    assert.equal(
+      formatDisplayTitle("BTC-TOUCH-DAILY-260407-1600-70000"),
+      "BTC touch 70,000 · 4/7",
+    );
+  });
+
+  it("returns original instId for unknown format", () => {
+    assert.equal(formatDisplayTitle("UNKNOWN-FORMAT"), "UNKNOWN-FORMAT");
+  });
+
+  it("formats instId with large strike number", () => {
+    assert.equal(
+      formatDisplayTitle("ETH-ABOVE-DAILY-260401-1600-120000"),
+      "ETH above 120,000 · 4/1",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Layer 2: handler displayTitle in response
+// ---------------------------------------------------------------------------
+
+describe("handler displayTitle", () => {
+  const tools = registerEventContractTools();
+
+  it("event_browse includes displayTitle in contracts", async () => {
+    const browse = tools.find(t => t.name === "event_browse")!;
+    const { client } = makeMockClient();
+    let callCount = 0;
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => {
+      callCount++;
+      if (endpoint.includes("series")) {
+        return {
+          endpoint,
+          requestTime: "2024-01-01",
+          data: [{
+            seriesId: "BTC-ABOVE-DAILY",
+            freq: "daily",
+            settlement: { method: "price_above", underlying: "BTC-USD" },
+          }],
+        };
+      }
+      if (endpoint.includes("markets")) {
+        return {
+          endpoint,
+          requestTime: "2024-01-01",
+          data: [{
+            instId: "BTC-ABOVE-DAILY-260407-1600-70000",
+            floorStrike: "70000",
+            px: "0.45",
+            expTime: String(Date.now() + 86400000),
+            outcome: "0",
+          }],
+        };
+      }
+      return { endpoint, requestTime: "2024-01-01", data: [] };
+    };
+    const result = await browse.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Array<{ contracts: Record<string, unknown>[] }>;
+    assert.ok(data.length > 0, "should have at least one series result");
+    const contracts = data[0]!.contracts;
+    assert.ok(contracts.length > 0, "should have at least one contract");
+    assert.equal(contracts[0]!["displayTitle"], "BTC above 70,000 · 4/7");
+  });
+
+  it("event_get_markets includes displayTitle in each record", async () => {
+    const mkts = tools.find(t => t.name === "event_get_markets")!;
+    const { client } = makeMockClient();
+    // Override privateGet to return mock market data
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => {
+      if (endpoint.includes("markets")) {
+        return {
+          endpoint,
+          requestTime: "2024-01-01",
+          data: [{ instId: "BTC-ABOVE-DAILY-260407-1600-70000", expTime: "1712505600000", outcome: "0" }],
+        };
+      }
+      if (endpoint.includes("series")) {
+        return { endpoint, requestTime: "2024-01-01", data: [] };
+      }
+      return { endpoint, requestTime: "2024-01-01", data: [] };
+    };
+    const result = await mkts.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.ok(data.length > 0);
+    assert.equal(data[0]!["displayTitle"], "BTC above 70,000 · 4/7");
+  });
+
+  it("event_get_orders includes displayTitle", async () => {
+    const orders = tools.find(t => t.name === "event_get_orders")!;
+    const { client } = makeMockClient();
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => ({
+      endpoint,
+      requestTime: "2024-01-01",
+      data: [{ instId: "BTC-UPDOWN-15MIN-260407-1600-1615", outcome: "1" }],
+    });
+    const result = await orders.handler({ state: "live" }, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.ok(data[0]!["displayTitle"]);
+    assert.ok(String(data[0]!["displayTitle"]).includes("Up/Down"));
+  });
+
+  it("event_get_fills includes displayTitle via enrichFill", async () => {
+    const fills = tools.find(t => t.name === "event_get_fills")!;
+    const { client } = makeMockClient();
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => ({
+      endpoint,
+      requestTime: "2024-01-01",
+      data: [{ instId: "BTC-TOUCH-DAILY-260407-1600-70000", fillId: "f1", subType: "410", outcome: "1" }],
+    });
+    const result = await fills.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data[0]!["displayTitle"], "BTC touch 70,000 · 4/7");
   });
 });

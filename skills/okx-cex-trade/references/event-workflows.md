@@ -11,7 +11,7 @@ Step 1: okx event browse --underlying BTC-USD
 Step 2: if the user wants one specific series, refine with:
 okx event markets BTC-ABOVE-DAILY --state live
 → Returns instId, strike, status, and settlement context
-→ If live `px` is present, interpret it directly as the market-implied probability
+→ If live `px` is present, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
 
 Step 3:
 → Present the available contracts directly from event results
@@ -27,10 +27,10 @@ Strike 69,700: Probability 54.8%  Buy YES @ 0.548 | Buy NO @ ~0.452
 Strike 69,800: Probability 45.2%  Buy YES @ 0.452 | Buy NO @ ~0.548
 Strike 69,900: No live quote available
 
-Buy YES = bet that BTC > strike at expiry; max gain per contract is (1 − entry price) USDC, max loss is entry price USDC.
+Buy YES = bet that BTC > strike at expiry; max gain per contract is (1 − entry price), max loss is entry price.
 ```
 
-`Probability 54.8%` above is derived from `px=0.548`. For event contracts, live quote / order-book price is itself the market-implied probability.
+`Probability 54.8%` above is derived from `px=0.548`. For event contracts, `px` is the event contract price (0.01–0.99), not the underlying asset price. When actively trading, it reflects the market-implied probability.
 
 ---
 
@@ -40,9 +40,9 @@ Buy YES = bet that BTC > strike at expiry; max gain per contract is (1 − entry
 
 ```
 Step 1: Show summary before placing:
-→ Cost = sz × px (e.g. 10 × 0.6 = 6 USDT)
-→ Max gain = sz × (1 − px) (e.g. 10 × 0.4 = 4 USDT)
-→ Max loss = cost (6 USDT)
+→ Cost = sz × px (e.g. 10 × 0.6 = 6)
+→ Max gain = sz × (1 − px) (e.g. 10 × 0.4 = 4)
+→ Max loss = cost (e.g. 6)
 
 Step 2: [user confirms]
 okx event place BTC-ABOVE-DAILY-260320-1600-69700 buy YES 10 --px 0.6 --ordType limit
@@ -205,7 +205,7 @@ okx event orders --state live
 1. **Place directly after user confirms** — no pre-flight check required.
 2. **Check settlement.method**: determines which outcomes apply (UP/DOWN for `price_up_down`; YES/NO for `price_above`/`price_once_touch`).
 3. **Confirm outcome with user** if unclear.
-4. **px is probability, not price**: 0.00~1.00 (e.g. 0.55 = 55%). Always explain this.
+4. **px is event contract price, not underlying asset price**: range 0.01–0.99. When actively trading, it reflects the market-implied probability (e.g. 0.55 ≈ 55%). Always explain this.
 5. **Present markets as trading cards**: strike + probability + what winning means + time to expiry.
 6. **Translate all errors to user language**: never show `sCode`, `code`, or internal field names. Always give a next step.
 7. **After every place/cancel/close**, distinguish order type in the follow-up:

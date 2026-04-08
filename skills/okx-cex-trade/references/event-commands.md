@@ -10,8 +10,8 @@
 | `NO` | Condition not met | `price_above`, `price_once_touch` series |
 
 - Check `settlement.method` from `event_get_series` to determine which values apply.
-- `px` is a **probability** in `0.00~1.00`, NOT a regular asset price.
-- For live event contracts, quote / order-book `px` is the market-implied probability. Example: `px=0.6` means the market is pricing the event at roughly 60%.
+- `px` is the **event contract price** (`0.01–0.99`), NOT the underlying asset price.
+- When the contract is actively trading, `px` reflects the market-implied probability. Example: `px=0.6` means the market is pricing the event at roughly 60%.
 
 ## Product Types (settlement.method)
 
@@ -78,7 +78,7 @@ okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|ex
 | `--state` | string | No | `preopen`, `live`, `settling`, or `expired` |
 | `--limit` | number | No | Max results (default 100) |
 
-**Output fields**: `instId`, `floorStrike`, `px` (live quote / implied probability, when available), `state`, `outcome` (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
+**Output fields**: `instId`, `floorStrike`, `px` (event contract price 0.01–0.99, not the underlying asset price; reflects market-implied probability when actively trading), `state`, `outcome` (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
 
 - **CLI**: use `--state expired` to get settlement outcome; there is no `event ended` command in the CLI.
 - **MCP**: use `event_get_markets(seriesId, state="expired")` instead.
@@ -117,7 +117,7 @@ okx event place <instId> <side> <outcome> <sz> \
 | `side` | string | Yes | `buy` = open, `sell` = close (positional) |
 | `outcome` | string | Yes | `UP`, `YES`, `DOWN`, or `NO` (positional) |
 | `sz` | string | Yes | For limit/post_only: number of contracts. For market: quote currency amount |
-| `--px` | string | No | Limit price as probability 0.00~1.00; required when `ordType=limit`; omit for market orders |
+| `--px` | string | No | Event contract price (0.01–0.99); required when `ordType=limit`; omit for market orders |
 | `--ordType` | string | No | `market` (default), `limit`, or `post_only` |
 - `tdMode` is always `isolated` — auto-set by the system, do not pass it.
 - `speedBump` is auto-set for non-post_only orders — do not pass it.
@@ -153,7 +153,7 @@ okx event amend <instId> <ordId> [--px <prob>] [--sz <n>] [--json]
 |-----------|------|----------|-------------|
 | `instId` | string | Yes | Instrument ID (positional) |
 | `ordId` | string | Yes | Order ID to amend (positional or `--ordId`) |
-| `--px` | string | No | New probability price 0.00~1.00 |
+| `--px` | string | No | New event contract price (0.01–0.99) |
 | `--sz` | string | No | New number of contracts |
 
 ---

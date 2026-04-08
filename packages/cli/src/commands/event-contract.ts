@@ -1,4 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
+import { formatDisplayTitle } from "@agent-tradekit/core";
 import { printJson, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
@@ -120,61 +121,6 @@ function inferExpiryMsFromInstId(instId: string): number | null {
   return Date.UTC(year, month, day, hour - 8, min, 0, 0);
 }
 
-/**
- * Convert instId to a short human-readable contract name.
- * SOLVU-ABOVE-DAILY-260401-1600-70000  → "SOLVU 高于 70,000 · 4/1"
- * TESTAAAA-UPDOWN-15MIN-260325-1830-1845 → "TESTAAAA 涨跌 · 3/25 18:30-18:45"
- */
-function findDateIdx(parts: string[]): number {
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i])) { return i; }
-  }
-  return -1;
-}
-
-function fmtTimeToken(t: string): string {
-  return t.length === 4 ? `${t.slice(0, 2)}:${t.slice(2)}` : t;
-}
-
-function fmtUpDownName(seriesId: string, dateStr: string, parts: string[], dateIdx: number): string {
-  const t1 = parts[dateIdx + 1] ?? "";
-  const t2 = parts[dateIdx + 2] ?? "";
-  const timeRange = t1 && t2 ? ` ${fmtTimeToken(t1)}-${fmtTimeToken(t2)}` : "";
-  return `${seriesId} Up/Down · ${dateStr}${timeRange}`;
-}
-
-function fmtStrikeName(seriesId: string, dateStr: string, label: string, parts: string[], dateIdx: number): string {
-  const strike = parts[dateIdx + 2] ?? "";
-  const strikeStr = strike && /^\d+$/.test(strike)
-    ? Number(strike).toLocaleString("en-US")
-    : "";
-  return strikeStr ? `${seriesId} ${label} ${strikeStr} · ${dateStr}` : `${seriesId} · ${dateStr}`;
-}
-
-function fmtContractName(instId: string): string {
-  const parts = instId.split("-");
-  const upper = instId.toUpperCase();
-  const seriesId = parts[0] ?? instId;
-
-  const dateIdx = findDateIdx(parts);
-  if (dateIdx < 0) return instId;
-
-  const d = parts[dateIdx];
-  const month = parseInt(d.slice(2, 4), 10);
-  const day   = parseInt(d.slice(4, 6), 10);
-  const dateStr = `${month}/${day}`;
-
-  if (upper.includes("UPDOWN") || upper.includes("UP-DOWN")) {
-    return fmtUpDownName(seriesId, dateStr, parts, dateIdx);
-  }
-  if (upper.includes("ABOVE")) {
-    return fmtStrikeName(seriesId, dateStr, "above", parts, dateIdx);
-  }
-  if (upper.includes("TOUCH")) {
-    return fmtStrikeName(seriesId, dateStr, "touch", parts, dateIdx);
-  }
-  return `${seriesId} · ${dateStr}`;
-}
 
 /**
  * Format contract period from instId as "YYYY-MM-DD HH:mm ~ HH:mm UTC+8".
@@ -239,11 +185,12 @@ export async function cmdEventBrowse(
     process.stdout.write(`\n[${methodLabel}] ${group["underlying"]}  (${freqLabel})\n`);
     printTable(
       contracts.map((c) => ({
-        "Contract": c["instId"],
+        "Contract": formatDisplayTitle(String(c["instId"] ?? "")),
         "Expiry":   c["expTime"] ?? "",
         "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
         "Probability": fmtProbability(c["px"]),
         "Status":   String(c["outcome"] ?? "").toLowerCase() === "pending" ? "In Progress" : String(c["outcome"] ?? ""),
+        "instId":   c["instId"],
       })),
     );
   }
@@ -401,25 +348,29 @@ export async function cmdEventMarkets(
   const ext = result as unknown as Record<string, unknown>;
   const currentIdxPx = ext["currentIdxPx"];
   const underlying = ext["underlying"];
-  const availableUsdt = ext["availableUsdt"];
+  const availableBalance = ext["availableBalance"];
   if (currentIdxPx != null) {
     process.stdout.write(
-      `${underlying ?? ""} current index price: $${currentIdxPx}  |  Available USDT: ${availableUsdt ?? "N/A"}\n`,
+      `${underlying ?? ""} current index price: $${currentIdxPx}  |  Available balance: ${availableBalance ?? "N/A"}\n`,
     );
   }
 
   const now = Date.now();
   const sorted = sortByExpiry(data ?? []);
   printTable(
-    sorted.map((m) => ({
-      instId:      String(m["instId"] ?? ""),
-      status:      computeMarketStatus(m, now),
-      expTime:     m["expTime"] ?? "",
-      targetPrice: m["floorStrike"] ?? "",
-      probability: fmtProbability(m["px"]),
-      outcome:     fmtMarketOutcome(m["instId"], m["outcome"]),
-      settleValue: m["settleValue"] ?? "",
-    })),
+    sorted.map((m) => {
+      const id = String(m["instId"] ?? "");
+      return {
+        contract:    formatDisplayTitle(id),
+        status:      computeMarketStatus(m, now),
+        expTime:     m["expTime"] ?? "",
+        targetPrice: m["floorStrike"] ?? "",
+        probability: fmtProbability(m["px"]),
+        outcome:     fmtMarketOutcome(m["instId"], m["outcome"]),
+        settleValue: m["settleValue"] ?? "",
+        instId:      id,
+      };
+    }),
   );
 }
 
@@ -437,7 +388,7 @@ export async function cmdEventOrders(
   if (opts.json) return printJson(data);
   printTable(
     (data ?? []).map((o) => ({
-      "Contract":   fmtContractName(String(o["instId"] ?? "")),
+      "Contract":   formatDisplayTitle(String(o["instId"] ?? "")),
       "Time":       fmtTs(o["cTime"]),
       "Direction":  `${String(o["side"] ?? "").toUpperCase()} ${fmtOrderOutcome(o["instId"], o["outcome"]).toUpperCase()}`,
       "Price":      o["px"],
@@ -460,7 +411,7 @@ export async function cmdEventFills(
   if (opts.json) return printJson(data);
   printTable(
     (data ?? []).map((f) => ({
-      "Contract":  fmtContractName(String(f["instId"] ?? "")),
+      "Contract":  formatDisplayTitle(String(f["instId"] ?? "")),
       "Direction": (() => {
         const side    = String(f["side"] ?? "").toUpperCase();
         const outcome = fmtOrderOutcome(f["instId"], f["outcome"]).toUpperCase();
@@ -551,6 +502,24 @@ export async function cmdEventPlace(
     json: boolean;
   },
 ): Promise<void> {
+  const ordType = opts.ordType ?? "market";
+  if (!opts.json) {
+    const contractName = formatDisplayTitle(opts.instId);
+    if (ordType === "market") {
+      process.stdout.write(
+        `Placing: ${contractName}  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  sz=${opts.sz} (market order, exchange converts to contracts)\n`,
+      );
+    } else {
+      const px = parseFloat(opts.px ?? "0");
+      const sz = parseFloat(opts.sz);
+      const cost = (sz * px).toFixed(2);
+      const maxGain = (sz * (1 - px)).toFixed(2);
+      process.stdout.write(
+        `Placing: ${contractName}  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  ${opts.sz} contracts at px=${opts.px} (cost ≈ ${cost}, max gain ≈ ${maxGain})\n`,
+      );
+    }
+  }
+
   let result: unknown;
   try {
     result = await run("event_place_order", {
@@ -576,7 +545,6 @@ export async function cmdEventPlace(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const order = data?.[0];
-  const ordType = opts.ordType ?? "market";
   const stateHint =
     ordType === "market"
       ? "market order — typically fills immediately"

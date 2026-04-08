@@ -15,7 +15,7 @@
  *
  * Key parameters unique to this module:
  *   outcome   "UP"/"YES" → "yes",  "DOWN"/"NO" → "no"
- *   px        probability 0.00~1.00, NOT a regular asset price
+ *   px        event contract price (0.01–0.99), reflects market-implied probability when actively trading
  *   tdMode    always "isolated" for event contracts
  *   speedBump auto-set to "1" for non-post_only orders (required by exchange)
  */
@@ -30,6 +30,7 @@ import {
 } from "./helpers.js";
 import { privateRateLimit, publicRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
+import { formatDisplayTitle } from "../utils/event-format.js";
 
 /** Translate raw outcome codes to human-readable labels. */
 const OUTCOME_LABELS: Record<string, string> = {
@@ -121,10 +122,10 @@ async function fetchIdxPx(
 }
 
 /**
- * Fetch available USDT balance in the trading account.
- * Used to show available funds alongside market data and after placing orders.
+ * Fetch available balance in the trading account.
+ * TODO: event contracts currently settle in USDT only; replace hardcoded ccy if multi-currency support is added.
  */
-async function fetchAvailableUsdt(
+async function fetchAvailableBalance(
   client: { privateGet: Function },
 ): Promise<string | null> {
   try {
@@ -283,12 +284,14 @@ async function fetchActiveContractsForSeries(
       })
       .map(m => {
         const converted = convertTimestamps(m);
+        const id = String(m["instId"] ?? "");
         return {
-          instId:      m["instId"],
-          expTime:     converted["expTime"],
-          floorStrike: m["floorStrike"],
-          px:          m["px"],
-          outcome:     OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
+          instId:       id,
+          displayTitle: formatDisplayTitle(id),
+          expTime:      converted["expTime"],
+          floorStrike:  m["floorStrike"],
+          px:           m["px"],
+          outcome:      OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
         };
       });
     if (active.length === 0) return null;
@@ -336,6 +339,7 @@ function translateAndSortMarkets(
     if (typeof converted["outcome"] === "string") {
       converted["outcome"] = OUTCOME_LABELS[converted["outcome"]] ?? converted["outcome"];
     }
+    converted["displayTitle"] = formatDisplayTitle(String(item["instId"] ?? ""));
     return converted;
   });
 }
@@ -346,6 +350,7 @@ function enrichFill(item: Record<string, unknown>): Record<string, unknown> {
   const isSettle = subType === "414" || subType === "415";
   const enriched: Record<string, unknown> = {
     ...item,
+    displayTitle: formatDisplayTitle(String(item["instId"] ?? "")),
     outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
     type: isSettle ? "settlement" : "fill",
   };
@@ -395,7 +400,7 @@ const OUTCOME_SCHEMA = {
 UP/DOWN direction contracts: UP (price rises during the period) or DOWN (price falls).
 YES/NO price-target or touch contracts: YES (condition met) or NO (condition not met).
 Check the series type from event_get_series to determine which applies.
-NOTE: px is a probability in 0.00~1.00, NOT a regular asset price.`,
+NOTE: px is the event contract price (0.01–0.99), NOT the underlying asset price. It reflects market-implied probability when actively trading.`,
 };
 
 export function registerEventContractTools(): ToolSpec[] {
@@ -406,7 +411,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_browse",
       module: "event",
-      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Internally fetches series and live markets in parallel, returns only in-progress contracts (floorStrike set). If a live quote field px is present, treat it as the market-implied probability 0.00~1.00. Grouped by settlement type and underlying.",
+      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Internally fetches series and live markets in parallel, returns only in-progress contracts (floorStrike set). If a live quote field px is present, it is the event contract price (0.01–0.99), not the underlying asset price; it reflects the market-implied probability when actively trading. Grouped by settlement type and underlying.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -530,7 +535,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_markets",
       module: "event",
-      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; px (when present) is the live market-implied probability 0.00~1.00; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8.",
+      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; px (when present) is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -573,7 +578,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
         const knownUnderlying = extractUnderlying(seriesId);
 
-        const [marketsResp, seriesResp, idxPxFromKnown, availableUsdt] = await Promise.all([
+        const [marketsResp, seriesResp, idxPxFromKnown, availableBalance] = await Promise.all([
           context.client.privateGet(
             "/api/v5/public/event-contract/markets",
             compactObject({
@@ -594,7 +599,7 @@ export function registerEventContractTools(): ToolSpec[] {
                 publicRateLimit("event_get_series", 20),
               ),
           knownUnderlying ? fetchIdxPx(context.client, knownUnderlying + "-USDT") : Promise.resolve(null),
-          fetchAvailableUsdt(context.client),
+          fetchAvailableBalance(context.client),
         ]);
 
         let underlying = knownUnderlying ? knownUnderlying + "-USDT" : null;
@@ -613,7 +618,7 @@ export function registerEventContractTools(): ToolSpec[] {
           data: translated,
           currentIdxPx: idxPx,
           underlying,
-          availableUsdt,
+          availableBalance,
         };
       },
     },
@@ -660,6 +665,7 @@ export function registerEventContractTools(): ToolSpec[] {
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map((item) => ({
               ...item,
+              displayTitle: formatDisplayTitle(String(item["instId"] ?? "")),
               outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
             }))
           : base["data"];
@@ -712,7 +718,7 @@ export function registerEventContractTools(): ToolSpec[] {
       module: "event",
       description: `Place an event contract order. [CAUTION] Places a real order.
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
-- For limit orders: px is a probability value 0.00~1.00 (e.g. 0.45 = 45%), NOT a regular asset price
+- For limit orders: px is the event contract price (0.01–0.99), NOT the underlying asset price. It reflects market-implied probability when actively trading
 - tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either`,
       isWrite: true,
       inputSchema: {
@@ -739,7 +745,7 @@ export function registerEventContractTools(): ToolSpec[] {
           },
           px: {
             type: "string",
-            description: "Limit price as probability 0.00~1.00. Required when ordType=limit. Do NOT use for market orders.",
+            description: "Event contract price (0.01–0.99). Required when ordType=limit. Do NOT use for market orders.",
           },
         },
         required: ["instId", "side", "outcome", "sz"],
@@ -770,10 +776,10 @@ export function registerEventContractTools(): ToolSpec[] {
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map(({ tag: _t, ...rest }) => rest)
           : base["data"];
-        // Fetch available USDT after order placement for user context
-        const availableUsdt = await fetchAvailableUsdt(context.client);
+        // Fetch available balance after order placement for user context
+        const availableBalance = await fetchAvailableBalance(context.client);
         const result: Record<string, unknown> = { ...base, data };
-        if (availableUsdt) result["availableUsdt"] = availableUsdt;
+        if (availableBalance) result["availableBalance"] = availableBalance;
 
         // Add note for market orders explaining sz semantics
         if (ordType === "market") {
@@ -793,7 +799,7 @@ export function registerEventContractTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "Event contract instrument ID" },
           ordId:  { type: "string", description: "Order ID to amend" },
-          newPx:  { type: "string", description: "New limit price as probability 0.00~1.00 (omit to keep current)" },
+          newPx:  { type: "string", description: "New event contract price (0.01–0.99). Omit to keep current." },
           newSz:  { type: "string", description: "New size in contracts (omit to keep current)" },
         },
         required: ["instId", "ordId"],

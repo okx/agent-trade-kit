@@ -358,7 +358,7 @@ seriesId: human-readable (e.g. `BTC-ABOVE-DAILY`, `BTC-UPDOWN-15MIN`) or interna
 
 Event contract trading flow:
 1. **Discover** → `okx event browse` (preferred, returns series + live markets in one call) or `okx event series` — present results grouped by type; highlight named series; always show the seriesId
-2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market; if live `px` is shown, treat it as the market-implied probability
+2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market; if live `px` is shown, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
 3. **Check event details** → `okx event events <seriesId>`
 4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
 5. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
@@ -370,8 +370,8 @@ Edge cases:
 **Event Contract sz Rules:**
 
 - **Market order** (`ordType=market`): `--sz` is quote currency amount.
-- **Limit order** (`ordType=limit` / `post_only`): `--sz` is number of contracts (integer). Each contract settles at 1 USDT; cost per contract = `px` (probability 0~1). E.g. 10 contracts at px=0.5 costs 5 USDT.
-- **Probability semantics**: for event contracts, live quote / order-book price `px` is the market-implied probability. Example: `px=0.6` means the market is pricing the event at roughly 60%.
+- **Limit order** (`ordType=limit` / `post_only`): `--sz` is number of contracts (integer). Each contract settles at 1 unit of quote currency; cost per contract = `px` (event contract price, 0.01–0.99). E.g. 10 contracts at px=0.5 costs 5.
+- **px semantics**: `px` is the event contract price (0.01–0.99), NOT the underlying asset price. When actively trading, it reflects the market-implied probability. Example: `px=0.6` means the market is pricing the event at roughly 60%.
 - **Outcome display**: expired/result views show translated values. For `price_up_down`, treat `YES/NO` as `UP/DOWN`.
 
 For event contract workflows and step-by-step examples, read `{baseDir}/references/event-workflows.md`.

@@ -592,7 +592,7 @@ const HELP_TREE: HelpTree = {
     commands: {
       browse: {
         usage: "okx event browse [--underlying <asset>]",
-        description: "Browse all active (in-progress) event contracts; live px/quote price, when present, is the market-implied probability",
+        description: "Browse all active (in-progress) event contracts; px is event contract price (0.01–0.99), not the underlying asset price — reflects market-implied probability when actively trading",
       },
       series: {
         usage: "okx event series [--seriesId <id>]",
@@ -604,14 +604,14 @@ const HELP_TREE: HelpTree = {
       },
       markets: {
         usage: "okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|expired>] [--limit <n>]",
-        description: "List markets; live px/quote price, when present, is the market-implied probability; expired includes translated outcome and settleValue",
+        description: "List markets; px is event contract price (0.01–0.99), not the underlying asset price — reflects market-implied probability when actively trading; expired includes translated outcome and settleValue",
       },
       place: {
-        usage: "okx event place <instId> <side> <outcome> <sz> [--px <prob>] [--ordType <market|limit|post_only>]",
-        description: "[CAUTION] Place an event contract order. outcome: UP/YES or DOWN/NO. limit: sz=contracts, px required. market: sz=USDT amount, no px.",
+        usage: "okx event place <instId> <side> <outcome> <sz> [--px <price>] [--ordType <market|limit|post_only>]",
+        description: "[CAUTION] Place an event contract order. outcome: UP/YES or DOWN/NO. limit: sz=contracts, px required. market: sz=quote currency amount, no px.",
       },
       amend: {
-        usage: "okx event amend <instId> <ordId> [--px <prob>] [--sz <n>]",
+        usage: "okx event amend <instId> <ordId> [--px <price>] [--sz <n>]",
         description: "[CAUTION] Amend a pending limit order (change price or size)",
       },
       cancel: {

@@ -82,6 +82,7 @@ describe("cmdEventBrowse", () => {
     assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
     assert.ok(text.includes("In Progress"), "pending outcome maps to In Progress");
     assert.ok(text.includes("1 active contract(s)"), "should show total count");
+    assert.ok(text.includes("Up/Down · 1/1"), "should show formatted contract name via formatDisplayTitle");
   });
 
   it("prints empty message when no data", async () => {
@@ -182,7 +183,7 @@ describe("cmdEventMarkets", () => {
       [
         { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "70000", px: "0.548", outcome: "pending", settleValue: "" },
       ],
-      { currentIdxPx: "69500", underlying: "BTC", availableUsdt: "1000" },
+      { currentIdxPx: "69500", underlying: "BTC", availableBalance: "1000" },
     );
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
@@ -580,5 +581,62 @@ describe("cmdEventCancel", () => {
       json: true,
     });
     assert.doesNotThrow(() => JSON.parse(joined()));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// displayTitle in CLI output
+// ---------------------------------------------------------------------------
+
+describe("CLI displayTitle rendering", () => {
+  it("cmdEventMarkets shows formatted contract name", async () => {
+    const run = makeRun(
+      [{ instId: "BTC-ABOVE-DAILY-260407-1600-70000", floorStrike: "70000", px: "0.45", outcome: "", settleValue: "", expTime: "" }],
+      { currentIdxPx: "68000", underlying: "BTC-USDT", availableBalance: "1000" },
+    );
+    await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
+    const text = joined();
+    assert.ok(text.includes("above 70,000"), "should show formatted contract name");
+    assert.ok(text.includes("BTC-ABOVE-DAILY-260407-1600-70000"), "should still show raw instId");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdEventPlace pre-order summary
+// ---------------------------------------------------------------------------
+
+describe("cmdEventPlace pre-order summary", () => {
+  it("prints cost summary for limit order", async () => {
+    const run = makeRun([{ ordId: "ord-001", sCode: "0" }]);
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-260407-1600-70000",
+      side: "buy",
+      outcome: "YES",
+      sz: "10",
+      px: "0.45",
+      ordType: "limit",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Placing:"), "should print placing summary");
+    assert.ok(text.includes("above 70,000"), "should show formatted contract name");
+    assert.ok(text.includes("cost ≈ 4.50"), "should show estimated cost (no currency unit)");
+    assert.ok(text.includes("max gain ≈ 5.50"), "should show max gain (no currency unit)");
+  });
+
+  it("prints market order summary", async () => {
+    const run = makeRun([{ ordId: "ord-002", sCode: "0" }]);
+    await cmdEventPlace(run, {
+      instId: "BTC-UPDOWN-15MIN-260407-1600-1615",
+      side: "buy",
+      outcome: "UP",
+      sz: "5",
+      ordType: "market",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("Placing:"), "should print placing summary");
+    assert.ok(text.includes("market order"), "should mention market order");
+    assert.ok(text.includes("sz=5"), "should show amount");
   });
 });
