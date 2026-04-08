@@ -457,6 +457,22 @@ describe("cmdEventPlace", () => {
     assert.ok(text.includes("not found"), "should show error detail");
   });
 
+  it("errors when ordType=limit but --px is missing", async () => {
+    const run = makeRun([{ ordId: "should-not-reach" }]);
+    await cmdEventPlace(run, {
+      instId: "BTC-ABOVE-DAILY-990101-1600-70000",
+      side: "buy",
+      outcome: "YES",
+      sz: "10",
+      ordType: "limit",
+      json: false,
+    });
+    const text = joined();
+    assert.ok(text.includes("--px"), "should mention --px flag");
+    assert.ok(text.includes("required"), "should mention it is required");
+    assert.ok(!text.includes("should-not-reach"), "should not call runner");
+  });
+
   it("outputs JSON when json=true on success", async () => {
     const run = makeRun([{ ordId: "ord-json-1" }]);
     await cmdEventPlace(run, {

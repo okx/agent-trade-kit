@@ -748,12 +748,6 @@ describe("event_browse handler", () => {
     const futureExpTime = String(Date.now() + 86400000);
 
     const client = {
-      publicGet: async (ep: string) => {
-        if (ep.includes("/index-tickers")) {
-          return { endpoint: ep, requestTime: "t", data: [] };
-        }
-        return { endpoint: ep, requestTime: "t", data: [] };
-      },
       publicGet: async (ep: string, params?: Record<string, unknown>) => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [] };
