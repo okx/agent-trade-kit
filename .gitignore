@@ -47,3 +47,4 @@ aTempFiles/
 *.tgz
 .worktrees/
 memory/
+docs/designs/internal/
