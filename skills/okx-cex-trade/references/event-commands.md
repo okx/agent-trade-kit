@@ -25,7 +25,7 @@ Response `outcome` field (from `event_get_markets` with `state=expired`): live/p
 
 ---
 
-## Public Commands (no API key required)
+## Query Commands (API key required)
 
 ### `okx event series`
 
@@ -37,7 +37,7 @@ okx event series [--seriesId <id>] [--json]
 |-----------|------|----------|-------------|
 | `seriesId` | string | No | Filter by series ID |
 
-**Output fields**: `seriesId`, `title`, `freq`, `category`, `settlement.method`, `settlement.underlying`
+**Output fields**: Series ID, Title, Frequency, Category, Settlement method, Underlying
 
 ---
 
@@ -58,7 +58,7 @@ okx event events <seriesId> [--eventId <id>] [--state <preopen|live|settling|exp
 
 State lifecycle: preopen → live → settling → expired
 
-**Output fields**: `eventId`, `seriesId`, `state`, `expTime`
+**Output fields**: Event ID, Series ID, State, Expiry time
 
 ---
 
@@ -78,7 +78,7 @@ okx event markets <seriesId> [--eventId <id>] [--state <preopen|live|settling|ex
 | `--state` | string | No | `preopen`, `live`, `settling`, or `expired` |
 | `--limit` | number | No | Max results (default 100) |
 
-**Output fields**: `instId`, `floorStrike`, `px` (event contract price 0.01–0.99, not the underlying asset price; reflects market-implied probability when actively trading), `state`, `outcome` (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: empty), `settleValue` (expired only)
+**Output fields**: Contract, Target price, Price (event contract price 0.01–0.99, not the underlying asset price; reflects market-implied probability when actively trading), Outcome (expired: translated as `YES`/`NO` or `UP`/`DOWN`; live/pending: `—`), Settlement value (expired only)
 
 - **CLI**: use `--state expired` to get settlement outcome; there is no `event ended` command in the CLI.
 - **MCP**: use `event_get_markets(seriesId, state="expired")` instead.
@@ -100,7 +100,7 @@ Recommended workflow to obtain instId:
 3. `okx event markets <seriesId> --state live` → see each tradeable instId
 4. Use the instId from step 3 in place / amend / cancel commands
 
-## Private Commands (API key required)
+## Write Commands (API key required)
 
 ### `okx event place` ⚠️ WRITE
 
@@ -122,7 +122,7 @@ okx event place <instId> <side> <outcome> <sz> \
 - `tdMode` is always `isolated` — auto-set by the system, do not pass it.
 - `speedBump` is auto-set for non-post_only orders — do not pass it.
 
-**Output**: `ordId`, `sMsg` (empty on success). Success signal: `ordId` non-empty + `sMsg` empty.
+**Output**: Order number, error message (empty on success). Success signal: order number non-empty + error message empty.
 
 ---
 
@@ -170,7 +170,7 @@ okx event orders [--instId <id>] [--state live] [--limit <n>] [--json]
 | `--state` | string | No | `live` = pending only; omit for history |
 | `--limit` | number | No | Max results (default 20) |
 
-**Output fields**: `ordId`, `instId`, `side`, `outcome`, `ordType`, `px`, `sz`, `fillSz`, `state`
+**Output fields**: Order number, Contract, Direction, Outcome, Order type, Price, Size, Filled, Status
 
 ---
 
@@ -185,7 +185,7 @@ okx event fills [--instId <id>] [--limit <n>] [--json]
 | `--instId` | string | No | Filter by instrument ID |
 | `--limit` | number | No | Max results (default 20) |
 
-**Output fields**: `tradeId`, `ordId`, `instId`, `side`, `outcome`, `fillPx`, `fillSz`, `ts`
+**Output fields**: Trade ID, Order number, Contract, Direction, Outcome, Fill price, Fill size, Time
 
 ---
 

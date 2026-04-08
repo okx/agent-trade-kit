@@ -1,5 +1,13 @@
 # Event Contract Workflows — Multi-Step Trading Scenarios
 
+> **Display rule**: When presenting tool results to users, always use user-facing labels
+> (e.g., "Order number", "Contract", "Fill price"), not raw API field names
+> (e.g., `ordId`, `instId`, `fillPx`).
+
+> **Category naming rule**: When summarizing contract types in user-facing text,
+> do not use internal category names like `above`, `up/down`.
+> Use product language: "Price Above Target" contracts, "Price Direction (Up/Down)" contracts.
+
 ## Scenario 1: Discover Available Markets
 
 > User: "What BTC event contracts are available?"
@@ -10,7 +18,7 @@ Step 1: okx event browse --underlying BTC-USD
 
 Step 2: if the user wants one specific series, refine with:
 okx event markets BTC-ABOVE-DAILY --state live
-→ Returns instId, strike, status, and settlement context
+→ Returns Contract, Target price, Probability, Outcome, and settlement context
 → If live `px` is present, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
 
 Step 3:
@@ -48,7 +56,7 @@ Step 2: [user confirms]
 okx event place BTC-ABOVE-DAILY-260320-1600-69700 buy YES 10 --px 0.6 --ordType limit
 ```
 
-After success: state ordId, order type, and offer to check fill status (`okx event orders --state live`).
+After success: check Status, Order number, order type, and offer to check fill status (`okx event orders --state live`).
 
 ---
 
@@ -87,11 +95,11 @@ Step 1: okx event orders --instId <instId> --state live
 → empty: filled or cancelled
 
 Step 2: okx event fills --instId <instId> --limit 5
-→ fill found: confirm sz, fillPx, timestamp
+→ fill found: confirm Fill size, Fill price, Time
 → no fill: order was cancelled
 ```
 
-Response includes: fill price, quantity, current max loss (cost + fees), and a next-step offer (hold or set exit target).
+Response includes: Fill price, Fill size, timestamp, and a next-step offer (hold or set exit target).
 
 ---
 
@@ -101,7 +109,7 @@ Response includes: fill price, quantity, current max loss (cost + fees), and a n
 
 ```
 Step 1: okx event markets BTC-UPDOWN-15MIN --state live
-→ Find current live 15min event and its instId
+→ Find current live 15min event and its instrument ID
 
 Step 2: [user confirms]
 okx event place BTC-UPDOWN-15MIN-260320-1600-1615 buy UP 5 --ordType market
@@ -121,7 +129,7 @@ okx account positions --instType EVENTS
 ```
 
 **Expiry check (MANDATORY before displaying anything):**
-- Infer expiry from instId:
+- Infer expiry from the instrument ID (`instId`, API field):
   - `price_above` / `price_once_touch`: `YYMMDD-HHMM` → e.g. `260320-1600` = 2026-03-20 16:00 UTC
   - `price_up_down`: `YYMMDD-START-END` → expiry is the `END` time
 - If expired → **immediately run without asking**:
@@ -153,7 +161,7 @@ Use the same outcome that the position was opened with. Do not pass extra exchan
 
 ```
 okx event markets BTC-ABOVE-DAILY --state expired [--limit 5]
-→ outcome field: CLI returns translated "YES"/"NO"/"UP"/"DOWN"
+→ Outcome field: CLI returns translated "YES"/"NO"/"UP"/"DOWN"
 ```
 
 Present as a table with date, strike, settlement price, and outcome (✅/❌).
@@ -164,20 +172,20 @@ Present as a table with date, strike, settlement price, and outcome (✅/❌).
 
 > User: "Cancel order EVT-ORDER-001" / "Cancel my order 800000024"
 
-`okx event cancel` requires both instId and ordId. If the user only provides ordId, look up instId first — never ask the user for it.
+`okx event cancel` requires both the instrument ID and Order number. If the user only provides the Order number, look up the instrument ID first — never ask the user for it.
 
 ```
 Step 1: okx event orders --state live
-→ if ordId found: use that row's instId
+→ if Order number found: use that row's instrument ID
 → if not found: okx event orders [history, no --state flag]
-   → find matching ordId, extract instId
+   → find matching Order number, extract instrument ID
 
 Step 2: okx event cancel <instId> <ordId>
 → if cancellation fails because the order no longer exists, it was likely filled or already cancelled
    → offer to check fills or current positions
 ```
 
-If ordId not found in any order list: explain it may be outside history range or the ID may be incorrect; ask the user for strike price and expiry date to help locate it.
+If Order number not found in any order list: explain it may be outside history range or the ID may be incorrect; ask the user for strike price and expiry date to help locate it.
 
 Never show `sCode`. Always give a next step.
 

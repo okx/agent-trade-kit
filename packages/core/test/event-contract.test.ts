@@ -748,7 +748,13 @@ describe("event_browse handler", () => {
     const futureExpTime = String(Date.now() + 86400000);
 
     const client = {
-      publicGet: async (ep: string, params?: Record<string, unknown>) => {
+      publicGet: async (ep: string) => {
+        if (ep.includes("/index-tickers")) {
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privateGet: async (ep: string, params?: Record<string, unknown>) => {
         if (ep.includes("/series")) {
           return { endpoint: ep, requestTime: "t", data: [btcSeries, testSeries] };
         }
@@ -760,12 +766,6 @@ describe("event_browse handler", () => {
               data: [{ instId: "BTC-ABOVE-DAILY-260401-1600-50000", floorStrike: "50000", expTime: futureExpTime, outcome: "0" }],
             };
           }
-          return { endpoint: ep, requestTime: "t", data: [] };
-        }
-        return { endpoint: ep, requestTime: "t", data: [] };
-      },
-      privateGet: async (ep: string) => {
-        if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [] };
         }
         if (ep.includes("/balance")) {
@@ -805,9 +805,12 @@ describe("event_get_markets with limit (client-side slicing)", () => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [{ idxPx: "65000" }] };
         }
-        return { endpoint: ep, requestTime: "t", data: items };
+        return { endpoint: ep, requestTime: "t", data: [] };
       },
       privateGet: async (ep: string) => {
+        if (ep.includes("/markets")) {
+          return { endpoint: ep, requestTime: "t", data: items };
+        }
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [{ details: [{ ccy: "USDT", availBal: "100" }] }] };
         }
@@ -840,18 +843,18 @@ describe("event_get_markets unknown underlying series fallback", () => {
 
     const client = {
       publicGet: async (ep: string) => {
-        if (ep.includes("/markets")) {
-          return { endpoint: ep, requestTime: "t", data: marketData };
-        }
-        if (ep.includes("/series")) {
-          return { endpoint: ep, requestTime: "t", data: seriesData };
-        }
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [{ idxPx: "5.5" }] };
         }
         return { endpoint: ep, requestTime: "t", data: [] };
       },
       privateGet: async (ep: string) => {
+        if (ep.includes("/markets")) {
+          return { endpoint: ep, requestTime: "t", data: marketData };
+        }
+        if (ep.includes("/series")) {
+          return { endpoint: ep, requestTime: "t", data: seriesData };
+        }
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [] };
         }
@@ -896,6 +899,7 @@ describe("event_place_order market order — orderNote and availableBalance", ()
     ) as Record<string, unknown>;
 
     assert.equal(result["availableBalance"], "500.5");
+    assert.equal(result["availableBalanceCcy"], "USDT");
     assert.ok(typeof result["orderNote"] === "string");
     assert.ok((result["orderNote"] as string).includes("Market order"));
   });
@@ -1118,9 +1122,7 @@ describe("handler displayTitle", () => {
   it("event_browse includes displayTitle in contracts", async () => {
     const browse = tools.find(t => t.name === "event_browse")!;
     const { client } = makeMockClient();
-    let callCount = 0;
-    (client as Record<string, unknown>)["publicGet"] = async (endpoint: string) => {
-      callCount++;
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => {
       if (endpoint.includes("series")) {
         return {
           endpoint,
@@ -1158,8 +1160,7 @@ describe("handler displayTitle", () => {
   it("event_get_markets includes displayTitle in each record", async () => {
     const mkts = tools.find(t => t.name === "event_get_markets")!;
     const { client } = makeMockClient();
-    // Override publicGet to return mock market data (public endpoints use publicGet)
-    (client as Record<string, unknown>)["publicGet"] = async (endpoint: string) => {
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => {
       if (endpoint.includes("markets")) {
         return {
           endpoint,
@@ -1207,37 +1208,94 @@ describe("handler displayTitle", () => {
 });
 
 // ---------------------------------------------------------------------------
-// fetchAvailableBalance returns null when USDT not found in details
+// fetchAvailableBalance returns null when USDT not found in details (via place_order)
 // ---------------------------------------------------------------------------
 
 describe("fetchAvailableBalance returns null when USDT not in details", () => {
   const tools = registerEventContractTools();
-  const tool = tools.find((t) => t.name === "event_get_markets")!;
+  const tool = tools.find((t) => t.name === "event_place_order")!;
 
   it("omits availableBalance when balance details contain only non-USDT entries", async () => {
-    const marketData = [
-      { instId: "BTC-ABOVE-DAILY-260401-1600-70000", outcome: "0", expTime: "1711929600000" },
-    ];
     const client = {
-      publicGet: async (ep: string) => {
-        if (ep.includes("/markets")) {
-          return { endpoint: ep, requestTime: "t", data: marketData };
-        }
-        if (ep.includes("/index-tickers")) {
-          return { endpoint: ep, requestTime: "t", data: [{ idxPx: "65000" }] };
-        }
-        return { endpoint: ep, requestTime: "t", data: [] };
-      },
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
       privateGet: async (ep: string) => {
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [{ details: [{ ccy: "BTC", availBal: "1.5" }] }] };
         }
         return { endpoint: ep, requestTime: "t", data: [] };
       },
-      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privatePost: async (ep: string) => ({
+        endpoint: ep, requestTime: "t",
+        data: [{ ordId: "123", sCode: "0", sMsg: "", tag: "abc" }],
+      }),
     };
 
-    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
-    assert.equal(result["availableBalance"], null, "availableBalance should be null when USDT is not in details");
+    const result = await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", side: "buy", outcome: "UP", sz: "10" },
+      makeContext(client),
+    ) as Record<string, unknown>;
+    assert.equal(result["availableBalance"], undefined, "availableBalance should be absent when USDT is not in details");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ORDER_STATE_MAP: stateLabel in event_get_orders
+// ---------------------------------------------------------------------------
+
+describe("event_get_orders stateLabel mapping", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_orders")!;
+
+  function makeClientWithOrderData(data: unknown[]) {
+    return {
+      publicGet: async (endpoint: string) => ({ endpoint, requestTime: "t", data }),
+      privateGet: async (endpoint: string) => ({ endpoint, requestTime: "t", data }),
+      privatePost: async (endpoint: string) => ({ endpoint, requestTime: "t", data }),
+    };
+  }
+
+  it("maps 'live' to 'Unfilled'", async () => {
+    const client = makeClientWithOrderData([{ ordId: "001", state: "live", outcome: "1" }]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["stateLabel"], "Unfilled");
+    assert.equal(items[0]!["state"], "live");
+  });
+
+  it("maps 'filled' to 'Filled'", async () => {
+    const client = makeClientWithOrderData([{ ordId: "002", state: "filled", outcome: "1" }]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["stateLabel"], "Filled");
+    assert.equal(items[0]!["state"], "filled");
+  });
+
+  it("maps 'partially_filled' to 'Partially filled'", async () => {
+    const client = makeClientWithOrderData([{ ordId: "003", state: "partially_filled", outcome: "0" }]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["stateLabel"], "Partially filled");
+  });
+
+  it("maps 'canceled' to 'Canceled'", async () => {
+    const client = makeClientWithOrderData([{ ordId: "004", state: "canceled", outcome: "0" }]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["stateLabel"], "Canceled");
+  });
+
+  it("maps 'mmp_canceled' to 'Canceled'", async () => {
+    const client = makeClientWithOrderData([{ ordId: "005", state: "mmp_canceled", outcome: "0" }]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["stateLabel"], "Canceled");
+  });
+
+  it("falls back to raw state for unknown values", async () => {
+    const client = makeClientWithOrderData([{ ordId: "006", state: "unknown_state", outcome: "0" }]);
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const items = result["data"] as Record<string, unknown>[];
+    assert.equal(items[0]!["stateLabel"], "unknown_state");
+    assert.equal(items[0]!["state"], "unknown_state");
   });
 });

@@ -301,7 +301,7 @@ For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and
 | 52 | `okx event browse` | READ | Browse active event contracts grouped by type (series + live markets in one call) |
 | 53 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
 | 54 | `okx event events <seriesId>` | READ | List events in a series |
-| 55 | `okx event markets <seriesId>` | READ | List markets; expired includes outcome/settleValue |
+| 55 | `okx event markets <seriesId>` | READ | List markets; expired includes Outcome and Settlement value |
 | 56 | `okx event place ...` | WRITE | Place event order (outcome required) |
 | 57 | `okx event amend <instId> <ordId>` | WRITE | Amend event order (price/size) |
 | 58 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
@@ -352,13 +352,13 @@ After every command result: append `[profile: live]` or `[profile: demo]`.
 
 **Event Contracts**:
 
-instId format: `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` for price_above/price_once_touch (e.g. `BTC-ABOVE-DAILY-260224-1600-70000`), or `{UNDERLYING}-{TYPE}-{YYMMDD}-{START}-{END}` for price_up_down (e.g. `BTC-UPDOWN-15MIN-260224-1600-1615`). Always obtain instId from `okx event markets <seriesId>` — never guess or use placeholders.
+Instrument ID (`instId`, API field) format: `{UNDERLYING}-{TYPE}-{YYMMDD}-{HHMM}-{STRIKE}` for "Price Above Target" / "One Touch" contracts (e.g. `BTC-ABOVE-DAILY-260224-1600-70000`), or `{UNDERLYING}-{TYPE}-{YYMMDD}-{START}-{END}` for "Price Direction (Up/Down)" contracts (e.g. `BTC-UPDOWN-15MIN-260224-1600-1615`). Always obtain the instrument ID from `okx event markets <seriesId>` — never guess or use placeholders.
 
-seriesId: human-readable (e.g. `BTC-ABOVE-DAILY`, `BTC-UPDOWN-15MIN`) or internal random string (e.g. `FMQRZ`). Both are valid for subsequent commands. Obtain from `okx event series`.
+Series ID (`seriesId`, API field): human-readable (e.g. `BTC-ABOVE-DAILY`, `BTC-UPDOWN-15MIN`) or internal random string (e.g. `FMQRZ`). Both are valid for subsequent commands. Obtain from `okx event series`.
 
 Event contract trading flow:
-1. **Discover** → `okx event browse` (preferred, returns series + live markets in one call) or `okx event series` — present results grouped by type; highlight named series; always show the seriesId
-2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains instId for each tradeable market; if live `px` is shown, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
+1. **Discover** → `okx event browse` (preferred, returns series + live markets in one call) or `okx event series` — present results grouped by type; highlight named series; always show the Series ID
+2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains the instrument ID for each tradeable contract; if a live Price is shown, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
 3. **Check event details** → `okx event events <seriesId>`
 4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
 5. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`

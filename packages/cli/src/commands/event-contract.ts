@@ -66,30 +66,6 @@ function fmtOrderOutcome(instId: unknown, outcome: unknown): string {
 }
 
 /**
- * Parse instId to infer contract START time in UTC ms.
- * For UPDOWN (DATE-START-END): start = first time part.
- * For ABOVE/TOUCH (DATE-EXPIRY-STRIKE): no distinct start time, returns null.
- * Times encoded in instId are UTC+8.
- */
-function inferStartMsFromInstId(instId: string): number | null {
-  const parts = instId.split("-");
-  const upper = instId.toUpperCase();
-  if (!upper.includes("UPDOWN")) return null; // only UPDOWN encodes start time
-  const dateIdx = findDateIdx(parts);
-  if (dateIdx < 0) return null;
-  const dp = parts[dateIdx]!;
-  const year  = 2000 + parseInt(dp.slice(0, 2), 10);
-  const month = parseInt(dp.slice(2, 4), 10) - 1;
-  const day   = parseInt(dp.slice(4, 6), 10);
-  const timePart = parts[dateIdx + 1];
-  if (!timePart || !/^\d{4}$/.test(timePart)) return null;
-  const hour = parseInt(timePart.slice(0, 2), 10);
-  const min  = parseInt(timePart.slice(2, 4), 10);
-  return Date.UTC(year, month, day, hour - 8, min, 0, 0);
-}
-
-
-/**
  * Format contract period from instId as "YYYY-MM-DD HH:mm ~ HH:mm UTC+8".
  * For UPDOWN: shows start ~ end. For ABOVE/TOUCH: shows expiry only.
  */
@@ -153,7 +129,10 @@ export async function cmdEventBrowse(
         "Expiry":   c["expTime"] ?? "",
         "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
         "Probability": fmtProbability(c["px"]),
-        "Status":   String(c["outcome"] ?? "").toLowerCase() === "pending" ? "In Progress" : String(c["outcome"] ?? ""),
+        "Outcome":  (() => {
+          const outcome = String(c["outcome"] ?? "");
+          return outcome.toLowerCase() === "pending" ? "—" : outcome;
+        })(),
         "instId":   c["instId"],
       })),
     );
@@ -283,18 +262,6 @@ function sortByExpiry(data: Record<string, unknown>[]): Record<string, unknown>[
   });
 }
 
-function computeMarketStatus(m: Record<string, unknown>, now: number): string {
-  const instId = String(m["instId"] ?? "");
-  const expiryMs = inferExpiryMsFromInstId(instId);
-  const startMs = inferStartMsFromInstId(instId);
-  const notExpired = expiryMs === null || now < expiryMs;
-  if (!notExpired) return "Settled";
-  const hasStarted =
-    (m["floorStrike"] !== "" && m["floorStrike"] != null) ||
-    (startMs !== null && startMs <= now);
-  return hasStarted ? "In Progress" : "Upcoming";
-}
-
 export async function cmdEventMarkets(
   run: ToolRunner,
   opts: { seriesId: string; eventId?: string; instId?: string; state?: string; limit?: number; json: boolean },
@@ -312,25 +279,23 @@ export async function cmdEventMarkets(
   const ext = result as unknown as Record<string, unknown>;
   const currentIdxPx = ext["currentIdxPx"];
   const underlying = ext["underlying"];
-  const availableBalance = ext["availableBalance"];
   if (currentIdxPx != null) {
     process.stdout.write(
-      `${underlying ?? ""} current index price: $${currentIdxPx}  |  Available balance: ${availableBalance ?? "N/A"}\n`,
+      `${underlying ?? ""} current index price: $${currentIdxPx}\n`,
     );
   }
 
-  const now = Date.now();
   const sorted = sortByExpiry(data ?? []);
   printTable(
     sorted.map((m) => {
       const id = String(m["instId"] ?? "");
+      const outcome = fmtMarketOutcome(m["instId"], m["outcome"]);
       return {
         contract:    formatDisplayTitle(id),
-        status:      computeMarketStatus(m, now),
         expTime:     m["expTime"] ?? "",
         targetPrice: m["floorStrike"] ?? "",
         probability: fmtProbability(m["px"]),
-        outcome:     fmtMarketOutcome(m["instId"], m["outcome"]),
+        outcome:     outcome.toLowerCase() === "pending" ? "—" : outcome,
         settleValue: m["settleValue"] ?? "",
         instId:      id,
       };
@@ -357,8 +322,8 @@ export async function cmdEventOrders(
       "Direction":  `${String(o["side"] ?? "").toUpperCase()} ${fmtOrderOutcome(o["instId"], o["outcome"]).toUpperCase()}`,
       "Price":      o["px"],
       "Size":       `${o["fillSz"] ?? 0} / ${o["sz"]}`,
-      "Status":     o["state"],
-      "Order ID":   o["ordId"],
+      "Status":     o["stateLabel"] ?? o["state"],
+      "Order number": o["ordId"],
     })),
   );
 }
@@ -385,7 +350,7 @@ export async function cmdEventFills(
       "Fill Price": f["fillPx"],
       "Fill Size":  f["fillSz"],
       "Time":       fmtTs(f["ts"]),
-      "Order ID":   f["ordId"],
+      "Order number": f["ordId"],
     })),
   );
 }

@@ -80,7 +80,7 @@ describe("cmdEventBrowse", () => {
     assert.ok(text.includes("15min"), "should show freq label");
     assert.ok(text.includes("BTC"), "should show underlying");
     assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
-    assert.ok(text.includes("In Progress"), "pending outcome maps to In Progress");
+    assert.ok(text.includes("—"), "pending outcome shows dash (no incremental info)");
     assert.ok(text.includes("1 active contract(s)"), "should show total count");
     assert.ok(text.includes("Up/Down · 1/1"), "should show formatted contract name via formatDisplayTitle");
   });
@@ -183,25 +183,25 @@ describe("cmdEventMarkets", () => {
       [
         { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "70000", px: "0.548", outcome: "pending", settleValue: "" },
       ],
-      { currentIdxPx: "69500", underlying: "BTC", availableBalance: "1000" },
+      { currentIdxPx: "69500", underlying: "BTC" },
     );
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
     assert.ok(text.includes("69500"), "should show current index price");
     assert.ok(text.includes("BTC"), "should show underlying");
-    assert.ok(text.includes("1000"), "should show available USDT");
     assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
-    assert.ok(text.includes("In Progress"), "contract with floorStrike should be In Progress");
+    assert.ok(!text.includes("In Progress"), "status column removed — no 'In Progress' in output");
   });
 
-  it("shows Settled for expired contracts", async () => {
+  it("shows settled outcome for expired contracts (status column removed)", async () => {
     // Past date instId
     const run = makeRun([
       { instId: "BTC-ABOVE-DAILY-200101-0800-70000", expTime: "2020-01-01", floorStrike: "70000", outcome: "YES", settleValue: "1" },
     ]);
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
-    assert.ok(text.includes("Settled"), "expired contract should show Settled");
+    assert.ok(text.includes("YES"), "expired contract should show outcome YES");
+    assert.ok(!text.includes("Settled"), "status column removed — no 'Settled' in output");
   });
 
   it("shows UP for settled UPDOWN contracts when core already translated outcome to YES", async () => {
@@ -213,14 +213,14 @@ describe("cmdEventMarkets", () => {
     assert.ok(text.includes("UP"), "UPDOWN markets should render YES as UP");
   });
 
-  it("shows Upcoming for contracts without floorStrike and not started", async () => {
+  it("renders contracts without floorStrike (status column removed)", async () => {
     // Far-future UPDOWN without started time
     const run = makeRun([
       { instId: "BTC-ABOVE-DAILY-990101-0800-70000", expTime: "2099-01-01", floorStrike: "", outcome: "", settleValue: "" },
     ]);
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
-    assert.ok(text.includes("Upcoming"), "contract without floorStrike should be Upcoming");
+    assert.ok(!text.includes("Upcoming"), "status column removed — no 'Upcoming' in output");
   });
 
   it("outputs JSON when json=true", async () => {
@@ -246,6 +246,7 @@ describe("cmdEventOrders", () => {
         fillSz: "5",
         sz: "10",
         state: "live",
+        stateLabel: "Unfilled",
         ordId: "ord123",
       },
     ]);
@@ -256,8 +257,9 @@ describe("cmdEventOrders", () => {
     assert.ok(text.includes("YES"), "ABOVE series outcome 1 = YES");
     assert.ok(text.includes("0.65"), "should show price");
     assert.ok(text.includes("5 / 10"), "should show fill/total size");
-    assert.ok(text.includes("live"), "should show status");
-    assert.ok(text.includes("ord123"), "should show order ID");
+    assert.ok(text.includes("Unfilled"), "should show stateLabel instead of raw state");
+    assert.ok(text.includes("ord123"), "should show order number");
+    assert.ok(text.includes("Order number"), "table header should be 'Order number'");
   });
 
   it("shows UP for UPDOWN series outcome 1", async () => {
@@ -271,12 +273,14 @@ describe("cmdEventOrders", () => {
         fillSz: "0",
         sz: "10",
         state: "live",
+        stateLabel: "Unfilled",
         ordId: "ord456",
       },
     ]);
     await cmdEventOrders(run, { json: false });
     const text = joined();
     assert.ok(text.includes("UP"), "UPDOWN series outcome 1 = UP");
+    assert.ok(text.includes("Unfilled"), "should show stateLabel");
   });
 
   it("shows UP for UPDOWN series when core already translated outcome to YES", async () => {
@@ -290,12 +294,14 @@ describe("cmdEventOrders", () => {
         fillSz: "0",
         sz: "10",
         state: "live",
+        stateLabel: "Unfilled",
         ordId: "ord457",
       },
     ]);
     await cmdEventOrders(run, { json: false });
     const text = joined();
     assert.ok(text.includes("UP"), "translated YES should still display as UP for UPDOWN");
+    assert.ok(text.includes("Unfilled"), "should show stateLabel");
   });
 
   it("outputs JSON when json=true", async () => {
@@ -592,7 +598,7 @@ describe("CLI displayTitle rendering", () => {
   it("cmdEventMarkets shows formatted contract name", async () => {
     const run = makeRun(
       [{ instId: "BTC-ABOVE-DAILY-260407-1600-70000", floorStrike: "70000", px: "0.45", outcome: "", settleValue: "", expTime: "" }],
-      { currentIdxPx: "68000", underlying: "BTC-USDT", availableBalance: "1000" },
+      { currentIdxPx: "68000", underlying: "BTC-USDT" },
     );
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();

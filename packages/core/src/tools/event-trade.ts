@@ -39,6 +39,19 @@ const OUTCOME_LABELS: Record<string, string> = {
   "2": "NO",
 };
 
+/** Order state mapping — aligned with UI design spec. */
+const ORDER_STATE_MAP: Record<string, string> = {
+  live:             "Unfilled",
+  partially_filled: "Partially filled",
+  filled:           "Filled",
+  canceled:         "Canceled",
+  mmp_canceled:     "Canceled",
+};
+
+function mapOrderState(raw: string): string {
+  return ORDER_STATE_MAP[raw] ?? raw;
+}
+
 /** Known timestamp field names in event contract responses. */
 const TIMESTAMP_FIELDS = new Set([
   "expTime", "settleTime", "listTime", "uTime", "cTime", "fixTime",
@@ -114,7 +127,7 @@ async function fetchIdxPx(
       { instId: underlying },
       publicRateLimit("fetchIdxPx", 20),
     );
-    const data = (r as Record<string, unknown>)["data"];
+    const data = (r as unknown as Record<string, unknown>)["data"];
     if (Array.isArray(data) && data.length > 0) {
       return String((data[0] as Record<string, unknown>)["idxPx"] ?? "") || null;
     }
@@ -122,32 +135,52 @@ async function fetchIdxPx(
   return null;
 }
 
+/** Default settlement currency for event contracts. */
+const DEFAULT_SETTLE_CCY = "USDT";
+
 /**
- * Fetch available balance in the trading account.
- * TODO: event contracts currently settle in USDT only; replace hardcoded ccy if multi-currency support is added.
+ * Extract quote currency from an underlying pair string.
+ * e.g. "BTC-USDT" → "USDT", "ETH-USDC" → "USDC"
+ * Returns DEFAULT_SETTLE_CCY if extraction fails.
+ */
+function extractQuoteCcy(underlying: string | null): string {
+  if (!underlying) return DEFAULT_SETTLE_CCY;
+  const parts = underlying.split("-");
+  return parts.length >= 2 ? parts[parts.length - 1]!.toUpperCase() : DEFAULT_SETTLE_CCY;
+}
+
+interface BalanceResult {
+  balance: string | null;
+  ccy: string;
+}
+
+/**
+ * Fetch available balance in the trading account for a given currency.
+ * Dynamically resolves the settlement currency from context; falls back to USDT.
  */
 async function fetchAvailableBalance(
   client: ToolContext["client"],
-): Promise<string | null> {
+  ccy: string = DEFAULT_SETTLE_CCY,
+): Promise<BalanceResult> {
   try {
     const r = await client.privateGet(
       "/api/v5/account/balance",
-      { ccy: "USDT" },
+      { ccy },
     );
-    const data = (r as Record<string, unknown>)["data"];
+    const data = (r as unknown as Record<string, unknown>)["data"];
     if (Array.isArray(data) && data.length > 0) {
       const details = (data[0] as Record<string, unknown>)["details"];
       if (Array.isArray(details) && details.length > 0) {
-        // Find USDT entry explicitly; API may return multiple currencies in any order
-        const usdtEntry = (details as Record<string, unknown>[]).find(
-          (d) => String(d["ccy"] ?? "").toUpperCase() === "USDT",
+        const entry = (details as Record<string, unknown>[]).find(
+          (d) => String(d["ccy"] ?? "").toUpperCase() === ccy.toUpperCase(),
         );
-        if (!usdtEntry) return null;
-        return String((usdtEntry as Record<string, unknown>)["availBal"] ?? "") || null;
+        if (!entry) return { balance: null, ccy };
+        const bal = String((entry as Record<string, unknown>)["availBal"] ?? "") || null;
+        return { balance: bal, ccy };
       }
     }
   } catch { /* non-critical */ }
-  return null;
+  return { balance: null, ccy };
 }
 
 /**
@@ -533,7 +566,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
         const knownUnderlying = extractUnderlying(seriesId);
 
-        const [marketsResp, seriesResp, idxPxFromKnown, availableBalance] = await Promise.all([
+        const [marketsResp, seriesResp, idxPxFromKnown] = await Promise.all([
           context.client.publicGet(
             "/api/v5/public/event-contract/markets",
             compactObject({
@@ -554,7 +587,6 @@ export function registerEventContractTools(): ToolSpec[] {
                 publicRateLimit("event_get_series", 20),
               ),
           knownUnderlying ? fetchIdxPx(context.client, knownUnderlying + "-USDT") : Promise.resolve(null),
-          fetchAvailableBalance(context.client),
         ]);
 
         let underlying = knownUnderlying ? knownUnderlying + "-USDT" : null;
@@ -573,7 +605,6 @@ export function registerEventContractTools(): ToolSpec[] {
           data: translated,
           currentIdxPx: idxPx,
           underlying,
-          availableBalance,
         };
       },
     },
@@ -622,6 +653,8 @@ export function registerEventContractTools(): ToolSpec[] {
               ...item,
               displayTitle: formatDisplayTitle(String(item["instId"] ?? "")),
               outcome: OUTCOME_LABELS[String(item["outcome"] ?? "")] ?? item["outcome"],
+              state: String(item["state"] ?? ""),
+              stateLabel: mapOrderState(String(item["state"] ?? "")),
             }))
           : base["data"];
         return { ...base, data };
@@ -731,10 +764,20 @@ export function registerEventContractTools(): ToolSpec[] {
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map(({ tag: _t, ...rest }) => rest)
           : base["data"];
-        // Fetch available balance after order placement for user context
-        const availableBalance = await fetchAvailableBalance(context.client);
+        // Fetch available balance after order placement for user context.
+        // Current implementation assumes USDT settlement for all event contracts.
+        // When non-USDT event contracts are introduced, replace this with proper
+        // settlement currency resolution from series/market metadata.
+        const instId = requireString(args, "instId");
+        const placeSeriesId = extractSeriesId(instId);
+        const placeUnderlying = extractUnderlying(placeSeriesId);
+        const placeCcy = extractQuoteCcy(placeUnderlying ? placeUnderlying + "-USDT" : null);
+        const balResult = await fetchAvailableBalance(context.client, placeCcy);
         const result: Record<string, unknown> = { ...base, data };
-        if (availableBalance) result["availableBalance"] = availableBalance;
+        if (balResult.balance) {
+          result["availableBalance"] = balResult.balance;
+          result["availableBalanceCcy"] = balResult.ccy;
+        }
 
         // Add note for market orders explaining sz semantics
         if (ordType === "market") {
