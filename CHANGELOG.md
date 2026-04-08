@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Skill download `format` parameter**: `skills_download` MCP tool and `okx skill download` CLI command now accept a `format` option (`"zip"` or `"skill"`). MCP defaults to `"skill"` (so agents like Claude Desktop can auto-detect the file type), CLI defaults to `"zip"` (backward-compatible). The file content is identical — only the extension changes.
-- **Market tools `demo` parameter**: All 14 market tools now accept an optional `demo: boolean` parameter. When `demo=true`, the request targets OKX's simulated trading market data environment (`x-simulated-trading: 1`). When omitted or `false` (default), live market data is always returned — independent of whether the server is started with `--demo`.
+- **Market tools `demo` parameter**: All 14 market MCP tools now accept an optional `demo: boolean` parameter, and CLI market commands now respect the global `--demo` flag. When `demo=true` / `--demo`, the request targets OKX's simulated trading market data environment (`x-simulated-trading: 1`). When omitted or `false` (default), live market data is always returned — independent of whether the server is started with `--demo`.
 
 ### Fixed
 

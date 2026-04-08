@@ -14,7 +14,7 @@
 ### 新增
 
 - **Skill 下载 `format` 参数**：`skills_download` MCP tool 和 `okx skill download` CLI 命令新增 `format` 选项（`"zip"` 或 `"skill"`）。MCP 默认 `"skill"`（便于 Claude Desktop 等 agent 自动识别文件类型），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同，仅后缀不同。
-- **Market 工具 `demo` 参数**：全部 14 个 market 工具新增可选参数 `demo: boolean`。传 `demo=true` 时请求打到 OKX 模拟盘行情环境（附加 `x-simulated-trading: 1`）；省略或传 `false`（默认）时始终返回实盘行情——与服务器是否以 `--demo` 模式启动无关。
+- **Market 工具 `demo` 参数**：全部 14 个 market MCP 工具新增可选参数 `demo: boolean`，CLI market 命令同步支持全局 `--demo` 标志。传 `demo=true` / `--demo` 时请求打到 OKX 模拟盘行情环境（附加 `x-simulated-trading: 1`）；省略或传 `false`（默认）时始终返回实盘行情——与服务器是否以 `--demo` 模式启动无关。
 
 ### 修复
 

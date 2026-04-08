@@ -23,9 +23,12 @@ export interface RequestConfig {
   rateLimit?: RateLimitConfig;
   /**
    * Explicitly control whether x-simulated-trading header is sent.
-   * - For private requests: defaults to config.demo when omitted.
-   * - For public requests: defaults to false (live data) when omitted.
-   *   Must be explicitly set to true to query demo market data.
+   * When set, takes precedence over config.demo for this request.
+   * When omitted, falls back to config.demo (preserving original behavior).
+   *
+   * Market tools always set this explicitly (default false = live data),
+   * so they ignore the server-level demo flag for market queries.
+   * All other tools leave this unset and continue to follow config.demo.
    */
   simulatedTrading?: boolean;
 }
