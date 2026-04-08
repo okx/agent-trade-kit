@@ -126,3 +126,5 @@ Returns: same columns as `candles`.
 okx market index-candles BTC-USD --bar 1Dutc --limit 50
 okx market index-candles BTC-USD --bar 1Wutc --history --limit 200
 ```
+
+> **Demo market data**: All commands above support `--demo` (CLI) or `demo: true` (MCP) to query OKX's simulated trading market data. Default is live data.

@@ -123,3 +123,5 @@ Stock tokens follow underlying exchange hours:
 - Orders outside trading hours may be queued or rejected
 
 Always run `okx market ticker <instId>` to confirm a live last price before placing any stock token order.
+
+> **Demo market data**: All commands above support `--demo` (CLI) or `demo: true` (MCP) to query OKX's simulated trading market data. Default is live data.

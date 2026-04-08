@@ -141,3 +141,5 @@ When using MCP tools directly (instead of CLI), the tool names map as follows:
 | `market instruments-by-category` | `market_get_instruments_by_category` |
 | `market indicator list` | `market_list_indicators` |
 | `market indicator <name> <instId>` | `market_get_indicator` |
+
+> **`demo` parameter (MCP only)**: All market MCP tools (except `market_list_indicators` and `market_get_indicator`) accept an optional `demo: true` parameter to query OKX's simulated trading market data environment. Default is `false` (live data). CLI equivalent: `--demo` global flag.
