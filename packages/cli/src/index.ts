@@ -1191,7 +1191,7 @@ function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxCon
 }
 
 /** Wrap a ToolRunner with audit logging via TradeLogger. */
-export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger): ToolRunner {
+export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger, verbose = false): ToolRunner {
   const writeToolNames = new Set(allToolSpecs().filter((t) => t.isWrite).map((t) => t.name));
   return async (toolName, args) => {
     const startTime = Date.now();
@@ -1200,7 +1200,11 @@ export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger
       if (writeToolNames.has(toolName)) {
         markFailedIfSCodeError(result.data);
       }
-      logger.log("info", toolName, args, result, Date.now() - startTime);
+      const elapsed = Date.now() - startTime;
+      logger.log("info", toolName, args, { status: "ok" }, elapsed);
+      if (verbose) {
+        logger.log("debug", toolName, args, result, elapsed);
+      }
       return result;
     } catch (error) {
       logger.log("error", toolName, args, error, Date.now() - startTime);
@@ -1257,8 +1261,8 @@ async function main(): Promise<void> {
 
   const client = new OkxRestClient(config);
   const baseRunner = createToolRunner(client, config);
-  const logger = new TradeLogger("info");
-  const run = wrapRunnerWithLogger(baseRunner, logger);
+  const logger = new TradeLogger(v.verbose ? "debug" : "info");
+  const run = wrapRunnerWithLogger(baseRunner, logger, v.verbose ?? false);
 
   const moduleHandlers: Record<string, () => Promise<void> | void> = {
     market:  () => handleMarketCommand(run, action, rest, v, json),
