@@ -9,8 +9,24 @@ import os from "node:os";
 import { spawnSync, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { getConfigPath } from "@agent-tradekit/core";
-import { Report, ok, fail, section, sanitize, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
+import {
+  getConfigPath,
+  allToolSpecs,
+  CLIENT_NAMES,
+  DEFAULT_MODULES,
+} from "@agent-tradekit/core";
+import type { ClientId } from "@agent-tradekit/core";
+import {
+  Report,
+  ok,
+  fail,
+  warn,
+  section,
+  sanitize,
+  readCliVersion,
+  writeReportIfRequested,
+} from "./diagnose-utils.js";
+import { outputLine } from "../formatter.js";
 
 const _require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -115,67 +131,235 @@ export function checkMcpEntryPoint(report: Report): { entryPath: string | null; 
   }
 }
 
-export function checkClaudeDesktopConfig(report: Report): boolean {
-  section("Claude Desktop Config");
+/** Server name token used to detect okx-trade-mcp entries in any client config. */
+const MCP_SERVER_NAME = "okx-trade-mcp";
 
-  const configPath = getConfigPath("claude-desktop");
-  if (!configPath) {
-    ok("config path", "(not applicable on this platform)");
-    report.add("claude_cfg", "n/a");
-    return true;
-  }
+// ---------------------------------------------------------------------------
+// MCP client tool count limits (as of 2026-03)
+// Source: Cursor docs & community reports; update when clients change limits.
+// ---------------------------------------------------------------------------
+const CLIENT_LIMITS: Partial<Record<ClientId, { perServer: number; total: number }>> = {
+  cursor: { perServer: 40, total: 80 },
+};
 
-  if (!fs.existsSync(configPath)) {
-    fail("config file", `not found: ${configPath}`, [
-      "Claude Desktop may not be installed",
-      "Run: okx setup --client claude-desktop to configure",
-    ]);
-    report.add("claude_cfg", `MISSING ${sanitize(configPath)}`);
-    return false;
-  }
-
-  ok("config file", configPath);
-  report.add("claude_cfg", sanitize(configPath));
-
-  // Try to parse and check for okx-trade-mcp entry
+/**
+ * Check if a JSON config file (mcpServers format) contains an okx-trade-mcp entry.
+ * Returns "found" | "not-configured" | "parse-error" | "missing".
+ */
+function checkJsonMcpConfig(configPath: string): "found" | "not-configured" | "parse-error" | "missing" {
+  if (!fs.existsSync(configPath)) return "missing";
   try {
     const raw = fs.readFileSync(configPath, "utf8");
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const mcpServers = parsed["mcpServers"] as Record<string, unknown> | undefined;
-    if (!mcpServers) {
-      fail("mcp entry", "no mcpServers section found", [
-        "Run: okx setup --client claude-desktop",
-      ]);
-      report.add("claude_mcp", "NO_SECTION");
-      return false;
-    }
-
-    // Look for any entry whose command or args reference okx-trade-mcp
+    if (!mcpServers) return "not-configured";
     const entries = Object.entries(mcpServers);
-    const mcpEntry = entries.find(([, v]) => {
+    const found = entries.find(([name, v]) => {
+      if (name.includes(MCP_SERVER_NAME)) return true;
       const val = v as Record<string, unknown>;
       const cmd = String(val["command"] ?? "");
       const args = (val["args"] as string[] | undefined) ?? [];
-      return cmd.includes("okx-trade-mcp") || args.some((a) => a.includes("okx-trade-mcp"));
+      return cmd.includes(MCP_SERVER_NAME) || args.some((a) => a.includes(MCP_SERVER_NAME));
     });
+    return found ? "found" : "not-configured";
+  } catch (_e) {
+    return "parse-error";
+  }
+}
 
-    if (mcpEntry) {
-      ok("mcp entry", `found: "${mcpEntry[0]}"`);
-      report.add("claude_mcp", `found:${mcpEntry[0]}`);
-      return true;
-    } else {
-      fail("mcp entry", "okx-trade-mcp not found in mcpServers", [
-        "Run: okx setup --client claude-desktop",
-      ]);
-      report.add("claude_mcp", "NOT_CONFIGURED");
-      return false;
-    }
-  } catch (e) {
-    fail("config parse", `JSON parse error: ${e instanceof Error ? e.message : String(e)}`, [
-      `Check ${configPath} for JSON syntax errors`,
-    ]);
-    report.add("claude_cfg_parse", "FAIL");
+/**
+ * Check Claude Code configuration by looking at ~/.claude/settings.json
+ * and ~/.claude.json for mcpServers entries containing okx-trade-mcp.
+ * Iterates all candidates: a parse error in one file does not prevent
+ * checking the other.
+ */
+function checkClaudeCodeConfig(): "found" | "not-configured" | "parse-error" | "missing" {
+  const home = os.homedir();
+  const candidates = [
+    path.join(home, ".claude", "settings.json"),
+    path.join(home, ".claude.json"),
+  ];
+  let anyFound = false;
+  let anyParseError = false;
+  for (const cfgPath of candidates) {
+    if (!fs.existsSync(cfgPath)) continue;
+    anyFound = true;
+    const result = checkJsonMcpConfig(cfgPath);
+    if (result === "found") return "found";
+    if (result === "parse-error") anyParseError = true;
+  }
+  if (!anyFound) return "missing";
+  if (anyParseError) return "parse-error";
+  return "not-configured";
+}
+
+/**
+ * Handle a single JSON-config client. Returns true if a failure was recorded.
+ */
+function handleJsonClient(
+  clientId: ClientId,
+  report: Report,
+  configuredClients: ClientId[],
+): boolean {
+  const configPath = getConfigPath(clientId);
+  if (!configPath) return false; // platform doesn't support this client
+
+  const name = CLIENT_NAMES[clientId];
+  const status = checkJsonMcpConfig(configPath);
+
+  if (status === "missing") return false; // client not installed — skip silently
+
+  if (status === "found") {
+    ok(name, `configured (${sanitize(configPath)})`);
+    report.add(`client_${clientId}`, `OK ${sanitize(configPath)}`);
+    configuredClients.push(clientId);
     return false;
+  }
+
+  if (status === "not-configured") {
+    fail(name, "okx-trade-mcp not found in mcpServers", [`Run: okx setup --client ${clientId}`]);
+    report.add(`client_${clientId}`, "NOT_CONFIGURED");
+  } else {
+    fail(name, `JSON parse error in ${sanitize(configPath)}`, [
+      `Check ${sanitize(configPath)} for JSON syntax errors`,
+      `Then run: okx setup --client ${clientId}`,
+    ]);
+    report.add(`client_${clientId}`, "PARSE_ERROR");
+  }
+  return true;
+}
+
+/**
+ * Handle Claude Code client. Returns true if a hard failure was recorded.
+ * "not-configured" is a warning only — Claude Code may be used for other purposes.
+ */
+function handleClaudeCodeClient(report: Report, configuredClients: ClientId[]): boolean {
+  const status = checkClaudeCodeConfig();
+  if (status === "missing") return false;
+
+  const name = CLIENT_NAMES["claude-code"];
+
+  if (status === "found") {
+    ok(name, "configured");
+    report.add("client_claude-code", "OK");
+    configuredClients.push("claude-code");
+    return false;
+  }
+
+  if (status === "not-configured") {
+    warn(name, "installed but okx-trade-mcp not configured", [
+      "Run: okx setup --client claude-code",
+    ]);
+    report.add("client_claude-code", "NOT_CONFIGURED");
+    return false; // not a hard failure
+  }
+
+  fail(name, "settings file has JSON parse error", ["Run: okx setup --client claude-code"]);
+  report.add("client_claude-code", "PARSE_ERROR");
+  return true;
+}
+
+/**
+ * Check all known MCP clients and return overall pass/fail and list of configured clients.
+ * - Found + valid → ✓, added to configuredClients
+ * - Found + invalid → ✗ with fix guidance
+ * - Not found → skip (no output, no fail)
+ * - At least one client configured → overall pass
+ */
+export function checkMcpClients(report: Report): { passed: boolean; configuredClients: ClientId[] } {
+  section("MCP Client Config");
+
+  const jsonClients: ClientId[] = ["claude-desktop", "cursor", "windsurf"];
+  const configuredClients: ClientId[] = [];
+  let anyFailed = false;
+
+  for (const clientId of jsonClients) {
+    if (handleJsonClient(clientId, report, configuredClients)) anyFailed = true;
+  }
+
+  // Claude Code — special handling (uses claude mcp add, config paths vary)
+  if (handleClaudeCodeClient(report, configuredClients)) anyFailed = true;
+
+  // vscode is project-level — skip for global diagnose
+
+  if (configuredClients.length === 0 && !anyFailed) {
+    // No client config found at all
+    fail("no client", "no MCP client configuration found", [
+      "Run: okx setup --client <client>",
+      "Supported clients: claude-desktop, cursor, windsurf, claude-code",
+    ]);
+    report.add("client_cfg", "NONE_FOUND");
+    return { passed: false, configuredClients };
+  }
+
+  const passed = configuredClients.length > 0 && !anyFailed;
+  report.add("client_cfg", passed ? `OK (${configuredClients.join(",")})` : "FAIL");
+  return { passed, configuredClients };
+}
+
+/**
+ * Check tool count and warn if exceeding known client limits.
+ * Tool count warnings do not affect overall pass/fail — they are advisory only.
+ *
+ * @param getSpecs - Optional override for retrieving tool specs (used in tests).
+ */
+export function checkToolCount(
+  report: Report,
+  configuredClients: ClientId[],
+  getSpecs: () => ReturnType<typeof allToolSpecs> = allToolSpecs,
+): void {
+  section("Tool Count");
+
+  const specs = getSpecs();
+  const totalCount = specs.length;
+
+  // Count tools for default modules (the suggested --modules set)
+  const defaultModuleSet = new Set<string>(DEFAULT_MODULES);
+  const defaultCount = specs.filter((s) => defaultModuleSet.has(s.module)).length;
+  const defaultModulesArg = DEFAULT_MODULES.join(",");
+
+  // Determine which limits apply based on configured clients
+  const applicableLimits = configuredClients
+    .map((id) => ({ id, limits: CLIENT_LIMITS[id] }))
+    .filter((x): x is { id: ClientId; limits: { perServer: number; total: number } } => x.limits !== undefined);
+
+  if (applicableLimits.length === 0) {
+    // No clients with known limits — just report count
+    ok("total tools", `${totalCount} tools loaded`);
+    report.add("tool_count", `${totalCount}`);
+    return;
+  }
+
+  // Check against each limit
+  let anyExceeded = false;
+  for (const { id, limits } of applicableLimits) {
+    const name = CLIENT_NAMES[id];
+    if (totalCount > limits.total) {
+      warn(
+        "tool count",
+        `${totalCount} tools loaded — exceeds ${name} limit (${limits.total} total / ${limits.perServer} per server)`,
+        [
+          `Use --modules to reduce: okx-trade-mcp --modules ${defaultModulesArg} (${defaultCount} tools)`,
+        ],
+      );
+      report.add("tool_count", `${totalCount} EXCEEDS_${id.toUpperCase()}_LIMIT`);
+      anyExceeded = true;
+    } else if (totalCount > limits.perServer) {
+      warn(
+        "tool count",
+        `${totalCount} tools loaded — exceeds ${name} per-server limit (${limits.perServer})`,
+        [
+          `Use --modules to reduce: okx-trade-mcp --modules ${defaultModulesArg} (${defaultCount} tools)`,
+        ],
+      );
+      report.add("tool_count", `${totalCount} EXCEEDS_${id.toUpperCase()}_PER_SERVER_LIMIT`);
+      anyExceeded = true;
+    }
+  }
+
+  if (!anyExceeded) {
+    ok("total tools", `${totalCount} tools loaded (within limits for all configured clients)`);
+    report.add("tool_count", `${totalCount} OK`);
   }
 }
 
@@ -238,7 +422,7 @@ export function checkMcpLogs(report: Report): void {
       report.add("mcp_log", logPath);
       if (lines.length > 0) {
         ok("last lines", `(${lines.length} shown)`);
-        for (const line of lines) process.stdout.write(`    ${sanitize(line)}\n`);
+        for (const line of lines) outputLine(`    ${sanitize(line)}`);
       } else {
         ok("last lines", "(empty log)");
       }
@@ -417,8 +601,9 @@ export interface DiagnoseMcpOptions {
 }
 
 export async function cmdDiagnoseMcp(options: DiagnoseMcpOptions = {}): Promise<void> {
-  process.stdout.write("\n  OKX MCP Server Diagnostics\n");
-  process.stdout.write("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n");
+  outputLine("");
+  outputLine("  OKX MCP Server Diagnostics");
+  outputLine("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
 
   const report = new Report();
   report.add("ts", new Date().toISOString());
@@ -428,10 +613,13 @@ export async function cmdDiagnoseMcp(options: DiagnoseMcpOptions = {}): Promise<
   checkMcpPackageVersion(report);
   const nodePassed = checkNodeCompat(report);
   const { entryPath, passed: entryPassed } = checkMcpEntryPoint(report);
-  const cfgPassed = checkClaudeDesktopConfig(report);
+  const { passed: cfgPassed, configuredClients } = checkMcpClients(report);
   checkMcpLogs(report);
 
   const moduleLoadPassed = checkModuleLoading(entryPath, report);
+
+  // Tool count check — advisory only, does not affect pass/fail
+  checkToolCount(report, configuredClients);
 
   let handshakePassed = false;
   if (entryPath && entryPassed && moduleLoadPassed) {
@@ -446,11 +634,11 @@ export async function cmdDiagnoseMcp(options: DiagnoseMcpOptions = {}): Promise<
   const allPassed = nodePassed && entryPassed && cfgPassed && moduleLoadPassed && handshakePassed;
 
   // --- Result ---
-  process.stdout.write("\n");
+  outputLine("");
   if (allPassed) {
-    process.stdout.write("  Result: All checks passed \u2713\n");
+    outputLine("  Result: All checks passed \u2713");
   } else {
-    process.stdout.write("  Result: Some checks failed \u2717\n");
+    outputLine("  Result: Some checks failed \u2717");
     process.exitCode = 1;
   }
 

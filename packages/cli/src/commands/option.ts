@@ -1,8 +1,29 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printKv, printTable } from "../formatter.js";
+import { errorLine, outputLine, printJson, printKv, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
+}
+
+function emitWriteResult(item: Record<string, unknown> | undefined, label: string, idKey: string): void {
+  const isError = item?.["sCode"] !== "0" && item?.["sCode"] !== 0;
+  if (isError) {
+    errorLine(`Error: ${item?.["sMsg"]} (sCode ${item?.["sCode"]})`);
+  } else {
+    outputLine(`${label}: ${item?.[idKey]} (OK)`);
+  }
+}
+
+function emitBatchResults(items: Record<string, unknown>[]): void {
+  for (const r of items) {
+    const isError = r["sCode"] !== "0" && r["sCode"] !== 0;
+    const id = r["ordId"] ?? r["clOrdId"] ?? "?";
+    if (isError) {
+      errorLine(`${id}: ${r["sMsg"]} (sCode ${r["sCode"]})`);
+    } else {
+      outputLine(`${id}: OK`);
+    }
+  }
 }
 
 export async function cmdOptionOrders(
@@ -41,7 +62,7 @@ export async function cmdOptionGet(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const o = data?.[0];
-  if (!o) { process.stdout.write("No data\n"); return; }
+  if (!o) { outputLine("No data"); return; }
   printKv({
     ordId: o["ordId"],
     instId: o["instId"],
@@ -67,7 +88,7 @@ export async function cmdOptionPositions(
   const positions = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(positions);
   const open = (positions ?? []).filter((p) => Number(p["pos"]) !== 0);
-  if (!open.length) { process.stdout.write("No open positions\n"); return; }
+  if (!open.length) { outputLine("No open positions"); return; }
   printTable(
     open.map((p) => ({
       instId: p["instId"],
@@ -159,6 +180,7 @@ export async function cmdOptionPlace(
     side: string;
     ordType: string;
     sz: string;
+    tgtCcy?: string;
     px?: string;
     reduceOnly?: boolean;
     clOrdId?: string;
@@ -175,6 +197,7 @@ export async function cmdOptionPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     px: opts.px,
     reduceOnly: opts.reduceOnly,
     clOrdId: opts.clOrdId,
@@ -185,8 +208,7 @@ export async function cmdOptionPlace(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const order = data?.[0];
-  process.stdout.write(`Order placed: ${order?.["ordId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`);
+  emitWriteResult(data?.[0], "Order placed", "ordId");
 }
 
 export async function cmdOptionCancel(
@@ -200,8 +222,7 @@ export async function cmdOptionCancel(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(`Cancelled: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
+  emitWriteResult(data?.[0], "Cancelled", "ordId");
 }
 
 export async function cmdOptionAmend(
@@ -217,8 +238,7 @@ export async function cmdOptionAmend(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(`Amended: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
+  emitWriteResult(data?.[0], "Amended", "ordId");
 }
 
 export async function cmdOptionBatchCancel(
@@ -229,21 +249,19 @@ export async function cmdOptionBatchCancel(
   try {
     parsed = JSON.parse(opts.orders);
   } catch {
-    process.stderr.write("Error: --orders must be a valid JSON array\n");
+    errorLine("Error: --orders must be a valid JSON array");
     process.exitCode = 1;
     return;
   }
   if (!Array.isArray(parsed) || parsed.length === 0) {
-    process.stderr.write("Error: --orders must be a non-empty JSON array\n");
+    errorLine("Error: --orders must be a non-empty JSON array");
     process.exitCode = 1;
     return;
   }
   const result = await run("option_batch_cancel", { orders: parsed });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  for (const r of data ?? []) {
-    process.stdout.write(`${r["ordId"]}: ${r["sCode"] === "0" ? "OK" : r["sMsg"]}\n`);
-  }
+  emitBatchResults(data ?? []);
 }
 
 export async function cmdOptionAlgoPlace(
@@ -254,6 +272,7 @@ export async function cmdOptionAlgoPlace(
     side: string;
     ordType: string;
     sz: string;
+    tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -269,6 +288,7 @@ export async function cmdOptionAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,
@@ -278,10 +298,7 @@ export async function cmdOptionAlgoPlace(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const order = data?.[0];
-  process.stdout.write(
-    `Algo order placed: ${order?.["algoId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Algo order placed", "algoId");
 }
 
 export async function cmdOptionAlgoAmend(
@@ -308,10 +325,7 @@ export async function cmdOptionAlgoAmend(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(
-    `Algo order amended: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Algo order amended", "algoId");
 }
 
 export async function cmdOptionAlgoCancel(
@@ -321,10 +335,7 @@ export async function cmdOptionAlgoCancel(
   const result = await run("option_cancel_algo_orders", { orders: [{ instId: opts.instId, algoId: opts.algoId }] });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(
-    `Algo order cancelled: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Algo order cancelled", "algoId");
 }
 
 export async function cmdOptionAlgoOrders(
@@ -338,7 +349,7 @@ export async function cmdOptionAlgoOrders(
   });
   const orders = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(orders);
-  if (!(orders ?? []).length) { process.stdout.write("No algo orders\n"); return; }
+  if (!(orders ?? []).length) { outputLine("No algo orders"); return; }
   printTable(
     orders.map((o) => ({
       algoId: o["algoId"],

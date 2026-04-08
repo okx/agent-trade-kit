@@ -12,7 +12,7 @@ export default defineConfig({
   clean: true,
   dts: false,
   noExternal: ["@agent-tradekit/core"],
-  external: ["undici"],
+  external: ["undici", "yauzl"],
   banner: { js: "#!/usr/bin/env node" },
   define: { __GIT_HASH__: JSON.stringify(gitHash) },
 });

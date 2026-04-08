@@ -186,6 +186,37 @@ describe("handleMarketPublicCommand", () => {
     );
     assert.ok(result instanceof Promise, "stock-tokens with params should return a Promise");
   });
+
+  it("dispatches instruments-by-category action (returns a Promise)", () => {
+    const result = handleMarketPublicCommand(mockRunner, "instruments-by-category", [], { instCategory: "4" }, false);
+    assert.ok(result instanceof Promise, "instruments-by-category should return a Promise");
+  });
+
+  it("dispatches instruments-by-category with instCategory=3 (stock tokens via new command)", () => {
+    const result = handleMarketPublicCommand(mockRunner, "instruments-by-category", [], { instCategory: "3" }, false);
+    assert.ok(result instanceof Promise, "instCategory=3 should be handled by instruments-by-category");
+  });
+
+  it("dispatches instruments-by-category with instCategory from v (not positional)", () => {
+    // This test ensures instCategory comes from v.instCategory (named flag), not rest[N] (positional arg)
+    const capturedArgs: Record<string, unknown>[] = [];
+    const spyRunner: ToolRunner = async (_tool, args) => {
+      capturedArgs.push(args as Record<string, unknown>);
+      return { endpoint: "", requestTime: "", data: [] };
+    };
+    const result = handleMarketPublicCommand(
+      spyRunner,
+      "instruments-by-category",
+      [],
+      { instCategory: "6", instType: "SPOT" },
+      false,
+    );
+    assert.ok(result instanceof Promise);
+    return result.then(() => {
+      assert.equal(capturedArgs[0]?.instCategory, "6", "instCategory must come from v.instCategory");
+      assert.equal(capturedArgs[0]?.instType, "SPOT");
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -200,6 +231,27 @@ describe("handleMarketDataCommand", () => {
   it("evaluates limit from v.limit when set", () => {
     const result = handleMarketDataCommand(noopRunner, "noop", [], { limit: "50" }, false);
     assert.equal(result, undefined);
+  });
+
+  function makeCaptureSpy(): { spy: ToolRunner; getCaptured: () => Record<string, unknown> } {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_tool, args) => {
+      captured = args as Record<string, unknown>;
+      return { endpoint: "GET /api/v5/market/candles", requestTime: new Date().toISOString(), data: [] };
+    };
+    return { spy, getCaptured: () => captured };
+  }
+
+  it("passes --after as named flag (v.after), not positional arg", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleMarketDataCommand(spy, "candles", ["BTC-USDT"], { after: "1672531200000" }, false);
+    assert.equal(getCaptured()["after"], "1672531200000");
+  });
+
+  it("passes --before as named flag (v.before), not positional arg", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleMarketDataCommand(spy, "candles", ["BTC-USDT"], { before: "1675209600000" }, false);
+    assert.equal(getCaptured()["before"], "1675209600000");
   });
 });
 
@@ -314,11 +366,6 @@ describe("handleEarnCommand", () => {
     assert.ok(result instanceof Promise, "savings lending-history should return a Promise");
   });
 
-  it("dispatches savings rate-summary (returns a Promise)", () => {
-    const result = handleEarnCommand(mockRunner, "savings", ["rate-summary", "USDT"], {}, false);
-    assert.ok(result instanceof Promise, "savings rate-summary should return a Promise");
-  });
-
   it("dispatches savings rate-history (returns a Promise)", () => {
     const result = handleEarnCommand(mockRunner, "savings", ["rate-history"], {}, false);
     assert.ok(result instanceof Promise, "savings rate-history should return a Promise");
@@ -347,10 +394,9 @@ describe("handleEarnCommand", () => {
 import {
   cmdEarnSavingsBalance,
   cmdEarnLendingHistory,
-  cmdEarnLendingRateSummary,
   cmdEarnLendingRateHistory,
 } from "../src/commands/earn.js";
-import { cmdMarketStockTokens } from "../src/commands/market.js";
+import { cmdMarketStockTokens, cmdMarketInstrumentsByCategory } from "../src/commands/market.js";
 import {
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
@@ -409,22 +455,6 @@ describe("cmdEarnLendingHistory output", () => {
   it("prints empty message when no data", async () => {
     const out = await captureStdout(() => cmdEarnLendingHistory(emptyRunner, { json: false }));
     assert.ok(out.includes("No lending history"));
-  });
-});
-
-describe("cmdEarnLendingRateSummary output", () => {
-  it("prints table when data exists", async () => {
-    const runner: ToolRunner = async () => ({
-      endpoint: "/api/v5/test", requestTime: "ts",
-      data: [{ ccy: "USDT", avgRate: "0.01", estRate: "0.02", avgAmt: "1000" }],
-    });
-    const out = await captureStdout(() => cmdEarnLendingRateSummary(runner, "USDT", false));
-    assert.ok(out.length > 0);
-  });
-
-  it("prints empty message when no data", async () => {
-    const out = await captureStdout(() => cmdEarnLendingRateSummary(emptyRunner, undefined, false));
-    assert.ok(out.includes("No rate summary data"));
   });
 });
 
@@ -581,6 +611,64 @@ describe("cmdMarketStockTokens output", () => {
     });
     const out = await captureStdout(() => cmdMarketStockTokens(emptyStockRunner, { json: false }));
     assert.ok(typeof out === "string", "should not throw on empty data");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketInstrumentsByCategory — output coverage
+// ---------------------------------------------------------------------------
+
+const metalsRunner: ToolRunner = async () => ({
+  endpoint: "/api/v5/public/instruments",
+  requestTime: new Date().toISOString(),
+  data: [
+    { instId: "XAUUSDT-USDT-SWAP", instCategory: "4", ctVal: "0.1", lotSz: "1", minSz: "1", tickSz: "0.01", state: "live" },
+    { instId: "XAGUSDT-USDT-SWAP", instCategory: "4", ctVal: "1", lotSz: "1", minSz: "1", tickSz: "0.001", state: "live" },
+  ],
+});
+
+describe("cmdMarketInstrumentsByCategory output", () => {
+  it("prints table with category label for metals (4)", async () => {
+    const out = await captureStdout(() =>
+      cmdMarketInstrumentsByCategory(metalsRunner, { instCategory: "4", json: false })
+    );
+    assert.ok(out.includes("XAUUSDT-USDT-SWAP"), "should include gold instrument");
+    assert.ok(out.includes("Metals"), "should include category label");
+  });
+
+  it("prints 'Stock tokens' label for instCategory=3", async () => {
+    const stockRunner: ToolRunner = async () => ({
+      endpoint: "/api/v5/public/instruments",
+      requestTime: new Date().toISOString(),
+      data: [
+        { instId: "AAPL-USDT-SWAP", instCategory: "3", ctVal: "1", lotSz: "1", minSz: "1", tickSz: "0.01", state: "live" },
+      ],
+    });
+    const out = await captureStdout(() =>
+      cmdMarketInstrumentsByCategory(stockRunner, { instCategory: "3", json: false })
+    );
+    assert.ok(out.includes("Stock tokens"), "should print Stock tokens label for category 3");
+    assert.ok(out.includes("AAPL-USDT-SWAP"));
+  });
+
+  it("prints JSON when json=true", async () => {
+    const out = await captureStdout(() =>
+      cmdMarketInstrumentsByCategory(metalsRunner, { instCategory: "4", json: true })
+    );
+    assert.doesNotThrow(() => JSON.parse(out));
+    const parsed = JSON.parse(out) as Array<{ instId: string }>;
+    assert.equal(parsed.length, 2);
+  });
+
+  it("passes instCategory to tool runner", async () => {
+    const capturedArgs: Record<string, unknown>[] = [];
+    const spyRunner: ToolRunner = async (_tool, args) => {
+      capturedArgs.push(args as Record<string, unknown>);
+      return { endpoint: "", requestTime: "", data: [] };
+    };
+    await cmdMarketInstrumentsByCategory(spyRunner, { instCategory: "6", instType: "SWAP", json: false });
+    assert.equal(capturedArgs[0]?.instCategory, "6", "instCategory must be passed to tool");
+    assert.equal(capturedArgs[0]?.instType, "SWAP");
   });
 });
 

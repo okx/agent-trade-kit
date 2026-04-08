@@ -1,15 +1,19 @@
 {
   "name": "okx-hub",
   "private": true,
-  "version": "1.2.5",
+  "version": "1.3.0",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "pnpm --filter @agent-tradekit/core build && pnpm --filter @okx_ai/okx-trade-mcp build && pnpm --filter @okx_ai/okx-trade-cli build",
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
     "test:unit": "pnpm --filter @agent-tradekit/core test:unit && pnpm --filter @okx_ai/okx-trade-cli test:unit && pnpm --filter @okx_ai/okx-trade-mcp test:unit",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
-    "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts"
+    "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
+    "pretest": "npm run build -w packages/core"
   },
   "engines": {
     "node": ">=18",

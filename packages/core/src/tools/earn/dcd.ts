@@ -78,14 +78,14 @@ export function registerDcdTools(): ToolSpec[] {
     {
       name: "dcd_get_products",
       module: "earn.dcd",
-      description: "Get DCD products with yield and quota info.",
+      description: "Get DCD products with yield and quota info. Yields in response are decimal fractions, not percentages.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           baseCcy: { type: "string", description: "Base currency, e.g. BTC" },
           quoteCcy: { type: "string", description: "Quote currency, e.g. USDT" },
-          optType: { type: "string", description: "Option type: C (Call/高卖) or P (Put/低买)" },
+          optType: { type: "string", description: "Option type: C (Call, sell high) or P (Put, buy low)" },
         },
         required: ["baseCcy", "quoteCcy", "optType"],
       },
@@ -132,7 +132,7 @@ export function registerDcdTools(): ToolSpec[] {
     {
       name: "dcd_get_orders",
       module: "earn.dcd",
-      description: "Get DCD order history.",
+      description: "Get DCD order history. Yields in response are decimal fractions, not percentages.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -180,8 +180,8 @@ export function registerDcdTools(): ToolSpec[] {
       description:
         "Subscribe to a DCD product: get quote and execute atomically. " +
         "Confirm product, amount, and currency with user before calling. " +
-        "Optional minAnnualizedYield (percent) rejects the order if quote yield falls below threshold. " +
-        "Returns order result with quote snapshot (annualizedYield, absYield).",
+        "Optional minAnnualizedYield rejects the order if quote yield falls below threshold. " +
+        "Returns order result with quote snapshot (minAnnualizedYield is in percent; response yields are decimal fractions).",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -200,7 +200,6 @@ export function registerDcdTools(): ToolSpec[] {
         required: ["productId", "notionalSz", "notionalCcy"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "dcd_subscribe");
         const args = asRecord(rawArgs);
         const productId = requireString(args, "productId");
         const notionalSz = requireString(args, "notionalSz");
@@ -229,14 +228,25 @@ export function registerDcdTools(): ToolSpec[] {
           }
 
           // Step 2: check minAnnualizedYield before executing
+          // API returns annualizedYield as decimal (e.g. 0.1748 = 17.48%), convert to percent for comparison
           if (minAnnualizedYield !== undefined) {
-            const actualYield = parseFloat(quote["annualizedYield"] as string);
-            if (!isNaN(actualYield) && actualYield < minAnnualizedYield) {
+            const rawYield = parseFloat(quote["annualizedYield"] as string);
+            if (isNaN(rawYield)) {
               throw new OkxApiError(
-                `Quote yield ${actualYield}% is below the minimum threshold of ${minAnnualizedYield}%.`,
+                "Quote returned non-numeric annualizedYield, cannot verify minimum yield threshold.",
+                {
+                  code: "INVALID_YIELD_VALUE",
+                  suggestion: "Order not placed. The quote did not include a valid annualizedYield. Retry or pick a different product.",
+                },
+              );
+            }
+            const actualYieldPct = rawYield * 100;
+            if (actualYieldPct < minAnnualizedYield) {
+              throw new OkxApiError(
+                `Quote yield ${actualYieldPct.toFixed(2)}% is below the minimum threshold of ${minAnnualizedYield}%.`,
                 {
                   code: "YIELD_BELOW_MIN",
-                  suggestion: `Order not placed. Actual: ${actualYield}%, required: >= ${minAnnualizedYield}%. Try a different product or lower your minimum yield.`,
+                  suggestion: `Order not placed. Actual: ${actualYieldPct.toFixed(2)}%, required: >= ${minAnnualizedYield}%. Try a different product or lower your minimum yield.`,
                 },
               );
             }

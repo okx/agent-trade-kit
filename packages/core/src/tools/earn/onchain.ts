@@ -7,7 +7,7 @@ import {
   readString,
   requireString,
 } from "../helpers.js";
-import { assertNotDemo, privateRateLimit } from "../common.js";
+import { privateRateLimit } from "../common.js";
 
 export function registerOnchainEarnTools(): ToolSpec[] {
   return [
@@ -59,7 +59,7 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_purchase",
       module: "earn.onchain",
-      description: "Invest in a staking/DeFi product. [CAUTION] Moves real funds. Not available in demo mode.",
+      description: "Invest in a staking/DeFi product. [CAUTION] Moves real funds.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -92,7 +92,6 @@ export function registerOnchainEarnTools(): ToolSpec[] {
         required: ["productId", "investData"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "onchain_earn_purchase");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/staking-defi/purchase",
@@ -114,7 +113,7 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_redeem",
       module: "earn.onchain",
-      description: "Redeem a staking/DeFi investment. [CAUTION] Some products have lock periods, early redemption may incur penalties. Not available in demo mode.",
+      description: "Redeem a staking/DeFi investment. [CAUTION] Some products have lock periods, early redemption may incur penalties.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -135,7 +134,6 @@ export function registerOnchainEarnTools(): ToolSpec[] {
         required: ["ordId", "protocolType"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "onchain_earn_redeem");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/staking-defi/redeem",
@@ -156,7 +154,7 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     {
       name: "onchain_earn_cancel",
       module: "earn.onchain",
-      description: "Cancel a pending staking/DeFi purchase order. [CAUTION] Not available in demo mode.",
+      description: "Cancel a pending staking/DeFi purchase order. [CAUTION]",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -173,7 +171,6 @@ export function registerOnchainEarnTools(): ToolSpec[] {
         required: ["ordId", "protocolType"],
       },
       handler: async (rawArgs, context) => {
-        assertNotDemo(context.config, "onchain_earn_cancel");
         const args = asRecord(rawArgs);
         const response = await context.client.privatePost(
           "/api/v5/finance/staking-defi/cancel",

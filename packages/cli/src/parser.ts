@@ -4,6 +4,7 @@ export interface CliValues {
   profile?: string;
   demo?: boolean;
   json?: boolean;
+  env?: boolean;
   help?: boolean;
   version?: boolean;
   client?: string;
@@ -19,6 +20,7 @@ export interface CliValues {
   px?: string;
   posSide?: string;
   tdMode?: string;
+  tgtCcy?: string;
   lever?: string;
   mgnMode?: string;
   tpTriggerPx?: string;
@@ -44,11 +46,16 @@ export interface CliValues {
   baseSz?: string;
   direction?: string;
   basePos?: boolean;
+  tpRatio?: string;
+  slRatio?: string;
+  algoClOrdId?: string;
   stopType?: string;
   live?: boolean;
   instType?: string;
+  instCategory?: string;
   quoteCcy?: string;
   archive?: boolean;
+  valuation?: boolean;
   posMode?: string;
   ccy?: string;
   from?: string;
@@ -59,7 +66,7 @@ export interface CliValues {
   autoCxl?: boolean;
   clOrdId?: string;
   newPx?: string;
-  // dca bot (contract only)
+  // dca bot (spot & contract)
   initOrdAmt?: string;
   safetyOrdAmt?: string;
   maxSafetyOrds?: string;
@@ -72,7 +79,13 @@ export interface CliValues {
   allowReinvest?: string;
   triggerStrategy?: string;
   triggerPx?: string;
+  triggerCond?: string;
+  thold?: string;
+  timeframe?: string;
+  timePeriod?: string;
   cycleId?: string;
+  reserveFunds?: string;
+  tradeQuoteCcy?: string;
   lang?: string;
   // option
   uly?: string;
@@ -82,9 +95,14 @@ export interface CliValues {
   orders?: string;
   // earn
   rate?: string;
+  reqId?: string;
+  confirm?: boolean;
   // audit
   since?: string;
   tool?: string;
+  // upgrade
+  beta?: boolean;
+  check?: boolean;
   // config profile
   force?: boolean;
   // onchain-earn
@@ -110,6 +128,19 @@ export interface CliValues {
   maxTermDays?: string;
   expDate?: string;
   minAnnualizedYield?: string;
+  // indicator
+  params?: string;
+  list?: boolean;
+  "backtest-time"?: string;
+  // market candle time range
+  after?: string;
+  before?: string;
+  // skill marketplace
+  keyword?: string;
+  categories?: string;
+  dir?: string;
+  page?: string;
+  format?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -122,6 +153,7 @@ export const CLI_OPTIONS = {
   profile: { type: "string" },
   demo: { type: "boolean", default: false },
   json: { type: "boolean", default: false },
+  env: { type: "boolean", default: false },
   help: { type: "boolean", default: false },
   version: { type: "boolean", short: "v", default: false },
   // setup command
@@ -131,6 +163,8 @@ export const CLI_OPTIONS = {
   bar: { type: "string" },
   limit: { type: "string" },
   sz: { type: "string" },
+  after: { type: "string" },
+  before: { type: "string" },
   // orders
   instId: { type: "string" },
   history: { type: "boolean", default: false },
@@ -141,6 +175,7 @@ export const CLI_OPTIONS = {
   px: { type: "string" },
   posSide: { type: "string" },
   tdMode: { type: "string" },
+  tgtCcy: { type: "string" },
   // leverage
   lever: { type: "string" },
   mgnMode: { type: "string" },
@@ -171,13 +206,18 @@ export const CLI_OPTIONS = {
   baseSz: { type: "string" },
   direction: { type: "string" },
   basePos: { type: "boolean", default: true },
+  tpRatio: { type: "string" },
+  slRatio: { type: "string" },
+  algoClOrdId: { type: "string" },
   stopType: { type: "string" },
   live: { type: "boolean", default: false },
   // market extras
   instType: { type: "string" },
+  instCategory: { type: "string" },
   quoteCcy: { type: "string" },
   // account extras
   archive: { type: "boolean", default: false },
+  valuation: { type: "boolean", default: false },
   posMode: { type: "string" },
   ccy: { type: "string" },
   from: { type: "string" },
@@ -189,7 +229,7 @@ export const CLI_OPTIONS = {
   autoCxl: { type: "boolean", default: false },
   clOrdId: { type: "string" },
   newPx: { type: "string" },
-  // dca bot (contract only)
+  // dca bot (spot & contract)
   initOrdAmt: { type: "string" },
   safetyOrdAmt: { type: "string" },
   maxSafetyOrds: { type: "string" },
@@ -202,7 +242,13 @@ export const CLI_OPTIONS = {
   allowReinvest: { type: "string" },
   triggerStrategy: { type: "string" },
   triggerPx: { type: "string" },
+  triggerCond: { type: "string" },
+  thold: { type: "string" },
+  timeframe: { type: "string" },
+  timePeriod: { type: "string" },
   cycleId: { type: "string" },
+  reserveFunds: { type: "string" },
+  tradeQuoteCcy: { type: "string" },
   // i18n
   lang: { type: "string" },
   // option
@@ -213,9 +259,14 @@ export const CLI_OPTIONS = {
   orders: { type: "string" },
   // earn
   rate: { type: "string" },
+  reqId: { type: "string" },
+  confirm: { type: "boolean", default: false },
   // audit
   since: { type: "string" },
   tool: { type: "string" },
+  // upgrade
+  beta:  { type: "boolean", default: false },
+  check: { type: "boolean", default: false },
   // config profile
   force: { type: "boolean", default: false },
   // onchain-earn
@@ -241,6 +292,16 @@ export const CLI_OPTIONS = {
   maxTermDays: { type: "string" },
   expDate: { type: "string" },
   minAnnualizedYield: { type: "string" },
+  // indicator
+  params: { type: "string" },
+  list: { type: "boolean", default: false },
+  "backtest-time": { type: "string" },
+  // skill marketplace
+  keyword: { type: "string" },
+  categories: { type: "string" },
+  dir: { type: "string" },
+  page: { type: "string" },
+  format: { type: "string" },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks

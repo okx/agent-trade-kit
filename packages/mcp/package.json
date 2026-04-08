@@ -1,6 +1,6 @@
 {
   "name": "@okx_ai/okx-trade-mcp",
-  "version": "1.2.5",
+  "version": "1.3.0",
   "description": "OKX MCP Server - Model Context Protocol server for OKX exchange",
   "type": "module",
   "license": "MIT",
@@ -9,8 +9,14 @@
   "bin": {
     "okx-trade-mcp": "dist/index.js"
   },
-  "files": ["dist", "scripts", "README.md"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "scripts",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\"",
     "typecheck": "tsc --noEmit",
@@ -18,15 +24,23 @@
     "postinstall": "node scripts/postinstall.js || exit 0",
     "test:unit": "node --import tsx/esm --test test/*.test.ts"
   },
-  "engines": { "node": ">=18" },
-  "keywords": ["okx", "mcp", "model-context-protocol", "trading"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "okx",
+    "mcp",
+    "model-context-protocol",
+    "trading"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "smol-toml": "^1.3.4",
+    "yauzl": "^3.2.1",
     "undici": "^6.0.0"
   },
   "devDependencies": {
-    "@agent-tradekit/core": "workspace:*",
+    "@agent-tradekit/core": "file:../core",
     "@types/node": "^25.2.2",
     "tsup": "^8.5.1",
     "tsx": "^4.19.3",

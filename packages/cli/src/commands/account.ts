@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printKv, printTable } from "../formatter.js";
+import {outputLine, printJson, printKv, printTable} from "../formatter.js";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -17,36 +17,63 @@ export async function cmdAccountBalance(
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const details = (data?.[0]?.["details"] as Record<string, unknown>[]) ?? [];
-  printTable(
-    details
-      .filter((d) => Number(d["eq"]) > 0)
-      .map((d) => ({
-        currency: d["ccy"],
-        equity: d["eq"],
-        available: d["availEq"],
-        frozen: d["frozenBal"],
-      })),
-  );
+  const rows = details
+    .filter((d) => Number(d["eq"]) > 0)
+    .map((d) => ({
+      currency: d["ccy"],
+      equity: d["eq"],
+      available: d["availEq"],
+      frozen: d["frozenBal"],
+    }));
+  if (rows.length === 0 && data?.[0]) {
+    printTable([{ currency: "Total", equity: data[0]["totalEq"] ?? "0", available: data[0]["adjEq"] ?? "0", frozen: "-" }]);
+    return;
+  }
+  printTable(rows);
 }
 
 export async function cmdAccountAssetBalance(
   run: ToolRunner,
   ccy: string | undefined,
   json: boolean,
+  showValuation?: boolean,
 ): Promise<void> {
-  const result = await run("account_get_asset_balance", { ccy });
-  const data = getData(result) as Record<string, unknown>[];
-  if (json) return printJson(data);
-  printTable(
-    (data ?? [])
-      .filter((r) => Number(r["bal"]) > 0)
-      .map((r) => ({
-        ccy: r["ccy"],
-        bal: r["bal"],
-        availBal: r["availBal"],
-        frozenBal: r["frozenBal"],
-      })),
-  );
+  const result = await run("account_get_asset_balance", {
+    ccy,
+    ...(showValuation ? { showValuation: true } : {}),
+  }) as unknown as Record<string, unknown>;
+  const data = (result.data ?? []) as Record<string, unknown>[];
+  if (json) return printJson(showValuation ? { data, valuation: result.valuation } : data);
+  const assetRows = data
+    .filter((r) => Number(r["bal"]) > 0)
+    .map((r) => ({
+      ccy: r["ccy"],
+      bal: r["bal"],
+      availBal: r["availBal"],
+      frozenBal: r["frozenBal"],
+    }));
+  if (assetRows.length === 0 && data.length > 0) {
+    outputLine("Total balance: 0");
+  } else {
+    printTable(assetRows);
+  }
+  if (showValuation && result.valuation) {
+    const valuationData = (result.valuation as Record<string, unknown>[]) ?? [];
+    outputLine("");
+    outputLine("Asset Valuation by Account Type:");
+    printTable(
+      valuationData.map((v) => {
+        const details = (v["details"] as Record<string, unknown>) ?? {};
+        return {
+          totalBal: v["totalBal"],
+          classic: details["classic"],
+          earn: details["earn"],
+          funding: details["funding"],
+          trading: details["trading"],
+        };
+      }),
+    );
+  }
 }
 
 export async function cmdAccountPositions(
@@ -57,7 +84,7 @@ export async function cmdAccountPositions(
   const positions = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(positions);
   const open = (positions ?? []).filter((p) => Number(p["pos"]) !== 0);
-  if (!open.length) { process.stdout.write("No open positions\n"); return; }
+  if (!open.length) { outputLine("No open positions"); return; }
   printTable(
     open.map((p) => ({
       instId: p["instId"],
@@ -100,7 +127,7 @@ export async function cmdAccountFees(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const fee = data?.[0];
-  if (!fee) { process.stdout.write("No data\n"); return; }
+  if (!fee) { outputLine("No data"); return; }
   printKv({
     level: fee["level"],
     maker: fee["maker"],
@@ -119,7 +146,7 @@ export async function cmdAccountConfig(
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const cfg = data?.[0];
-  if (!cfg) { process.stdout.write("No data\n"); return; }
+  if (!cfg) { outputLine("No data"); return; }
   printKv({
     uid: cfg["uid"],
     acctLv: cfg["acctLv"],
@@ -140,7 +167,7 @@ export async function cmdAccountSetPositionMode(
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
   const r = data?.[0];
-  process.stdout.write(`Position mode set: ${r?.["posMode"]}\n`);
+  outputLine(`Position mode set: ${r?.["posMode"]}`);
 }
 
 export async function cmdAccountMaxSize(
@@ -151,7 +178,7 @@ export async function cmdAccountMaxSize(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  if (!r) { process.stdout.write("No data\n"); return; }
+  if (!r) { outputLine("No data"); return; }
   printKv({ instId: r["instId"], maxBuy: r["maxBuy"], maxSell: r["maxSell"] });
 }
 
@@ -163,7 +190,7 @@ export async function cmdAccountMaxAvailSize(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  if (!r) { process.stdout.write("No data\n"); return; }
+  if (!r) { outputLine("No data"); return; }
   printKv({ instId: r["instId"], availBuy: r["availBuy"], availSell: r["availSell"] });
 }
 
@@ -226,7 +253,7 @@ export async function cmdAccountTransfer(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  process.stdout.write(`Transfer: ${r?.["transId"]} (${r?.["ccy"]} ${r?.["amt"]})\n`);
+  outputLine(`Transfer: ${r?.["transId"]} (${r?.["ccy"]} ${r?.["amt"]})`);
 }
 
 interface LogEntry {
@@ -276,7 +303,7 @@ export function cmdAccountAudit(
   entries = entries.slice(0, limit);
 
   if (opts.json) return printJson(entries);
-  if (!entries.length) { process.stdout.write("No audit log entries\n"); return; }
+  if (!entries.length) { outputLine("No audit log entries"); return; }
   printTable(
     entries.map((e) => ({
       timestamp: e.timestamp,

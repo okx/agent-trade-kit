@@ -98,6 +98,14 @@ if has_credentials; then
   echo "▶ config"
   run_test "config show"             cli config show
 
+  echo ""
+  echo "▶ skill (private read)"
+  run_test "search --json"           cli skill search --json
+  run_test "search table"            cli skill search
+  run_test "categories --json"       cli skill categories --json
+  run_test "categories table"        cli skill categories
+  run_test "list"                    cli skill list
+
 else
   echo ""
   echo "  ⚠️  未检测到凭证，跳过 private 测试。"

@@ -1,18 +1,13 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdSpotPlace } from "../src/commands/spot.js";
 import { cmdSwapPlace } from "../src/commands/swap.js";
 import { cmdFuturesPlace } from "../src/commands/futures.js";
+import { setOutput, resetOutput } from "../src/formatter.js";
 
-// Capture stdout to prevent noise during tests
-function muteStdout(fn: () => Promise<void>): Promise<void> {
-  const orig = process.stdout.write.bind(process.stdout);
-  (process.stdout as { write: typeof process.stdout.write }).write = () => true;
-  return fn().finally(() => {
-    process.stdout.write = orig;
-  });
-}
+beforeEach(() => setOutput({ out: () => {}, err: () => {} }));
+afterEach(() => resetOutput());
 
 const fakeResult = {
   endpoint: "POST /api/v5/trade/order",
@@ -31,19 +26,17 @@ describe("cmdSpotPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdSpotPlace(runner, {
-        instId: "BTC-USDT",
-        side: "buy",
-        ordType: "market",
-        sz: "0.001",
-        tpTriggerPx: "105000",
-        tpOrdPx: "-1",
-        slTriggerPx: "95000",
-        slOrdPx: "-1",
-        json: false,
-      }),
-    );
+    await cmdSpotPlace(runner, {
+      instId: "BTC-USDT",
+      side: "buy",
+      ordType: "market",
+      sz: "0.001",
+      tpTriggerPx: "105000",
+      tpOrdPx: "-1",
+      slTriggerPx: "95000",
+      slOrdPx: "-1",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], "105000");
@@ -59,15 +52,13 @@ describe("cmdSpotPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdSpotPlace(runner, {
-        instId: "BTC-USDT",
-        side: "buy",
-        ordType: "market",
-        sz: "0.001",
-        json: false,
-      }),
-    );
+    await cmdSpotPlace(runner, {
+      instId: "BTC-USDT",
+      side: "buy",
+      ordType: "market",
+      sz: "0.001",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], undefined);
@@ -88,20 +79,18 @@ describe("cmdSwapPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdSwapPlace(runner, {
-        instId: "BTC-USDT-SWAP",
-        side: "buy",
-        ordType: "market",
-        sz: "1",
-        tdMode: "cross",
-        tpTriggerPx: "70000",
-        tpOrdPx: "-1",
-        slTriggerPx: "60000",
-        slOrdPx: "-1",
-        json: false,
-      }),
-    );
+    await cmdSwapPlace(runner, {
+      instId: "BTC-USDT-SWAP",
+      side: "buy",
+      ordType: "market",
+      sz: "1",
+      tdMode: "cross",
+      tpTriggerPx: "70000",
+      tpOrdPx: "-1",
+      slTriggerPx: "60000",
+      slOrdPx: "-1",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], "70000");
@@ -117,16 +106,14 @@ describe("cmdSwapPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdSwapPlace(runner, {
-        instId: "BTC-USDT-SWAP",
-        side: "buy",
-        ordType: "market",
-        sz: "1",
-        tdMode: "cross",
-        json: false,
-      }),
-    );
+    await cmdSwapPlace(runner, {
+      instId: "BTC-USDT-SWAP",
+      side: "buy",
+      ordType: "market",
+      sz: "1",
+      tdMode: "cross",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], undefined);
@@ -147,20 +134,18 @@ describe("cmdFuturesPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdFuturesPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "buy",
-        ordType: "market",
-        sz: "1",
-        tdMode: "cross",
-        tpTriggerPx: "110000",
-        tpOrdPx: "-1",
-        slTriggerPx: "90000",
-        slOrdPx: "-1",
-        json: false,
-      }),
-    );
+    await cmdFuturesPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "buy",
+      ordType: "market",
+      sz: "1",
+      tdMode: "cross",
+      tpTriggerPx: "110000",
+      tpOrdPx: "-1",
+      slTriggerPx: "90000",
+      slOrdPx: "-1",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], "110000");
@@ -176,16 +161,14 @@ describe("cmdFuturesPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdFuturesPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "buy",
-        ordType: "market",
-        sz: "1",
-        tdMode: "cross",
-        json: false,
-      }),
-    );
+    await cmdFuturesPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "buy",
+      ordType: "market",
+      sz: "1",
+      tdMode: "cross",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], undefined);
@@ -201,18 +184,16 @@ describe("cmdFuturesPlace TP/SL passthrough", () => {
       return fakeResult;
     };
 
-    await muteStdout(() =>
-      cmdFuturesPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "buy",
-        ordType: "market",
-        sz: "1",
-        tdMode: "cross",
-        tpTriggerPx: "110000",
-        tpOrdPx: "-1",
-        json: false,
-      }),
-    );
+    await cmdFuturesPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "buy",
+      ordType: "market",
+      sz: "1",
+      tdMode: "cross",
+      tpTriggerPx: "110000",
+      tpOrdPx: "-1",
+      json: false,
+    });
 
     assert.ok(captured, "runner should have been called");
     assert.equal(captured!["tpTriggerPx"], "110000");

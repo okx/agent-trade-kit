@@ -1,8 +1,7 @@
 import { readFullConfig, configFilePath, OKX_SITES, SITE_IDS, tomlStringify } from "@agent-tradekit/core";
-import type { SiteId } from "@agent-tradekit/core";
+import type { SiteId, OkxProfile, OkxTomlConfig } from "@agent-tradekit/core";
 import { writeCliConfig } from "../config/toml.js";
-import { printJson, printKv } from "../formatter.js";
-import type { OkxTomlConfig, OkxProfile } from "@agent-tradekit/core";
+import { output, errorOutput, outputLine, errorLine, printJson, printKv } from "../formatter.js";
 import { createInterface } from "node:readline";
 import { spawnSync } from "node:child_process";
 
@@ -64,16 +63,18 @@ function prompt(rl: ReturnType<typeof createInterface>, question: string): Promi
 export function cmdConfigShow(json: boolean): void {
   const config = readFullConfig();
   if (json) return printJson(config);
-  process.stdout.write(`Config: ${configFilePath()}\n\n`);
-  process.stdout.write(`default_profile: ${config.default_profile ?? "(not set)"}\n\n`);
+  outputLine(`Config: ${configFilePath()}`);
+  outputLine("");
+  outputLine(`default_profile: ${config.default_profile ?? "(not set)"}`);
+  outputLine("");
   for (const [name, profile] of Object.entries(config.profiles)) {
-    process.stdout.write(`[${name}]\n`);
+    outputLine(`[${name}]`);
     printKv({
       api_key: profile.api_key ? maskSecret(profile.api_key) : "(not set)",
       demo: profile.demo ?? false,
       base_url: profile.base_url ?? "(default)",
     }, 2);
-    process.stdout.write("\n");
+    outputLine("");
   }
 }
 
@@ -82,9 +83,9 @@ export function cmdConfigSet(key: string, value: string): void {
   if (key === "default_profile") {
     config.default_profile = value;
     writeCliConfig(config);
-    process.stdout.write(`default_profile set to "${value}"\n`);
+    outputLine(`default_profile set to "${value}"`);
   } else {
-    process.stderr.write(`Unknown config key: ${key}\n`);
+    errorLine(`Unknown config key: ${key}`);
     process.exitCode = 1;
   }
 }
@@ -137,18 +138,84 @@ export function buildProfileEntry(
   return entry;
 }
 
+/** Tries to open a URL in the system browser; silently ignores failures. */
+function tryOpenUrl(url: string): void {
+  try {
+    let opener: string;
+    if (process.platform === "darwin") {
+      opener = "open";
+    } else if (process.platform === "win32") {
+      opener = "start";
+    } else {
+      opener = "xdg-open";
+    }
+    spawnSync(opener, [url], { stdio: "ignore", shell: process.platform === "win32" });
+  } catch {
+    // silently ignore
+  }
+}
+
+/** Prompts for API credentials and returns them, or null if any field is empty. */
+async function promptCredentials(
+  rl: ReturnType<typeof createInterface>,
+  t: (typeof messages)[Lang],
+): Promise<{ apiKey: string; secretKey: string; passphrase: string } | null> {
+  const apiKey = (await prompt(rl, "API Key: ")).trim();
+  if (!apiKey) {
+    errorLine(t.emptyApiKey);
+    process.exitCode = 1;
+    return null;
+  }
+
+  const secretKey = (await prompt(rl, "Secret Key: ")).trim();
+  if (!secretKey) {
+    errorLine(t.emptySecretKey);
+    process.exitCode = 1;
+    return null;
+  }
+
+  const passphrase = (await prompt(rl, "Passphrase: ")).trim();
+  if (!passphrase) {
+    errorLine(t.emptyPassphrase);
+    process.exitCode = 1;
+    return null;
+  }
+
+  return { apiKey, secretKey, passphrase };
+}
+
+/** Writes config to disk and outputs success messages, or prints manual fallback on error. */
+function saveConfig(config: OkxTomlConfig, profileName: string, t: (typeof messages)[Lang]): void {
+  const configPath = configFilePath();
+  try {
+    writeCliConfig(config);
+    output(t.saved(configPath));
+    output(t.defaultProfile(profileName));
+    output(t.usage);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    const isPermission = err instanceof Error && "code" in err && (err.code === "EACCES" || err.code === "EPERM");
+    errorOutput(t.writeFailed(message));
+    if (isPermission) errorOutput(t.permissionDenied(configPath));
+    errorOutput(t.manualWrite(configPath));
+    outputLine(tomlStringify(config as unknown as Record<string, unknown>));
+    process.exitCode = 1;
+  }
+}
+
 export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
   const t = messages[lang];
-  process.stdout.write(`${t.title}\n\n`);
+  outputLine(t.title);
+  outputLine("");
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
   try {
     // Step 1: site selection
-    process.stdout.write(`${t.selectSite}\n`);
-    process.stdout.write("  1) Global (www.okx.com)  [default]\n");
-    process.stdout.write("  2) EEA   (my.okx.com)\n");
-    process.stdout.write("  3) US    (app.okx.com)\n");
+    outputLine(t.selectSite);
+    outputLine("  1) Global (www.okx.com)  [default]");
+    outputLine("  2) EEA   (my.okx.com)");
+    outputLine("  3) US    (app.okx.com)");
     const siteRaw = (await prompt(rl, t.sitePrompt)).trim();
     const siteKey = parseSiteKey(siteRaw);
 
@@ -158,17 +225,9 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
 
     // Step 3: open targeted API creation page
     const apiUrl = buildApiUrl(siteKey, demo);
-    const hintText = demo ? t.hintDemo : t.hintLive;
-    process.stdout.write(t.createApiKey(apiUrl));
-    process.stdout.write(t.hint(hintText));
-
-    // Try to open the URL; silently ignore failures
-    try {
-      const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-      spawnSync(opener, [apiUrl], { stdio: "ignore", shell: process.platform === "win32" });
-    } catch {
-      // silently ignore
-    }
+    output(t.createApiKey(apiUrl));
+    output(t.hint(demo ? t.hintDemo : t.hintLive));
+    tryOpenUrl(apiUrl);
 
     const defaultProfileName = demo ? "okx-demo" : "okx-prod";
     const profileNameRaw = await prompt(rl, t.profilePrompt(defaultProfileName));
@@ -179,61 +238,24 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
     if (config.profiles[profileName]) {
       const overwrite = (await prompt(rl, t.profileExists(profileName))).trim().toLowerCase();
       if (overwrite !== "y") {
-        process.stdout.write(`${t.cancelled}\n`);
+        outputLine(t.cancelled);
         return;
       }
     }
 
-    const apiKey = (await prompt(rl, "API Key: ")).trim();
-    if (!apiKey) {
-      process.stderr.write(`${t.emptyApiKey}\n`);
-      process.exitCode = 1;
-      return;
-    }
+    const credentials = await promptCredentials(rl, t);
+    if (!credentials) return;
 
-    const secretKey = (await prompt(rl, "Secret Key: ")).trim();
-    if (!secretKey) {
-      process.stderr.write(`${t.emptySecretKey}\n`);
-      process.exitCode = 1;
-      return;
-    }
+    if (demo) outputLine(t.demoSelected);
 
-    const passphrase = (await prompt(rl, "Passphrase: ")).trim();
-    if (!passphrase) {
-      process.stderr.write(`${t.emptyPassphrase}\n`);
-      process.exitCode = 1;
-      return;
-    }
-
-    if (demo) {
-      process.stdout.write(`${t.demoSelected}\n`);
-    }
-
-    const profileEntry = buildProfileEntry(siteKey, apiKey, secretKey, passphrase, demo);
-    config.profiles[profileName] = profileEntry;
+    config.profiles[profileName] = buildProfileEntry(siteKey, credentials.apiKey, credentials.secretKey, credentials.passphrase, demo);
 
     // Auto-set as default_profile
     if (!config.default_profile || config.default_profile !== profileName) {
       config.default_profile = profileName;
     }
 
-    const configPath = configFilePath();
-    try {
-      writeCliConfig(config);
-      process.stdout.write(t.saved(configPath));
-      process.stdout.write(t.defaultProfile(profileName));
-      process.stdout.write(t.usage);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      const isPermission = err instanceof Error && "code" in err && (err.code === "EACCES" || err.code === "EPERM");
-      process.stderr.write(t.writeFailed(message));
-      if (isPermission) {
-        process.stderr.write(t.permissionDenied(configPath));
-      }
-      process.stderr.write(t.manualWrite(configPath));
-      process.stdout.write(tomlStringify(config as unknown as Record<string, unknown>) + "\n");
-      process.exitCode = 1;
-    }
+    saveConfig(config, profileName, t);
   } finally {
     rl.close();
   }
@@ -264,8 +286,8 @@ export function cmdConfigAddProfile(kvPairs: string[], force: boolean): void {
   if (!sk) missing.push("SK");
   if (!pp) missing.push("PP");
   if (missing.length > 0) {
-    process.stderr.write(`Error: missing required parameter(s): ${missing.join(", ")}\n`);
-    process.stderr.write("Usage: okx config add-profile AK=<key> SK=<secret> PP=<passphrase> [site=global|eea|us] [demo=true|false] [name=<name>] [--force]\n");
+    errorLine(`Error: missing required parameter(s): ${missing.join(", ")}`);
+    errorLine("Usage: okx config add-profile AK=<key> SK=<secret> PP=<passphrase> [site=global|eea|us] [demo=true|false] [name=<name>] [--force]");
     process.exitCode = 1;
     return;
   }
@@ -279,7 +301,7 @@ export function cmdConfigAddProfile(kvPairs: string[], force: boolean): void {
 
   // Check for conflict
   if (config.profiles[profileName] && !force) {
-    process.stderr.write(`Error: profile "${profileName}" already exists. Use --force to overwrite.\n`);
+    errorLine(`Error: profile "${profileName}" already exists. Use --force to overwrite.`);
     process.exitCode = 1;
     return;
   }
@@ -291,8 +313,8 @@ export function cmdConfigAddProfile(kvPairs: string[], force: boolean): void {
   config.default_profile = profileName;
 
   writeCliConfig(config);
-  process.stdout.write(`Profile "${profileName}" saved to ${configFilePath()}\n`);
-  process.stdout.write(`Default profile set to: ${profileName}\n`);
+  outputLine(`Profile "${profileName}" saved to ${configFilePath()}`);
+  outputLine(`Default profile set to: ${profileName}`);
 }
 
 /**
@@ -303,22 +325,23 @@ export function cmdConfigListProfile(): void {
   const config = readFullConfig();
   const entries = Object.entries(config.profiles);
   if (entries.length === 0) {
-    process.stdout.write("No profiles found. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>\n");
+    outputLine("No profiles found. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>");
     return;
   }
-  process.stdout.write(`Config: ${configFilePath()}\n\n`);
+  outputLine(`Config: ${configFilePath()}`);
+  outputLine("");
   for (const [name, profile] of entries) {
     const isDefault = name === config.default_profile;
     const marker = isDefault ? " *" : "";
     const site = profile.site ?? inferSiteFromBaseUrl(profile.base_url);
     const mode = profile.demo !== false ? "demo (模拟盘)" : "live (实盘)";
-    process.stdout.write(`[${name}]${marker}\n`);
-    process.stdout.write(`  api_key:    ${maskSecret(profile.api_key)}\n`);
-    process.stdout.write(`  secret_key: ${maskSecret(profile.secret_key)}\n`);
-    process.stdout.write(`  passphrase: ${maskSecret(profile.passphrase)}\n`);
-    process.stdout.write(`  site:       ${site}\n`);
-    process.stdout.write(`  mode:       ${mode}\n`);
-    process.stdout.write("\n");
+    outputLine(`[${name}]${marker}`);
+    outputLine(`  api_key:    ${maskSecret(profile.api_key)}`);
+    outputLine(`  secret_key: ${maskSecret(profile.secret_key)}`);
+    outputLine(`  passphrase: ${maskSecret(profile.passphrase)}`);
+    outputLine(`  site:       ${site}`);
+    outputLine(`  mode:       ${mode}`);
+    outputLine("");
   }
 }
 
@@ -328,7 +351,8 @@ export function cmdConfigListProfile(): void {
  */
 export function cmdConfigUse(profileName: string): void {
   if (!profileName) {
-    process.stderr.write("Error: profile name is required.\nUsage: okx config use <profile-name>\n");
+    errorLine("Error: profile name is required.");
+    errorLine("Usage: okx config use <profile-name>");
     process.exitCode = 1;
     return;
   }
@@ -337,11 +361,11 @@ export function cmdConfigUse(profileName: string): void {
   const available = Object.keys(config.profiles);
 
   if (!config.profiles[profileName]) {
-    process.stderr.write(`Error: profile "${profileName}" does not exist.\n`);
+    errorLine(`Error: profile "${profileName}" does not exist.`);
     if (available.length > 0) {
-      process.stderr.write(`Available profiles: ${available.join(", ")}\n`);
+      errorLine(`Available profiles: ${available.join(", ")}`);
     } else {
-      process.stderr.write("No profiles configured. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>\n");
+      errorLine("No profiles configured. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>");
     }
     process.exitCode = 1;
     return;
@@ -349,5 +373,5 @@ export function cmdConfigUse(profileName: string): void {
 
   config.default_profile = profileName;
   writeCliConfig(config);
-  process.stdout.write(`Default profile set to: "${profileName}"\n`);
+  outputLine(`Default profile set to: "${profileName}"`);
 }

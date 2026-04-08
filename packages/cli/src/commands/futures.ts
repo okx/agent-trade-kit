@@ -1,8 +1,29 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printKv, printTable } from "../formatter.js";
+import { errorLine, outputLine, printJson, printKv, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
+}
+
+function emitWriteResult(item: Record<string, unknown> | undefined, label: string, idKey: string): void {
+  const isError = item?.["sCode"] !== "0" && item?.["sCode"] !== 0;
+  if (isError) {
+    errorLine(`Error: ${item?.["sMsg"]} (sCode ${item?.["sCode"]})`);
+  } else {
+    outputLine(`${label}: ${item?.[idKey]} (OK)`);
+  }
+}
+
+function emitBatchResults(items: Record<string, unknown>[]): void {
+  for (const r of items) {
+    const isError = r["sCode"] !== "0" && r["sCode"] !== 0;
+    const id = r["ordId"] ?? r["clOrdId"] ?? "?";
+    if (isError) {
+      errorLine(`${id}: ${r["sMsg"]} (sCode ${r["sCode"]})`);
+    } else {
+      outputLine(`${id}: OK`);
+    }
+  }
 }
 
 export async function cmdFuturesOrders(
@@ -35,7 +56,7 @@ export async function cmdFuturesPositions(
   const positions = getData(result) as Record<string, unknown>[];
   if (json) return printJson(positions);
   const open = (positions ?? []).filter((p) => Number(p["pos"]) !== 0);
-  if (!open.length) { process.stdout.write("No open positions\n"); return; }
+  if (!open.length) { outputLine("No open positions"); return; }
   printTable(
     open.map((p) => ({
       instId: p["instId"],
@@ -75,6 +96,7 @@ export async function cmdFuturesPlace(
     ordType: string;
     sz: string;
     tdMode: string;
+    tgtCcy?: string;
     posSide?: string;
     px?: string;
     reduceOnly?: boolean;
@@ -91,6 +113,7 @@ export async function cmdFuturesPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     px: opts.px,
     reduceOnly: opts.reduceOnly,
@@ -101,8 +124,7 @@ export async function cmdFuturesPlace(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const order = data?.[0];
-  process.stdout.write(`Order placed: ${order?.["ordId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`);
+  emitWriteResult(data?.[0], "Order placed", "ordId");
 }
 
 export async function cmdFuturesCancel(
@@ -114,8 +136,7 @@ export async function cmdFuturesCancel(
   const result = await run("futures_cancel_order", { instId, ...(ordId ? { ordId } : { clOrdId }) });
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(`Cancelled: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
+  emitWriteResult(data?.[0], "Cancelled", "ordId");
 }
 
 export async function cmdFuturesGet(
@@ -126,7 +147,7 @@ export async function cmdFuturesGet(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const o = data?.[0];
-  if (!o) { process.stdout.write("No data\n"); return; }
+  if (!o) { outputLine("No data"); return; }
   printKv({
     ordId: o["ordId"],
     instId: o["instId"],
@@ -162,8 +183,7 @@ export async function cmdFuturesAmend(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(`Order amended: ${r?.["ordId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`);
+  emitWriteResult(data?.[0], "Order amended", "ordId");
 }
 
 export async function cmdFuturesClose(
@@ -179,7 +199,7 @@ export async function cmdFuturesClose(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  process.stdout.write(`Position closed: ${r?.["instId"]} ${r?.["posSide"] ?? ""}\n`);
+  outputLine(`Position closed: ${r?.["instId"]} ${r?.["posSide"] ?? ""}`);
 }
 
 export async function cmdFuturesSetLeverage(
@@ -195,7 +215,7 @@ export async function cmdFuturesSetLeverage(
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
-  process.stdout.write(`Leverage set: ${r?.["lever"]}x ${r?.["instId"]}\n`);
+  outputLine(`Leverage set: ${r?.["lever"]}x ${r?.["instId"]}`);
 }
 
 export async function cmdFuturesGetLeverage(
@@ -223,12 +243,12 @@ export async function cmdFuturesBatch(
   try {
     parsed = JSON.parse(opts.orders);
   } catch {
-    process.stderr.write("Error: --orders must be a valid JSON array\n");
+    errorLine("Error: --orders must be a valid JSON array");
     process.exitCode = 1;
     return;
   }
   if (!Array.isArray(parsed) || parsed.length === 0) {
-    process.stderr.write("Error: --orders must be a non-empty JSON array\n");
+    errorLine("Error: --orders must be a non-empty JSON array");
     process.exitCode = 1;
     return;
   }
@@ -240,17 +260,15 @@ export async function cmdFuturesBatch(
   };
   const tool = toolMap[opts.action];
   if (!tool) {
-    process.stderr.write(`Error: --action must be one of: place, amend, cancel\n`);
+    errorLine("Error: --action must be one of: place, amend, cancel");
     process.exitCode = 1;
     return;
   }
 
-  const result = await run(tool, tool === "futures_batch_orders" ? { orders: parsed } : { orders: parsed });
+  const result = await run(tool, { orders: parsed });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  for (const r of data ?? []) {
-    process.stdout.write(`${r["ordId"] ?? r["clOrdId"] ?? "?"}: ${r["sCode"] === "0" ? "OK" : r["sMsg"]}\n`);
-  }
+  emitBatchResults(data ?? []);
 }
 
 export async function cmdFuturesAlgoPlace(
@@ -262,6 +280,7 @@ export async function cmdFuturesAlgoPlace(
     sz: string;
     posSide?: string;
     tdMode: string;
+    tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -279,6 +298,7 @@ export async function cmdFuturesAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
@@ -291,10 +311,7 @@ export async function cmdFuturesAlgoPlace(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const order = data?.[0];
-  process.stdout.write(
-    `Algo order placed: ${order?.["algoId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Algo order placed", "algoId");
 }
 
 export async function cmdFuturesAlgoTrailPlace(
@@ -325,10 +342,7 @@ export async function cmdFuturesAlgoTrailPlace(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const order = data?.[0];
-  process.stdout.write(
-    `Trailing stop placed: ${order?.["algoId"]} (${order?.["sCode"] === "0" ? "OK" : order?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Trailing stop placed", "algoId");
 }
 
 export async function cmdFuturesAlgoAmend(
@@ -355,10 +369,7 @@ export async function cmdFuturesAlgoAmend(
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(
-    `Algo order amended: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Algo order amended", "algoId");
 }
 
 export async function cmdFuturesAlgoCancel(
@@ -370,10 +381,7 @@ export async function cmdFuturesAlgoCancel(
   const result = await run("futures_cancel_algo_orders", { orders: [{ instId, algoId }] });
   const data = getData(result) as Record<string, unknown>[];
   if (json) return printJson(data);
-  const r = data?.[0];
-  process.stdout.write(
-    `Algo order cancelled: ${r?.["algoId"]} (${r?.["sCode"] === "0" ? "OK" : r?.["sMsg"]})\n`,
-  );
+  emitWriteResult(data?.[0], "Algo order cancelled", "algoId");
 }
 
 export async function cmdFuturesAlgoOrders(
@@ -387,7 +395,7 @@ export async function cmdFuturesAlgoOrders(
   });
   const orders = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(orders);
-  if (!(orders ?? []).length) { process.stdout.write("No algo orders\n"); return; }
+  if (!(orders ?? []).length) { outputLine("No algo orders"); return; }
   printTable(
     orders.map((o) => ({
       algoId: o["algoId"],

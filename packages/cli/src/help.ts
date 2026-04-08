@@ -1,5 +1,7 @@
+import { EOL } from "node:os";
 import { SUPPORTED_CLIENTS } from "./commands/client-setup.js";
 import { configFilePath } from "@agent-tradekit/core";
+import { output, errorLine } from "./formatter.js";
 
 // ---------------------------------------------------------------------------
 // Help tree data structures
@@ -83,7 +85,11 @@ const HELP_TREE: HelpTree = {
       },
       "stock-tokens": {
         usage: "okx market stock-tokens [--instType <SPOT|SWAP>] [--instId <id>]",
-        description: "List all stock token instruments (instCategory=3, e.g. AAPL-USDT-SWAP)",
+        description: "[Deprecated: use instruments-by-category --instCategory 3] List all stock token instruments (instCategory=3, e.g. AAPL-USDT-SWAP)",
+      },
+      "instruments-by-category": {
+        usage: "okx market instruments-by-category --instCategory <4|5|6|7> [--instType <SPOT|SWAP>] [--instId <id>]",
+        description: "List instruments by asset category: 4=Metals (gold/silver), 5=Commodities (oil/gas), 6=Forex (EUR/USD), 7=Bonds",
       },
     },
   },
@@ -407,7 +413,7 @@ const HELP_TREE: HelpTree = {
     description: "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
     subgroups: {
       savings: {
-        description: "Simple Earn — flexible savings and lending",
+        description: "Simple Earn — flexible savings, fixed-term, and lending",
         commands: {
           balance: {
             usage: "okx earn savings balance [<ccy>]",
@@ -427,15 +433,23 @@ const HELP_TREE: HelpTree = {
           },
           "lending-history": {
             usage: "okx earn savings lending-history [--ccy <ccy>] [--limit <n>]",
-            description: "Get market lending rate history",
-          },
-          "rate-summary": {
-            usage: "okx earn savings rate-summary [<ccy>]",
-            description: "Get coin lending market rate summary (not Simple Earn, public)",
+            description: "Get personal lending records (requires auth)",
           },
           "rate-history": {
             usage: "okx earn savings rate-history [--ccy <ccy>] [--limit <n>]",
-            description: "Query Simple Earn lending rates (public, no auth needed)",
+            description: "Query Simple Earn lending rates and fixed-term offers (requires auth)",
+          },
+          "fixed-orders": {
+            usage: "okx earn savings fixed-orders [--ccy <ccy>] [--state <pending|earning|expired|settled|cancelled>]",
+            description: "List fixed-term earn orders",
+          },
+          "fixed-purchase": {
+            usage: "okx earn savings fixed-purchase --ccy <ccy> --amt <n> --term <term> [--confirm]",
+            description: "Purchase Simple Earn Fixed (定期). Preview by default; add --confirm to execute. Funds locked until maturity",
+          },
+          "fixed-redeem": {
+            usage: "okx earn savings fixed-redeem <reqId>",
+            description: "Redeem a fixed-term earn order (full amount)",
           },
         },
       },
@@ -465,6 +479,23 @@ const HELP_TREE: HelpTree = {
           history: {
             usage: "okx earn onchain history [--productId <id>] [--protocolType <type>] [--ccy <ccy>]",
             description: "Get on-chain earn order history",
+          },
+        },
+      },
+      "auto-earn": {
+        description: "Auto-earn — automatically lend, stake, or earn on idle assets",
+        commands: {
+          status: {
+            usage: "okx earn auto-earn status [<ccy>]",
+            description: "Query auto-earn status for all or a specific currency",
+          },
+          on: {
+            usage: "okx earn auto-earn on <ccy>",
+            description: "Enable auto-earn for a currency (auto-detects lend/stake vs USDG earn)",
+          },
+          off: {
+            usage: "okx earn auto-earn off <ccy>",
+            description: "Disable auto-earn for a currency",
           },
         },
       },
@@ -519,7 +550,7 @@ const HELP_TREE: HelpTree = {
             description: "List sub-orders of a grid bot (filled or live)",
           },
           create: {
-            usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]",
+            usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]\n                   [--tpTriggerPx <px>] [--slTriggerPx <px>] [--tpRatio <n>] [--slRatio <n>] [--algoClOrdId <id>]",
             description: "Create a new grid bot order (contract grid opens base position by default)",
           },
           stop: {
@@ -529,27 +560,27 @@ const HELP_TREE: HelpTree = {
         },
       },
       dca: {
-        description: "Contract DCA (Martingale) bot — leveraged recurring buys on futures/swaps",
+        description: "DCA (Martingale) bot — spot or contract recurring buys",
         commands: {
           orders: {
-            usage: "okx bot dca orders [--algoId <id>] [--instId <id>] [--history]",
-            description: "List active or historical Contract DCA bot orders",
+            usage: "okx bot dca orders [--algoOrdType <spot_dca|contract_dca>] [--algoId <id>] [--instId <id>] [--history]",
+            description: "List DCA bots (spot and/or contract)",
           },
           details: {
-            usage: "okx bot dca details --algoId <id>",
-            description: "Get details of a specific Contract DCA bot order",
+            usage: "okx bot dca details --algoOrdType <spot_dca|contract_dca> --algoId <id>",
+            description: "Get DCA bot details (spot or contract)",
           },
           "sub-orders": {
-            usage: "okx bot dca sub-orders --algoId <id> [--cycleId <id>]",
-            description: "List cycles or orders within a cycle of a Contract DCA bot",
+            usage: "okx bot dca sub-orders --algoOrdType <spot_dca|contract_dca> --algoId <id> [--cycleId <id>]",
+            description: "Get DCA cycles/orders (spot or contract)",
           },
           create: {
-            usage: "okx bot dca create --instId <id> --lever <n> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>]\n                 [--allowReinvest <true|false>] [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 Note: safetyOrdAmt, pxSteps, pxStepsMult, volMult are required when maxSafetyOrds > 0",
-            description: "Create a new Contract DCA bot order",
+            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi",
+            description: "Create a DCA (Martingale) bot (spot or contract)",
           },
           stop: {
-            usage: "okx bot dca stop --algoId <id>",
-            description: "Stop a running Contract DCA bot order",
+            usage: "okx bot dca stop --algoOrdType <spot_dca|contract_dca> --algoId <id> [--stopType <1|2>]\n                 Note: --stopType required for spot_dca (1=sell all, 2=keep tokens)",
+            description: "Stop a DCA bot (spot or contract)",
           },
         },
       },
@@ -585,7 +616,46 @@ const HELP_TREE: HelpTree = {
 
   diagnose: {
     description: "Run network / MCP server diagnostics",
-    usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo] [--output <file>]",
+    usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo | --live] [--output <file>]",
+  },
+
+  skill: {
+    description: "OKX Skills Marketplace — search, install, and manage agent skills",
+    commands: {
+      search: {
+        usage: "okx skill search [--keyword <kw>] [--categories <id>] [--page <n>] [--limit <n>]",
+        description: "Search for skills in the marketplace",
+      },
+      categories: {
+        usage: "okx skill categories",
+        description: "List available skill categories",
+      },
+      add: {
+        usage: "okx skill add <name>",
+        description: "Download and install a skill to detected agents",
+      },
+      download: {
+        usage: "okx skill download <name> [--dir <path>] [--format zip|skill]",
+        description: "Download a skill package without installing",
+      },
+      remove: {
+        usage: "okx skill remove <name>",
+        description: "Remove an installed skill",
+      },
+      check: {
+        usage: "okx skill check <name>",
+        description: "Check if an installed skill has a newer version",
+      },
+      list: {
+        usage: "okx skill list",
+        description: "List all locally installed skills",
+      },
+    },
+  },
+
+  upgrade: {
+    description: "Upgrade okx CLI and MCP server to the latest stable version",
+    usage: "okx upgrade [--check] [--beta] [--force] [--json]",
   },
 };
 
@@ -597,12 +667,14 @@ const HELP_TREE: HelpTree = {
 function printGlobalHelp(): void {
   const lines: string[] = [
     "",
-    `Usage: okx [--profile <name>] [--demo] [--json] <module> <action> [args...]`,
+    `Usage: okx [--profile <name>] [--demo | --live] [--json] <module> <action> [args...]`,
     "",
     "Global Options:",
     `  --profile <name>   Use a named profile from ${configFilePath()}`,
     "  --demo             Use simulated trading (demo) mode",
+    "  --live             Force live trading mode (overrides profile demo=true; mutually exclusive with --demo)",
     "  --json             Output raw JSON",
+    "  --env              With --json, wrap output as {env, profile, data}",
     "  --verbose          Show detailed network request/response info (stderr)",
     "  --version, -v      Show version",
     "  --help             Show this help",
@@ -616,14 +688,61 @@ function printGlobalHelp(): void {
   }
 
   lines.push("", 'Run "okx <module> --help" for module details.', "");
-  process.stdout.write(lines.join("\n"));
+  output(lines.join(EOL));
+}
+
+/** Render pure-subgroup module body (e.g. bot). */
+function printSubgroupOnlyModule(lines: string[], moduleName: string, group: GroupInfo): void {
+  const subgroupNames = Object.keys(group.subgroups!);
+  const colWidth = Math.max(...subgroupNames.map((n) => n.length)) + 4;
+  lines.push(`Usage: okx ${moduleName} <strategy> <action> [args...]`);
+  lines.push("", `${group.description}.`, "");
+  lines.push("Strategies:");
+  for (const [sgName, sg] of Object.entries(group.subgroups!)) {
+    lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
+  }
+  lines.push("", `Run "okx ${moduleName} <strategy> --help" for details.`);
+}
+
+/** Render mixed module body (direct commands + subgroups, e.g. spot, swap). */
+function printMixedModule(lines: string[], moduleName: string, group: GroupInfo): void {
+  lines.push(`Usage: okx ${moduleName} <action> [args...]`);
+  lines.push("", `${group.description}.`, "", "Commands:");
+  printCommandList(lines, group.commands!);
+  lines.push("", "Subgroups:");
+  const subgroupEntries = Object.entries(group.subgroups!);
+  const colWidth = Math.max(...subgroupEntries.map(([n]) => n.length)) + 4;
+  for (const [sgName, sg] of subgroupEntries) {
+    lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
+  }
+  lines.push("", `Run "okx ${moduleName} <subgroup> --help" for subgroup details.`);
+}
+
+/** Render commands-only module body (e.g. market, account). */
+function printCommandsOnlyModule(lines: string[], moduleName: string, group: GroupInfo): void {
+  lines.push(`Usage: okx ${moduleName} <action> [args...]`);
+  lines.push("", `${group.description}.`, "", "Commands:");
+  printCommandList(lines, group.commands!);
+}
+
+/** Render custom-usage module body (e.g. setup). */
+function printUsageModule(lines: string[], group: GroupInfo): void {
+  lines.push(`Usage: ${group.usage}`);
+  lines.push("", `${group.description}.`);
+  if (group.commands) {
+    lines.push("");
+    for (const cmd of Object.values(group.commands)) {
+      lines.push(`  ${cmd.description}`);
+      lines.push(`  Usage: ${cmd.usage}`);
+    }
+  }
 }
 
 /** Render module-level help (one path argument, e.g. "spot"). */
 function printModuleHelp(moduleName: string): void {
   const group = HELP_TREE[moduleName];
   if (!group) {
-    process.stderr.write(`Unknown module: ${moduleName}\n`);
+    errorLine(`Unknown module: ${moduleName}`);
     process.exitCode = 1;
     return;
   }
@@ -634,61 +753,30 @@ function printModuleHelp(moduleName: string): void {
   const lines: string[] = [""];
 
   if (hasSubgroups && !hasCommands) {
-    // Pure subgroup module (e.g. bot)
-    const subgroupNames = Object.keys(group.subgroups!);
-    lines.push(`Usage: okx ${moduleName} <strategy> <action> [args...]`);
-    lines.push("", `${group.description}.`, "");
-    lines.push("Strategies:");
-    const colWidth = Math.max(...subgroupNames.map((n) => n.length)) + 4;
-    for (const [sgName, sg] of Object.entries(group.subgroups!)) {
-      lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
-    }
-    lines.push("", `Run "okx ${moduleName} <strategy> --help" for details.`);
+    printSubgroupOnlyModule(lines, moduleName, group);
   } else if (hasSubgroups && hasCommands) {
-    // Mixed: has both direct commands and subgroups (e.g. spot, swap)
-    lines.push(`Usage: okx ${moduleName} <action> [args...]`);
-    lines.push("", `${group.description}.`, "", "Commands:");
-    printCommandList(lines, group.commands!);
-    lines.push("", "Subgroups:");
-    const subgroupEntries = Object.entries(group.subgroups!);
-    const colWidth = Math.max(...subgroupEntries.map(([n]) => n.length)) + 4;
-    for (const [sgName, sg] of subgroupEntries) {
-      lines.push(`  ${sgName.padEnd(colWidth)}${sg.description}`);
-    }
-    lines.push("", `Run "okx ${moduleName} <subgroup> --help" for subgroup details.`);
+    printMixedModule(lines, moduleName, group);
   } else if (hasCommands) {
-    // Plain module with direct commands only (e.g. market, account)
-    lines.push(`Usage: okx ${moduleName} <action> [args...]`);
-    lines.push("", `${group.description}.`, "", "Commands:");
-    printCommandList(lines, group.commands!);
+    printCommandsOnlyModule(lines, moduleName, group);
   } else if (group.usage) {
-    // Module with no sub-commands (e.g. setup)
-    lines.push(`Usage: ${group.usage}`);
-    lines.push("", `${group.description}.`);
-    if (group.commands) {
-      lines.push("");
-      for (const cmd of Object.values(group.commands)) {
-        lines.push(`  ${cmd.description}`);
-        lines.push(`  Usage: ${cmd.usage}`);
-      }
-    }
+    printUsageModule(lines, group);
   }
 
   lines.push("");
-  process.stdout.write(lines.join("\n"));
+  output(lines.join(EOL));
 }
 
 /** Render subgroup-level help (two path arguments, e.g. "bot", "grid"). */
 function printSubgroupHelp(moduleName: string, subgroupName: string): void {
   const group = HELP_TREE[moduleName];
   if (!group) {
-    process.stderr.write(`Unknown module: ${moduleName}\n`);
+    errorLine(`Unknown module: ${moduleName}`);
     process.exitCode = 1;
     return;
   }
   const subgroup = group.subgroups?.[subgroupName];
   if (!subgroup) {
-    process.stderr.write(`Unknown subgroup: ${moduleName} ${subgroupName}\n`);
+    errorLine(`Unknown subgroup: ${moduleName} ${subgroupName}`);
     process.exitCode = 1;
     return;
   }
@@ -707,7 +795,7 @@ function printSubgroupHelp(moduleName: string, subgroupName: string): void {
   }
 
   lines.push("");
-  process.stdout.write(lines.join("\n"));
+  output(lines.join(EOL));
 }
 
 /** Append a formatted command list to the lines array. */

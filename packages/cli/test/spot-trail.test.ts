@@ -1,15 +1,17 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdSpotAlgoTrailPlace } from "../src/commands/spot.js";
+import { setOutput, resetOutput } from "../src/formatter.js";
 
-function muteStdout(fn: () => Promise<void>): Promise<void> {
-  const orig = process.stdout.write.bind(process.stdout);
-  (process.stdout as { write: typeof process.stdout.write }).write = () => true;
-  return fn().finally(() => {
-    process.stdout.write = orig;
-  });
-}
+let out: string[] = [];
+let err: string[] = [];
+
+beforeEach(() => {
+  out = []; err = [];
+  setOutput({ out: (m) => out.push(m), err: (m) => err.push(m) });
+});
+afterEach(() => resetOutput());
 
 const fakeAlgoResult = {
   endpoint: "POST /api/v5/trade/order-algo",
@@ -30,15 +32,13 @@ describe("cmdSpotAlgoTrailPlace", () => {
       return fakeAlgoResult;
     };
 
-    await muteStdout(() =>
-      cmdSpotAlgoTrailPlace(runner, {
-        instId: "BTC-USDT",
-        side: "sell",
-        sz: "0.001",
-        callbackRatio: "0.01",
-        json: false,
-      }),
-    );
+    await cmdSpotAlgoTrailPlace(runner, {
+      instId: "BTC-USDT",
+      side: "sell",
+      sz: "0.001",
+      callbackRatio: "0.01",
+      json: false,
+    });
 
     assert.ok(capturedTool, "runner should have been called");
     assert.equal(capturedTool, "spot_place_algo_order");
@@ -57,16 +57,14 @@ describe("cmdSpotAlgoTrailPlace", () => {
       return fakeAlgoResult;
     };
 
-    await muteStdout(() =>
-      cmdSpotAlgoTrailPlace(runner, {
-        instId: "ETH-USDT",
-        side: "sell",
-        sz: "0.1",
-        callbackSpread: "50",
-        activePx: "3000",
-        json: false,
-      }),
-    );
+    await cmdSpotAlgoTrailPlace(runner, {
+      instId: "ETH-USDT",
+      side: "sell",
+      sz: "0.1",
+      callbackSpread: "50",
+      activePx: "3000",
+      json: false,
+    });
 
     assert.ok(capturedParams, "runner should have been called");
     assert.equal(capturedParams!["ordType"], "move_order_stop");
@@ -82,16 +80,14 @@ describe("cmdSpotAlgoTrailPlace", () => {
       return fakeAlgoResult;
     };
 
-    await muteStdout(() =>
-      cmdSpotAlgoTrailPlace(runner, {
-        instId: "BTC-USDT",
-        side: "sell",
-        sz: "0.001",
-        callbackRatio: "0.02",
-        tdMode: "cross",
-        json: false,
-      }),
-    );
+    await cmdSpotAlgoTrailPlace(runner, {
+      instId: "BTC-USDT",
+      side: "sell",
+      sz: "0.001",
+      callbackRatio: "0.02",
+      tdMode: "cross",
+      json: false,
+    });
 
     assert.ok(capturedParams, "runner should have been called");
     assert.equal(capturedParams!["tdMode"], "cross");
@@ -100,27 +96,15 @@ describe("cmdSpotAlgoTrailPlace", () => {
   it("outputs trailing stop placed message with algoId", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
 
-    const chunks: string[] = [];
-    const orig = process.stdout.write.bind(process.stdout);
-    (process.stdout as { write: typeof process.stdout.write }).write = (chunk) => {
-      chunks.push(typeof chunk === "string" ? chunk : chunk.toString());
-      return true;
-    };
+    await cmdSpotAlgoTrailPlace(runner, {
+      instId: "BTC-USDT",
+      side: "sell",
+      sz: "0.001",
+      callbackRatio: "0.01",
+      json: false,
+    });
 
-    try {
-      await cmdSpotAlgoTrailPlace(runner, {
-        instId: "BTC-USDT",
-        side: "sell",
-        sz: "0.001",
-        callbackRatio: "0.01",
-        json: false,
-      });
-    } finally {
-      process.stdout.write = orig;
-    }
-
-    const output = chunks.join("");
-    assert.ok(output.includes("789012"), "output should contain algoId");
-    assert.ok(output.includes("OK"), "output should indicate success");
+    assert.ok(out.join("").includes("789012"), "output should contain algoId");
+    assert.ok(out.join("").includes("OK"), "output should indicate success");
   });
 });

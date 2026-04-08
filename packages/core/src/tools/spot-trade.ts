@@ -45,6 +45,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
             type: "string",
             description: "Buy market: quote amount, all others: base amount",
           },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in base (e.g. BTC), quote_ccy: sz in quote (e.g. USDT)",
+          },
           px: {
             type: "string",
             description: "Required for limit/post_only/fok/ioc",
@@ -83,6 +88,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             side: requireString(args, "side"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             px: readString(args, "px"),
             clOrdId: readString(args, "clOrdId"),
             tag: context.config.sourceTag,
@@ -301,6 +307,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
             type: "string",
             description: "SL order price, -1=market (conditional/oco only)",
           },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy"],
+            description: "Size unit. base_ccy(default): sz in base (e.g. BTC), quote_ccy: sz in quote (e.g. USDT)",
+          },
           callbackRatio: {
             type: "string",
             description: "Callback ratio e.g. 0.01=1%, use ratio or spread (move_order_stop only)",
@@ -326,6 +337,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             side: requireString(args, "side"),
             ordType: requireString(args, "ordType"),
             sz: requireString(args, "sz"),
+            tgtCcy: readString(args, "tgtCcy"),
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
             slTriggerPx: readString(args, "slTriggerPx"),

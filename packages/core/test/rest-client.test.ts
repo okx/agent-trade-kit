@@ -600,6 +600,68 @@ const AUTH_CONFIG: OkxConfig = {
   passphrase: "test-passphrase",
 };
 
+const DEMO_CONFIG: OkxConfig = { ...AUTH_CONFIG, demo: true };
+
+// ---------------------------------------------------------------------------
+// Simulated-trading header (x-simulated-trading)
+// ---------------------------------------------------------------------------
+
+describe("OkxRestClient: x-simulated-trading header", () => {
+  it("publicGet follows config.demo when simulatedTrading not specified", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(DEMO_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/market/ticker"),
+    );
+    assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
+  });
+
+  it("publicGet sets x-simulated-trading when simulatedTrading=true (explicit demo market data)", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(DEMO_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/market/ticker", undefined, undefined, true),
+    );
+    assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
+  });
+
+  it("publicGet does NOT set x-simulated-trading when simulatedTrading=false, overriding config.demo", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(DEMO_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.publicGet("/api/v5/market/ticker", undefined, undefined, false),
+    );
+    assert.equal(captured.req?.headers.get("x-simulated-trading"), null);
+  });
+
+  it("privateGet sets x-simulated-trading when config.demo=true", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(DEMO_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.privateGet("/api/v5/account/balance"),
+    );
+    assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
+  });
+
+  it("privatePost sets x-simulated-trading when config.demo=true", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(DEMO_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+    );
+    assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
+  });
+
+  it("privateGet does NOT set x-simulated-trading when config.demo=false", async () => {
+    const captured: { req?: Request } = {};
+    const client = new OkxRestClient(AUTH_CONFIG);
+    await withFetch(capturingFetch(captured), () =>
+      client.privateGet("/api/v5/account/balance"),
+    );
+    assert.equal(captured.req?.headers.get("x-simulated-trading"), null);
+  });
+});
+
 describe("OkxRestClient: privateGet / privatePost", () => {
   it("privateGet completes successfully with auth credentials", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {

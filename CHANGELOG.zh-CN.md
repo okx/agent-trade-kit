@@ -9,6 +9,367 @@
 
 ---
 
+## [Unreleased]
+
+---
+
+## [1.3.0] - 2026-04-08
+
+### 新增
+
+- **`market_list_indicators` MCP 工具及 `okx market indicator list` CLI 命令**：按分类浏览所有支持的 OKX 市场指标，支持区间过滤（`--fearGreedIndexMin/Max`、`--longShortRatioMin/Max` 等），便于 AI 进行市场情绪筛选。(#124)
+- **Market 工具 `demo` 参数**：所有 market MCP 工具新增可选 `demo: boolean` 参数，CLI market 命令支持全局 `--demo` 标志，可独立于服务器 demo 模式显式查询模拟盘行情。
+- **简单赚币定期工具**（`earn.savings`）：新增三个工具——`earn_get_fixed_order_list`、`earn_fixed_purchase`（两步申购：预览后确认）、`earn_fixed_redeem`。`earn_get_lending_rate_history` 现同时返回定期产品的年化利率、期限、最低金额和剩余额度。CLI：`okx earn savings fixed-orders/fixed-purchase/fixed-redeem`。
+- **按保证金下单模式（`tgtCcy=margin`）**：SWAP、FUTURES 及期权下单/算法单工具支持 `tgtCcy=margin`，此时 `sz` 表示 USDT 保证金金额，系统自动查询当前杠杆倍数并换算合约张数（`contracts = floor(margin × lever / (ctVal × lastPx))`）。(#128)
+- **CLI 审计日志**：CLI 将所有工具调用记录写入 `~/.okx/logs/trade-YYYY-MM-DD.log`，与 MCP server 行为一致，`okx account audit-log` 对 CLI 用户生效。(#129)
+- **`skills_download` `format` 参数**：支持 `"zip"` 或 `"skill"`。MCP 默认 `"skill"`（agent 友好），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同。
+
+### 变更
+
+- **CLI 表格输出新增环境标题行**：表格输出现显示 `Environment: live` / `Environment: demo (simulated trading)` 标题。
+- **`earn_get_lending_rate_history` 新增定期产品查询**：额外发起 best-effort `privateGet` 请求，未配置 API key 时降级返回空 `fixedOffers` 数组。
+- **`earn_get_lending_rate_history` 默认 limit 从 100 降为 7**：减少 agent 对话中的 token 消耗。
+
+### 修复
+
+- **Indicator range-filter 代码映射修复**：修正内部代码映射并移除不支持的指标类型，避免静默返回空结果。
+- **Skills 文档 indicator 同步**：更新所有指标相关说明和示例，与当前后端数据结构和新 CLI 命令对齐。
+- **Skills 文档转账类型码写反**：修正 portfolio 和 earn 文档中 `6`=资金账户 / `18`=交易账户（此前写反）。(#126)
+- **`tgtCcy=quote_ccy` 换算改用 `minSz`/`lotSz`**：按 `lotSz` 精度向下取整并与 `minSz` 比较，修复 `minSz < 1` 合约（如 BTC-USDT-SWAP）误报"金额不足"的问题。(#127)
+- **CLI `--json` env 包装改为 opt-in（`--env` 标志）**：`--json` 默认返回原始数据（向后兼容），`--json --env` 可获取 `{env, profile, data}` 包装格式。(#131)
+- **未知 `tgtCcy` 值抛出 `ValidationError`**：仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出异常并附带修复建议，不再静默透传。(#133)
+- **`--verbose` 对 CLI 审计日志生效**：verbose 模式写入包含完整请求参数和响应数据的 debug 级别条目；非 verbose 模式仅记录精简摘要。(#130)
+- **行情数据默认始终走实盘**：market 工具显式覆盖服务器级别 demo 标志，默认返回实盘数据，显式传 `demo: true` 时才查询模拟盘。
+
+---
+
+## [1.3.0-beta.5] - 2026-04-08
+
+### 新增
+
+- **Skill 下载 `format` 参数**：`skills_download` MCP tool 和 `okx skill download` CLI 命令新增 `format` 选项（`"zip"` 或 `"skill"`）。MCP 默认 `"skill"`（便于 Claude Desktop 等 agent 自动识别文件类型），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同，仅后缀不同。
+- **Market 工具 `demo` 参数**：全部 14 个 market MCP 工具新增可选参数 `demo: boolean`，CLI market 命令同步支持全局 `--demo` 标志。传 `demo=true` / `--demo` 时请求打到 OKX 模拟盘行情环境（附加 `x-simulated-trading: 1`）；省略或传 `false`（默认）时始终返回实盘行情——与服务器是否以 `--demo` 模式启动无关。
+
+### 修复
+
+- **行情数据默认始终走实盘**：此前以 `--demo` 启动服务器时，行情查询也会带上 `x-simulated-trading: 1` 导致返回模拟盘数据。现在 market 工具在工具层显式传 `simulatedTrading: false`，覆盖服务器级别的 demo 标志。需要查询模拟盘行情时，显式传 `demo: true` 即可。其他模块（交易、账户、Earn、指标）不受影响，仍跟随服务器 demo 标志。
+- **未知 `tgtCcy` 值现在抛出 `ValidationError` 而非静默跳过**：此前 `--tgtCcy margin_ccy` 或 `--tgtCcy QUOTE_CCY` 等拼写错误会被静默忽略，`sz` 原样传给 API 未经转换。现在仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出 `ValidationError` 并附带修复建议。(#133)
+- **`--verbose` 标志现在对 CLI 审计日志生效**：此前 `TradeLogger` 始终以 `"info"` 级别构造，成功日志也全部使用 `"info"`，导致 `--verbose` 对日志文件内容无任何影响。现在 verbose 模式将日志级别设为 `"debug"`，每次成功的工具调用额外写入一条包含完整请求参数和响应数据的 debug 级别条目；非 verbose 模式仅记录精简摘要。(#130)
+
+---
+
+## [1.3.0-beta.2] - 2026-04-07
+
+### 新增
+
+- **简单赚币定期（Simple Earn Fixed）工具**（`earn.savings`）：新增三个工具——`earn_get_fixed_order_list`（按币种/状态查询定期订单）、`earn_fixed_purchase`（两步申购：先预览产品详情再确认，资金锁定至到期）、`earn_fixed_redeem`（赎回定期订单）。`earn_get_lending_rate_history` 现同时返回可用定期产品的年化利率、期限、最低金额和剩余额度。CLI 命令：`okx earn savings fixed-orders`、`okx earn savings fixed-purchase`、`okx earn savings fixed-redeem`。
+- **按保证金下单模式（`tgtCcy=margin`）**：SWAP、FUTURES 及期权下单/算法单工具新增 `tgtCcy=margin` 参数值。当 `tgtCcy=margin` 时，`sz` 表示投入的 USDT 保证金成本，系统自动查询当前杠杆倍数并换算为正确的合约张数（公式：`contracts = floor(margin * lever / (ctVal * lastPx))`）。原有 `quote_ccy`（名义价值）和 `base_ccy`（合约张数）模式行为不变。Skills 确认模板现在要求 agent 在用户说"500U"时显性确认是名义价值还是保证金成本。(#128)
+- **CLI 审计日志**：CLI 现在会将所有工具执行记录写入 `~/.okx/logs/trade-YYYY-MM-DD.log`，与 MCP server 行为一致。`okx account audit-log` 命令对 CLI 用户不再返回空。(#129)
+
+### 变更
+
+- **`earn_get_lending_rate_history` 新增认证 API 调用以获取定期产品**（`earn.savings`）：该工具现通过 `privateGet` 请求定期产品列表。此调用为 best-effort——若用户未配置 API key，工具仍正常返回活期借贷利率历史，`fixedOffers` 为空数组。
+- **`earn_get_lending_rate_history` 默认 limit 从 100 降为 7**（`earn.savings`）：未传 `limit` 时，工具现返回最近 7 条记录而非 100 条，减少 agent 对话中的 token 消耗。
+
+### 修复
+
+- **CLI `--json` 环境包装改为 opt-in（通过 `--env` 标志）**：回退 1.3.0-beta.1 中的破坏性变更，`--json` 输出现默认返回原始数据（向后兼容）。使用 `--json --env` 可获取带环境元数据的包装格式。表格输出的环境标题行不受影响。(#131)
+- **`tgtCcy=quote_ccy` 换算：使用 `minSz`/`lotSz` 替代 `Math.floor`**：USDT 转合约张数的换算现在按 `lotSz` 精度向下取整，并与 instruments API 返回的 `minSz` 比较，不再假设最小张数为整数。修复了 `minSz < 1` 的合约（如 BTC-USDT-SWAP `minSz=0.01`）误报"金额不足"的问题。(#127)
+
+---
+
+## [1.3.0-beta.1] - 2026-04-07
+
+### 新增
+
+- **`market_list_indicators` MCP 工具及 `okx market indicator list` CLI 命令**：列出 OKX 市场指标，支持按类别、分页和数量过滤。支持区间过滤参数（`--fearGreedIndexMin/Max`、`--longShortRatioMin/Max` 等），便于 AI 进行市场情绪筛选。(#124)
+
+### 修复
+
+- **Indicator range-filter 代码映射修复**：修正区间过滤参数的内部代码映射，并移除 OKX API 不支持的指标类型，避免返回静默空结果。
+- **Skills 文档 indicator 同步**：将所有指标相关说明和示例输出更新为与当前后端数据结构和新增 CLI 命令一致。
+- **Skills 文档转账账户类型码写反**：修正 portfolio 和 earn 技能文档中的账户类型码，正确映射为 `6`=资金账户 / `18`=交易账户（此前写反）。(#126)
+
+### 变更
+
+- **CLI `--json` 输出新增环境元数据**：`--json` 输出从原始 OKX API 响应改为 `{"env", "profile", "data"}` 包装结构。使用 `jq '.[0].field'` 的脚本需改为 `jq '.data[0].field'`。表格输出现在会显示环境标题行（`Environment: live` / `Environment: demo (simulated trading)`）。(#207，关联 #117)
+
+---
+
+## [1.2.9] - 2026-04-06
+
+### 新增
+
+- **技能市场第三方免责声明**：在技能市场提示、安装/下载说明以及 CLI 安装流程等关键决策节点新增提示，明确说明市场中的技能由独立第三方开发者提供，帮助用户在安装前做出知情判断。
+
+### 修复
+
+- **SWAP / FUTURES / 期权 `tgtCcy=quote_ccy` 自动换算**：下单处理器现在会在请求发送到 OKX API 之前，自动将计价货币金额（如 USDT）换算为合约张数，覆盖 SWAP、FUTURES 以及期权普通单/算法单场景，避免将报价金额误当作原始张数而导致下单仓位被放大。(#114)
+- **`dcd_subscribe` 收益率阈值比较修复**：在与 `minAnnualizedYield` 比较前，现会先将 `annualizedYield` 从小数转换为百分比，因此收益率阈值过滤已恢复正确；同时对非法收益率值会直接拒绝。
+- **Skills 文档中的 `tgtCcy` 描述修正**：已明确说明 `tgtCcy` 由内部换算层处理，而不是直接透传给 OKX API，从而减少技能文档中的下单数量理解偏差。
+- **CLI 文档：负数值必须使用 `=` 形式**：更新所有 skill 参考文档（swap/futures/spot 命令文档、workflows、SKILL.md），将 `--tpOrdPx -1` / `--slOrdPx -1` 改为 `--tpOrdPx=-1` / `--slOrdPx=-1`，避免 Node `parseArgs()` 将 `-1` 误判为独立 flag。参数说明表中补充说明此语法限制。(#123，关联 #115)
+
+---
+
+## [1.2.9-beta.2] - 2026-04-06
+
+### 新增
+
+- **Skills Marketplace 三方内容免责声明**：在关键信任决策节点（SKILL.md agent 提示、`skills_download` 工具描述、CLI 安装输出、模块文档）添加声明，提示用户 skill 由独立第三方开发者创建，请在安装前知悉。
+
+### 修复
+
+- **SWAP/FUTURES/期权 `tgtCcy=quote_ccy` 自动换算**：对 SWAP、FUTURES 或期权 algo 下单设置 `tgtCcy=quote_ccy` 时，handler 现在会在请求发送至 OKX API 前自动将 USDT 金额换算为合约数量，防止因 OKX 静默忽略该参数而导致仓位放大（例如"100 USDT"变成"100 张合约 ≈$6,700"）。换算并行拉取 `ctVal` 和 `lastPx`，并在响应中附加 `_conversion` 字段说明换算过程。(#114)
+- **`dcd_subscribe` 收益率门槛比较**：OKX API 返回的 `annualizedYield` 为小数（如 `0.18` = 18%），但 `minAnnualizedYield` 直接与原始值比较，导致所有门槛检查均误判为不达标。现在正确乘以 100 后再比较。同时新增 `INVALID_YIELD_VALUE` 错误码，当 quote 返回非数值 yield 时明确拒绝。
+- **DCD 工具描述优化**：在 `dcd_get_products`、`dcd_get_orders`、`dcd_subscribe` 的 description 中补充 yield 单位说明（小数而非百分比），避免 LLM 误解。
+
+---
+
+## [1.2.8] - 2026-04-03
+
+### 新增
+
+- **`market_get_instruments_by_category` MCP 工具及 `okx market instruments-by-category` CLI 命令**：按 `instCategory` 发现可交易标的——股票代币（3）、金属（4）、大宗商品（5）、外汇（6）、债券（7）。取代 `market_get_stock_tokens`（分类 3）。(#109)
+- **技能市场模块**（`skills`）：浏览、搜索并安装 AI 交易技能。工具：`skills_get_categories`、`skills_search`、`skills_download`。CLI：`okx skill search/categories/add/download/remove/check/list`。默认启用。
+- **`--live` 标志**：即使当前 profile 设置了 `demo=true`，也强制使用实盘模式，与 `--demo` 互斥。(#108)
+- **三通道自动更新**（`okx upgrade`）：支持 stable、beta、latest 三个升级渠道，升级后自动同步内置 agent-skills 版本。
+- **`account_get_asset_balance` 新增 `showValuation` 参数**：返回各账户类型（交易/资金/理财等）总资产估值汇总。CLI：`okx account asset-balance --valuation`。(#102)
+- **`market_get_candles` 历史端点自动路由**：`after`/`before` 超过 2 天时自动切换至 `/market/history-candles`，`history` 参数已移除。(#101)
+- **`okx-cex-trade` SKILL.md 拆分重构**：将详细 CLI 参数表提取至 `references/` 子目录（spot/swap/futures/options/workflows/templates），支持 agent 按需加载。
+
+### 修复
+
+- **合约下单前强制 `ctVal` 查询**：`swap_place_order`、`futures_place_order`、`option_place_order` 均要求先调用 `market_get_instruments` 获取合约面值 `ctVal`。(#113)
+- **`account_get_config` 保留 `settleCcy`/`settleCcyList`**：字段不再剔除，改在 description 中说明，避免 AI 模型误解。
+- **Earn 写操作在 demo 模式下明确报错**：所有 earn 写工具在模拟交易模式下返回清晰的 `ConfigError`，而非 OKX API 返回的不透明 500 错误。
+- **`account_get_asset_balance` 余额零值显示**：余额为 0 时正确显示 `0` 而非 "(no data)"。
+- **`--no-demo` 正确覆盖 profile 中的 `demo=true`**：采用三态解析：`--live` 强制实盘，`--demo` 强制模拟，否则读取 profile。(#108)
+- **`okx upgrade` 安全修复**：通过 `process.execPath` 解析 npm（S4036）、消除 ReDoS 风险（S5852）、`execSync` 替换为 `spawnSync`（S4721）。
+- **预发布版本跳过 preflight drift 检查**：本地 CLI 含预发布后缀时不触发误报。
+
+### 废弃
+
+- **`market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代，保留向后兼容，未来主版本移除。
+- **`okx market stock-tokens`**：由 `okx market instruments-by-category --instCategory 3` 替代，保留向后兼容，未来主版本移除。
+
+### 移除
+
+- **`news` 模块**：Orbit News API 集成因等待监管合规审批而移除，审批通过后将重新上线。
+
+---
+
+## [1.2.8-beta.7] - 2026-04-03
+
+### 移除
+
+- **`news` 模块已移除，等待合规审批**：[1.2.8-beta.4] 引入的 Orbit News API 集成已回退。所有新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_domains`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）、CLI 命令（`okx news …`）及 `okx-cex-news` Agent Skill 均已移除，待监管合规审批通过后方可重新上线。`skills`（技能市场）模块不受影响。
+
+---
+
+## [1.2.8-beta.6] - 2026-04-02
+
+### 修复
+
+- **合约下单前强制 `ctVal` 查询**：`swap_place_order`、`futures_place_order`、`option_place_order` 的 tool description 新增前置要求——下单前必须先调用 `market_get_instruments` 获取 `ctVal`（合约面值），不得假设合约大小。`sz` 参数说明补充示例（如 ETH-USDT-SWAP：1 张合约 = 0.1 ETH）。`okx-cex-trade` SKILL.md 同步新增关键警告段落。(#113)
+- **`account_get_config`：回退字段剥离，改为 description 说明**：beta.5 中直接从响应移除 `settleCcy`/`settleCcyList` 的做法已回退。现保留这两个字段，并在 tool description 中注明其含义——仅适用于 USDS 合约，标准 USDT/coin-margined 交易可忽略。
+
+---
+
+## [1.2.8-beta.5] - 2026-04-02
+
+### 新增
+
+- **新增 MCP 工具 `market_get_instruments_by_category` 及 CLI 命令 `okx market instruments-by-category`**：通过 `instCategory` 字段发现可交易品种——股票代币（3，如 AAPL-USDT-SWAP）、贵金属（4，如 XAUUSDT-USDT-SWAP 黄金）、大宗商品（5，如 OIL-USDT-SWAP 原油）、外汇（6，如 EURUSDT-USDT-SWAP）、债券（7，如 US30Y-USDT-SWAP）。支持 `--instCategory <3|4|5|6|7>`，可选 `--instType`（默认 SWAP）和 `--instId`。category=3 场景替代原 `market_get_stock_tokens`。(#109)
+- **`okx-cex-market` skill 更新**：description、command index、instrument-commands 参考文档及 workflows 均已覆盖全部非加密资产类别。新增"非加密资产发现"工作流，引导 agent 完成：发现品种 → 查询行情 → 获取合约规格 → 下单。(#109)
+- **Skills Marketplace 模块**（`skills`）：从 OKX Skills Marketplace 浏览、搜索和安装 AI 交易技能。默认启用，可通过 `--modules skills` 单独加载。
+  - `skills_get_categories` — 列出所有可用技能分类；返回 `categoryId` 供 `skills_search` 使用。
+  - `skills_search` — 按关键词和/或分类搜索技能，返回 `totalPage` 支持分页。
+  - `skills_download` — 将技能 zip 包下载到本地目录。
+  - CLI 命令：`okx skill search <关键词>`、`okx skill categories`、`okx skill add <名称>`、`okx skill download <名称> [--dir]`、`okx skill remove <名称>`、`okx skill check <名称>`、`okx skill list`。
+  - `okx skill add` 自动解压、校验 `SKILL.md`、执行 `npx skills add`，并将安装记录写入 `~/.okx/skills/registry.json`。
+  - Agent Skill：`skills/okx-cex-skill-mp/SKILL.md`。
+
+### 废弃
+- **MCP 工具 `market_get_stock_tokens`**：由 `market_get_instruments_by_category`（`instCategory="3"`）替代。保留以维持向后兼容，将在未来大版本中移除。
+- **CLI 命令 `okx market stock-tokens`**：由 `okx market instruments-by-category --instCategory 3` 替代。保留以维持向后兼容，将在未来大版本中移除。
+
+### 修复
+
+- **Earn 模块：写操作在模拟盘（demo）模式下现在会立即返回语义明确的错误**，而不是打到 OKX API 拿到不透明的 500 服务器错误。在 `earn/index.ts` 注册层增加了统一的 `withDemoGuard` wrapper，所有 earn 写操作工具（savings 申购/赎回、DCD 认购、链上理财、自动申购）在执行前均会被拦截，抛出 `ConfigError`，错误信息为："Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode."，并提示切换为真实账户。只读工具（余额查询、利率历史、产品列表）在 demo 模式下仍可正常使用。`dcd_redeem` 的 preview 模式（不传 `quoteId`，只读价格查询）在 demo 模式下同样可用。未来新增的 earn 工具基于 `isWrite` 标志自动受到保护。
+- **`account_get_config` 响应剔除 `settleCcy` / `settleCcyList`**：这两个字段仅适用于 USDS 合约账户，现已从响应中移除，避免 AI 模型将其误解为通用账户设置。*（已在 [1.2.8-beta.6] 中回退——字段保留，改为在 description 中说明。）*
+
+---
+
+## [1.2.8-beta.4] - 2026-04-02
+
+### 新增
+
+- **`news` 模块**（7 个工具）：通过 Orbit News API 提供实时加密新闻查询、全文搜索和情绪分析。所有工具均为只读，无需资金权限。启动参数：`--modules news`。
+  - `news_get_latest` — 按时间排序获取最新新闻；支持重要性筛选（`high`/`medium`/`low`）、币种筛选、语言、分页。
+  - `news_get_by_coin` — 获取指定币种的新闻（逗号分隔，如 `BTC,ETH`）。
+  - `news_search` — 按关键词全文搜索，支持币种、重要性、情绪、排序等过滤条件。
+  - `news_get_detail` — 通过新闻 ID 获取完整文章（标题 + AI 摘要 + 原文）。
+  - `news_get_domains` — 列出可用新闻来源域名（如 CoinDesk、CoinTelegraph）。
+  - `news_get_coin_sentiment` — 获取币种的看涨/看跌快照或时间序列趋势；传入 `trendPoints` 进入趋势模式。
+  - `news_get_sentiment_ranking` — 按热度或情绪方向对币种排名。
+  - CLI 用法：`okx news latest`、`okx news by-coin <coins>`、`okx news search <关键词>`、`okx news detail <id>`、`okx news domains`、`okx news sentiment <coins>`、`okx news sentiment-ranking`。
+  - Agent Skill：`skills/okx-cex-news/`，含 workflows 引导文档。
+
+### 新增
+
+- **CLI 和 MCP 新增 `--live` 标志**：强制使用实盘交易模式，即使当前 profile 设置了 `demo=true` 也生效。与 `--demo` 互斥（同时传入会报错）。CLI 用法：`okx --live <模块> <命令>`；MCP 启动参数：`--live`。(#108)
+
+### 修复
+- **`--no-demo` 标志现在可以正确覆盖 profile 中的 `demo=true`**：此前，由于 `cli.demo` 默认值为 `false`，布尔逻辑导致 `--no-demo` 无法覆盖 profile 配置。现已改为三态逻辑：`--live` 强制实盘、`--demo` 强制模拟盘，否则依次读取环境变量和 profile 配置。(#108)
+
+---
+
+## [1.2.8-beta.3] - 2026-04-01
+
+### 新增
+
+- **三通道自动更新 + skill 版本同步**（`okx upgrade`）：支持 stable、beta、latest 三个 dist-tag 升级渠道，升级后自动同步内置 agent-skills 版本。core 包新增导出 `fetchLatestVersion`、`isNewerVersion`、`fetchDistTags`。
+- **`okx-cex-trade` SKILL.md 拆分重构**：将 1,594 行的单体 SKILL.md 精简为 342 行索引文件，详细 CLI 参数表和工作流提取至 `references/spot-commands.md`、`references/swap-commands.md`、`references/futures-commands.md`、`references/options-commands.md`、`references/workflows.md`、`references/templates.md`。与 `okx-cex-earn`、`okx-cex-market` 保持一致，支持 agent 按需动态加载。
+
+### 修复
+
+- **`okx upgrade`：通过 `process.execPath` 动态解析 `npm` 路径**，避免依赖 PATH 环境变量导致升级失败（SonarQube S4036）。
+- **`okx upgrade`：消除 ReDoS 风险**——字符串替换从正则改为 `split`/`join` 实现（SonarQube S5852）。
+- **`okx upgrade`：`execSync` 替换为 `spawnSync`**，消除安全热点（SonarQube S4721）。
+- **预发布版本跳过 preflight drift 检查**：本地 CLI 版本含预发布后缀（如 `1.2.8-beta.3`）时，跳过版本漂移检查，避免误报。
+
+---
+
+## [1.2.8-beta.2] - 2026-03-31
+
+### 修复
+
+- **`account_get_asset_balance` 余额为零时正确显示 `0`**：当账户余额恰好为 0 时，CLI 不再显示占位文字"(no data)"，而是正确展示 `0`。
+
+### 变更
+
+- **`market_get_candles` 自动路由历史端点**：当 `after`/`before` 时间戳超过 2 天前时，自动切换至 `/market/history-candles`，支持查询 2021 年至今的历史K线。新增兜底机制：若近期端点对带时间戳的请求返回空数据，自动重试历史端点。移除 `history` 参数，无需手动切换。CLI 用法：`okx market candles BTC-USDT --after <时间戳>`。(#101)
+- **`account_get_asset_balance` 新增 `showValuation` 参数**：设置 `showValuation=true` 可同时返回各账户类型（交易/资金/理财等）的总资产估值汇总，底层调用 `/api/v5/asset/asset-valuation`。默认行为不变（向后兼容）。CLI 用法：`okx account asset-balance --valuation`。(#102)
+
+---
+
+## [1.2.8-beta.1] - 2026-03-31
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）节点解析基础设施** *（实验性——代码在后续 merge 中意外丢失，未包含在稳定版 1.2.8 中）*：新增 `packages/core/src/doh/` 模块（`DohNode` 类型与 `resolveDoh()` 解析器），REST client 集成 DoH 代理节点选择以改善受限网络下的连接稳定性。因依赖平台专属原生二进制包（`@okx_ai/doh-darwin`、`doh-linux`、`doh-win32`）未就绪，代码已从后续版本移除。
+
+---
+
+## [1.2.7] - 2026-03-27
+
+### 新增
+
+- **`earn_auto_set` 工具**（`earn.autoearn`）：为指定币种开启或关闭自动理财。`earnType='0'` 为自动借贷+质押（适用大多数币种），`earnType='1'` 为 USDG 理财（USDG、BUIDL）。开启后 24 小时内不可关闭。CLI 用法：`okx earn auto on <币种>` / `okx earn auto off <币种>`。
+- **合约网格支持币本位（反向）合约**（如 `BTC-USD-SWAP`）：更新 `grid_create_order`、`grid_get_orders`、`grid_stop_order` 工具描述，补充币本位 instId 示例和保证金单位说明。
+- **`grid_create_order` 新增止盈止损参数**：新增 `tpTriggerPx`、`slTriggerPx`（触发价格）和 `tpRatio`、`slRatio`（比例止盈止损，仅合约），用户创建网格时可同时设置止盈止损。
+- **`grid_create_order` 新增 `algoClOrdId`**：用户自定义策略订单 ID（字母数字，最长 32 位）。每用户唯一，支持幂等创建，后续可用于查询或停止策略。
+- **算法下单接口新增 `tgtCcy` 参数**：`spot_place_algo_order`、`swap_place_algo_order`、`futures_place_algo_order`、`option_place_algo_order` 新增 `tgtCcy` 参数，设为 `quote_ccy` 时可用 USDT 金额指定下单量。(#86)
+- **`okx diagnose --mcp` 多客户端检测**：自动检测 Cursor、Windsurf、Claude Code、Claude Desktop 的 MCP 配置；未安装的客户端直接 skip 而非报错；至少一个客户端已配置即通过。(#90)
+- **`okx diagnose --mcp` Tool 数量限制检查**：统计已加载的 tool 总数，超出已知客户端限制（如 Cursor: 单服务器 40 个、总计 80 个）时发出警告并给出 `--modules` 缩减建议。(#90)
+- **Cursor 工具数量限制说明**：在 `docs/configuration.md` 和 `docs/faq.md` 中新增针对 Cursor 用户的工具数量限制警告、推荐模块组合表及安全配置示例。(#88)
+- **现货 DCA 支持**（`bot.dca`）：5 个 DCA 工具现在同时支持现货 DCA（`algoOrdType=spot_dca`）和合约 DCA（`algoOrdType=contract_dca`）。`dca_create_order` 新增参数：`algoOrdType`（必填）、`algoClOrdId`、`reserveFunds`、`tradeQuoteCcy`；`dca_stop_order` 新增 `algoOrdType` 和 `stopType`；`dca_get_orders` 新增 `algoOrdType` 过滤；`dca_get_order_details` 和 `dca_get_sub_orders` 新增 `algoOrdType`（必填）。CLI 命令同步新增 `--algoOrdType` 选项（省略时默认 `contract_dca`，保持向后兼容）。
+- **`dca_create_order` 支持 RSI 触发策略**：`triggerStrategy` 现在接受 `"rsi"`，适用于现货 DCA 和合约 DCA。新增 RSI 参数：`triggerCond`（`cross_up` | `cross_down`）、`thold`（RSI 阈值，如 `"30"`）、`timeframe`（如 `"15m"`）、`timePeriod`（默认 `"14"`）。注意：`price` 触发仅支持 `contract_dca`；`spot_dca` 只支持 `instant` 和 `rsi`。
+- **Agent Skills 内置到 `skills/` 目录**：5 个 Skill 模块（`okx-cex-market`、`okx-cex-trade`、`okx-cex-portfolio`、`okx-cex-bot`、`okx-cex-earn`）现已直接收录在项目 `skills/` 目录中，并新增 `skills/README.md` 和 `skills/README.zh-CN.md` 使用说明。
+
+### 修复
+
+- **`dca_create_order` 缺少 `tag` 字段**：创建请求体中现在正确包含 `tag`（来自 `context.config.sourceTag`），与 `grid_create_order` 行为一致。
+- **`allowReinvest` 类型不匹配**：Schema 从字符串枚举改为布尔类型，匹配后端 `Boolean` 类型。Handler 同时兼容布尔值和字符串 "true"/"false"（CLI 兼容）。
+- **`cmdDcaSubOrders` 展示字段错误**：查询周期内子订单（传了 `--cycleId`）时，CLI 现在显示订单专有字段（`ordId`、`side`、`ordType`、`filledSz` 等），替代之前错误使用的周期列表字段。
+- **`okx market ticker` 的"24h change %"字段显示错误**：该字段原来错误地映射到 `sodUtc8`，现已修复为基于 `open24h` 与 `last` 计算涨跌幅，并新增 `24h open` 字段展示 `open24h` 值。
+- **`dca_create_order` `triggerStrategy` 按 `algoOrdType` 分类校验**：`price` 触发策略对 `spot_dca` 在校验阶段即返回明确错误。
+
+### 变更
+
+- **`grid_create_order`：合约网格必须传 `direction`** — MCP 层新增客户端校验，`algoOrdType=contract_grid` 时缺少 `direction` 将立即返回错误，无需网络往返。
+- **`grid_stop_order`：默认 `stopType` 从 `"2"` 改为 `"1"`** — 省略 `stopType` 时默认为平仓（停止网格并平仓），而非保留资产，对现货和合约网格均更安全直观。
+- **`grid_create_order`：缩短工具描述** — JSON schema 大小减少约 20%（2,017 → 1,610 字符），在不删除任何信息的前提下压缩参数描述。
+- **README 新增 Agent Skills 章节**：Features 表格和 Documentation 表格更新，反映 `skills/` 目录的引入。
+
+---
+
+## [1.2.7-beta.3] - 2026-03-27
+
+### 新增
+
+- **`dca_create_order` 支持 RSI 触发策略**：`triggerStrategy` 现在接受 `"rsi"`，适用于现货 DCA 和合约 DCA。新增 RSI 参数：`triggerCond`（`cross_up` | `cross_down`）、`thold`（RSI 阈值，如 `"30"`）、`timeframe`（如 `"15m"`）、`timePeriod`（默认 `"14"`）。RSI 触发同时支持 `spot_dca` 和 `contract_dca`。
+- **Agent Skills 内置到 `skills/` 目录**：5 个 Skill 模块（`okx-cex-market`、`okx-cex-trade`、`okx-cex-portfolio`、`okx-cex-bot`、`okx-cex-earn`）现已直接收录在项目 `skills/` 目录中，并新增 `skills/README.md` 和 `skills/README.zh-CN.md` 使用说明。
+
+### 修复
+
+- **`dca_create_order` `triggerStrategy` 按 `algoOrdType` 分类校验**：`price` 触发策略对 `spot_dca` 在校验阶段即返回明确错误（`spot_dca` 只支持 `instant` 和 `rsi`）。`contract_dca` 继续支持全部三种策略（`instant`、`price`、`rsi`）。
+
+### 变更
+
+- **README 新增 Agent Skills 章节**：Features 表格和 Documentation 表格更新，反映 `skills/` 目录的引入。
+
+---
+
+## [1.2.7-beta.2] - 2026-03-27
+
+### 新增
+
+- **`okx diagnose --mcp` 多客户端检测**：自动检测 Cursor、Windsurf、Claude Code、Claude Desktop 的 MCP 配置；未安装的客户端直接 skip 而非报错；至少一个客户端已配置即通过 (#90)
+- **`okx diagnose --mcp` Tool 数量限制检查**：统计已加载的 tool 总数，超出已知客户端限制（如 Cursor: 单服务器 40 个、总计 80 个）时发出警告并给出 `--modules` 缩减建议 (#90)
+- **Cursor 工具数量限制说明**：在 `docs/configuration.md` 和 `docs/faq.md` 中新增针对 Cursor 用户的工具数量限制警告、推荐模块组合表及安全配置示例（#88）
+- **现货 DCA 支持**（`bot.dca`）：5 个 DCA 工具现在同时支持现货 DCA（`algoOrdType=spot_dca`）和合约 DCA（`algoOrdType=contract_dca`）。`dca_create_order` 新增参数：`algoOrdType`（必填）、`algoClOrdId`、`reserveFunds`、`tradeQuoteCcy`；`dca_stop_order` 新增 `algoOrdType` 和 `stopType`；`dca_get_orders` 新增 `algoOrdType` 过滤；`dca_get_order_details` 和 `dca_get_sub_orders` 新增 `algoOrdType`（必填）。CLI 命令同步新增 `--algoOrdType` 选项（省略时默认 `contract_dca`，保持向后兼容）。帮助文本和 agent-skills 文档同步更新。
+
+### 移除
+
+- **`dca_create_order` `triggerStrategy` 不再支持 `"rsi"`**：OKX DCA API 不支持 RSI 触发策略。`triggerStrategy` 枚举现在为 `["instant", "price"]`。之前传入 `triggerStrategy: "rsi"` 的用户将收到 schema 校验错误。
+
+### 修复
+
+- **`dca_create_order` 缺少 `tag` 字段**：创建请求体中现在正确包含 `tag`（来自 `context.config.sourceTag`），与 `grid_create_order` 行为一致。
+- **`allowReinvest` 类型不匹配**：Schema 从字符串枚举改为布尔类型，匹配后端 `Boolean` 类型。Handler 同时兼容布尔值和字符串 "true"/"false"（CLI 兼容）。
+- **`cmdDcaSubOrders` 展示字段错误**：查询周期内子订单（传了 `--cycleId`）时，CLI 现在显示订单专有字段（`ordId`、`side`、`ordType`、`filledSz` 等），替代之前错误使用的周期列表字段。
+- **`okx market ticker` 的"24h change %"字段显示错误**：该字段原来错误地映射到 `sodUtc8`（UTC+8 当日开盘价），而非基于 `open24h` 计算涨跌幅。现已修复：新增 `24h open` 字段展示 `open24h` 值，并基于 `open24h` 与 `last` 计算 `24h change %`。
+
+---
+
+## [1.2.7-beta.1] - 2026-03-26
+
+### 新增
+
+- **`earn_auto_set` 工具**（`earn.autoearn`）：为指定币种开启或关闭自动理财。`earnType='0'` 为自动借贷+质押（适用大多数币种），`earnType='1'` 为 USDG 理财（USDG、BUIDL）。开启后 24 小时内不可关闭。CLI 用法：`okx earn auto on <币种>` / `okx earn auto off <币种>`。
+- **合约网格支持币本位（反向）合约**（如 `BTC-USD-SWAP`）：更新 `grid_create_order`、`grid_get_orders`、`grid_stop_order` 工具描述，补充币本位 instId 示例和保证金单位说明。
+- **`grid_create_order` 新增止盈止损参数**：新增 `tpTriggerPx`、`slTriggerPx`（触发价格）和 `tpRatio`、`slRatio`（比例止盈止损，仅合约），用户创建网格时可同时设置止盈止损。
+- **`grid_create_order` 新增 `algoClOrdId`**：用户自定义策略订单 ID（字母数字，最长 32 位）。每用户唯一，支持幂等创建，后续可用于查询或停止策略。
+- **算法下单接口新增 `tgtCcy` 参数**：`spot_place_algo_order`、`swap_place_algo_order`、`futures_place_algo_order`、`option_place_algo_order` 新增 `tgtCcy` 参数。设为 `quote_ccy` 时可用 USDT 金额指定下单量，与 v1.2.6 中普通下单接口行为一致。(#86)
+
+### 变更
+
+- **`grid_create_order`：合约网格必须传 `direction`** — MCP 层新增客户端校验，`algoOrdType=contract_grid` 时缺少 `direction` 将立即返回错误，无需网络往返。
+- **`grid_stop_order`：`stopType` 默认值从 `"2"` 改为 `"1"`** — 省略 `stopType` 时默认为关停并平仓，而非保留资产。对现货和合约网格均更安全直观。
+- **`grid_create_order`：精简工具描述** — `grid_create_order` JSON schema 体积缩减约 20%（2,017 → 1,610 chars），精简 `sz`、`algoClOrdId`、TP/SL 等参数描述，信息量不变。
+---
+
+## [1.2.6] - 2026-03-23
+
+### 新增
+
+- **`market_get_indicator` 工具**（`market`）：通过 OKX AIGC 指标接口查询任意交易对的技术指标值。支持 70+ 指标，覆盖 10 大分类——均线（MA/EMA/WMA/HMA 等）、趋势（MACD/SuperTrend/SAR/ADX 等）、一目均衡表、动量振荡器（RSI/KDJ/StochRSI 等）、波动率（BB/ATR/Keltner 等）、成交量（OBV/VWAP/MFI 等）、统计（LR/Slope/Sigma 等）、价格辅助（TP/MP）、K 线形态（15 种）、BTC 周期指标（BTCRAINBOW/AHR999）。无需 API 凭证。支持可选参数 `params`、`returnList`、`limit`、`backtestTime`。CLI 用法：`okx market indicator <名称> <instId> [--bar <周期>] [--params <p1,p2>] [--list] [--limit N] [--backtest-time <ms>]`。
+- **`OkxRestClient.publicPost()` 方法**：新增免鉴权 POST 方法，与 `publicGet` 对称，供 `market_get_indicator` 内部使用。
+- **下单接口新增 `tgtCcy` 参数**：`spot_place_order`、`swap_place_order`、`futures_place_order` 新增 `tgtCcy` 参数。设为 `quote_ccy` 时可用 USDT 金额指定下单量，而非合约数/基础货币数量。
+
+### 修复
+
+- **CLI 业务失败时退出码为 1**：OKX 写入接口在订单被拒绝时仍返回 HTTP 200（如 `sCode="51008"`）。现在当响应中任意条目的 `sCode` 非零时，CLI 设置 `process.exitCode = 1`，脚本和 LLM 可通过退出码直接判断失败。
+- **`config.toml` passphrase 含特殊字符时给出友好提示**：passphrase 含 `#`、`\`、`"`、`'` 时，错误信息现在包含 TOML 引号转义指引，替代原来的模糊解析报错。
+- **余额不足错误提示优化**：错误码 `51008`（余额不足）、`51119`（保证金不足）、`51127`（可用保证金不足）的建议中，现在明确提示通过 `account_get_asset_balance` 检查资金账户，并通过 `account_transfer(from=18, to=6)` 转账后重试。
+
+### 变更
+
+- **CLI 输出层抽象重构**（内部）：统一 `process.stdout`/`stderr` 写入，对用户无感知行为变化。
+
+---
+
 ## [1.2.5] - 2026-03-18
 
 ### 新增
@@ -22,9 +383,11 @@
 ### 移除
 
 - **低阶 DCD 拆分工具已删除**：`dcd_request_quote`、`dcd_execute_quote`、`dcd_request_redeem_quote`、`dcd_execute_redeem` 已删除。申购流程请使用 `dcd_subscribe`，提前赎回流程请使用 `dcd_redeem`。
+- **`earn_get_lending_rate_summary` 工具已删除**（`earn.savings`）：借币市场利率汇总接口已从 MCP 工具集中移除。如需查询市场借贷利率，请改用 `earn_get_lending_rate_history`。
 
 ### 修复
 
+- **Simple Earn 工具中 `rate` / `lendingRate` 字段语义说明修正**：修正了 `earn_get_savings_balance`、`earn_set_lending_rate`、`earn_get_lending_history`、`earn_get_lending_rate_history` 中具有误导性的描述。`rate` 字段现已明确说明为*最低借出利率阈值*（非市场收益率，非 APY）。`lendingRate` 字段新增稳定币 pro-rata 摊薄机制说明：当可出借的稳定币（USDT/USDC）供给超过借币需求时，总利息由所有出借方按比例分配，导致 `lendingRate` < `rate`；非稳定币无此摊薄机制，`lendingRate` 等于 `rate`。向用户展示收益时应始终使用 `lendingRate`。
 - **CLI `cancel` 命令支持 `--clOrdId`**：`okx spot/swap/futures cancel` 此前仅支持 `--ordId` 位置参数。现支持 `--ordId` 或 `--clOrdId`（客户自定义订单 ID）二选一；若两者均未提供则抛出明确错误。涉及 `spot_cancel_order`、`swap_cancel_order`、`futures_cancel_order`。
 - **CLI `spot/swap/futures cancel` 忽略 `--instId` 参数**：`cmdSpotCancel`、`cmdSwapCancel`、`cmdFuturesCancel` 错误地使用位置参数（`rest[0]`）作为 `instId`，导致 `--instId` 标志被静默忽略、以错误的合约 ID 执行撤单。已修复为正确读取 `v.instId`。
 

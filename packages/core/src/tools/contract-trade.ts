@@ -17,6 +17,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
+import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
 
 export interface ContractConfig {
   /** Tool name prefix, e.g. "swap" → "swap_place_order" */
@@ -43,7 +44,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     {
       name: n("place_order"),
       module,
-      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.`,
+      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. Before placing, use market_get_instruments to get ctVal (contract face value) — do NOT assume contract sizes. [CAUTION] Executes real trades.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -71,7 +72,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Contracts count (NOT USDT). Use market_get_instruments for ctVal.",
+            description: "Number of contracts. Each contract = ctVal units (e.g. 0.1 ETH for ETH-USDT-SWAP). Query market_get_instruments for exact ctVal. Set tgtCcy=quote_ccy to specify sz in USDT notional value; set tgtCcy=margin to specify sz as margin cost (notional = sz * leverage).",
+          },
+          tgtCcy: {
+            type: "string",
+            enum: ["base_ccy", "quote_ccy", "margin"],
+            description: "Size unit. base_ccy(default): sz in contracts; quote_ccy: sz in USDT notional value; margin: sz in USDT margin cost (actual position = sz * leverage)",
           },
           px: { type: "string", description: "Required for limit/post_only/fok/ioc" },
           reduceOnly: {
@@ -90,6 +96,14 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
+        const resolved = await resolveQuoteCcySz(
+          requireString(args, "instId"),
+          requireString(args, "sz"),
+          readString(args, "tgtCcy"),
+          defaultType,
+          context.client,
+          readString(args, "tdMode"),
+        );
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -98,7 +112,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             side: requireString(args, "side"),
             posSide: readString(args, "posSide"),
             ordType: requireString(args, "ordType"),
-            sz: requireString(args, "sz"),
+            sz: resolved.sz,
+            tgtCcy: resolved.tgtCcy,
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
@@ -107,7 +122,11 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           }),
           privateRateLimit(n("place_order"), 60),
         );
-        return normalizeResponse(response);
+        const result = normalizeResponse(response);
+        if (resolved.conversionNote) {
+          result._conversion = resolved.conversionNote;
+        }
+        return result;
       },
     },
 

@@ -147,7 +147,7 @@ export function registerAccountTools(): ToolSpec[] {
       name: "account_get_asset_balance",
       module: "account",
       description:
-        "Get funding account balance (asset account). Different from account_get_balance which queries the trading account.",
+        "Get funding account balance (asset account). Different from account_get_balance which queries the trading account. Optionally includes total asset valuation across all account types (trading, funding, earn, etc.).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -156,16 +156,42 @@ export function registerAccountTools(): ToolSpec[] {
             type: "string",
             description: "e.g. BTC or BTC,ETH. Omit for all.",
           },
+          showValuation: {
+            type: "boolean",
+            description:
+              "Include total asset valuation breakdown by account type (trading/funding/earn). Default false.",
+          },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.privateGet(
+        const ccy = readString(args, "ccy");
+        const showValuation = readBoolean(args, "showValuation");
+        if (showValuation) {
+          const balanceResp = await context.client.privateGet(
+            "/api/v5/asset/balances",
+            compactObject({ ccy }),
+            privateRateLimit("account_get_asset_balance", 6),
+          );
+          let valuationData: unknown = null;
+          try {
+            const valuationResp = await context.client.privateGet(
+              "/api/v5/asset/asset-valuation",
+              {},
+              privateRateLimit("account_get_asset_valuation", 1),
+            );
+            valuationData = valuationResp.data;
+          } catch {
+            // valuation is best-effort; balance data is still returned
+          }
+          return { ...normalizeResponse(balanceResp), valuation: valuationData };
+        }
+        const balanceResp = await context.client.privateGet(
           "/api/v5/asset/balances",
-          compactObject({ ccy: readString(args, "ccy") }),
+          compactObject({ ccy }),
           privateRateLimit("account_get_asset_balance", 6),
         );
-        return normalizeResponse(response);
+        return normalizeResponse(balanceResp);
       },
     },
     {
@@ -334,7 +360,10 @@ export function registerAccountTools(): ToolSpec[] {
       name: "account_get_config",
       module: "account",
       description:
-        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc.",
+        "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc. " +
+        "Note: `settleCcy` is the current settlement currency for USDS-margined contracts. " +
+        "`settleCcyList` is the list of available settlement currencies to choose from. " +
+        "These fields only apply to USDS-margined contracts and can be ignored for standard USDT/coin-margined trading.",
       isWrite: false,
       inputSchema: {
         type: "object",

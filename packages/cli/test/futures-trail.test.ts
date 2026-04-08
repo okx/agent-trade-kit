@@ -1,27 +1,30 @@
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { cmdFuturesAlgoTrailPlace } from "../src/commands/futures.js";
+import { setOutput, resetOutput } from "../src/formatter.js";
 
-function muteStdout(fn: () => Promise<void>): Promise<void> {
-  const orig = process.stdout.write.bind(process.stdout);
-  (process.stdout as { write: typeof process.stdout.write }).write = () => true;
-  return fn().finally(() => {
-    process.stdout.write = orig;
-  });
+/** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
+function findJson(output: string[]): string {
+  const joined = output.join("");
+  try { JSON.parse(joined); return joined; } catch {}
+  for (const chunk of output) {
+    const trimmed = chunk.trim();
+    if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+      try { JSON.parse(trimmed); return trimmed; } catch {}
+    }
+  }
+  return joined;
 }
 
-function captureStdout(fn: () => Promise<void>): Promise<string> {
-  const chunks: string[] = [];
-  const orig = process.stdout.write.bind(process.stdout);
-  (process.stdout as { write: typeof process.stdout.write }).write = (chunk) => {
-    chunks.push(typeof chunk === "string" ? chunk : chunk.toString());
-    return true;
-  };
-  return fn().finally(() => {
-    process.stdout.write = orig;
-  }).then(() => chunks.join(""));
-}
+
+let out: string[] = [];
+
+beforeEach(() => {
+  out = [];
+  setOutput({ out: (m) => out.push(m), err: () => {} });
+});
+afterEach(() => resetOutput());
 
 const fakeAlgoResult = {
   endpoint: "POST /api/v5/trade/order-algo",
@@ -42,16 +45,14 @@ describe("cmdFuturesAlgoTrailPlace", () => {
       return fakeAlgoResult;
     };
 
-    await muteStdout(() =>
-      cmdFuturesAlgoTrailPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "sell",
-        sz: "1",
-        callbackRatio: "0.01",
-        tdMode: "cross",
-        json: false,
-      }),
-    );
+    await cmdFuturesAlgoTrailPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "sell",
+      sz: "1",
+      callbackRatio: "0.01",
+      tdMode: "cross",
+      json: false,
+    });
 
     assert.ok(capturedTool, "runner should have been called");
     assert.equal(capturedTool, "futures_place_move_stop_order");
@@ -60,9 +61,7 @@ describe("cmdFuturesAlgoTrailPlace", () => {
     assert.equal(capturedParams!["side"], "sell");
     assert.equal(capturedParams!["sz"], "1");
     assert.equal(capturedParams!["callbackRatio"], "0.01");
-    // mutual exclusivity: when callbackRatio is given, callbackSpread should not be set
     assert.equal(capturedParams!["callbackSpread"], undefined);
-    // activePx is optional: should not be set when not provided
     assert.equal(capturedParams!["activePx"], undefined);
   });
 
@@ -73,18 +72,16 @@ describe("cmdFuturesAlgoTrailPlace", () => {
       return fakeAlgoResult;
     };
 
-    await muteStdout(() =>
-      cmdFuturesAlgoTrailPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "buy",
-        sz: "1",
-        callbackSpread: "100",
-        activePx: "50000",
-        posSide: "long",
-        tdMode: "isolated",
-        json: false,
-      }),
-    );
+    await cmdFuturesAlgoTrailPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "buy",
+      sz: "1",
+      callbackSpread: "100",
+      activePx: "50000",
+      posSide: "long",
+      tdMode: "isolated",
+      json: false,
+    });
 
     assert.ok(capturedParams, "runner should have been called");
     assert.equal(capturedParams!["callbackSpread"], "100");
@@ -101,17 +98,15 @@ describe("cmdFuturesAlgoTrailPlace", () => {
       return fakeAlgoResult;
     };
 
-    await muteStdout(() =>
-      cmdFuturesAlgoTrailPlace(runner, {
-        instId: "ETH-USD-250328",
-        side: "sell",
-        sz: "2",
-        callbackRatio: "0.02",
-        tdMode: "cross",
-        reduceOnly: true,
-        json: false,
-      }),
-    );
+    await cmdFuturesAlgoTrailPlace(runner, {
+      instId: "ETH-USD-250328",
+      side: "sell",
+      sz: "2",
+      callbackRatio: "0.02",
+      tdMode: "cross",
+      reduceOnly: true,
+      json: false,
+    });
 
     assert.ok(capturedParams, "runner should have been called");
     assert.equal(capturedParams!["reduceOnly"], true);
@@ -119,32 +114,32 @@ describe("cmdFuturesAlgoTrailPlace", () => {
 
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
-    const output = await captureStdout(() =>
-      cmdFuturesAlgoTrailPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "sell",
-        sz: "1",
-        callbackRatio: "0.01",
-        tdMode: "cross",
-        json: true,
-      }),
-    );
-    assert.doesNotThrow(() => JSON.parse(output), "output should be valid JSON");
+
+    await cmdFuturesAlgoTrailPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "sell",
+      sz: "1",
+      callbackRatio: "0.01",
+      tdMode: "cross",
+      json: true,
+    });
+
+    assert.doesNotThrow(() => JSON.parse(findJson(out)), "output should be valid JSON");
   });
 
   it("outputs trailing stop placed message with algoId", async () => {
     const runner: ToolRunner = async () => fakeAlgoResult;
-    const output = await captureStdout(() =>
-      cmdFuturesAlgoTrailPlace(runner, {
-        instId: "BTC-USD-250328",
-        side: "sell",
-        sz: "1",
-        callbackRatio: "0.01",
-        tdMode: "cross",
-        json: false,
-      }),
-    );
-    assert.ok(output.includes("987654"), "output should contain algoId");
-    assert.ok(output.includes("OK"), "output should indicate success");
+
+    await cmdFuturesAlgoTrailPlace(runner, {
+      instId: "BTC-USD-250328",
+      side: "sell",
+      sz: "1",
+      callbackRatio: "0.01",
+      tdMode: "cross",
+      json: false,
+    });
+
+    assert.ok(out.join("").includes("987654"), "output should contain algoId");
+    assert.ok(out.join("").includes("OK"), "output should indicate success");
   });
 });

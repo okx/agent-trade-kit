@@ -29,25 +29,26 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 特性 | 说明 |
 |------|------|
-| **106 个工具，8 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 |
+| **112 个工具，8 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 |
 | **内置算法单** | 条件单、OCO 止盈止损、追踪止损 |
 | **安全控制** | `--read-only` 只读模式、按模块过滤、内置限速器 |
 | **零基础设施** | 本地 stdio 进程，无需服务器或数据库 |
 | **MCP 标准** | 兼容 Claude Desktop、Cursor、openCxxW 及所有 MCP 客户端 |
+| **内置 Agent Skills** | 预置 AI agent skill 文件，覆盖行情、交易、账户、机器人、赚币，即插即用 |
 | **开源** | MIT 协议，API Key 不离开本机 |
 
 ## 模块概览
 
 | 模块 | 工具数 | 说明 | 文档 |
 |------|--------|------|------|
-| `market` | 13 | Ticker、盘口、K线（含历史）、指数行情、指数K线、涨跌停、资金费率、标记价格、持仓量、股票代币 | [→](docs/modules/market.md) |
+| `market` | 16 | Ticker、盘口、K线（含历史）、指数行情、指数K线、涨跌停、资金费率、标记价格、持仓量、股票代币、**技术指标**（70+ 指标：MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 等，无需鉴权）、**指标列表**（按分类浏览所有支持的指标） | [→](docs/modules/market.md) |
 | `spot` | 13 | 下单/改单/撤单、批量操作、成交记录（含归档）、订单历史（含归档）、条件单、OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | 永续合约交易、批量操作、持仓、杠杆、条件单、OCO、追踪止损 | [→](docs/modules/swap.md) |
 | `futures` | 18 | 交割合约下单/撤单/改单、持仓、成交记录、订单历史、平仓、杠杆设置、批量订单、算法单（止盈止损、OCO、追踪止损） | [→](docs/modules/futures.md) |
 | `option` | 10 | 期权交易：下单/撤单/改单/批量撤单、订单历史、持仓（含 Greeks）、成交记录、期权链、IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | 余额、账单（含归档）、持仓、持仓历史、手续费率、配置、仓位模式、最大可提币量、最大可用仓位、操作审计日志 | [→](docs/modules/account.md) |
-| `earn` | 19 | 简单赚币：余额、申购、赎回、出借利率管理 (7)。链上质押/DeFi (6)。双币赢/Dual Currency Deposit (6)。子模块：`earn.savings`、`earn.onchain`、`earn.dcd`。包含在 `all` 中。 | [→](docs/modules/earn.md) |
-| `bot` | 10 | 交易机器人：网格 (5)、DCA (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
+| `earn` | 22 | 简单赚币：余额、申购、赎回、出借利率管理、**定期赚币** (10)。链上质押/DeFi (6)。双币赢/Dual Currency Deposit (6)。子模块：`earn.savings`、`earn.onchain`、`earn.dcd`。包含在 `all` 中。 | [→](docs/modules/earn.md) |
+| `bot` | 10 | 交易机器人：网格 (5)、DCA — 现货 & 合约 (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
 
 ---
 
@@ -98,6 +99,22 @@ okx account balance
 ```
 
 **[完整 CLI 命令参考 →](docs/cli-reference.md)**
+
+---
+
+## Agent Skills
+
+[`skills/`](skills/) 目录内置了供 AI agent 框架使用的 skill 文件。每个 skill 定义了 agent 的激活时机和 `okx` CLI 的使用方式。
+
+| Skill | 说明 | 需要鉴权 |
+|-------|------|:--------:|
+| [`okx-cex-market`](skills/okx-cex-market/SKILL.md) | 行情数据：价格、K线、盘口、资金费率、技术指标 | 否 |
+| [`okx-cex-trade`](skills/okx-cex-trade/SKILL.md) | 订单管理：现货、永续合约、交割合约、期权、算法单 | 是 |
+| [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | 账户：余额、持仓、盈亏、资金划转 | 是 |
+| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | 交易机器人：网格、DCA（现货 & 合约） | 是 |
+| [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | 赚币：简单赚币、链上质押、双币赢、自动赚币 | 是 |
+
+**[Skills 说明文档 →](skills/README.zh-CN.md)**
 
 ---
 
@@ -157,4 +174,5 @@ packages/
 | [架构](ARCHITECTURE.zh-CN.md) | 系统设计与模块概览 |
 | [贡献指南](CONTRIBUTING.zh-CN.md) | 开发环境搭建与 PR 规范 |
 | [更新日志](CHANGELOG.zh-CN.md) | 版本历史 |
+| [Agent Skills](skills/README.zh-CN.md) | AI agent 框架预置 skill 文件 |
 | [安全政策](SECURITY.md) | 漏洞上报 |

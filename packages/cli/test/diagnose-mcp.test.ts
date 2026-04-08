@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach, mock } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
@@ -6,7 +6,8 @@ import fs from "node:fs";
 import { sanitize } from "../src/commands/diagnose-utils.js";
 import { cmdDiagnoseMcp } from "../src/commands/diagnose-mcp.js";
 import {
-  checkClaudeDesktopConfig,
+  checkMcpClients,
+  checkToolCount,
   checkMcpLogs,
   checkModuleLoading,
   checkMcpEntryPoint,
@@ -90,178 +91,220 @@ describe("sanitize", () => {
 });
 
 // ---------------------------------------------------------------------------
-// checkClaudeDesktopConfig() unit tests
+// checkMcpClients() unit tests
 // ---------------------------------------------------------------------------
 
-describe("checkClaudeDesktopConfig", () => {
-  let tmpDir: string;
-
-  beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "okx-test-"));
-  });
-
-  afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-
-  it("returns true when config path is not applicable (no configPath)", () => {
-    // We can test directly by mocking getConfigPath via a temp file that doesn't exist
-    // Since getConfigPath depends on platform, we test the else-path with a real call
+describe("checkMcpClients", () => {
+  it("returns { passed, configuredClients } structure", () => {
     const report = new Report();
-    // Just verify the function doesn't throw
     const output = captureStdoutSync(() => {
-      checkClaudeDesktopConfig(report);
+      const result = checkMcpClients(report);
+      assert.ok(Object.prototype.hasOwnProperty.call(result, "passed"), "should have passed");
+      assert.ok(Object.prototype.hasOwnProperty.call(result, "configuredClients"), "should have configuredClients");
+      assert.ok(typeof result.passed === "boolean", "passed should be boolean");
+      assert.ok(Array.isArray(result.configuredClients), "configuredClients should be array");
     });
-    assert.ok(output.includes("Claude Desktop Config"), "should print section header");
+    assert.ok(output.includes("MCP Client Config"), "should print section header");
   });
 
-  it("returns false when config file does not exist", () => {
-    // We patch the file check by creating a non-existent path scenario
+  it("does not throw on any platform configuration", () => {
     const report = new Report();
-    // Create a temp path that will not exist
-    const fakePath = path.join(tmpDir, "nonexistent", "claude_desktop_config.json");
+    assert.doesNotThrow(() => {
+      captureStdoutSync(() => {
+        checkMcpClients(report);
+      });
+    });
+  });
 
-    // Override existsSync for this specific path via patching fs module
+  it("reports ✗ and fails when config file has invalid JSON (cursor)", () => {
+    const report = new Report();
     const origExistsSync = fs.existsSync;
     const origReadFileSync = fs.readFileSync;
 
-    // Patch getConfigPath result by monkey-patching fs.existsSync
-    // We intercept the specific path
-    let firstCall = true;
+    // Simulate cursor config existing with invalid JSON
     (fs as { existsSync: typeof fs.existsSync }).existsSync = (p: fs.PathLike) => {
-      if (firstCall && String(p).includes("claude")) {
-        firstCall = false;
-        return false; // simulate file not found
-      }
+      const ps = String(p);
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) return true;
       return origExistsSync(p);
     };
+    (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = ((p: fs.PathLike | number, opts?: unknown) => {
+      const ps = String(p);
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) return "{ bad json }";
+      return (origReadFileSync as Function)(p, opts);
+    }) as typeof fs.readFileSync;
 
     try {
+      let result: { passed: boolean; configuredClients: string[] } | undefined;
       const output = captureStdoutSync(() => {
-        checkClaudeDesktopConfig(report);
+        result = checkMcpClients(report);
       });
-      // Either it returns n/a (platform doesn't support) or it reports missing
-      assert.ok(
-        output.includes("not found") || output.includes("not applicable"),
-        "should report missing or n/a",
-      );
+      assert.ok(!result!.configuredClients.includes("cursor"), "cursor should not be in configuredClients with bad JSON");
+      assert.ok(output.includes("✗") || output.includes("parse"), "should show error for bad JSON");
     } finally {
       (fs as { existsSync: typeof fs.existsSync }).existsSync = origExistsSync;
       (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = origReadFileSync;
     }
   });
 
-  it("returns false when JSON is malformed", () => {
-    const configFile = path.join(tmpDir, "claude_desktop_config.json");
-    fs.writeFileSync(configFile, "{ invalid json }", "utf8");
-
+  it("reports ✗ and fails when config exists but okx-trade-mcp not in mcpServers (cursor)", () => {
     const report = new Report();
     const origExistsSync = fs.existsSync;
     const origReadFileSync = fs.readFileSync;
 
-    // Patch to return our test file
     (fs as { existsSync: typeof fs.existsSync }).existsSync = (p: fs.PathLike) => {
       const ps = String(p);
-      if (ps.includes("claude") || ps.includes("Claude")) {
-        return true;
-      }
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) return true;
       return origExistsSync(p);
     };
     (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = ((p: fs.PathLike | number, opts?: unknown) => {
       const ps = String(p);
-      if (ps.includes("claude") || ps.includes("Claude")) {
-        return fs.readFileSync(configFile, "utf8");
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) {
+        return JSON.stringify({ mcpServers: { "some-other-mcp": { command: "node", args: [] } } });
+      }
+      return (origReadFileSync as Function)(p, opts);
+    }) as typeof fs.readFileSync;
+
+    try {
+      let result: { passed: boolean; configuredClients: string[] } | undefined;
+      const output = captureStdoutSync(() => {
+        result = checkMcpClients(report);
+      });
+      assert.ok(!result!.configuredClients.includes("cursor"), "cursor should not be configured without okx entry");
+      assert.ok(output.includes("✗") || output.includes("not found"), "should show not-found error");
+    } finally {
+      (fs as { existsSync: typeof fs.existsSync }).existsSync = origExistsSync;
+      (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = origReadFileSync;
+    }
+  });
+
+  it("adds cursor to configuredClients when okx-trade-mcp is found", () => {
+    const report = new Report();
+    const origExistsSync = fs.existsSync;
+    const origReadFileSync = fs.readFileSync;
+
+    (fs as { existsSync: typeof fs.existsSync }).existsSync = (p: fs.PathLike) => {
+      const ps = String(p);
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) return true;
+      return origExistsSync(p);
+    };
+    (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = ((p: fs.PathLike | number, opts?: unknown) => {
+      const ps = String(p);
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) {
+        return JSON.stringify({
+          mcpServers: {
+            "okx-trade-mcp": { command: "npx", args: ["-y", "@okx_ai/okx-trade-mcp", "--modules", "all"] },
+          },
+        });
+      }
+      return (origReadFileSync as Function)(p, opts);
+    }) as typeof fs.readFileSync;
+
+    try {
+      let result: { passed: boolean; configuredClients: string[] } | undefined;
+      captureStdoutSync(() => {
+        result = checkMcpClients(report);
+      });
+      assert.ok(result!.configuredClients.includes("cursor"), "cursor should be in configuredClients");
+    } finally {
+      (fs as { existsSync: typeof fs.existsSync }).existsSync = origExistsSync;
+      (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = origReadFileSync;
+    }
+  });
+
+  it("shows ✓ found when client is configured", () => {
+    const report = new Report();
+    const origExistsSync = fs.existsSync;
+    const origReadFileSync = fs.readFileSync;
+
+    (fs as { existsSync: typeof fs.existsSync }).existsSync = (p: fs.PathLike) => {
+      const ps = String(p);
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) return true;
+      return origExistsSync(p);
+    };
+    (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = ((p: fs.PathLike | number, opts?: unknown) => {
+      const ps = String(p);
+      if (ps.includes(".cursor") && ps.includes("mcp.json")) {
+        return JSON.stringify({
+          mcpServers: {
+            "okx-trade-mcp": { command: "npx", args: ["-y", "@okx_ai/okx-trade-mcp"] },
+          },
+        });
       }
       return (origReadFileSync as Function)(p, opts);
     }) as typeof fs.readFileSync;
 
     try {
       const output = captureStdoutSync(() => {
-        const result = checkClaudeDesktopConfig(report);
-        // either it finds it and fails JSON parse, or it returns n/a on unsupported platform
-        assert.ok(typeof result === "boolean");
+        checkMcpClients(report);
       });
-      // On macOS/win this might hit the JSON parse error path
-      // On linux it also attempts
-      assert.ok(output.length > 0, "should produce some output");
+      assert.ok(output.includes("✓"), "should show checkmark when client is configured");
     } finally {
       (fs as { existsSync: typeof fs.existsSync }).existsSync = origExistsSync;
       (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = origReadFileSync;
     }
   });
+});
 
-  it("returns false when mcpServers has no okx-trade-mcp entry", () => {
-    const configFile = path.join(tmpDir, "claude_desktop_config.json");
-    fs.writeFileSync(configFile, JSON.stringify({
-      mcpServers: {
-        "some-other-server": { command: "node", args: ["other.js"] },
-      },
-    }), "utf8");
+// ---------------------------------------------------------------------------
+// checkToolCount() unit tests
+// ---------------------------------------------------------------------------
 
+describe("checkToolCount", () => {
+  it("does not throw when no clients configured", () => {
     const report = new Report();
-    const origExistsSync = fs.existsSync;
-    const origReadFileSync = fs.readFileSync;
-
-    (fs as { existsSync: typeof fs.existsSync }).existsSync = (p: fs.PathLike) => {
-      const ps = String(p);
-      if (ps.includes("claude") || ps.includes("Claude")) return true;
-      return origExistsSync(p);
-    };
-    (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = ((p: fs.PathLike | number, opts?: unknown) => {
-      const ps = String(p);
-      if (ps.includes("claude") || ps.includes("Claude")) {
-        return fs.readFileSync(configFile, "utf8");
-      }
-      return (origReadFileSync as Function)(p, opts);
-    }) as typeof fs.readFileSync;
-
-    try {
-      const output = captureStdoutSync(() => {
-        checkClaudeDesktopConfig(report);
+    assert.doesNotThrow(() => {
+      captureStdoutSync(() => {
+        checkToolCount(report, []);
       });
-      // Platform may return n/a or attempt the check — either is valid
-      assert.ok(output.length > 0, "should produce some output");
-    } finally {
-      (fs as { existsSync: typeof fs.existsSync }).existsSync = origExistsSync;
-      (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = origReadFileSync;
-    }
+    });
   });
 
-  it("returns true when okx-trade-mcp entry exists in mcpServers", () => {
-    const configFile = path.join(tmpDir, "claude_desktop_config.json");
-    fs.writeFileSync(configFile, JSON.stringify({
-      mcpServers: {
-        "okx-trade-mcp": { command: "node", args: ["/path/to/okx-trade-mcp"] },
-      },
-    }), "utf8");
-
+  it("shows tool count section", () => {
     const report = new Report();
-    const origExistsSync = fs.existsSync;
-    const origReadFileSync = fs.readFileSync;
+    const output = captureStdoutSync(() => {
+      checkToolCount(report, []);
+    });
+    assert.ok(output.includes("Tool Count"), "should show tool count section header");
+  });
 
-    (fs as { existsSync: typeof fs.existsSync }).existsSync = (p: fs.PathLike) => {
-      const ps = String(p);
-      if (ps.includes("claude") || ps.includes("Claude")) return true;
-      return origExistsSync(p);
-    };
-    (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = ((p: fs.PathLike | number, opts?: unknown) => {
-      const ps = String(p);
-      if (ps.includes("claude") || ps.includes("Claude")) {
-        return fs.readFileSync(configFile, "utf8");
-      }
-      return (origReadFileSync as Function)(p, opts);
-    }) as typeof fs.readFileSync;
+  it("shows tool count for no-limit clients", () => {
+    const report = new Report();
+    const output = captureStdoutSync(() => {
+      checkToolCount(report, ["claude-desktop"]);
+    });
+    assert.ok(output.includes("tools"), "should mention tools");
+  });
 
-    try {
-      const output = captureStdoutSync(() => {
-        checkClaudeDesktopConfig(report);
-      });
-      // Should print section header regardless
-      assert.ok(output.length > 0, "should produce some output");
-    } finally {
-      (fs as { existsSync: typeof fs.existsSync }).existsSync = origExistsSync;
-      (fs as { readFileSync: typeof fs.readFileSync }).readFileSync = origReadFileSync;
-    }
+  it("shows warning or pass when cursor is configured", () => {
+    const report = new Report();
+    const output = captureStdoutSync(() => {
+      checkToolCount(report, ["cursor"]);
+    });
+    // Tool count > 40 triggers a warning; either way, output includes tool info
+    assert.ok(output.includes("Tool Count"), "should show tool count section");
+    assert.ok(
+      output.includes("tools") || output.includes("⚠") || output.includes("✓"),
+      "should show tool count result",
+    );
+  });
+
+  it("mentions --modules suggestion when cursor limit is exceeded", () => {
+    const report = new Report();
+    // Inject 50 fake specs to always exceed Cursor's per-server limit (40),
+    // making this test deterministic regardless of the actual tool count.
+    const fakeSpecs = Array.from({ length: 50 }, (_, i) => ({
+      name: `fake_tool_${i}`,
+      module: "spot" as const,
+      description: `Fake tool ${i}`,
+      inputSchema: { type: "object" as const, properties: {} },
+      isWrite: false,
+      handler: async () => ({}),
+    }));
+    const output = captureStdoutSync(() => {
+      checkToolCount(report, ["cursor"], () => fakeSpecs);
+    });
+    assert.ok(output.includes("⚠"), "should show warning when limit exceeded");
+    assert.ok(output.includes("--modules"), "should suggest --modules when limit exceeded");
   });
 });
 
@@ -427,9 +470,14 @@ describe("cmdDiagnoseMcp", () => {
     assert.ok(output.includes("MCP Entry Point"), "should include entry point section");
   });
 
-  it("shows Claude Desktop Config section", async () => {
+  it("shows MCP Client Config section (multi-client)", async () => {
     const { output } = await captureStdout(() => cmdDiagnoseMcp());
-    assert.ok(output.includes("Claude Desktop Config"), "should include claude config section");
+    assert.ok(output.includes("MCP Client Config"), "should include multi-client config section");
+  });
+
+  it("shows Tool Count section", async () => {
+    const { output } = await captureStdout(() => cmdDiagnoseMcp());
+    assert.ok(output.includes("Tool Count"), "should include tool count section");
   });
 
   it("shows MCP Server Logs section", async () => {

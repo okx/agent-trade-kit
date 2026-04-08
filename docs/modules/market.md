@@ -9,8 +9,7 @@ Market data tools. **No API key required.**
 | `market_get_ticker` | Single instrument ticker (last price, 24h volume, bid/ask) |
 | `market_get_tickers` | All tickers for an instrument type (SPOT / SWAP / FUTURES / OPTION) |
 | `market_get_orderbook` | Order book depth |
-| `market_get_candles` | Candlestick data (up to 300 recent bars) |
-| `market_get_history_candles` | Historical candlestick data (older than 2 days, up to 3 months) |
+| `market_get_candles` | Candlestick data — automatically routes to historical endpoint for older time ranges (back to 2021) |
 | `market_get_index_ticker` | Index ticker for an underlying (e.g. BTC-USD) |
 | `market_get_index_candles` | Index candlestick data |
 | `market_get_price_limit` | Price limit (upper/lower) for a contract |
@@ -48,6 +47,7 @@ okx market ticker BTC-USDT
 okx market tickers SPOT
 okx market orderbook BTC-USDT --sz 10
 okx market candles BTC-USDT --bar 1H --limit 24
+okx market candles BTC-USDT --bar 1D --after 1672531200000   # candles before 2023-01-01
 okx market funding-rate BTC-USDT-SWAP
 okx market funding-rate BTC-USDT-SWAP --history --limit 10
 okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
@@ -73,8 +73,7 @@ Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H`
 | `market_get_ticker` | 单币对行情（最新价、24h 量、买一/卖一） |
 | `market_get_tickers` | 某类型全部行情（SPOT / SWAP / FUTURES / OPTION） |
 | `market_get_orderbook` | 盘口深度 |
-| `market_get_candles` | K线（最近 300 根） |
-| `market_get_history_candles` | 历史K线（2天前，最多3个月） |
+| `market_get_candles` | K线 — 自动根据时间范围切换历史端点（可查询至 2021 年） |
 | `market_get_index_ticker` | 指数行情（如 BTC-USD） |
 | `market_get_index_candles` | 指数K线 |
 | `market_get_price_limit` | 合约涨跌停价 |
@@ -112,6 +111,7 @@ okx market ticker BTC-USDT
 okx market tickers SPOT
 okx market orderbook BTC-USDT --sz 10
 okx market candles BTC-USDT --bar 1H --limit 24
+okx market candles BTC-USDT --bar 1D --after 1672531200000   # 查询 2023-01-01 之前的历史K线
 okx market funding-rate BTC-USDT-SWAP
 okx market funding-rate BTC-USDT-SWAP --history --limit 10
 okx market mark-price --instType SWAP --instId BTC-USDT-SWAP

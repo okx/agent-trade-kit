@@ -4,9 +4,11 @@ import { MODULES, type ModuleId } from "../constants.js";
 import { registerAccountTools } from "./account.js";
 import { registerAlgoTradeTools, registerFuturesAlgoTools } from "./algo-trade.js";
 import { registerAuditTools } from "./audit.js";
+import { registerSkillsTools } from "./skills.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerAllEarnTools } from "./earn/index.js";
 import { registerFuturesTools } from "./futures-trade.js";
+import { registerIndicatorTools } from "./indicator.js";
 import { registerMarketTools } from "./market.js";
 import { registerOptionAlgoTools } from "./option-algo-trade.js";
 import { registerOptionTools } from "./option-trade.js";
@@ -25,6 +27,7 @@ import type { ToolSpec, ToolArgs } from "./types.js";
 export function allToolSpecs(): ToolSpec[] {
   return [
     ...registerMarketTools(),
+    ...registerIndicatorTools(),
     ...registerSpotTradeTools(),
     ...registerSwapTradeTools(),
     ...registerFuturesTools(),
@@ -36,6 +39,7 @@ export function allToolSpecs(): ToolSpec[] {
     ...registerBotTools(),
     ...registerAllEarnTools(),
     ...registerAuditTools(),
+    ...registerSkillsTools(),
   ];
 }
 
