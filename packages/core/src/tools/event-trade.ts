@@ -30,8 +30,7 @@ import {
 } from "./helpers.js";
 import { privateRateLimit, publicRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
-import { formatDisplayTitle, inferExpiryMsFromInstId } from "../utils/event-format.js";
-import { extractSeriesId } from "../utils/event-format.js";
+import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "../utils/event-format.js";
 import {
   OUTCOME_LABELS,
   mapOrderState,
