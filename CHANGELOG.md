@@ -13,6 +13,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-04-08
+
+### Added
+
+- **`market_list_indicators` MCP tool and `okx market indicator list` CLI command**: Browse all supported OKX market indicators grouped by category, with range-filter support (`--fearGreedIndexMin/Max`, `--longShortRatioMin/Max`, etc.) for AI-driven sentiment screening. (#124)
+- **Market tools `demo` parameter**: All market MCP tools now accept an optional `demo: boolean` parameter; CLI market commands respect the global `--demo` flag. Enables explicit querying of simulated-trading market data independently of the server's demo mode.
+- **Simple Earn Fixed (定期赚币) tools** (`earn.savings`): Three new tools — `earn_get_fixed_order_list`, `earn_fixed_purchase` (two-step: preview then confirm), `earn_fixed_redeem`. `earn_get_lending_rate_history` now also returns fixed-term offers with APR, term, min amount, and remaining quota. CLI: `okx earn savings fixed-orders/fixed-purchase/fixed-redeem`.
+- **Margin-cost order mode (`tgtCcy=margin`)**: SWAP, FUTURES, and options place/algo order tools now accept `tgtCcy=margin`, where `sz` represents the USDT margin cost. The system automatically queries current leverage and converts to contract count (`contracts = floor(margin × lever / (ctVal × lastPx))`). (#128)
+- **CLI audit logging**: CLI writes audit logs to `~/.okx/logs/trade-YYYY-MM-DD.log` for all tool executions, matching MCP server behavior. `okx account audit-log` now works for CLI users. (#129)
+- **`skills_download` `format` parameter**: Accepts `"zip"` or `"skill"`. MCP defaults to `"skill"` (agent-friendly extension), CLI defaults to `"zip"` (backward-compatible). File content is identical.
+
+### Changed
+
+- **CLI table output shows environment header**: Table output now displays an `Environment: live` / `Environment: demo (simulated trading)` header line.
+- **`earn_get_lending_rate_history` fetches fixed-term offers**: Makes an additional best-effort `privateGet` call; falls back gracefully (empty `fixedOffers`) when no API key is configured.
+- **`earn_get_lending_rate_history` default limit reduced from 100 to 7**: Reduces token usage in agent conversations.
+
+### Fixed
+
+- **Indicator range-filter code mapping**: Corrected internal code mappings and removed unsupported indicator types, preventing silent empty results.
+- **Skills docs indicator sync**: Updated all indicator descriptions and examples to match live backend schema and new CLI commands.
+- **Skills docs account transfer type codes**: Corrected `6`=funding / `18`=trading in portfolio and earn docs — previously reversed. (#126)
+- **`tgtCcy=quote_ccy` conversion uses `minSz`/`lotSz`**: Rounds down to `lotSz` precision and validates against `minSz` instead of assuming integer contracts, fixing false "too small" errors for instruments with `minSz < 1` (e.g. BTC-USDT-SWAP). (#127)
+- **CLI `--json` env wrapper is now opt-in via `--env` flag**: `--json` returns raw data by default (backward-compatible). Use `--json --env` for the `{env, profile, data}` wrapper. (#131)
+- **Unknown `tgtCcy` values throw `ValidationError`**: Only `base_ccy`, `quote_ccy`, and `margin` are accepted; other values throw with a helpful suggestion instead of silently passing through. (#133)
+- **`--verbose` flag now affects CLI audit log output**: Verbose mode writes a `debug`-level entry with full request args and response; non-verbose records a compact summary only. (#130)
+- **Market data defaults to live regardless of server demo mode**: Market tools explicitly override the server-level demo flag, always returning live data unless `demo: true` is passed explicitly.
+
+---
+
 ## [1.3.0-beta.5] - 2026-04-08
 
 ### Added

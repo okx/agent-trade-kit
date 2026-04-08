@@ -13,6 +13,36 @@
 
 ---
 
+## [1.3.0] - 2026-04-08
+
+### 新增
+
+- **`market_list_indicators` MCP 工具及 `okx market indicator list` CLI 命令**：按分类浏览所有支持的 OKX 市场指标，支持区间过滤（`--fearGreedIndexMin/Max`、`--longShortRatioMin/Max` 等），便于 AI 进行市场情绪筛选。(#124)
+- **Market 工具 `demo` 参数**：所有 market MCP 工具新增可选 `demo: boolean` 参数，CLI market 命令支持全局 `--demo` 标志，可独立于服务器 demo 模式显式查询模拟盘行情。
+- **简单赚币定期工具**（`earn.savings`）：新增三个工具——`earn_get_fixed_order_list`、`earn_fixed_purchase`（两步申购：预览后确认）、`earn_fixed_redeem`。`earn_get_lending_rate_history` 现同时返回定期产品的年化利率、期限、最低金额和剩余额度。CLI：`okx earn savings fixed-orders/fixed-purchase/fixed-redeem`。
+- **按保证金下单模式（`tgtCcy=margin`）**：SWAP、FUTURES 及期权下单/算法单工具支持 `tgtCcy=margin`，此时 `sz` 表示 USDT 保证金金额，系统自动查询当前杠杆倍数并换算合约张数（`contracts = floor(margin × lever / (ctVal × lastPx))`）。(#128)
+- **CLI 审计日志**：CLI 将所有工具调用记录写入 `~/.okx/logs/trade-YYYY-MM-DD.log`，与 MCP server 行为一致，`okx account audit-log` 对 CLI 用户生效。(#129)
+- **`skills_download` `format` 参数**：支持 `"zip"` 或 `"skill"`。MCP 默认 `"skill"`（agent 友好），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同。
+
+### 变更
+
+- **CLI 表格输出新增环境标题行**：表格输出现显示 `Environment: live` / `Environment: demo (simulated trading)` 标题。
+- **`earn_get_lending_rate_history` 新增定期产品查询**：额外发起 best-effort `privateGet` 请求，未配置 API key 时降级返回空 `fixedOffers` 数组。
+- **`earn_get_lending_rate_history` 默认 limit 从 100 降为 7**：减少 agent 对话中的 token 消耗。
+
+### 修复
+
+- **Indicator range-filter 代码映射修复**：修正内部代码映射并移除不支持的指标类型，避免静默返回空结果。
+- **Skills 文档 indicator 同步**：更新所有指标相关说明和示例，与当前后端数据结构和新 CLI 命令对齐。
+- **Skills 文档转账类型码写反**：修正 portfolio 和 earn 文档中 `6`=资金账户 / `18`=交易账户（此前写反）。(#126)
+- **`tgtCcy=quote_ccy` 换算改用 `minSz`/`lotSz`**：按 `lotSz` 精度向下取整并与 `minSz` 比较，修复 `minSz < 1` 合约（如 BTC-USDT-SWAP）误报"金额不足"的问题。(#127)
+- **CLI `--json` env 包装改为 opt-in（`--env` 标志）**：`--json` 默认返回原始数据（向后兼容），`--json --env` 可获取 `{env, profile, data}` 包装格式。(#131)
+- **未知 `tgtCcy` 值抛出 `ValidationError`**：仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出异常并附带修复建议，不再静默透传。(#133)
+- **`--verbose` 对 CLI 审计日志生效**：verbose 模式写入包含完整请求参数和响应数据的 debug 级别条目；非 verbose 模式仅记录精简摘要。(#130)
+- **行情数据默认始终走实盘**：market 工具显式覆盖服务器级别 demo 标志，默认返回实盘数据，显式传 `demo: true` 时才查询模拟盘。
+
+---
+
 ## [1.3.0-beta.5] - 2026-04-08
 
 ### 新增

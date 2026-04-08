@@ -4,7 +4,7 @@ description: "Manages OKX Simple Earn (flexible savings/lending), On-chain Earn 
 license: MIT
 metadata:
   author: okx
-  version: "1.2.9"
+  version: "1.3.0"
   homepage: "https://www.okx.com"
   agent:
     requires:

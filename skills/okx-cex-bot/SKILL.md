@@ -4,7 +4,7 @@ description: Manage Grid bots (spot/contract/coin-margined) and DCA Martingale b
 license: MIT
 metadata:
   author: okx
-  version: "1.2.9"
+  version: "1.3.0"
   homepage: "https://www.okx.com"
   agent:
     emoji: "🤖"
