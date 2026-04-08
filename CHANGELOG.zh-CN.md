@@ -14,9 +14,11 @@
 ### 新增
 
 - **Skill 下载 `format` 参数**：`skills_download` MCP tool 和 `okx skill download` CLI 命令新增 `format` 选项（`"zip"` 或 `"skill"`）。MCP 默认 `"skill"`（便于 Claude Desktop 等 agent 自动识别文件类型），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同，仅后缀不同。
+- **Market 工具 `demo` 参数**：全部 14 个 market 工具新增可选参数 `demo: boolean`。传 `demo=true` 时请求打到 OKX 模拟盘行情环境（附加 `x-simulated-trading: 1`）；省略或传 `false`（默认）时始终返回实盘行情——与服务器是否以 `--demo` 模式启动无关。
 
 ### 修复
 
+- **行情数据默认始终走实盘**：此前以 `--demo` 启动服务器时，行情查询也会带上 `x-simulated-trading: 1` 导致返回模拟盘数据。现在 market 工具在工具层显式传 `simulatedTrading: false`，覆盖服务器级别的 demo 标志。需要查询模拟盘行情时，显式传 `demo: true` 即可。其他模块（交易、账户、Earn、指标）不受影响，仍跟随服务器 demo 标志。
 - **未知 `tgtCcy` 值现在抛出 `ValidationError` 而非静默跳过**：此前 `--tgtCcy margin_ccy` 或 `--tgtCcy QUOTE_CCY` 等拼写错误会被静默忽略，`sz` 原样传给 API 未经转换。现在仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出 `ValidationError` 并附带修复建议。(#133)
 - **`--verbose` 标志现在对 CLI 审计日志生效**：此前 `TradeLogger` 始终以 `"info"` 级别构造，成功日志也全部使用 `"info"`，导致 `--verbose` 对日志文件内容无任何影响。现在 verbose 模式将日志级别设为 `"debug"`，每次成功的工具调用额外写入一条包含完整请求参数和响应数据的 debug 级别条目；非 verbose 模式仅记录精简摘要。(#130)
 

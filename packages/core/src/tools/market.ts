@@ -4,6 +4,14 @@ import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
+/** Schema property shared by all market tools to opt-in to demo market data. */
+const DEMO_PROPERTY = {
+  demo: {
+    type: "boolean" as const,
+    description: "Query simulated trading (demo) market data. Default: false (live market data).",
+  },
+};
+
 export function registerMarketTools(): ToolSpec[] {
   return [
     {
@@ -19,6 +27,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "e.g. BTC-USDT, BTC-USDT-SWAP",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
@@ -28,6 +37,7 @@ export function registerMarketTools(): ToolSpec[] {
           "/api/v5/market/ticker",
           { instId: requireString(args, "instId") },
           publicRateLimit("market_get_ticker", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -53,6 +63,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "e.g. BTC-USD",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instType"],
       },
@@ -66,6 +77,7 @@ export function registerMarketTools(): ToolSpec[] {
             instFamily: readString(args, "instFamily"),
           }),
           publicRateLimit("market_get_tickers", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -87,6 +99,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "number",
             description: "Depth per side, default 1, max 400",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
@@ -99,6 +112,7 @@ export function registerMarketTools(): ToolSpec[] {
             sz: readNumber(args, "sz"),
           }),
           publicRateLimit("market_get_orderbook", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -133,6 +147,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "number",
             description: "Max results (default 100)",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
@@ -140,6 +155,7 @@ export function registerMarketTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const afterTs = readString(args, "after");
         const beforeTs = readString(args, "before");
+        const demo = readBoolean(args, "demo") ?? false;
         const query = compactObject({
           instId: requireString(args, "instId"),
           bar: readString(args, "bar"),
@@ -156,14 +172,14 @@ export function registerMarketTools(): ToolSpec[] {
         const useHistory = afterTs !== undefined && Number(afterTs) < Date.now() - TWO_DAYS_MS;
 
         const path = useHistory ? "/api/v5/market/history-candles" : "/api/v5/market/candles";
-        const response = await context.client.publicGet(path, query, rateLimit);
+        const response = await context.client.publicGet(path, query, rateLimit, demo);
 
         // Defensive fallback: if the recent endpoint returns empty for a timestamped request,
         // the timestamp may straddle the 2-day boundary. Try history endpoint once.
         // Trade-off: truly empty ranges also trigger a second request, which is acceptable
         // since this case is rare and correctness matters more than avoiding one extra call.
         if (!useHistory && hasTimestamp && Array.isArray(response.data) && response.data.length === 0) {
-          return normalizeResponse(await context.client.publicGet("/api/v5/market/history-candles", query, rateLimit));
+          return normalizeResponse(await context.client.publicGet("/api/v5/market/history-candles", query, rateLimit, demo));
         }
         return normalizeResponse(response);
       },
@@ -193,6 +209,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "e.g. BTC-USD",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instType"],
       },
@@ -207,6 +224,7 @@ export function registerMarketTools(): ToolSpec[] {
             instFamily: readString(args, "instFamily"),
           }),
           publicRateLimit("market_get_instruments", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -240,12 +258,14 @@ export function registerMarketTools(): ToolSpec[] {
             type: "number",
             description: "History records (default 20, max 100)",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const isHistory = readBoolean(args, "history") ?? false;
+        const demo = readBoolean(args, "demo") ?? false;
         if (isHistory) {
           const response = await context.client.publicGet(
             "/api/v5/public/funding-rate-history",
@@ -256,6 +276,7 @@ export function registerMarketTools(): ToolSpec[] {
               limit: readNumber(args, "limit") ?? 20,
             }),
             publicRateLimit("market_get_funding_rate", 20),
+            demo,
           );
           return normalizeResponse(response);
         }
@@ -263,6 +284,7 @@ export function registerMarketTools(): ToolSpec[] {
           "/api/v5/public/funding-rate",
           { instId: requireString(args, "instId") },
           publicRateLimit("market_get_funding_rate", 20),
+          demo,
         );
         return normalizeResponse(response);
       },
@@ -291,6 +313,7 @@ export function registerMarketTools(): ToolSpec[] {
           instFamily: {
             type: "string",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instType"],
       },
@@ -305,6 +328,7 @@ export function registerMarketTools(): ToolSpec[] {
             instFamily: readString(args, "instFamily"),
           }),
           publicRateLimit("market_get_mark_price", 10),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -326,6 +350,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "number",
             description: "Default 20, max 500",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
@@ -338,6 +363,7 @@ export function registerMarketTools(): ToolSpec[] {
             limit: readNumber(args, "limit") ?? 20,
           }),
           publicRateLimit("market_get_trades", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -359,6 +385,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "e.g. USD or USDT",
           },
+          ...DEMO_PROPERTY,
         },
       },
       handler: async (rawArgs, context) => {
@@ -370,6 +397,7 @@ export function registerMarketTools(): ToolSpec[] {
             quoteCcy: readString(args, "quoteCcy"),
           }),
           publicRateLimit("market_get_index_ticker", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -408,6 +436,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "boolean",
             description: "true=older historical data",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
@@ -427,6 +456,7 @@ export function registerMarketTools(): ToolSpec[] {
             limit: readNumber(args, "limit"),
           }),
           publicRateLimit("market_get_index_candles", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -444,6 +474,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "SWAP or FUTURES ID, e.g. BTC-USDT-SWAP",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instId"],
       },
@@ -453,6 +484,7 @@ export function registerMarketTools(): ToolSpec[] {
           "/api/v5/public/price-limit",
           { instId: requireString(args, "instId") },
           publicRateLimit("market_get_price_limit", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -481,6 +513,7 @@ export function registerMarketTools(): ToolSpec[] {
           instFamily: {
             type: "string",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instType"],
       },
@@ -495,6 +528,7 @@ export function registerMarketTools(): ToolSpec[] {
             instFamily: readString(args, "instFamily"),
           }),
           publicRateLimit("market_get_open_interest", 20),
+          readBoolean(args, "demo") ?? false,
         );
         return normalizeResponse(response);
       },
@@ -517,6 +551,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "Optional: filter by specific instrument ID, e.g. AAPL-USDT-SWAP",
           },
+          ...DEMO_PROPERTY,
         },
         required: [],
       },
@@ -528,6 +563,7 @@ export function registerMarketTools(): ToolSpec[] {
           "/api/v5/public/instruments",
           compactObject({ instType, instId }),
           publicRateLimit("market_get_stock_tokens", 20),
+          readBoolean(args, "demo") ?? false,
         );
         const data = response.data;
         const filtered = Array.isArray(data)
@@ -540,7 +576,7 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_instruments_by_category",
       module: "market",
       description:
-        "Discover tradeable instruments by asset category. Stock tokens (instCategory=3, e.g. AAPL-USDT-SWAP, TSLA-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP for gold), Commodities (5, e.g. OIL-USDT-SWAP for crude oil), Forex (6, e.g. EURUSDT-USDT-SWAP for EUR/USD), Bonds (7, e.g. US30Y-USDT-SWAP). Use this to find instIds before querying prices or placing orders. Filters client-side by instCategory.",
+        "Discover tradeable instruments by asset category. Stock tokens (instCategory=3, e.g. AAPL-USDT-SWAP, TSLA-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP for gold), Commodities (5, e.g. OIL-USDT-SWAP for crude oil), Forex (6, e.g. EURUSDT-USDT-SWAP for EUR/USD), Bonds (7, e.g. US30Y-USDT-SWAP for crude oil). Use this to find instIds before querying prices or placing orders. Filters client-side by instCategory.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -559,6 +595,7 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "Optional: filter by specific instrument ID",
           },
+          ...DEMO_PROPERTY,
         },
         required: ["instCategory"],
       },
@@ -571,6 +608,7 @@ export function registerMarketTools(): ToolSpec[] {
           "/api/v5/public/instruments",
           compactObject({ instType, instId }),
           publicRateLimit("market_get_instruments_by_category", 20),
+          readBoolean(args, "demo") ?? false,
         );
         const data = response.data;
         const filtered = Array.isArray(data)

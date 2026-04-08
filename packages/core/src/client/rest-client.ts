@@ -141,6 +141,7 @@ export class OkxRestClient {
     path: string,
     query?: QueryParams,
     rateLimit?: RequestConfig["rateLimit"],
+    simulatedTrading?: boolean,
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
       method: "GET",
@@ -148,6 +149,7 @@ export class OkxRestClient {
       auth: "public",
       query,
       rateLimit,
+      simulatedTrading,
     });
   }
 
@@ -420,7 +422,13 @@ export class OkxRestClient {
       this.setAuthHeaders(headers, reqConfig.method, requestPath, bodyJson, timestamp);
     }
 
-    if (this.config.demo) {
+    // simulatedTrading on individual requests takes precedence over config.demo.
+    // If not explicitly set, fall back to config.demo (original behavior for all non-market requests).
+    // Market tools always pass simulatedTrading explicitly, defaulting to false (live data).
+    const useSimulated = reqConfig.simulatedTrading !== undefined
+      ? reqConfig.simulatedTrading
+      : this.config.demo;
+    if (useSimulated) {
       headers.set("x-simulated-trading", "1");
     }
 
