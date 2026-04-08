@@ -141,8 +141,8 @@ async function fetchAvailableBalance(
         const usdtEntry = (details as Record<string, unknown>[]).find(
           (d) => String(d["ccy"] ?? "").toUpperCase() === "USDT",
         );
-        const entry = usdtEntry ?? details[0] as Record<string, unknown>;
-        return String((entry as Record<string, unknown>)["availBal"] ?? "") || null;
+        if (!usdtEntry) return null;
+        return String((usdtEntry as Record<string, unknown>)["availBal"] ?? "") || null;
       }
     }
   } catch { /* non-critical */ }
@@ -221,10 +221,10 @@ async function fetchActiveContractsForSeries(
   const method = String(settlement?.["method"] ?? "");
   const isUpDown = method === "price_up_down";
   try {
-    const r = await client.privateGet(
+    const r = await client.publicGet(
       "/api/v5/public/event-contract/markets",
       compactObject({ seriesId, state: "live" }),
-      privateRateLimit("event_browse", 20),
+      publicRateLimit("event_browse", 20),
     );
     const markets = (Array.isArray(normalizeResponse(r)["data"])
       ? normalizeResponse(r)["data"] as Record<string, unknown>[]
@@ -380,10 +380,10 @@ export function registerEventContractTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const underlyingFilter = readString(args, "underlying");
 
-        const seriesResp = await context.client.privateGet(
+        const seriesResp = await context.client.publicGet(
           "/api/v5/public/event-contract/series",
           compactObject({}),
-          privateRateLimit("event_browse", 10),
+          publicRateLimit("event_browse", 10),
         );
         const allSeries = (Array.isArray(normalizeResponse(seriesResp)["data"])
           ? normalizeResponse(seriesResp)["data"] as Record<string, unknown>[]
@@ -419,10 +419,10 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.privateGet(
+        const response = await context.client.publicGet(
           "/api/v5/public/event-contract/series",
           compactObject({ seriesId: readString(args, "seriesId") }),
-          privateRateLimit("event_get_series", 20),
+          publicRateLimit("event_get_series", 20),
         );
         return normalizeResponse(response);
       },
@@ -466,7 +466,7 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.privateGet(
+        const response = await context.client.publicGet(
           "/api/v5/public/event-contract/events",
           compactObject({
             seriesId: requireString(args, "seriesId"),
@@ -476,7 +476,7 @@ export function registerEventContractTools(): ToolSpec[] {
             before: readString(args, "before"),
             after: readString(args, "after"),
           }),
-          privateRateLimit("event_get_events", 20),
+          publicRateLimit("event_get_events", 20),
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
@@ -533,7 +533,7 @@ export function registerEventContractTools(): ToolSpec[] {
         const knownUnderlying = extractUnderlying(seriesId);
 
         const [marketsResp, seriesResp, idxPxFromKnown, availableBalance] = await Promise.all([
-          context.client.privateGet(
+          context.client.publicGet(
             "/api/v5/public/event-contract/markets",
             compactObject({
               seriesId,
@@ -547,7 +547,7 @@ export function registerEventContractTools(): ToolSpec[] {
           ),
           knownUnderlying
             ? Promise.resolve(null)
-            : context.client.privateGet(
+            : context.client.publicGet(
                 "/api/v5/public/event-contract/series",
                 compactObject({ seriesId }),
                 publicRateLimit("event_get_series", 20),

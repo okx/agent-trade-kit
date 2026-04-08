@@ -20,10 +20,7 @@ export function inferExpiryMsFromInstId(instId: string): number | null {
   const parts = instId.split("-");
   const upper = instId.toUpperCase();
 
-  let dateIdx = -1;
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
-  }
+  const dateIdx = findDateIdx(parts);
   if (dateIdx < 0) return null;
 
   const dp = parts[dateIdx]!;
