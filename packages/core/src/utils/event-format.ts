@@ -10,6 +10,60 @@ function findDateIdx(parts: string[]): number {
   return -1;
 }
 
+/**
+ * Parse instId to infer contract expiry time in UTC ms.
+ * Handles UPDOWN (expiry = end time, second time part) and ABOVE/TOUCH (expiry = first time part).
+ * Times encoded in instId are UTC+8.
+ * Returns null if format is unrecognized.
+ */
+export function inferExpiryMsFromInstId(instId: string): number | null {
+  const parts = instId.split("-");
+  const upper = instId.toUpperCase();
+
+  let dateIdx = -1;
+  for (let i = 1; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
+  }
+  if (dateIdx < 0) return null;
+
+  const dp = parts[dateIdx]!;
+  const year  = 2000 + parseInt(dp.slice(0, 2), 10);
+  const month = parseInt(dp.slice(2, 4), 10) - 1; // 0-based
+  const day   = parseInt(dp.slice(4, 6), 10);
+
+  // UPDOWN: DATE-START-END → expiry is END (parts[dateIdx+2] if 4 digits)
+  // ABOVE/TOUCH: DATE-EXPIRY-STRIKE → expiry is parts[dateIdx+1]
+  const isUpDown = upper.includes("UPDOWN");
+  let timePart: string | undefined;
+  if (isUpDown) {
+    const candidate = parts[dateIdx + 2];
+    timePart = (candidate && /^\d{4}$/.test(candidate)) ? candidate : parts[dateIdx + 1];
+  } else {
+    timePart = parts[dateIdx + 1];
+  }
+  if (!timePart || !/^\d{4}$/.test(timePart)) return null;
+
+  const hour = parseInt(timePart.slice(0, 2), 10);
+  const min  = parseInt(timePart.slice(2, 4), 10);
+  // Shift from UTC+8 to UTC
+  return Date.UTC(year, month, day, hour - 8, min, 0, 0);
+}
+
+/**
+ * Extract series ID from a full event contract instrument ID.
+ * e.g. "BTC-UPDOWN-15MIN-260325-1700-1715" → "BTC-UPDOWN-15MIN"
+ *      "BTC-ABOVE-DAILY-260320-1600-69700"  → "BTC-ABOVE-DAILY"
+ */
+export function extractSeriesId(instId: string): string {
+  const parts = instId.split("-");
+  for (let i = 0; i < parts.length; i++) {
+    if (/^\d{6}$/.test(parts[i]!)) {
+      return parts.slice(0, i).join("-");
+    }
+  }
+  return instId;
+}
+
 function fmtTimeToken(t: string): string {
   return t.length === 4 ? `${t.slice(0, 2)}:${t.slice(2)}` : t;
 }

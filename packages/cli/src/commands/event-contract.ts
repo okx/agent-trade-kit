@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { formatDisplayTitle } from "@agent-tradekit/core";
+import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "@agent-tradekit/core";
 import { printJson, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
@@ -85,36 +85,6 @@ function inferStartMsFromInstId(instId: string): number | null {
   const month = parseInt(dp.slice(2, 4), 10) - 1;
   const day   = parseInt(dp.slice(4, 6), 10);
   const timePart = parts[dateIdx + 1];
-  if (!timePart || !/^\d{4}$/.test(timePart)) return null;
-  const hour = parseInt(timePart.slice(0, 2), 10);
-  const min  = parseInt(timePart.slice(2, 4), 10);
-  return Date.UTC(year, month, day, hour - 8, min, 0, 0);
-}
-
-/**
- * Parse instId to infer contract expiry time in UTC ms.
- * Returns null if format is unrecognized.
- */
-function inferExpiryMsFromInstId(instId: string): number | null {
-  const parts = instId.split("-");
-  const upper = instId.toUpperCase();
-  let dateIdx = -1;
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
-  }
-  if (dateIdx < 0) return null;
-  const dp = parts[dateIdx]!;
-  const year  = 2000 + parseInt(dp.slice(0, 2), 10);
-  const month = parseInt(dp.slice(2, 4), 10) - 1;
-  const day   = parseInt(dp.slice(4, 6), 10);
-  const isUpDown = upper.includes("UPDOWN");
-  let timePart: string | undefined;
-  if (isUpDown) {
-    const candidate = parts[dateIdx + 2];
-    timePart = (candidate && /^\d{4}$/.test(candidate)) ? candidate : parts[dateIdx + 1];
-  } else {
-    timePart = parts[dateIdx + 1];
-  }
   if (!timePart || !/^\d{4}$/.test(timePart)) return null;
   const hour = parseInt(timePart.slice(0, 2), 10);
   const min  = parseInt(timePart.slice(2, 4), 10);
@@ -430,20 +400,6 @@ export async function cmdEventFills(
 // Private write
 // ---------------------------------------------------------------------------
 
-/**
- * Extract seriesId from a full event contract instId.
- * e.g. "BTC-UPDOWN-15MIN-260325-1700-1715" → "BTC-UPDOWN-15MIN"
- *      "BTC-ABOVE-DAILY-260320-1600-69700"  → "BTC-ABOVE-DAILY"
- */
-function extractSeriesId(instId: string): string {
-  const parts = instId.split("-");
-  for (let i = 0; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) {
-      return parts.slice(0, i).join("-");
-    }
-  }
-  return instId;
-}
 
 async function handleExpiredContractFallback(
   run: ToolRunner,

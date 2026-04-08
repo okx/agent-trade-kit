@@ -19,7 +19,7 @@
  *   tdMode    always "isolated" for event contracts
  *   speedBump auto-set to "1" for non-post_only orders (required by exchange)
  */
-import type { ToolSpec } from "./types.js";
+import type { ToolSpec, ToolContext } from "./types.js";
 import {
   asRecord,
   compactObject,
@@ -30,7 +30,7 @@ import {
 } from "./helpers.js";
 import { privateRateLimit, publicRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
-import { formatDisplayTitle } from "../utils/event-format.js";
+import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "../utils/event-format.js";
 
 /** Translate raw outcome codes to human-readable labels. */
 const OUTCOME_LABELS: Record<string, string> = {
@@ -105,7 +105,7 @@ function normalizeWrite(response: {
  * Used to enrich event_get_markets response with the current spot price.
  */
 async function fetchIdxPx(
-  client: { privateGet: Function },
+  client: ToolContext["client"],
   underlying: string,
 ): Promise<string | null> {
   try {
@@ -126,7 +126,7 @@ async function fetchIdxPx(
  * TODO: event contracts currently settle in USDT only; replace hardcoded ccy if multi-currency support is added.
  */
 async function fetchAvailableBalance(
-  client: { privateGet: Function },
+  client: ToolContext["client"],
 ): Promise<string | null> {
   try {
     const r = await client.privateGet(
@@ -137,7 +137,12 @@ async function fetchAvailableBalance(
     if (Array.isArray(data) && data.length > 0) {
       const details = (data[0] as Record<string, unknown>)["details"];
       if (Array.isArray(details) && details.length > 0) {
-        return String((details[0] as Record<string, unknown>)["availBal"] ?? "") || null;
+        // Find USDT entry explicitly; API may return multiple currencies in any order
+        const usdtEntry = (details as Record<string, unknown>[]).find(
+          (d) => String(d["ccy"] ?? "").toUpperCase() === "USDT",
+        );
+        const entry = usdtEntry ?? details[0] as Record<string, unknown>;
+        return String((entry as Record<string, unknown>)["availBal"] ?? "") || null;
       }
     }
   } catch { /* non-critical */ }
@@ -153,59 +158,6 @@ function extractUnderlying(seriesId: string): string | null {
   return m ? m[1].toUpperCase() : null;
 }
 
-/**
- * Parse instId to infer contract expiry time in UTC ms.
- * Handles UPDOWN (expiry = end time, second time part) and ABOVE/TOUCH (expiry = first time part).
- * Times encoded in instId are UTC+8.
- * Returns null if format is unrecognized.
- */
-function inferExpiryMsFromInstId(instId: string): number | null {
-  const parts = instId.split("-");
-  const upper = instId.toUpperCase();
-
-  let dateIdx = -1;
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
-  }
-  if (dateIdx < 0) return null;
-
-  const dp = parts[dateIdx]!;
-  const year  = 2000 + parseInt(dp.slice(0, 2), 10);
-  const month = parseInt(dp.slice(2, 4), 10) - 1; // 0-based
-  const day   = parseInt(dp.slice(4, 6), 10);
-
-  // UPDOWN: DATE-START-END → expiry is END (parts[dateIdx+2] if 4 digits)
-  // ABOVE/TOUCH: DATE-EXPIRY-STRIKE → expiry is parts[dateIdx+1]
-  const isUpDown = upper.includes("UPDOWN");
-  let timePart: string | undefined;
-  if (isUpDown) {
-    const candidate = parts[dateIdx + 2];
-    timePart = (candidate && /^\d{4}$/.test(candidate)) ? candidate : parts[dateIdx + 1];
-  } else {
-    timePart = parts[dateIdx + 1];
-  }
-  if (!timePart || !/^\d{4}$/.test(timePart)) return null;
-
-  const hour = parseInt(timePart.slice(0, 2), 10);
-  const min  = parseInt(timePart.slice(2, 4), 10);
-  // Shift from UTC+8 to UTC
-  return Date.UTC(year, month, day, hour - 8, min, 0, 0);
-}
-
-/**
- * Extract series ID from a full event contract instrument ID.
- * e.g. "BTC-UPDOWN-15MIN-260325-1700-1715" → "BTC-UPDOWN-15MIN"
- *      "BTC-ABOVE-DAILY-260320-1600-69700"  → "BTC-ABOVE-DAILY"
- */
-function extractSeriesId(instId: string): string {
-  const parts = instId.split("-");
-  for (let i = 0; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) {
-      return parts.slice(0, i).join("-");
-    }
-  }
-  return instId;
-}
 
 /**
  * Convert semantic outcome string to API value.
@@ -261,11 +213,13 @@ interface BrowseSeriesResult {
 
 /** Fetch live markets for a single series candidate and return only active (in-progress) contracts. */
 async function fetchActiveContractsForSeries(
-  client: { privateGet: Function },
+  client: ToolContext["client"],
   s: Record<string, unknown>,
 ): Promise<BrowseSeriesResult | null> {
   const seriesId = String(s["seriesId"] ?? "");
   const settlement = s["settlement"] as Record<string, unknown> | undefined;
+  const method = String(settlement?.["method"] ?? "");
+  const isUpDown = method === "price_up_down";
   try {
     const r = await client.privateGet(
       "/api/v5/public/event-contract/markets",
@@ -278,7 +232,8 @@ async function fetchActiveContractsForSeries(
     const now = Date.now();
     const active = markets
       .filter(m => {
-        if (!m["floorStrike"] || m["floorStrike"] === "") return false;
+        // price_up_down series have floorStrike="" — skip the check for them
+        if (!isUpDown && (!m["floorStrike"] || m["floorStrike"] === "")) return false;
         const expMs = Number(m["expTime"] ?? 0);
         return expMs <= 0 || expMs > now;
       })
@@ -355,9 +310,8 @@ function enrichFill(item: Record<string, unknown>): Record<string, unknown> {
     type: isSettle ? "settlement" : "fill",
   };
   if (isSettle) {
-    const fillPx = parseFloat(String(item["fillPx"] ?? "NaN"));
     const fillPnl = parseFloat(String(item["fillPnl"] ?? "NaN"));
-    const isWin = subType === "414" || (subType !== "415" && fillPx === 1);
+    const isWin = subType === "414";
     enriched["settlementResult"] = isWin ? "win" : "loss";
     enriched["pnl"] = isNaN(fillPnl) ? undefined : fillPnl;
   }

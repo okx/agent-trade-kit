@@ -383,7 +383,7 @@ describe("cmdEventPlace", () => {
     await cmdEventPlace(run, {
       instId: "BTC-ABOVE-DAILY-990101-1600-70000",
       side: "buy",
-      outcome: "1",
+      outcome: "YES",
       sz: "10",
       px: "0.65",
       ordType: "limit",
@@ -404,7 +404,7 @@ describe("cmdEventPlace", () => {
     await cmdEventPlace(run, {
       instId: "BTC-ABOVE-DAILY-990101-1600-70000",
       side: "buy",
-      outcome: "1",
+      outcome: "YES",
       sz: "10",
       json: false,
     });
@@ -426,7 +426,7 @@ describe("cmdEventPlace", () => {
     await cmdEventPlace(run, {
       instId: "BTC-ABOVE-DAILY-200101-1600-70000",
       side: "buy",
-      outcome: "1",
+      outcome: "YES",
       sz: "10",
       json: false,
     });
@@ -442,7 +442,7 @@ describe("cmdEventPlace", () => {
     await cmdEventPlace(run, {
       instId: "BTC-ABOVE-DAILY-990101-1600-70000",
       side: "buy",
-      outcome: "1",
+      outcome: "YES",
       sz: "10",
       json: false,
     });
@@ -456,7 +456,7 @@ describe("cmdEventPlace", () => {
     await cmdEventPlace(run, {
       instId: "BTC-ABOVE-DAILY-990101-1600-70000",
       side: "buy",
-      outcome: "1",
+      outcome: "YES",
       sz: "10",
       json: true,
     });
