@@ -14,6 +14,7 @@
 ### 修复
 
 - **未知 `tgtCcy` 值现在抛出 `ValidationError` 而非静默跳过**：此前 `--tgtCcy margin_ccy` 或 `--tgtCcy QUOTE_CCY` 等拼写错误会被静默忽略，`sz` 原样传给 API 未经转换。现在仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出 `ValidationError` 并附带修复建议。(#133)
+- **`--verbose` 标志现在对 CLI 审计日志生效**：此前 `TradeLogger` 始终以 `"info"` 级别构造，成功日志也全部使用 `"info"`，导致 `--verbose` 对日志文件内容无任何影响。现在 verbose 模式将日志级别设为 `"debug"`，每次成功的工具调用额外写入一条包含完整请求参数和响应数据的 debug 级别条目；非 verbose 模式仅记录精简摘要。(#130)
 
 ---
 

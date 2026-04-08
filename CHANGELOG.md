@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Unknown `tgtCcy` values now throw `ValidationError` instead of silent passthrough**: Previously, typos like `--tgtCcy margin_ccy` or `--tgtCcy QUOTE_CCY` were silently ignored and `sz` was sent to the API unconverted. Now only `base_ccy`, `quote_ccy`, and `margin` are accepted; any other value throws a `ValidationError` with a helpful suggestion. (#133)
+- **`--verbose` flag now affects CLI audit log output**: Previously, `TradeLogger` was always constructed with `"info"` level and all success logs used `"info"`, so `--verbose` had no effect on log file content. Now, verbose mode sets log level to `"debug"` and writes an additional debug-level entry with full request args and response data for each successful tool call, while non-verbose mode only records a compact summary. (#130)
 
 ---
 
