@@ -13,6 +13,7 @@
  */
 
 import type { OkxRestClient } from "../client/rest-client.js";
+import { ValidationError } from "../utils/errors.js";
 
 export interface QuoteCcyResult {
   /** Resolved sz: either original value (passthrough) or converted contract count. */
@@ -157,7 +158,8 @@ function computeContracts(p: ConversionParams): { contractsStr: string; conversi
 /**
  * Resolve the sz parameter for a contract order.
  *
- * Fast path: if tgtCcy is not "quote_ccy" or "margin", returns unchanged.
+ * Fast path: if tgtCcy is undefined or "base_ccy", returns unchanged.
+ * Throws ValidationError for unknown tgtCcy values.
  * Conversion: fetches instrument params + ticker (+ leverage for margin mode),
  * then delegates to computeContracts() for the math.
  */
@@ -169,8 +171,16 @@ export async function resolveQuoteCcySz(
   client: OkxRestClient | ConversionClient,
   tdMode?: string,
 ): Promise<QuoteCcyResult> {
-  if (tgtCcy !== "quote_ccy" && tgtCcy !== "margin") {
+  // passthrough: undefined or base_ccy (default behavior, no conversion needed)
+  if (tgtCcy === undefined || tgtCcy === "base_ccy") {
     return { sz, tgtCcy, conversionNote: undefined };
+  }
+  // only quote_ccy and margin enter conversion
+  if (tgtCcy !== "quote_ccy" && tgtCcy !== "margin") {
+    throw new ValidationError(
+      `Unknown tgtCcy value "${tgtCcy}". Valid values: base_ccy, quote_ccy, margin.`,
+      `Check the --tgtCcy flag. Use base_ccy (default, sz in contracts), quote_ccy (sz in USDT notional), or margin (sz in USDT margin cost).`,
+    );
   }
 
   const isMarginMode = tgtCcy === "margin";
