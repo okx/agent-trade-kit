@@ -129,10 +129,7 @@ export async function cmdEventBrowse(
         "Expiry":   c["expTime"] ?? "",
         "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
         "Probability": fmtProbability(c["px"]),
-        "Outcome":  (() => {
-          const outcome = String(c["outcome"] ?? "");
-          return outcome.toLowerCase() === "pending" ? "—" : outcome;
-        })(),
+        "Outcome":  fmtOutcome(c["outcome"]) || "—",
         "instId":   c["instId"],
       })),
     );
@@ -405,6 +402,19 @@ function handlePlaceOrderError(msg: string, instId: string): void {
   }
 }
 
+function buildPlaceConfirmation(opts: { instId: string; side: string; outcome: string; sz: string; px?: string }, ordType: string): string {
+  const contractName = formatDisplayTitle(opts.instId);
+  const direction = `${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}`;
+  if (ordType === "market") {
+    return `Placing: ${contractName}  ${direction}  sz=${opts.sz} (market order, exchange converts to contracts)\n`;
+  }
+  const px = parseFloat(opts.px ?? "0");
+  const sz = parseFloat(opts.sz);
+  const cost = (sz * px).toFixed(2);
+  const maxGain = (sz * (1 - px)).toFixed(2);
+  return `Placing: ${contractName}  ${direction}  ${opts.sz} contracts at px=${opts.px} (cost ≈ ${cost}, max gain ≈ ${maxGain})\n`;
+}
+
 export async function cmdEventPlace(
   run: ToolRunner,
   opts: {
@@ -423,20 +433,7 @@ export async function cmdEventPlace(
     return;
   }
   if (!opts.json) {
-    const contractName = formatDisplayTitle(opts.instId);
-    if (ordType === "market") {
-      process.stdout.write(
-        `Placing: ${contractName}  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  sz=${opts.sz} (market order, exchange converts to contracts)\n`,
-      );
-    } else {
-      const px = parseFloat(opts.px ?? "0");
-      const sz = parseFloat(opts.sz);
-      const cost = (sz * px).toFixed(2);
-      const maxGain = (sz * (1 - px)).toFixed(2);
-      process.stdout.write(
-        `Placing: ${contractName}  ${opts.side.toUpperCase()} ${opts.outcome.toUpperCase()}  ${opts.sz} contracts at px=${opts.px} (cost ≈ ${cost}, max gain ≈ ${maxGain})\n`,
-      );
-    }
+    process.stdout.write(buildPlaceConfirmation(opts, ordType));
   }
 
   let result: unknown;

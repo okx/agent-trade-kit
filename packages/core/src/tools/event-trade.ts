@@ -175,7 +175,7 @@ async function fetchAvailableBalance(
           (d) => String(d["ccy"] ?? "").toUpperCase() === ccy.toUpperCase(),
         );
         if (!entry) return { balance: null, ccy };
-        const bal = String((entry as Record<string, unknown>)["availBal"] ?? "") || null;
+        const bal = String(entry["availBal"] ?? "") || null;
         return { balance: bal, ccy };
       }
     }
@@ -247,6 +247,27 @@ interface BrowseSeriesResult {
   contracts: Record<string, unknown>[];
 }
 
+/** Check whether a market entry is active (not expired and has valid strike for non-updown series). */
+function isActiveMarket(m: Record<string, unknown>, isUpDown: boolean, now: number): boolean {
+  if (!isUpDown && (!m["floorStrike"] || m["floorStrike"] === "")) return false;
+  const expMs = Number(m["expTime"] ?? 0);
+  return expMs <= 0 || expMs > now;
+}
+
+/** Map a raw market entry to a compact contract summary. */
+function toContractSummary(m: Record<string, unknown>): Record<string, unknown> {
+  const converted = convertTimestamps(m);
+  const id = String(m["instId"] ?? "");
+  return {
+    instId:       id,
+    displayTitle: formatDisplayTitle(id),
+    expTime:      converted["expTime"],
+    floorStrike:  m["floorStrike"],
+    px:           m["px"],
+    outcome:      OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
+  };
+}
+
 /** Fetch live markets for a single series candidate and return only active (in-progress) contracts. */
 async function fetchActiveContractsForSeries(
   client: ToolContext["client"],
@@ -257,34 +278,18 @@ async function fetchActiveContractsForSeries(
   const method = String(settlement?.["method"] ?? "");
   const isUpDown = method === "price_up_down";
   try {
-    const r = await client.publicGet(
+    const r = await client.privateGet(
       "/api/v5/public/event-contract/markets",
       compactObject({ seriesId, state: "live" }),
-      publicRateLimit("event_browse", 20),
+      privateRateLimit("event_browse", 20),
     );
     const markets = (Array.isArray(normalizeResponse(r)["data"])
       ? normalizeResponse(r)["data"] as Record<string, unknown>[]
       : []);
     const now = Date.now();
     const active = markets
-      .filter(m => {
-        // price_up_down series have floorStrike="" — skip the check for them
-        if (!isUpDown && (!m["floorStrike"] || m["floorStrike"] === "")) return false;
-        const expMs = Number(m["expTime"] ?? 0);
-        return expMs <= 0 || expMs > now;
-      })
-      .map(m => {
-        const converted = convertTimestamps(m);
-        const id = String(m["instId"] ?? "");
-        return {
-          instId:       id,
-          displayTitle: formatDisplayTitle(id),
-          expTime:      converted["expTime"],
-          floorStrike:  m["floorStrike"],
-          px:           m["px"],
-          outcome:      OUTCOME_LABELS[String(m["outcome"] ?? "")] ?? m["outcome"],
-        };
-      });
+      .filter(m => isActiveMarket(m, isUpDown, now))
+      .map(toContractSummary);
     if (active.length === 0) return null;
     return {
       seriesId,
@@ -396,7 +401,7 @@ NOTE: px is the event contract price (0.01–0.99), NOT the underlying asset pri
 export function registerEventContractTools(): ToolSpec[] {
   return [
     // -----------------------------------------------------------------------
-    // Public — browse (user-facing) + series / events / markets (internal)
+    // Read-only — browse (user-facing) + series / events / markets (internal)
     // -----------------------------------------------------------------------
     {
       name: "event_browse",
@@ -416,10 +421,10 @@ export function registerEventContractTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const underlyingFilter = readString(args, "underlying");
 
-        const seriesResp = await context.client.publicGet(
+        const seriesResp = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({}),
-          publicRateLimit("event_browse", 10),
+          privateRateLimit("event_browse", 10),
         );
         const allSeries = (Array.isArray(normalizeResponse(seriesResp)["data"])
           ? normalizeResponse(seriesResp)["data"] as Record<string, unknown>[]
@@ -455,10 +460,10 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
+        const response = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({ seriesId: readString(args, "seriesId") }),
-          publicRateLimit("event_get_series", 20),
+          privateRateLimit("event_get_series", 20),
         );
         return normalizeResponse(response);
       },
@@ -502,7 +507,7 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
+        const response = await context.client.privateGet(
           "/api/v5/public/event-contract/events",
           compactObject({
             seriesId: requireString(args, "seriesId"),
@@ -512,7 +517,7 @@ export function registerEventContractTools(): ToolSpec[] {
             before: readString(args, "before"),
             after: readString(args, "after"),
           }),
-          publicRateLimit("event_get_events", 20),
+          privateRateLimit("event_get_events", 20),
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
@@ -569,7 +574,7 @@ export function registerEventContractTools(): ToolSpec[] {
         const knownUnderlying = extractUnderlying(seriesId);
 
         const [marketsResp, seriesResp, idxPxFromKnown] = await Promise.all([
-          context.client.publicGet(
+          context.client.privateGet(
             "/api/v5/public/event-contract/markets",
             compactObject({
               seriesId,
@@ -579,14 +584,14 @@ export function registerEventContractTools(): ToolSpec[] {
               before: readString(args, "before"),
               after: readString(args, "after"),
             }),
-            publicRateLimit("event_get_markets", 20),
+            privateRateLimit("event_get_markets", 20),
           ),
           knownUnderlying
             ? Promise.resolve(null)
-            : context.client.publicGet(
+            : context.client.privateGet(
                 "/api/v5/public/event-contract/series",
                 compactObject({ seriesId }),
-                publicRateLimit("event_get_series", 20),
+                privateRateLimit("event_get_series", 20),
               ),
           knownUnderlying ? fetchIdxPx(context.client, knownUnderlying + "-USDT") : Promise.resolve(null),
         ]);
