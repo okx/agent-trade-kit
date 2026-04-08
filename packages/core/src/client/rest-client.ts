@@ -1,4 +1,7 @@
-import { ProxyAgent } from "undici";
+import { Agent, ProxyAgent } from "undici";
+import { resolveDoh, reResolveDoh } from "../doh/resolver.js";
+import { writeCache } from "../doh/cache.js";
+import type { DohNode } from "../doh/types.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
   AuthenticationError,
@@ -109,12 +112,136 @@ export class OkxRestClient {
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
 
+  // DoH proxy state (lazy-resolved on first request)
+  private dohResolved = false;
+  private dohRetried = false;
+  private directUnverified = false; // The first direct connection has not yet been verified
+  private dohNode: DohNode | null = null;
+  private dohAgent: Agent | null = null;
+  private dohBaseUrl: string | null = null;
+
   public constructor(config: OkxConfig) {
     this.config = config;
     this.rateLimiter = new RateLimiter(30_000, config.verbose);
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
     }
+  }
+
+  /**
+   * Lazily resolve the DoH proxy node on the first request.
+   * Uses cache-first strategy via the resolver.
+   */
+  private ensureDoh(): void {
+    if (this.dohResolved || this.dispatcher) return;
+    this.dohResolved = true;
+    try {
+      const { hostname, protocol } = new URL(this.config.baseUrl);
+      const result = resolveDoh(hostname);
+
+      if (!result.mode) {
+        // No cache → try direct first. If it works, we'll cache "direct".
+        this.directUnverified = true;
+        if (this.config.verbose) {
+          vlog("DoH: no cache, trying direct connection first");
+        }
+        return;
+      }
+
+      if (result.mode === "direct") {
+        if (this.config.verbose) {
+          vlog("DoH: mode=direct (overseas or cached), using direct connection");
+        }
+        return;
+      }
+
+      // mode=proxy
+      if (result.node) {
+        this.applyDohNode(result.node, protocol);
+      }
+    } catch (err) {
+      if (this.config.verbose) {
+        const cause = err instanceof Error ? err.message : String(err);
+        vlog(`DoH resolution failed, falling back to direct: ${cause}`);
+      }
+    }
+  }
+
+  /** Apply a DoH node: set up the custom Agent + base URL. */
+  private applyDohNode(node: DohNode, protocol: string): void {
+    this.dohNode = node;
+    this.dohBaseUrl = `${protocol}//${node.host}`;
+    this.dohAgent = new Agent({
+      connect: {
+        lookup: (
+          _hostname,
+          options,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          callback: any,
+        ) => {
+          if ((options as { all?: boolean })?.all) {
+            callback(null, [{ address: node.ip, family: 4 }]);
+          } else {
+            callback(null, node.ip, 4);
+          }
+        },
+      },
+    });
+    if (this.config.verbose) {
+      vlog(`DoH proxy active: \u2192 ${node.host} (${node.ip}), ttl=${node.ttl}s`);
+    }
+  }
+
+  /**
+   * Handle network failure: re-resolve with --exclude and retry once.
+   * Returns true if retry should proceed, false if already retried.
+   */
+  private async handleDohNetworkFailure(): Promise<boolean> {
+    if (this.dohRetried) return false;
+    this.dohRetried = true;
+
+    const failedIp = this.dohNode?.ip ?? "";
+    const { hostname, protocol } = new URL(this.config.baseUrl);
+
+    this.dohNode = null;
+    this.dohAgent = null;
+    this.dohBaseUrl = null;
+    if (!failedIp) this.directUnverified = false;
+
+    if (this.config.verbose) {
+      vlog(failedIp
+        ? `DoH: proxy node ${failedIp} failed, re-resolving with --exclude`
+        : "DoH: direct connection failed, calling binary for DoH resolution");
+    }
+
+    try {
+      const result = await reResolveDoh(hostname, failedIp, this.dohUserAgent);
+      if (result.mode === "proxy" && result.node) {
+        this.applyDohNode(result.node, protocol);
+        this.dohRetried = false; // Considering that MCP is a resident process
+        return true;
+      }
+    } catch {
+      // resolution failed — fall through to direct
+    }
+
+    if (this.config.verbose) {
+      vlog("DoH: re-resolution failed or switched to direct, retrying with direct connection");
+    }
+    return true;
+  }
+
+  private get activeBaseUrl(): string {
+    return this.dohNode ? this.dohBaseUrl! : this.config.baseUrl;
+  }
+
+  private get activeDispatcher(): Agent | ProxyAgent | undefined {
+    return this.dispatcher ?? this.dohAgent ?? undefined;
+  }
+
+  /** User-Agent for DoH proxy requests: OKX/@okx_ai/{packageName}/{version} */
+  private get dohUserAgent(): string {
+    return `OKX/@okx_ai/${this.config.userAgent ?? "unknown"}`;
   }
 
   private logRequest(method: string, url: string, auth: string): void {
@@ -343,15 +470,20 @@ export class OkxRestClient {
     body?: Record<string, unknown>,
     opts?: BinaryRequestOptions,
   ): Promise<BinaryResult> {
+    this.ensureDoh();
+
     const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
     const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
     const bodyJson = body ? JSON.stringify(body) : "";
     const endpoint = `POST ${path}`;
 
-    this.logRequest("POST", `${this.config.baseUrl}${path}`, "private");
+    this.logRequest("POST", `${this.activeBaseUrl}${path}`, "private");
 
     const reqConfig = { method: "POST", path, auth: "private" } as RequestConfig;
     const headers = this.buildHeaders(reqConfig, path, bodyJson, getNow());
+    if (this.dohNode) {
+      headers.set("User-Agent", this.dohUserAgent);
+    }
 
     const t0 = Date.now();
     const response = await this.fetchBinary(path, endpoint, headers, bodyJson, t0);
@@ -391,9 +523,9 @@ export class OkxRestClient {
       const fetchOptions: Record<string, unknown> = {
         method: "POST", headers, body: bodyJson || undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
+        dispatcher: this.activeDispatcher,
       };
-      if (this.dispatcher) fetchOptions.dispatcher = this.dispatcher;
-      return await fetch(`${this.config.baseUrl}${path}`, fetchOptions as RequestInit);
+      return await fetch(`${this.activeBaseUrl}${path}`, fetchOptions as RequestInit);
     } catch (error) {
       if (this.config.verbose) {
         vlog(`\u2717 NetworkError after ${Date.now() - t0}ms: ${error instanceof Error ? error.message : String(error)}`);
@@ -412,6 +544,8 @@ export class OkxRestClient {
       Accept: "application/json",
     });
 
+    // Direct connection UA (e.g. "okx-trade-mcp/1.2.9").
+    // DoH proxy requests override this with dohUserAgent in request()/privatePostBinary().
     if (this.config.userAgent) {
       headers.set("User-Agent", this.config.userAgent);
     }
@@ -435,9 +569,13 @@ export class OkxRestClient {
   private async request<TData = unknown>(
     reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
+    this.ensureDoh();
+
     const queryString = buildQueryString(reqConfig.query);
     const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
-    const url = `${this.config.baseUrl}${requestPath}`;
+
+    // Route: proxy_url → DoH proxy → direct
+    const url = `${this.activeBaseUrl}${requestPath}`;
     const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
     const timestamp = getNow();
 
@@ -448,7 +586,9 @@ export class OkxRestClient {
     }
 
     const headers = this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
-
+    if (this.dohNode) {
+      headers.set("User-Agent", this.dohUserAgent);
+    }
 
     const t0 = Date.now();
     let response: Response;
@@ -458,12 +598,24 @@ export class OkxRestClient {
         headers,
         body: reqConfig.method === "POST" ? bodyJson : undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
+        dispatcher: this.activeDispatcher,
       };
-      if (this.dispatcher) {
-        fetchOptions.dispatcher = this.dispatcher;
-      }
       response = await fetch(url, fetchOptions as RequestInit);
     } catch (error) {
+      // Network failure → always refresh DoH state for subsequent requests
+      if (!this.dohRetried) {
+        if (this.config.verbose) {
+          vlog(`Network failure, refreshing DoH: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        const shouldRetry = await this.handleDohNetworkFailure();
+        // Only auto-retry GET (safe & idempotent).
+        // POST/write requests (orders, transfers) must NOT auto-retry:
+        // DoH re-resolution takes seconds, price may have moved.
+        if (shouldRetry && reqConfig.method === "GET") {
+          return this.request(reqConfig);
+        }
+      }
+
       if (this.config.verbose) {
         const elapsed = Date.now() - t0;
         const cause = error instanceof Error ? error.message : String(error);
@@ -479,6 +631,20 @@ export class OkxRestClient {
     const rawText = await response.text();
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
+
+    // HTTP response received → direct connection works, cache it
+    // (even if the business response is an error, the network path is valid)
+    if (this.directUnverified && !this.dohNode) {
+      this.directUnverified = false;
+      const { hostname: h } = new URL(this.config.baseUrl);
+      writeCache(h, {
+        mode: "direct", node: null, failedNodes: [], updatedAt: Date.now(),
+      });
+      if (this.config.verbose) {
+        vlog("DoH: direct connection succeeded, cached mode=direct");
+      }
+    }
+
     return this.processResponse<TData>(rawText, response, elapsed, traceId, reqConfig, requestPath);
   }
 }
