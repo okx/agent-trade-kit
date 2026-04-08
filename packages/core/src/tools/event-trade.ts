@@ -131,7 +131,7 @@ async function fetchIdxPx(
     if (Array.isArray(data) && data.length > 0) {
       return String((data[0] as Record<string, unknown>)["idxPx"] ?? "") || null;
     }
-  } catch { /* non-critical */ }
+  } catch { /* index price fetch is non-critical, swallow network/timeout errors */ }
   return null;
 }
 
@@ -188,6 +188,8 @@ async function fetchAvailableBalance(
  * e.g. "BTC-ABOVE-DAILY" → "BTC", "ETH-UPDOWN-15MIN" → "ETH"
  */
 function extractUnderlying(seriesId: string): string | null {
+  // Intentionally covers only the most common series (BTC/ETH/SOL).
+  // Other series fall through to the API lookup path via /series endpoint.
   const m = seriesId.match(/^(BTC|ETH|SOL)/i);
   return m ? m[1].toUpperCase() : null;
 }
@@ -594,7 +596,7 @@ export function registerEventContractTools(): ToolSpec[] {
           underlying = resolveUnderlyingFromSeriesResp(seriesResp);
         }
 
-        const idxPx = idxPxFromKnown ?? (underlying ? await fetchIdxPx(context.client, underlying) : null);
+        const idxPx = idxPxFromKnown ?? (underlying && !knownUnderlying ? await fetchIdxPx(context.client, underlying) : null);
 
         const base = normalizeResponse(marketsResp);
         const limit = readNumber(args, "limit");

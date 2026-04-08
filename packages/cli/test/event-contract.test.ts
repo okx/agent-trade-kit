@@ -491,7 +491,8 @@ describe("cmdEventAmend", () => {
   });
 
   it("shows failure with sCode error", async () => {
-    const run = makeRun([{ ordId: "ord-amend-2", sCode: "51001", sMsg: "Instrument not found" }]);
+    // MCP normalizeWrite throws on non-zero sCode, so simulate that here
+    const run: ToolRunner = async () => { throw new Error("Instrument not found"); };
     await cmdEventAmend(run, {
       instId: "BTC-ABOVE-DAILY-990101-1600-70000",
       ordId: "ord-amend-2",
@@ -500,7 +501,7 @@ describe("cmdEventAmend", () => {
     });
     const text = joined();
     assert.ok(text.includes("Failed to amend"), "should show failure");
-    assert.ok(text.includes("Instrument not found"), "should show sMsg");
+    assert.ok(text.includes("Instrument not found"), "should show error message");
   });
 
   it("handles thrown error", async () => {

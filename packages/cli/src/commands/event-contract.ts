@@ -418,6 +418,10 @@ export async function cmdEventPlace(
   },
 ): Promise<void> {
   const ordType = opts.ordType ?? "market";
+  if (ordType === "limit" && !opts.px) {
+    process.stdout.write("Error: --px is required for limit orders.\n");
+    return;
+  }
   if (!opts.json) {
     const contractName = formatDisplayTitle(opts.instId);
     if (ordType === "market") {
@@ -496,17 +500,14 @@ export async function cmdEventAmend(
   }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
+  // MCP layer (normalizeWrite) already throws on non-zero sCode,
+  // so reaching here means the amend succeeded.
   const r = data?.[0];
-  if (r?.["sCode"] === "0") {
-    const pxPart = opts.px ? `  new px: ${opts.px}` : "";
-    const szPart = opts.sz ? `  new sz: ${opts.sz}` : "";
-    process.stdout.write(
-      `Amended: ${r?.["ordId"]}${pxPart}${szPart}\n`,
-    );
-  } else {
-    const sMsg  = String(r?.["sMsg"] ?? "unknown error");
-    process.stdout.write(`Failed to amend order ${opts.ordId}: ${sMsg}\n`);
-  }
+  const pxPart = opts.px ? `  new px: ${opts.px}` : "";
+  const szPart = opts.sz ? `  new sz: ${opts.sz}` : "";
+  process.stdout.write(
+    `Amended: ${r?.["ordId"] ?? opts.ordId}${pxPart}${szPart}\n`,
+  );
 }
 
 function handleCancelCatchError(instId: string, ordId: string, err: unknown): void {

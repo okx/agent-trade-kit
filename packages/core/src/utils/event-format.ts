@@ -24,6 +24,7 @@ export function inferExpiryMsFromInstId(instId: string): number | null {
   if (dateIdx < 0) return null;
 
   const dp = parts[dateIdx]!;
+  // 2-digit year assumption: valid through 2099
   const year  = 2000 + parseInt(dp.slice(0, 2), 10);
   const month = parseInt(dp.slice(2, 4), 10) - 1; // 0-based
   const day   = parseInt(dp.slice(4, 6), 10);
