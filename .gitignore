@@ -19,3 +19,4 @@ skills-lock.json
 aTempFiles/
 *.tgz
 .worktrees/
+memory/
