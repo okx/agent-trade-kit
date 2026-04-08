@@ -3,11 +3,10 @@
  * Extracted from event-trade.ts to keep the main file focused on tool registration.
  */
 import type { ToolContext } from "./types.js";
-import { compactObject, normalizeResponse } from "./helpers.js";
+import { compactObject, normalizeResponse, requireString, asRecord } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
 import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "../utils/event-format.js";
-import { requireString, asRecord } from "./helpers.js";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -162,8 +161,10 @@ export async function fetchAvailableBalance(
  * Extract underlying asset from seriesId for known patterns.
  * e.g. "BTC-ABOVE-DAILY" → "BTC", "ETH-UPDOWN-15MIN" → "ETH"
  */
+const KNOWN_UNDERLYINGS = /^(BTC|ETH|TRX|EOS|SOL|IOTA|KISHU|SUSHI|BTG|XTZ|SOLVU)/i;
+
 export function extractUnderlying(seriesId: string): string | null {
-  const m = seriesId.match(/^(BTC|ETH|SOL)/i);
+  const m = seriesId.match(KNOWN_UNDERLYINGS);
   return m ? m[1].toUpperCase() : null;
 }
 
