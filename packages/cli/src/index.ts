@@ -1125,8 +1125,9 @@ function handleSkillAdd(rest: string[], config: import("@agent-tradekit/core").O
 }
 
 function handleSkillDownload(rest: string[], v: CliValues, config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
-  const n = requireSkillName(rest, "Usage: okx skill download <name> [--dir <path>]");
-  if (n) return cmdSkillDownload(n, v.dir ?? process.cwd(), config, json);
+  const n = requireSkillName(rest, "Usage: okx skill download <name> [--dir <path>] [--format zip|skill]");
+  const format = v.format === "skill" ? "skill" as const : "zip" as const;
+  if (n) return cmdSkillDownload(n, v.dir ?? process.cwd(), config, json, format);
 }
 
 function handleSkillRemove(rest: string[], json: boolean): void {

@@ -67,7 +67,7 @@ Never skip `add` and go straight to `download` unless `add` has already failed.
 | 2 | `okx skill search --categories <id>` | Filter skills by category |
 | 3 | `okx skill categories` | List all available categories |
 | 4 | `okx skill add <name>` | Download + install to all detected agents |
-| 5 | `okx skill download <name> [--dir <path>]` | Download zip only (default: current dir) |
+| 5 | `okx skill download <name> [--dir <path>] [--format zip\|skill]` | Download package (default format: zip) |
 | 6 | `okx skill list` | List locally installed skills |
 | 7 | `okx skill check <name>` | Check if a newer version is available |
 | 8 | `okx skill remove <name>` | Uninstall a skill |
@@ -151,6 +151,11 @@ Output:
   Path: /Users/me/Downloads/grid-premium.zip
 ```
 
+To download as `.skill` format (for agents that recognize the extension):
+```bash
+okx skill download grid-premium --dir ~/Downloads/ --format skill
+```
+
 The zip contains:
 - `SKILL.md` — the skill's main instruction file
 - `_meta.json` — metadata (name, version, title, description)
@@ -206,7 +211,7 @@ When the CLI is unavailable (e.g., Claude Desktop without terminal access), the 
 |----------|---------------|-------------|
 | `skills_search` | `okx skill search` | Search by keyword/category. Response includes `totalPage` for pagination. |
 | `skills_get_categories` | `okx skill categories` | List categories |
-| `skills_download` | `okx skill download` | Download zip to directory |
+| `skills_download` | `okx skill download` | Download package to directory (default format: `.skill`; pass `format: "zip"` for zip) |
 
 Note: MCP tools only support search and download. The full install flow (`add`) requires CLI access.
 

@@ -164,15 +164,16 @@ export async function cmdSkillDownload(
   targetDir: string,
   config: OkxConfig,
   json: boolean,
+  format: "zip" | "skill" = "zip",
 ): Promise<void> {
   outputLine(`Downloading ${name}...`);
   const client = new OkxRestClient(config);
-  const filePath = await downloadSkillZip(client, name, targetDir);
+  const filePath = await downloadSkillZip(client, name, targetDir, format);
 
   if (json) {
     outputLine(JSON.stringify({ name, filePath }, null, 2));
   } else {
-    outputLine(`✓ Downloaded ${name}.zip`);
+    outputLine(`✓ Downloaded ${name}.${format}`);
     outputLine(`  Path: ${filePath}`);
   }
 }

@@ -619,6 +619,40 @@ const HELP_TREE: HelpTree = {
     usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo | --live] [--output <file>]",
   },
 
+  skill: {
+    description: "OKX Skills Marketplace — search, install, and manage agent skills",
+    commands: {
+      search: {
+        usage: "okx skill search [--keyword <kw>] [--categories <id>] [--page <n>] [--limit <n>]",
+        description: "Search for skills in the marketplace",
+      },
+      categories: {
+        usage: "okx skill categories",
+        description: "List available skill categories",
+      },
+      add: {
+        usage: "okx skill add <name>",
+        description: "Download and install a skill to detected agents",
+      },
+      download: {
+        usage: "okx skill download <name> [--dir <path>] [--format zip|skill]",
+        description: "Download a skill package without installing",
+      },
+      remove: {
+        usage: "okx skill remove <name>",
+        description: "Remove an installed skill",
+      },
+      check: {
+        usage: "okx skill check <name>",
+        description: "Check if an installed skill has a newer version",
+      },
+      list: {
+        usage: "okx skill list",
+        description: "List all locally installed skills",
+      },
+    },
+  },
+
   upgrade: {
     description: "Upgrade okx CLI and MCP server to the latest stable version",
     usage: "okx upgrade [--check] [--beta] [--force] [--json]",

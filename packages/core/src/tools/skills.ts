@@ -55,10 +55,10 @@ export function registerSkillsTools(): ToolSpec[] {
       name: "skills_download",
       module: "skills",
       description:
-        "Download a skill zip file from OKX Skills Marketplace to a local directory. " +
+        "Download a skill package from OKX Skills Marketplace to a local directory. " +
         "Always call skills_search first to confirm the skill name exists. " +
         "Downloads the latest approved version. " +
-        "NOTE: Downloads third-party developer content as a zip — does NOT install to agents. " +
+        "NOTE: Downloads third-party developer content — does NOT install to agents. " +
         "For full installation use CLI: okx skill add <name>. " +
         "Use when the user wants to inspect or manually install a skill package.",
       inputSchema: {
@@ -70,7 +70,12 @@ export function registerSkillsTools(): ToolSpec[] {
           },
           targetDir: {
             type: "string",
-            description: "Directory path where the zip file will be saved",
+            description: "Directory path where the file will be saved",
+          },
+          format: {
+            type: "string",
+            description: "Output file format: 'zip' or 'skill' (default: 'skill')",
+            enum: ["zip", "skill"],
           },
         },
         required: ["name", "targetDir"],
@@ -117,8 +122,9 @@ async function handleDownload(
 ): Promise<unknown> {
   const name = String(args.name);
   const targetDir = String(args.targetDir);
+  const format = args.format === "zip" ? "zip" : "skill";
 
-  const filePath = await downloadSkillZip(ctx.client, name, targetDir);
+  const filePath = await downloadSkillZip(ctx.client, name, targetDir, format);
 
   return {
     endpoint: "POST /api/v5/skill/download",

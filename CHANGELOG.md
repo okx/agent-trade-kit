@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Skill download `format` parameter**: `skills_download` MCP tool and `okx skill download` CLI command now accept a `format` option (`"zip"` or `"skill"`). MCP defaults to `"skill"` (so agents like Claude Desktop can auto-detect the file type), CLI defaults to `"zip"` (backward-compatible). The file content is identical — only the extension changes.
+
 ### Fixed
 
 - **Unknown `tgtCcy` values now throw `ValidationError` instead of silent passthrough**: Previously, typos like `--tgtCcy margin_ccy` or `--tgtCcy QUOTE_CCY` were silently ignored and `sz` was sent to the API unconverted. Now only `base_ccy`, `quote_ccy`, and `margin` are accepted; any other value throws a `ValidationError` with a helpful suggestion. (#133)
