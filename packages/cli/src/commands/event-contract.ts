@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "@agent-tradekit/core";
+import { findDateIdx, formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "@agent-tradekit/core";
 import { printJson, printTable } from "../formatter.js";
 
 function getData(result: unknown): unknown {
@@ -75,10 +75,7 @@ function inferStartMsFromInstId(instId: string): number | null {
   const parts = instId.split("-");
   const upper = instId.toUpperCase();
   if (!upper.includes("UPDOWN")) return null; // only UPDOWN encodes start time
-  let dateIdx = -1;
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
-  }
+  const dateIdx = findDateIdx(parts);
   if (dateIdx < 0) return null;
   const dp = parts[dateIdx]!;
   const year  = 2000 + parseInt(dp.slice(0, 2), 10);
@@ -99,10 +96,7 @@ function inferStartMsFromInstId(instId: string): number | null {
 function fmtPeriodFromInstId(instId: string): string {
   const parts = instId.split("-");
   const upper = instId.toUpperCase();
-  let dateIdx = -1;
-  for (let i = 1; i < parts.length; i++) {
-    if (/^\d{6}$/.test(parts[i]!)) { dateIdx = i; break; }
-  }
+  const dateIdx = findDateIdx(parts);
   if (dateIdx < 0) return instId;
   const dp = parts[dateIdx]!;
   const date = `20${dp.slice(0, 2)}-${dp.slice(2, 4)}-${dp.slice(4, 6)}`;

@@ -31,5 +31,5 @@ export {
 } from "./skills/index.js";
 export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCategory } from "./skills/index.js";
 export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
-export { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "./utils/event-format.js";
+export { findDateIdx, formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "./utils/event-format.js";
 export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";

@@ -109,9 +109,10 @@ async function fetchIdxPx(
   underlying: string,
 ): Promise<string | null> {
   try {
-    const r = await client.privateGet(
+    const r = await client.publicGet(
       "/api/v5/market/index-tickers",
       { instId: underlying },
+      publicRateLimit("fetchIdxPx", 20),
     );
     const data = (r as Record<string, unknown>)["data"];
     if (Array.isArray(data) && data.length > 0) {

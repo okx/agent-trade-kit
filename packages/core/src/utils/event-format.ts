@@ -3,7 +3,7 @@
  * No external dependencies — safe to use from both MCP and CLI layers.
  */
 
-function findDateIdx(parts: string[]): number {
+export function findDateIdx(parts: string[]): number {
   for (let i = 1; i < parts.length; i++) {
     if (/^\d{6}$/.test(parts[i]!)) return i;
   }

@@ -801,14 +801,13 @@ describe("event_get_markets with limit (client-side slicing)", () => {
     }));
 
     const client = {
-      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: items }),
-      privateGet: async (ep: string) => {
-        if (ep.includes("/markets")) {
-          return { endpoint: ep, requestTime: "t", data: items };
-        }
+      publicGet: async (ep: string) => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [{ idxPx: "65000" }] };
         }
+        return { endpoint: ep, requestTime: "t", data: items };
+      },
+      privateGet: async (ep: string) => {
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [{ details: [{ ccy: "USDT", availBal: "100" }] }] };
         }
@@ -847,12 +846,12 @@ describe("event_get_markets unknown underlying series fallback", () => {
         if (ep.includes("/series")) {
           return { endpoint: ep, requestTime: "t", data: seriesData };
         }
-        return { endpoint: ep, requestTime: "t", data: [] };
-      },
-      privateGet: async (ep: string) => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [{ idxPx: "5.5" }] };
         }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privateGet: async (ep: string) => {
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [] };
         }
@@ -1204,5 +1203,41 @@ describe("handler displayTitle", () => {
     const result = await fills.handler({}, makeContext(client)) as Record<string, unknown>;
     const data = result["data"] as Record<string, unknown>[];
     assert.equal(data[0]!["displayTitle"], "BTC touch 70,000 · 4/7");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchAvailableBalance returns null when USDT not found in details
+// ---------------------------------------------------------------------------
+
+describe("fetchAvailableBalance returns null when USDT not in details", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_get_markets")!;
+
+  it("omits availableBalance when balance details contain only non-USDT entries", async () => {
+    const marketData = [
+      { instId: "BTC-ABOVE-DAILY-260401-1600-70000", outcome: "0", expTime: "1711929600000" },
+    ];
+    const client = {
+      publicGet: async (ep: string) => {
+        if (ep.includes("/markets")) {
+          return { endpoint: ep, requestTime: "t", data: marketData };
+        }
+        if (ep.includes("/index-tickers")) {
+          return { endpoint: ep, requestTime: "t", data: [{ idxPx: "65000" }] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privateGet: async (ep: string) => {
+        if (ep.includes("/balance")) {
+          return { endpoint: ep, requestTime: "t", data: [{ details: [{ ccy: "BTC", availBal: "1.5" }] }] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({ seriesId: "BTC-ABOVE-DAILY" }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(result["availableBalance"], null, "availableBalance should be null when USDT is not in details");
   });
 });
