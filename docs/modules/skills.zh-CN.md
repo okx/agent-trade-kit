@@ -16,7 +16,7 @@
 |------|------|-------|
 | `skills_get_categories` | 获取所有可用的技能分类 | 读 |
 | `skills_search` | 按关键词或分类搜索技能，返回 `totalPage` 用于分页 | 读 |
-| `skills_download` | 下载技能 zip 到本地目录 | 写 |
+| `skills_download` | 下载技能包到本地目录。支持 `format` 参数：`"skill"`（默认）或 `"zip"`。 | 写 |
 
 ## CLI 命令
 
@@ -24,7 +24,7 @@
 okx skill search <keyword>          # 搜索技能市场
 okx skill categories                # 列出分类
 okx skill add <name>                # 下载 + 通过 npx skills add 安装
-okx skill download <name> [--dir]   # 仅下载 zip（不安装）
+okx skill download <name> [--dir] [--format zip|skill]  # 仅下载（默认：zip）
 okx skill remove <name>             # 卸载技能
 okx skill check <name>              # 检查更新
 okx skill list                      # 列出已安装技能

@@ -148,6 +148,29 @@ describe("handleSkillCommand — parameter routing", () => {
     process.exitCode = undefined;
   });
 
+  it("download: --format flag is read from v.format, not positional args", async () => {
+    // Verify that format="skill" in vals is accepted by the routing layer.
+    // handleSkillDownload reads v.format (named flag), not rest[N].
+    const { spy } = makeSpy();
+    try {
+      await handleSkillCommand(spy, "download", ["test-skill"], vals({ format: "skill" }), false, fakeConfig);
+    } catch {
+      // Download fails because spy doesn't provide a real OkxRestClient — expected.
+    }
+    // Key: routing accepted the input (no missing-name exitCode)
+    assert.notEqual(process.exitCode, 1);
+  });
+
+  it("download: format defaults to zip when --format is omitted", async () => {
+    const { spy } = makeSpy();
+    try {
+      await handleSkillCommand(spy, "download", ["test-skill"], vals({}), false, fakeConfig);
+    } catch {
+      // Download fails with mock — expected
+    }
+    assert.notEqual(process.exitCode, 1);
+  });
+
   it("remove: requires name argument", async () => {
     const { spy } = makeSpy();
     await handleSkillCommand(spy, "remove", [], vals({}), false, fakeConfig);

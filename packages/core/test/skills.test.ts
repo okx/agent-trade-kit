@@ -581,6 +581,13 @@ describe("downloadSkillZip", () => {
     assert.equal(call.endpoint, "/api/v5/skill/download");
     assert.equal(call.params.name, "my-skill");
   });
+
+  it("saves as .skill when format is skill", async () => {
+    const { client } = makeMockClient();
+    const filePath = await downloadSkillZip(client as any, "test-skill", testDir, "skill");
+    assert.ok(filePath.endsWith("test-skill.skill"));
+    assert.ok(existsSync(filePath));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -601,10 +608,21 @@ describe("skills_download handler", () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it("returns filePath and name on success", async () => {
+  it("returns filePath with .skill extension by default", async () => {
     const { client } = makeMockClient();
     const result = await tool.handler(
       { name: "test-dl", targetDir: testDir },
+      makeContext(client),
+    ) as { data: { name: string; filePath: string } };
+    assert.equal(result.data.name, "test-dl");
+    assert.ok(result.data.filePath.endsWith("test-dl.skill"));
+    assert.ok(existsSync(result.data.filePath));
+  });
+
+  it("returns filePath with .zip extension when format is zip", async () => {
+    const { client } = makeMockClient();
+    const result = await tool.handler(
+      { name: "test-dl", targetDir: testDir, format: "zip" },
       makeContext(client),
     ) as { data: { name: string; filePath: string } };
     assert.equal(result.data.name, "test-dl");

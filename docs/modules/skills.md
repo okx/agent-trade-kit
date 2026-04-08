@@ -16,7 +16,7 @@ The `skills` module provides tools for browsing, searching, and downloading AI t
 |------|-------------|------------|
 | `skills_get_categories` | List all available skill categories | Read |
 | `skills_search` | Search skills by keyword or category. Returns `totalPage` for pagination. | Read |
-| `skills_download` | Download a skill zip to a local directory | Write |
+| `skills_download` | Download a skill package to a local directory. Supports `format` param: `"skill"` (default) or `"zip"`. | Write |
 
 ## CLI Commands
 
@@ -24,7 +24,7 @@ The `skills` module provides tools for browsing, searching, and downloading AI t
 okx skill search <keyword>          # Search marketplace
 okx skill categories                # List categories
 okx skill add <name>                # Download + install via npx skills add
-okx skill download <name> [--dir]   # Download zip only (no install)
+okx skill download <name> [--dir] [--format zip|skill]  # Download only (default: zip)
 okx skill remove <name>             # Uninstall a skill
 okx skill check <name>              # Check for updates
 okx skill list                      # List installed skills

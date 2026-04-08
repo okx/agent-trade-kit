@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **Skill 下载 `format` 参数**：`skills_download` MCP tool 和 `okx skill download` CLI 命令新增 `format` 选项（`"zip"` 或 `"skill"`）。MCP 默认 `"skill"`（便于 Claude Desktop 等 agent 自动识别文件类型），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同，仅后缀不同。
+
 ### 修复
 
 - **未知 `tgtCcy` 值现在抛出 `ValidationError` 而非静默跳过**：此前 `--tgtCcy margin_ccy` 或 `--tgtCcy QUOTE_CCY` 等拼写错误会被静默忽略，`sz` 原样传给 API 未经转换。现在仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出 `ValidationError` 并附带修复建议。(#133)
