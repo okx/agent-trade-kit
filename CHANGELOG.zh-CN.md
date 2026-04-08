@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **未知 `tgtCcy` 值现在抛出 `ValidationError` 而非静默跳过**：此前 `--tgtCcy margin_ccy` 或 `--tgtCcy QUOTE_CCY` 等拼写错误会被静默忽略，`sz` 原样传给 API 未经转换。现在仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出 `ValidationError` 并附带修复建议。(#133)
+
 ---
 
 ## [1.3.0-beta.2] - 2026-04-07

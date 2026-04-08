@@ -10,6 +10,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { resolveQuoteCcySz } from "../src/tools/tgtccy-conversion.js";
+import { ValidationError } from "../src/utils/errors.js";
 
 // ---------------------------------------------------------------------------
 // Mock client factory
@@ -93,6 +94,67 @@ describe("resolveQuoteCcySz — passthrough (no conversion)", () => {
     );
     assert.equal(result.sz, "5");
     assert.equal(result.tgtCcy, undefined);
+    assert.equal(result.conversionNote, undefined);
+    assert.equal(calls.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: unknown tgtCcy validation (#133)
+// ---------------------------------------------------------------------------
+
+describe("resolveQuoteCcySz — unknown tgtCcy throws ValidationError (#133)", () => {
+  it('tgtCcy="margin_ccy" (typo) → throws ValidationError with "Unknown tgtCcy"', async () => {
+    const { client } = makeMockClient([], []);
+    await assert.rejects(
+      () => resolveQuoteCcySz("BTC-USDT-SWAP", "10", "margin_ccy", "SWAP", client as never),
+      (err: unknown) => {
+        assert.ok(err instanceof ValidationError, `Expected ValidationError, got ${(err as Error).constructor.name}`);
+        assert.ok((err as Error).message.includes("Unknown tgtCcy"), `Expected "Unknown tgtCcy" in message, got: ${(err as Error).message}`);
+        assert.ok((err as Error).message.includes("margin_ccy"), `Expected "margin_ccy" in message`);
+        return true;
+      },
+    );
+  });
+
+  it('tgtCcy="cost" → throws ValidationError', async () => {
+    const { client } = makeMockClient([], []);
+    await assert.rejects(
+      () => resolveQuoteCcySz("BTC-USDT-SWAP", "10", "cost", "SWAP", client as never),
+      (err: unknown) => {
+        assert.ok(err instanceof ValidationError, `Expected ValidationError, got ${(err as Error).constructor.name}`);
+        assert.ok((err as Error).message.includes("Unknown tgtCcy"));
+        return true;
+      },
+    );
+  });
+
+  it('tgtCcy="QUOTE_CCY" (uppercase) → throws ValidationError (case-sensitive)', async () => {
+    const { client } = makeMockClient([], []);
+    await assert.rejects(
+      () => resolveQuoteCcySz("BTC-USDT-SWAP", "10", "QUOTE_CCY", "SWAP", client as never),
+      (err: unknown) => {
+        assert.ok(err instanceof ValidationError, `Expected ValidationError, got ${(err as Error).constructor.name}`);
+        assert.ok((err as Error).message.includes("Unknown tgtCcy"));
+        return true;
+      },
+    );
+  });
+
+  it("tgtCcy=undefined → passthrough (no error)", async () => {
+    const { client, calls } = makeMockClient([], []);
+    const result = await resolveQuoteCcySz("BTC-USDT-SWAP", "10", undefined, "SWAP", client as never);
+    assert.equal(result.sz, "10");
+    assert.equal(result.tgtCcy, undefined);
+    assert.equal(result.conversionNote, undefined);
+    assert.equal(calls.length, 0);
+  });
+
+  it('tgtCcy="base_ccy" → passthrough (no error)', async () => {
+    const { client, calls } = makeMockClient([], []);
+    const result = await resolveQuoteCcySz("BTC-USDT-SWAP", "10", "base_ccy", "SWAP", client as never);
+    assert.equal(result.sz, "10");
+    assert.equal(result.tgtCcy, "base_ccy");
     assert.equal(result.conversionNote, undefined);
     assert.equal(calls.length, 0);
   });
