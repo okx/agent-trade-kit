@@ -429,7 +429,8 @@ export async function cmdEventPlace(
 ): Promise<void> {
   const ordType = opts.ordType ?? "market";
   if (ordType === "limit" && !opts.px) {
-    process.stdout.write("Error: --px is required for limit orders.\n");
+    process.stderr.write("Error: --px is required for limit orders.\n");
+    process.exitCode = 1;
     return;
   }
   if (!opts.json) {
@@ -541,6 +542,7 @@ export async function cmdEventCancel(
   if (r?.["sCode"] === "0") {
     process.stdout.write(`Cancelled: ${r?.["ordId"]}\n`);
   } else {
+    // Defensive: normalizeWrite throws on sCode !== "0", but guard in case runner bypasses MCP
     const sCode = String(r?.["sCode"] ?? "");
     const sMsg  = String(r?.["sMsg"] ?? "unknown error");
     const ordId = r?.["ordId"] ?? opts.ordId;

@@ -130,7 +130,7 @@ okx account positions --instType EVENTS
 
 **Expiry check (MANDATORY before displaying anything):**
 - Infer expiry from the instrument ID (`instId`, API field):
-  - `price_above` / `price_once_touch`: `YYMMDD-HHMM` → e.g. `260320-1600` = 2026-03-20 16:00 UTC
+  - `price_above` / `price_once_touch`: `YYMMDD-HHMM` → e.g. `260320-1600` = 2026-03-20 16:00 UTC+8
   - `price_up_down`: `YYMMDD-START-END` → expiry is the `END` time
 - If expired → **immediately run without asking**:
   ```

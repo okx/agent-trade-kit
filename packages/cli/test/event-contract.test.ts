@@ -21,6 +21,7 @@ import { setOutput, resetOutput } from "../src/formatter.js";
 let out: string[];
 let err: string[];
 const originalWrite = process.stdout.write;
+const originalErrWrite = process.stderr.write;
 
 beforeEach(() => {
   out = [];
@@ -32,10 +33,17 @@ beforeEach(() => {
     out.push(String(chunk));
     return true;
   }) as typeof process.stdout.write;
+  // Capture direct process.stderr.write calls in the source
+  process.stderr.write = ((chunk: string | Buffer) => {
+    err.push(String(chunk));
+    return true;
+  }) as typeof process.stderr.write;
 });
 afterEach(() => {
   resetOutput();
   process.stdout.write = originalWrite;
+  process.stderr.write = originalErrWrite;
+  process.exitCode = undefined;
 });
 
 function joined(): string {
@@ -467,10 +475,10 @@ describe("cmdEventPlace", () => {
       ordType: "limit",
       json: false,
     });
-    const text = joined();
-    assert.ok(text.includes("--px"), "should mention --px flag");
-    assert.ok(text.includes("required"), "should mention it is required");
-    assert.ok(!text.includes("should-not-reach"), "should not call runner");
+    const errText = err.join("");
+    assert.ok(errText.includes("--px"), "should mention --px flag");
+    assert.ok(errText.includes("required"), "should mention it is required");
+    assert.ok(!joined().includes("should-not-reach"), "should not call runner");
   });
 
   it("outputs JSON when json=true on success", async () => {

@@ -748,10 +748,13 @@ describe("event_browse handler", () => {
     const futureExpTime = String(Date.now() + 86400000);
 
     const client = {
-      publicGet: async (ep: string, params?: Record<string, unknown>) => {
+      publicGet: async (ep: string) => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [] };
         }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privateGet: async (ep: string, params?: Record<string, unknown>) => {
         if (ep.includes("/series")) {
           return { endpoint: ep, requestTime: "t", data: [btcSeries, testSeries] };
         }
@@ -765,9 +768,6 @@ describe("event_browse handler", () => {
           }
           return { endpoint: ep, requestTime: "t", data: [] };
         }
-        return { endpoint: ep, requestTime: "t", data: [] };
-      },
-      privateGet: async (ep: string) => {
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [] };
         }
@@ -805,12 +805,12 @@ describe("event_get_markets with limit (client-side slicing)", () => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [{ idxPx: "65000" }] };
         }
-        if (ep.includes("/markets")) {
-          return { endpoint: ep, requestTime: "t", data: items };
-        }
         return { endpoint: ep, requestTime: "t", data: [] };
       },
       privateGet: async (ep: string) => {
+        if (ep.includes("/markets")) {
+          return { endpoint: ep, requestTime: "t", data: items };
+        }
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [{ details: [{ ccy: "USDT", availBal: "100" }] }] };
         }
@@ -846,15 +846,15 @@ describe("event_get_markets unknown underlying series fallback", () => {
         if (ep.includes("/index-tickers")) {
           return { endpoint: ep, requestTime: "t", data: [{ idxPx: "5.5" }] };
         }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privateGet: async (ep: string) => {
         if (ep.includes("/markets")) {
           return { endpoint: ep, requestTime: "t", data: marketData };
         }
         if (ep.includes("/series")) {
           return { endpoint: ep, requestTime: "t", data: seriesData };
         }
-        return { endpoint: ep, requestTime: "t", data: [] };
-      },
-      privateGet: async (ep: string) => {
         if (ep.includes("/balance")) {
           return { endpoint: ep, requestTime: "t", data: [] };
         }
@@ -1122,7 +1122,7 @@ describe("handler displayTitle", () => {
   it("event_browse includes displayTitle in contracts", async () => {
     const browse = tools.find(t => t.name === "event_browse")!;
     const { client } = makeMockClient();
-    (client as Record<string, unknown>)["publicGet"] = async (endpoint: string) => {
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => {
       if (endpoint.includes("series")) {
         return {
           endpoint,
@@ -1160,7 +1160,7 @@ describe("handler displayTitle", () => {
   it("event_get_markets includes displayTitle in each record", async () => {
     const mkts = tools.find(t => t.name === "event_get_markets")!;
     const { client } = makeMockClient();
-    (client as Record<string, unknown>)["publicGet"] = async (endpoint: string) => {
+    (client as Record<string, unknown>)["privateGet"] = async (endpoint: string) => {
       if (endpoint.includes("markets")) {
         return {
           endpoint,

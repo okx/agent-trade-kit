@@ -283,8 +283,9 @@ async function fetchActiveContractsForSeries(
       compactObject({ seriesId, state: "live" }),
       privateRateLimit("event_browse", 20),
     );
-    const markets = (Array.isArray(normalizeResponse(r)["data"])
-      ? normalizeResponse(r)["data"] as Record<string, unknown>[]
+    const normalized = normalizeResponse(r);
+    const markets = (Array.isArray(normalized["data"])
+      ? normalized["data"] as Record<string, unknown>[]
       : []);
     const now = Date.now();
     const active = markets
@@ -750,10 +751,11 @@ export function registerEventContractTools(): ToolSpec[] {
         const ordType = readString(args, "ordType") ?? "market";
         // speedBump is required by the exchange for all non-post_only event contract orders.
         const speedBump = ordType !== "post_only" ? "1" : undefined;
+        const instId = requireString(args, "instId");
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
-            instId: requireString(args, "instId"),
+            instId,
             tdMode: "isolated",
             side: requireString(args, "side"),
             outcome: resolveOutcome(requireString(args, "outcome")),
@@ -775,7 +777,6 @@ export function registerEventContractTools(): ToolSpec[] {
         // Current implementation assumes USDT settlement for all event contracts.
         // When non-USDT event contracts are introduced, replace this with proper
         // settlement currency resolution from series/market metadata.
-        const instId = requireString(args, "instId");
         const placeSeriesId = extractSeriesId(instId);
         const placeUnderlying = extractUnderlying(placeSeriesId);
         const placeCcy = extractQuoteCcy(placeUnderlying ? placeUnderlying + "-USDT" : null);
