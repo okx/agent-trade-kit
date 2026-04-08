@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.0-beta.5] - 2026-04-08
+
 ### Added
 
 - **Skill download `format` parameter**: `skills_download` MCP tool and `okx skill download` CLI command now accept a `format` option (`"zip"` or `"skill"`). MCP defaults to `"skill"` (so agents like Claude Desktop can auto-detect the file type), CLI defaults to `"zip"` (backward-compatible). The file content is identical — only the extension changes.

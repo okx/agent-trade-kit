@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.0-beta.5] - 2026-04-08
+
 ### 新增
 
 - **Skill 下载 `format` 参数**：`skills_download` MCP tool 和 `okx skill download` CLI 命令新增 `format` 选项（`"zip"` 或 `"skill"`）。MCP 默认 `"skill"`（便于 Claude Desktop 等 agent 自动识别文件类型），CLI 默认 `"zip"`（向后兼容）。文件内容完全相同，仅后缀不同。
