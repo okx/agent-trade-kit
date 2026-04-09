@@ -11,9 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.1-beta.1] - 2026-04-09
+
 ### Added
 
-- **Event Contract module**: New `event` module with 9 MCP tools and CLI commands for binary prediction markets — browse series/events/markets, place/amend/cancel orders, query orders/fills, and direction analysis with index price enrichment.
+- **Event Contract module** (`event`): 9 MCP tools and CLI commands for binary prediction markets. Browse event series, events, and markets; place/amend/cancel orders; query orders and fills; direction analysis enriched with index price. Semantic outcome values: `UP`/`YES`/`DOWN`/`NO`. CLI: `okx event browse/series/events/markets/place/amend/cancel/orders/fills`.
 
 ---
 

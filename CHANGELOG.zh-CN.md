@@ -11,9 +11,13 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.1-beta.1] - 2026-04-09
+
 ### 新增
 
-- **事件合约模块**：新增 `event` 模块，包含 9 个 MCP 工具和 CLI 命令，支持二元预测市场 — 浏览系列/事件/合约、下单/改单/撤单、查询订单/成交记录，以及带指数价格的方向分析。
+- **事件合约模块**（`event`）：9 个 MCP 工具和 CLI 命令，支持二元预测市场。浏览事件系列、事件和合约；下单/改单/撤单；查询订单和成交记录；带指数价格的方向分析。语义化 outcome 值：`UP`/`YES`/`DOWN`/`NO`。CLI：`okx event browse/series/events/markets/place/amend/cancel/orders/fills`。
 
 ---
 
