@@ -28,7 +28,7 @@ import {
   readString,
   requireString,
 } from "./helpers.js";
-import { privateRateLimit, publicRateLimit } from "./common.js";
+import { privateRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
 import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "../utils/event-format.js";
 import {
@@ -82,10 +82,10 @@ export function registerEventContractTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const underlyingFilter = readString(args, "underlying");
 
-        const seriesResp = await context.client.publicGet(
+        const seriesResp = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({}),
-          publicRateLimit("event_browse", 10),
+          privateRateLimit("event_browse", 10),
         );
         const normalizedSeries = normalizeResponse(seriesResp);
         const allSeries = Array.isArray(normalizedSeries["data"])
@@ -122,10 +122,10 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
+        const response = await context.client.privateGet(
           "/api/v5/public/event-contract/series",
           compactObject({ seriesId: readString(args, "seriesId") }),
-          publicRateLimit("event_get_series", 20),
+          privateRateLimit("event_get_series", 20),
         );
         return normalizeResponse(response);
       },
@@ -169,7 +169,7 @@ export function registerEventContractTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const response = await context.client.publicGet(
+        const response = await context.client.privateGet(
           "/api/v5/public/event-contract/events",
           compactObject({
             seriesId: requireString(args, "seriesId"),
@@ -179,7 +179,7 @@ export function registerEventContractTools(): ToolSpec[] {
             before: readString(args, "before"),
             after: readString(args, "after"),
           }),
-          publicRateLimit("event_get_events", 20),
+          privateRateLimit("event_get_events", 20),
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
@@ -236,7 +236,7 @@ export function registerEventContractTools(): ToolSpec[] {
         const knownUnderlying = extractUnderlying(seriesId);
 
         const [marketsResp, seriesResp, idxPxFromKnown] = await Promise.all([
-          context.client.publicGet(
+          context.client.privateGet(
             "/api/v5/public/event-contract/markets",
             compactObject({
               seriesId,
@@ -246,14 +246,14 @@ export function registerEventContractTools(): ToolSpec[] {
               before: readString(args, "before"),
               after: readString(args, "after"),
             }),
-            publicRateLimit("event_get_markets", 20),
+            privateRateLimit("event_get_markets", 20),
           ),
           knownUnderlying
             ? Promise.resolve(null)
-            : context.client.publicGet(
+            : context.client.privateGet(
                 "/api/v5/public/event-contract/series",
                 compactObject({ seriesId }),
-                publicRateLimit("event_get_series", 20),
+                privateRateLimit("event_get_series", 20),
               ),
           knownUnderlying ? fetchIdxPx(context.client, knownUnderlying + "-USDT") : Promise.resolve(null),
         ]);

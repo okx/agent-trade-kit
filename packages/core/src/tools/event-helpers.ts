@@ -4,7 +4,7 @@
  */
 import type { ToolContext } from "./types.js";
 import { compactObject, normalizeResponse, requireString, asRecord } from "./helpers.js";
-import { publicRateLimit } from "./common.js";
+import { privateRateLimit, publicRateLimit } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
 import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "../utils/event-format.js";
 
@@ -255,10 +255,10 @@ export async function fetchActiveContractsForSeries(
   const method = String(settlement?.["method"] ?? "");
   const isUpDown = method === "price_up_down";
   try {
-    const r = await client.publicGet(
+    const r = await client.privateGet(
       "/api/v5/public/event-contract/markets",
       compactObject({ seriesId, state: "live" }),
-      publicRateLimit("event_browse", 20),
+      privateRateLimit("event_browse", 20),
     );
     const normalized = normalizeResponse(r);
     const markets = (Array.isArray(normalized["data"])
