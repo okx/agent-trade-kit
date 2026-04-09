@@ -35,6 +35,14 @@
 1. okx-cex-trade     okx swap get-leverage --instId BTC-USDT-SWAP --mgnMode cross → check current lever
         ↓ user approves change
 2. okx-cex-trade     okx swap leverage --instId BTC-USDT-SWAP --lever 5 --mgnMode cross
+        ↓ if fails with "Cancel cross-margin TP/SL … or stop bots":
+   2a. okx-cex-trade  okx swap algo-orders --instId BTC-USDT-SWAP --status pending
+                       → check for TP/SL, trailing, trigger, chase orders (most common cause)
+   2b. (only if 2a returns nothing)
+        okx-cex-trade  okx bot grid-orders --type contract_grid --status active
+                       → check for active trading bots
+   2c. Show results to user — NEVER auto-cancel orders or stop bots.
+        Ask user which orders/bots to cancel/stop, then retry leverage.
 3. okx-cex-trade     okx swap place --instId BTC-USDT-SWAP --side buy \
                        --ordType market --sz 10 --tdMode cross --posSide long
 4. okx-cex-trade     okx swap positions                     → confirm position + leverage

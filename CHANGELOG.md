@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Skill docs: error-suggested remediation safeguard** — Added a general safeguard rule: when an OKX API error suggests a fix involving write operations (cancel orders, close positions, stop bots), the agent must diagnose with read-only queries first and wait for user confirmation before acting. Also added specific leverage error troubleshooting guidance. Affected files: `swap-commands.md`, `futures-commands.md`, `workflows.md`, `SKILL.md`.
+- **MCP server: remediation safeguard** — MCP server now returns `instructions` field with safeguard rule; error responses whose message suggests write-operation remediation (cancel/close/stop) are automatically annotated with a warning to diagnose first and confirm with the user.
+
 ---
 
 ## [1.3.0] - 2026-04-08

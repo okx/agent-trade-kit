@@ -339,11 +339,28 @@ For cross-skill workflows and step-by-step examples, read `{baseDir}/references/
 - Swap/Futures place: confirm `--instId`, `--side`, `--sz`, `--tdMode`, and **explicitly confirm order mode** when user specifies a USDT amount: `--tgtCcy quote_ccy` (notional value, sz = position value) or `--tgtCcy margin` (margin cost, actual position = sz * leverage). Always state which mode is being used.
 - Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` or `--tgtCcy margin` if USDT amount — system auto-converts); do NOT attach TP/SL
 - Swap/Futures close: confirm `--instId`, `--mgnMode`, `--posSide`
-- Leverage: confirm new leverage and impact on existing positions
+- Leverage: confirm new leverage and impact on existing positions. **If set-leverage fails** (error mentions "cancel orders or stop bots"): troubleshoot in priority order — (1) query pending algo orders first (`swap/futures algo-orders --status pending`), as this is the most common blocker; (2) only if no algo orders, check active bots (`bot grid-orders`). **Do NOT automatically cancel orders or stop bots** — present findings and let the user decide
 - Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx=-1` for market execution
 - Algo trail: confirm `--callbackRatio` (e.g., `0.02` = 2%) or `--callbackSpread`
 
 For full parameter details per command, read the relevant reference file.
+
+### Error-suggested remediation safeguard
+
+When an OKX API error message suggests a fix that involves **write operations** (cancel orders, close positions, stop bots/strategies, transfer funds, etc.), you **MUST NOT** automatically execute those actions. Instead:
+
+1. **Report** the error and its suggestion to the user verbatim
+2. **Diagnose** — run read-only queries to identify what is blocking (e.g., `algo-orders --status pending`, `positions`, `bot grid-orders --status active`)
+3. **Present findings** — show the user what was found and which specific items would need to be cancelled/closed/stopped
+4. **Wait for explicit confirmation** before executing any remediation
+
+This applies to all error codes whose messages suggest destructive actions, including but not limited to:
+- Set-leverage blocked by pending algo orders or active bots
+- Account setting changes requiring order/position/strategy cleanup (e.g., error codes 59000, 59002, 59007)
+- Margin mode switches requiring position closure
+- Any error containing phrases like "cancel", "close", "stop", "transfer … before"
+
+**Rationale:** Error messages list _all possible_ blockers generically — the actual blocker is often just one item (e.g., a single TP/SL order). Blindly following the error text can cause unnecessary position closures or bot shutdowns that the user did not intend.
 
 ### Step 3 — Verify after writes
 

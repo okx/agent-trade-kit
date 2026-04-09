@@ -11,6 +11,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **Skill 文档：错误修复建议 safeguard 规则** — 新增通用规则：当 OKX API 错误信息建议执行写操作（撤单、平仓、停止机器人等）时，agent 必须先用只读查询诊断，展示结果并等待用户确认后才能操作。同时补充了杠杆设置失败的具体排查指引。涉及文件：`swap-commands.md`、`futures-commands.md`、`workflows.md`、`SKILL.md`。
+- **MCP server：remediation safeguard** — MCP server 初始化时返回 `instructions` safeguard 规则；当错误信息暗示写操作修复（cancel/close/stop）时，自动在 suggestion 中追加警告，提醒 agent 先诊断再确认。
+
 ---
 
 ## [1.3.0] - 2026-04-08
