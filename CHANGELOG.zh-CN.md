@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`context-kg/` 知识库**：为 AI agent 初始化结构化知识文件——5 个业务域文档（概述、交易、行情/账户、理财/机器人、Skills 生态）+ 4 个技术文档（架构、配置、错误处理、多站点）+ 质量目录占位。同步在 `config.toml.example` 中新增 `knowledge_dir` 配置项。(#137)
+
 ### 修复
 
 - **Skill 文档：错误修复建议 safeguard 规则** — 新增通用规则：当 OKX API 错误信息建议执行写操作（撤单、平仓、停止机器人等）时，agent 必须先用只读查询诊断，展示结果并等待用户确认后才能操作。同时补充了杠杆设置失败的具体排查指引。涉及文件：`swap-commands.md`、`futures-commands.md`、`workflows.md`、`SKILL.md`。

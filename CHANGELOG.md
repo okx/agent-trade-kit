@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`context-kg/` knowledge base**: Bootstrap structured knowledge files for AI agents — 5 business domain docs (overview, trading, market/account, earn/bot, skills) + 4 technical docs (architecture, configuration, errors, multi-site) + quality placeholder. Includes `config.toml.example` `knowledge_dir` config entry. (#137)
+
 ### Fixed
 
 - **Skill docs: error-suggested remediation safeguard** — Added a general safeguard rule: when an OKX API error suggests a fix involving write operations (cancel orders, close positions, stop bots), the agent must diagnose with read-only queries first and wait for user confirmation before acting. Also added specific leverage error troubleshooting guidance. Affected files: `swap-commands.md`, `futures-commands.md`, `workflows.md`, `SKILL.md`.
