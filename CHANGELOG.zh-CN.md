@@ -11,8 +11,14 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.1-beta.4] - 2026-04-10
+
 ### 新增
 
+- **DoH（DNS-over-HTTPS）代理**：当 OKX API 域名无法直连（如 DNS 污染）时，SDK 自动通过本地 `okx-doh-resolver` 二进制解析备用代理节点，透明切换。缓存优先策略：首次请求尝试直连，失败后调用二进制并缓存结果，后续请求直接复用，零额外开销。失效节点自动排除并重新解析，支持 `--verbose` 查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 脚本从 CDN（多源备用）下载平台专属 `okx-doh-resolver` 到 `~/.okx/bin/`，完全 best-effort，不阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64、win32-x64。
 - **`context-kg/` 知识库**：为 AI agent 初始化结构化知识文件——5 个业务域文档（概述、交易、行情/账户、理财/机器人、Skills 生态）+ 4 个技术文档（架构、配置、错误处理、多站点）+ 质量目录占位。同步在 `config.toml.example` 中新增 `knowledge_dir` 配置项。(#137)
 
 ### 修复
