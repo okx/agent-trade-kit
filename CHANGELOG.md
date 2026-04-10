@@ -11,8 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.1-beta.3] - 2026-04-10
+
+### Added
+
+- **Event Contract module**: New `event` module with 9 MCP tools and CLI commands for binary prediction markets — browse series/events/markets, place/amend/cancel orders, query orders/fills, and direction analysis with index price enrichment.
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
+- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-doh-resolver` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
+
 ### Fixed
 
+- **Event Contract endpoints use authenticated requests**: All 4 event browse/query tools (`event_browse_contracts`, `event_get_series`, `event_get_events`, `event_get_markets`) now use `privateGet` instead of `publicGet`. OKX's `/api/v5/public/event-contract/*` endpoints require auth headers despite the `/public/` path prefix; unauthenticated calls returned 401.
 - **Skill docs: error-suggested remediation safeguard** — Added a general safeguard rule: when an OKX API error suggests a fix involving write operations (cancel orders, close positions, stop bots), the agent must diagnose with read-only queries first and wait for user confirmation before acting. Also added specific leverage error troubleshooting guidance. Affected files: `swap-commands.md`, `futures-commands.md`, `workflows.md`, `SKILL.md`.
 - **MCP server: remediation safeguard** — MCP server now returns `instructions` field with safeguard rule; error responses whose message suggests write-operation remediation (cancel/close/stop) are automatically annotated with a warning to diagnose first and confirm with the user.
 

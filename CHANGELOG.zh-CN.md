@@ -11,8 +11,19 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.1-beta.3] - 2026-04-10
+
+### 新增
+
+- **事件合约模块**：新增 `event` 模块，包含 9 个 MCP 工具和 CLI 命令，支持二元预测市场 — 浏览系列/事件/合约、下单/改单/撤单、查询订单/成交记录，以及带指数价格的方向分析。
+- **DoH（DNS-over-HTTPS）代理**：当 OKX API 域名无法直连（如 DNS 污染）时，SDK 自动通过本地 `okx-doh-resolver` 二进制解析备用代理节点，透明切换。缓存优先策略：首次请求尝试直连，失败后调用二进制并缓存结果，后续请求直接复用，零额外开销。失效节点自动排除并重新解析，支持 `--verbose` 查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 脚本从 CDN（多源备用）下载平台专属 `okx-doh-resolver` 到 `~/.okx/bin/`，完全 best-effort，不阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64、win32-x64。
+
 ### 修复
 
+- **事件合约接口改用鉴权请求**：4 个事件浏览/查询工具（`event_browse_contracts`、`event_get_series`、`event_get_events`、`event_get_markets`）由 `publicGet` 改为 `privateGet`。OKX 的 `/api/v5/public/event-contract/*` 接口虽路径含 `/public/`，实际须携带鉴权头，未鉴权时返回 401。
 - **Skill 文档：错误修复建议 safeguard 规则** — 新增通用规则：当 OKX API 错误信息建议执行写操作（撤单、平仓、停止机器人等）时，agent 必须先用只读查询诊断，展示结果并等待用户确认后才能操作。同时补充了杠杆设置失败的具体排查指引。涉及文件：`swap-commands.md`、`futures-commands.md`、`workflows.md`、`SKILL.md`。
 - **MCP server：remediation safeguard** — MCP server 初始化时返回 `instructions` safeguard 规则；当错误信息暗示写操作修复（cancel/close/stop）时，自动在 suggestion 中追加警告，提醒 agent 先诊断再确认。
 
