@@ -63,6 +63,15 @@
 
 ---
 
+## [1.3.0-beta.4] - 2026-04-08
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）代理支持**：当 OKX API 域名因 DNS 污染等原因无法直连时，SDK 会透明地通过本地 `okx-doh-resolver` 二进制解析备用代理节点。采用缓存优先策略：首次请求尝试直连，网络失败时调用二进制并缓存结果，后续请求复用缓存节点，零额外开销。故障节点自动排除并重新解析。`--verbose` 模式下可查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 现从 CDN（多源容灾）下载对应平台的 `okx-doh-resolver` 二进制至 `~/.okx/bin/`。Best-effort，不会阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64 和 win32-x64。
+
+---
+
 ## [1.3.0-beta.2] - 2026-04-07
 
 ### 新增

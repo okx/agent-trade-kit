@@ -21,7 +21,7 @@ v1 方案每次请求都调 DoH 二进制（即使二进制内部有缓存，仍
 
 **关键改进点：**
 
-1. 双层缓存：TS 文件缓存（~/.okx/doh-node-cache.json）+ 二进制内部缓存，大多数请求零开销命中缓存
+1. 双层缓存：TS 文件缓存（~/.okx/doh-cache.json）+ 二进制内部缓存，大多数请求零开销命中缓存
 2. 直连验证：无缓存时先试直连，成功则缓存 mode=direct，海外用户永远不触发二进制
 3. 懒加载二进制：仅在直连失败时才调用 DoH 二进制，不拖累正常用户
 4. 链式 failover：节点 A 失败 → --exclude A → 节点 B → 失败 → --exclude A,B → 直连兜底
@@ -71,7 +71,7 @@ DoH 相关代码位于 `packages/core/src/doh/` 目录，共 4 个文件：
 
 **`binary.ts`** — 二进制调用封装。getDohBinaryPath()（支持 OKX_DOH_BINARY_PATH 环境变量）；execDohBinary(domain, exclude, userAgent) 通过 execFile 调用，30s 超时，异常返回 null。
 
-**`cache.ts`** — 文件缓存。读写 ~/.okx/doh-node-cache.json，原子写入（tmp + rename），lockfile 防并发竞写，10s 过期自动清理 stale lock。
+**`cache.ts`** — 文件缓存。读写 ~/.okx/doh-cache.json，原子写入（tmp + rename），lockfile 防并发竞写，10s 过期自动清理 stale lock。
 
 **`resolver.ts`** — 核心路由逻辑。resolveDoh()（同步，读缓存）、reResolveDoh()（异步，调二进制 + 管理 failedNodes）。
 
@@ -82,7 +82,7 @@ DoH 相关代码位于 `packages/core/src/doh/` 目录，共 4 个文件：
 ### 缓存文件格式
 
 ```json
-// ~/.okx/doh-node-cache.json
+// ~/.okx/doh-cache.json
 {
   "www.okx.com": {
     "mode": "proxy",

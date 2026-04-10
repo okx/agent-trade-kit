@@ -63,6 +63,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0-beta.4] - 2026-04-08
+
+### Added
+
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
+- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-doh-resolver` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
+
+---
+
 ## [1.3.0-beta.2] - 2026-04-07
 
 ### Added

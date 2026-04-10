@@ -1,4 +1,5 @@
 import { ProxyAgent } from "undici";
+import { DohManager } from "../doh/manager.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
   AuthenticationError,
@@ -108,6 +109,7 @@ export class OkxRestClient {
   private readonly config: OkxConfig;
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
+  private readonly doh: DohManager;
 
   public constructor(config: OkxConfig) {
     this.config = config;
@@ -115,6 +117,12 @@ export class OkxRestClient {
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
     }
+    this.doh = new DohManager({
+      baseUrl: config.baseUrl,
+      packageUserAgent: config.userAgent,
+      verbose: config.verbose,
+      hasCustomProxy: !!config.proxyUrl,
+    });
   }
 
   private logRequest(method: string, url: string, auth: string): void {
@@ -345,15 +353,21 @@ export class OkxRestClient {
     body?: Record<string, unknown>,
     opts?: BinaryRequestOptions,
   ): Promise<BinaryResult> {
+    this.doh.prepareDoh();
+
     const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
     const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
     const bodyJson = body ? JSON.stringify(body) : "";
     const endpoint = `POST ${path}`;
+    const conn = this.doh.getConnectionParams();
 
-    this.logRequest("POST", `${this.config.baseUrl}${path}`, "private");
+    this.logRequest("POST", `${conn.baseUrl}${path}`, "private");
 
     const reqConfig = { method: "POST", path, auth: "private" } as RequestConfig;
     const headers = this.buildHeaders(reqConfig, path, bodyJson, getNow());
+    if (conn.userAgent) {
+      headers.set("User-Agent", conn.userAgent);
+    }
 
     const t0 = Date.now();
     const response = await this.fetchBinary(path, endpoint, headers, bodyJson, t0);
@@ -389,13 +403,14 @@ export class OkxRestClient {
 
   /** Execute fetch for binary endpoint, wrapping network errors. */
   private async fetchBinary(path: string, endpoint: string, headers: Headers, bodyJson: string, t0: number): Promise<Response> {
+    const conn = this.doh.getConnectionParams();
     try {
       const fetchOptions: Record<string, unknown> = {
         method: "POST", headers, body: bodyJson || undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
+        dispatcher: this.dispatcher ?? conn.dispatcher,
       };
-      if (this.dispatcher) fetchOptions.dispatcher = this.dispatcher;
-      return await fetch(`${this.config.baseUrl}${path}`, fetchOptions as RequestInit);
+      return await fetch(`${conn.baseUrl}${path}`, fetchOptions as RequestInit);
     } catch (error) {
       if (this.config.verbose) {
         vlog(`\u2717 NetworkError after ${Date.now() - t0}ms: ${error instanceof Error ? error.message : String(error)}`);
@@ -414,6 +429,8 @@ export class OkxRestClient {
       Accept: "application/json",
     });
 
+    // Direct connection UA (e.g. "okx-trade-mcp/1.2.9").
+    // DoH proxy requests override this with dohUserAgent in request()/privatePostBinary().
     if (this.config.userAgent) {
       headers.set("User-Agent", this.config.userAgent);
     }
@@ -440,12 +457,54 @@ export class OkxRestClient {
   // JSON request
   // ---------------------------------------------------------------------------
 
+  /**
+   * Handle network error during a JSON request: refresh DoH and maybe retry.
+   * Always either returns a retry result or throws NetworkError.
+   */
+  private async handleRequestNetworkError<TData>(
+    error: unknown,
+    reqConfig: RequestConfig,
+    requestPath: string,
+    t0: number,
+  ): Promise<RequestResult<TData>> {
+    // Network failure → refresh DoH state for subsequent requests
+    if (!this.doh.hasRetried) {
+      if (this.config.verbose) {
+        const cause = error instanceof Error ? error.message : String(error);
+        vlog(`Network failure, refreshing DoH: ${cause}`);
+      }
+      const shouldRetry = await this.doh.handleNetworkFailure();
+      // Only auto-retry GET (safe & idempotent).
+      // POST/write requests (orders, transfers) must NOT auto-retry:
+      // DoH re-resolution takes seconds, price may have moved.
+      if (shouldRetry && reqConfig.method === "GET") {
+        return this.request(reqConfig);
+      }
+    }
+
+    if (this.config.verbose) {
+      const elapsed = Date.now() - t0;
+      const cause = error instanceof Error ? error.message : String(error);
+      vlog(`\u2717 NetworkError after ${elapsed}ms: ${cause}`);
+    }
+    throw new NetworkError(
+      `Failed to call OKX endpoint ${reqConfig.method} ${requestPath}.`,
+      `${reqConfig.method} ${requestPath}`,
+      error,
+    );
+  }
+
   private async request<TData = unknown>(
     reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
+    this.doh.prepareDoh();
+
     const queryString = buildQueryString(reqConfig.query);
     const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
-    const url = `${this.config.baseUrl}${requestPath}`;
+
+    // Route: proxy_url → DoH proxy → direct
+    const conn = this.doh.getConnectionParams();
+    const url = `${conn.baseUrl}${requestPath}`;
     const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
     const timestamp = getNow();
 
@@ -456,7 +515,9 @@ export class OkxRestClient {
     }
 
     const headers = this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
-
+    if (conn.userAgent) {
+      headers.set("User-Agent", conn.userAgent);
+    }
 
     const t0 = Date.now();
     let response: Response;
@@ -466,27 +527,19 @@ export class OkxRestClient {
         headers,
         body: reqConfig.method === "POST" ? bodyJson : undefined,
         signal: AbortSignal.timeout(this.config.timeoutMs),
+        dispatcher: this.dispatcher ?? conn.dispatcher,
       };
-      if (this.dispatcher) {
-        fetchOptions.dispatcher = this.dispatcher;
-      }
       response = await fetch(url, fetchOptions as RequestInit);
     } catch (error) {
-      if (this.config.verbose) {
-        const elapsed = Date.now() - t0;
-        const cause = error instanceof Error ? error.message : String(error);
-        vlog(`\u2717 NetworkError after ${elapsed}ms: ${cause}`);
-      }
-      throw new NetworkError(
-        `Failed to call OKX endpoint ${reqConfig.method} ${requestPath}.`,
-        `${reqConfig.method} ${requestPath}`,
-        error,
-      );
+      return await this.handleRequestNetworkError<TData>(error, reqConfig, requestPath, t0);
     }
 
     const rawText = await response.text();
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
+
+    this.doh.cacheDirectIfNeeded();
+
     return this.processResponse<TData>(rawText, response, elapsed, traceId, reqConfig, requestPath);
   }
 }
