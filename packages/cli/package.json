@@ -17,7 +17,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\"",
+    "build": "tsup && node -e \"const fs=require('fs');fs.mkdirSync('scripts',{recursive:true});fs.copyFileSync('../../scripts/postinstall-notice.js','scripts/postinstall.js')\" && node ../../scripts/copy-auth-bin.mjs",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist scripts",
     "postinstall": "node scripts/postinstall.js || exit 0",

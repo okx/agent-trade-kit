@@ -12,6 +12,7 @@ function makeConfig(overrides: Partial<OkxConfig> = {}): OkxConfig {
     secretKey: "test-secret",
     passphrase: "test-pass",
     hasAuth: true,
+    profile: "default",
     baseUrl: "https://www.okx.com",
     timeoutMs: 15000,
     modules: ["market", "spot"],

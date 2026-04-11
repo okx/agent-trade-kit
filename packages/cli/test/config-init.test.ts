@@ -36,22 +36,22 @@ describe("parseSiteKey", () => {
 describe("buildApiUrl", () => {
   it("builds demo URL for global site", () => {
     const url = buildApiUrl("global", true);
-    assert.equal(url, "https://www.okx.com/account/my-api?go-demo-trading=1");
+    assert.equal(url, "https://beta.okex.org/account/my-api?go-demo-trading=1");
   });
 
   it("builds live URL for global site", () => {
     const url = buildApiUrl("global", false);
-    assert.equal(url, "https://www.okx.com/account/my-api?go-live-trading=1");
+    assert.equal(url, "https://beta.okex.org/account/my-api?go-live-trading=1");
   });
 
   it("builds demo URL for EEA site", () => {
     const url = buildApiUrl("eea", true);
-    assert.equal(url, "https://my.okx.com/account/my-api?go-demo-trading=1");
+    assert.equal(url, "https://eubeta.okex.org/account/my-api?go-demo-trading=1");
   });
 
   it("builds live URL for US site", () => {
     const url = buildApiUrl("us", false);
-    assert.equal(url, "https://app.okx.com/account/my-api?go-live-trading=1");
+    assert.equal(url, "https://usbeta.okex.org/account/my-api?go-live-trading=1");
   });
 
   it("URL base matches SITES constant for each key", () => {

@@ -26,6 +26,7 @@ import type { ModuleId, SiteId } from "../src/constants.js";
 
 const BASE_CONFIG: OkxConfig = {
   hasAuth: false,
+  profile: "default",
   baseUrl: "https://www.okx.com",
   timeoutMs: 15_000,
   modules: ["market"] as ModuleId[],
@@ -705,13 +706,21 @@ describe("OkxRestClient: privateGet / privatePost", () => {
 
   it("throws ConfigError when private endpoint called without credentials", async () => {
     const { ConfigError } = await import("../src/utils/errors.js");
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG); // no auth
-      await assert.rejects(
-        () => client.privateGet("/api/v5/account/balance"),
-        (err: unknown) => err instanceof ConfigError,
-      );
-    });
+    // Point OKX_AUTH_BIN to a nonexistent path so OAuth lookup also fails
+    const origBin = process.env.OKX_AUTH_BIN;
+    process.env.OKX_AUTH_BIN = "/nonexistent/okx-auth";
+    try {
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+        const client = new OkxRestClient(BASE_CONFIG); // no auth
+        await assert.rejects(
+          () => client.privateGet("/api/v5/account/balance"),
+          (err: unknown) => err instanceof ConfigError,
+        );
+      });
+    } finally {
+      if (origBin === undefined) delete process.env.OKX_AUTH_BIN;
+      else process.env.OKX_AUTH_BIN = origBin;
+    }
   });
 });
 

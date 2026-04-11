@@ -19,8 +19,7 @@ let resolvedBinPath: string | undefined;
  *   2. Walk up from this module's location looking for bin/okx-auth
  */
 export function resolveOkxAuthBin(): string {
-  if (resolvedBinPath) return resolvedBinPath;
-
+  // OKX_AUTH_BIN env var always takes priority (no caching — allows runtime override)
   const envPath = process.env.OKX_AUTH_BIN?.trim();
   if (envPath) {
     if (!existsSync(envPath)) {
@@ -29,9 +28,10 @@ export function resolveOkxAuthBin(): string {
         "Set OKX_AUTH_BIN to the absolute path of the okx-auth binary.",
       );
     }
-    resolvedBinPath = envPath;
-    return resolvedBinPath;
+    return envPath;
   }
+
+  if (resolvedBinPath) return resolvedBinPath;
 
   // Walk up from this file's directory looking for bin/okx-auth
   const thisDir = dirname(fileURLToPath(import.meta.url));

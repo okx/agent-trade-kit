@@ -114,16 +114,16 @@ describe("parseSiteKey (extended)", () => {
 // inferSiteFromBaseUrl
 // ---------------------------------------------------------------------------
 describe("inferSiteFromBaseUrl", () => {
-  it("returns global for www.okx.com base URL", () => {
-    assert.equal(inferSiteFromBaseUrl("https://www.okx.com"), "global");
+  it("returns global for beta.okex.org base URL", () => {
+    assert.equal(inferSiteFromBaseUrl("https://beta.okex.org"), "global");
   });
 
-  it("returns eea for my.okx.com (EEA webUrl)", () => {
-    assert.equal(inferSiteFromBaseUrl("https://my.okx.com"), "eea");
+  it("returns eea for eubeta.okex.org (EEA)", () => {
+    assert.equal(inferSiteFromBaseUrl("https://eubeta.okex.org"), "eea");
   });
 
-  it("returns us for app.okx.com", () => {
-    assert.equal(inferSiteFromBaseUrl("https://app.okx.com"), "us");
+  it("returns us for usbeta.okex.org", () => {
+    assert.equal(inferSiteFromBaseUrl("https://usbeta.okex.org"), "us");
   });
 
   it("returns global for undefined", () => {

@@ -228,6 +228,7 @@ describe("registerIndicatorTools — tool spec", () => {
 
 const BASE_CONFIG: OkxConfig = {
   hasAuth: false,
+  profile: "default",
   baseUrl: "https://www.okx.com",
   timeoutMs: 15_000,
   modules: ["market"] as ModuleId[],

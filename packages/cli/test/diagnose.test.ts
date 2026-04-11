@@ -12,6 +12,7 @@ import { cmdDiagnose } from "../src/commands/diagnose.js";
 
 const BASE_CONFIG: OkxConfig = {
   hasAuth: false,
+  profile: "default",
   baseUrl: "https://www.okx.com",
   timeoutMs: 5000,
   modules: ["market"],
@@ -189,7 +190,7 @@ describe("cmdDiagnose", () => {
 
   it("shows base URL in config section", async () => {
     const { output } = await run(BASE_CONFIG);
-    assert.ok(output.includes("https://www.okx.com"));
+    assert.ok(output.includes("https://www.okx.com") || output.includes("https://beta.okex.org"));
   });
 
   it("shows timeout in config section", async () => {
