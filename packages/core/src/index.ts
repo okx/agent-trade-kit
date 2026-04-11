@@ -32,3 +32,4 @@ export {
 export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCategory } from "./skills/index.js";
 export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
 export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";
+export { resolveOkxAuthBin } from "./auth/okx-auth-bin.js";

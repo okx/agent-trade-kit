@@ -34,18 +34,14 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
    ```
 2. Configure credentials:
    ```bash
-   okx config init
-   ```
-   Or set environment variables:
-   ```bash
-   export OKX_API_KEY=your_key
-   export OKX_SECRET_KEY=your_secret
-   export OKX_PASSPHRASE=your_passphrase
+   okx config init   # select site -> follow browser OAuth flow
    ```
 3. Test with demo mode (simulated trading, no real funds):
    ```bash
    okx --profile demo spot orders
    ```
+
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ## Credential & Profile Check
 
@@ -54,11 +50,12 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 ### Step A — Verify credentials
 
 ```bash
-okx config show       # verify configuration status (output is masked)
+okx auth status --json
 ```
 
-- If the command returns an error or shows no configuration: **stop all operations**, guide the user to run `okx config init`, and wait for setup to complete before retrying.
-- If credentials are configured: proceed to Step B.
+- `"status": "logged_in"` — proceed to Step B.
+- `"status": "not_logged_in"` — **stop all operations**, load `okx-cex-auth` skill and follow login steps, wait for completion.
+- `"status": "pending"` — login is in progress, wait for it to complete.
 
 ### Step B — Confirm profile (required)
 
@@ -75,19 +72,13 @@ okx config show       # verify configuration status (output is masked)
    - Found → use it, inform user: `"Continuing with --profile live (实盘) from earlier"`
    - Not found → ask: `"Live (实盘) or Demo (模拟盘)?"` — wait for answer before proceeding
 
-### Handling 401 Authentication Errors
+### Handling Authentication Errors
 
-If any command returns a 401 / authentication error:
+**Authentication error** (error contains "401", "Session expired", or "Run `okx auth login` first"):
 1. **Stop immediately** — do not retry the same command
-2. Inform the user: "Authentication failed (401). Your API credentials may be invalid or expired."
-3. Guide the user to update credentials by editing the file directly with their local editor:
-   ```
-   ~/.okx/config.toml
-   ```
-   Update the fields `api_key`, `secret_key`, `passphrase` under the relevant profile.
-   Do NOT paste the new credentials into chat.
-4. After the user confirms the file is updated, run `okx config show` to verify (output is masked)
-5. Only then retry the original operation
+2. Inform the user: "Authentication failed. Your session may have expired."
+3. Load `okx-cex-auth` skill and follow the re-authentication steps
+4. After successful re-authentication, retry the original command
 
 ## Demo vs Live Mode
 

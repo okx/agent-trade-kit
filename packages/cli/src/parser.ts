@@ -141,6 +141,9 @@ export interface CliValues {
   dir?: string;
   page?: string;
   format?: string;
+  // auth
+  site?: string;
+  manual?: boolean;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -302,6 +305,9 @@ export const CLI_OPTIONS = {
   dir: { type: "string" },
   page: { type: "string" },
   format: { type: "string" },
+  // auth
+  site: { type: "string" },
+  manual: { type: "boolean", default: false },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks

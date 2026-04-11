@@ -7,6 +7,7 @@ declare const __GIT_HASH__: string;
 const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
+import { handleAuthCommand } from "./commands/auth.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { loadProfileConfig } from "./config/loader.js";
@@ -1251,6 +1252,7 @@ async function main(): Promise<void> {
 
   if (module === "config") return handleConfigCommand(action, rest, json, v.lang, v.force);
   if (module === "setup") return handleSetupCommand(v);
+  if (module === "auth") return handleAuthCommand(action, rest, v);
 
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
 

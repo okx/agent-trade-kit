@@ -31,16 +31,10 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ```bash
 npm install -g @okx_ai/okx-trade-cli
+okx config init   # select site -> follow browser OAuth flow
 ```
 
-Check credentials, then set up if missing:
-
-```bash
-okx config show          # shows configured profiles (api_key shows last 4 chars)
-okx config init          # interactive wizard if not configured
-```
-
-> **Security**: NEVER accept API credentials in chat. Guide users to `okx config init` or edit `~/.okx/config.toml` directly.
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ## Credential & Profile Check
 
@@ -49,10 +43,12 @@ okx config init          # interactive wizard if not configured
 ### Step A — Verify credentials
 
 ```bash
-okx config show
+okx auth status --json
 ```
 
-If no configuration → stop, guide user to `okx config init`, wait for completion.
+- `"status": "logged_in"` — proceed to Step B.
+- `"status": "not_logged_in"` — stop, load `okx-cex-auth` skill and follow login steps, wait for completion.
+- `"status": "pending"` — login is in progress, wait for it to complete.
 
 ### Step B — Determine profile (required)
 
@@ -70,7 +66,10 @@ Resolution:
 
 ### Handling 401 Errors
 
-Stop immediately. Guide user to update `~/.okx/config.toml` with their editor. Verify with `okx config show` before retrying.
+**Authentication error** (error contains "401", "Session expired", or "Run `okx auth login` first"):
+1. Stop immediately
+2. Load `okx-cex-auth` skill and follow re-authentication steps
+3. Retry original command
 
 ## Skill Routing
 
