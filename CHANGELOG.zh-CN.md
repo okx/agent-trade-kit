@@ -11,6 +11,12 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`okx doh` 管理命令**：新增 CLI 模块，用于管理 DoH（DNS-over-HTTPS）resolver 二进制文件。`okx doh status` 显示 binary 路径、文件大小、SHA-256 及 CDN 校验状态；`okx doh install` 下载或更新 binary；`okx doh remove` 删除 binary（无 `--force` 时提示确认）。(#138)
+- **`okx --version` 显示 DoH 状态**：版本输出新增第二行：`DoH resolver: installed (darwin-arm64)` 或 `DoH resolver: not installed`。(#138)
+- **`okx diagnose` 增加 DoH 检查项**：诊断输出新增 DoH 章节，包含 binary 是否存在、CDN checksum 是否一致、DoH cache 中的运行时模式。(#138)
+
 ---
 
 ## [1.3.1-beta.4] - 2026-04-10
