@@ -9,6 +9,9 @@ const EXIT_UNAUTHORIZED_CALLER = 1;
 const EXIT_NOT_LOGGED_IN = 2;
 const EXIT_REFRESH_FAILED = 3;
 
+/** Platform-appropriate binary name. */
+const BIN_NAME = process.platform === "win32" ? "okx-auth.exe" : "okx-auth";
+
 let resolvedBinPath: string | undefined;
 
 /**
@@ -16,7 +19,7 @@ let resolvedBinPath: string | undefined;
  *
  * Priority:
  *   1. OKX_AUTH_BIN env var (explicit override)
- *   2. Walk up from this module's location looking for bin/okx-auth
+ *   2. Walk up from this module's location looking for bin/okx-auth[.exe]
  */
 export function resolveOkxAuthBin(): string {
   // OKX_AUTH_BIN env var always takes priority (no caching — allows runtime override)
@@ -33,11 +36,11 @@ export function resolveOkxAuthBin(): string {
 
   if (resolvedBinPath) return resolvedBinPath;
 
-  // Walk up from this file's directory looking for bin/okx-auth
+  // Walk up from this file's directory looking for bin/okx-auth[.exe]
   const thisDir = dirname(fileURLToPath(import.meta.url));
   let dir = thisDir;
   for (let i = 0; i < 10; i++) {
-    const candidate = join(dir, "bin", "okx-auth");
+    const candidate = join(dir, "bin", BIN_NAME);
     if (existsSync(candidate)) {
       resolvedBinPath = candidate;
       return resolvedBinPath;
@@ -49,7 +52,7 @@ export function resolveOkxAuthBin(): string {
 
   throw new ConfigError(
     "Could not find the okx-auth binary.",
-    "Set OKX_AUTH_BIN to the absolute path of the okx-auth binary, or place it in bin/okx-auth at the project root.",
+    `Set OKX_AUTH_BIN to the absolute path of the okx-auth binary, or place it in bin/${BIN_NAME} at the project root.`,
   );
 }
 
