@@ -7,8 +7,8 @@
 //   node ../../scripts/copy-auth-bin.mjs
 //
 // Resolution order:
-//   1. CI build output: ../../dist/<platform>/okx-auth[.exe]
-//   2. Dev fallback:    ../../bin/okx-auth[.exe]
+//   1. Platform-specific: ../../bin/<platform>/okx-auth[.exe]
+//   2. Root fallback:     ../../bin/okx-auth[.exe]
 //   3. Neither found → warn and skip (non-fatal)
 // ---------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
 
-// Platform key: matches the Rust build output directory names
+// Platform key: matches the directory names under bin/
 const PLATFORM_MAP = {
   "darwin-arm64": { dir: "darwin-arm64", bin: "okx-auth" },
   "darwin-x64":   { dir: "darwin-x64",   bin: "okx-auth" },
@@ -35,18 +35,18 @@ if (!target) {
   process.exit(0);
 }
 
-// 1. CI build output (platform-specific)
-const ciBin = join(REPO_ROOT, "dist", target.dir, target.bin);
+// 1. Platform-specific binary under bin/<platform>/
+const platformBin = join(REPO_ROOT, "bin", target.dir, target.bin);
 
-// 2. Dev fallback (single binary at repo root)
-const devBin = join(REPO_ROOT, "bin", target.bin);
+// 2. Root fallback (single binary at bin/)
+const rootBin = join(REPO_ROOT, "bin", target.bin);
 
-const source = existsSync(ciBin) ? ciBin : existsSync(devBin) ? devBin : null;
+const source = existsSync(platformBin) ? platformBin : existsSync(rootBin) ? rootBin : null;
 
 if (!source) {
   console.warn(`[copy-auth-bin] okx-auth binary not found for ${platformKey}`);
-  console.warn(`  Checked: ${ciBin}`);
-  console.warn(`  Checked: ${devBin}`);
+  console.warn(`  Checked: ${platformBin}`);
+  console.warn(`  Checked: ${rootBin}`);
   console.warn("  Skipping — auth commands will require OKX_AUTH_BIN env var at runtime");
   process.exit(0);
 }

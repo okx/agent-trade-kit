@@ -9,8 +9,9 @@ const EXIT_UNAUTHORIZED_CALLER = 1;
 const EXIT_NOT_LOGGED_IN = 2;
 const EXIT_REFRESH_FAILED = 3;
 
-/** Platform-appropriate binary name. */
+/** Platform-appropriate binary name and subdirectory. */
 const BIN_NAME = process.platform === "win32" ? "okx-auth.exe" : "okx-auth";
+const PLATFORM_DIR = `${process.platform}-${process.arch}`;
 
 let resolvedBinPath: string | undefined;
 
@@ -19,7 +20,9 @@ let resolvedBinPath: string | undefined;
  *
  * Priority:
  *   1. OKX_AUTH_BIN env var (explicit override)
- *   2. Walk up from this module's location looking for bin/okx-auth[.exe]
+ *   2. Walk up from this module's location, at each level check:
+ *      a. bin/<platform-arch>/okx-auth[.exe]  (platform-specific)
+ *      b. bin/okx-auth[.exe]                  (fallback)
  */
 export function resolveOkxAuthBin(): string {
   // OKX_AUTH_BIN env var always takes priority (no caching — allows runtime override)
@@ -36,17 +39,23 @@ export function resolveOkxAuthBin(): string {
 
   if (resolvedBinPath) return resolvedBinPath;
 
-  // Walk up from this file's directory looking for bin/okx-auth[.exe]
   const thisDir = dirname(fileURLToPath(import.meta.url));
   let dir = thisDir;
   for (let i = 0; i < 10; i++) {
-    const candidate = join(dir, "bin", BIN_NAME);
-    if (existsSync(candidate)) {
-      resolvedBinPath = candidate;
+    // a. Platform-specific: bin/darwin-arm64/okx-auth
+    const platformCandidate = join(dir, "bin", PLATFORM_DIR, BIN_NAME);
+    if (existsSync(platformCandidate)) {
+      resolvedBinPath = platformCandidate;
+      return resolvedBinPath;
+    }
+    // b. Fallback: bin/okx-auth
+    const rootCandidate = join(dir, "bin", BIN_NAME);
+    if (existsSync(rootCandidate)) {
+      resolvedBinPath = rootCandidate;
       return resolvedBinPath;
     }
     const parent = resolve(dir, "..");
-    if (parent === dir) break; // root reached
+    if (parent === dir) break;
     dir = parent;
   }
 
