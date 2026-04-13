@@ -102,6 +102,11 @@ function maskKey(key: string): string {
   return `${key.slice(0, 3)}***${key.slice(-3)}`;
 }
 
+/** JS-side cache TTL for OAuth tokens (ms). The okx-auth binary handles
+ *  refresh internally (300s TTL lead); we re-call it every 60s so it
+ *  can serve a fresh token when needed. */
+const TOKEN_CACHE_TTL_MS = 60_000;
+
 function vlog(message: string): void {
   process.stderr.write(`[verbose] ${message}\n`);
 }
@@ -111,6 +116,7 @@ export class OkxRestClient {
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
   private cachedAccessToken?: string;
+  private cachedAccessTokenAt = 0;
   private readonly doh: DohManager;
 
   public constructor(config: OkxConfig) {
@@ -129,16 +135,20 @@ export class OkxRestClient {
 
   /**
    * Resolve OAuth access token via the okx-auth binary (fd3 pipe).
-   * Caches the token for the lifetime of this client instance —
-   * the binary handles refresh internally (300s TTL lead).
+   * Caches the token for 60 s to avoid spawning the binary on every
+   * request. The binary handles refresh internally (300s TTL lead),
+   * so periodic re-calls let it serve a fresh token when needed.
    * Returns null when not logged in.
    */
   private async resolveAccessToken(): Promise<string | null> {
-    if (this.cachedAccessToken) return this.cachedAccessToken;
+    if (this.cachedAccessToken && Date.now() - this.cachedAccessTokenAt < TOKEN_CACHE_TTL_MS) {
+      return this.cachedAccessToken;
+    }
 
     try {
       const token = await execAuthToken();
       this.cachedAccessToken = token;
+      this.cachedAccessTokenAt = Date.now();
       return token;
     } catch (e) {
       if (e instanceof ConfigError && e.message === "Not logged in.") {

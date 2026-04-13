@@ -972,6 +972,41 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
     }
   });
 
+  it("refreshes token after cache TTL expires", async () => {
+    saveOAuthEnv();
+    const realDateNow = Date.now;
+    let fakeNow = realDateNow.call(Date);
+    Date.now = () => fakeNow;
+    try {
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "0";
+      process.env.MOCK_AUTH_TOKEN = "token-first";
+
+      const client = new OkxRestClient(OAUTH_CONFIG);
+
+      // First request — caches "token-first"
+      const captured1: { req?: Request } = {};
+      await withFetch(capturingFetch(captured1), () =>
+        client.privateGet("/api/v5/account/balance"),
+      );
+      assert.equal(captured1.req?.headers.get("Authorization"), "Bearer token-first");
+
+      // Advance time past the 60s TTL and swap mock token
+      fakeNow += 61_000;
+      process.env.MOCK_AUTH_TOKEN = "token-refreshed";
+
+      // Second request — cache expired, binary called again
+      const captured2: { req?: Request } = {};
+      await withFetch(capturingFetch(captured2), () =>
+        client.privateGet("/api/v5/account/positions"),
+      );
+      assert.equal(captured2.req?.headers.get("Authorization"), "Bearer token-refreshed");
+    } finally {
+      Date.now = realDateNow;
+      restoreOAuthEnv();
+    }
+  });
+
   it("throws ConfigError when not logged in and no API key", async () => {
     saveOAuthEnv();
     try {
