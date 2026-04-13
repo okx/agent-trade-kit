@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)
 - **DoH status in `okx --version`**: Version output now includes a second line: `DoH resolver: installed (darwin-arm64)` or `DoH resolver: not installed`. (#138)
 - **DoH check in `okx diagnose`**: Diagnostics now include a DoH section checking binary existence, CDN checksum match, and runtime mode from the DoH cache. (#138)
+- **`context-kg/` knowledge base expanded**: Added `technical/05-doh-proxy.md` covering DoH subsystem architecture, binary distribution, cache strategy, and CLI commands. Updated `business/02-trading-modules.md` with `tgtCcy=margin` conversion mode documentation. Updated `technical/01-architecture.md` with accurate test counts and DoH/list-tools references. Upgraded `quality/01-placeholder.md` to full testing & QA specification. (#150)
 
 ---
 
