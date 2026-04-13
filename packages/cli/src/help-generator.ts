@@ -58,7 +58,14 @@ export function resolveCommandDescription(
   if (entry.toolName != null) {
     const spec = specMap.get(entry.toolName);
     // ToolSpec descriptions are verbose (designed for MCP); take only the first sentence.
-    if (spec?.description) return spec.description.split(/\.\s/)[0] + ".";
+    // Use negative lookbehind to skip abbreviations (e.g., i.e., vs., etc., cf.)
+    // then require ". " followed by uppercase letter (new sentence start).
+    if (spec?.description) {
+      const match = spec.description.match(
+        /^(.*?(?<!\b(?:e\.g|i\.e|vs|etc|cf))\.)\s+(?=[A-Z])/,
+      );
+      return match ? match[1] : spec.description.replace(/\.\s*$/, "") + ".";
+    }
   }
   return fallback;
 }

@@ -119,7 +119,6 @@ function collectCommands(
 export function getDiscoveryOutput(): DiscoveryOutput {
   const specs = allToolSpecs();
   const specMap = new Map(specs.map((s) => [s.name, s]));
-  const moduleDescMap = new Map(specs.map((s) => [s.module as string, s.description]));
   const version = readCliVersion();
 
   const modules: DiscoveryModule[] = [];
@@ -131,7 +130,6 @@ export function getDiscoveryOutput(): DiscoveryOutput {
     const description =
       moduleEntry.description ??
       (MODULE_DESCRIPTIONS as Partial<Record<string, string>>)[moduleKey] ??
-      moduleDescMap.get(moduleKey) ??
       moduleKey;
 
     modules.push({
