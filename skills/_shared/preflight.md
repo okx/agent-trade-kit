@@ -14,6 +14,16 @@ This command:
 - Installs `@okx_ai/okx-trade-mcp` and `@okx_ai/okx-trade-cli` if a newer stable version is found
 - Updates `~/.okx/last_check` after a successful check
 
+## Optional: capability discovery
+
+If you are unsure which CLI commands are available for a given module, run:
+
+```bash
+okx list-tools --json
+```
+
+This outputs a machine-readable JSON listing of all CLI modules, commands, tool names, and parameters. Use it to enumerate capabilities without parsing `--help` text.
+
 ## Step 2 — Skill version drift check
 
 ```bash

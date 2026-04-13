@@ -9,6 +9,7 @@ const CLI_VERSION = (_require("../package.json") as { version: string }).version
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
 import { cmdDiagnose } from "./commands/diagnose.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
+import { cmdListTools } from "./commands/discovery.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
 import { parseCli } from "./parser.js";
@@ -1262,6 +1263,7 @@ function routeManagementCommand(
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
   if (module === "doh") return handleDohCommand(action as string, json, v.force ?? false);
   if (module === "diagnose") return runDiagnose(v);
+  if (module === "list-tools") return cmdListTools(json);
   return undefined;
 }
 
