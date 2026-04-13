@@ -61,14 +61,6 @@ Wizard steps:
 
 `okx auth login` is a **blocking command** — it polls the server until the user authorizes in their browser.
 
-Add `--site <global|eea|us>` to override the configured site for this login. Optional — if omitted, uses the site from config (set during `okx config init`).
-
-| Site | Region | URL |
-| -------- | ----------------------- | --------------- |
-| `global` | Global (default) | `www.okx.com` |
-| `eea`    | EEA              | `my.okx.com`  |
-| `us`     | US               | `app.okx.com` |
-
 > **CRITICAL for AI agents:** You MUST use `okx auth login --manual` to avoid blocking. The `--manual` flag outputs a JSON payload with the verification URL and user code, then exits immediately — it does NOT block.
 
 ### Agent login procedure
