@@ -2,7 +2,7 @@ import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, EARN_SUB_MODULE_IDS, DEFAU
 import { ConfigError } from "./utils/errors.js";
 import { readFullConfig } from "./config/toml.js";
 import type { OkxProfile } from "./config/toml.js";
-import { checkOAuthStatus } from "./auth/okx-auth-bin.js";
+import { checkOAuthStatusSync } from "./auth/binary.js";
 
 export interface CliOptions {
   modules?: string;
@@ -94,7 +94,7 @@ function loadCredentials(toml: OkxProfile): { apiKey?: string; secretKey?: strin
 
   // hasAuth = true if either OAuth tokens (via okx-auth binary) or API key exists
   // Auth mode is determined dynamically by rest-client at request time
-  const hasOAuth = hasApiKey ? false : checkOAuthStatus();
+  const hasOAuth = hasApiKey ? false : checkOAuthStatusSync();
   const hasAuth = hasOAuth || hasApiKey;
 
   return { apiKey, secretKey, passphrase, hasAuth };

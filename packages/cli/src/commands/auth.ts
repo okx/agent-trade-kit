@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { resolveOkxAuthBin } from "@agent-tradekit/core";
+import { getAuthBinaryPath } from "@agent-tradekit/core";
 import { errorLine } from "../formatter.js";
 import type { CliValues } from "../parser.js";
 
@@ -9,7 +9,7 @@ import type { CliValues } from "../parser.js";
 
 /** Spawn okx-auth with inherited stdio and wait for exit. */
 function runOkxAuth(args: string[]): Promise<number> {
-  const binPath = resolveOkxAuthBin();
+  const binPath = getAuthBinaryPath();
 
   return new Promise((resolve, reject) => {
     const child = spawn(binPath, args, {
@@ -28,7 +28,7 @@ function runOkxAuth(args: string[]): Promise<number> {
 
 /** Spawn okx-auth, pipe stdout to caller's stdout, inherit stderr + stdin. */
 function runOkxAuthCapture(args: string[]): Promise<{ code: number; stdout: string }> {
-  const binPath = resolveOkxAuthBin();
+  const binPath = getAuthBinaryPath();
 
   return new Promise((resolve, reject) => {
     const child = spawn(binPath, args, {

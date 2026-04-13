@@ -8,7 +8,7 @@ import {
   OkxApiError,
   RateLimitError,
 } from "../utils/errors.js";
-import { requestTokenViaFd3 } from "../auth/okx-auth-bin.js";
+import { execAuthToken } from "../auth/binary.js";
 
 type CodeBehavior =
   | { retry: true; suggestion: string }
@@ -137,7 +137,7 @@ export class OkxRestClient {
     if (this.cachedAccessToken) return this.cachedAccessToken;
 
     try {
-      const token = await requestTokenViaFd3();
+      const token = await execAuthToken();
       this.cachedAccessToken = token;
       return token;
     } catch (e) {

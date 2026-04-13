@@ -32,7 +32,10 @@ export {
 export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCategory } from "./skills/index.js";
 export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
 export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";
-export { resolveOkxAuthBin } from "./auth/okx-auth-bin.js";
+export { getAuthBinaryPath, execAuthToken, execAuthStatus, checkOAuthStatusSync } from "./auth/binary.js";
+export { getAuthStatus, fetchAuthCdnChecksum, installAuthBinary, removeAuthBinary, AUTH_CDN_PATH_PREFIX } from "./auth/installer.js";
+export type { AuthLocalStatus } from "./auth/installer-types.js";
+export type { AuthStatusResult } from "./auth/types.js";
 export { getDohBinaryPath } from "./doh/binary.js";
 export {
   getDohStatus,
