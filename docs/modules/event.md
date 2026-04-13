@@ -1,29 +1,36 @@
 # event
 
-支持事件合约
+Event contract trading module.
 
 ## Business Context
 
-新增事件合约模块，允许用户进行事件合约交易
+Event contract module for binary outcome prediction markets (price up/down, price above, price touch).
 
 ## Tools
 
 | Name | R/W | Description |
 |---|---|---|
-| 8个工具 |
-| event_get_series  R  列出事件合约 |
-| event_get_events  R  列出事件 |
-| event_get_markets R 列出市场的Yes/No概率 |
-| event_precheck_order R 下单预检 |
-| event_palce_order W  下单 |
-| event_cancel_order W 撤单 |
-| event_get_orders  R 查询订单 state=live为挂单 |
-| event_get_fills R 查询成交记录 |
+| event_browse | R | Browse currently active (in-progress) event contracts |
+| event_get_series | R | List event contract series |
+| event_get_events | R | List expiry periods within a series |
+| event_get_markets | R | List tradeable contracts with settlement results (live `px` is event contract price 0.01–0.99, not underlying asset price; reflects market-implied probability when actively trading; after expiry returns outcome/settleValue) |
+| event_place_order | W | Place an event contract order |
+| event_amend_order | W | Amend a pending event contract order |
+| event_cancel_order | W | Cancel a pending event contract order |
+| event_get_orders | R | Query event contract orders (state=live for open orders) |
+| event_get_fills | R | Get event contract fill history |
 
-## Token 预算评估
+9 tools
 
-预估 ~1800 tokens (9 tools × ~200)
+## Token Budget Estimate
 
-## 典型 Workflow
+Estimated ~1800 tokens (9 tools x ~200)
 
-看市场 -> 预检查 -> 下单
+## Key Field Semantics
+
+- `px`: Event contract price (0.01–0.99), not the underlying asset price. Reflects market-implied probability when actively trading
+- `sz`: For market orders = quote currency amount; for limit/post_only orders = number of contracts
+
+## Typical Workflow
+
+Browse series/markets -> Place order -> Query orders/fills

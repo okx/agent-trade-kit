@@ -36,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1-beta.2] - 2026-04-09
+
+### Added
+
+- **Event Contract module**: New `event` module with 9 MCP tools and CLI commands for binary prediction markets — browse series/events/markets, place/amend/cancel orders, query orders/fills, and direction analysis with index price enrichment.
+
+### Fixed
+
+- **Event Contract endpoints use authenticated requests**: All 4 event browse/query tools (`event_browse_contracts`, `event_get_series`, `event_get_events`, `event_get_markets`) now use `privateGet` instead of `publicGet`. OKX's `/api/v5/public/event-contract/*` endpoints require auth headers despite the `/public/` path prefix; unauthenticated calls returned 401.
+
+---
+
 ## [1.3.0] - 2026-04-08
 
 ### Added
