@@ -36,6 +36,18 @@
 
 ---
 
+## [1.3.1-beta.2] - 2026-04-09
+
+### 新增
+
+- **事件合约模块**：新增 `event` 模块，包含 9 个 MCP 工具和 CLI 命令，支持二元预测市场 — 浏览系列/事件/合约、下单/改单/撤单、查询订单/成交记录，以及带指数价格的方向分析。
+
+### 修复
+
+- **事件合约接口改用鉴权请求**：4 个事件浏览/查询工具（`event_browse_contracts`、`event_get_series`、`event_get_events`、`event_get_markets`）由 `publicGet` 改为 `privateGet`。OKX 的 `/api/v5/public/event-contract/*` 接口虽路径含 `/public/`，实际须携带鉴权头，未鉴权时返回 401。
+
+---
+
 ## [1.3.0] - 2026-04-08
 
 ### 新增

@@ -789,6 +789,58 @@ export const CLI_REGISTRY: CliRegistry = {
     },
   },
 
+  // ── event ──────────────────────────────────────────────────────────────────
+  event: {
+    description: "Event contracts — binary prediction markets (YES/NO, UP/DOWN)",
+    commands: {
+      browse: {
+        toolName: "event_browse",
+        usage: "okx event browse [--underlying <asset>] [--json]",
+        description: "Browse active event contracts grouped by type",
+      },
+      series: {
+        toolName: "event_get_series",
+        usage: "okx event series [--seriesId <id>] [--all] [--json]",
+        description: "List event contract series",
+      },
+      events: {
+        toolName: "event_get_events",
+        usage: "okx event events <seriesId> [--eventId <id>] [--state <state>] [--limit <n>] [--json]",
+        description: "List events in a series",
+      },
+      markets: {
+        toolName: "event_get_markets",
+        usage: "okx event markets <seriesId> [--eventId <id>] [--state <state>] [--limit <n>] [--json]",
+        description: "List tradeable contracts within a series",
+      },
+      place: {
+        toolName: "event_place_order",
+        usage: "okx event place <instId> <side> <outcome> <sz> [--px <price>] [--ordType <type>] [--json]",
+        description: "Place an event contract order",
+      },
+      amend: {
+        toolName: "event_amend_order",
+        usage: "okx event amend <instId> <ordId> [--px <price>] [--sz <n>] [--json]",
+        description: "Amend a pending event contract order",
+      },
+      cancel: {
+        toolName: "event_cancel_order",
+        usage: "okx event cancel <instId> <ordId> [--json]",
+        description: "Cancel a pending event contract order",
+      },
+      orders: {
+        toolName: "event_get_orders",
+        usage: "okx event orders [--instId <id>] [--state live] [--limit <n>] [--json]",
+        description: "Query event contract orders",
+      },
+      fills: {
+        toolName: "event_get_fills",
+        usage: "okx event fills [--instId <id>] [--limit <n>] [--json]",
+        description: "Get event contract fill history",
+      },
+    },
+  },
+
   // ── config ─────────────────────────────────────────────────────────────────
   config: {
     description: "Manage CLI configuration profiles",

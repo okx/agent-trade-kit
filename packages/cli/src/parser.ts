@@ -141,6 +141,11 @@ export interface CliValues {
   dir?: string;
   page?: string;
   format?: string;
+  // event contract
+  underlying?: string;
+  seriesId?: string;
+  eventId?: string;
+  outcome?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -302,6 +307,11 @@ export const CLI_OPTIONS = {
   dir: { type: "string" },
   page: { type: "string" },
   format: { type: "string" },
+  // event contract
+  underlying: { type: "string" },
+  seriesId: { type: "string" },
+  eventId: { type: "string" },
+  outcome: { type: "string" },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks
