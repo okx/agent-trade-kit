@@ -371,3 +371,152 @@ export async function cmdMarketStockTokens(
     })),
   );
 }
+
+export async function cmdMarketFilter(
+  run: ToolRunner,
+  opts: {
+    instType: string;
+    baseCcy?: string;
+    quoteCcy?: string;
+    settleCcy?: string;
+    instFamily?: string;
+    ctType?: string;
+    minLast?: string;
+    maxLast?: string;
+    minChg24hPct?: string;
+    maxChg24hPct?: string;
+    minMarketCapUsd?: string;
+    maxMarketCapUsd?: string;
+    minVolUsd24h?: string;
+    maxVolUsd24h?: string;
+    minFundingRate?: string;
+    maxFundingRate?: string;
+    minOiUsd?: string;
+    maxOiUsd?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    limit?: number;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("market_filter", {
+    instType:        opts.instType,
+    baseCcy:         opts.baseCcy,
+    quoteCcy:        opts.quoteCcy,
+    settleCcy:       opts.settleCcy,
+    instFamily:      opts.instFamily,
+    ctType:          opts.ctType,
+    minLast:         opts.minLast,
+    maxLast:         opts.maxLast,
+    minChg24hPct:    opts.minChg24hPct,
+    maxChg24hPct:    opts.maxChg24hPct,
+    minMarketCapUsd: opts.minMarketCapUsd,
+    maxMarketCapUsd: opts.maxMarketCapUsd,
+    minVolUsd24h:    opts.minVolUsd24h,
+    maxVolUsd24h:    opts.maxVolUsd24h,
+    minFundingRate:  opts.minFundingRate,
+    maxFundingRate:  opts.maxFundingRate,
+    minOiUsd:        opts.minOiUsd,
+    maxOiUsd:        opts.maxOiUsd,
+    sortBy:          opts.sortBy,
+    sortOrder:       opts.sortOrder,
+    limit:           opts.limit,
+  });
+  const data = getData(result) as Record<string, unknown>;
+  if (opts.json) return printJson(data);
+  const rows = (data?.["rows"] ?? []) as Record<string, unknown>[];
+  const total = data?.["total"] ?? rows.length;
+  outputLine(`Total: ${total}`);
+  if (!rows.length) { outputLine("No results"); return; }
+  const isSwap = opts.instType?.toUpperCase() === "SWAP";
+  printTable(
+    rows.map((r) => {
+      const base: Record<string, unknown> = {
+        rank:      r["rank"],
+        instId:    r["instId"],
+        last:      r["last"],
+        "chg24h%": r["chg24hPct"],
+        volUsd24h: r["volUsd24h"],
+        oiUsd:     r["oiUsd"],
+      };
+      if (isSwap) {
+        base["fundingRate"] = r["fundingRate"];
+      }
+      base["sortVal"] = r["sortVal"];
+      return base;
+    }),
+  );
+}
+
+export async function cmdMarketOiHistory(
+  run: ToolRunner,
+  instId: string,
+  opts: {
+    bar?: string;
+    limit?: number;
+    ts?: number;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("market_get_oi_history", {
+    instId,
+    bar:   opts.bar,
+    limit: opts.limit,
+    ts:    opts.ts,
+  });
+  const data = getData(result) as Record<string, unknown>;
+  if (opts.json) return printJson(data);
+  const rows = (data?.["rows"] ?? []) as Record<string, unknown>[];
+  if (!rows.length) { outputLine("No OI data"); return; }
+  outputLine(`${data["instId"]}  bar=${data["bar"]}`);
+  printTable(
+    rows.map((r) => ({
+      ts:          new Date(Number(r["ts"])).toLocaleString(),
+      oiUsd:       r["oiUsd"] != null ? String(r["oiUsd"]) : "-",
+      oiDeltaUsd:  r["oiDeltaUsd"] != null ? String(r["oiDeltaUsd"]) : "-",
+      "deltaOi%":  r["oiDeltaPct"] != null ? String(r["oiDeltaPct"]) : "-",
+      oiCont:      r["oiCont"] != null ? String(r["oiCont"]) : "-",
+    })),
+  );
+}
+
+export async function cmdMarketOiChangeFilter(
+  run: ToolRunner,
+  opts: {
+    instType: string;
+    bar?: string;
+    minOiUsd?: string;
+    minVolUsd24h?: string;
+    minAbsOiDeltaPct?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    limit?: number;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("market_filter_oi_change", {
+    instType:         opts.instType,
+    bar:              opts.bar,
+    minOiUsd:         opts.minOiUsd,
+    minVolUsd24h:     opts.minVolUsd24h,
+    minAbsOiDeltaPct: opts.minAbsOiDeltaPct,
+    sortBy:           opts.sortBy,
+    sortOrder:        opts.sortOrder,
+    limit:            opts.limit,
+  });
+  const rows = (getData(result) ?? []) as Record<string, unknown>[];
+  if (opts.json) return printJson(rows);
+  if (!rows.length) { outputLine("No results"); return; }
+  printTable(
+    rows.map((r) => ({
+      rank:        r["rank"],
+      instId:      r["instId"],
+      last:        r["last"],
+      oiUsd:       r["oiUsd"],
+      "deltaOi%":  r["oiDeltaPct"],
+      "pxChg%":    r["pxChgPct"],
+      volUsd24h:   r["volUsd24h"],
+      fundingRate: r["fundingRate"],
+    })),
+  );
+}

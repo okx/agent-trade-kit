@@ -11,6 +11,7 @@ import { registerEventContractTools } from "./event-trade.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerIndicatorTools } from "./indicator.js";
 import { registerMarketTools } from "./market.js";
+import { registerMarketFilterTools } from "./market-filter.js";
 import { registerOptionAlgoTools } from "./option-algo-trade.js";
 import { registerOptionTools } from "./option-trade.js";
 import { registerSpotTradeTools } from "./spot-trade.js";
@@ -28,6 +29,7 @@ import type { ToolSpec, ToolArgs } from "./types.js";
 export function allToolSpecs(): ToolSpec[] {
   return [
     ...registerMarketTools(),
+    ...registerMarketFilterTools(),
     ...registerIndicatorTools(),
     ...registerSpotTradeTools(),
     ...registerSwapTradeTools(),

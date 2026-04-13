@@ -31,6 +31,9 @@ import {
   cmdMarketInstrumentsByCategory,
   cmdMarketIndicator,
   cmdMarketIndicatorList,
+  cmdMarketFilter,
+  cmdMarketOiHistory,
+  cmdMarketOiChangeFilter,
 } from "./commands/market.js";
 import {
   cmdAccountBalance,
@@ -271,6 +274,48 @@ export function handleMarketPublicCommand(
       demo: v.demo,
     });
   if (action === "indicator") return handleIndicatorAction(run, rest, v, json);
+  if (action === "filter")
+    return cmdMarketFilter(run, {
+      instType:        v.instType!,
+      baseCcy:         v.baseCcy,
+      quoteCcy:        v.quoteCcy,
+      settleCcy:       v.settleCcy,
+      instFamily:      v.instFamily,
+      ctType:          v.ctType,
+      minLast:         v.minLast,
+      maxLast:         v.maxLast,
+      minChg24hPct:    v.minChg24hPct,
+      maxChg24hPct:    v.maxChg24hPct,
+      minMarketCapUsd: v.minMarketCapUsd,
+      maxMarketCapUsd: v.maxMarketCapUsd,
+      minVolUsd24h:    v.minVolUsd24h,
+      maxVolUsd24h:    v.maxVolUsd24h,
+      minFundingRate:  v.minFundingRate,
+      maxFundingRate:  v.maxFundingRate,
+      minOiUsd:        v.minOiUsd,
+      maxOiUsd:        v.maxOiUsd,
+      sortBy:          v.sortBy,
+      sortOrder:       v.sortOrder,
+      limit:           v.limit !== undefined ? Number(v.limit) : undefined,
+      json,
+    });
+  if (action === "oi-history") {
+    const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+    const ts = v.ts !== undefined ? Number(v.ts) : undefined;
+    return cmdMarketOiHistory(run, rest[0], { bar: v.bar, limit, ts, json });
+  }
+  if (action === "oi-change")
+    return cmdMarketOiChangeFilter(run, {
+      instType:         v.instType!,
+      bar:              v.bar,
+      minOiUsd:         v.minOiUsd,
+      minVolUsd24h:     v.minVolUsd24h,
+      minAbsOiDeltaPct: v.minAbsOiDeltaPct,
+      sortBy:           v.sortBy,
+      sortOrder:        v.sortOrder,
+      limit:            v.limit !== undefined ? Number(v.limit) : undefined,
+      json,
+    });
 }
 
 function handleIndicatorAction(
