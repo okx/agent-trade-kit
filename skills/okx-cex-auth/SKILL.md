@@ -51,11 +51,19 @@ Wizard steps:
 
 `okx auth login` is a **blocking command** — it polls the server until the user authorizes in their browser.
 
+Add `--site <global|eea|us>` to override the configured site for this login. Optional — if omitted, uses the site from config (set during `okx config init`).
+
+| Site | Region | URL |
+| -------- | ----------------------- | --------------- |
+| `global` | Global (default)        | `www.okx.com`   |
+| `eea`    | European Economic Area  | `my.okx.com`    |
+| `us`     | United States           | `app.okx.com`   |
+
 > **CRITICAL for AI agents:** You MUST use `okx auth login --manual` to avoid blocking. The `--manual` flag outputs a JSON payload with the verification URL and user code, then exits immediately — it does NOT block.
 
 ### Agent login procedure
 
-1. Run `okx auth login --manual` — this prints a JSON object with `verification_uri` and `user_code`, then exits.
+1. Run `okx auth login --manual [--site <global|eea|us>]` — this prints a JSON object with `verification_uri` and `user_code`, then exits.
 2. Present the verification URL and user code to the user. Tell them to open the URL in their browser and enter the code.
 3. **Poll for completion** by running `okx auth status --json` periodically (every 5–10 seconds).
    - `"status": "pending"` → still waiting for user authorization, keep polling
@@ -66,7 +74,7 @@ Wizard steps:
 ### Interactive login (user runs directly in terminal)
 
 1. **Tell the user BEFORE running** that they will need to authorize in their browser.
-2. **Run `okx auth login`** — the command will block and poll until the user completes authorization.
+2. **Run `okx auth login [--site <global|eea|us>]`** — the command will block and poll until the user completes authorization.
 3. **Do NOT assume the command is stuck.** The polling phase produces no output — this is normal.
 4. **Check the result:**
    - `Logged in successfully!` — proceed with the user's original request.
@@ -97,7 +105,7 @@ Run `okx auth status --json` to check login status. Parse the JSON output:
 
 When any command fails with "Session expired" or "Run `okx auth login` first":
 
-1. Run `okx auth login --manual` (agent) or `okx auth login` (interactive)
+1. Run `okx auth login --manual [--site <global|eea|us>]` (agent) or `okx auth login [--site <global|eea|us>]` (interactive)
 2. Follow the same [Login Flow](#login-flow) above
 
 > Token expiry is managed automatically — you only need to re-authenticate when the refresh token itself expires (typically after an extended period of inactivity).
@@ -118,6 +126,7 @@ DCR client registration is retained after logout. The next `okx auth login` will
 | `Session expired — run okx auth login again`  | Refresh token expired                  | Run `okx auth login --manual`                    |
 | `Authorization timed out`                     | User did not authorize in time         | Run `okx auth login --manual` again              |
 | `Access denied`                               | User rejected authorization in browser | Run `okx auth login --manual` and ask to approve |
+| `Region restriction` (51155, 51734)            | Instrument not available in configured site | Check `okx auth status --json` for current site; re-login with `--site` if needed |
 | `Network error` during login                  | Network unavailable                    | Check network and retry                          |
 
 ## Skill Routing
