@@ -124,73 +124,30 @@ DCR client registration is retained after logout. The next `okx auth login` will
 
 The `okx auth` commands (`login`, `logout`, `status`) depend on the `okx-auth` binary. It is normally installed automatically during `npm install`, but can also be managed manually.
 
-### Install / Update
+> **IMPORTANT for AI agents:** Do NOT manually check platform, CDN availability, or binary paths. Always use the CLI commands below — they handle platform detection and download internally.
 
-Download the latest `okx-auth` binary from CDN:
+### Install / Update
 
 ```bash
 okx auth install
 ```
 
-If the binary is already installed and matches the CDN checksum, the command reports "up to date" without re-downloading.
-
-JSON output: `okx auth install --json`
-
-```json
-{"status":"installed","source":"static.okx.com","error":null,"messages":["..."]}
-```
-
-`status` values: `installed` (newly downloaded), `up-to-date` (already current), `failed` (all CDN sources failed).
+Downloads or updates the `okx-auth` binary. Reports "up to date" if already current. Use `--json` for machine-readable output.
 
 ### Check Installation
-
-Show binary path, platform, file size, SHA-256, and whether it matches the CDN:
 
 ```bash
 okx auth install-status
 ```
 
-Example output:
-
-```
-  okx-auth Binary Status
-  ────────────────────────────────────────
-  Binary path : ~/.okx/bin/okx-auth
-  Installed   : yes
-  Platform    : darwin-arm64
-  File size   : 3.85 MB
-  SHA-256     : 2cdd19e1...
-  CDN check   : ✓ match
-  CDN source  : static.okx.com
-```
-
-JSON output: `okx auth install-status --json`
-
-```json
-{
-  "binaryPath": "~/.okx/bin/okx-auth",
-  "exists": true,
-  "platform": "darwin-arm64",
-  "fileSize": 4033456,
-  "sha256": "2cdd19e1...",
-  "cdnMatch": "match",
-  "cdnSha256": "2cdd19e1...",
-  "cdnSource": "static.okx.com"
-}
-```
-
-`cdnMatch` values: `match` (up to date), `mismatch` (update available), `unavailable` (CDN unreachable), `not-installed`.
+Shows whether the binary is installed and up to date. Use `--json` for machine-readable output.
 
 ### Remove
-
-Remove the `okx-auth` binary from disk:
 
 ```bash
 okx auth remove          # interactive confirmation
 okx auth remove --force  # skip confirmation
 ```
-
-JSON output: `okx auth remove --force --json`
 
 ### Troubleshooting: "Failed to spawn okx-auth"
 
