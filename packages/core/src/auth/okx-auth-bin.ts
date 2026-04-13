@@ -2,6 +2,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
 import { AuthenticationError, ConfigError } from "../utils/errors.js";
 
 // Exit codes from the okx-auth binary (mirrors src/error.rs)
@@ -23,6 +24,7 @@ let resolvedBinPath: string | undefined;
  *   2. Walk up from this module's location, at each level check:
  *      a. bin/<platform-arch>/okx-auth[.exe]  (platform-specific)
  *      b. bin/okx-auth[.exe]                  (fallback)
+ *   3. ~/.okx/bin/okx-auth[.exe]  (postinstall CDN download location)
  */
 export function resolveOkxAuthBin(): string {
   // OKX_AUTH_BIN env var always takes priority (no caching — allows runtime override)
@@ -39,16 +41,15 @@ export function resolveOkxAuthBin(): string {
 
   if (resolvedBinPath) return resolvedBinPath;
 
+  // Walk up from module location
   const thisDir = dirname(fileURLToPath(import.meta.url));
   let dir = thisDir;
   for (let i = 0; i < 10; i++) {
-    // a. Platform-specific: bin/darwin-arm64/okx-auth
     const platformCandidate = join(dir, "bin", PLATFORM_DIR, BIN_NAME);
     if (existsSync(platformCandidate)) {
       resolvedBinPath = platformCandidate;
       return resolvedBinPath;
     }
-    // b. Fallback: bin/okx-auth
     const rootCandidate = join(dir, "bin", BIN_NAME);
     if (existsSync(rootCandidate)) {
       resolvedBinPath = rootCandidate;
@@ -59,9 +60,16 @@ export function resolveOkxAuthBin(): string {
     dir = parent;
   }
 
+  // Postinstall CDN download location: ~/.okx/bin/okx-auth
+  const globalBin = join(homedir(), ".okx", "bin", BIN_NAME);
+  if (existsSync(globalBin)) {
+    resolvedBinPath = globalBin;
+    return resolvedBinPath;
+  }
+
   throw new ConfigError(
     "Could not find the okx-auth binary.",
-    `Set OKX_AUTH_BIN to the absolute path of the okx-auth binary, or place it in bin/${BIN_NAME} at the project root.`,
+    `Run \`npm install -g @okx_ai/okx-trade-cli\` to download it, or set OKX_AUTH_BIN to the absolute path.`,
   );
 }
 

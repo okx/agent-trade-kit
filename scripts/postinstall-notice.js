@@ -214,3 +214,80 @@ async function downloadDohBinary() {
 downloadDohBinary().catch(() => {
   // Never block npm install
 });
+
+// ---------------------------------------------------------------------------
+// okx-auth binary download (best-effort, never blocks npm install)
+// ---------------------------------------------------------------------------
+
+const AUTH_CDN_PATH_PREFIX = '/upgradeapp/doh/prepub/oauth';
+
+function getAuthBinaryName() {
+  return platform() === 'win32' ? 'okx-auth.exe' : 'okx-auth';
+}
+
+async function downloadOkxAuthBinary() {
+  if (process.env.OKX_AUTH_BIN) return;
+
+  const platformDir = getPlatformDir();
+  if (!platformDir) return;
+
+  const binaryName = getAuthBinaryName();
+  const destPath = join(BIN_DIR, binaryName);
+  const tmpPath = destPath + '.auth.tmp';
+
+  mkdirSync(BIN_DIR, { recursive: true });
+
+  const checksumPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
+  const binaryPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/${binaryName}`;
+
+  for (const { host, protocol } of CDN_SOURCES) {
+    try {
+      const checksumUrl = `${protocol}://${host}${checksumPath}`;
+      const raw = await downloadText(checksumUrl, DOWNLOAD_TIMEOUT_MS);
+      const checksum = JSON.parse(raw);
+
+      if (!checksum.sha256 || !checksum.size || !checksum.target) {
+        throw new Error('Invalid checksum.json: missing sha256, size, or target');
+      }
+
+      if (checksum.target !== platformDir) {
+        throw new Error(`Target mismatch: expected ${platformDir}, got ${checksum.target}`);
+      }
+
+      if (existsSync(destPath) && verifyBinary(destPath, checksum, platformDir)) {
+        process.stderr.write('  ✓ okx-auth up to date (checksum match)\n');
+        return;
+      }
+
+      const binaryUrl = `${protocol}://${host}${binaryPath}`;
+      await download(binaryUrl, tmpPath, DOWNLOAD_TIMEOUT_MS);
+
+      const actual = hashFile(tmpPath);
+      if (actual.size !== checksum.size) {
+        throw new Error(`Size mismatch: expected ${checksum.size}, got ${actual.size}`);
+      }
+      if (actual.sha256 !== checksum.sha256) {
+        throw new Error(`SHA-256 mismatch: expected ${checksum.sha256}, got ${actual.sha256}`);
+      }
+
+      try { unlinkSync(destPath); } catch { /* ignore */ }
+      renameSync(tmpPath, destPath);
+
+      if (platform() !== 'win32') {
+        chmodSync(destPath, 0o755);
+      }
+
+      process.stderr.write(`  ✓ okx-auth downloaded and verified (${host})\n`);
+      return;
+    } catch (err) {
+      try { unlinkSync(tmpPath); } catch { /* ignore */ }
+      process.stderr.write(`  [okx-auth] ${host} failed: ${err instanceof Error ? err.message : err}\n`);
+    }
+  }
+
+  process.stderr.write('  ⓘ okx-auth not available (download failed), OAuth login will use bundled binary or OKX_AUTH_BIN.\n');
+}
+
+downloadOkxAuthBinary().catch(() => {
+  // Never block npm install
+});
