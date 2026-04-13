@@ -21,6 +21,16 @@ metadata:
 
 OAuth 2.0 device flow authentication for OKX CLI. Guides first-time setup, re-authentication after session expiry, and logout.
 
+## Supported Sites
+
+| Site | Region | URL |
+| -------- | ----------------------- | --------------- |
+| `global` | Global (default) | `www.okx.com` |
+| `eea`    | EEA              | `my.okx.com`  |
+| `us`     | US               | `app.okx.com` |
+
+Use `--site <global|eea|us>` on `okx auth login` to override the configured site. Optional — if omitted, uses the site from config (set during `okx config init`).
+
 ## Prerequisites
 
 Install `okx` CLI if not already installed:
@@ -55,9 +65,9 @@ Add `--site <global|eea|us>` to override the configured site for this login. Opt
 
 | Site | Region | URL |
 | -------- | ----------------------- | --------------- |
-| `global` | Global (default)        | `www.okx.com`   |
-| `eea`    | European Economic Area  | `my.okx.com`    |
-| `us`     | United States           | `app.okx.com`   |
+| `global` | Global (default) | `www.okx.com` |
+| `eea`    | EEA              | `my.okx.com`  |
+| `us`     | US               | `app.okx.com` |
 
 > **CRITICAL for AI agents:** You MUST use `okx auth login --manual` to avoid blocking. The `--manual` flag outputs a JSON payload with the verification URL and user code, then exits immediately — it does NOT block.
 
