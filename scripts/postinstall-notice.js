@@ -285,7 +285,7 @@ async function downloadOkxAuthBinary() {
     }
   }
 
-  process.stderr.write('  ⓘ okx-auth not available (download failed), OAuth login will use bundled binary or OKX_AUTH_BIN.\n');
+  process.stderr.write('  ⓘ okx-auth not available (download failed). Set OKX_AUTH_BIN to provide a custom path, or re-run npm install to retry.\n');
 }
 
 downloadOkxAuthBinary().catch(() => {
