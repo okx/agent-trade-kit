@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.1-beta.5] - 2026-04-13
+
 ### Added
 
 - **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line data structure. Descriptions are sourced from ToolSpec objects in `@agent-tradekit/core`, ensuring help text stays in sync with the MCP tool registry. Drift is caught at test time by a bidirectional drift test. (#140)
@@ -18,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)
 - **DoH status in `okx --version`**: Version output now includes a second line: `DoH resolver: installed (darwin-arm64)` or `DoH resolver: not installed`. (#138)
 - **DoH check in `okx diagnose`**: Diagnostics now include a DoH section checking binary existence, CDN checksum match, and runtime mode from the DoH cache. (#138)
+- **DoH binary supports linux-arm64**: `postinstall` now downloads the linux-arm64 variant of `okx-doh-resolver` on ARM Linux hosts.
+
+### Fixed
+
+- **Skills: remove hardcoded Chinese prompts**: Replaced two hardcoded Chinese clarification prompts in `SKILL.md` with English instruction-style text so the agent adapts to the user's language.
 
 ---
 
