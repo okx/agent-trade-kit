@@ -900,6 +900,12 @@ export const CLI_REGISTRY: CliRegistry = {
     description: "Upgrade okx CLI and MCP server to the latest stable version",
     usage: "okx upgrade [--check] [--beta] [--force] [--json]",
   },
+
+  // ── list-tools ──────────────────────────────────────────────────────────────
+  "list-tools": {
+    description: "List all available tools and their parameters (use --json for machine-readable output)",
+    usage: "okx list-tools [--json] [--module <module>]",
+  },
 };
 
 // ---------------------------------------------------------------------------
