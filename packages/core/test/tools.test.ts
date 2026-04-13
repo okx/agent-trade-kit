@@ -223,6 +223,29 @@ describe("market_get_funding_rate", () => {
     );
     assert.equal(getLastCall()?.params.limit, 50);
   });
+
+  it("rejects spot instId (e.g. BTC-USDT)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT" }, makeContext(client)),
+      (err: Error) => {
+        assert.match(err.message, /not a SWAP instrument/);
+        assert.match(err.message, /BTC-USDT-SWAP/);
+        return true;
+      },
+    );
+  });
+
+  it("rejects FUTURES instId (e.g. BTC-USDT-250613)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT-250613" }, makeContext(client)),
+      (err: Error) => {
+        assert.match(err.message, /not a SWAP instrument/);
+        return true;
+      },
+    );
+  });
 });
 
 describe("market_get_instruments", () => {
