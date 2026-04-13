@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "../src/config.js";
 import { readFullConfig } from "../src/config/toml.js";
 import { OKX_SITES } from "../src/constants.js";
@@ -25,6 +26,9 @@ const ENV_KEYS = [
   "OKX_PASSPHRASE",
   "OKX_DEMO",
   "OKX_TIMEOUT_MS",
+  "OKX_AUTH_BIN",
+  "MOCK_AUTH_EXIT",
+  "MOCK_AUTH_STATUS_JSON",
 ] as const;
 
 type SavedEnv = Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -616,5 +620,88 @@ describe("loadConfig — demo/live with toml profile", () => {
     writeToml('[profiles.default]\ndemo = false\n');
     const config = loadConfig({ readOnly: false, demo: true });
     assert.equal(config.demo, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Partial API credentials & OAuth fallback
+// ---------------------------------------------------------------------------
+
+describe("loadConfig — partial API credentials", () => {
+  let saved: SavedEnv;
+  beforeEach(() => { saved = saveEnv(); });
+  afterEach(() => { restoreEnv(saved); });
+
+  it("throws ConfigError when only OKX_API_KEY is set", () => {
+    process.env.OKX_API_KEY = "some-key";
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("Partial API credentials"),
+    );
+  });
+
+  it("throws ConfigError when only OKX_SECRET_KEY is set", () => {
+    process.env.OKX_SECRET_KEY = "some-secret";
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("Partial API credentials"),
+    );
+  });
+
+  it("throws ConfigError when only OKX_PASSPHRASE is set", () => {
+    process.env.OKX_PASSPHRASE = "some-pass";
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("Partial API credentials"),
+    );
+  });
+
+  it("throws ConfigError when two of three credentials are set", () => {
+    process.env.OKX_API_KEY = "some-key";
+    process.env.OKX_SECRET_KEY = "some-secret";
+    assert.throws(
+      () => loadConfig(BASE_CLI),
+      (err: unknown) =>
+        err instanceof ConfigError &&
+        err.message.includes("Partial API credentials"),
+    );
+  });
+});
+
+describe("loadConfig — OAuth fallback", () => {
+  let saved: SavedEnv;
+  beforeEach(() => { saved = saveEnv(); });
+  afterEach(() => { restoreEnv(saved); });
+
+  it("hasAuth=true when OAuth binary reports logged_in (no API key)", () => {
+    const mockBin = join(fileURLToPath(new URL(".", import.meta.url)), "fixtures", "mock-auth-binary.mjs");
+    process.env.OKX_AUTH_BIN = mockBin;
+    process.env.MOCK_AUTH_EXIT = "0";
+    process.env.MOCK_AUTH_STATUS_JSON = JSON.stringify({ status: "logged_in" });
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.hasAuth, true);
+    assert.equal(config.apiKey, undefined);
+  });
+
+  it("hasAuth=false when OAuth binary is not available (no API key)", () => {
+    process.env.OKX_AUTH_BIN = "/nonexistent/path/okx-auth";
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.hasAuth, false);
+  });
+
+  it("hasAuth=true with API key regardless of OAuth status", () => {
+    process.env.OKX_API_KEY = "test-key";
+    process.env.OKX_SECRET_KEY = "test-secret";
+    process.env.OKX_PASSPHRASE = "test-pass";
+    // Point to nonexistent binary — should not matter since API key takes priority
+    process.env.OKX_AUTH_BIN = "/nonexistent/path/okx-auth";
+    const config = loadConfig(BASE_CLI);
+    assert.equal(config.hasAuth, true);
   });
 });
