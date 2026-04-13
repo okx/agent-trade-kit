@@ -1,4 +1,4 @@
-<!-- triggers: spot, swap, futures, option, trade, order, place, cancel, amend, algo, trailing, tpsl, tgtCcy, leverage, contract, instId, orderId -->
+<!-- triggers: spot, swap, futures, option, trade, order, place, cancel, amend, algo, trailing, tpsl, tgtCcy, leverage, contract, instId, orderId, margin, quote_ccy, base_ccy -->
 # Trading Modules
 
 The trading domain is split into four instrument-type modules plus a shared algorithmic order module. All four share common contract-trade utilities but differ in instrument type, margin model, and settlement currency.
@@ -41,14 +41,31 @@ The module also exposes `algo_list_orders` and `algo_cancel_order` for managemen
 
 ## tgtCcy Conversion Layer (`tgtccy-conversion.ts`)
 
-`packages/core/src/tools/tgtccy-conversion.ts` contains helpers that convert user-provided USDT amounts into contract quantities for swap/futures tools.
+`packages/core/src/tools/tgtccy-conversion.ts` contains helpers that convert user-provided USDT amounts into contract quantities for SWAP/FUTURES/OPTION orders.
 
-**Background**: The OKX API for SWAP/FUTURES orders accepts `sz` in contracts (e.g., "1 contract = 0.01 BTC"). When a user says "buy $100 USDT of BTC-USDT-SWAP", the tool must compute `sz = floor(100 / contractVal / markPrice)`. The conversion layer handles:
-- Fetching contract value and mark price
-- Converting USDT notional → contract count
-- Rounding to lot size
+**Background**: The OKX API for SWAP/FUTURES orders accepts `sz` in contracts (e.g., "1 contract = 0.01 BTC"). When a user says "buy $100 USDT of BTC-USDT-SWAP", the tool must compute `sz = floor(100 / contractVal / markPrice)`. The conversion layer handles fetching contract value and mark price, converting USDT notional → contract count, and rounding to lot size.
 
 **Note**: `tgtCcy=quote_ccy` is silently ignored by OKX API for SWAP orders — the conversion must happen client-side.
+
+### Supported `tgtCcy` Modes
+
+| Mode | `sz` meaning | Formula |
+|------|--------------|---------|
+| `base_ccy` | Passthrough (base currency contracts) | No conversion |
+| `quote_ccy` | Notional USDT amount | `contracts = floor(sz / (ctVal × lastPx), lotSz)` |
+| `margin` | USDT margin cost (v1.3.0+) | `contracts = floor(sz × lever / (ctVal × lastPx), lotSz)` |
+
+> **Implementation note**: the `floor` operation is performed at `lotSz` granularity — i.e., `floor(rawContracts / lotSz) × lotSz` — to ensure the result is a valid multiple of the minimum lot size.
+
+**`tgtCcy=margin` mode** (added in v1.3.0): `sz` represents the USDT margin cost the user is willing to commit. The actual notional is `sz × lever`. The system:
+1. Queries the current leverage for the instrument (`/api/v5/account/leverage-info`)
+2. Queries the contract value (`/api/v5/public/instruments`) and latest last price (`/api/v5/market/ticker`)
+3. Computes: `contracts = floor(marginAmount × lever / (ctVal × lastPx), lotSz precision)`
+4. Strips `tgtCcy` from the API request and sends the computed contract count as `sz`
+
+**Applicability**: `margin` mode is valid for SWAP, FUTURES, and OPTION `place_order` and `place_algo_order` tools. It is not applicable to spot orders.
+
+**Input validation**: `tgtCcy` only accepts `"base_ccy"`, `"quote_ccy"`, or `"margin"`. Any other value throws a `ValidationError` before reaching the API.
 
 ## Shared Contract Trade Logic (`contract-trade.ts`)
 

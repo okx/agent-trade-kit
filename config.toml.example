@@ -20,3 +20,6 @@ demo = true
 # 代理（可选） / Proxy (optional)
 # proxy_url = "http://127.0.0.1:7890"
 # proxy_url = "http://user:password@proxy.example.com:8080"
+
+# 知识库目录 / Knowledge base directory (reserved for AI agent context systems)
+# knowledge_dir = "context-kg"
