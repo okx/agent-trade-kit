@@ -6,7 +6,6 @@
  */
 
 import {
-  readFileSync,
   createWriteStream,
   mkdirSync,
   chmodSync,
@@ -14,7 +13,6 @@ import {
   unlinkSync,
   renameSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
 import { homedir, platform } from "node:os";
 import { join, dirname } from "node:path";
 import { get as httpsGet } from "node:https";
@@ -127,10 +125,10 @@ async function fetchAndValidateChecksum(
   }
 
   if (checksum.target !== platformDir) {
-    throw new Error(`Target mismatch: expected ${platformDir}, got ${checksum.target as string}`);
+    throw new Error(`Target mismatch: expected ${platformDir}, got ${checksum.target}`);
   }
 
-  return { sha256: checksum.sha256, size: checksum.size as number, target: checksum.target as string };
+  return { sha256: checksum.sha256, size: checksum.size, target: checksum.target };
 }
 
 async function downloadAndVerify(

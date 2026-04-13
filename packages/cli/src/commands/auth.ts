@@ -44,7 +44,7 @@ function runOkxAuthCapture(args: string[]): Promise<{ code: number; stdout: stri
     });
 
     const chunks: Buffer[] = [];
-    child.stdout!.on("data", (chunk: Buffer) => chunks.push(chunk));
+    child.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
 
     child.on("error", (err) => {
       reject(new Error(`Failed to spawn okx-auth: ${err.message}`));
