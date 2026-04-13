@@ -11,6 +11,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
   mkdtempSync,
+  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -51,6 +52,7 @@ const ENV_KEYS = [
   "MOCK_AUTH_EXIT",
   "MOCK_AUTH_TOKEN",
   "MOCK_AUTH_STATUS_JSON",
+  "MOCK_AUTH_ARGS_FILE",
 ] as const;
 
 type SavedEnv = Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -438,5 +440,152 @@ describe("cmdAuthStatus", () => {
     process.env.MOCK_AUTH_STATUS_JSON = "";
     await captureProcessStdout(() => cmdAuthStatus({}));
     assert.equal(process.exitCode, 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleAuthCommand — parameter routing
+//
+// Verifies that the router reads key params from v.xxx (named flags),
+// NOT from rest[N] (positional args). See issue #78 for prior incident.
+// ---------------------------------------------------------------------------
+
+describe("handleAuthCommand — parameter routing", () => {
+  let saved: SavedEnv;
+  let savedExitCode: number | undefined;
+  let argsFile: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedExitCode = process.exitCode;
+    process.exitCode = undefined;
+    argsFile = join(tempDir, "captured-args.json");
+    process.env.OKX_AUTH_BIN = MOCK_BINARY;
+    process.env.MOCK_AUTH_EXIT = "0";
+    process.env.MOCK_AUTH_ARGS_FILE = argsFile;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    process.exitCode = savedExitCode;
+  });
+
+  /** Read the args captured by mock binary. */
+  function readCapturedArgs(): string[] {
+    return JSON.parse(readFileSync(argsFile, "utf-8"));
+  }
+
+  // -- login ----------------------------------------------------------------
+
+  it("login: site and manual come from v (named flags)", async () => {
+    await handleAuthCommand("login", [], { site: "global", manual: true });
+    const args = readCapturedArgs();
+    assert.deepEqual(args, ["login", "--site", "global", "--manual"]);
+  });
+
+  it("login: rest args are not leaked to the binary", async () => {
+    await handleAuthCommand("login", ["SHOULD-NOT-USE"], { site: "hk" });
+    const args = readCapturedArgs();
+    assert.ok(!args.includes("SHOULD-NOT-USE"), "rest[0] must not leak");
+    assert.ok(args.includes("--site"), "--site flag must be present");
+    assert.ok(args.includes("hk"), "site value must be present");
+  });
+
+  it("login: omitted optional flags are not passed", async () => {
+    await handleAuthCommand("login", [], {});
+    const args = readCapturedArgs();
+    assert.deepEqual(args, ["login"]);
+  });
+
+  // -- logout ---------------------------------------------------------------
+
+  it("logout: routes correctly with no params", async () => {
+    await handleAuthCommand("logout", [], {});
+    const args = readCapturedArgs();
+    assert.deepEqual(args, ["logout"]);
+  });
+
+  // -- status ---------------------------------------------------------------
+
+  it("status: json flag comes from v.json", async () => {
+    process.env.MOCK_AUTH_STATUS_JSON = JSON.stringify({ status: "ok" });
+    await (handleAuthCommand("status", [], { json: true }) as Promise<void>);
+    const args = readCapturedArgs();
+    assert.deepEqual(args, ["status", "--json"]);
+  });
+
+  it("status: json omitted when v.json is falsy", async () => {
+    process.env.MOCK_AUTH_STATUS_JSON = "text-output";
+    await (handleAuthCommand("status", [], {}) as Promise<void>);
+    const args = readCapturedArgs();
+    assert.deepEqual(args, ["status"]);
+  });
+
+  // -- install (no binary spawn — verify via output format) -----------------
+
+  it("install: json=true produces JSON output", async () => {
+    process.env.OKX_AUTH_BIN = join(tempDir, "okx-auth");
+    delete process.env.MOCK_AUTH_ARGS_FILE;
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleAuthCommand("install", [], { json: true });
+    } finally {
+      cap.restore();
+    }
+    const data = JSON.parse(cap.stdout().trim());
+    assert.ok("status" in data, "json output must have status field");
+  });
+
+  // -- install-status (no binary spawn — verify via output format) ----------
+
+  it("install-status: json=true produces JSON output", async () => {
+    process.env.OKX_AUTH_BIN = join(tempDir, "nonexistent-okx-auth");
+    delete process.env.MOCK_AUTH_ARGS_FILE;
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleAuthCommand("install-status", [], { json: true });
+    } finally {
+      cap.restore();
+    }
+    const data = JSON.parse(cap.stdout().trim());
+    assert.ok("exists" in data, "json output must have exists field");
+  });
+
+  // -- remove (no binary spawn — verify force + json routing) ---------------
+
+  it("remove: force and json come from v", async () => {
+    const binPath = join(tempDir, "okx-auth");
+    writeFileSync(binPath, Buffer.from("fake-binary"));
+    process.env.OKX_AUTH_BIN = binPath;
+    delete process.env.MOCK_AUTH_ARGS_FILE;
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleAuthCommand("remove", [], { force: true, json: true });
+    } finally {
+      cap.restore();
+    }
+    const data = JSON.parse(cap.stdout().trim());
+    assert.equal(data.status, "removed");
+  });
+
+  it("remove: without force on non-TTY sets exitCode=1", async () => {
+    const binPath = join(tempDir, "okx-auth");
+    writeFileSync(binPath, Buffer.from("fake-binary"));
+    process.env.OKX_AUTH_BIN = binPath;
+    delete process.env.MOCK_AUTH_ARGS_FILE;
+    const origIsTTY = process.stdin.isTTY;
+    process.stdin.isTTY = undefined as any;
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleAuthCommand("remove", [], { json: false });
+    } finally {
+      cap.restore();
+      process.stdin.isTTY = origIsTTY;
+    }
+    assert.equal(process.exitCode, 1, "must fail without force on non-TTY");
   });
 });

@@ -6,6 +6,7 @@
  *   MOCK_AUTH_EXIT           — exit code (default 0)
  *   MOCK_AUTH_TOKEN          — token value written to fd 3 for `token` subcommand
  *   MOCK_AUTH_STATUS_JSON    — JSON string written to stdout for `status --json`
+ *   MOCK_AUTH_ARGS_FILE      — when set, write JSON-serialised argv (minus node+script) to this path
  *
  * Subcommands:
  *   token         — writes MOCK_AUTH_TOKEN to fd 3, exits with MOCK_AUTH_EXIT
@@ -14,11 +15,16 @@
  *   logout        — exits with MOCK_AUTH_EXIT
  */
 
-import { writeSync } from "node:fs";
+import { writeSync, writeFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const subcommand = args[0] ?? "";
 const exitCode = parseInt(process.env.MOCK_AUTH_EXIT ?? "0", 10);
+
+// When MOCK_AUTH_ARGS_FILE is set, dump received args for parameter routing tests
+if (process.env.MOCK_AUTH_ARGS_FILE) {
+  writeFileSync(process.env.MOCK_AUTH_ARGS_FILE, JSON.stringify(args));
+}
 
 switch (subcommand) {
   case "token": {
