@@ -1,6 +1,6 @@
 ---
 name: okx-cex-auth
-description: "Use this skill when the user wants to 'login', 'log in', 'sign in', 'authenticate', 'authorize', 'connect OKX account', 'set up OKX credentials', 'first time setup', 'configure okx', '登录', '授权', '认证', '连接账户', '配置登录', '首次配置', '初次设置'. Also use when any OKX CLI command fails with an authentication error such as: 'Run `okx auth login` first', 'Session expired', 'not authenticated', 'requires_auth', '401 Unauthorized', 'token expired', 'token not found', 'StorageNotFoundError', '会话过期', '未认证', '需要登录'. Also use when the user asks about login status, says 'I already logged in', or the login process was interrupted. Also use before using okx-cex-trade, okx-cex-portfolio, okx-cex-earn, or okx-cex-bot for the first time. Do NOT use for market data queries (use okx-cex-market)."
+description: "Use this skill when the user wants to 'login', 'log in', 'sign in', 'authenticate', 'authorize', 'connect OKX account', 'set up OKX credentials', 'first time setup', 'configure okx', '登录', '授权', '认证', '连接账户', '配置登录', '首次配置', '初次设置'. Also use when any OKX CLI command fails with an authentication error such as: 'Run `okx auth login` first', 'Session expired', 'not authenticated', 'requires_auth', '401 Unauthorized', 'token expired', 'token not found', 'StorageNotFoundError', '会话过期', '未认证', '需要登录'. Also use when the user asks about login status, says 'I already logged in', or the login process was interrupted. Also use when the user wants to install, update, check, or remove the okx-auth binary — phrases like 'install auth', 'download okx-auth', 'update auth binary', 'check auth binary', 'remove auth', 'uninstall auth', '安装认证', '更新认证', '卸载认证', 'auth binary status', 'is okx-auth installed', 'Failed to spawn okx-auth'. Also use before using okx-cex-trade, okx-cex-portfolio, okx-cex-earn, or okx-cex-bot for the first time. Do NOT use for market data queries (use okx-cex-market)."
 license: MIT
 metadata:
   author: okx
@@ -120,6 +120,86 @@ okx auth logout
 
 DCR client registration is retained after logout. The next `okx auth login` will be faster.
 
+## Binary Management
+
+The `okx auth` commands (`login`, `logout`, `status`) depend on the `okx-auth` binary. It is normally installed automatically during `npm install`, but can also be managed manually.
+
+### Install / Update
+
+Download the latest `okx-auth` binary from CDN:
+
+```bash
+okx auth install
+```
+
+If the binary is already installed and matches the CDN checksum, the command reports "up to date" without re-downloading.
+
+JSON output: `okx auth install --json`
+
+```json
+{"status":"installed","source":"static.okx.com","error":null,"messages":["..."]}
+```
+
+`status` values: `installed` (newly downloaded), `up-to-date` (already current), `failed` (all CDN sources failed).
+
+### Check Installation
+
+Show binary path, platform, file size, SHA-256, and whether it matches the CDN:
+
+```bash
+okx auth install-status
+```
+
+Example output:
+
+```
+  okx-auth Binary Status
+  ────────────────────────────────────────
+  Binary path : ~/.okx/bin/okx-auth
+  Installed   : yes
+  Platform    : darwin-arm64
+  File size   : 3.85 MB
+  SHA-256     : 2cdd19e1...
+  CDN check   : ✓ match
+  CDN source  : static.okx.com
+```
+
+JSON output: `okx auth install-status --json`
+
+```json
+{
+  "binaryPath": "~/.okx/bin/okx-auth",
+  "exists": true,
+  "platform": "darwin-arm64",
+  "fileSize": 4033456,
+  "sha256": "2cdd19e1...",
+  "cdnMatch": "match",
+  "cdnSha256": "2cdd19e1...",
+  "cdnSource": "static.okx.com"
+}
+```
+
+`cdnMatch` values: `match` (up to date), `mismatch` (update available), `unavailable` (CDN unreachable), `not-installed`.
+
+### Remove
+
+Remove the `okx-auth` binary from disk:
+
+```bash
+okx auth remove          # interactive confirmation
+okx auth remove --force  # skip confirmation
+```
+
+JSON output: `okx auth remove --force --json`
+
+### Troubleshooting: "Failed to spawn okx-auth"
+
+If any `okx auth` command (`login`, `logout`, `status`) fails with "Failed to spawn okx-auth", the binary is missing or corrupted:
+
+1. Run `okx auth install` to download it
+2. Verify with `okx auth install-status`
+3. Retry the original command
+
 ## Error Reference
 
 | Error message                                 | Cause                                  | Action                                           |
@@ -130,6 +210,8 @@ DCR client registration is retained after logout. The next `okx auth login` will
 | `Access denied`                               | User rejected authorization in browser | Run `okx auth login --manual` and ask to approve |
 | `Region restriction` (51155, 51734)            | Instrument not available in configured site | Check `okx auth status --json` for current site; re-login with `--site` if needed |
 | `Network error` during login                  | Network unavailable                    | Check network and retry                          |
+| `Failed to spawn okx-auth`                    | Binary not installed or corrupted      | Run `okx auth install`                           |
+| `Installation failed: All CDN sources failed` | Network issue during binary download   | Check network and retry `okx auth install`       |
 
 ## Skill Routing
 
