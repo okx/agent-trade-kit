@@ -6,10 +6,14 @@
 
 ## Phase 0: 获取 Issue 详情
 
-通过 GitLab API 获取 issue 内容（使用 `PRIVATE-TOKEN` header）：
+先从项目根目录 `.env` 文件读取 `GITLAB_PERSONAL_ACCESS_TOKEN`（格式为 `export GITLAB_PERSONAL_ACCESS_TOKEN="glpat-xxx"`）。
+
+通过 GitLab API 获取 issue 内容：
 
 ```bash
-curl -s --header "PRIVATE-TOKEN: glpat-8XCwQkLs9ozm3yQSfFKV" \
+# 从 .env 读取 token
+GITLAB_TOKEN=$(grep GITLAB_PERSONAL_ACCESS_TOKEN .env | sed 's/.*="\(.*\)"/\1/')
+curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   "https://gitlab.okg.com/api/v4/projects/12947/issues/<IID>"
 ```
 
@@ -97,10 +101,11 @@ EOF
 git push -u origin fix/issue-<IID>-<描述>
 ```
 
-通过 GitLab API 创建 MR：
+通过 GitLab API 创建 MR（token 从 `.env` 读取）：
 
 ```bash
-curl -s --header "PRIVATE-TOKEN: glpat-8XCwQkLs9ozm3yQSfFKV" \
+GITLAB_TOKEN=$(grep GITLAB_PERSONAL_ACCESS_TOKEN .env | sed 's/.*="\(.*\)"/\1/')
+curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   --header "Content-Type: application/json" \
   -X POST "https://gitlab.okg.com/api/v4/projects/12947/merge_requests" \
   -d '{ "source_branch": "...", "target_branch": "master", "title": "...", "description": "..." }'
@@ -124,7 +129,8 @@ Closes #<IID>
 通过 GitLab API 在 issue 中评论 MR 链接和修复摘要：
 
 ```bash
-curl -s --header "PRIVATE-TOKEN: glpat-8XCwQkLs9ozm3yQSfFKV" \
+GITLAB_TOKEN=$(grep GITLAB_PERSONAL_ACCESS_TOKEN .env | sed 's/.*="\(.*\)"/\1/')
+curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
   --header "Content-Type: application/json" \
   -X POST "https://gitlab.okg.com/api/v4/projects/12947/issues/<IID>/notes" \
   -d '{ "body": "MR 已创建: !<MR_IID> (<MR_URL>)\n\n修复内容:\n..." }'
