@@ -391,5 +391,6 @@ This applies to all error codes whose messages suggest destructive actions, incl
 - Batch operations (batch cancel, batch amend) are available via MCP tools directly if needed
 - Position mode (`net` vs `long_short_mode`) affects whether `--posSide` is required
 - **Network errors**: If commands fail with a connection error, prompt user to check VPN: `curl -I https://www.okx.com`
+- **Capability discovery**: Run `okx list-tools --json` to get a machine-readable JSON listing of all CLI commands, tool names, and parameters — useful for programmatic enumeration without parsing `--help` text
 
 For MCP tool reference, output conventions, and order amount safety rules, read `{baseDir}/references/templates.md`.
