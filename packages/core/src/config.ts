@@ -2,7 +2,7 @@ import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, EARN_SUB_MODULE_IDS, DEFAU
 import { ConfigError } from "./utils/errors.js";
 import { readFullConfig } from "./config/toml.js";
 import type { OkxProfile } from "./config/toml.js";
-import { checkOAuthStatusSync } from "./auth/binary.js";
+import { execAuthStatus } from "./auth/binary.js";
 
 export interface CliOptions {
   modules?: string;
@@ -79,7 +79,7 @@ function parseModuleList(rawModules?: string): ModuleId[] {
   return Array.from(deduped);
 }
 
-function loadCredentials(toml: OkxProfile): { apiKey?: string; secretKey?: string; passphrase?: string; hasAuth: boolean } {
+async function loadCredentials(toml: OkxProfile): Promise<{ apiKey?: string; secretKey?: string; passphrase?: string; hasAuth: boolean }> {
   const apiKey = process.env.OKX_API_KEY?.trim() ?? toml.api_key;
   const secretKey = process.env.OKX_SECRET_KEY?.trim() ?? toml.secret_key;
   const passphrase = process.env.OKX_PASSPHRASE?.trim() ?? toml.passphrase;
@@ -94,7 +94,11 @@ function loadCredentials(toml: OkxProfile): { apiKey?: string; secretKey?: strin
 
   // hasAuth = true if either OAuth tokens (via okx-auth binary) or API key exists
   // Auth mode is determined dynamically by rest-client at request time
-  const hasOAuth = hasApiKey ? false : checkOAuthStatusSync();
+  let hasOAuth = false;
+  if (!hasApiKey) {
+    const status = await execAuthStatus();
+    hasOAuth = status?.status === "logged_in";
+  }
   const hasAuth = hasOAuth || hasApiKey;
 
   return { apiKey, secretKey, passphrase, hasAuth };
@@ -154,11 +158,11 @@ function resolveDemo(cli: CliOptions, toml: OkxProfile): boolean {
     (toml.demo ?? false);
 }
 
-export function loadConfig(cli: CliOptions): OkxConfig {
+export async function loadConfig(cli: CliOptions): Promise<OkxConfig> {
   const config = readFullConfig();
   const profileName = cli.profile ?? config.default_profile ?? "default";
   const toml = config.profiles?.[profileName] ?? {};
-  const creds = loadCredentials(toml);
+  const creds = await loadCredentials(toml);
 
   const demo = resolveDemo(cli, toml);
 

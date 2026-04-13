@@ -52,6 +52,12 @@ export class ConfigError extends OkxMcpError {
   }
 }
 
+export class NotLoggedInError extends ConfigError {
+  public constructor(suggestion = "Run `okx auth login` to authenticate.") {
+    super("Not logged in.", suggestion);
+  }
+}
+
 export class ValidationError extends OkxMcpError {
   public constructor(message: string, suggestion?: string) {
     super("ValidationError", message, { suggestion });

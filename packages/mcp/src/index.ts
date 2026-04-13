@@ -144,7 +144,7 @@ export async function main(): Promise<void> {
     return;
   }
 
-  const config = loadConfig({
+  const config = await loadConfig({
     modules: cli.modules,
     profile: cli.profile,
     site: cli.site,

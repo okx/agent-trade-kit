@@ -5,6 +5,7 @@ import {
   AuthenticationError,
   ConfigError,
   NetworkError,
+  NotLoggedInError,
   OkxApiError,
   RateLimitError,
 } from "../utils/errors.js";
@@ -151,7 +152,7 @@ export class OkxRestClient {
       this.cachedAccessTokenAt = Date.now();
       return token;
     } catch (e) {
-      if (e instanceof ConfigError && e.message === "Not logged in.") {
+      if (e instanceof NotLoggedInError) {
         return null;
       }
       throw e;

@@ -1233,9 +1233,9 @@ export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger
 
 // Extracted to reduce cognitive complexity of main()
 async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<void> {
-  let config: ReturnType<typeof loadProfileConfig> | undefined;
+  let config: Awaited<ReturnType<typeof loadProfileConfig>> | undefined;
   try {
-    config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+    config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   } catch {
     // Config parse failed — diagnose will detect and report it
   }
@@ -1294,7 +1294,7 @@ async function main(): Promise<void> {
   const mgmt = routeManagementCommand(module, action, rest, json, v);
   if (mgmt) return mgmt;
 
-  const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  const config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
   setJsonEnvEnabled(v.env ?? false);
 

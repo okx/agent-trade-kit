@@ -190,7 +190,7 @@ describe("cmdDiagnose", () => {
 
   it("shows base URL in config section", async () => {
     const { output } = await run(BASE_CONFIG);
-    assert.ok(output.includes("https://www.okx.com") || output.includes("https://beta.okex.org"));
+    assert.ok(output.includes("https://www.okx.com"));
   });
 
   it("shows timeout in config section", async () => {

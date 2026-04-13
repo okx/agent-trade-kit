@@ -1,12 +1,12 @@
-import { spawn, execFileSync, execFile } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { AuthenticationError, ConfigError } from "../utils/errors.js";
+import { AuthenticationError, ConfigError, NotLoggedInError } from "../utils/errors.js";
 import { EXIT_CODES } from "./types.js";
 import type { AuthStatusResult } from "./types.js";
 
 /** Default timeout for status/token commands (ms). */
-const EXEC_TIMEOUT_MS = 10_000;
+const EXEC_TIMEOUT_MS = 5_000;
 
 /** Directory under the user's home where the binary lives. */
 const AUTH_BIN_DIR = join(homedir(), ".okx", "bin");
@@ -68,10 +68,7 @@ export function execAuthToken(): Promise<string> {
       }
 
       if (code === EXIT_CODES.NOT_LOGGED_IN) {
-        reject(new ConfigError(
-          "Not logged in.",
-          "Run `okx auth login` to authenticate.",
-        ));
+        reject(new NotLoggedInError());
         return;
       }
 
@@ -126,25 +123,4 @@ export function execAuthStatus(): Promise<AuthStatusResult | null> {
       },
     );
   });
-}
-
-/**
- * Synchronous check: is the user currently logged in via OAuth?
- *
- * Uses `execFileSync` — only for config load where async is not available.
- * Returns false on any error (binary missing, not logged in, etc.).
- */
-export function checkOAuthStatusSync(): boolean {
-  try {
-    const binPath = getAuthBinaryPath();
-    const stdout = execFileSync(binPath, ["status", "--json"], {
-      timeout: 5_000,
-      stdio: ["ignore", "pipe", "ignore"],
-      encoding: "utf-8",
-    });
-    const result = JSON.parse(stdout) as { status?: string };
-    return result.status === "logged_in";
-  } catch {
-    return false;
-  }
 }

@@ -12,9 +12,8 @@ import {
   getAuthBinaryPath,
   execAuthToken,
   execAuthStatus,
-  checkOAuthStatusSync,
 } from "../src/auth/binary.js";
-import { AuthenticationError, ConfigError } from "../src/utils/errors.js";
+import { AuthenticationError, ConfigError, NotLoggedInError } from "../src/utils/errors.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const MOCK_BINARY = join(__dirname, "fixtures", "mock-auth-binary.mjs");
@@ -105,12 +104,13 @@ describe("execAuthToken", () => {
     );
   });
 
-  it("rejects with ConfigError for NOT_LOGGED_IN (exit 2)", async () => {
+  it("rejects with NotLoggedInError for NOT_LOGGED_IN (exit 2)", async () => {
     setMockBinary(2);
     await assert.rejects(
       () => execAuthToken(),
       (err: Error) => {
-        assert.ok(err instanceof ConfigError);
+        assert.ok(err instanceof NotLoggedInError);
+        assert.ok(err instanceof ConfigError); // subclass of ConfigError
         assert.ok(err.message.includes("Not logged in"));
         return true;
       },
@@ -210,33 +210,3 @@ describe("execAuthStatus", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// checkOAuthStatusSync
-// ---------------------------------------------------------------------------
-
-describe("checkOAuthStatusSync", () => {
-  beforeEach(() => saveMockEnv());
-  afterEach(() => restoreMockEnv());
-
-  it("returns true when status is logged_in", () => {
-    setMockBinary(0, undefined, JSON.stringify({ status: "logged_in" }));
-    assert.equal(checkOAuthStatusSync(), true);
-  });
-
-  it("returns false when status is not_logged_in", () => {
-    setMockBinary(0, undefined, JSON.stringify({ status: "not_logged_in" }));
-    assert.equal(checkOAuthStatusSync(), false);
-  });
-
-  it("returns false when binary does not exist", () => {
-    process.env.OKX_AUTH_BIN = "/nonexistent/path/okx-auth";
-    delete process.env.MOCK_AUTH_EXIT;
-    delete process.env.MOCK_AUTH_STATUS_JSON;
-    assert.equal(checkOAuthStatusSync(), false);
-  });
-
-  it("returns false on invalid JSON output", () => {
-    setMockBinary(0, undefined, "invalid-json");
-    assert.equal(checkOAuthStatusSync(), false);
-  });
-});

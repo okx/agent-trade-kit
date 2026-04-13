@@ -1,4 +1,4 @@
-export const OKX_API_BASE_URL = "https://beta.okex.org";
+export const OKX_API_BASE_URL = "https://www.okx.com";
 
 /** Default source tag injected into all order placements for attribution. */
 export const DEFAULT_SOURCE_TAG = "MCP";
@@ -17,18 +17,18 @@ export interface OkxSite {
 export const OKX_SITES = {
   global: {
     label: "Global",
-    apiBaseUrl: "https://beta.okex.org",
-    webUrl: "https://beta.okex.org",
+    apiBaseUrl: "https://www.okx.com",
+    webUrl: "https://www.okx.com",
   },
   eea: {
     label: "EEA",
-    apiBaseUrl: "https://eubeta.okex.org",
-    webUrl: "https://eubeta.okex.org",
+    apiBaseUrl: "https://eea.okx.com",
+    webUrl: "https://my.okx.com",
   },
   us: {
     label: "US",
-    apiBaseUrl: "https://usbeta.okex.org",
-    webUrl: "https://usbeta.okex.org",
+    apiBaseUrl: "https://us.okx.com",
+    webUrl: "https://app.okx.com",
   },
 } as const satisfies Record<string, OkxSite>;
 
