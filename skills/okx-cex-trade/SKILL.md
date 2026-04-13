@@ -123,7 +123,11 @@ Use `ctVal` to:
 | `margin` | USDT margin cost | `floor(sz * lever / (ctVal * lastPx))` | 500 USDT margin = 5000 USDT notional |
 
 **When user specifies a USDT amount** (e.g. "200U", "500 USDT", "$1000"):
-→ **AMBIGUOUS** — this could mean notional value OR margin cost. You MUST ask: "您输入的 500U 是名义价值（notional value）还是保证金成本（margin cost）？名义价值模式下 500U 直接买入 500U 等值合约；保证金模式下 500U 保证金以当前杠杆计算，实际仓位 = 500U × 杠杆倍数。" Wait for the user's answer before continuing.
+→ **AMBIGUOUS** — this could mean notional value OR margin cost.
+  You MUST ask the user to clarify before proceeding:
+  - **notional value**: sz = position value in USDT (e.g. 500 USDT buys 500 USDT worth of contracts directly)
+  - **margin cost**: actual position = sz × leverage (e.g. 500 USDT margin at 10× = 5000 USDT notional position)
+  Wait for the user's answer before continuing.
 - If notional value → use `--tgtCcy quote_ccy`
 - If margin cost → use `--tgtCcy margin`
 
@@ -131,7 +135,11 @@ Use `ctVal` to:
 → First verify `ctVal` via `market_get_instruments`, then use `--sz` with the contract count. Confirm with user: "X contracts = X × ctVal underlying, total value ≈ $Y".
 
 **When user gives a plain number with no unit** (for swap/futures):
-→ Ambiguous — ask before proceeding: "您输入的 X 是合约张数、USDT 名义价值还是 USDT 保证金成本？" Wait for the user's answer before continuing.
+→ **AMBIGUOUS** — You MUST ask the user to clarify before proceeding:
+  - **contract count**: X contracts (each worth ctVal of underlying)
+  - **USDT notional value**: position value in USDT
+  - **USDT margin cost**: margin amount (actual position = X × leverage)
+  Wait for the user's answer before continuing.
 
 ⚠ **Inverse contracts** (`*-USD-SWAP`, `*-USD-YYMMDD`): `tgtCcy=quote_ccy` and `tgtCcy=margin` also work (note: `quote_ccy` = USD, not USDT, for inverse instruments). Always warn: "This is an inverse contract. Margin and P&L are settled in BTC, not USDT."
 

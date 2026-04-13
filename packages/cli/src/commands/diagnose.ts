@@ -3,8 +3,8 @@ import net from "node:net";
 import os from "node:os";
 import tls from "node:tls";
 import type { OkxConfig } from "@agent-tradekit/core";
-import { OkxRestClient, readFullConfig, configFilePath } from "@agent-tradekit/core";
-import { Report, ok, fail, section, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
+import { OkxRestClient, readFullConfig, configFilePath, getDohStatus, fetchCdnChecksum, readDohCache } from "@agent-tradekit/core";
+import { Report, ok, fail, warn, section, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
 import { outputLine } from "../formatter.js";
 import { cmdDiagnoseMcp } from "./diagnose-mcp.js";
 
@@ -319,6 +319,52 @@ export async function cmdDiagnose(config: OkxConfig | undefined, profile: string
   return runCliChecks(config, profile, options.output);
 }
 
+async function checkDoh(report: Report): Promise<void> {
+  section("DoH Resolver");
+
+  const local = getDohStatus();
+
+  if (!local.exists) {
+    fail("DoH binary", "not installed", [
+      "Run: okx doh install",
+      "Or wait for the next npm install to auto-download",
+    ]);
+    report.add("doh_binary", "not installed");
+    return;
+  }
+
+  ok("DoH binary", local.binaryPath);
+  report.add("doh_binary", `installed (${local.platform ?? "unknown"})`);
+
+  // CDN checksum comparison — use a 5s timeout to match other network probes
+  const cdnChecksum = await fetchCdnChecksum(undefined, 5_000);
+  if (!cdnChecksum) {
+    warn("DoH checksum", "CDN unreachable — cannot verify");
+    report.add("doh_checksum", "CDN unreachable");
+  } else if (cdnChecksum.sha256 === local.sha256) {
+    ok("DoH checksum", `match (${cdnChecksum.source})`);
+    report.add("doh_checksum", `match (${cdnChecksum.source})`);
+  } else {
+    warn("DoH checksum", "mismatch — update available", ["Run: okx doh install"]);
+    report.add("doh_checksum", "mismatch");
+  }
+
+  // Runtime DoH mode from cache
+  try {
+    const cacheEntry = readDohCache("www.okx.com");
+    if (cacheEntry) {
+      ok("DoH mode", cacheEntry.mode);
+      report.add("doh_mode", cacheEntry.mode);
+    } else {
+      ok("DoH mode", "no cache (will auto-detect on next request)");
+      report.add("doh_mode", "no cache");
+    }
+  } catch {
+    ok("DoH mode", "no cache");
+    report.add("doh_mode", "no cache");
+  }
+}
+
 function checkConfigFile(report: Report): boolean {
   section("Config File");
   const path = configFilePath();
@@ -350,6 +396,7 @@ async function runCliChecks(config: OkxConfig | undefined, profile: string, outp
 
   const configFilePassed = checkConfigFile(report);
   const envPassed = checkEnvironment(report);
+  await checkDoh(report);
 
   if (!config) {
     // Config parse failed — skip remaining checks that need config

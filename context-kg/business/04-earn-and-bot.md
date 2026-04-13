@@ -1,0 +1,68 @@
+<!-- triggers: earn, savings, dcd, onchain, autoearn, auto-earn, bot, grid, dca, recurring, yield, staking, flexible, fixed, subscribe, redeem -->
+# Earn & Bot Modules
+
+## Earn Module (`packages/core/src/tools/earn/`)
+
+The earn module is split into four sub-modules, each targeting a different OKX earn product. They share the parent `earn/index.ts` which registers tools with the shorthand `earn.all` (expands to all four sub-modules).
+
+### savings (`earn/savings.ts`)
+- Flexible savings: subscribe/redeem at any time, earn lending yield
+- `earn_get_savings_balance` — current savings positions
+- `earn_subscribe_savings` / `earn_redeem_savings` — move funds in/out
+- APY shown as current lending rate (changes hourly)
+
+### dcd (`earn/dcd.ts`)
+- Dual Currency Deposits: structured product — earn premium but may settle in either currency depending on price at expiry
+- `earn_get_dcd_products` — list available DCD products by currency pair and tenor
+- `earn_subscribe_dcd` — place DCD subscription (write operation)
+- Higher yield than savings but with price risk at settlement
+
+### onchain (`earn/onchain.ts`)
+- On-chain staking: delegate assets to DeFi protocols or validator nodes
+- `earn_get_onchain_offers` — list staking offers by currency
+- `earn_subscribe_onchain` / `earn_redeem_onchain`
+- Redemption may have a lock-up period (shown in `redemptionPeriod`)
+
+### autoearn (`earn/autoearn.ts`)
+- Auto-earn: automatically route idle funds to the best available yield product
+- `earn_get_autoearn_config` — current auto-earn settings
+- `earn_set_autoearn` — enable/configure auto-earn per currency (write)
+- Internally calls savings or on-chain depending on the yield optimization
+
+### Sub-module ID Expansion
+
+In config and CLI, `earn.all` is a shorthand that expands to all four earn sub-modules:
+```
+earn.all → [earn.savings, earn.dcd, earn.onchain, earn.autoearn]
+```
+This expansion happens in `packages/core/src/constants.ts`.
+
+## Bot Module (`packages/core/src/tools/bot/`)
+
+The bot module exposes two automated strategy types. Like earn, it uses `bot.all` shorthand.
+
+### grid (`bot/grid.ts`)
+- Grid trading bots: place buy/sell orders at regular price intervals
+- Supports spot grid, futures grid, and contract grid variants
+- `bot_create_grid` — create a new grid bot (write)
+- `bot_list_grid` — list running grid bots with PnL
+- `bot_stop_grid` — terminate a grid bot (write)
+- `bot_get_grid_orders` — view orders placed by the bot
+
+### dca (`bot/dca.ts`)
+- DCA (Dollar Cost Averaging) bots: recurring purchases at fixed intervals
+- `bot_create_dca` — create a DCA bot with amount, frequency, and instrument (write)
+- `bot_list_dca` — list active DCA bots
+- `bot_stop_dca` — terminate a DCA bot (write)
+
+### Sub-module ID Expansion
+
+```
+bot.all → [bot.grid, bot.dca]
+```
+
+## Write Safety
+
+All subscribe/redeem/create/stop operations are `isWrite: true`. The MCP server enforces a confirmation flow for write tools — the agent must not bypass this with silent auto-confirms.
+
+When the agent is managing a bot and encounters a `set-leverage` failure before starting the bot, it should **not** automatically stop the bot. Instead, it should surface the error and ask the user for guidance. (See issue #229 for the leverage-gap incident.)

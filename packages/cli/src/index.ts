@@ -176,6 +176,8 @@ import {
   cmdSkillList,
 } from "./commands/skill.js";
 import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext, setJsonEnvEnabled } from "./formatter.js";
+import { cmdDohStatus, cmdDohInstall, cmdDohRemove } from "./commands/doh.js";
+import { getDohStatus } from "@agent-tradekit/core";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -184,6 +186,20 @@ export type { CliValues } from "./parser.js";
 // ---------------------------------------------------------------------------
 // Command handlers
 // ---------------------------------------------------------------------------
+
+export function handleDohCommand(
+  action: string,
+  json: boolean,
+  force: boolean,
+  binaryPath?: string,
+): Promise<void> | void {
+  if (action === "status") return cmdDohStatus(json, binaryPath);
+  if (action === "install") return cmdDohInstall(json, binaryPath);
+  if (action === "remove") return cmdDohRemove(force, json, binaryPath);
+  errorLine(`Unknown doh command: ${action}`);
+  errorLine("Usage: okx doh <status|install|remove>");
+  process.exitCode = 1;
+}
 
 export function handleConfigCommand(action: string, rest: string[], json: boolean, lang?: string, force?: boolean): Promise<void> | void {
   if (action === "init") return cmdConfigInit((lang === "zh" ? "zh" : "en") as Lang);
@@ -1226,6 +1242,31 @@ async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<vo
   return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
 }
 
+// Extracted to reduce cognitive complexity of main()
+function printVersion(): void {
+  outputLine(`${CLI_VERSION} (${GIT_HASH})`);
+  // Use skipHash: true — only need existence/platform, not SHA-256
+  const dohStatus = getDohStatus(undefined, { skipHash: true });
+  if (dohStatus.exists) {
+    outputLine(`DoH resolver: installed (${dohStatus.platform ?? "unknown"})`);
+  } else {
+    outputLine("DoH resolver: not installed");
+  }
+}
+
+/** Route management commands that don't need API credentials. Returns the handler promise, or undefined if not a management command. */
+function routeManagementCommand(
+  module: string, action: string | undefined, rest: string[], json: boolean, v: ReturnType<typeof parseCli>["values"],
+): Promise<void> | void | undefined {
+  if (module === "config") return handleConfigCommand(action as string, rest, json, v.lang, v.force);
+  if (module === "setup") return handleSetupCommand(v);
+  if (module === "auth") return handleAuthCommand(action as string, rest, v);
+  if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
+  if (module === "doh") return handleDohCommand(action as string, json, v.force ?? false);
+  if (module === "diagnose") return runDiagnose(v);
+  return undefined;
+}
+
 async function main(): Promise<void> {
   setOutput({
     out: (m) => process.stdout.write(m),
@@ -1237,7 +1278,7 @@ async function main(): Promise<void> {
   const { values, positionals } = parseCli(process.argv.slice(2));
 
   if (values.version) {
-    outputLine(`${CLI_VERSION} (${GIT_HASH})`);
+    printVersion();
     return;
   }
 
@@ -1250,13 +1291,8 @@ async function main(): Promise<void> {
   const v = values;
   const json = v.json ?? false;
 
-  if (module === "config") return handleConfigCommand(action, rest, json, v.lang, v.force);
-  if (module === "setup") return handleSetupCommand(v);
-  if (module === "auth") return handleAuthCommand(action, rest, v);
-
-  if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
-
-  if (module === "diagnose") return runDiagnose(v);
+  const mgmt = routeManagementCommand(module, action, rest, json, v);
+  if (mgmt) return mgmt;
 
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });

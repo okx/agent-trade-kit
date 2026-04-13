@@ -33,3 +33,18 @@ export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCateg
 export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
 export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";
 export { resolveOkxAuthBin } from "./auth/okx-auth-bin.js";
+export { getDohBinaryPath } from "./doh/binary.js";
+export {
+  getDohStatus,
+  fetchCdnChecksum,
+  installDohBinary,
+  removeDohBinary,
+  getPlatformDir,
+  getBinaryName,
+  hashFile,
+  CDN_SOURCES,
+  CDN_PATH_PREFIX,
+  DOWNLOAD_TIMEOUT_MS,
+} from "./doh/installer.js";
+export type { DohLocalStatus, CdnChecksum, InstallResult, RemoveResult, CdnSource } from "./doh/installer-types.js";
+export { readCache as readDohCache, getDefaultCachePath } from "./doh/cache.js";

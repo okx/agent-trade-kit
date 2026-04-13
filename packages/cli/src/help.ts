@@ -614,6 +614,24 @@ const HELP_TREE: HelpTree = {
     usage: `okx setup --client <${SUPPORTED_CLIENTS.join("|")}> [--profile <name>] [--modules <list>]`,
   },
 
+  doh: {
+    description: "Manage DoH (DNS-over-HTTPS) resolver binary",
+    commands: {
+      status: {
+        usage: "okx doh status [--json]",
+        description: "Show DoH binary info, checksum, and CDN match status",
+      },
+      install: {
+        usage: "okx doh install [--json]",
+        description: "Download or update the DoH resolver binary",
+      },
+      remove: {
+        usage: "okx doh remove [--force] [--json]",
+        description: "Remove the DoH resolver binary (prompts for confirmation without --force)",
+      },
+    },
+  },
+
   diagnose: {
     description: "Run network / MCP server diagnostics",
     usage: "okx diagnose [--cli | --mcp | --all] [--profile <name>] [--demo | --live] [--output <file>]",

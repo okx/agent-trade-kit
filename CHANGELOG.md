@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)
+- **DoH status in `okx --version`**: Version output now includes a second line: `DoH resolver: installed (darwin-arm64)` or `DoH resolver: not installed`. (#138)
+- **DoH check in `okx diagnose`**: Diagnostics now include a DoH section checking binary existence, CDN checksum match, and runtime mode from the DoH cache. (#138)
+
+---
+
+## [1.3.1-beta.4] - 2026-04-10
+
+### Added
+
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
+- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-doh-resolver` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
+- **`context-kg/` knowledge base**: Bootstrap structured knowledge files for AI agents — 5 business domain docs (overview, trading, market/account, earn/bot, skills) + 4 technical docs (architecture, configuration, errors, multi-site) + quality placeholder. Includes `config.toml.example` `knowledge_dir` config entry. (#137)
+
 ### Fixed
 
 - **Skill docs: error-suggested remediation safeguard** — Added a general safeguard rule: when an OKX API error suggests a fix involving write operations (cancel orders, close positions, stop bots), the agent must diagnose with read-only queries first and wait for user confirmation before acting. Also added specific leverage error troubleshooting guidance. Affected files: `swap-commands.md`, `futures-commands.md`, `workflows.md`, `SKILL.md`.
@@ -60,6 +76,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Market data defaults to live regardless of server demo mode**: Previously, starting the server with `--demo` caused all market data requests to return simulated trading data. Now market tools explicitly pass `simulatedTrading: false` by default, overriding the server-level demo flag. Users can pass `demo: true` to explicitly query simulated market data. Other modules (trading, account, earn, indicators) are unaffected and continue to follow the server demo flag.
 - **Unknown `tgtCcy` values now throw `ValidationError` instead of silent passthrough**: Previously, typos like `--tgtCcy margin_ccy` or `--tgtCcy QUOTE_CCY` were silently ignored and `sz` was sent to the API unconverted. Now only `base_ccy`, `quote_ccy`, and `margin` are accepted; any other value throws a `ValidationError` with a helpful suggestion. (#133)
 - **`--verbose` flag now affects CLI audit log output**: Previously, `TradeLogger` was always constructed with `"info"` level and all success logs used `"info"`, so `--verbose` had no effect on log file content. Now, verbose mode sets log level to `"debug"` and writes an additional debug-level entry with full request args and response data for each successful tool call, while non-verbose mode only records a compact summary. (#130)
+
+---
+
+## [1.3.0-beta.4] - 2026-04-08
+
+### Added
+
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
+- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-doh-resolver` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
 
 ---
 

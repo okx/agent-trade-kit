@@ -11,6 +11,22 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`okx doh` 管理命令**：新增 CLI 模块，用于管理 DoH（DNS-over-HTTPS）resolver 二进制文件。`okx doh status` 显示 binary 路径、文件大小、SHA-256 及 CDN 校验状态；`okx doh install` 下载或更新 binary；`okx doh remove` 删除 binary（无 `--force` 时提示确认）。(#138)
+- **`okx --version` 显示 DoH 状态**：版本输出新增第二行：`DoH resolver: installed (darwin-arm64)` 或 `DoH resolver: not installed`。(#138)
+- **`okx diagnose` 增加 DoH 检查项**：诊断输出新增 DoH 章节，包含 binary 是否存在、CDN checksum 是否一致、DoH cache 中的运行时模式。(#138)
+
+---
+
+## [1.3.1-beta.4] - 2026-04-10
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）代理**：当 OKX API 域名无法直连（如 DNS 污染）时，SDK 自动通过本地 `okx-doh-resolver` 二进制解析备用代理节点，透明切换。缓存优先策略：首次请求尝试直连，失败后调用二进制并缓存结果，后续请求直接复用，零额外开销。失效节点自动排除并重新解析，支持 `--verbose` 查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 脚本从 CDN（多源备用）下载平台专属 `okx-doh-resolver` 到 `~/.okx/bin/`，完全 best-effort，不阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64、win32-x64。
+- **`context-kg/` 知识库**：为 AI agent 初始化结构化知识文件——5 个业务域文档（概述、交易、行情/账户、理财/机器人、Skills 生态）+ 4 个技术文档（架构、配置、错误处理、多站点）+ 质量目录占位。同步在 `config.toml.example` 中新增 `knowledge_dir` 配置项。(#137)
+
 ### 修复
 
 - **Skill 文档：错误修复建议 safeguard 规则** — 新增通用规则：当 OKX API 错误信息建议执行写操作（撤单、平仓、停止机器人等）时，agent 必须先用只读查询诊断，展示结果并等待用户确认后才能操作。同时补充了杠杆设置失败的具体排查指引。涉及文件：`swap-commands.md`、`futures-commands.md`、`workflows.md`、`SKILL.md`。
@@ -60,6 +76,15 @@
 - **行情数据默认始终走实盘**：此前以 `--demo` 启动服务器时，行情查询也会带上 `x-simulated-trading: 1` 导致返回模拟盘数据。现在 market 工具在工具层显式传 `simulatedTrading: false`，覆盖服务器级别的 demo 标志。需要查询模拟盘行情时，显式传 `demo: true` 即可。其他模块（交易、账户、Earn、指标）不受影响，仍跟随服务器 demo 标志。
 - **未知 `tgtCcy` 值现在抛出 `ValidationError` 而非静默跳过**：此前 `--tgtCcy margin_ccy` 或 `--tgtCcy QUOTE_CCY` 等拼写错误会被静默忽略，`sz` 原样传给 API 未经转换。现在仅接受 `base_ccy`、`quote_ccy` 和 `margin`，其他值抛出 `ValidationError` 并附带修复建议。(#133)
 - **`--verbose` 标志现在对 CLI 审计日志生效**：此前 `TradeLogger` 始终以 `"info"` 级别构造，成功日志也全部使用 `"info"`，导致 `--verbose` 对日志文件内容无任何影响。现在 verbose 模式将日志级别设为 `"debug"`，每次成功的工具调用额外写入一条包含完整请求参数和响应数据的 debug 级别条目；非 verbose 模式仅记录精简摘要。(#130)
+
+---
+
+## [1.3.0-beta.4] - 2026-04-08
+
+### 新增
+
+- **DoH（DNS-over-HTTPS）代理支持**：当 OKX API 域名因 DNS 污染等原因无法直连时，SDK 会透明地通过本地 `okx-doh-resolver` 二进制解析备用代理节点。采用缓存优先策略：首次请求尝试直连，网络失败时调用二进制并缓存结果，后续请求复用缓存节点，零额外开销。故障节点自动排除并重新解析。`--verbose` 模式下可查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 现从 CDN（多源容灾）下载对应平台的 `okx-doh-resolver` 二进制至 `~/.okx/bin/`。Best-effort，不会阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64 和 win32-x64。
 
 ---
 
