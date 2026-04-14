@@ -65,10 +65,18 @@ function makeMockClient() {
     },
     privatePost: async (endpoint: string, params: Record<string, unknown>) => {
       lastCall = { method: "POST", endpoint, params };
+      // presign endpoint returns token
+      if (endpoint.includes("presign")) {
+        return { endpoint, requestTime: "2026-03-28T00:00:00.000Z", data: { token: "fake-token", expiresAt: Date.now() + 300000 } };
+      }
       return fakeResponse(endpoint);
     },
     privatePostBinary: async (endpoint: string, body: Record<string, unknown>) => {
       lastCall = { method: "POST", endpoint, params: body };
+      return { data: Buffer.from("fake-zip-content"), contentType: "application/octet-stream" };
+    },
+    publicGetBinary: async (endpoint: string, params: Record<string, unknown>) => {
+      lastCall = { method: "GET", endpoint, params };
       return { data: Buffer.from("fake-zip-content"), contentType: "application/octet-stream" };
     },
   };
@@ -573,13 +581,13 @@ describe("downloadSkillZip", () => {
     assert.equal(readFileSync(filePath, "utf-8"), "fake-zip-content");
   });
 
-  it("calls privatePostBinary with correct endpoint and name", async () => {
+  it("calls presign then publicGetBinary with token", async () => {
     const { client, getLastCall } = makeMockClient();
     await downloadSkillZip(client as any, "my-skill", testDir);
     const call = getLastCall()!;
-    assert.equal(call.method, "POST");
-    assert.equal(call.endpoint, "/api/v5/skill/download");
-    assert.equal(call.params.name, "my-skill");
+    assert.equal(call.method, "GET");
+    assert.equal(call.endpoint, "/api/v5/skill/file");
+    assert.equal(call.params.token, "fake-token");
   });
 
   it("saves as .skill when format is skill", async () => {

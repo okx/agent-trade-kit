@@ -877,4 +877,111 @@ describe("OkxRestClient: verbose mode", () => {
       },
     );
   });
+
+// ---------------------------------------------------------------------------
+// OkxRestClient: baseUrl getter
+// ---------------------------------------------------------------------------
+
+describe("OkxRestClient: baseUrl getter", () => {
+  it("returns the configured baseUrl", () => {
+    const client = new OkxRestClient({ ...BASE_CONFIG, baseUrl: "https://www.okx.com" });
+    assert.equal(client.baseUrl, "https://www.okx.com");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// OkxRestClient: publicGetBinary
+// ---------------------------------------------------------------------------
+
+/** Build a mock fetch that returns a binary (octet-stream) body. */
+function binaryFetch(data: Buffer, status = 200, contentType = "application/octet-stream"): typeof globalThis.fetch {
+  return async () =>
+    new Response(data, {
+      status,
+      headers: { "Content-Type": contentType },
+    });
+}
+
+describe("OkxRestClient: publicGetBinary", () => {
+  it("returns buffer on successful binary response", async () => {
+    const payload = Buffer.from("zip-content");
+    await withFetch(binaryFetch(payload), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      const result = await client.publicGetBinary("/api/v5/skill/file", { token: "abc" });
+      assert.ok(result.data.equals(payload));
+      assert.equal(result.contentType, "application/octet-stream");
+      assert.equal(result.endpoint, "GET /api/v5/skill/file");
+    });
+  });
+
+  it("throws NetworkError when fetch throws (connection failure)", async () => {
+    await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      await assert.rejects(
+        () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
+        NetworkError,
+      );
+    });
+  });
+
+  it("throws OkxApiError for non-OK HTTP status with plain body", async () => {
+    await withFetch(binaryFetch(Buffer.from("not found"), 404, "text/plain"), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      await assert.rejects(
+        () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
+        OkxApiError,
+      );
+    });
+  });
+
+  it("throws OkxApiError for non-OK HTTP status with JSON OKX error body", async () => {
+    await withFetch(
+      async () => new Response(JSON.stringify({ code: "70003", msg: "NO_APPROVED_VERSION" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
+          (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "70003",
+        );
+      },
+    );
+  });
+
+  it("throws OkxApiError when Content-Type is not octet-stream", async () => {
+    await withFetch(binaryFetch(Buffer.from("hello"), 200, "text/html"), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      await assert.rejects(
+        () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
+        (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "UNEXPECTED_CONTENT_TYPE",
+      );
+    });
+  });
+
+  it("throws OkxApiError when response exceeds maxBytes limit", async () => {
+    const big = Buffer.alloc(10);
+    await withFetch(binaryFetch(big), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      await assert.rejects(
+        () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }, { maxBytes: 5 }),
+        (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "RESPONSE_TOO_LARGE",
+      );
+    });
+  });
+
+  it("appends query params to request path", async () => {
+    const payload = Buffer.from("data");
+    let capturedUrl = "";
+    await withFetch(async (url) => {
+      capturedUrl = url as string;
+      return new Response(payload, { status: 200, headers: { "Content-Type": "application/octet-stream" } });
+    }, async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      await client.publicGetBinary("/api/v5/skill/file", { token: "my-token" });
+      assert.ok(capturedUrl.includes("token=my-token"));
+    });
+  });
+});
 });
