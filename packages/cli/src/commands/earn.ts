@@ -1,13 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { outputLine, printJson, printKv, printTable } from "../formatter.js";
-
-function extractData(result: unknown): Record<string, unknown>[] {
-  if (result && typeof result === "object") {
-    const data = (result as Record<string, unknown>)["data"];
-    if (Array.isArray(data)) return data as Record<string, unknown>[];
-  }
-  return [];
-}
+import { extractData, outputLine, printJson, printKv, printTable } from "../formatter.js";
 
 function printDataList(
   data: Record<string, unknown>[],

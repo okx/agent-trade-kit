@@ -1,9 +1,9 @@
-<!-- triggers: earn, savings, dcd, onchain, autoearn, auto-earn, bot, grid, dca, recurring, yield, staking, flexible, fixed, subscribe, redeem -->
+<!-- triggers: earn, savings, dcd, onchain, autoearn, auto-earn, flash, flash-earn, bot, grid, dca, recurring, yield, staking, flexible, fixed, subscribe, redeem -->
 # Earn & Bot Modules
 
 ## Earn Module (`packages/core/src/tools/earn/`)
 
-The earn module is split into four sub-modules, each targeting a different OKX earn product. They share the parent `earn/index.ts` which registers tools with the shorthand `earn.all` (expands to all four sub-modules).
+The earn module is split into five sub-modules, each targeting a different OKX earn product. They share the parent `earn/index.ts` which registers tools with the shorthand `earn.all` (expands to all five sub-modules).
 
 ### savings (`earn/savings.ts`)
 - Flexible savings: subscribe/redeem at any time, earn lending yield
@@ -29,11 +29,17 @@ The earn module is split into four sub-modules, each targeting a different OKX e
 - `earn_set_autoearn` — enable/configure auto-earn per currency (write)
 - Internally calls savings or on-chain depending on the yield optimization
 
+### flash (`earn/flash-earn.ts`)
+- Flash Earn: time-limited, high-yield promotional earn events
+- `earn_get_flash_earn_projects` — list flash earn projects, optionally filtered by status (upcoming / in-progress)
+- Read-only module — no subscribe/redeem operations currently exposed
+- Projects have limited quotas and specific start/end windows
+
 ### Sub-module ID Expansion
 
-In config and CLI, `earn.all` is a shorthand that expands to all four earn sub-modules:
+In config and CLI, `earn.all` is a shorthand that expands to all five earn sub-modules:
 ```
-earn.all → [earn.savings, earn.dcd, earn.onchain, earn.autoearn]
+earn.all → [earn.savings, earn.dcd, earn.onchain, earn.autoearn, earn.flash]
 ```
 This expansion happens in `packages/core/src/constants.ts`.
 
