@@ -20,6 +20,17 @@
 - **`okx --version` 显示 DoH 状态**：版本输出新增第二行：`DoH resolver: installed (darwin-arm64)` 或 `DoH resolver: not installed`。(#138)
 - **`okx diagnose` 增加 DoH 检查项**：诊断输出新增 DoH 章节，包含 binary 是否存在、CDN checksum 是否一致、DoH cache 中的运行时模式。(#138)
 - **`context-kg/` 知识库扩充**：新增 `technical/05-doh-proxy.md`，覆盖 DoH 子系统架构、二进制分发、缓存策略及 CLI 命令。更新 `business/02-trading-modules.md`，补充 `tgtCcy=margin` 转换模式说明。更新 `technical/01-architecture.md`，修正测试文件数量并补充 DoH 层和 list-tools 引用。将 `quality/01-placeholder.md` 从占位升级为完整的测试与 QA 规范。(#150)
+- **OAuth Bearer token 认证（`okx auth`）**：基于 `okx-auth` Rust 二进制的全新认证方式，支持 OAuth 2.1 Device Flow。`okx auth login` 发起浏览器登录，`okx auth status` 查看会话状态，`okx auth logout` 注销令牌。二进制负责令牌存储、刷新（300 秒提前量）及 scrypt + AES-256-GCM 加密。运行时通过 fd3 管道读取令牌，JS 侧 60 秒缓存。每次请求动态选择认证方式：API key HMAC 优先，OAuth Bearer token 兜底。
+- **`okx auth install/install-status/remove` CLI 命令**：管理 `okx-auth` 二进制安装。CDN 下载带校验和验证、原子替换及多源备用——复用 DoH installer 模式。
+- **`skills/okx-cex-auth/SKILL.md`**：新增 OAuth 认证工作流 Skill 文档。
+- **`postinstall` 自动下载 okx-auth 二进制**：`npm install` 时与 DoH 二进制一起 best-effort 下载。
+- **`context-kg/` 知识库**：新增 `technical/06-oauth-authentication.md`，覆盖 OAuth 子系统架构、二进制分发、fd3 令牌读取、认证优先级及 CLI 命令。
+
+### 变更
+
+- **`loadConfig()` 改为异步**（返回 `Promise<OkxConfig>`）：启动时调用 `execAuthStatus()` 检测 OAuth 登录状态。
+- **`OkxConfig` 新增必需字段 `profile`**：已解析的 profile 名称，用于 OAuth 令牌存储路径。
+- **`OkxRestClient.buildHeaders()` 改为异步**：支持每次请求动态选择认证方式（API key HMAC 或 OAuth Bearer token）。
 
 ---
 

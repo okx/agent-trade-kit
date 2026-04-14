@@ -1,14 +1,14 @@
 import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
+import { handleAuthCommand } from "./commands/auth.js";
+import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
 
 const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
-import { handleAuthCommand } from "./commands/auth.js";
-import { cmdDiagnose } from "./commands/diagnose.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
 import { loadProfileConfig } from "./config/loader.js";
