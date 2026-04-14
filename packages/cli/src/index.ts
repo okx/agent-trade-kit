@@ -274,6 +274,17 @@ export function handleMarketPublicCommand(
       demo: v.demo,
     });
   if (action === "indicator") return handleIndicatorAction(run, rest, v, json);
+  return handleMarketFilterCommand(run, action, rest, v, json);
+}
+
+function handleMarketFilterCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "filter")
     return cmdMarketFilter(run, {
       instType:        v.instType!,
@@ -296,11 +307,10 @@ export function handleMarketPublicCommand(
       maxOiUsd:        v.maxOiUsd,
       sortBy:          v.sortBy,
       sortOrder:       v.sortOrder,
-      limit:           v.limit !== undefined ? Number(v.limit) : undefined,
+      limit,
       json,
     });
   if (action === "oi-history") {
-    const limit = v.limit !== undefined ? Number(v.limit) : undefined;
     const ts = v.ts !== undefined ? Number(v.ts) : undefined;
     return cmdMarketOiHistory(run, rest[0], { bar: v.bar, limit, ts, json });
   }
@@ -313,7 +323,7 @@ export function handleMarketPublicCommand(
       minAbsOiDeltaPct: v.minAbsOiDeltaPct,
       sortBy:           v.sortBy,
       sortOrder:        v.sortOrder,
-      limit:            v.limit !== undefined ? Number(v.limit) : undefined,
+      limit,
       json,
     });
 }
