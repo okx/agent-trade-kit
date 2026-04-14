@@ -27,7 +27,7 @@ import { getAuthBinaryPath } from "./binary.js";
 // Constants
 // ---------------------------------------------------------------------------
 
-export const AUTH_CDN_PATH_PREFIX = "/upgradeapp/tools/oauth/prepub";
+export const AUTH_CDN_PATH_PREFIX = "/upgradeapp/tools/oauth";
 
 // ---------------------------------------------------------------------------
 // Binary name

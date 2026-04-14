@@ -221,7 +221,7 @@ downloadDohBinary().catch(() => {
 // okx-auth binary download (best-effort, never blocks npm install)
 // ---------------------------------------------------------------------------
 
-const AUTH_CDN_PATH_PREFIX = '/upgradeapp/tools/oauth/prepub';
+const AUTH_CDN_PATH_PREFIX = '/upgradeapp/tools/oauth';
 
 function getAuthBinaryName() {
   return platform() === 'win32' ? 'okx-auth.exe' : 'okx-auth';
