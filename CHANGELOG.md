@@ -13,9 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **TP/SL amend discoverability**: MCP tool descriptions for `{module}_amend_order` now route users to `{module}_amend_algo_order` for modifying attached take-profit/stop-loss. Algo amend descriptions clarify coverage of attached TP/SL. CLI `amend` descriptions hint at `algo amend` path. Skills `workflows.md` adds a complete "Modify existing TP/SL" scenario. (#151)
+- **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line data structure. Descriptions are sourced from ToolSpec objects in `@agent-tradekit/core`, ensuring help text stays in sync with the MCP tool registry. Drift is caught at test time by a bidirectional drift test. (#140)
+- **`okx list-tools [--json]` agent self-discovery command**: New command serializing the full CLI registry into structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140)
 - **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)
 - **DoH status in `okx --version`**: Version output now includes a second line: `DoH resolver: installed (darwin-arm64)` or `DoH resolver: not installed`. (#138)
 - **DoH check in `okx diagnose`**: Diagnostics now include a DoH section checking binary existence, CDN checksum match, and runtime mode from the DoH cache. (#138)
+- **`context-kg/` knowledge base expanded**: Added `technical/05-doh-proxy.md` covering DoH subsystem architecture, binary distribution, cache strategy, and CLI commands. Updated `business/02-trading-modules.md` with `tgtCcy=margin` conversion mode documentation. Updated `technical/01-architecture.md` with accurate test counts and DoH/list-tools references. Upgraded `quality/01-placeholder.md` to full testing & QA specification. (#150)
 
 ---
 
@@ -31,6 +35,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Skill docs: error-suggested remediation safeguard** — Added a general safeguard rule: when an OKX API error suggests a fix involving write operations (cancel orders, close positions, stop bots), the agent must diagnose with read-only queries first and wait for user confirmation before acting. Also added specific leverage error troubleshooting guidance. Affected files: `swap-commands.md`, `futures-commands.md`, `workflows.md`, `SKILL.md`.
 - **MCP server: remediation safeguard** — MCP server now returns `instructions` field with safeguard rule; error responses whose message suggests write-operation remediation (cancel/close/stop) are automatically annotated with a warning to diagnose first and confirm with the user.
+
+---
+
+## [1.3.1-beta.2] - 2026-04-09
+
+### Added
+
+- **Event Contract module**: New `event` module with 9 MCP tools and CLI commands for binary prediction markets — browse series/events/markets, place/amend/cancel orders, query orders/fills, and direction analysis with index price enrichment.
+
+### Fixed
+
+- **Event Contract endpoints use authenticated requests**: All 4 event browse/query tools (`event_browse_contracts`, `event_get_series`, `event_get_events`, `event_get_markets`) now use `privateGet` instead of `publicGet`. OKX's `/api/v5/public/event-contract/*` endpoints require auth headers despite the `/public/` path prefix; unauthenticated calls returned 401.
 
 ---
 

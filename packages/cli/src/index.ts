@@ -10,6 +10,7 @@ const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "d
 import { handleAuthCommand } from "./commands/auth.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
+import { cmdListTools } from "./commands/discovery.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
 import { parseCli } from "./parser.js";
@@ -178,6 +179,17 @@ import {
 import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext, setJsonEnvEnabled } from "./formatter.js";
 import { cmdDohStatus, cmdDohInstall, cmdDohRemove } from "./commands/doh.js";
 import { getDohStatus } from "@agent-tradekit/core";
+import {
+  cmdEventBrowse,
+  cmdEventSeries,
+  cmdEventEvents,
+  cmdEventMarkets,
+  cmdEventPlace,
+  cmdEventAmend,
+  cmdEventCancel,
+  cmdEventOrders,
+  cmdEventFills,
+} from "./commands/event-contract.js";
 
 // Re-export for tests and external consumers
 export { printHelp } from "./help.js";
@@ -1178,6 +1190,38 @@ export function handleSkillCommand(
   process.exitCode = 1;
 }
 
+export function handleEventCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  const handlers: Record<string, () => Promise<void> | void> = {
+    browse: () => cmdEventBrowse(run, { underlying: v.underlying ?? rest[0], json }),
+    series: () => cmdEventSeries(run, { seriesId: v.seriesId, all: v.all, json }),
+    events: () => cmdEventEvents(run, { seriesId: (v.seriesId ?? rest[0])!, state: v.state, limit, json }),
+    markets: () => cmdEventMarkets(run, { seriesId: (v.seriesId ?? rest[0])!, eventId: v.eventId, instId: v.instId, state: v.state, limit, json }),
+    place: () => cmdEventPlace(run, {
+      instId: (v.instId ?? rest[0])!,
+      side: (v.side ?? rest[1])!,
+      outcome: (v.outcome ?? rest[2])!,
+      sz: (v.sz ?? rest[3])!,
+      px: v.px,
+      ordType: v.ordType,
+      json,
+    }),
+    amend: () => cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json }),
+    cancel: () => cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json }),
+    orders: () => cmdEventOrders(run, { instId: v.instId, state: v.state, limit, json }),
+    fills: () => cmdEventFills(run, { instId: v.instId, limit, json }),
+  };
+  const handler = handlers[action];
+  if (handler) return handler();
+  process.stderr.write(`Unknown event command: ${action}\n`);
+  process.exitCode = 1;
+}
 
 function outputResult(result: { endpoint: string; requestTime: string; data: unknown }, json: boolean): void {
   if (json) {
@@ -1264,6 +1308,7 @@ function routeManagementCommand(
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
   if (module === "doh") return handleDohCommand(action as string, json, v.force ?? false);
   if (module === "diagnose") return runDiagnose(v);
+  if (module === "list-tools") return cmdListTools(json);
   return undefined;
 }
 
@@ -1310,6 +1355,7 @@ async function main(): Promise<void> {
     swap:    () => handleSwapCommand(run, action, rest, v, json),
     futures: () => handleFuturesCommand(run, action, rest, v, json),
     option:  () => handleOptionCommand(run, action, rest, v, json),
+    event:   () => handleEventCommand(run, action, rest, v, json),
     bot:     () => handleBotCommand(run, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
     skill:   () => handleSkillCommand(run, action, rest, v, json, config),

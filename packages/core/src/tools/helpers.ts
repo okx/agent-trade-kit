@@ -29,6 +29,10 @@ export function readNumber(
   if (value === undefined || value === null) {
     return undefined;
   }
+  // Coerce numeric strings (LLMs may pass "2" instead of 2)
+  if (typeof value === "string" && /^-?\d+(\.\d+)?$/.test(value)) {
+    return parseFloat(value);
+  }
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw new ValidationError(`Parameter "${key}" must be a number.`);
   }
@@ -111,6 +115,20 @@ export function normalizeResponse(response: {
     requestTime: response.requestTime,
     data: response.data,
   };
+}
+
+/**
+ * Validate that instId looks like a perpetual swap (ends with -SWAP).
+ * Throws ValidationError with a helpful message when a spot ID is passed.
+ */
+export function validateSwapInstId(instId: string): void {
+  if (!instId.toUpperCase().endsWith("-SWAP")) {
+    throw new ValidationError(
+      `instId "${instId}" is not a SWAP instrument. ` +
+      `Funding rate is only available for perpetual swaps. ` +
+      `Use the SWAP format, e.g. "${instId}-SWAP".`,
+    );
+  }
 }
 
 export function buildAttachAlgoOrds(

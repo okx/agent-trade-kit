@@ -60,6 +60,7 @@ export const MODULES = [
   "futures",
   "option",
   "account",
+  "event",
   ...EARN_SUB_MODULE_IDS,
   ...BOT_SUB_MODULE_IDS,
   "skills",
@@ -73,3 +74,46 @@ export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account",
 // "bot": bot.grid only; "bot.all": bot.grid + bot.dca
 // "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd)
 // "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only
+
+// ---------------------------------------------------------------------------
+// Module descriptions — canonical single source of truth used by CLI help and
+// MCP tool descriptions.  Keys include all ModuleId values plus CLI-only modules.
+// ---------------------------------------------------------------------------
+
+export type CliModuleKey =
+  | ModuleId
+  | "earn"
+  | "bot"
+  | "config"
+  | "setup"
+  | "doh"
+  | "diagnose"
+  | "upgrade"
+  | "skill";
+
+const SKILLS_MARKETPLACE_DESC = "OKX Skills Marketplace — search, install, and manage agent skills";
+
+export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
+  market:          "Market data (ticker, orderbook, candles, trades)",
+  spot:            "Spot trading (orders, algo orders)",
+  swap:            "Perpetual swap trading (orders, algo orders)",
+  futures:         "Futures trading (orders, positions, algo orders, leverage)",
+  option:          "Options trading (orders, positions, greeks)",
+  account:         "Account balance, positions, bills, and configuration",
+  "earn.savings":  "Simple Earn — flexible savings, fixed-term, and lending",
+  "earn.onchain":  "On-chain Earn — staking and DeFi products",
+  "earn.dcd":      "DCD (Dual Currency Deposit) — structured products with fixed yield",
+  event:           "Event contracts — binary prediction markets (YES/NO, UP/DOWN)",
+  "earn.autoearn": "Auto-earn — automatically lend, stake, or earn on idle assets",
+  "bot.grid":      "Grid trading bot — create, monitor, and stop grid orders",
+  "bot.dca":       "DCA (Martingale) bot — spot or contract recurring buys",
+  skills:          SKILLS_MARKETPLACE_DESC,
+  earn:            "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
+  bot:             "Trading bot strategies (grid, dca)",
+  config:          "Manage CLI configuration profiles",
+  setup:           "Set up client integrations (Cursor, Windsurf, Claude, etc.)",
+  doh:             "Manage DoH (DNS-over-HTTPS) resolver binary",
+  diagnose:        "Run network / MCP server diagnostics",
+  upgrade:         "Upgrade okx CLI and MCP server to the latest stable version",
+  skill:           SKILLS_MARKETPLACE_DESC,
+};

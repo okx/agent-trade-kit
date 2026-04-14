@@ -13,9 +13,13 @@
 
 ### 新增
 
+- **止盈止损修改可发现性提升**：`{module}_amend_order` 的 MCP tool description 新增引导，指向 `{module}_amend_algo_order` 用于修改附加止盈止损；algo amend description 明确覆盖附加 TP/SL；CLI `amend` 描述提示走 `algo amend`；Skills `workflows.md` 新增"修改止盈止损"完整场景。(#151)
+- **CLI 帮助内容自动从 ToolSpec 注册表生成**：CLI 帮助文本现在由声明式 `CLI_REGISTRY` 映射动态生成，不再维护 640 行静态数据结构。描述文字从 `@agent-tradekit/core` 的 ToolSpec 对象中读取，确保与 MCP 工具注册表保持同步。新增双向漂移测试，在测试阶段捕获不一致。(#140)
+- **`okx list-tools [--json]` Agent 自发现命令**：新增命令，将完整的 CLI 注册表序列化为结构化 JSON，AI Agent 无需解析 `--help` 文本即可以编程方式枚举所有可用能力、参数及工具名称。(#140)
 - **`okx doh` 管理命令**：新增 CLI 模块，用于管理 DoH（DNS-over-HTTPS）resolver 二进制文件。`okx doh status` 显示 binary 路径、文件大小、SHA-256 及 CDN 校验状态；`okx doh install` 下载或更新 binary；`okx doh remove` 删除 binary（无 `--force` 时提示确认）。(#138)
 - **`okx --version` 显示 DoH 状态**：版本输出新增第二行：`DoH resolver: installed (darwin-arm64)` 或 `DoH resolver: not installed`。(#138)
 - **`okx diagnose` 增加 DoH 检查项**：诊断输出新增 DoH 章节，包含 binary 是否存在、CDN checksum 是否一致、DoH cache 中的运行时模式。(#138)
+- **`context-kg/` 知识库扩充**：新增 `technical/05-doh-proxy.md`，覆盖 DoH 子系统架构、二进制分发、缓存策略及 CLI 命令。更新 `business/02-trading-modules.md`，补充 `tgtCcy=margin` 转换模式说明。更新 `technical/01-architecture.md`，修正测试文件数量并补充 DoH 层和 list-tools 引用。将 `quality/01-placeholder.md` 从占位升级为完整的测试与 QA 规范。(#150)
 
 ---
 
@@ -31,6 +35,18 @@
 
 - **Skill 文档：错误修复建议 safeguard 规则** — 新增通用规则：当 OKX API 错误信息建议执行写操作（撤单、平仓、停止机器人等）时，agent 必须先用只读查询诊断，展示结果并等待用户确认后才能操作。同时补充了杠杆设置失败的具体排查指引。涉及文件：`swap-commands.md`、`futures-commands.md`、`workflows.md`、`SKILL.md`。
 - **MCP server：remediation safeguard** — MCP server 初始化时返回 `instructions` safeguard 规则；当错误信息暗示写操作修复（cancel/close/stop）时，自动在 suggestion 中追加警告，提醒 agent 先诊断再确认。
+
+---
+
+## [1.3.1-beta.2] - 2026-04-09
+
+### 新增
+
+- **事件合约模块**：新增 `event` 模块，包含 9 个 MCP 工具和 CLI 命令，支持二元预测市场 — 浏览系列/事件/合约、下单/改单/撤单、查询订单/成交记录，以及带指数价格的方向分析。
+
+### 修复
+
+- **事件合约接口改用鉴权请求**：4 个事件浏览/查询工具（`event_browse_contracts`、`event_get_series`、`event_get_events`、`event_get_markets`）由 `publicGet` 改为 `privateGet`。OKX 的 `/api/v5/public/event-contract/*` 接口虽路径含 `/public/`，实际须携带鉴权头，未鉴权时返回 401。
 
 ---
 

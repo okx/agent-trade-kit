@@ -12,7 +12,7 @@ okx market funding-rate <instId> [--history] [--limit <n>] [--json]
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `instId` | Yes | - | SWAP instrument only (e.g., `BTC-USDT-SWAP`) |
+| `instId` | Yes | - | Perpetual swap instrument ID, **must end with `-SWAP`** (e.g., `BTC-USDT-SWAP`). Spot IDs like `BTC-USDT` will be rejected. |
 | `--history` | No | false | Return historical funding rates |
 | `--limit` | No | 100 | Number of historical records (only with `--history`) |
 
@@ -27,7 +27,7 @@ okx market funding-rate BTC-USDT-SWAP
 okx market funding-rate BTC-USDT-SWAP --history --limit 10
 ```
 
-> Funding rate applies to SWAP instruments only. Returns an error for SPOT or FUTURES.
+> **IMPORTANT**: `instId` must end with `-SWAP` (e.g., `BTC-USDT-SWAP`). Spot IDs like `BTC-USDT` are **NOT** valid and will be rejected. Funding rate applies only to perpetual swap instruments.
 
 ---
 

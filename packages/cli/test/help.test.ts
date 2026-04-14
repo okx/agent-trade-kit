@@ -75,7 +75,7 @@ describe('printHelp("market") — market module detail', () => {
     const out = captureStdout(() => printHelp("market"));
     for (const cmd of ["ticker", "tickers", "orderbook", "candles", "instruments",
       "funding-rate", "mark-price", "trades", "index-ticker", "index-candles",
-      "price-limit", "open-interest"]) {
+      "price-limit", "open-interest", "indicator"]) {
       assert.ok(out.includes(cmd), `should mention '${cmd}' command`);
     }
   });
@@ -538,6 +538,22 @@ describe('printHelp("market") — additional commands coverage', () => {
   it("includes price-limit command", () => {
     const out = captureStdout(() => printHelp("market"));
     assert.ok(out.includes("price-limit"), "should mention price-limit command");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Subgroup-level help — printHelp("market", "indicator") — new subgroup
+// ---------------------------------------------------------------------------
+describe('printHelp("market", "indicator") — indicator subgroup detail', () => {
+  it("includes Usage line for market indicator", () => {
+    const out = captureStdout(() => printHelp("market", "indicator"));
+    assert.ok(out.includes("Usage: okx market indicator"), "should include indicator usage");
+  });
+
+  it("lists indicator commands: list and query", () => {
+    const out = captureStdout(() => printHelp("market", "indicator"));
+    assert.ok(out.includes("list"), "should mention list command");
+    assert.ok(out.includes("<instId>"), "should show instId placeholder for query");
   });
 });
 

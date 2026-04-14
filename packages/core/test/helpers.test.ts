@@ -72,8 +72,14 @@ describe("readNumber", () => {
     assert.throws(() => readNumber({ n: NaN }, "n"), ValidationError);
   });
 
-  it("throws for string that looks like a number", () => {
-    assert.throws(() => readNumber({ n: "42" }, "n"), ValidationError);
+  it("coerces numeric string to number (LLM robustness)", () => {
+    assert.equal(readNumber({ n: "42" }, "n"), 42);
+    assert.equal(readNumber({ n: "3.14" }, "n"), 3.14);
+    assert.equal(readNumber({ n: "-5" }, "n"), -5);
+  });
+
+  it("throws for non-numeric string", () => {
+    assert.throws(() => readNumber({ n: "abc" }, "n"), ValidationError);
   });
 });
 

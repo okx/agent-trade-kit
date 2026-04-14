@@ -1,4 +1,4 @@
-<!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner -->
+<!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, doh, list-tools -->
 # System Architecture
 
 ## Five-Layer Stack
@@ -66,11 +66,19 @@ The CLI does NOT call OKX API directly — it calls the same tool handlers as th
 
 ## Test Structure
 
-- `packages/core/test/` — unit tests for individual tool handler logic (15 files)
-- `packages/cli/test/` — CLI parameter routing and integration tests (30 files)
-- `packages/mcp/test/` — MCP server-level tests (2 files: bundle + server)
+- `packages/core/test/` — unit tests for individual tool handler logic (21 files)
+- `packages/cli/test/` — CLI parameter routing and integration tests (35 files), including bidirectional drift test (`drift.test.ts`) that verifies CLI registry ↔ ToolSpec alignment
+- `packages/mcp/test/` — MCP server-level tests (2 files: bundle and server)
 
 Test command: `pnpm test:unit` (runs node:test across all packages).
+
+## DoH Network Resilience Layer
+
+A **DoH proxy layer** sits between the REST client and the OKX API, providing transparent fallback for users in restricted network environments (DNS poisoning). See `context-kg/technical/05-doh-proxy.md` for full details.
+
+## Agent Self-Discovery (`okx list-tools`)
+
+The CLI exposes `okx list-tools [--json]` for AI agent self-discovery. This command serializes the full CLI registry (all commands, parameters, tool names) into structured JSON, enabling agents to enumerate capabilities programmatically without parsing `--help` text. The registry is built from the same `CLI_REGISTRY` map that drives both help text generation and the MCP tool registry — ensuring agents always see an accurate, up-to-date tool list.
 
 ## Build Pipeline
 

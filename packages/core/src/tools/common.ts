@@ -9,7 +9,7 @@ export const OKX_CANDLE_BARS = [
 ] as const;
 
 export const OKX_INST_TYPES = [
-  "SPOT", "SWAP", "FUTURES", "OPTION", "MARGIN",
+  "SPOT", "SWAP", "FUTURES", "OPTION", "MARGIN", "EVENTS",
 ] as const;
 
 export function publicRateLimit(key: string, rps = 20): RateLimitConfig {
