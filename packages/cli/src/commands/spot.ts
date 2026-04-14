@@ -57,6 +57,7 @@ export async function cmdSpotPlace(
     sz: string;
     tgtCcy?: string;
     px?: string;
+    clOrdId?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -72,6 +73,7 @@ export async function cmdSpotPlace(
     sz: opts.sz,
     tgtCcy: opts.tgtCcy,
     px: opts.px,
+    clOrdId: opts.clOrdId,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,
@@ -102,6 +104,7 @@ export async function cmdSpotAlgoPlace(
     side: string;
     ordType: string;
     sz: string;
+    clOrdId?: string;
     tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
@@ -119,6 +122,7 @@ export async function cmdSpotAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    clOrdId: opts.clOrdId,
     tgtCcy: opts.tgtCcy,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,

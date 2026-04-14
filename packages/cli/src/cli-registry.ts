@@ -249,7 +249,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       get: {
         toolName: "spot_get_order",
-        usage: "okx spot get --instId <id> --ordId <id>",
+        usage: "okx spot get --instId <id> [--ordId <id>] [--clOrdId <id>]",
         description: "Get details of a specific spot order",
       },
       fills: {
@@ -259,7 +259,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "spot_place_order",
-        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]\n                [--tgtCcy <base_ccy|quote_ccy>] [--clOrdId <id>]\n                [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new spot order (supports attached TP/SL)",
       },
       amend: {
@@ -269,7 +269,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       cancel: {
         toolName: "spot_cancel_order",
-        usage: "okx spot cancel <instId> --ordId <id>",
+        usage: "okx spot cancel <instId> [--ordId <id>] [--clOrdId <id>]",
         description: "Cancel a pending spot order",
       },
       batch: {
@@ -329,7 +329,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       get: {
         toolName: "swap_get_order",
-        usage: "okx swap get --instId <id> --ordId <id>",
+        usage: "okx swap get --instId <id> [--ordId <id>] [--clOrdId <id>]",
         description: "Get details of a specific swap order",
       },
       fills: {
@@ -339,12 +339,12 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "swap_place_order",
-        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>] [--tdMode <cross|isolated>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>]\n               [--tdMode <cross|isolated>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new perpetual swap order (supports attached TP/SL)",
       },
       cancel: {
         toolName: "swap_cancel_order",
-        usage: "okx swap cancel <instId> --ordId <id>",
+        usage: "okx swap cancel <instId> [--ordId <id>] [--clOrdId <id>]",
         description: "Cancel a pending swap order",
       },
       amend: {
@@ -430,12 +430,12 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "futures_place_order",
-        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tgtCcy <base_ccy|quote_ccy|margin>] [--clOrdId <id>]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new futures order (supports attached TP/SL)",
       },
       cancel: {
         toolName: "futures_cancel_order",
-        usage: "okx futures cancel <instId> --ordId <id>",
+        usage: "okx futures cancel <instId> [--ordId <id>] [--clOrdId <id>]",
         description: "Cancel a pending futures order",
       },
       amend: {
@@ -445,7 +445,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       get: {
         toolName: "futures_get_order",
-        usage: "okx futures get --instId <id> --ordId <id>",
+        usage: "okx futures get --instId <id> [--ordId <id>] [--clOrdId <id>]",
         description: "Get details of a specific futures order",
       },
       close: {
@@ -540,7 +540,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "option_place_order",
-        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--reduceOnly] [--clOrdId <id>]",
+        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new option order",
       },
       cancel: {
