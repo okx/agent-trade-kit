@@ -575,7 +575,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── earn ───────────────────────────────────────────────────────────────────
   earn: {
-    description: "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
+    description: "Earn products — Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
     subgroups: {
       savings: {
         description: "Simple Earn — flexible savings, fixed-term, and lending",
@@ -681,6 +681,16 @@ export const CLI_REGISTRY: CliRegistry = {
             toolName: "earn_auto_set",
             usage: "okx earn auto-earn off <ccy>",
             description: "Disable auto-earn for a currency",
+          },
+        },
+      },
+      "flash-earn": {
+        description: "Flash Earn — browse short-window earn projects by status",
+        commands: {
+          projects: {
+            toolName: "earn_get_flash_earn_projects",
+            usage: "okx earn flash-earn projects [--status <0|100|0,100>]",
+            description: "List upcoming or in-progress Flash Earn projects. Defaults to both statuses",
           },
         },
       },

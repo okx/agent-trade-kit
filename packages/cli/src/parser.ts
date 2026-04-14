@@ -95,6 +95,8 @@ export interface CliValues {
   orders?: string;
   // earn
   rate?: string;
+  // flash-earn
+  status?: string;
   reqId?: string;
   confirm?: boolean;
   // audit
@@ -272,6 +274,8 @@ export const CLI_OPTIONS = {
   orders: { type: "string" },
   // earn
   rate: { type: "string" },
+  // flash-earn
+  status: { type: "string" },
   reqId: { type: "string" },
   confirm: { type: "boolean", default: false },
   // audit

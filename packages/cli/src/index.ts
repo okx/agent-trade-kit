@@ -149,6 +149,7 @@ import {
   cmdAutoEarnOn,
   cmdAutoEarnOff,
 } from "./commands/auto-earn.js";
+import { cmdFlashEarnProjects } from "./commands/flash-earn.js";
 import {
   cmdGridOrders,
   cmdGridDetails,
@@ -1026,8 +1027,9 @@ export function handleEarnCommand(
   if (submodule === "onchain") return handleEarnOnchainCommand(run, action, v, json);
   if (submodule === "dcd") return handleEarnDcdCommand(run, action, v, json);
   if (submodule === "auto-earn") return handleEarnAutoEarnCommand(run, action, innerRest, v, json);
+  if (submodule === "flash-earn") return handleEarnFlashEarnCommand(run, action, v, json);
   errorLine(`Unknown earn sub-module: ${submodule}`);
-  errorLine("Valid: savings, onchain, dcd, auto-earn");
+  errorLine("Valid: savings, onchain, dcd, auto-earn, flash-earn");
   process.exitCode = 1;
 }
 
@@ -1050,6 +1052,18 @@ function handleEarnAutoEarnCommand(
   }
   errorLine(`Unknown auto-earn command: ${action}`);
   errorLine("Valid: status, on, off");
+  process.exitCode = 1;
+}
+
+function handleEarnFlashEarnCommand(
+  run: ToolRunner,
+  action: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (action === "projects") return cmdFlashEarnProjects(run, v.status, json);
+  errorLine(`Unknown flash-earn command: ${action}`);
+  errorLine("Valid: projects");
   process.exitCode = 1;
 }
 
