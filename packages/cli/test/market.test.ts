@@ -6,6 +6,9 @@ import {
   cmdMarketFundingRate,
   cmdMarketPriceLimit,
   cmdMarketOrderbook,
+  cmdMarketFilter,
+  cmdMarketOiHistory,
+  cmdMarketOiChangeFilter,
 } from "../src/commands/market.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -145,6 +148,134 @@ describe("cmdMarketOrderbook", () => {
   it("outputs JSON when json=true", async () => {
     const runner: ToolRunner = async () => fakeResult([{ asks: [], bids: [] }]);
     await cmdMarketOrderbook(runner, "BTC-USDT", undefined, true);
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketFilter
+// ---------------------------------------------------------------------------
+describe("cmdMarketFilter", () => {
+  const baseOpts = { instType: "SPOT", json: false };
+
+  it("outputs 'No results' when rows are empty", async () => {
+    const runner: ToolRunner = async () => fakeResult({ total: 0, rows: [] });
+    await cmdMarketFilter(runner, { ...baseOpts });
+    assert.ok(out.join("").includes("No results"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs table with rows for SPOT (no fundingRate column)", async () => {
+    const runner: ToolRunner = async () => fakeResult({
+      total: 1,
+      rows: [{ rank: 1, instId: "BTC-USDT", last: "50000", chg24hPct: "2.1", volUsd24h: "1000000000", oiUsd: null, sortVal: "1000000000" }],
+    });
+    await cmdMarketFilter(runner, { ...baseOpts });
+    const combined = out.join("");
+    assert.ok(combined.includes("BTC-USDT"));
+    assert.ok(combined.includes("50000"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs table with fundingRate column for SWAP", async () => {
+    const runner: ToolRunner = async () => fakeResult({
+      total: 1,
+      rows: [{ rank: 1, instId: "BTC-USDT-SWAP", last: "50000", chg24hPct: "1.5", volUsd24h: "5000000000", oiUsd: "2000000000", fundingRate: "0.0001", sortVal: "2000000000" }],
+    });
+    await cmdMarketFilter(runner, { instType: "SWAP", json: false });
+    const combined = out.join("");
+    assert.ok(combined.includes("BTC-USDT-SWAP"));
+    assert.ok(combined.includes("0.0001"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult({ total: 0, rows: [] });
+    await cmdMarketFilter(runner, { ...baseOpts, json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketOiHistory
+// ---------------------------------------------------------------------------
+describe("cmdMarketOiHistory", () => {
+  it("outputs 'No OI data' when rows are empty", async () => {
+    const runner: ToolRunner = async () => fakeResult({ instId: "BTC-USDT-SWAP", bar: "1H", rows: [] });
+    await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
+    assert.ok(out.join("").includes("No OI data"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs OI table with non-null values", async () => {
+    const runner: ToolRunner = async () => fakeResult({
+      instId: "BTC-USDT-SWAP",
+      bar: "1H",
+      rows: [{ ts: "1700000000000", oiUsd: "2000000000", oiDeltaUsd: "50000000", oiDeltaPct: "2.5", oiCont: "40000" }],
+    });
+    await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
+    const combined = out.join("");
+    assert.ok(combined.includes("BTC-USDT-SWAP"));
+    assert.ok(combined.includes("2000000000"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("shows '-' for null OI fields", async () => {
+    const runner: ToolRunner = async () => fakeResult({
+      instId: "BTC-USDT-SWAP",
+      bar: "1H",
+      rows: [{ ts: "1700000000000", oiUsd: null, oiDeltaUsd: null, oiDeltaPct: null, oiCont: null }],
+    });
+    await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
+    const combined = out.join("");
+    assert.ok(combined.includes("-"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("falls back to instId param when data.instId is absent", async () => {
+    const runner: ToolRunner = async () => fakeResult({
+      bar: "4H",
+      rows: [{ ts: "1700000000000", oiUsd: "1000000", oiDeltaUsd: "0", oiDeltaPct: "0", oiCont: "200" }],
+    });
+    await cmdMarketOiHistory(runner, "ETH-USDT-SWAP", { bar: "4H", json: false });
+    assert.ok(out.join("").includes("ETH-USDT-SWAP"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult({ instId: "BTC-USDT-SWAP", bar: "1H", rows: [] });
+    await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketOiChangeFilter
+// ---------------------------------------------------------------------------
+describe("cmdMarketOiChangeFilter", () => {
+  const baseOpts = { instType: "SWAP", json: false };
+
+  it("outputs 'No results' when rows are empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdMarketOiChangeFilter(runner, { ...baseOpts });
+    assert.ok(out.join("").includes("No results"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs table with OI change rows", async () => {
+    const runner: ToolRunner = async () => fakeResult([
+      { rank: 1, instId: "BTC-USDT-SWAP", last: "50000", oiUsd: "2000000000", oiDeltaPct: "3.5", pxChgPct: "1.2", volUsd24h: "5000000000", fundingRate: "0.0001" },
+    ]);
+    await cmdMarketOiChangeFilter(runner, { ...baseOpts });
+    const combined = out.join("");
+    assert.ok(combined.includes("BTC-USDT-SWAP"));
+    assert.ok(combined.includes("3.5"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdMarketOiChangeFilter(runner, { ...baseOpts, json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
