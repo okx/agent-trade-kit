@@ -28,7 +28,7 @@ export function registerFuturesTools(): ToolSpec[] {
       name: "futures_amend_order",
       module: "futures",
       description:
-        "Amend an unfilled FUTURES delivery order (modify price and/or size).",
+        "Amend an unfilled FUTURES delivery order (modify price and/or size). To modify attached TP/SL, use futures_amend_algo_order with the algoId from futures_get_algo_orders.",
       isWrite: true,
       inputSchema: {
         type: "object",

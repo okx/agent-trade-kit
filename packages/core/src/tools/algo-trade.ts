@@ -602,7 +602,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       name: "futures_amend_algo_order",
       module: "futures",
       description:
-        "Amend a pending FUTURES delivery algo order (modify TP/SL prices or size).",
+        "Amend a pending FUTURES delivery algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order — look up algoId via futures_get_algo_orders first.",
       isWrite: true,
       inputSchema: {
         type: "object",

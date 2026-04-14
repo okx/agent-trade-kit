@@ -177,7 +177,7 @@ export function registerOptionTools(): ToolSpec[] {
       name: "option_amend_order",
       module: "option",
       description:
-        "Amend an unfilled OPTION order (price and/or size). Provide ordId or clOrdId.",
+        "Amend an unfilled OPTION order (price and/or size). Provide ordId or clOrdId. To modify attached TP/SL, use option_amend_algo_order with the algoId from option_get_algo_orders.",
       isWrite: true,
       inputSchema: {
         type: "object",

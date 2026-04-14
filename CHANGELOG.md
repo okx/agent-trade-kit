@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **TP/SL amend discoverability**: MCP tool descriptions for `{module}_amend_order` now route users to `{module}_amend_algo_order` for modifying attached take-profit/stop-loss. Algo amend descriptions clarify coverage of attached TP/SL. CLI `amend` descriptions hint at `algo amend` path. Skills `workflows.md` adds a complete "Modify existing TP/SL" scenario. (#151)
 - **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line data structure. Descriptions are sourced from ToolSpec objects in `@agent-tradekit/core`, ensuring help text stays in sync with the MCP tool registry. Drift is caught at test time by a bidirectional drift test. (#140)
 - **`okx list-tools [--json]` agent self-discovery command**: New command serializing the full CLI registry into structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140)
 - **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)

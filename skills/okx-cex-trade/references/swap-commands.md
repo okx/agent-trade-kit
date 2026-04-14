@@ -169,6 +169,8 @@ okx swap algo amend --instId <id> --algoId <id> \
   [--newSlTriggerPx <p>] [--newSlOrdPx <p>] [--json]
 ```
 
+> **Note**: Use this to modify TP/SL orders attached when placing the main order. Run `okx swap algo orders` first to find the `algoId`.
+
 ---
 
 ## Swap — Cancel Algo
