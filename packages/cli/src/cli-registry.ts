@@ -85,7 +85,7 @@ export const CLI_REGISTRY: CliRegistry = {
       "funding-rate": {
         toolName: "market_get_funding_rate",
         usage: "okx market funding-rate <instId> [--history] [--limit <n>]",
-        description: "Get current or historical funding rate for perpetual swaps",
+        description: "Get current or historical funding rate (instId must be SWAP, e.g. BTC-USDT-SWAP)",
       },
       "mark-price": {
         toolName: "market_get_mark_price",
@@ -265,7 +265,7 @@ export const CLI_REGISTRY: CliRegistry = {
       amend: {
         toolName: "spot_amend_order",
         usage: "okx spot amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending spot order",
+        description: "Amend a pending spot order (price/size only; to modify TP/SL use 'okx spot algo amend')",
       },
       cancel: {
         toolName: "spot_cancel_order",
@@ -301,7 +301,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "spot_amend_algo_order",
             usage: "okx spot algo amend --instId <id> --algoId <id> [--newSz <n>]\n                    [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                    [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending spot algo order",
+            description: "Amend a pending spot algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "spot_cancel_algo_order",
@@ -351,7 +351,7 @@ export const CLI_REGISTRY: CliRegistry = {
         // swap amend uses spot_amend_order (same OKX /trade/amend-order endpoint works for all types)
         toolName: "spot_amend_order",
         usage: "okx swap amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending swap order",
+        description: "Amend a pending swap order (price/size only; to modify attached TP/SL use 'okx swap algo amend')",
       },
       close: {
         toolName: "swap_close_position",
@@ -397,7 +397,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "swap_amend_algo_order",
             usage: "okx swap algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending swap algo order",
+            description: "Amend a pending swap algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "swap_cancel_algo_orders",
@@ -441,7 +441,7 @@ export const CLI_REGISTRY: CliRegistry = {
       amend: {
         toolName: "futures_amend_order",
         usage: "okx futures amend --instId <id> [--ordId <id>] [--clOrdId <id>] [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending futures order",
+        description: "Amend a pending futures order (price/size only; to modify TP/SL use 'okx futures algo amend')",
       },
       get: {
         toolName: "futures_get_order",
@@ -492,7 +492,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "futures_amend_algo_order",
             usage: "okx futures algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending futures algo order",
+            description: "Amend a pending futures algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "futures_cancel_algo_orders",
@@ -551,7 +551,7 @@ export const CLI_REGISTRY: CliRegistry = {
       amend: {
         toolName: "option_amend_order",
         usage: "okx option amend --instId <id> [--ordId <id>] [--clOrdId <id>] [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending option order",
+        description: "Amend a pending option order (price/size only; to modify TP/SL use 'okx option algo amend')",
       },
       "batch-cancel": {
         toolName: "option_batch_cancel",
@@ -576,7 +576,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "option_amend_algo_order",
             usage: "okx option algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending option algo order",
+            description: "Amend a pending option algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "option_cancel_algo_orders",
@@ -590,7 +590,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── earn ───────────────────────────────────────────────────────────────────
   earn: {
-    description: "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
+    description: "Earn products — Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
     subgroups: {
       savings: {
         description: "Simple Earn — flexible savings, fixed-term, and lending",
@@ -696,6 +696,16 @@ export const CLI_REGISTRY: CliRegistry = {
             toolName: "earn_auto_set",
             usage: "okx earn auto-earn off <ccy>",
             description: "Disable auto-earn for a currency",
+          },
+        },
+      },
+      "flash-earn": {
+        description: "Flash Earn — browse short-window earn projects by status",
+        commands: {
+          projects: {
+            toolName: "earn_get_flash_earn_projects",
+            usage: "okx earn flash-earn projects [--status <0|100|0,100>]",
+            description: "List upcoming or in-progress Flash Earn projects. Defaults to both statuses",
           },
         },
       },
@@ -907,6 +917,56 @@ export const CLI_REGISTRY: CliRegistry = {
         toolName: null,
         usage: "okx doh remove [--force] [--json]",
         description: "Remove the DoH resolver binary (prompts for confirmation without --force)",
+      },
+    },
+  },
+
+  // ── news ──────────────────────────────────────────────────────────────────
+  news: {
+    commands: {
+      latest: {
+        toolName: "news_get_latest",
+        usage: "okx news latest [--coins BTC,ETH] [--lang zh_CN] [--limit 20]",
+      },
+      important: {
+        toolName: "news_get_latest",
+        usage: "okx news important [--coins BTC,ETH] [--lang zh_CN] [--limit 20]",
+        description: "Get important/high-impact crypto news",
+      },
+      "by-coin": {
+        toolName: "news_get_by_coin",
+        usage: "okx news by-coin --coins BTC [--importance high] [--lang zh_CN]",
+      },
+      search: {
+        toolName: "news_search",
+        usage: "okx news search --keyword <term> [--coins BTC] [--sentiment bullish] [--lang zh_CN]",
+      },
+      detail: {
+        toolName: "news_get_detail",
+        usage: "okx news detail <id> [--lang zh_CN]",
+      },
+      domains: {
+        toolName: "news_get_domains",
+        usage: "okx news domains",
+        description: "List available news source domains",
+      },
+      "coin-sentiment": {
+        toolName: "news_get_coin_sentiment",
+        usage: "okx news coin-sentiment --coins BTC [--period 24h]",
+      },
+      "coin-trend": {
+        toolName: "news_get_coin_sentiment",
+        usage: "okx news coin-trend <coin> [--period 24h] [--points 24]",
+        description: "Get coin sentiment trend over time",
+      },
+      "by-sentiment": {
+        toolName: "news_search",
+        usage: "okx news by-sentiment --sentiment bullish [--coins BTC] [--sort-by latest]",
+        description: "Browse news filtered by sentiment direction",
+      },
+      "sentiment-rank": {
+        toolName: "news_get_sentiment_ranking",
+        usage: "okx news sentiment-rank [--period 24h] [--sort-by 0] [--limit 20]",
       },
     },
   },

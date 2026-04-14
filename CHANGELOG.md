@@ -11,14 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`market_get_indicator` / `okx market indicator`: improved descriptions and pre-call name validation**: Tool and CLI descriptions now list common indicator names inline and direct users to `market_list_indicators`. Unknown indicator names now return a `ValidationError` with similar-name suggestions _before_ any API call instead of silently returning empty data. (#153)
+
 ### Added
 
+- **TP/SL amend discoverability**: MCP tool descriptions for `{module}_amend_order` now route users to `{module}_amend_algo_order` for modifying attached take-profit/stop-loss. Algo amend descriptions clarify coverage of attached TP/SL. CLI `amend` descriptions hint at `algo amend` path. Skills `workflows.md` adds a complete "Modify existing TP/SL" scenario. (#151)
 - **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line data structure. Descriptions are sourced from ToolSpec objects in `@agent-tradekit/core`, ensuring help text stays in sync with the MCP tool registry. Drift is caught at test time by a bidirectional drift test. (#140)
 - **`okx list-tools [--json]` agent self-discovery command**: New command serializing the full CLI registry into structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140)
 - **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)
 - **DoH status in `okx --version`**: Version output now includes a second line: `DoH resolver: installed (darwin-arm64)` or `DoH resolver: not installed`. (#138)
 - **DoH check in `okx diagnose`**: Diagnostics now include a DoH section checking binary existence, CDN checksum match, and runtime mode from the DoH cache. (#138)
 - **`context-kg/` knowledge base expanded**: Added `technical/05-doh-proxy.md` covering DoH subsystem architecture, binary distribution, cache strategy, and CLI commands. Updated `business/02-trading-modules.md` with `tgtCcy=margin` conversion mode documentation. Updated `technical/01-architecture.md` with accurate test counts and DoH/list-tools references. Upgraded `quality/01-placeholder.md` to full testing & QA specification. (#150)
+- **Flash Earn module**: New `earn.flash` module with `earn_get_flash_earn_projects` MCP tool and `okx earn flash-earn projects` CLI command for browsing upcoming and in-progress Flash Earn opportunities.
 
 ---
 

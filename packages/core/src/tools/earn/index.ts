@@ -4,11 +4,12 @@ import { registerEarnTools } from "./savings.js";
 import { registerOnchainEarnTools } from "./onchain.js";
 import { registerDcdTools } from "./dcd.js";
 import { registerAutoEarnTools } from "./autoearn.js";
+import { registerFlashEarnTools } from "./flash-earn.js";
 
-export { registerEarnTools, registerOnchainEarnTools, registerDcdTools, registerAutoEarnTools };
+export { registerEarnTools, registerOnchainEarnTools, registerDcdTools, registerAutoEarnTools, registerFlashEarnTools };
 
 const EARN_DEMO_MESSAGE =
-  "Earn features (savings, DCD, on-chain staking, auto-earn) are not available in simulated trading mode.";
+  "Earn features (savings, DCD, on-chain staking, auto-earn, flash earn) are not available in simulated trading mode.";
 const EARN_DEMO_SUGGESTION = "Switch to a live account to use Earn features.";
 
 /** Tools that bypass the blanket demo guard:
@@ -39,6 +40,7 @@ export function registerAllEarnTools(): ToolSpec[] {
     ...registerOnchainEarnTools(),
     ...registerDcdTools(),
     ...registerAutoEarnTools(),
+    ...registerFlashEarnTools(),
   ];
   return tools.map(withDemoGuard);
 }

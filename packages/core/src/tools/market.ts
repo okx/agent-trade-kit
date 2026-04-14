@@ -1,5 +1,5 @@
 import type { ToolSpec } from "./types.js";
-import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString } from "./helpers.js";
+import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString, validateSwapInstId } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
@@ -233,14 +233,14 @@ export function registerMarketTools(): ToolSpec[] {
       name: "market_get_funding_rate",
       module: "market",
       description:
-        "Get funding rate for a SWAP instrument. history=false (default): current rate + next estimated rate; history=true: historical rates.",
+        "Get funding rate for a perpetual SWAP instrument. IMPORTANT: instId must end with -SWAP (e.g. BTC-USDT-SWAP). Spot IDs like BTC-USDT are NOT valid. history=false (default): current rate + next estimated rate; history=true: historical rates.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           instId: {
             type: "string",
-            description: "SWAP instrument, e.g. BTC-USDT-SWAP",
+            description: "Perpetual swap instrument ID, must end with -SWAP (e.g. BTC-USDT-SWAP). Spot IDs like BTC-USDT will be rejected.",
           },
           history: {
             type: "boolean",
@@ -264,13 +264,15 @@ export function registerMarketTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const instId = requireString(args, "instId");
+        validateSwapInstId(instId);
         const isHistory = readBoolean(args, "history") ?? false;
         const demo = readBoolean(args, "demo") ?? false;
         if (isHistory) {
           const response = await context.client.publicGet(
             "/api/v5/public/funding-rate-history",
             compactObject({
-              instId: requireString(args, "instId"),
+              instId,
               after: readString(args, "after"),
               before: readString(args, "before"),
               limit: readNumber(args, "limit") ?? 20,
@@ -282,7 +284,7 @@ export function registerMarketTools(): ToolSpec[] {
         }
         const response = await context.client.publicGet(
           "/api/v5/public/funding-rate",
-          { instId: requireString(args, "instId") },
+          { instId },
           publicRateLimit("market_get_funding_rate", 20),
           demo,
         );

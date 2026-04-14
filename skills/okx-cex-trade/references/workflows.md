@@ -148,6 +148,34 @@ Futures/Delivery example:
 4. okx-cex-trade   okx swap positions BTC-USD-SWAP    → confirm position opened
 ```
 
+### Modify existing TP/SL (take-profit / stop-loss)
+> User: "把我 BTC 永续的止损改到 $85k" / "Change my BTC swap stop-loss to $85,000"
+
+TP/SL orders attached at placement time (via `--tpTriggerPx`/`--slTriggerPx`) are algo orders in OKX. To modify them, find the `algoId` first, then use `algo amend`.
+
+```
+1. okx-cex-trade     okx swap algo orders --instId BTC-USDT-SWAP
+                     → find TP/SL algo order → algoId (e.g. ALGO789012)
+        ↓ confirm which order to modify
+2. okx-cex-trade     okx swap algo amend --instId BTC-USDT-SWAP --algoId ALGO789012 \
+                       --newSlTriggerPx 85000 --newSlOrdPx=-1
+3. okx-cex-trade     okx swap algo orders --instId BTC-USDT-SWAP
+                     → confirm TP/SL updated
+```
+
+> **Key insight**: `amend` (regular) modifies price/size of the main order; `algo amend` modifies TP/SL trigger prices. Use `algo orders` to look up the `algoId` first.
+
+For spot, the pattern is the same:
+
+```
+1. okx-cex-trade     okx spot algo orders --instId BTC-USDT
+                     → find TP/SL algo order → algoId
+2. okx-cex-trade     okx spot algo amend --instId BTC-USDT --algoId <id> \
+                       --newSlTriggerPx <price> --newSlOrdPx=-1
+3. okx-cex-trade     okx spot algo orders --instId BTC-USDT
+                     → confirm TP/SL updated
+```
+
 ### Cancel all open spot orders
 > User: "Cancel all my open BTC spot orders"
 

@@ -647,6 +647,54 @@ describe("handleBotGridCommand — parameter routing", () => {
     });
 });
 
+// ===========================================================================
+// EARN — FLASH EARN
+// ===========================================================================
+
+const fakeFlashEarnResult = {
+    endpoint: "GET /api/v5/finance/flash-earn/projects",
+    requestTime: new Date().toISOString(),
+    data: [],
+};
+
+describe("handleEarnCommand flash-earn — parameter routing", () => {
+    it("projects: --status flag is passed as integer array", async () => {
+        const captured = {tool: "", args: {} as Record<string, unknown>};
+        const spy: ToolRunner = async (tool, args) => {
+            captured.tool = tool as string;
+            captured.args = args as Record<string, unknown>;
+            return fakeFlashEarnResult;
+        };
+        await handleEarnCommand(spy, "flash-earn", ["projects"], vals({status: "0,100"}), false);
+        assert.equal(captured.tool, "earn_get_flash_earn_projects");
+        assert.deepEqual(captured.args["status"], [0, 100]);
+    });
+
+    it("projects: omits status when --status is omitted", async () => {
+        const captured = {tool: "", args: {} as Record<string, unknown>};
+        const spy: ToolRunner = async (tool, args) => {
+            captured.tool = tool as string;
+            captured.args = args as Record<string, unknown>;
+            return fakeFlashEarnResult;
+        };
+        await handleEarnCommand(spy, "flash-earn", ["projects"], vals({}), false);
+        assert.equal(captured.tool, "earn_get_flash_earn_projects");
+        assert.equal(captured.args["status"], undefined);
+    });
+
+    it("projects: single status value is passed as integer array", async () => {
+        const captured = {tool: "", args: {} as Record<string, unknown>};
+        const spy: ToolRunner = async (tool, args) => {
+            captured.tool = tool as string;
+            captured.args = args as Record<string, unknown>;
+            return fakeFlashEarnResult;
+        };
+        await handleEarnCommand(spy, "flash-earn", ["projects"], vals({status: "100"}), false);
+        assert.equal(captured.tool, "earn_get_flash_earn_projects");
+        assert.deepEqual(captured.args["status"], [100]);
+    });
+});
+
 // ---------------------------------------------------------------------------
 // Earn Savings Fixed — parameter routing
 // ---------------------------------------------------------------------------

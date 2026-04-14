@@ -116,7 +116,7 @@ All commands in this skill are read-only.
 - **indicator arg order**: indicator name before instId — `okx market indicator rsi BTC-USDT`
 - **indicator `--params`**: comma-separated, no spaces — `--params 5,20`
 - **BTC-only indicators**: `ahr999`, `rainbow` — BTC-USDT only
-- **Unknown indicator name**: the API returns empty data silently — run `okx market indicator list` to confirm a name is supported before use
+- **Unknown indicator name**: returns a `ValidationError` with similar-name suggestions before the API is called — use `market_list_indicators` / `okx market indicator list` to see all valid names
 - **Stock token hours**: US stocks trade Mon–Fri ~09:30–16:00 ET; verify live price before acting
 - **No data returned**: instrument may be delisted — verify with `okx market instruments`
 - **`boll`** is an alias for `bb`

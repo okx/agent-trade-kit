@@ -223,6 +223,29 @@ describe("market_get_funding_rate", () => {
     );
     assert.equal(getLastCall()?.params.limit, 50);
   });
+
+  it("rejects spot instId (e.g. BTC-USDT)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT" }, makeContext(client)),
+      (err: Error) => {
+        assert.match(err.message, /not a SWAP instrument/);
+        assert.match(err.message, /BTC-USDT-SWAP/);
+        return true;
+      },
+    );
+  });
+
+  it("rejects FUTURES instId (e.g. BTC-USDT-250613)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT-250613" }, makeContext(client)),
+      (err: Error) => {
+        assert.match(err.message, /not a SWAP instrument/);
+        return true;
+      },
+    );
+  });
 });
 
 describe("market_get_instruments", () => {
@@ -3762,6 +3785,54 @@ describe("earn tools isWrite classification", () => {
       assert.ok(tool, `${name} should exist`);
       assert.equal(tool!.isWrite, false, `${name} should not be a write tool`);
     }
+  });
+});
+
+describe("flash earn tools registration", () => {
+  const tools = registerAllEarnTools();
+  const tool = tools.find((t) => t.name === "earn_get_flash_earn_projects")!;
+
+  it("registers flash earn query tool under earn.flash", () => {
+    assert.ok(tool);
+    assert.equal(tool.module, "earn.flash");
+    assert.equal(tool.isWrite, false);
+  });
+
+  it("uses array schema for status", () => {
+    const status = ((tool.inputSchema as { properties?: Record<string, { type?: string }> }).properties ?? {})["status"];
+    assert.equal(status?.type, "array");
+  });
+
+  it("defaults status to 0,100 when omitted", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/flash-earn/projects");
+    assert.equal(getLastCall()?.method, "GET");
+    assert.deepEqual(getLastCall()?.params, { status: "0,100" });
+  });
+
+  it("passes integer array status to API as comma-separated string", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: [100] }, makeContext(client));
+    assert.deepEqual(getLastCall()?.params, { status: "100" });
+  });
+
+  it("falls back to default when status is not a valid array", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "foo" }, makeContext(client));
+    assert.deepEqual(getLastCall()?.params, { status: "0,100" });
+  });
+
+  it("formats beginTime and endTime as YYYY-MM-DD HH:mm:ss UTC", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/flash-earn/projects": [
+        { id: "190", beginTs: "1775203200000", endTs: "1775808000000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client));
+    const items = (result as { data: Record<string, unknown>[] }).data;
+    assert.equal(items[0].beginTime, "2026-04-03 08:00:00 UTC");
+    assert.equal(items[0].endTime, "2026-04-10 08:00:00 UTC");
   });
 });
 

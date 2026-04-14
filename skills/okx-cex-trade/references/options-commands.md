@@ -100,7 +100,19 @@ okx option amend --instId <id> [--ordId <id>] [--clOrdId <id>] \
   [--newSz <n>] [--newPx <p>] [--json]
 ```
 
-Must provide at least one of `--newSz` or `--newPx`.
+Must provide at least one of `--newSz` or `--newPx`. To modify attached TP/SL, use `okx option algo amend` instead.
+
+---
+
+## Option — Amend Algo
+
+```bash
+okx option algo amend --instId <id> --algoId <id> \
+  [--newSz <n>] [--newTpTriggerPx <p>] [--newTpOrdPx <p>] \
+  [--newSlTriggerPx <p>] [--newSlOrdPx <p>] [--json]
+```
+
+> **Note**: Use this to modify TP/SL orders attached when placing the main order. Run `okx option algo orders` first to find the `algoId`.
 
 ---
 

@@ -98,6 +98,8 @@ okx spot algo amend --instId <id> --algoId <id> \
   [--newSlTriggerPx <p>] [--newSlOrdPx <p>] [--json]
 ```
 
+> **Note**: Use this to modify TP/SL orders attached when placing the main order. Run `okx spot algo orders` first to find the `algoId`.
+
 ---
 
 ## Spot — Cancel Algo

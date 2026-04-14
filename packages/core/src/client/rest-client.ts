@@ -165,6 +165,7 @@ export class OkxRestClient {
     path: string,
     query?: QueryParams,
     rateLimit?: RequestConfig["rateLimit"],
+    extraHeaders?: Record<string, string>,
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
       method: "GET",
@@ -172,6 +173,7 @@ export class OkxRestClient {
       auth: "private",
       query,
       rateLimit,
+      extraHeaders,
     });
   }
 
@@ -433,6 +435,7 @@ export class OkxRestClient {
   // Header building
   // ---------------------------------------------------------------------------
 
+  /** Build HTTP headers. reqConfig.extraHeaders must NOT contain auth keys (OK-ACCESS-*). */
   private buildHeaders(reqConfig: RequestConfig, requestPath: string, bodyJson: string, timestamp: string): Headers {
     const headers = new Headers({
       "Content-Type": "application/json",
@@ -459,6 +462,11 @@ export class OkxRestClient {
       headers.set("x-simulated-trading", "1");
     }
 
+    if (reqConfig.extraHeaders) {
+      for (const [key, value] of Object.entries(reqConfig.extraHeaders)) {
+        headers.set(key, value);
+      }
+    }
 
     return headers;
   }

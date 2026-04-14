@@ -1,6 +1,6 @@
 ---
 name: okx-cex-earn
-description: "Manages OKX Simple Earn (flexible savings/lending), On-chain Earn (staking/DeFi), Dual Investment (DCD/双币赢), and AutoEarn (自动赚币) via the okx CLI. Use this skill whenever the user wants to check earn balances, subscribe or redeem earn products, view or set lending rates, monitor on-chain staking orders, interact with dual investment structured products, or manage auto-earn — even if phrased casually as 活期赚币, 定期赚币, 赚币, 申购, 赎回, 链上赚币, 质押, 理财, 双币赢, 双币理财, 双币申购, 高卖, 低买, dual investment, DCD, buy low, sell high structured product, earn with target price, 目标价, 自动赚币, auto earn, auto-earn, 自动借出, 自动质押, auto lend, auto staking, USDG earn, USDG 赚币, 闲置资金自动理财, fixed earn, fixed deposit, term deposit, 定期理财, 定期. Also use when the user asks about idle funds and whether to earn on them."
+description: "Manages OKX Simple Earn (flexible savings/lending), Flash Earn, On-chain Earn (staking/DeFi), Dual Investment (DCD/双币赢), and AutoEarn (自动赚币) via the okx CLI. Use this skill whenever the user wants to check earn balances, browse flash-earn projects, subscribe or redeem earn products, view or set lending rates, monitor on-chain staking orders, interact with dual investment structured products, or manage auto-earn — even if phrased casually as 活期赚币, 定期赚币, 闪赚, 赚币, 申购, 赎回, 链上赚币, 质押, 理财, 双币赢, 双币理财, 双币申购, 高卖, 低买, dual investment, DCD, flash earn, buy low, sell high structured product, earn with target price, 目标价, 自动赚币, auto earn, auto-earn, 自动借出, 自动质押, auto lend, auto staking, USDG earn, USDG 赚币, 闲置资金自动理财, fixed earn, fixed deposit, term deposit, 定期理财, 定期. Also use when the user asks about idle funds and whether to earn on them."
 license: MIT
 metadata:
   author: okx
@@ -61,7 +61,7 @@ OKX Earn does not support demo mode. Always use `--profile live` silently — do
 | Spot / swap / futures / options orders | `okx-cex-trade` |
 | Account balance, positions, transfers | `okx-cex-portfolio` |
 | Grid / DCA trading bots | `okx-cex-bot` |
-| Simple Earn, On-chain Earn, Dual Investment (双币赢), or AutoEarn (自动赚币) | **This skill** |
+| Simple Earn, Flash Earn, On-chain Earn, Dual Investment (双币赢), or AutoEarn (自动赚币) | **This skill** |
 
 ---
 
@@ -123,6 +123,12 @@ For full command syntax and parameters, read `{baseDir}/references/onchain-comma
 
 For full command syntax, earnType inference rules, and MCP tool reference, read `{baseDir}/references/autoearn-commands.md`.
 
+### earn flash-earn — Flash Earn / 闪赚 (1 command)
+
+| Command | Type | Auth | Description |
+|---|---|---|---|
+| `earn flash-earn projects [--status <0\|100\|0,100>]` | READ | Required | Browse Flash Earn projects by status. `0`=upcoming, `100`=in-progress, default is both |
+
 ---
 
 ## Operation Flow
@@ -150,7 +156,11 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 - Query auto-earn status → READ, proceed directly.
 - Enable / disable auto-earn → WRITE, go to Step 2. Read `{baseDir}/references/autoearn-commands.md` for confirmation templates and earnType inference.
 
-When user asks to view "earn positions" or "赚币持仓" (regardless of whether they mention DCD explicitly), query all four simultaneously:
+**Flash Earn (闪赚):**
+- Browse projects → READ, proceed directly.
+- Use `--status 0` for upcoming projects, `--status 100` for in-progress projects, or omit the flag to view both.
+
+When user asks to view "earn positions" or "赚币持仓" (regardless of whether they mention DCD explicitly), query all position-bearing sub-modules simultaneously (Flash Earn is query-only, no positions):
 
 ```bash
 okx --profile live earn savings balance --json        # Simple Earn Flexible (活期)
