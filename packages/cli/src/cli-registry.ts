@@ -250,7 +250,7 @@ export const CLI_REGISTRY: CliRegistry = {
       amend: {
         toolName: "spot_amend_order",
         usage: "okx spot amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending spot order",
+        description: "Amend a pending spot order (price/size only; to modify TP/SL use 'okx spot algo amend')",
       },
       cancel: {
         toolName: "spot_cancel_order",
@@ -286,7 +286,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "spot_amend_algo_order",
             usage: "okx spot algo amend --instId <id> --algoId <id> [--newSz <n>]\n                    [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                    [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending spot algo order",
+            description: "Amend a pending spot algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "spot_cancel_algo_order",
@@ -336,7 +336,7 @@ export const CLI_REGISTRY: CliRegistry = {
         // swap amend uses spot_amend_order (same OKX /trade/amend-order endpoint works for all types)
         toolName: "spot_amend_order",
         usage: "okx swap amend --instId <id> --ordId <id> [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending swap order",
+        description: "Amend a pending swap order (price/size only; to modify attached TP/SL use 'okx swap algo amend')",
       },
       close: {
         toolName: "swap_close_position",
@@ -382,7 +382,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "swap_amend_algo_order",
             usage: "okx swap algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending swap algo order",
+            description: "Amend a pending swap algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "swap_cancel_algo_orders",
@@ -426,7 +426,7 @@ export const CLI_REGISTRY: CliRegistry = {
       amend: {
         toolName: "futures_amend_order",
         usage: "okx futures amend --instId <id> [--ordId <id>] [--clOrdId <id>] [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending futures order",
+        description: "Amend a pending futures order (price/size only; to modify TP/SL use 'okx futures algo amend')",
       },
       get: {
         toolName: "futures_get_order",
@@ -477,7 +477,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "futures_amend_algo_order",
             usage: "okx futures algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending futures algo order",
+            description: "Amend a pending futures algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "futures_cancel_algo_orders",
@@ -536,7 +536,7 @@ export const CLI_REGISTRY: CliRegistry = {
       amend: {
         toolName: "option_amend_order",
         usage: "okx option amend --instId <id> [--ordId <id>] [--clOrdId <id>] [--newSz <n>] [--newPx <price>]",
-        description: "Amend a pending option order",
+        description: "Amend a pending option order (price/size only; to modify TP/SL use 'okx option algo amend')",
       },
       "batch-cancel": {
         toolName: "option_batch_cancel",
@@ -561,7 +561,7 @@ export const CLI_REGISTRY: CliRegistry = {
           amend: {
             toolName: "option_amend_algo_order",
             usage: "okx option algo amend --instId <id> --algoId <id> [--newSz <n>]\n                   [--newTpTriggerPx <price>] [--newTpOrdPx <price|-1>]\n                   [--newSlTriggerPx <price>] [--newSlOrdPx <price|-1>]",
-            description: "Amend a pending option algo order",
+            description: "Amend a pending option algo order (including attached TP/SL)",
           },
           cancel: {
             toolName: "option_cancel_algo_orders",

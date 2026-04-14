@@ -139,7 +139,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_amend_order",
       module: "spot",
       description:
-        "Amend an unfilled spot order (modify price or size).",
+        "Amend an unfilled spot order (modify price or size). To modify attached TP/SL, use the corresponding algo amend tool: spot_amend_algo_order (spot), swap_amend_algo_order (swap), futures_amend_algo_order (futures), option_amend_algo_order (option). Use spot_get_algo_orders to find the algoId for spot orders.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -356,7 +356,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_amend_algo_order",
       module: "spot",
       description:
-        "Amend a pending spot algo order (modify TP/SL prices or size).",
+        "Amend a pending spot algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order — look up algoId via spot_get_algo_orders first.",
       isWrite: true,
       inputSchema: {
         type: "object",
