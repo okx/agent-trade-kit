@@ -85,7 +85,7 @@ export const CLI_REGISTRY: CliRegistry = {
       "funding-rate": {
         toolName: "market_get_funding_rate",
         usage: "okx market funding-rate <instId> [--history] [--limit <n>]",
-        description: "Get current or historical funding rate for perpetual swaps",
+        description: "Get current or historical funding rate (instId must be SWAP, e.g. BTC-USDT-SWAP)",
       },
       "mark-price": {
         toolName: "market_get_mark_price",

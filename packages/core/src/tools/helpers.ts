@@ -117,6 +117,20 @@ export function normalizeResponse(response: {
   };
 }
 
+/**
+ * Validate that instId looks like a perpetual swap (ends with -SWAP).
+ * Throws ValidationError with a helpful message when a spot ID is passed.
+ */
+export function validateSwapInstId(instId: string): void {
+  if (!instId.toUpperCase().endsWith("-SWAP")) {
+    throw new ValidationError(
+      `instId "${instId}" is not a SWAP instrument. ` +
+      `Funding rate is only available for perpetual swaps. ` +
+      `Use the SWAP format, e.g. "${instId}-SWAP".`,
+    );
+  }
+}
+
 export function buildAttachAlgoOrds(
   source: Record<string, unknown>,
 ): Record<string, unknown>[] | undefined {
