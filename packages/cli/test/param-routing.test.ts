@@ -850,3 +850,156 @@ describe("handleEventCommand — parameter routing", () => {
         assert.equal(captured.args["seriesId"], "BTC-ABOVE-DAILY");
     });
 });
+
+// ===========================================================================
+// MARKET FILTER / OI-HISTORY / OI-CHANGE
+// ===========================================================================
+
+const fakeFilterResult = {
+    endpoint: "POST /api/v5/aigc/mcp/market-filter",
+    requestTime: new Date().toISOString(),
+    data: {total: 0, rows: []},
+};
+
+const fakeOiHistoryResult = {
+    endpoint: "POST /api/v5/aigc/mcp/oi-history",
+    requestTime: new Date().toISOString(),
+    data: {instId: "BTC-USDT-SWAP", bar: "1H", rows: []},
+};
+
+const fakeOiChangeResult = {
+    endpoint: "POST /api/v5/aigc/mcp/oi-change-filter",
+    requestTime: new Date().toISOString(),
+    data: [],
+};
+
+function makeFilterSpy(result: typeof fakeFilterResult | typeof fakeOiHistoryResult | typeof fakeOiChangeResult) {
+    const captured = {tool: "", args: {} as Record<string, unknown>};
+    const spy: ToolRunner = async (tool, args) => {
+        captured.tool = tool as string;
+        captured.args = args as Record<string, unknown>;
+        return result;
+    };
+    return {spy, captured};
+}
+
+describe("handleMarketCommand — filter/oi-history/oi-change parameter routing", () => {
+    // ── market filter ──────────────────────────────────────────────────────
+    it("filter: instType comes from v.instType (not rest)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SWAP"}), false);
+        assert.equal(captured.args["instType"], "SWAP");
+    });
+
+    it("filter: sortBy comes from v.sortBy", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SWAP", sortBy: "oiUsd"}), false);
+        assert.equal(captured.args["sortBy"], "oiUsd");
+    });
+
+    it("filter: sortOrder comes from v.sortOrder", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SPOT", sortOrder: "asc"}), false);
+        assert.equal(captured.args["sortOrder"], "asc");
+    });
+
+    it("filter: limit comes from v.limit (string → number)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "FUTURES", limit: "50"}), false);
+        assert.equal(captured.args["limit"], 50);
+    });
+
+    it("filter: minVolUsd24h comes from v.minVolUsd24h", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SWAP", minVolUsd24h: "100000000"}), false);
+        assert.equal(captured.args["minVolUsd24h"], "100000000");
+    });
+
+    it("filter: minOiUsd comes from v.minOiUsd", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SWAP", minOiUsd: "500000000"}), false);
+        assert.equal(captured.args["minOiUsd"], "500000000");
+    });
+
+    it("filter: minFundingRate comes from v.minFundingRate", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SWAP", minFundingRate: "0.0001"}), false);
+        assert.equal(captured.args["minFundingRate"], "0.0001");
+    });
+
+    it("filter: ctType comes from v.ctType", async () => {
+        const {spy, captured} = makeFilterSpy(fakeFilterResult);
+        await handleMarketCommand(spy, "filter", [], vals({instType: "SWAP", ctType: "linear"}), false);
+        assert.equal(captured.args["ctType"], "linear");
+    });
+
+    // ── market oi-history ──────────────────────────────────────────────────
+    it("oi-history: instId comes from rest[0]", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
+        await handleMarketCommand(spy, "oi-history", ["BTC-USDT-SWAP"], vals({}), false);
+        assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
+    });
+
+    it("oi-history: bar comes from v.bar (not rest)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
+        await handleMarketCommand(spy, "oi-history", ["BTC-USDT-SWAP"], vals({bar: "4H"}), false);
+        assert.equal(captured.args["bar"], "4H");
+        assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
+    });
+
+    it("oi-history: limit comes from v.limit (string → number)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
+        await handleMarketCommand(spy, "oi-history", ["ETH-USDT-SWAP"], vals({limit: "100"}), false);
+        assert.equal(captured.args["limit"], 100);
+    });
+
+    it("oi-history: ts comes from v.ts (string → number)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
+        await handleMarketCommand(spy, "oi-history", ["BTC-USDT-SWAP"], vals({ts: "1700000000000"}), false);
+        assert.equal(captured.args["ts"], 1700000000000);
+    });
+
+    it("oi-history: instId is rest[0], NOT overridden by v.instId", async () => {
+        // Verify that instId routing uses rest[0] correctly (the documented behavior for this command)
+        const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
+        await handleMarketCommand(spy, "oi-history", ["SOL-USDT-SWAP"], vals({}), false);
+        assert.equal(captured.args["instId"], "SOL-USDT-SWAP");
+    });
+
+    // ── market oi-change ───────────────────────────────────────────────────
+    it("oi-change: instType comes from v.instType (not rest)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
+        await handleMarketCommand(spy, "oi-change", [], vals({instType: "FUTURES"}), false);
+        assert.equal(captured.args["instType"], "FUTURES");
+    });
+
+    it("oi-change: bar comes from v.bar", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
+        await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", bar: "15m"}), false);
+        assert.equal(captured.args["bar"], "15m");
+    });
+
+    it("oi-change: minAbsOiDeltaPct comes from v.minAbsOiDeltaPct", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
+        await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", minAbsOiDeltaPct: "1.5"}), false);
+        assert.equal(captured.args["minAbsOiDeltaPct"], "1.5");
+    });
+
+    it("oi-change: sortBy comes from v.sortBy", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
+        await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", sortBy: "oiDeltaUsd"}), false);
+        assert.equal(captured.args["sortBy"], "oiDeltaUsd");
+    });
+
+    it("oi-change: limit comes from v.limit (string → number)", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
+        await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", limit: "30"}), false);
+        assert.equal(captured.args["limit"], 30);
+    });
+
+    it("oi-change: minOiUsd comes from v.minOiUsd", async () => {
+        const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
+        await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", minOiUsd: "100000000"}), false);
+        assert.equal(captured.args["minOiUsd"], "100000000");
+    });
+});

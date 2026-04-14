@@ -422,7 +422,7 @@ export async function cmdMarketFilter(
     sortOrder:       opts.sortOrder,
     limit:           opts.limit,
   });
-  const data = getData(result) as Record<string, unknown>;
+  const data = getData(result) as Record<string, unknown> | null;
   if (opts.json) return printJson(data);
   const rows = (data?.["rows"] ?? []) as Record<string, unknown>[];
   const total = data?.["total"] ?? rows.length;
@@ -464,11 +464,11 @@ export async function cmdMarketOiHistory(
     limit: opts.limit,
     ts:    opts.ts,
   });
-  const data = getData(result) as Record<string, unknown>;
+  const data = getData(result) as Record<string, unknown> | null;
   if (opts.json) return printJson(data);
   const rows = (data?.["rows"] ?? []) as Record<string, unknown>[];
   if (!rows.length) { outputLine("No OI data"); return; }
-  outputLine(`${data["instId"]}  bar=${data["bar"]}`);
+  outputLine(`${data?.["instId"] ?? instId}  bar=${data?.["bar"] ?? opts.bar ?? "1H"}`);
   printTable(
     rows.map((r) => ({
       ts:          new Date(Number(r["ts"])).toLocaleString(),

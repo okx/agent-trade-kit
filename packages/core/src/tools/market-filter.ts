@@ -23,7 +23,9 @@ export function registerMarketFilterTools(): ToolSpec[] {
         "Screen / rank instruments across SPOT, SWAP, or FUTURES by multi-dimensional criteria: " +
         "price range, 24h change %, market cap, 24h volume (USD), funding rate (SWAP), " +
         "open interest (USD), listing time. Returns ranked rows with full ticker snapshot. " +
-        "Use to find top movers, high-OI contracts, newly listed tokens, etc. No credentials required.",
+        "Use to find top movers, high-OI contracts, newly listed tokens, etc. No credentials required. " +
+        "Do NOT use to get OI change rankings across contracts — use market_filter_oi_change instead. " +
+        "Do NOT use to get OI time series for a single instrument — use market_get_oi_history instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -164,7 +166,9 @@ export function registerMarketFilterTools(): ToolSpec[] {
       description:
         "Get open interest (OI) history time series for a single SWAP or FUTURES instrument. " +
         "Returns per-bar OI in contracts, base currency and USD, plus bar-over-bar delta and delta %. " +
-        "Useful for tracking how OI evolves around price moves. No credentials required.",
+        "Useful for tracking how OI evolves around price moves. No credentials required. " +
+        "Do NOT use to compare OI changes across multiple contracts — use market_filter_oi_change instead. " +
+        "Do NOT use to screen instruments by current OI level — use market_filter instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -217,7 +221,9 @@ export function registerMarketFilterTools(): ToolSpec[] {
         "Returns ranked rows with current OI (USD), previous OI (USD), OI delta (USD and %), " +
         "price change %, 24h volume and funding rate. " +
         "Ideal for spotting unusual accumulation/distribution or confirming trend momentum. " +
-        "No credentials required.",
+        "No credentials required. " +
+        "Do NOT use to get OI time series for a single instrument — use market_get_oi_history instead. " +
+        "Do NOT use to screen by current OI absolute level or other non-OI metrics — use market_filter instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
