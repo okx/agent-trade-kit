@@ -135,8 +135,16 @@ export interface CliValues {
   // market candle time range
   after?: string;
   before?: string;
-  // skill marketplace
+  // news
+  coins?: string;
+  sentiment?: string;
+  importance?: string;
   keyword?: string;
+  "detail-lvl"?: string;
+  period?: string;
+  points?: string;
+  "sort-by"?: string;
+  // skill marketplace
   categories?: string;
   dir?: string;
   page?: string;
@@ -301,8 +309,16 @@ export const CLI_OPTIONS = {
   params: { type: "string" },
   list: { type: "boolean", default: false },
   "backtest-time": { type: "string" },
-  // skill marketplace
+  // news
+  coins: { type: "string" },
+  sentiment: { type: "string" },
+  importance: { type: "string" },
   keyword: { type: "string" },
+  "detail-lvl": { type: "string" },
+  period: { type: "string" },
+  points: { type: "string" },
+  "sort-by": { type: "string" },
+  // skill marketplace
   categories: { type: "string" },
   dir: { type: "string" },
   page: { type: "string" },
