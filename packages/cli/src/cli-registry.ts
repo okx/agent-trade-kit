@@ -896,6 +896,56 @@ export const CLI_REGISTRY: CliRegistry = {
     },
   },
 
+  // ── news ──────────────────────────────────────────────────────────────────
+  news: {
+    commands: {
+      latest: {
+        toolName: "news_get_latest",
+        usage: "okx news latest [--coins BTC,ETH] [--lang zh_CN] [--limit 20]",
+      },
+      important: {
+        toolName: "news_get_latest",
+        usage: "okx news important [--coins BTC,ETH] [--lang zh_CN] [--limit 20]",
+        description: "Get important/high-impact crypto news",
+      },
+      "by-coin": {
+        toolName: "news_get_by_coin",
+        usage: "okx news by-coin --coins BTC [--importance high] [--lang zh_CN]",
+      },
+      search: {
+        toolName: "news_search",
+        usage: "okx news search --keyword <term> [--coins BTC] [--sentiment bullish] [--lang zh_CN]",
+      },
+      detail: {
+        toolName: "news_get_detail",
+        usage: "okx news detail <id> [--lang zh_CN]",
+      },
+      domains: {
+        toolName: "news_get_domains",
+        usage: "okx news domains",
+        description: "List available news source domains",
+      },
+      "coin-sentiment": {
+        toolName: "news_get_coin_sentiment",
+        usage: "okx news coin-sentiment --coins BTC [--period 24h]",
+      },
+      "coin-trend": {
+        toolName: "news_get_coin_sentiment",
+        usage: "okx news coin-trend <coin> [--period 24h] [--points 24]",
+        description: "Get coin sentiment trend over time",
+      },
+      "by-sentiment": {
+        toolName: "news_search",
+        usage: "okx news by-sentiment --sentiment bullish [--coins BTC] [--sort-by latest]",
+        description: "Browse news filtered by sentiment direction",
+      },
+      "sentiment-rank": {
+        toolName: "news_get_sentiment_ranking",
+        usage: "okx news sentiment-rank [--period 24h] [--sort-by 0] [--limit 20]",
+      },
+    },
+  },
+
   // ── diagnose ───────────────────────────────────────────────────────────────
   diagnose: {
     description: "Run network / MCP server diagnostics",

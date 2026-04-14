@@ -31,6 +31,7 @@ export interface RequestConfig {
    * All other tools leave this unset and continue to follow config.demo.
    */
   simulatedTrading?: boolean;
+  extraHeaders?: Record<string, string>;
 }
 
 export interface RequestResult<TData = unknown> {
