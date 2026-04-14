@@ -11,6 +11,17 @@ const CLI_VERSION = (_require("../package.json") as { version: string }).version
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
+import {
+  cmdNewsLatest,
+  cmdNewsImportant,
+  cmdNewsByCoin,
+  cmdNewsSearch,
+  cmdNewsDetail,
+  cmdNewsDomains,
+  cmdNewsCoinSentiment,
+  cmdNewsCoinTrend,
+  cmdNewsSentimentRank,
+} from "./commands/news.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
 import { parseCli } from "./parser.js";
@@ -1143,6 +1154,48 @@ function handleEarnDcdCommand(
   process.exitCode = 1;
 }
 
+export function handleNewsCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const limit = v.limit !== undefined ? Number(v.limit) : undefined;
+  const begin = v.begin !== undefined ? Number(v.begin) : undefined;
+  const end = v.end !== undefined ? Number(v.end) : undefined;
+  const language = v.lang ?? "en_US";
+  const detailLvl = v["detail-lvl"];
+  const after = v.after;
+  const period = v.period;
+  const points = v.points !== undefined ? Number(v.points) : 24;
+  const sortBy = v["sort-by"];
+  const searchOpts = { coins: v.coins, importance: v.importance, sentiment: v.sentiment, sortBy, begin, end, language, detailLvl, limit, after, json };
+  const listOpts = { coins: v.coins, importance: v.importance, begin, end, language, detailLvl, limit, after, json };
+
+  const dispatch: Record<string, () => Promise<void> | void> = {
+    latest:           () => cmdNewsLatest(run, listOpts),
+    important:        () => cmdNewsImportant(run, { coins: v.coins, begin, end, language, detailLvl, limit, json }),
+    "by-coin":        () => cmdNewsByCoin(run, (v.coins ?? rest[0])!, { importance: v.importance, begin, end, language, detailLvl, limit, json }),
+    search:           () => cmdNewsSearch(run, (v.keyword ?? rest[0])!, searchOpts),
+    detail:           () => cmdNewsDetail(run, rest[0]!, { language, json }),
+    domains:          () => cmdNewsDomains(run, { json }),
+    "coin-sentiment": () => cmdNewsCoinSentiment(run, (v.coins ?? rest[0])!, { period, json }),
+    "coin-trend":     () => cmdNewsCoinTrend(run, (v.coins ?? rest[0])!, { period, points, json }),
+    // by-sentiment is a convenience wrapper over news_search (no keyword, sentiment filter only)
+    "by-sentiment":   () => {
+      const opts = { ...searchOpts, sortBy: sortBy ?? "latest" };
+      return cmdNewsSearch(run, "", opts);
+    },
+    "sentiment-rank": () => cmdNewsSentimentRank(run, { period, sortBy, limit, json }),
+  };
+
+  const handler = dispatch[action];
+  if (handler) return handler();
+  process.stderr.write(`Unknown news command: ${action}\n`);
+  process.exitCode = 1;
+}
+
 function requireSkillName(rest: string[], usage: string): string | undefined {
   const name = rest[0];
   if (!name) { errorLine(usage); process.exitCode = 1; }
@@ -1356,6 +1409,7 @@ async function main(): Promise<void> {
     futures: () => handleFuturesCommand(run, action, rest, v, json),
     option:  () => handleOptionCommand(run, action, rest, v, json),
     event:   () => handleEventCommand(run, action, rest, v, json),
+    news:    () => handleNewsCommand(run, action, rest, v, json),
     bot:     () => handleBotCommand(run, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
     skill:   () => handleSkillCommand(run, action, rest, v, json, config),

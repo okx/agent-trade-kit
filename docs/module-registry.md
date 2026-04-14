@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~22,892 tokens | **Remaining:** ~2,108 tokens | **Tools:** 136 (76 read / 60 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~24,292 tokens | **Remaining:** ~708 tokens | **Tools:** 143 (83 read / 60 write)
 
 ## Registered Modules
 
@@ -23,7 +23,8 @@ Unregistered modules will be rejected during review.
 | skills | ✅ approved | 3 | 2 | 1 | ~500 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~165 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | event | ✅ approved | 9 | 6 | 3 | ~1,800 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
-| **Total** | | **136** | **76** | **60** | **~22,892** | | | |
+| news | ✅ approved | 7 | 7 | 0 | ~1,400 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
+| **Total** | | **143** | **83** | **60** | **~24,292** | | | |
 
 ## Status Legend
 
@@ -43,9 +44,9 @@ Unregistered modules will be rejected during review.
 
 See [MCP Design Guideline](mcp-design-guideline.md) for full design rules.
 
+
 ## Proposed / Deferred Modules
 
 | Module ID | Status | Tools (est.) | Token Est. | Design Doc | Approved By | Date |
 |-----------|--------|--------------|------------|------------|-------------|------|
 | earn.auto | 📝 proposed | 5 | ~1,000 | [doc](modules/earn.auto.md) | — | — |
-| news | ⏸️ deferred | 10 | ~2,000 | [doc](modules/news.md) | — | — |
