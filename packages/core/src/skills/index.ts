@@ -1,4 +1,5 @@
-export { downloadSkillZip } from "./downloader.js";
+export { downloadSkillZip, presignSkillDownload } from "./downloader.js";
+export type { PresignResult } from "./downloader.js";
 export { extractSkillZip } from "./extractor.js";
 export { readMetaJson, validateSkillMdExists } from "./parser.js";
 export {

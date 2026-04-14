@@ -125,6 +125,11 @@ export class OkxRestClient {
     });
   }
 
+  /** The canonical base URL for this client (e.g. https://www.okx.com). */
+  public get baseUrl(): string {
+    return this.config.baseUrl;
+  }
+
   private logRequest(method: string, url: string, auth: string): void {
     if (!this.config.verbose) return;
     vlog(`\u2192 ${method} ${url}`);
@@ -411,6 +416,76 @@ export class OkxRestClient {
     }
 
     return { endpoint, requestTime: new Date().toISOString(), data: buffer, contentType: ct, contentLength: buffer.length, traceId };
+  }
+
+  /**
+   * Send an unauthenticated GET request and return the raw binary response.
+   * Used for pre-signed download URLs where auth is embedded in the token.
+   * Inherits proxy, timeout, DoH, and verbose capabilities from the client.
+   */
+  public async publicGetBinary(
+    path: string,
+    query?: QueryParams,
+    opts?: BinaryRequestOptions,
+  ): Promise<BinaryResult> {
+    this.doh.prepareDoh();
+
+    const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
+    const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
+    const queryString = buildQueryString(query);
+    const requestPath = queryString ? `${path}?${queryString}` : path;
+    const conn = this.doh.getConnectionParams();
+    const url = `${conn.baseUrl}${requestPath}`;
+
+    this.logRequest("GET", url, "public");
+
+    const headers = new Headers({ Accept: "application/octet-stream" });
+    if (this.config.userAgent) headers.set("User-Agent", this.config.userAgent);
+    if (conn.userAgent) headers.set("User-Agent", conn.userAgent);
+
+    const t0 = Date.now();
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "GET",
+        headers,
+        signal: AbortSignal.timeout(this.config.timeoutMs),
+        dispatcher: this.dispatcher ?? conn.dispatcher,
+      } as RequestInit);
+    } catch (error) {
+      this.doh.handleNetworkFailure().catch(() => {});
+      throw new NetworkError(`Failed to call OKX endpoint GET ${path}.`, `GET ${path}`, error);
+    }
+
+    const elapsed = Date.now() - t0;
+    const traceId = extractTraceId(response.headers);
+    this.doh.cacheDirectIfNeeded();
+
+    if (!response.ok) {
+      const text = await response.text();
+      this.logResponse(response.status, text.length, elapsed, traceId, String(response.status));
+      const msg = this.tryThrowJsonError(text, path, traceId) || `HTTP ${response.status}`;
+      throw new OkxApiError(msg, { code: String(response.status), endpoint: `GET ${path}`, traceId });
+    }
+
+    const ct = response.headers.get("content-type") ?? "";
+    if (!ct.includes(expectedCT)) {
+      const text = await response.text();
+      this.logResponse(response.status, text.length, elapsed, traceId, "unexpected-ct");
+      this.tryThrowJsonError(text, path, traceId);
+      throw new OkxApiError(`Expected binary response (${expectedCT}) but got: ${ct}`, { code: "UNEXPECTED_CONTENT_TYPE", endpoint: `GET ${path}`, traceId });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) {
+      throw new OkxApiError(`Response size ${buffer.length} bytes exceeds limit of ${maxBytes} bytes.`, { code: "RESPONSE_TOO_LARGE", endpoint: `GET ${path}`, traceId });
+    }
+
+    if (this.config.verbose) {
+      vlog(`\u2190 ${response.status} | binary ${buffer.length}B | ${elapsed}ms | trace=${traceId ?? "-"}`);
+    }
+
+    return { endpoint: `GET ${path}`, requestTime: new Date().toISOString(), data: buffer, contentType: ct, contentLength: buffer.length, traceId };
   }
 
   /** Execute fetch for binary endpoint, wrapping network errors. */
