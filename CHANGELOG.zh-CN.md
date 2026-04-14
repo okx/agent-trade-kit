@@ -11,20 +11,36 @@
 
 ## [Unreleased]
 
-### 变更
+---
 
-- **`market_get_indicator` / `okx market indicator` 描述优化 + 指标名校验前置**：Tool 和 CLI 描述内联列出常用指标名称并引导使用 `market_list_indicators`。未知指标名现在在发起 API 请求**之前**即抛出 `ValidationError` 并附相似名称建议，不再静默返回空数据。(#153)
+## [1.3.1-beta.6] - 2026-04-14
 
 ### 新增
 
-- **止盈止损修改可发现性提升**：`{module}_amend_order` 的 MCP tool description 新增引导，指向 `{module}_amend_algo_order` 用于修改附加止盈止损；algo amend description 明确覆盖附加 TP/SL；CLI `amend` 描述提示走 `algo amend`；Skills `workflows.md` 新增"修改止盈止损"完整场景。(#151)
-- **CLI 帮助内容自动从 ToolSpec 注册表生成**：CLI 帮助文本现在由声明式 `CLI_REGISTRY` 映射动态生成，不再维护 640 行静态数据结构。描述文字从 `@agent-tradekit/core` 的 ToolSpec 对象中读取，确保与 MCP 工具注册表保持同步。新增双向漂移测试，在测试阶段捕获不一致。(#140)
-- **`okx list-tools [--json]` Agent 自发现命令**：新增命令，将完整的 CLI 注册表序列化为结构化 JSON，AI Agent 无需解析 `--help` 文本即可以编程方式枚举所有可用能力、参数及工具名称。(#140)
-- **`okx doh` 管理命令**：新增 CLI 模块，用于管理 DoH（DNS-over-HTTPS）resolver 二进制文件。`okx doh status` 显示 binary 路径、文件大小、SHA-256 及 CDN 校验状态；`okx doh install` 下载或更新 binary；`okx doh remove` 删除 binary（无 `--force` 时提示确认）。(#138)
-- **`okx --version` 显示 DoH 状态**：版本输出新增第二行：`DoH resolver: installed (darwin-arm64)` 或 `DoH resolver: not installed`。(#138)
-- **`okx diagnose` 增加 DoH 检查项**：诊断输出新增 DoH 章节，包含 binary 是否存在、CDN checksum 是否一致、DoH cache 中的运行时模式。(#138)
-- **`context-kg/` 知识库扩充**：新增 `technical/05-doh-proxy.md`，覆盖 DoH 子系统架构、二进制分发、缓存策略及 CLI 命令。更新 `business/02-trading-modules.md`，补充 `tgtCcy=margin` 转换模式说明。更新 `technical/01-architecture.md`，修正测试文件数量并补充 DoH 层和 list-tools 引用。将 `quality/01-placeholder.md` 从占位升级为完整的测试与 QA 规范。(#150)
-- **Flash Earn 模块**：新增 `earn.flash` 模块，包含 `earn_get_flash_earn_projects` MCP 工具和 `okx earn flash-earn projects` CLI 命令，用于浏览即将开始和进行中的闪赚项目。
+- **事件合约模块**：新增 `event` 模块，包含 9 个 MCP 工具和 CLI 命令，支持二元预测市场 — 浏览系列/事件/合约、下单/改单/撤单、查询订单/成交记录。
+- **DoH（DNS-over-HTTPS）代理**：OKX API 不可直连时自动切换备用代理节点，缓存优先，零额外开销，支持 `--verbose` 日志。支持 darwin-arm64/x64、linux-x64/arm64、win32-x64。
+- **`okx doh` 管理命令**：`okx doh status`（查看状态/SHA-256/CDN 校验）、`okx doh install`（下载/更新）、`okx doh remove`（删除）。(#138)
+- **`okx --version` 及 `okx diagnose` 显示 DoH 状态**。(#138)
+- **CLI 帮助内容自动从 ToolSpec 注册表生成**：帮助文本由 `CLI_REGISTRY` 动态生成，与 MCP 工具注册表保持同步，双向漂移测试捕获不一致。(#140)
+- **`okx list-tools [--json]` Agent 自发现命令**：将完整 CLI 注册表序列化为结构化 JSON，供 AI Agent 编程枚举能力。(#140)
+- **止盈止损修改可发现性提升**：`{module}_amend_order` 引导至 `{module}_amend_algo_order`；Skills `workflows.md` 新增"修改止盈止损"场景。(#151)
+- **行情筛选工具**（`market`）：3 个新 MCP 工具和 CLI 命令 — `market_filter` / `okx market filter`（按价格/涨跌幅/市值/成交量/资金费率/持仓量筛选）、`market_get_oi_history` / `okx market oi-history`（OI 时序及 bar 变化量）、`market_filter_oi_change` / `okx market oi-change`（按 OI 变化幅度排序）。
+- **`news` 模块恢复**：7 个 MCP 工具和 CLI 命令，含最新新闻、按币种查询、全文搜索、文章详情、来源列表、情绪分析，修复 `Accept-Language` 头默认值。
+- **Flash Earn 模块**（`earn.flash`）：`earn_get_flash_earn_projects` MCP 工具和 `okx earn flash-earn projects` CLI 命令，浏览即将开始和进行中的闪赚项目。
+- **`context-kg/` 知识库扩充**：新增 DoH 子系统文档，补充 `tgtCcy=margin` 说明，更新架构文档及完整测试 QA 规范。(#150)
+- **Skills 下载改用两步预签名流程**：`skills_download` / `okx skill download` 改用 presigned URL，提升下载可靠性。
+
+### 变更
+
+- **`market_get_indicator` 描述优化 + 指标名校验前置**：内联列出常用指标名并引导使用 `market_list_indicators`；未知指标名在 API 调用前抛出 `ValidationError` 并附相似名称建议。(#153)
+- **`market_filter` `marketCapUsd` 仅限 SPOT**：描述明确该过滤条件仅适用于 `instType=SPOT`，与上游 API 行为一致。
+
+### 修复
+
+- **事件合约接口改用鉴权请求**：4 个事件查询工具改为 `privateGet`，OKX `/public/event-contract/*` 需要鉴权头。
+- **Skill docs + MCP server remediation safeguard**：错误建议写操作时，agent 须先只读诊断并等待用户确认。
+- **CLI help 缺少参数修复**：补充 `spot`、`swap`、`futures` CLI help 条目中缺少的参数。(#155)
+- **Skills 移除硬编码中文提示**：改为英文指令式文本，agent 自适应用户语言。
 
 ---
 

@@ -11,20 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+---
 
-- **`market_get_indicator` / `okx market indicator`: improved descriptions and pre-call name validation**: Tool and CLI descriptions now list common indicator names inline and direct users to `market_list_indicators`. Unknown indicator names now return a `ValidationError` with similar-name suggestions _before_ any API call instead of silently returning empty data. (#153)
+## [1.3.1-beta.6] - 2026-04-14
 
 ### Added
 
-- **TP/SL amend discoverability**: MCP tool descriptions for `{module}_amend_order` now route users to `{module}_amend_algo_order` for modifying attached take-profit/stop-loss. Algo amend descriptions clarify coverage of attached TP/SL. CLI `amend` descriptions hint at `algo amend` path. Skills `workflows.md` adds a complete "Modify existing TP/SL" scenario. (#151)
-- **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line data structure. Descriptions are sourced from ToolSpec objects in `@agent-tradekit/core`, ensuring help text stays in sync with the MCP tool registry. Drift is caught at test time by a bidirectional drift test. (#140)
-- **`okx list-tools [--json]` agent self-discovery command**: New command serializing the full CLI registry into structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140)
-- **`okx doh` management commands**: New CLI module for managing the DoH (DNS-over-HTTPS) resolver binary. `okx doh status` shows binary path, file size, SHA-256, and CDN match status. `okx doh install` downloads or updates the binary. `okx doh remove` deletes the binary (with confirmation prompt or `--force`). (#138)
-- **DoH status in `okx --version`**: Version output now includes a second line: `DoH resolver: installed (darwin-arm64)` or `DoH resolver: not installed`. (#138)
-- **DoH check in `okx diagnose`**: Diagnostics now include a DoH section checking binary existence, CDN checksum match, and runtime mode from the DoH cache. (#138)
-- **`context-kg/` knowledge base expanded**: Added `technical/05-doh-proxy.md` covering DoH subsystem architecture, binary distribution, cache strategy, and CLI commands. Updated `business/02-trading-modules.md` with `tgtCcy=margin` conversion mode documentation. Updated `technical/01-architecture.md` with accurate test counts and DoH/list-tools references. Upgraded `quality/01-placeholder.md` to full testing & QA specification. (#150)
-- **Flash Earn module**: New `earn.flash` module with `earn_get_flash_earn_projects` MCP tool and `okx earn flash-earn projects` CLI command for browsing upcoming and in-progress Flash Earn opportunities.
+- **Event Contract module**: New `event` module with 9 MCP tools and CLI commands for binary prediction markets — browse series/events/markets, place/amend/cancel orders, query orders/fills, and direction analysis with index price enrichment.
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: Transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary when OKX API is unreachable via direct connection. Cache-first, zero overhead on cached paths. Supports `--verbose` logging.
+- **Automatic DoH binary download on install**: `postinstall` downloads the platform-specific `okx-doh-resolver` binary from CDN to `~/.okx/bin/`. Best-effort, never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, linux-arm64, and win32-x64.
+- **`okx doh` management commands**: `okx doh status`, `okx doh install`, `okx doh remove` for managing the DoH resolver binary. (#138)
+- **DoH status in `okx --version` and `okx diagnose`**: Version output shows DoH resolver install status; `diagnose` checks binary existence and CDN checksum. (#138)
+- **Auto-generated CLI help from ToolSpec registry**: CLI help text generated from declarative `CLI_REGISTRY` map, sourced from ToolSpec objects in `@agent-tradekit/core`. Bidirectional drift test catches mismatches at test time. (#140)
+- **`okx list-tools [--json]` agent self-discovery command**: Serializes the full CLI registry into structured JSON for programmatic enumeration of all capabilities, parameters, and tool names. (#140)
+- **TP/SL amend discoverability**: `{module}_amend_order` descriptions route users to `{module}_amend_algo_order` for modifying attached TP/SL. Skills `workflows.md` adds a "Modify existing TP/SL" scenario. (#151)
+- **Market filter tools** (`market`): Three new MCP tools and CLI commands — `market_filter` / `okx market filter` (screen SPOT/SWAP/FUTURES by price, 24h change, market cap, volume, funding rate, OI with sort/limit support), `market_get_oi_history` / `okx market oi-history` (OI time-series with bar-over-bar delta), `market_filter_oi_change` / `okx market oi-change` (rank by OI change magnitude with filters).
+- **`news` module restored**: 7 MCP tools and CLI commands for crypto news querying — `news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_domains`, `news_get_coin_sentiment`. Fixed `Accept-Language` header default.
+- **Flash Earn module** (`earn.flash`): New `earn_get_flash_earn_projects` MCP tool and `okx earn flash-earn projects` CLI command for browsing upcoming and in-progress Flash Earn opportunities.
+- **`context-kg/` knowledge base expanded**: Added DoH subsystem doc, `tgtCcy=margin` documentation, architecture updates, and full testing & QA specification. (#150)
+- **Skills download two-step presign flow**: `skills_download` / `okx skill download` now uses a presigned URL flow for more reliable binary downloads.
+
+### Changed
+
+- **`market_get_indicator` improved descriptions and pre-call name validation**: Descriptions now list common indicator names and link to `market_list_indicators`. Unknown names return a `ValidationError` with similar-name suggestions before any API call. (#153)
+- **`market_filter` `marketCapUsd` is SPOT-only**: Description clarified that `marketCapUsd` filter only applies to `instType=SPOT` per upstream API constraint.
+
+### Fixed
+
+- **Event Contract endpoints use authenticated requests**: All 4 event browse/query tools use `privateGet` — OKX's `/public/event-contract/*` endpoints require auth headers.
+- **Skill docs: error-suggested remediation safeguard**: Agent must diagnose with read-only queries before acting on write-operation suggestions. MCP server returns `instructions` safeguard field. (#leverage)
+- **CLI help missing params audit**: Added missing parameters in `spot`, `swap`, `futures` CLI help entries. (#155)
+- **Skills: remove hardcoded Chinese prompts**: Replaced hardcoded Chinese disambiguation prompts in `SKILL.md` with language-adaptive English instructions.
 
 ---
 
