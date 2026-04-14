@@ -8,6 +8,7 @@ import {
   readString,
   requireString,
 } from "./helpers.js";
+import { ValidationError } from "../utils/errors.js";
 import { publicRateLimit } from "./common.js";
 
 // Valid timeframes accepted by the indicator API
@@ -138,9 +139,35 @@ export const KNOWN_INDICATORS: ReadonlyArray<{ readonly name: string; readonly d
   { name: "top-long-short", description: "Top Trader Long/Short Ratio (timeframe-independent)" },
 ] as const;
 
+/** Set of valid indicator names (lowercase) for fast lookup. */
+const VALID_INDICATOR_NAMES = new Set(KNOWN_INDICATORS.map((i) => i.name));
+
 export function resolveIndicatorCode(name: string): string {
   const lower = name.toLowerCase();
   return INDICATOR_CODE_OVERRIDES[lower] ?? name.toUpperCase().replace(/-/g, "_");
+}
+
+/**
+ * Validate that the indicator name is in the KNOWN_INDICATORS list.
+ * Throws ValidationError with suggestions when an unknown name is given.
+ */
+function validateIndicatorName(name: string): void {
+  const lower = name.toLowerCase();
+  if (VALID_INDICATOR_NAMES.has(lower)) return;
+  // Also accept override aliases (e.g. "boll")
+  if (INDICATOR_CODE_OVERRIDES[lower]) return;
+
+  // Find close matches for suggestion; skip substring-match for very short queries
+  // to avoid flooding the user with unrelated results (e.g. "ma" matching ema, macd, …)
+  const suggestions = [...VALID_INDICATOR_NAMES]
+    .filter((n) => lower.length >= 3 && (n.includes(lower) || lower.includes(n)))
+    .slice(0, 5);
+  const hint = suggestions.length > 0
+    ? ` Did you mean: ${suggestions.join(", ")}?`
+    : " Call market_list_indicators to see all valid names.";
+  throw new ValidationError(
+    `Unknown indicator "${name}".${hint}`,
+  );
 }
 
 function readNumberArray(
@@ -159,7 +186,7 @@ export function registerIndicatorTools(): ToolSpec[] {
       name: "market_get_indicator",
       module: "market",
       description:
-        "Get technical indicator values for an instrument (MA, EMA, RSI, MACD, BB, KDJ, SUPERTREND, AHR999, BTCRAINBOW, and more). No credentials required.",
+        "Get technical indicator values for an instrument. Common indicators: ma, ema, rsi, macd, bb (Bollinger), kdj, supertrend, ahr999. Call market_list_indicators first to see all valid names. No credentials required.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -171,7 +198,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           indicator: {
             type: "string",
             description:
-              "Indicator name (case-insensitive). Call market_list_indicators to see all supported names.",
+              "Indicator name (case-insensitive), e.g. 'rsi', 'macd', 'bb', 'ma', 'ema', 'kdj', 'supertrend'. Call market_list_indicators to see all valid names. Using an invalid name will return an error.",
           },
           bar: {
             type: "string",
@@ -181,7 +208,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           params: {
             type: "array",
             items: { type: "number" },
-            description: "Indicator parameters, e.g. [5, 20] for MA with periods 5 and 20",
+            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). Omit to use server defaults.",
           },
           returnList: {
             type: "boolean",
@@ -204,6 +231,7 @@ export function registerIndicatorTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const instId = requireString(args, "instId");
         const indicator = requireString(args, "indicator");
+        validateIndicatorName(indicator);
         const bar = readString(args, "bar") ?? "1H";
         const params = readNumberArray(args, "params");
         const returnList = readBoolean(args, "returnList") ?? false;
