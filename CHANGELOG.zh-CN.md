@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **`market_get_indicator` / `okx market indicator` 描述优化 + 指标名校验前置**：Tool 和 CLI 描述内联列出常用指标名称并引导使用 `market_list_indicators`。未知指标名现在在发起 API 请求**之前**即抛出 `ValidationError` 并附相似名称建议，不再静默返回空数据。(#153)
+
 ### 新增
 
 - **止盈止损修改可发现性提升**：`{module}_amend_order` 的 MCP tool description 新增引导，指向 `{module}_amend_algo_order` 用于修改附加止盈止损；algo amend description 明确覆盖附加 TP/SL；CLI `amend` 描述提示走 `algo amend`；Skills `workflows.md` 新增"修改止盈止损"完整场景。(#151)

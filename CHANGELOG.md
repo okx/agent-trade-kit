@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`market_get_indicator` / `okx market indicator`: improved descriptions and pre-call name validation**: Tool and CLI descriptions now list common indicator names inline and direct users to `market_list_indicators`. Unknown indicator names now return a `ValidationError` with similar-name suggestions _before_ any API call instead of silently returning empty data. (#153)
+
 ### Added
 
 - **TP/SL amend discoverability**: MCP tool descriptions for `{module}_amend_order` now route users to `{module}_amend_algo_order` for modifying attached take-profit/stop-loss. Algo amend descriptions clarify coverage of attached TP/SL. CLI `amend` descriptions hint at `algo amend` path. Skills `workflows.md` adds a complete "Modify existing TP/SL" scenario. (#151)
