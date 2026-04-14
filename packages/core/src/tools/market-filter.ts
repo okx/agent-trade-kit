@@ -75,11 +75,11 @@ export function registerMarketFilterTools(): ToolSpec[] {
           },
           minMarketCapUsd: {
             type: "string",
-            description: "Minimum market cap in USD",
+            description: "Minimum market cap in USD (SPOT only; ignored for SWAP/FUTURES)",
           },
           maxMarketCapUsd: {
             type: "string",
-            description: "Maximum market cap in USD",
+            description: "Maximum market cap in USD (SPOT only; ignored for SWAP/FUTURES)",
           },
           minVolUsd24h: {
             type: "string",
@@ -109,7 +109,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
           sortBy: {
             type: "string",
             enum: ["last", "chg24hPct", "marketCapUsd", "volUsd24h", "fundingRate", "oiUsd", "listTime"],
-            description: "Sort field. Default: volUsd24h",
+            description: "Sort field. Default: volUsd24h. Note: marketCapUsd is only meaningful for SPOT (null for SWAP/FUTURES).",
           },
           sortOrder: {
             type: "string",
