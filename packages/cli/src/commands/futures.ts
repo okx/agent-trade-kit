@@ -100,6 +100,7 @@ export async function cmdFuturesPlace(
     posSide?: string;
     px?: string;
     reduceOnly?: boolean;
+    clOrdId?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -117,6 +118,7 @@ export async function cmdFuturesPlace(
     posSide: opts.posSide,
     px: opts.px,
     reduceOnly: opts.reduceOnly,
+    clOrdId: opts.clOrdId,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,
@@ -141,9 +143,9 @@ export async function cmdFuturesCancel(
 
 export async function cmdFuturesGet(
   run: ToolRunner,
-  opts: { instId: string; ordId?: string; json: boolean },
+  opts: { instId: string; ordId?: string; clOrdId?: string; json: boolean },
 ): Promise<void> {
-  const result = await run("futures_get_order", { instId: opts.instId, ordId: opts.ordId });
+  const result = await run("futures_get_order", { instId: opts.instId, ordId: opts.ordId, clOrdId: opts.clOrdId });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const o = data?.[0];
@@ -280,6 +282,7 @@ export async function cmdFuturesAlgoPlace(
     sz: string;
     posSide?: string;
     tdMode: string;
+    clOrdId?: string;
     tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
@@ -298,6 +301,7 @@ export async function cmdFuturesAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    clOrdId: opts.clOrdId,
     tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     tpTriggerPx: opts.tpTriggerPx,

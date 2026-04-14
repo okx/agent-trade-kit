@@ -166,6 +166,18 @@ describe("handleSpotCommand — parameter routing", () => {
         assert.equal(captured.args["sz"], "1");
     });
 
+    it("place: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSpotCommand(spy, "place", [], vals({
+            instId: "ETH-USDT",
+            side: "buy",
+            sz: "1",
+            ordType: "market",
+            clOrdId: "my-spot-place-id",
+        }), false);
+        assert.equal(captured.args["clOrdId"], "my-spot-place-id");
+    });
+
     it("get: instId and ordId come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleSpotCommand(
@@ -241,6 +253,18 @@ describe("handleSpotAlgoCommand — parameter routing", () => {
         assert.equal(captured.args["side"], "buy");
         assert.equal(captured.args["sz"], "1");
     });
+
+    it("place: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSpotAlgoCommand(spy, "place", vals({
+            instId: "ETH-USDT",
+            side: "buy",
+            sz: "1",
+            ordType: "conditional",
+            clOrdId: "my-spot-algo-id",
+        }), false);
+        assert.equal(captured.args["clOrdId"], "my-spot-algo-id");
+    });
 });
 
 // ===========================================================================
@@ -305,6 +329,30 @@ describe("handleSwapCommand — parameter routing", () => {
         assert.equal(captured.args["sz"], "0.1");
     });
 
+    it("place: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSwapCommand(spy, "place", [], vals({
+            instId: "BTC-USDT-SWAP",
+            side: "sell",
+            sz: "0.1",
+            ordType: "market",
+            clOrdId: "my-swap-place-id",
+        }), false);
+        assert.equal(captured.args["clOrdId"], "my-swap-place-id");
+    });
+
+    it("place: reduceOnly comes from v.reduceOnly", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSwapCommand(spy, "place", [], vals({
+            instId: "BTC-USDT-SWAP",
+            side: "sell",
+            sz: "0.1",
+            ordType: "market",
+            reduceOnly: true,
+        }), false);
+        assert.equal(captured.args["reduceOnly"], true);
+    });
+
     it("get: instId comes from v", async () => {
         const {spy, captured} = makeSpy();
         await handleSwapCommand(spy, "get", [], vals({instId: "BTC-USDT-SWAP", ordId: "123"}), false);
@@ -366,6 +414,18 @@ describe("handleSwapAlgoCommand — parameter routing", () => {
         assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
         assert.equal(captured.args["side"], "sell");
         assert.equal(captured.args["sz"], "1");
+    });
+
+    it("place: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSwapAlgoCommand(spy, "place", vals({
+            instId: "BTC-USDT-SWAP",
+            side: "sell",
+            sz: "1",
+            ordType: "conditional",
+            clOrdId: "my-swap-algo-id",
+        }), false);
+        assert.equal(captured.args["clOrdId"], "my-swap-algo-id");
     });
 });
 
@@ -439,10 +499,28 @@ describe("handleFuturesCommand — parameter routing", () => {
         assert.equal(captured.args["sz"], "1");
     });
 
+    it("place: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleFuturesCommand(spy, "place", [], vals({
+            instId: "BTC-USD-250328",
+            side: "buy",
+            sz: "1",
+            ordType: "market",
+            clOrdId: "my-fut-place-id",
+        }), false);
+        assert.equal(captured.args["clOrdId"], "my-fut-place-id");
+    });
+
     it("get: instId comes from v when rest is empty", async () => {
         const {spy, captured} = makeSpy();
         await handleFuturesCommand(spy, "get", [], vals({instId: "BTC-USD-250328", ordId: "456"}), false);
         assert.equal(captured.args["instId"], "BTC-USD-250328");
+    });
+
+    it("get: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleFuturesCommand(spy, "get", [], vals({instId: "BTC-USD-250328", clOrdId: "my-get-id"}), false);
+        assert.equal(captured.args["clOrdId"], "my-get-id");
     });
 
     it("orders: instId comes from v", async () => {
@@ -494,6 +572,18 @@ describe("handleFuturesAlgoCommand — parameter routing", () => {
         assert.equal(captured.args["instId"], "BTC-USD-250328");
         assert.equal(captured.args["side"], "sell");
         assert.equal(captured.args["sz"], "1");
+    });
+
+    it("place: clOrdId comes from v.clOrdId", async () => {
+        const {spy, captured} = makeSpy();
+        await handleFuturesAlgoCommand(spy, "place", vals({
+            instId: "BTC-USD-250328",
+            side: "sell",
+            sz: "1",
+            ordType: "conditional",
+            clOrdId: "my-futures-algo-id",
+        }), false);
+        assert.equal(captured.args["clOrdId"], "my-futures-algo-id");
     });
 });
 

@@ -476,6 +476,7 @@ export function handleSpotAlgoCommand(
       side: v.side!,
       ordType: v.ordType ?? "conditional",
       sz: v.sz!,
+      clOrdId: v.clOrdId,
       tgtCcy: v.tgtCcy,
       tpTriggerPx: v.tpTriggerPx,
       tpOrdPx: v.tpOrdPx,
@@ -543,6 +544,7 @@ export function handleSpotCommand(
       sz: v.sz!,
       tgtCcy: v.tgtCcy,
       px: v.px,
+      clOrdId: v.clOrdId,
       tpTriggerPx: v.tpTriggerPx,
       tpOrdPx: v.tpOrdPx,
       slTriggerPx: v.slTriggerPx,
@@ -584,6 +586,7 @@ export function handleSwapAlgoCommand(
       sz: v.sz!,
       posSide: v.posSide,
       tdMode: v.tdMode ?? "cross",
+      clOrdId: v.clOrdId,
       tgtCcy: v.tgtCcy,
       tpTriggerPx: v.tpTriggerPx,
       tpOrdPx: v.tpOrdPx,
@@ -673,6 +676,8 @@ export function handleSwapCommand(
       px: v.px,
       tdMode: v.tdMode ?? "cross",
       tgtCcy: v.tgtCcy,
+      reduceOnly: v.reduceOnly,
+      clOrdId: v.clOrdId,
       tpTriggerPx: v.tpTriggerPx,
       tpOrdPx: v.tpOrdPx,
       slTriggerPx: v.slTriggerPx,
@@ -832,6 +837,7 @@ export function handleFuturesAlgoCommand(
       sz: v.sz!,
       posSide: v.posSide,
       tdMode: v.tdMode ?? "cross",
+      clOrdId: v.clOrdId,
       tgtCcy: v.tgtCcy,
       tpTriggerPx: v.tpTriggerPx,
       tpOrdPx: v.tpOrdPx,
@@ -888,7 +894,7 @@ function handleFuturesQuery(
       json,
     });
   if (action === "get")
-    return cmdFuturesGet(run, { instId: v.instId!, ordId: v.ordId, json });
+    return cmdFuturesGet(run, { instId: v.instId!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "get-leverage")
     return cmdFuturesGetLeverage(run, { instId: v.instId!, mgnMode: v.mgnMode!, json });
   return undefined;
@@ -914,6 +920,7 @@ export function handleFuturesCommand(
       posSide: v.posSide,
       px: v.px,
       reduceOnly: v.reduceOnly,
+      clOrdId: v.clOrdId,
       tpTriggerPx: v.tpTriggerPx,
       tpOrdPx: v.tpOrdPx,
       slTriggerPx: v.slTriggerPx,

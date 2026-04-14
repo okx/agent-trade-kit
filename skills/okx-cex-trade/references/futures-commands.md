@@ -9,7 +9,7 @@ okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
   [--posSide <long|short>] [--px <price>] [--reduceOnly] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
   [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
-  [--json]
+  [--clOrdId <id>] [--json]
 ```
 
 | Param | Required | Default | Description |
@@ -27,6 +27,7 @@ okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
 | `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--clOrdId` | No | - | Client-assigned order ID (max 32 chars alphanumeric + `-` `_`) |
 
 `--instId` format: `BTC-USDT-<YYMMDD>` (delivery date suffix).
 
@@ -35,8 +36,10 @@ okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 ## Futures — Cancel Order
 
 ```bash
-okx futures cancel --instId <id> --ordId <id> [--json]
+okx futures cancel --instId <id> [--ordId <id>] [--clOrdId <id>] [--json]
 ```
+
+At least one of `--ordId` or `--clOrdId` is required.
 
 ---
 
@@ -130,7 +133,7 @@ okx futures fills [--instId <id>] [--ordId <id>] [--archive] [--json]
 ## Futures — Get Order
 
 ```bash
-okx futures get --instId <id> [--ordId <id>] [--json]
+okx futures get --instId <id> [--ordId <id>] [--clOrdId <id>] [--json]
 ```
 
 ---
@@ -141,6 +144,7 @@ okx futures get --instId <id> [--ordId <id>] [--json]
 okx futures algo place --instId <id> --side <buy|sell> \
   --ordType <oco|conditional|move_order_stop> --sz <n> \
   --tdMode <cross|isolated> \
+  [--clOrdId <id>] \
   [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--reduceOnly] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
@@ -156,6 +160,7 @@ okx futures algo place --instId <id> --side <buy|sell> \
 | `--ordType` | Yes | - | `oco`, `conditional`, or `move_order_stop` |
 | `--sz` | Yes | - | Number of contracts |
 | `--tdMode` | Yes | - | `cross` or `isolated` |
+| `--clOrdId` | No | - | Client-assigned algo order ID (max 32 chars alphanumeric + `-` `_`) |
 | `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT notional value; `margin`: sz in USDT margin cost (position = sz * leverage) |
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
