@@ -127,6 +127,21 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx market instruments-by-category --instCategory <4|5|6|7> [--instType <SPOT|SWAP>] [--instId <id>]",
         description: "List instruments by asset category: 4=Metals (gold/silver), 5=Commodities (oil/gas), 6=Forex (EUR/USD), 7=Bonds",
       },
+      filter: {
+        toolName: "market_filter",
+        usage: "okx market filter --instType <SPOT|SWAP|FUTURES> [--sortBy <field>] [--sortOrder <asc|desc>] [--limit <n>] [--baseCcy <ccy>] [--quoteCcy <ccy>] [--settleCcy <ccy>] [--instFamily <fam>] [--ctType <linear|inverse>] [--minLast <n>] [--maxLast <n>] [--minChg24hPct <n>] [--maxChg24hPct <n>] [--minMarketCapUsd <n>] [--maxMarketCapUsd <n>] [--minVolUsd24h <n>] [--maxVolUsd24h <n>] [--minFundingRate <n>] [--maxFundingRate <n>] [--minOiUsd <n>] [--maxOiUsd <n>]",
+        description: "Screen / rank instruments by multi-dimensional criteria (price, volume, OI, funding rate, market cap, etc.)",
+      },
+      "oi-history": {
+        toolName: "market_get_oi_history",
+        usage: "okx market oi-history <instId> [--bar <5m|15m|1H|4H|1D>] [--limit <n>] [--ts <ms>]",
+        description: "Open interest history time series with bar-over-bar delta for a single instrument",
+      },
+      "oi-change": {
+        toolName: "market_filter_oi_change",
+        usage: "okx market oi-change --instType <SWAP|FUTURES> [--bar <5m|15m|1H|4H|1D>] [--sortBy <field>] [--sortOrder <asc|desc>] [--limit <n>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]",
+        description: "Find instruments with largest OI changes over a bar window (accumulation/distribution scanner)",
+      },
     },
     subgroups: {
       indicator: {
