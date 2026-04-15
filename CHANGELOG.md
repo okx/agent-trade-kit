@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1-beta.7] - 2026-04-15
+
+### Fixed
+
+- **`okx list-tools` routing falls through to "Unknown command"**: Fixed command routing so `list-tools` is correctly dispatched without falling through to the default unknown-command handler. (#161)
+
+---
+
 ## [1.3.1-beta.6] - 2026-04-14
 
 ### Added
