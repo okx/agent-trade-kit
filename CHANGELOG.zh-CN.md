@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **context-kg 准确性漂移测试**：新增 `packages/cli/test/context-kg-accuracy.test.ts`，自动校验 `context-kg/` 中声明的工具数量、模块数量、skill pack 数量和测试文件数与代码实际状态一致——数字过时时以可操作的提示信息明确失败。(#160)
+
+### 修复
+
+- **context-kg 数字过时问题**：更新 `context-kg/business/01-overview.md`（工具数 127 → 147，模块数 13 → 16，skill packs 6 → 7，模块列表重写以反映实际的 `MODULES` 注册表）、`context-kg/technical/01-architecture.md`（core 测试文件数 21 → 23，CLI 测试文件数 37 → 39）及 `context-kg/quality/01-placeholder.md`（P0/P2 描述更新以反映当前状态）。(#160)
+
 ---
 
 ## [1.3.1-beta.7] - 2026-04-15

@@ -10,32 +10,35 @@ The project is a pnpm workspace monorepo containing three packages:
 | Package | Path | Purpose |
 |---------|------|---------|
 | `@okx-trade/core` | `packages/core` | Shared SDK: REST client, tool definitions, config parsing, error types |
-| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~127 tools over stdio (JSON-RPC 2.0) |
+| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~147 tools over stdio (JSON-RPC 2.0) |
 | `@okx-trade/cli` | `packages/cli` | CLI binary (`okx`) for direct terminal use |
 
 **Bundling**: tsup (ESM output). **Testing**: node:test. **Validation**: zod. **Config**: TOML via smol-toml.
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **~127 MCP tools** organized into **13 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **147 MCP tools** organized into **16 modules** (authoritative count: see `docs/module-registry.md`):
 
+- **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)
 - **swap** — perpetual swap trading
 - **futures** — dated futures trading
 - **option** — options trading
-- **algo-trade** — algorithmic orders (TP/SL, trailing stop, iceberg, twap)
 - **account** — balance, positions, leverage, account config
-- **market** — public market data (tickers, candles, orderbook, trades)
-- **indicator** — technical indicators (MA, RSI, Bollinger Bands, etc.)
-- **earn** — savings, DCD, on-chain earn, auto-earn
-- **bot** — grid bots, DCA bots
-- **audit** — operation audit log
+- **event** — event contracts (binary prediction markets)
+- **news** — crypto news, sentiment analysis, and coin trend tracking
+- **earn.savings** — simple earn (flexible savings, fixed-term, lending)
+- **earn.onchain** — on-chain earn (staking and DeFi products)
+- **earn.dcd** — DCD structured products with fixed yield
+- **earn.autoearn** — auto-earn on idle assets
+- **earn.flash** — flash earn (short-window high-yield projects)
+- **bot.grid** — grid trading bot (create, monitor, stop)
+- **bot.dca** — DCA (Martingale) bot (spot or contract recurring buys)
 - **skills** — skills marketplace (search, install, manage skill packs)
-- **news** (optional) — market news feed
 
 ## Skills Ecosystem
 
-Six skill packs live in the `skills/` directory and are published to the agent-hub marketplace:
+**7 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
 
 - `skills/okx-cex-trade/` — trading operations
 - `skills/okx-cex-market/` — market data queries
@@ -43,6 +46,7 @@ Six skill packs live in the `skills/` directory and are published to the agent-h
 - `skills/okx-cex-bot/` — bot lifecycle management
 - `skills/okx-cex-portfolio/` — portfolio overview
 - `skills/okx-cex-skill-mp/` — skill marketplace management
+- `skills/okx-cex-news/` — crypto news and market sentiment
 
 Each skill pack's `SKILL.md` carries a `metadata.version` that must be synchronized with the package release version on every stable release.
 
