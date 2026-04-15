@@ -65,3 +65,52 @@ describe("CLI entry via symlink", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Management command routing — sync void handlers must not fall through (#161)
+// ---------------------------------------------------------------------------
+
+describe("Management command routing (#161)", () => {
+  it("list-tools does not print 'Unknown command'", () => {
+    const result = execFileSync("node", [dist, "list-tools"], {
+      timeout: 10_000,
+      encoding: "utf-8",
+    });
+    assert.ok(result.includes("modules"), "Expected module summary output");
+    assert.ok(!result.includes("Unknown command"), "list-tools should not fall through to Unknown command");
+  });
+
+  it("list-tools --json outputs valid JSON without Unknown command", () => {
+    const stdout = execFileSync("node", [dist, "list-tools", "--json"], {
+      timeout: 10_000,
+      encoding: "utf-8",
+    });
+    assert.ok(!stdout.includes("Unknown command"), "JSON output should not contain Unknown command");
+    const parsed = JSON.parse(stdout);
+    assert.ok(parsed.version, "JSON should have version field");
+    assert.ok(Array.isArray(parsed.modules), "JSON should have modules array");
+  });
+
+  it("setup without args does not print 'Unknown command'", () => {
+    try {
+      execFileSync("node", [dist, "setup"], { timeout: 10_000, encoding: "utf-8" });
+    } catch (e: unknown) {
+      const err = e as { stderr?: string; stdout?: string };
+      const output = (err.stdout ?? "") + (err.stderr ?? "");
+      assert.ok(!output.includes("Unknown command"), "setup should not fall through to Unknown command");
+    }
+  });
+
+  it("config show does not print 'Unknown command'", () => {
+    try {
+      execFileSync("node", [dist, "config", "show"], { timeout: 10_000, encoding: "utf-8" });
+    } catch (e: unknown) {
+      const err = e as { stderr?: string; stdout?: string };
+      const output = (err.stdout ?? "") + (err.stderr ?? "");
+      assert.ok(!output.includes("Unknown command"), "config should not fall through to Unknown command");
+    }
+  });
+
+  // upgrade, doh, diagnose subprocess tests removed — they make network calls
+  // that slow CI. In-process coverage in management-routing.test.ts is sufficient.
+});
