@@ -12,7 +12,7 @@ import { OkxApiError, RateLimitError } from "../../utils/errors.js";
 
 // retry=true: withDcdErrors converts the error to RateLimitError, signaling the caller to back off and retry.
 const DCD_CODE_BEHAVIORS: Record<string, { retry: boolean; suggestion: string }> = {
-  "50001": { retry: true,  suggestion: "DCD service is down. Retry in a few minutes." },
+  "50001": { retry: true,  suggestion: "Service temporarily unavailable. Retry in a few minutes." },
   "50002": { retry: false, suggestion: "Invalid JSON in request body. This is likely a bug — check request parameters." },
   "50014": { retry: false, suggestion: "Missing required parameter. Check that all required fields are provided." },
   "50016": { retry: false, suggestion: "notionalCcy does not match productId option type. Use baseCcy for CALL, quoteCcy for PUT." },

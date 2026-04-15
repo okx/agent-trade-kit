@@ -19,10 +19,10 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
   "50061": { retry: true,  suggestion: "Too many connections. Reduce request frequency and retry." },
 
   // Server temporarily unavailable → retryable
-  "50001": { retry: true,  suggestion: "OKX system upgrade in progress. Retry in a few minutes." },
-  "50004": { retry: true,  suggestion: "Endpoint temporarily unavailable. Retry later." },
+  "50001": { retry: true,  suggestion: "Service temporarily unavailable. Retry in a few minutes." },
+  "50004": { retry: true,  suggestion: "Endpoint request timeout. Retry later." },
   "50013": { retry: true,  suggestion: "System busy. Retry after 1-2 seconds." },
-  "50026": { retry: true,  suggestion: "Order book system upgrading. Retry in a few minutes." },
+  "50026": { retry: true,  suggestion: "System error. Retry in a few minutes." },
 
   // Region / compliance restriction → do not retry
   "51155": { retry: false, suggestion: "Feature unavailable in your region (site: {site}). Verify your site setting matches your account registration region. Available sites: global, eea, us. Do not retry." },
