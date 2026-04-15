@@ -92,7 +92,7 @@ describe("getBinaryName", () => {
     if (platform() === "win32") {
       assert.ok(name.endsWith(".exe"), "should end with .exe on Windows");
     } else {
-      assert.equal(name, "okx-doh-resolver");
+      assert.equal(name, "okx-pilot");
     }
   });
 });
@@ -112,7 +112,7 @@ describe("getDohStatus", () => {
   });
 
   it("returns exists=true with size and sha256 when binary is present", () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("fake-binary-content"));
     const status: DohLocalStatus = getDohStatus(binaryPath);
     assert.equal(status.exists, true);
@@ -122,7 +122,7 @@ describe("getDohStatus", () => {
   });
 
   it("includes platform in the result", () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("content"));
     const status: DohLocalStatus = getDohStatus(binaryPath);
     // platform can be null on unsupported systems, otherwise a string
@@ -130,7 +130,7 @@ describe("getDohStatus", () => {
   });
 
   it("returns exists=true but no fileSize/sha256 when skipHash is true", () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("skip-hash-content"));
     const status: DohLocalStatus = getDohStatus(binaryPath, { skipHash: true });
     assert.equal(status.exists, true);
@@ -141,7 +141,7 @@ describe("getDohStatus", () => {
   });
 
   it("returns sha256 when skipHash is false (explicit default)", () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("explicit-no-skip"));
     const status: DohLocalStatus = getDohStatus(binaryPath, { skipHash: false });
     assert.equal(status.exists, true);
@@ -164,7 +164,7 @@ describe("getDohStatus", () => {
 
 describe("removeDohBinary", () => {
   it("returns status=removed when binary exists", () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("fake"));
     const result: RemoveResult = removeDohBinary(binaryPath);
     assert.equal(result.status, "removed");
@@ -184,7 +184,7 @@ describe("removeDohBinary", () => {
 
 describe("installDohBinary", () => {
   it("returns status=failed when no CDN sources provided (empty list)", async () => {
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
     // Pass an empty CDN list to simulate all CDN sources unavailable
     const result: InstallResult = await installDohBinary(destPath, []);
     assert.equal(result.status, "failed");
@@ -212,7 +212,7 @@ describe("installDohBinary", () => {
     const savedEnv = process.env.OKX_DOH_BINARY_PATH;
     try {
       process.env.OKX_DOH_BINARY_PATH = "/some/custom/path";
-      const destPath = join(tempDir, "okx-doh-resolver");
+      const destPath = join(tempDir, "okx-pilot");
       // With destPath provided, env override should be ignored; empty sources -> failed
       const result: InstallResult = await installDohBinary(destPath, []);
       assert.equal(result.status, "failed");
@@ -266,7 +266,7 @@ describe("installDohBinary with mock CDN server", () => {
         return;
       }
 
-      if (url.includes("okx-doh-resolver")) {
+      if (url.includes("okx-pilot")) {
         if (serveBinary) {
           res.writeHead(200, { "Content-Type": "application/octet-stream" });
           res.end(binaryContent);
@@ -301,7 +301,7 @@ describe("installDohBinary with mock CDN server", () => {
   // Skip all server tests if platform is unsupported (platformDir is null)
   it("fresh install — downloads and verifies binary", async () => {
     if (!platformDir) return; // skip on unsupported platform
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
     const progress: string[] = [];
 
@@ -322,7 +322,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("up-to-date — existing binary matches CDN checksum", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
     // Pre-write the correct binary content
     writeFileSync(destPath, binaryContent);
 
@@ -335,7 +335,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("checksum mismatch — returns failed when CDN serves wrong checksum", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
 
     // Set checksum to a wrong value so the downloaded binary won't match
     checksumResponse = {
@@ -353,7 +353,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("size mismatch — returns failed when CDN reports wrong size", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
 
     checksumResponse = {
       sha256: binaryHash,
@@ -370,7 +370,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("invalid checksum.json — missing fields", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
 
     // Missing required fields
     checksumResponse = { foo: "bar" };
@@ -383,7 +383,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("CDN returns 500 for checksum — falls through to failure", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
 
     checksumResponse = null; // will cause 500 response
 
@@ -396,7 +396,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("binary download fails — returns failed", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
 
     serveBinary = false; // server returns 500 for binary
 
@@ -408,7 +408,7 @@ describe("installDohBinary with mock CDN server", () => {
 
   it("target mismatch in checksum.json — returns failed", async () => {
     if (!platformDir) return;
-    const destPath = join(tempDir, "okx-doh-resolver");
+    const destPath = join(tempDir, "okx-pilot");
 
     checksumResponse = {
       sha256: binaryHash,

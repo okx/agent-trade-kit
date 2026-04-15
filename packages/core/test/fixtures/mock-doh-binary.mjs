@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Mock okx-doh-resolver binary for testing.
+ * Mock okx-pilot binary for testing.
  *
  * Behavior is controlled by the --domain value:
  *   "proxy.okx.com"    → returns proxy node (192.0.2.1 / proxy1.com)

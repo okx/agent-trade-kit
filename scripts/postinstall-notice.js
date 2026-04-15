@@ -52,7 +52,7 @@ function getPlatformDir() {
 }
 
 function getBinaryName() {
-  return platform() === 'win32' ? 'okx-doh-resolver.exe' : 'okx-doh-resolver';
+  return platform() === 'win32' ? 'okx-pilot.exe' : 'okx-pilot';
 }
 
 /**

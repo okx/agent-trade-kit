@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Market filter, OI history, and OI change filter tools**: `market_filter` MCP tool and `okx market filter` CLI command for multi-criteria instrument screening; `market_get_oi_history` / `okx market oi-history` for historical open interest data; `market_get_oi_change_filter` / `okx market oi-change-filter` for screening instruments by open interest change. (!245)
 - **Flash earn module** (`earn.flash`): New MCP tools and `okx earn flash` CLI commands for instant earn operations. (!246)
 - **`news` module restored**: News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_coin_sentiment`, `news_get_sentiment_ranking`) and `okx news` CLI commands are available again following compliance review. (!235)
-- **Linux ARM64 support for DoH binary**: `postinstall` now downloads `okx-doh-resolver` for `linux-arm64`, completing platform coverage alongside darwin-arm64, darwin-x64, linux-x64, and win32-x64. (!237)
+- **Linux ARM64 support for DoH binary**: `postinstall` now downloads `okx-pilot` for `linux-arm64`, completing platform coverage alongside darwin-arm64, darwin-x64, linux-x64, and win32-x64. (!237)
 - **Skills download two-step presigned URL flow**: `skills_download` and `okx skill download` now use a presigned URL flow for more reliable file delivery. (!240)
 - **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line structure; descriptions are sourced directly from `@agent-tradekit/core` ToolSpec objects, keeping CLI and MCP help in sync. A bidirectional drift test catches divergence at CI time. (#140, !234)
 - **`okx list-tools [--json]` agent self-discovery command**: Serializes the full CLI registry to structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140, !234)
@@ -68,8 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Event Contract module**: New `event` module with 9 MCP tools and CLI commands for binary prediction markets — browse series/events/markets, place/amend/cancel orders, query orders/fills, and direction analysis with index price enrichment.
-- **DoH (DNS-over-HTTPS) proxy for REST API requests**: Transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary when OKX API is unreachable via direct connection. Cache-first, zero overhead on cached paths. Supports `--verbose` logging.
-- **Automatic DoH binary download on install**: `postinstall` downloads the platform-specific `okx-doh-resolver` binary from CDN to `~/.okx/bin/`. Best-effort, never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, linux-arm64, and win32-x64.
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: Transparently resolves an alternative proxy node through a local `okx-pilot` binary when OKX API is unreachable via direct connection. Cache-first, zero overhead on cached paths. Supports `--verbose` logging.
+- **Automatic DoH binary download on install**: `postinstall` downloads the platform-specific `okx-pilot` binary from CDN to `~/.okx/bin/`. Best-effort, never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, linux-arm64, and win32-x64.
 - **`okx doh` management commands**: `okx doh status`, `okx doh install`, `okx doh remove` for managing the DoH resolver binary. (#138)
 - **DoH status in `okx --version` and `okx diagnose`**: Version output shows DoH resolver install status; `diagnose` checks binary existence and CDN checksum. (#138)
 - **Auto-generated CLI help from ToolSpec registry**: CLI help text generated from declarative `CLI_REGISTRY` map, sourced from ToolSpec objects in `@agent-tradekit/core`. Bidirectional drift test catches mismatches at test time. (#140)
@@ -99,8 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
-- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-doh-resolver` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-pilot` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
+- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-pilot` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
 - **`context-kg/` knowledge base**: Bootstrap structured knowledge files for AI agents — 5 business domain docs (overview, trading, market/account, earn/bot, skills) + 4 technical docs (architecture, configuration, errors, multi-site) + quality placeholder. Includes `config.toml.example` `knowledge_dir` config entry. (#137)
 
 ### Fixed
@@ -171,8 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-doh-resolver` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
-- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-doh-resolver` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: When the OKX API domain is unreachable via direct connection (e.g. DNS poisoning), the SDK now transparently resolves an alternative proxy node through a local `okx-pilot` binary. Cache-first strategy: first request attempts direct connection; on network failure the binary is invoked and the result is cached. Subsequent requests reuse the cached node with zero overhead. Failed proxy nodes are automatically excluded and re-resolved. Supports `--verbose` logging for full DoH lifecycle visibility.
+- **Automatic DoH binary download on install**: `postinstall` now downloads the platform-specific `okx-pilot` binary from CDN (with multi-source fallback) to `~/.okx/bin/`. Best-effort — never blocks `npm install`. Supports darwin-arm64, darwin-x64, linux-x64, and win32-x64.
 
 ---
 
