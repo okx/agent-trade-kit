@@ -95,6 +95,8 @@ export interface CliValues {
   orders?: string;
   // earn
   rate?: string;
+  // flash-earn
+  status?: string;
   reqId?: string;
   confirm?: boolean;
   // audit
@@ -157,6 +159,26 @@ export interface CliValues {
   seriesId?: string;
   eventId?: string;
   outcome?: string;
+  // market-filter / oi-change-filter
+  sortBy?: string;
+  sortOrder?: string;
+  minLast?: string;
+  maxLast?: string;
+  minChg24hPct?: string;
+  maxChg24hPct?: string;
+  minMarketCapUsd?: string;
+  maxMarketCapUsd?: string;
+  minVolUsd24h?: string;
+  maxVolUsd24h?: string;
+  minFundingRate?: string;
+  maxFundingRate?: string;
+  minOiUsd?: string;
+  maxOiUsd?: string;
+  instFamily?: string;
+  ctType?: string;
+  settleCcy?: string;
+  ts?: string;
+  minAbsOiDeltaPct?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -275,6 +297,8 @@ export const CLI_OPTIONS = {
   orders: { type: "string" },
   // earn
   rate: { type: "string" },
+  // flash-earn
+  status: { type: "string" },
   reqId: { type: "string" },
   confirm: { type: "boolean", default: false },
   // audit
@@ -334,6 +358,26 @@ export const CLI_OPTIONS = {
   seriesId: { type: "string" },
   eventId: { type: "string" },
   outcome: { type: "string" },
+  // market-filter / oi-change-filter
+  sortBy:           { type: "string" },
+  sortOrder:        { type: "string" },
+  minLast:          { type: "string" },
+  maxLast:          { type: "string" },
+  minChg24hPct:     { type: "string" },
+  maxChg24hPct:     { type: "string" },
+  minMarketCapUsd:  { type: "string" },
+  maxMarketCapUsd:  { type: "string" },
+  minVolUsd24h:     { type: "string" },
+  maxVolUsd24h:     { type: "string" },
+  minFundingRate:   { type: "string" },
+  maxFundingRate:   { type: "string" },
+  minOiUsd:         { type: "string" },
+  maxOiUsd:         { type: "string" },
+  instFamily:       { type: "string" },
+  ctType:           { type: "string" },
+  settleCcy:        { type: "string" },
+  ts:               { type: "string" },
+  minAbsOiDeltaPct: { type: "string" },
   // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks

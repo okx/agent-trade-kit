@@ -195,3 +195,93 @@ This is the **only DCD WRITE operation requiring explicit user confirmation**.
 3. `okx --profile live earn auto-earn off <ccy>`
 4. If 24h error → parse timestamp, tell user when they can retry
 5. If success → `okx --profile live earn auto-earn status <ccy> --json` → verify
+
+---
+
+## Scheduled Fixed Earn check — periodic monitor and subscribe
+
+"帮我定时检查定期赚币" / "monitor fixed earn for me"
+
+Set up a recurring task (every 4 hours) that checks for available fixed-term offers and recommends fund reallocation. Default currency: USDT; can be customized per user request — replace `<ccy>` below with the target currency.
+
+**Each cycle executes:**
+
+1. `okx --profile live earn savings rate-history --ccy <ccy> --json` → extract fixed-term offers (entries with `term` field); if no offers available or all `soldOut`, end cycle silently
+2. If offers exist, run in parallel:
+   - `okx --profile live account balance --json` → idle `<ccy>` in trading account
+   - `okx --profile live earn savings balance <ccy> --json` → current simple earn position and `lendingRate`
+   - `okx --profile live account asset-balance <ccy> --json` → idle `<ccy>` in funding account
+3. Compare APY:
+   - Fixed-term `rate` vs simple earn `lendingRate` → if fixed-term rate > lendingRate, simple earn funds are candidates
+   - Trading account idle `<ccy>` → always a candidate (earning 0%)
+   - Funding account idle `<ccy>` → always a candidate (earning 0%)
+4. If no candidate funds (all balances are 0, or simple earn lendingRate ≥ all fixed-term rates) → end cycle silently
+5. **Notify user** with a summary table:
+
+   Example (USDT):
+
+   ```
+   📋 Fixed Earn Opportunity
+
+   Available fixed-term products:
+   | Term | APR   | Min Amount | Remaining Quota |
+   |------|-------|-----------|-----------------|
+   | 7D   | 4.50% | 100       | 50,000          |
+
+   Recommended fund sources:
+   | Source               | Available | Current Yield     |
+   |----------------------|-----------|-------------------|
+   | Trading account USDT | 5,000     | 0% (idle)         |
+   | Simple Earn USDT     | 10,000    | 1.82% (flexible)  |
+   | Funding account USDT | 2,000     | 0% (idle)         |
+
+   Fixed earn APR 4.50% > current flexible yield 1.82%. Recommend moving idle/low-yield funds into fixed earn.
+
+   Subscribe? Please confirm amount and term.
+   ⚠️ Note: Moving funds from the trading account requires **Withdraw** permission on the API key. If your key lacks this permission, you'll need to transfer manually in the OKX app.
+   ```
+
+6. Wait for user confirmation (amount, term selection)
+7. _(Optional — requires **Withdraw** permission on the API key)_
+   If funds are in trading account → `okx --profile live account transfer --ccy <ccy> --amt <amt> --from 18 --to 6` (trading→funding)
+
+   If transfer fails with a permission error, inform the user that their API key does not have Withdraw permission and they should complete the transfer manually in the OKX app.
+8. If funds are in simple earn → `okx --profile live earn savings redeem --ccy <ccy> --amt <amt>` (redeem first, funds return to funding account)
+9. `okx --profile live earn savings fixed-purchase --ccy <ccy> --amt <amt> --term <term> --json` → preview
+10. Show fixed-term confirmation (see `savings-commands.md` Fixed-Term Confirmation Templates), wait for final confirmation
+11. `okx --profile live earn savings fixed-purchase --ccy <ccy> --amt <amt> --term <term> --confirm --json`
+12. `okx --profile live earn savings fixed-orders --ccy <ccy> --state pending --json` → verify order created
+
+**Setup via `/loop`:** `/loop 4h` then instruct to run this workflow each cycle.
+
+---
+
+## Flash Earn monitor — periodic notification
+
+"有闪赚的时候通知我" / "notify me when flash earn is available"
+
+Set up a recurring task (every 1 hour) that checks for flash earn projects and notifies only when opportunities exist.
+
+**Each cycle executes:**
+
+1. `okx --profile live earn flash-earn projects --status 0,100 --json` → check for upcoming or in-progress projects
+2. If result is empty (`[]` or "No flash earn projects") → end cycle silently (**no output**)
+3. To avoid duplicate notifications, track previously notified project IDs within the loop session. Only notify for newly appeared projects — skip any project ID already notified in a prior cycle.
+4. If new projects exist, notify user:
+
+   ```
+   ⚡ Flash Earn Available
+
+   | Project ID | Status      | Start Time        | End Time          | Rewards      |
+   |------------|-------------|-------------------|-------------------|-------------|
+   | 12345      | In Progress | 2026/4/9 10:00    | 2026/4/9 12:00    | 500 USDT    |
+
+   Go to OKX App to participate in Flash Earn.
+   ```
+
+   - Status `0` → Upcoming
+   - Status `100` → In Progress, highlight `canPurchase` = true projects
+   - For `canPurchase = true` projects, add note: "🟢 Available now"
+   - For upcoming projects, show countdown to `beginTime`
+
+**Setup via `/loop`:** `/loop 1h` then instruct to run this workflow each cycle.

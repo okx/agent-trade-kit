@@ -67,7 +67,7 @@ The CLI does NOT call OKX API directly — it calls the same tool handlers as th
 ## Test Structure
 
 - `packages/core/test/` — unit tests for individual tool handler logic (21 files)
-- `packages/cli/test/` — CLI parameter routing and integration tests (35 files), including bidirectional drift test (`drift.test.ts`) that verifies CLI registry ↔ ToolSpec alignment
+- `packages/cli/test/` — CLI parameter routing and integration tests (37 files), including bidirectional drift test (`drift.test.ts`) that verifies CLI registry ↔ ToolSpec alignment
 - `packages/mcp/test/` — MCP server-level tests (2 files: bundle and server)
 
 Test command: `pnpm test:unit` (runs node:test across all packages).

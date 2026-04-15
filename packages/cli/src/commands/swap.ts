@@ -81,6 +81,8 @@ export async function cmdSwapPlace(
     px?: string;
     tdMode: string;
     tgtCcy?: string;
+    reduceOnly?: boolean;
+    clOrdId?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
     slTriggerPx?: string;
@@ -97,6 +99,8 @@ export async function cmdSwapPlace(
     tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     px: opts.px,
+    reduceOnly: opts.reduceOnly,
+    clOrdId: opts.clOrdId,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
     slTriggerPx: opts.slTriggerPx,
@@ -128,6 +132,7 @@ export async function cmdSwapAlgoPlace(
     sz: string;
     posSide?: string;
     tdMode: string;
+    clOrdId?: string;
     tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
@@ -146,6 +151,7 @@ export async function cmdSwapAlgoPlace(
     side: opts.side,
     ordType: opts.ordType,
     sz: opts.sz,
+    clOrdId: opts.clOrdId,
     tgtCcy: opts.tgtCcy,
     posSide: opts.posSide,
     tpTriggerPx: opts.tpTriggerPx,

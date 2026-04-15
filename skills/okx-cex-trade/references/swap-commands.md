@@ -6,10 +6,10 @@
 okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
   --tdMode <cross|isolated> \
   [--tgtCcy <base_ccy|quote_ccy|margin>] \
-  [--posSide <long|short>] [--px <price>] \
+  [--posSide <long|short>] [--px <price>] [--reduceOnly] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
   [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
-  [--json]
+  [--clOrdId <id>] [--json]
 ```
 
 | Param | Required | Default | Description |
@@ -22,18 +22,22 @@ okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT notional value; `margin`: sz in USDT margin cost (position = sz * leverage) |
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--px` | Cond. | - | Price — required for limit orders |
+| `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | No | - | Attached take-profit trigger price |
 | `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
 | `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--clOrdId` | No | - | Client-assigned order ID (max 32 chars alphanumeric + `-` `_`) |
 
 ---
 
 ## Swap — Cancel Order
 
 ```bash
-okx swap cancel --instId <id> --ordId <id> [--json]
+okx swap cancel --instId <id> [--ordId <id>] [--clOrdId <id>] [--json]
 ```
+
+At least one of `--ordId` or `--clOrdId` is required.
 
 ---
 
@@ -98,6 +102,7 @@ Returns table: `instId`, `mgnMode`, `posSide`, `lever`.
 okx swap algo place --instId <id> --side <buy|sell> \
   --ordType <oco|conditional|move_order_stop> --sz <n> \
   --tdMode <cross|isolated> \
+  [--clOrdId <id>] \
   [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--reduceOnly] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
@@ -113,6 +118,7 @@ okx swap algo place --instId <id> --side <buy|sell> \
 | `--ordType` | Yes | - | `oco`, `conditional`, or `move_order_stop` |
 | `--sz` | Yes | - | Number of contracts |
 | `--tdMode` | Yes | - | `cross` or `isolated` |
+| `--clOrdId` | No | - | Client-assigned algo order ID (max 32 chars alphanumeric + `-` `_`) |
 | `--tgtCcy` | No | base_ccy | `base_ccy`: sz in contracts; `quote_ccy`: sz in USDT notional value; `margin`: sz in USDT margin cost (position = sz * leverage) |
 | `--posSide` | Cond. | - | `long` or `short` — required in hedge mode |
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |

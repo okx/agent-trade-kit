@@ -49,6 +49,7 @@ export const EARN_SUB_MODULE_IDS = [
   "earn.onchain",
   "earn.dcd",
   "earn.autoearn",
+  "earn.flash",
 ] as const;
 
 export type EarnSubModuleId = (typeof EARN_SUB_MODULE_IDS)[number];
@@ -71,10 +72,10 @@ export type ModuleId = (typeof MODULES)[number];
 
 export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account", ...BOT_DEFAULT_SUB_MODULES, "skills"];
 // Default: spot, swap, option, account, bot.grid
-// "all": every module including market, futures, bot.dca, earn.savings, earn.onchain, earn.dcd
+// "all": every module including market, futures, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.autoearn, earn.flash
 // "bot": bot.grid only; "bot.all": bot.grid + bot.dca
-// "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd)
-// "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only
+// "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd + earn.autoearn + earn.flash)
+// "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only; "earn.autoearn": Auto-Earn only; "earn.flash": Flash Earn only
 
 // ---------------------------------------------------------------------------
 // Module descriptions — canonical single source of truth used by CLI help and
@@ -104,13 +105,14 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   "earn.savings":  "Simple Earn — flexible savings, fixed-term, and lending",
   "earn.onchain":  "On-chain Earn — staking and DeFi products",
   "earn.dcd":      "DCD (Dual Currency Deposit) — structured products with fixed yield",
-  event:           "Event contracts — binary prediction markets (YES/NO, UP/DOWN)",
   "earn.autoearn": "Auto-earn — automatically lend, stake, or earn on idle assets",
+  "earn.flash":    "Flash Earn — short-window high-yield earn projects",
+  event:           "Event contracts — binary prediction markets (YES/NO, UP/DOWN)",
   "bot.grid":      "Grid trading bot — create, monitor, and stop grid orders",
   "bot.dca":       "DCA (Martingale) bot — spot or contract recurring buys",
   news:            "Crypto news, sentiment analysis, and coin trend tracking",
   skills:          SKILLS_MARKETPLACE_DESC,
-  earn:            "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
+  earn:            "Earn products — Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
   bot:             "Trading bot strategies (grid, dca)",
   config:          "Manage CLI configuration profiles",
   setup:           "Set up client integrations (Cursor, Windsurf, Claude, etc.)",

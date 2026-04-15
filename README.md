@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **121 tools across 9 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts |
+| **140 tools across 10 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -41,15 +41,16 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Module | Tools | Description | Docs |
 |--------|-------|-------------|------|
-| `market` | 16 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens, **technical indicators** (70+ indicators: MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 and more — no auth required), **indicator list** (browse all supported indicators by category) | [→](docs/modules/market.md) |
+| `market` | 19 | Ticker, orderbook, candles (+history), index ticker, index candles, price limit, funding rate, mark price, open interest, stock tokens, **technical indicators** (70+ indicators: MA/EMA/RSI/MACD/BB/ATR/KDJ/BTCRAINBOW/AHR999 and more — no auth required), **indicator list**, **market filter** (screen by price/change/marketCap/volume/fundingRate/OI), **OI history**, **OI change filter** | [→](docs/modules/market.md) |
 | `spot` | 13 | Place/cancel/amend orders, batch orders, fills (+archive), order history (+archive), conditional orders, OCO | [→](docs/modules/spot.md) |
 | `swap` | 17 | Perpetual trading, batch orders, positions, leverage, conditional orders, OCO, trailing stop | [→](docs/modules/swap.md) |
 | `futures` | 18 | Delivery contract trading, positions, fills, order history, amend/close/leverage, batch orders, algo orders (TP/SL, OCO, trailing stop) | [→](docs/modules/futures.md) |
 | `option` | 10 | Options trading: place/cancel/amend/batch-cancel, order history, positions (with Greeks), fills, option chain, IV + Greeks | [→](docs/modules/option.md) |
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
 | `event` | 9 | Event contract trading: browse, series, events, markets (query); place, amend, cancel, orders, fills (private). Semantic outcome values: UP/YES/DOWN/NO | [→](docs/modules/event.md) |
-| `earn` | 22 | Simple Earn: balance, purchase, redeem, lending rate, **fixed-term orders** (10). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`. Included in `all`. | [→](docs/modules/earn.md) |
+| `earn` | 23 | Simple Earn: balance, purchase, redeem, lending rate, **fixed-term orders** (10). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). **Flash Earn** (1). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`, `earn.flash`. Included in `all`. | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
+| `news` | 7 | Crypto news: latest news, by-coin filter, full-text search, article detail, news sources, coin sentiment (snapshot + trend) | [→](docs/modules/news.md) |
 
 ---
 

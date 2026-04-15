@@ -492,3 +492,56 @@ describe("OkxRestClient.publicPost — unauthenticated POST", () => {
     assert.equal(captured.req?.headers.get("x-simulated-trading"), null);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Indicator name validation
+// ---------------------------------------------------------------------------
+
+describe("market_get_indicator — indicator name validation", () => {
+  const tool = registerIndicatorTools()[0]!;
+
+  it("rejects unknown indicator name", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      const { ValidationError } = await import("../src/utils/errors.js");
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "not_real_indicator" }, { config: BASE_CONFIG, client }),
+        (err) => {
+          assert.ok(err instanceof ValidationError);
+          assert.match((err as Error).message, /Unknown indicator/);
+          return true;
+        },
+      );
+    });
+  });
+
+  it("accepts valid indicator name 'rsi'", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      // should not throw
+      await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client });
+    });
+  });
+
+  it("accepts alias 'boll' (maps to BB)", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      await tool.handler({ instId: "BTC-USDT", indicator: "boll" }, { config: BASE_CONFIG, client });
+    });
+  });
+
+  it("suggests similar names for partial matches", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
+      const client = new OkxRestClient(BASE_CONFIG);
+      const { ValidationError } = await import("../src/utils/errors.js");
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "mac" }, { config: BASE_CONFIG, client }),
+        (err) => {
+          assert.ok(err instanceof ValidationError);
+          assert.match((err as Error).message, /macd/);
+          return true;
+        },
+      );
+    });
+  });
+});

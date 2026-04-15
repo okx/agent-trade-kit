@@ -22,7 +22,7 @@ okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
   [--tgtCcy <base_ccy|quote_ccy>] [--px <price>] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
   [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
-  [--json]
+  [--clOrdId <id>] [--json]
 ```
 
 | Param | Required | Default | Description |
@@ -37,14 +37,17 @@ okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
 | `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--clOrdId` | No | - | Client-assigned order ID (max 32 chars alphanumeric + `-` `_`) |
 
 ---
 
 ## Spot — Cancel Order
 
 ```bash
-okx spot cancel --instId <id> --ordId <id> [--json]
+okx spot cancel --instId <id> [--ordId <id>] [--clOrdId <id>] [--json]
 ```
+
+At least one of `--ordId` or `--clOrdId` is required.
 
 ---
 
@@ -64,6 +67,7 @@ Must provide at least one of `--newSz` or `--newPx`.
 ```bash
 okx spot algo place --instId <id> --side <buy|sell> \
   --ordType <oco|conditional|move_order_stop> --sz <n> \
+  [--clOrdId <id>] \
   [--tgtCcy <base_ccy|quote_ccy>] \
   [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
   [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
@@ -77,6 +81,7 @@ okx spot algo place --instId <id> --side <buy|sell> \
 | `--side` | Yes | - | `buy` or `sell` |
 | `--ordType` | Yes | - | `oco`, `conditional`, or `move_order_stop` |
 | `--sz` | Yes | - | Order size in base currency |
+| `--clOrdId` | No | - | Client-assigned algo order ID (max 32 chars alphanumeric + `-` `_`) |
 | `--tgtCcy` | No | base_ccy | `base_ccy`: sz in base currency; `quote_ccy`: sz in quote currency (e.g. USDT) |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
 | `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |

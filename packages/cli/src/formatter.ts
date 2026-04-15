@@ -143,6 +143,15 @@ export function printKv(obj: Record<string, unknown>, indent = 0): void {
 // result is in each element's `sCode` field ("0" = success, anything else =
 // business failure). This function detects that case and sets exit code 1 so
 // that callers (LLMs, scripts) can rely on exit code alone to detect failure.
+/** Extract `.data` array from a tool result object. Returns `[]` if absent. */
+export function extractData(result: unknown): Record<string, unknown>[] {
+  if (result && typeof result === "object") {
+    const data = (result as Record<string, unknown>)["data"];
+    if (Array.isArray(data)) return data as Record<string, unknown>[];
+  }
+  return [];
+}
+
 export function markFailedIfSCodeError(data: unknown): void {
   // Read-only endpoints return plain arrays without sCode — skip them.
   if (!Array.isArray(data)) return;

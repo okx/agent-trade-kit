@@ -127,6 +127,21 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx market instruments-by-category --instCategory <4|5|6|7> [--instType <SPOT|SWAP>] [--instId <id>]",
         description: "List instruments by asset category: 4=Metals (gold/silver), 5=Commodities (oil/gas), 6=Forex (EUR/USD), 7=Bonds",
       },
+      filter: {
+        toolName: "market_filter",
+        usage: "okx market filter --instType <SPOT|SWAP|FUTURES> [--sortBy <field>] [--sortOrder <asc|desc>] [--limit <n>] [--baseCcy <ccy>] [--quoteCcy <ccy>] [--settleCcy <ccy>] [--instFamily <fam>] [--ctType <linear|inverse>] [--minLast <n>] [--maxLast <n>] [--minChg24hPct <n>] [--maxChg24hPct <n>] [--minMarketCapUsd <n>] [--maxMarketCapUsd <n>] [--minVolUsd24h <n>] [--maxVolUsd24h <n>] [--minFundingRate <n>] [--maxFundingRate <n>] [--minOiUsd <n>] [--maxOiUsd <n>]",
+        description: "Screen / rank instruments by multi-dimensional criteria (price, volume, OI, funding rate, market cap, etc.)",
+      },
+      "oi-history": {
+        toolName: "market_get_oi_history",
+        usage: "okx market oi-history <instId> [--bar <5m|15m|1H|4H|1D>] [--limit <n>] [--ts <ms>]",
+        description: "Open interest history time series with bar-over-bar delta for a single instrument",
+      },
+      "oi-change": {
+        toolName: "market_filter_oi_change",
+        usage: "okx market oi-change --instType <SWAP|FUTURES> [--bar <5m|15m|1H|4H|1D>] [--sortBy <field>] [--sortOrder <asc|desc>] [--limit <n>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]",
+        description: "Find instruments with largest OI changes over a bar window (accumulation/distribution scanner)",
+      },
     },
     subgroups: {
       indicator: {
@@ -234,7 +249,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       get: {
         toolName: "spot_get_order",
-        usage: "okx spot get --instId <id> --ordId <id>",
+        usage: "okx spot get --instId <id> [--ordId <id>] [--clOrdId <id>]",
         description: "Get details of a specific spot order",
       },
       fills: {
@@ -244,7 +259,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "spot_place_order",
-        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]\n                [--tgtCcy <base_ccy|quote_ccy>] [--clOrdId <id>]\n                [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new spot order (supports attached TP/SL)",
       },
       amend: {
@@ -254,7 +269,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       cancel: {
         toolName: "spot_cancel_order",
-        usage: "okx spot cancel <instId> --ordId <id>",
+        usage: "okx spot cancel <instId> [--ordId <id>] [--clOrdId <id>]",
         description: "Cancel a pending spot order",
       },
       batch: {
@@ -314,7 +329,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       get: {
         toolName: "swap_get_order",
-        usage: "okx swap get --instId <id> --ordId <id>",
+        usage: "okx swap get --instId <id> [--ordId <id>] [--clOrdId <id>]",
         description: "Get details of a specific swap order",
       },
       fills: {
@@ -324,12 +339,12 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "swap_place_order",
-        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>] [--tdMode <cross|isolated>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>]\n               [--tdMode <cross|isolated>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new perpetual swap order (supports attached TP/SL)",
       },
       cancel: {
         toolName: "swap_cancel_order",
-        usage: "okx swap cancel <instId> --ordId <id>",
+        usage: "okx swap cancel <instId> [--ordId <id>] [--clOrdId <id>]",
         description: "Cancel a pending swap order",
       },
       amend: {
@@ -415,12 +430,12 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "futures_place_order",
-        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tgtCcy <base_ccy|quote_ccy|margin>] [--clOrdId <id>]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new futures order (supports attached TP/SL)",
       },
       cancel: {
         toolName: "futures_cancel_order",
-        usage: "okx futures cancel <instId> --ordId <id>",
+        usage: "okx futures cancel <instId> [--ordId <id>] [--clOrdId <id>]",
         description: "Cancel a pending futures order",
       },
       amend: {
@@ -430,7 +445,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       get: {
         toolName: "futures_get_order",
-        usage: "okx futures get --instId <id> --ordId <id>",
+        usage: "okx futures get --instId <id> [--ordId <id>] [--clOrdId <id>]",
         description: "Get details of a specific futures order",
       },
       close: {
@@ -525,7 +540,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "option_place_order",
-        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--reduceOnly] [--clOrdId <id>]",
+        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
         description: "Place a new option order",
       },
       cancel: {
@@ -575,7 +590,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── earn ───────────────────────────────────────────────────────────────────
   earn: {
-    description: "Earn products — Simple Earn, On-chain Earn, and DCD (Dual Currency Deposit)",
+    description: "Earn products — Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
     subgroups: {
       savings: {
         description: "Simple Earn — flexible savings, fixed-term, and lending",
@@ -681,6 +696,16 @@ export const CLI_REGISTRY: CliRegistry = {
             toolName: "earn_auto_set",
             usage: "okx earn auto-earn off <ccy>",
             description: "Disable auto-earn for a currency",
+          },
+        },
+      },
+      "flash-earn": {
+        description: "Flash Earn — browse short-window earn projects by status",
+        commands: {
+          projects: {
+            toolName: "earn_get_flash_earn_projects",
+            usage: "okx earn flash-earn projects [--status <0|100|0,100>]",
+            description: "List upcoming or in-progress Flash Earn projects. Defaults to both statuses",
           },
         },
       },
