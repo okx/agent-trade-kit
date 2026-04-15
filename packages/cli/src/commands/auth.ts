@@ -258,7 +258,19 @@ export async function cmdAuthRemove(force: boolean, json: boolean): Promise<void
     }
   }
 
-  const result = removeAuthBinary();
+  let result: ReturnType<typeof removeAuthBinary>;
+  try {
+    result = removeAuthBinary();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (json) {
+      outputLine(JSON.stringify({ status: "failed", error: msg }));
+    } else {
+      errorLine(`  ✗ Failed to remove: ${msg}`);
+    }
+    process.exitCode = 1;
+    return;
+  }
 
   if (json) {
     outputLine(JSON.stringify({ status: result.status, path: local.binaryPath }));
