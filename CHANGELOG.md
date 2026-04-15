@@ -11,6 +11,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+#### Added
+
+- **Event contract module** (`event`): 9 new MCP tools and corresponding `okx event` CLI commands for trading binary event contracts — predict outcomes of real-world events on OKX's prediction market. Supports contract discovery, order placement, position management, and order history. (!216)
+- **Market filter, OI history, and OI change filter tools**: `market_filter` MCP tool and `okx market filter` CLI command for multi-criteria instrument screening; `market_get_oi_history` / `okx market oi-history` for historical open interest data; `market_get_oi_change_filter` / `okx market oi-change-filter` for screening instruments by open interest change. (!245)
+- **Flash earn module** (`earn.flash`): New MCP tools and `okx earn flash` CLI commands for instant earn operations. (!246)
+- **`news` module restored**: News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_coin_sentiment`, `news_get_sentiment_ranking`) and `okx news` CLI commands are available again following compliance review. (!235)
+- **Linux ARM64 support for DoH binary**: `postinstall` now downloads `okx-doh-resolver` for `linux-arm64`, completing platform coverage alongside darwin-arm64, darwin-x64, linux-x64, and win32-x64. (!237)
+- **Skills download two-step presigned URL flow**: `skills_download` and `okx skill download` now use a presigned URL flow for more reliable file delivery. (!240)
+- **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line structure; descriptions are sourced directly from `@agent-tradekit/core` ToolSpec objects, keeping CLI and MCP help in sync. A bidirectional drift test catches divergence at CI time. (#140, !234)
+- **`okx list-tools [--json]` agent self-discovery command**: Serializes the full CLI registry to structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140, !234)
+- **`okx doh` binary management commands**: `okx doh status` shows binary path, file size, SHA-256, and CDN match status; `okx doh install` downloads or updates the binary; `okx doh remove` deletes it (with `--force`). DoH state is also reported in `okx --version` output and checked in `okx diagnose`. (#138, !232)
+- **DoH (DNS-over-HTTPS) proxy for REST API requests**: SDK transparently resolves an alternative proxy node when the OKX API domain is unreachable; cache-first strategy with automatic exclusion of failed nodes and `--verbose` logging support. (!230)
+- **`context-kg/` agent knowledge base**: Structured knowledge files for AI agents covering trading, market/account, earn/bot, errors, multi-site architecture, DoH proxy, `tgtCcy=margin` usage, and test quality rules. Includes `knowledge_dir` configuration entry example. (#137, !231, !238, !248)
+
+#### Fixed
+
+- **Error code suggestions** now align with OKX official API documentation — corrected inaccurate or mislabeled error descriptions across modules. (#163, !250)
+- **`news` module Accept-Language header** now uses standard IETF BCP 47 format (e.g. `zh-CN`, `en-US`) instead of a non-standard value; default language is also corrected. (!249)
+- **`okx list-tools` CLI routing** no longer falls through to "Unknown command"; the command is now correctly dispatched by the CLI router. (#161, !247)
+- **CLI help text** now includes all previously missing parameters for affected commands. (#155, !244)
+- **`market_list_indicators` descriptions and name validation**: Improved indicator and parameter descriptions; indicator names are now validated before the API call and unknown names return a clear error. (#153, !243)
+- **`market_get_funding_rate` SWAP instrument validation**: Non-SWAP `instId` values are now rejected with a descriptive error before reaching the API. (#152, !242)
+- **Skills docs language neutrality**: Removed hardcoded Chinese-language agent prompts from `SKILL.md` and related files; all instructions are now language-neutral. (!233)
+- **Skills docs leverage error guidance**: Added specific troubleshooting steps for leverage-related OKX API errors, reinforcing the read-first-then-confirm pattern before any write-operation remediation. (!229)
+- **CLI parameter and output formatting fixes**: Addressed review feedback across multiple commands. (#141, #142, #143, !236)
+
+#### Changed
+
+- **TP/SL amend discoverability in skills docs**: Agent guidance now explicitly directs users toward algo-order amend tools rather than cancel-and-replace when modifying take-profit or stop-loss on existing algo orders. (!241)
+
+---
+
 ### Added
 
 - **context-kg accuracy drift test**: `packages/cli/test/context-kg-accuracy.test.ts` automatically validates that tool counts, module counts, skill pack counts, and test file counts declared in `context-kg/` match actual code state — fails loudly with actionable messages when documentation numbers drift. (#160)

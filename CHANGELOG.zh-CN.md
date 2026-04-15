@@ -11,6 +11,37 @@
 
 ## [Unreleased]
 
+
+#### 新增
+
+- **事件合约模块**（`event`）：新增 9 个 MCP 工具及对应的 `okx event` CLI 命令，支持交易二元事件合约——预测现实世界事件的结果。涵盖合约查询、下单、持仓管理及订单历史。(!216)
+- **市场筛选、持仓量历史及持仓量变化筛选工具**：`market_filter` MCP 工具及 `okx market filter` CLI 命令，支持多条件合约筛选；`market_get_oi_history` / `okx market oi-history` 支持历史持仓量查询；`market_get_oi_change_filter` / `okx market oi-change-filter` 支持按持仓量变化筛选合约。(!245)
+- **闪电赚币模块**（`earn.flash`）：新增 MCP 工具及 `okx earn flash` CLI 命令，支持即时赚币操作。(!246)
+- **`news` 模块恢复上线**：资讯工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）及 `okx news` CLI 命令经合规审查后重新可用。(!235)
+- **Linux ARM64 DoH 二进制支持**：`postinstall` 现支持为 `linux-arm64` 系统下载 `okx-doh-resolver`，与 darwin-arm64、darwin-x64、linux-x64、win32-x64 共同覆盖主流平台。(!237)
+- **Skills 下载两步预签名流程**：`skills_download` 和 `okx skill download` 改用预签名 URL 方式下载，提升可靠性。(!240)
+- **CLI 帮助文本自动生成**：CLI 帮助文本现从声明式 `CLI_REGISTRY` 映射生成，不再依赖 640 行静态结构；描述直接取自 `@agent-tradekit/core` ToolSpec 对象，确保 CLI 与 MCP 帮助保持同步，双向漂移测试在 CI 阶段发现偏差。(#140, !234)
+- **`okx list-tools [--json]` 代理自发现命令**：将完整 CLI 注册表序列化为结构化 JSON，AI 代理可直接枚举所有能力、参数和工具名称，无需解析 `--help` 文本。(#140, !234)
+- **`okx doh` 二进制管理命令**：`okx doh status` 显示二进制路径、文件大小、SHA-256 及 CDN 匹配状态；`okx doh install` 下载或更新二进制；`okx doh remove` 删除（支持 `--force`）。DoH 状态同步显示在 `okx --version` 输出及 `okx diagnose` 诊断结果中。(#138, !232)
+- **REST API 请求 DoH（DNS over HTTPS）代理**：当 OKX API 域名无法直连时，SDK 透明切换至本地解析的代理节点；缓存优先策略，失效节点自动排除，支持 `--verbose` 全链路日志。(!230)
+- **`context-kg/` 代理知识库**：面向 AI 代理的结构化知识文件，涵盖交易、市场/账户、赚币/机器人、错误处理、多站点架构、DoH 代理、`tgtCcy=margin` 用法及测试质量规则，附 `knowledge_dir` 配置项示例。(#137, !231, !238, !248)
+
+#### 修复
+
+- **错误码建议**现与 OKX 官方 API 文档保持一致，修正了各模块中不准确或标注有误的错误描述。(#163, !250)
+- **`news` 模块 Accept-Language 请求头**改为使用标准 IETF BCP 47 格式（如 `zh-CN`、`en-US`），并修正了默认语言设置。(!249)
+- **`okx list-tools` CLI 路由**不再回退到 "Unknown command"，命令现在可由 CLI 路由层正确分发。(#161, !247)
+- **CLI 帮助文本**现包含此前遗漏的所有命令参数说明。(#155, !244)
+- **`market_list_indicators` 描述优化及名称校验**：改进指标和参数描述，未知指标名称现在在调用 API 前即返回明确错误提示。(#153, !243)
+- **`market_get_funding_rate` SWAP 合约校验**：非 SWAP 类型的 `instId` 现在在调用 API 前即被拒绝，并附带描述性错误提示。(#152, !242)
+- **Skills 文档语言中立化**：移除 `SKILL.md` 及相关文件中硬编码的中文提示词，所有指令改为语言中立表述，确保代理在任意语言环境下正常工作。(!233)
+- **Skills 文档杠杆错误排查指引**：新增杠杆相关 OKX API 错误的具体排查步骤，强化"先只读诊断、再确认写操作"的处理模式。(!229)
+- **CLI 参数及输出格式修复**：处理多条命令的评审反馈，修正参数处理和输出格式问题。(#141, #142, #143, !236)
+
+#### 变更
+
+- **Skills 文档 TP/SL 修改指引优化**：更新代理指导，在修改现有算法订单的止盈/止损时，明确引导用户使用算法订单修改工具（而非撤单后重建）。(!241)
+
 ### 新增
 
 - **context-kg 准确性漂移测试**：新增 `packages/cli/test/context-kg-accuracy.test.ts`，自动校验 `context-kg/` 中声明的工具数量、模块数量、skill pack 数量和测试文件数与代码实际状态一致——数字过时时以可操作的提示信息明确失败。(#160)
