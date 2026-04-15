@@ -220,7 +220,7 @@ When this error occurs, the order exists but the current time is outside the all
 | Error code | Meaning | Retry |
 |---|---|---|
 | **504** | **Gateway timeout — server may have executed the request** | **NEVER retry WRITE ops. Query `earn dcd orders` first to verify.** |
-| 50001 | DCD service down | Retry in a few minutes |
+| 50001 | Service temporarily unavailable | Retry in a few minutes |
 | 50026 | System error | Retry in a few minutes |
 | 50030 | Account not authorized for DCD | Guide user to complete verification in OKX app |
 | 50038 | DCD API feature disabled | Contact OKX support |
