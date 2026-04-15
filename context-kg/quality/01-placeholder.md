@@ -95,6 +95,6 @@ Static analysis (SonarQube) enforces:
 
 ## Known Structure Issues (as of v1.3.1, architectural review 2026-04-07)
 
-- **P0**: Module registry sync (`docs/module-registry.md`) — 132 listed vs 127 active tools
+- **P0**: Module registry sync (`docs/module-registry.md`) — registry may list stale tool counts; run `pnpm test:unit` to verify current active tool count (currently 147 via `allToolSpecs()`)
 - **P1**: `packages/cli/src/index.ts` has grown to ~1374 lines (multi-responsibility)
-- **P2**: Token budget at 84% of the 25,000 token ceiling across all tool descriptions
+- **P2**: Token budget across all tool descriptions approaching the 25,000 token ceiling; monitor with each new tool addition
