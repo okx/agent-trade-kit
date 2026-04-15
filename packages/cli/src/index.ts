@@ -1426,16 +1426,19 @@ function printVersion(): void {
   }
 }
 
-/** Route management commands that don't need API credentials. Returns the handler promise, or undefined if not a management command. */
+/**
+ * Route management commands that don't need API credentials.
+ * Returns `true` for sync-void handlers, a Promise for async ones, or `undefined` if not matched.
+ */
 function routeManagementCommand(
   module: string, action: string | undefined, rest: string[], json: boolean, v: ReturnType<typeof parseCli>["values"],
-): Promise<void> | void | undefined {
-  if (module === "config") return handleConfigCommand(action as string, rest, json, v.lang, v.force);
-  if (module === "setup") return handleSetupCommand(v);
+): Promise<void> | true | undefined {
+  if (module === "config") { const r = handleConfigCommand(action as string, rest, json, v.lang, v.force); return r ?? true; }
+  if (module === "setup") { handleSetupCommand(v); return true; }
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
-  if (module === "doh") return handleDohCommand(action as string, json, v.force ?? false);
+  if (module === "doh") { const r = handleDohCommand(action as string, json, v.force ?? false); return r ?? true; }
   if (module === "diagnose") return runDiagnose(v);
-  if (module === "list-tools") return cmdListTools(json);
+  if (module === "list-tools") { cmdListTools(json); return true; }
   return undefined;
 }
 
@@ -1464,7 +1467,7 @@ async function main(): Promise<void> {
   const json = v.json ?? false;
 
   const mgmt = routeManagementCommand(module, action, rest, json, v);
-  if (mgmt) return mgmt;
+  if (mgmt !== undefined) return mgmt === true ? undefined : mgmt;
 
   const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
