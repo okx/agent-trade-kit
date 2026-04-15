@@ -17,6 +17,7 @@
 
 ### 修复
 
+- **`news` Accept-Language 请求头**：将语言格式从 `en_US`/`zh_CN` 改为标准 IETF BCP 47 格式 `en-US`/`zh-CN`，修复所有新闻 API 调用的参数错误。
 - **context-kg 数字过时问题**：更新 `context-kg/business/01-overview.md`（工具数 127 → 147，模块数 13 → 16，skill packs 6 → 7，模块列表重写以反映实际的 `MODULES` 注册表）、`context-kg/technical/01-architecture.md`（core 测试文件数 21 → 23，CLI 测试文件数 37 → 39）及 `context-kg/quality/01-placeholder.md`（P0/P2 描述更新以反映当前状态）。(#160)
 
 ---

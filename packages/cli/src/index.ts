@@ -1239,7 +1239,7 @@ export function handleNewsCommand(
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   const begin = v.begin !== undefined ? Number(v.begin) : undefined;
   const end = v.end !== undefined ? Number(v.end) : undefined;
-  const language = v.lang ?? "en_US";
+  const language = v.lang ?? "en-US";
   const detailLvl = v["detail-lvl"];
   const after = v.after;
   const period = v.period;

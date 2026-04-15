@@ -110,7 +110,7 @@ describe("news tools registration", () => {
 });
 
 describe("news_get_latest", () => {
-  it("should pre-fill sortBy=latest and default Accept-Language to en_US when language omitted", async () => {
+  it("should pre-fill sortBy=latest and default Accept-Language to en-US when language omitted", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -121,11 +121,22 @@ describe("news_get_latest", () => {
     assert.equal(call.endpoint, "/api/v5/orbit/news-search");
     assert.equal(call.params["sortBy"], "latest");
     assert.equal(call.params["importance"], undefined);
-    assert.equal(call.headers?.["Accept-Language"], "en_US");
+    assert.equal(call.headers?.["Accept-Language"], "en-US");
     assert.equal(call.params["limit"], 10);
   });
 
-  it("should send Accept-Language header when language=zh_CN", async () => {
+  it("should send Accept-Language header when language=zh-CN", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_latest")!;
+
+    await tool.handler({ language: "zh-CN" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.headers?.["Accept-Language"], "zh-CN");
+  });
+
+  it("langHeader normalises legacy zh_CN to zh-CN", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -133,7 +144,18 @@ describe("news_get_latest", () => {
 
     await tool.handler({ language: "zh_CN" }, ctx);
     const call = getLastCall()!;
-    assert.equal(call.headers?.["Accept-Language"], "zh_CN");
+    assert.equal(call.headers?.["Accept-Language"], "zh-CN");
+  });
+
+  it("langHeader normalises legacy en_US to en-US", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_latest")!;
+
+    await tool.handler({ language: "en_US" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.headers?.["Accept-Language"], "en-US");
   });
 
   it("should pass importance when specified", async () => {

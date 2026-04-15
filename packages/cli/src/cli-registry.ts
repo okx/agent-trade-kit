@@ -926,24 +926,24 @@ export const CLI_REGISTRY: CliRegistry = {
     commands: {
       latest: {
         toolName: "news_get_latest",
-        usage: "okx news latest [--coins BTC,ETH] [--lang zh_CN] [--limit 20]",
+        usage: "okx news latest [--coins BTC,ETH] [--lang zh-CN] [--limit 20]",
       },
       important: {
         toolName: "news_get_latest",
-        usage: "okx news important [--coins BTC,ETH] [--lang zh_CN] [--limit 20]",
+        usage: "okx news important [--coins BTC,ETH] [--lang zh-CN] [--limit 20]",
         description: "Get important/high-impact crypto news",
       },
       "by-coin": {
         toolName: "news_get_by_coin",
-        usage: "okx news by-coin --coins BTC [--importance high] [--lang zh_CN]",
+        usage: "okx news by-coin --coins BTC [--importance high] [--lang zh-CN]",
       },
       search: {
         toolName: "news_search",
-        usage: "okx news search --keyword <term> [--coins BTC] [--sentiment bullish] [--lang zh_CN]",
+        usage: "okx news search --keyword <term> [--coins BTC] [--sentiment bullish] [--lang zh-CN]",
       },
       detail: {
         toolName: "news_get_detail",
-        usage: "okx news detail <id> [--lang zh_CN]",
+        usage: "okx news detail <id> [--lang zh-CN]",
       },
       domains: {
         toolName: "news_get_domains",
