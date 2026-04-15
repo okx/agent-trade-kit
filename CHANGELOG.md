@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`news` Accept-Language header**: Changed locale format from `en_US`/`zh_CN` to standard IETF BCP 47 `en-US`/`zh-CN`, fixing parameter errors on all news API calls.
 - **context-kg stale numbers**: Updated `context-kg/business/01-overview.md` (127 → 147 tools, 13 → 16 modules, 6 → 7 skill packs, module list rewritten to reflect actual `MODULES` registry), `context-kg/technical/01-architecture.md` (21 → 23 core test files, 37 → 39 CLI test files), and `context-kg/quality/01-placeholder.md` (P0/P2 descriptions updated to reflect current state). (#160)
 
 ---

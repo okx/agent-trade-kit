@@ -8,11 +8,12 @@ const NEWS_DOMAINS = "/api/v5/orbit/news-platform";
 const SENTIMENT_QUERY = "/api/v5/orbit/currency-sentiment-query";
 const SENTIMENT_RANKING = "/api/v5/orbit/currency-sentiment-ranking";
 
-const NEWS_LANGUAGE = ["en_US", "zh_CN"] as const;
+const NEWS_LANGUAGE = ["en-US", "zh-CN"] as const;
 
+/** Map language input to Accept-Language header. Update branches here when NEWS_LANGUAGE grows. */
 function langHeader(lang: string | undefined): Record<string, string> {
-  const resolved = lang === "zh_CN" ? "zh_CN" : "en_US";
-  return { "Accept-Language": resolved };
+  if (lang === "zh-CN" || lang === "zh_CN") return { "Accept-Language": "zh-CN" };
+  return { "Accept-Language": "en-US" };
 }
 
 const NEWS_DETAIL_LVL = ["brief", "summary", "full"] as const;
@@ -24,7 +25,7 @@ const SENTIMENT_PERIOD = ["1h", "4h", "24h"] as const;
 // Shared parameter descriptions
 const D_COINS_NEWS = "Comma-separated uppercase ticker symbols (e.g. \"BTC,ETH\"). Normalize names/aliases to standard tickers.";
 const D_COINS_SENTIMENT = "Comma-separated uppercase ticker symbols, max 20 (e.g. \"BTC,ETH\"). Normalize names/aliases to standard tickers.";
-const D_LANGUAGE = "Content language: zh_CN or en_US. Infer from user's message. No server default.";
+const D_LANGUAGE = "Content language: zh-CN or en-US. Infer from user's message. No server default.";
 const D_BEGIN = "Start time, Unix epoch milliseconds. Parse relative time if given (e.g. 'yesterday', 'last 7 days').";
 const D_END = "End time, Unix epoch milliseconds. Parse relative time if given. Omit for no upper bound.";
 const D_IMPORTANCE = "Importance filter: high (server default), medium, low. Omit unless user wants broader coverage.";

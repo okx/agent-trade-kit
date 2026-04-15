@@ -115,7 +115,7 @@ Get the latest crypto news sorted by time.
 ```bash
 okx news latest [--coins BTC,ETH] [--begin <ms>] [--end <ms>]
                [--importance high|medium]
-               [--detail-lvl brief|summary|full] [--lang zh_CN|en_US]
+               [--detail-lvl brief|summary|full] [--lang zh-CN|en-US]
                [--limit 10] [--after <cursor>] [--json]
 ```
 
@@ -127,7 +127,7 @@ Get high-impact breaking news (reported by multiple sources).
 ```bash
 okx news important [--coins BTC,ETH] [--begin <ms>] [--end <ms>]
                   [--detail-lvl brief|summary|full]
-                  [--lang zh_CN|en_US] [--limit 10] [--json]
+                  [--lang zh-CN|en-US] [--limit 10] [--json]
 ```
 
 ---
@@ -138,7 +138,7 @@ Get news for specific coins.
 ```bash
 okx news by-coin --coins <BTC,ETH,...>
                [--importance high|medium]
-               [--begin <ms>] [--end <ms>] [--lang zh_CN|en_US]
+               [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
                [--limit 10] [--json]
 ```
 
@@ -152,7 +152,7 @@ okx news search --keyword <text>
                [--coins BTC,ETH] [--importance high|medium]
                [--sentiment bullish|bearish|neutral]
                [--sort-by latest|relevant]
-               [--begin <ms>] [--end <ms>] [--lang zh_CN|en_US]
+               [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
                [--limit 10] [--after <cursor>] [--json]
 ```
 
@@ -163,7 +163,7 @@ Get full article content by ID.
 
 ```bash
 okx news detail <id>                  # news ID from previous result
-               [--lang zh_CN|en_US] [--json]
+               [--lang zh-CN|en-US] [--json]
 ```
 
 ---
@@ -173,7 +173,7 @@ Browse news filtered by sentiment (no keyword needed).
 
 ```bash
 okx news by-sentiment --sentiment <bullish|bearish|neutral>
-               [--coins BTC,ETH] [--limit 10] [--lang zh_CN|en_US]
+               [--coins BTC,ETH] [--limit 10] [--lang zh-CN|en-US]
                [--after <cursor>] [--json]
 ```
 
@@ -249,5 +249,5 @@ The API only accepts standard uppercase ticker symbols (e.g. `BTC`, `ETH`, `SOL`
 - **Time parameters**: `--begin` / `--end` are Unix epoch milliseconds
 - **Coins format**: comma-separated uppercase symbols, e.g. `BTC,ETH,SOL` — never pass full names or aliases
 - **coin-trend `--points`**: always pass explicitly; 1h→24, 4h→6, 24h→7
-- **Language**: inferred from user's message — `--lang zh_CN` for Chinese, `--lang en_US` for English (default)
+- **Language**: inferred from user's message — `--lang zh-CN` for Chinese, `--lang en-US` for English (default)
 - **sentiment-rank `--sort-by`**: `hot`=by mention count (default), `bullish`=most bullish, `bearish`=most bearish
