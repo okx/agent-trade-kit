@@ -13,7 +13,7 @@ const ALLOWED_DOMAIN_RE = /^[\w.-]+\.okx\.com$/;
 const DOH_BIN_DIR = join(homedir(), ".okx", "bin");
 
 /**
- * Return the expected path to the okx-doh-resolver binary.
+ * Return the expected path to the okx-pilot binary.
  * Respects the `OKX_DOH_BINARY_PATH` environment variable.
  */
 export function getDohBinaryPath(): string {
@@ -21,11 +21,11 @@ export function getDohBinaryPath(): string {
     return process.env.OKX_DOH_BINARY_PATH;
   }
   const ext = process.platform === "win32" ? ".exe" : "";
-  return join(DOH_BIN_DIR, `okx-doh-resolver${ext}`);
+  return join(DOH_BIN_DIR, `okx-pilot${ext}`);
 }
 
 /**
- * Execute the okx-doh-resolver binary for the given domain.
+ * Execute the okx-pilot binary for the given domain.
  *
  * @returns The resolved DohNode, or null on any failure (binary missing,
  *          timeout, non-zero exit, malformed output).

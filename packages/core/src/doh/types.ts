@@ -1,4 +1,4 @@
-/** A resolved DoH proxy node returned by the okx-doh-resolver binary. */
+/** A resolved DoH proxy node returned by the okx-pilot binary. */
 export interface DohNode {
   /** Proxy node IP address (e.g. "47.242.161.22") */
   ip: string;
@@ -15,7 +15,7 @@ export interface FailedNode {
   failedAt: number;
 }
 
-/** Raw JSON output from the okx-doh-resolver binary. */
+/** Raw JSON output from the okx-pilot binary. */
 export interface DohBinaryResponse {
   code: number;
   data?: DohNode;

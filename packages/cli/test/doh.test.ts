@@ -97,7 +97,7 @@ describe("handleDohCommand routing", () => {
   });
 
   it("dispatches remove action on existing binary with --force", async () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("fake binary"));
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
@@ -147,7 +147,7 @@ describe("handleDohCommand — status --json", () => {
   });
 
   it("returns valid JSON with exists=true when binary is present", async () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("fake-binary-for-status-json"));
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
@@ -172,7 +172,7 @@ describe("handleDohCommand — status --json", () => {
 
 describe("handleDohCommand — status with existing binary (text)", () => {
   it("shows 'Installed   : yes' for an existing binary", async () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("status-text-binary"));
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
@@ -193,7 +193,7 @@ describe("handleDohCommand — status with existing binary (text)", () => {
 
 describe("handleDohCommand — install --json", () => {
   it("returns valid JSON output with expected shape", async () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     let out = "";
     const origCode = process.exitCode;
     setOutput({ out: (m) => { out += m; }, err: () => {} });
@@ -216,7 +216,7 @@ describe("handleDohCommand — install --json", () => {
   });
 
   it("install without --json prints text output", async () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     let out = "";
     let err = "";
     const origCode = process.exitCode;
@@ -255,7 +255,7 @@ describe("handleDohCommand — remove --json", () => {
   });
 
   it("returns JSON with status=removed when binary exists and --force", async () => {
-    const binaryPath = join(tempDir, "okx-doh-resolver");
+    const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("remove-json-binary"));
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });

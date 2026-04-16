@@ -30,7 +30,7 @@ function classifyAndCache(
     return { mode: null, node: null };
   }
 
-  if (node.ip === hostname || node.host === hostname) {
+  if (node.ip === hostname && node.host === hostname) {
     writeCache(hostname, {
       mode: "direct", node: null, failedNodes, updatedAt: Date.now(),
     }, cachePath);
