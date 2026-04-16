@@ -12,6 +12,51 @@
 ## [Unreleased]
 
 
+
+#### 新增
+
+- **`news` 模块（恢复上线）**：Orbit News API 集成获合规审批后重新上线，提供七个工具：最新资讯、按币种查询、搜索、文章详情、域名列表、币种情绪及情绪排行。CLI：`okx news latest / by-coin / search / detail / domains / sentiment / sentiment-ranking`。`Accept-Language` 请求头现使用标准 IETF BCP 47 格式。(!251, !249, !235)
+
+- **事件合约模块**（`event`）：全新二元预测市场模块，包含 9 个 MCP 工具及对应 CLI 命令，支持浏览开放事件、查询合约详情、下单及管理事件合约订单。(!216)
+
+- **闪电赚币模块**（`earn.flash`）：新增闪电赚币工具，支持即时申购和赎回操作。(!246)
+
+- **三个新市场工具**——`market_filter`（多维度筛选标的）、`market_get_oi_history`（持仓量历史）和 `market_get_oi_change_filter`（按 OI 变化幅度筛选）。CLI：`okx market filter / oi-history / oi-change-filter`。(!245)
+
+- **CLI 帮助文本自动生成及 `okx list-tools`**：CLI 帮助文本现从 `@agent-tradekit/core` ToolSpec 对象的 `CLI_REGISTRY` 映射中动态生成，确保帮助文本与 MCP 工具注册表保持同步。新增 `okx list-tools [--json]` 命令，将完整注册表序列化为结构化 JSON，供 AI Agent 自发现枚举所有能力。(!234)
+
+- **`okx doh` 二进制管理命令**：`okx doh status` 显示二进制路径、大小、SHA-256 及 CDN 匹配状态；`okx doh install` 下载或更新二进制；`okx doh remove` 删除二进制（需确认或加 `--force`）。DoH 状态同步集成至 `okx --version` 和 `okx diagnose` 输出。(!232)
+
+- **DoH（DNS-over-HTTPS）API 代理**：当 OKX API 域名无法直连时（如 DNS 污染），SDK 透明地通过本地 `okx-doh-resolver` 二进制解析备用代理节点，采用缓存优先策略并自动排除失败节点。`postinstall` 自动下载平台专用二进制至 `~/.okx/bin/`，支持 darwin-arm64、darwin-x64、linux-x64、linux-arm64 和 win32-x64。(!230, !237)
+
+#### 修复
+
+- **错误码修复建议与 OKX 官方 API 错误文档一致**：自定义提示语替换为 OKX 官方 API 错误文档的原文内容。(#163, !250)
+
+- **CLI `list-tools` 路由修复**：`okx list-tools` 不再回落为主路由的"Unknown command"。(#161, !247)
+
+- **CLI 帮助文本：缺失参数已审计补全**：审计发现的所有帮助文本参数缺失问题已逐一修复。(#155, !244)
+
+- **市场指标描述优化及名称验证**：指标名称现进行合法性校验，无效名称返回明确错误而非静默返回空结果。(#153, !243)
+
+- **`market_get_funding_rate` 校验 SWAP `instId`**：非 SWAP 合约 ID 现在调用 OKX API 前即被拦截并返回明确错误。(#152, !242)
+
+- **市场筛选文档：SPOT 查询需显式传入 `quoteCcy=USDT`**：在工具和 CLI 描述中明确说明 SPOT 市场查询须包含 `quoteCcy=USDT`，以避免空结果。(!257)
+
+- **Skills 语言中立化**：移除 `SKILL.md` 中硬编码的中文提示，确保 Agent 在任意语言环境下行为一致。(!233)
+
+- **Skills：杠杆错误排查指引**：新增杠杆相关错误的具体修复步骤，并增加通用保护规则——执行写操作修复前须先通过只读查询诊断并获得用户确认。(!229)
+
+- **CLI 代码审查建议修复**：修复代码审查中发现的多处外观和行为问题。(#141, #142, #143, !236)
+
+#### 变更
+
+- **Skills 下载改为两步预签名流程**：`skills_download`（MCP）和 `okx skill download`（CLI）现先获取短效预签名 URL 再下载技能包，提升下载安全性和可靠性。(!240)
+
+- **DoH 解析器升级至 v9**：二进制更新，包含修订的协议及 CDN 节点列表。(!255)
+
+- **Skills 文档：止盈止损修改流程说明优化**：技能文档现引导用户对已有算法单使用 `algo_amend_order` 修改止盈止损，提升功能可发现性。(!241)
+
 #### 新增
 
 - **事件合约模块**（`event`）：新增 9 个 MCP 工具及对应的 `okx event` CLI 命令，支持交易二元事件合约——预测现实世界事件的结果。涵盖合约查询、下单、持仓管理及订单历史。(!216)
