@@ -55,7 +55,7 @@ curl -X POST 'https://open.larksuite.com/open-apis/bot/v2/hook/b9beca3e-ec61-40f
   -d '{
     "msg_type": "text",
     "content": {
-      "text": "发布 okx-trade-mcp v<版本号>\n时间：<发布时间>\n改动：\n<CHANGELOG 中对应版本的改动摘要>"
+      "text": "发布 okx-trade-mcp v<版本号>\n时间：<发布时间>\n分支：<Git 分支名>\n改动：\n<CHANGELOG 中对应版本的改动摘要>"
     }
   }'
 ```
@@ -63,7 +63,8 @@ curl -X POST 'https://open.larksuite.com/open-apis/bot/v2/hook/b9beca3e-ec61-40f
 消息必须包含：
 1. **版本号**（与 tag 一致）
 2. **发布时间**（ISO 8601 或可读格式）
-3. **改动摘要**（从 CHANGELOG.md 中提取对应版本的 Added / Fixed / Changed 等条目）
+3. **分支名**（发布所在的 Git 分支，紧跟发布时间之后）
+4. **改动摘要**（从 CHANGELOG.md 中提取对应版本的 Added / Fixed / Changed 等条目）
 
 ## Pre-MR Checklist
 

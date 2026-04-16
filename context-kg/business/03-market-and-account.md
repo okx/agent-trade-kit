@@ -15,6 +15,12 @@ Key capabilities:
 
 All market tools are tagged `isWrite: false` and remain **available** when the `--read-only` flag is set (read-only mode only removes `isWrite: true` tools).
 
+### Market Filter (`market_filter`)
+
+Multi-dimensional instrument screener supporting price, volume, OI, funding rate, and market cap filters with sorting.
+
+**⚠️ SPOT + quoteCcy pitfall**: When `instType=SPOT`, the OKX API returns instruments across **all** quote currencies (USDT, USDC, BTC, ETH, DAI, etc.) in a single response. This mixes heterogeneous instruments and distorts any sort-by ranking (e.g., sorting by `volUsd24h` will interleave BTC-USDT with obscure BTC-DAI pairs). Always pass `quoteCcy=USDT` as the default when querying SPOT, unless the user explicitly requests other quote currencies.
+
 ## Indicator Module (`packages/core/src/tools/indicator.ts`)
 
 Built on top of the market candle data, the indicator module computes common technical analysis indicators server-side (no external TA library — computed inline):
