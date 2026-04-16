@@ -15,6 +15,7 @@ export async function cmdNewsLatest(
   opts: {
     coins?: string;
     importance?: string;
+    platform?: string;
     begin?: number;
     end?: number;
     language?: string;
@@ -27,6 +28,7 @@ export async function cmdNewsLatest(
   const result = await run("news_get_latest", {
     coins: opts.coins,
     importance: opts.importance,
+    platform: opts.platform,
     begin: opts.begin,
     end: opts.end,
     language: opts.language,
@@ -54,6 +56,7 @@ export async function cmdNewsImportant(
   run: ToolRunner,
   opts: {
     coins?: string;
+    platform?: string;
     begin?: number;
     end?: number;
     language?: string;
@@ -65,6 +68,7 @@ export async function cmdNewsImportant(
   const result = await run("news_get_latest", {
     coins: opts.coins,
     importance: "high",
+    platform: opts.platform,
     begin: opts.begin,
     end: opts.end,
     language: opts.language,
@@ -91,6 +95,7 @@ export async function cmdNewsByCoin(
   coins: string,
   opts: {
     importance?: string;
+    platform?: string;
     begin?: number;
     end?: number;
     language?: string;
@@ -102,6 +107,7 @@ export async function cmdNewsByCoin(
   const result = await run("news_get_by_coin", {
     coins,
     importance: opts.importance,
+    platform: opts.platform,
     begin: opts.begin,
     end: opts.end,
     language: opts.language,
@@ -129,6 +135,7 @@ export async function cmdNewsSearch(
   opts: {
     coins?: string;
     importance?: string;
+    platform?: string;
     sentiment?: string;
     sortBy?: string;
     begin?: number;
@@ -144,6 +151,7 @@ export async function cmdNewsSearch(
     keyword: keyword || undefined,
     coins: opts.coins,
     importance: opts.importance,
+    platform: opts.platform,
     sentiment: opts.sentiment,
     sortBy: opts.sortBy,
     begin: opts.begin,
@@ -199,7 +207,7 @@ export async function cmdNewsDetail(
   });
 }
 
-export async function cmdNewsDomains(
+export async function cmdNewsPlatforms(
   run: ToolRunner,
   opts: { json: boolean },
 ): Promise<void> {
@@ -207,7 +215,7 @@ export async function cmdNewsDomains(
   const raw = getData(result) as Record<string, unknown>[] | null;
   const items = ((raw?.[0] as Record<string, unknown>)?.["platform"] ?? []) as string[];
   if (opts.json) return printJson(items);
-  outputLine("Available news source domains:");
+  outputLine("Available news platforms:");
   items.forEach((d) => outputLine(`  ${d}`));
 }
 

@@ -107,6 +107,61 @@ describe("news tools registration", () => {
       assert.equal(tool.module, "news", `${tool.name} should be in news module`);
     }
   });
+
+  it("guarded news tools should throw ConfigError in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoCtx: ToolContext = {
+      client: client as unknown as ToolContext["client"],
+      config: {
+        apiKey: "test-key",
+        secretKey: "test-secret",
+        passphrase: "test-passphrase",
+        hasAuth: true,
+        modules: ["news"],
+        readOnly: false,
+        demo: true,
+        site: "global",
+        baseUrl: "https://www.okx.com",
+        sourceTag: "MCP",
+      },
+    };
+    const tools = registerNewsTools();
+    // news_get_domains is a pure info query and should NOT be demo-guarded
+    const guardedTools = tools.filter((t) => t.name !== "news_get_domains");
+    for (const tool of guardedTools) {
+      await assert.rejects(
+        () => tool.handler({}, demoCtx),
+        (err: Error) => err.message.includes("not available in demo"),
+        `${tool.name} should reject in demo mode`,
+      );
+    }
+  });
+
+  it("news_get_domains should NOT be blocked in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoCtx: ToolContext = {
+      client: client as unknown as ToolContext["client"],
+      config: {
+        apiKey: "test-key",
+        secretKey: "test-secret",
+        passphrase: "test-passphrase",
+        hasAuth: true,
+        modules: ["news"],
+        readOnly: false,
+        demo: true,
+        site: "global",
+        baseUrl: "https://www.okx.com",
+        sourceTag: "MCP",
+      },
+    };
+    const tools = registerNewsTools();
+    const domainsTool = tools.find((t) => t.name === "news_get_domains")!;
+    // Should resolve without throwing ConfigError
+    await assert.doesNotReject(
+      () => domainsTool.handler({}, demoCtx),
+      `news_get_domains should not reject in demo mode`,
+    );
+  });
 });
 
 describe("news_get_latest", () => {

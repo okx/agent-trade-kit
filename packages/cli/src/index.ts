@@ -16,7 +16,7 @@ import {
   cmdNewsByCoin,
   cmdNewsSearch,
   cmdNewsDetail,
-  cmdNewsDomains,
+  cmdNewsPlatforms,
   cmdNewsCoinSentiment,
   cmdNewsCoinTrend,
   cmdNewsSentimentRank,
@@ -1245,16 +1245,17 @@ export function handleNewsCommand(
   const period = v.period;
   const points = v.points !== undefined ? Number(v.points) : 24;
   const sortBy = v["sort-by"];
-  const searchOpts = { coins: v.coins, importance: v.importance, sentiment: v.sentiment, sortBy, begin, end, language, detailLvl, limit, after, json };
-  const listOpts = { coins: v.coins, importance: v.importance, begin, end, language, detailLvl, limit, after, json };
+  const platform = v.platform;
+  const searchOpts = { coins: v.coins, importance: v.importance, platform, sentiment: v.sentiment, sortBy, begin, end, language, detailLvl, limit, after, json };
+  const listOpts = { coins: v.coins, importance: v.importance, platform, begin, end, language, detailLvl, limit, after, json };
 
   const dispatch: Record<string, () => Promise<void> | void> = {
     latest:           () => cmdNewsLatest(run, listOpts),
-    important:        () => cmdNewsImportant(run, { coins: v.coins, begin, end, language, detailLvl, limit, json }),
-    "by-coin":        () => cmdNewsByCoin(run, (v.coins ?? rest[0])!, { importance: v.importance, begin, end, language, detailLvl, limit, json }),
+    important:        () => cmdNewsImportant(run, { coins: v.coins, platform, begin, end, language, detailLvl, limit, json }),
+    "by-coin":        () => cmdNewsByCoin(run, (v.coins ?? rest[0])!, { importance: v.importance, platform, begin, end, language, detailLvl, limit, json }),
     search:           () => cmdNewsSearch(run, (v.keyword ?? rest[0])!, searchOpts),
     detail:           () => cmdNewsDetail(run, rest[0]!, { language, json }),
-    domains:          () => cmdNewsDomains(run, { json }),
+    platforms:        () => cmdNewsPlatforms(run, { json }),
     "coin-sentiment": () => cmdNewsCoinSentiment(run, (v.coins ?? rest[0])!, { period, json }),
     "coin-trend":     () => cmdNewsCoinTrend(run, (v.coins ?? rest[0])!, { period, points, json }),
     // by-sentiment is a convenience wrapper over news_search (no keyword, sentiment filter only)

@@ -1,6 +1,6 @@
 ---
-name: okx-cex-news
-description: "Crypto news, market intelligence, and coin sentiment analysis. Use when the user asks about recent news, market events, price movements, coin sentiment, trending topics, or bullish/bearish signals — even without naming this skill. Examples: what happened recently, any big news today, most bullish coins, sentiment ranking."
+name: okx-sentiment-tracker
+description: "Use this skill when the user asks about: 'any crypto news', 'what happened recently', 'latest news', 'any big news today', 'catch me up', 'market update', 'daily briefing', 'morning briefing', 'market summary', 'BTC news', 'ETH news', 'any news on SOL', 'coin updates', 'what's going on with BTC', 'search SEC ETF', 'stablecoin regulation news', 'Bitcoin halving news', 'is BTC bullish or bearish', 'coin sentiment', 'how do people feel about ETH', 'sentiment trend', 'what's hot in crypto', 'trending coins', 'most mentioned coins', 'top bullish coins', 'bearish sentiment', 'social buzz', 'market mood', 'fear and greed', 'news sources', 'which platforms', 'full article', 'read more', or any request for crypto news, market intelligence, sentiment analysis, or social trend data. Requires API credentials. Do NOT use for market prices/candles (use okx-cex-market), placing orders (use okx-cex-trade), or account info (use okx-cex-portfolio)."
 license: MIT
 metadata:
   author: okx
@@ -33,7 +33,7 @@ Crypto news aggregation and coin sentiment analysis for OKX. All commands are **
 | Coin sentiment snapshot | `okx news coin-sentiment` |
 | Sentiment trend | `okx news coin-trend` |
 | Sentiment ranking | `okx news sentiment-rank` |
-| News source list | `okx news domains` |
+| News source list | `okx news platforms` |
 
 ## Prerequisites
 
@@ -46,6 +46,12 @@ Crypto news aggregation and coin sentiment analysis for OKX. All commands are **
    ```bash
    okx news latest --limit 3
    ```
+
+OKX News does not support demo mode. Always use `--profile live` silently — don't mention it unless there's an error.
+
+**On "not available in demo" errors:** the user's current profile is configured with demo/simulated credentials. Tell the user: "News module does not support demo mode. Please switch to a live profile." Guide them to either:
+- Use `--profile live` if a live profile exists: `okx --profile live news latest`
+- Or create one: `okx config add-profile AK=<key> SK=<secret> PP=<passphrase> name=live`
 
 All commands support `--json` for raw JSON output.
 
@@ -103,6 +109,28 @@ okx news sentiment-rank
 | "which coins are people most excited about" / "top bullish coins" | `okx news sentiment-rank --sort-by bullish` |
 | "which coins have the most negative sentiment" | `okx news sentiment-rank --sort-by bearish` |
 
+### Sentiment Anomaly Detection (multi-coin)
+
+| User says | Workflow |
+|-----------|---------|
+| "哪些币种情绪变化最大" / "any sentiment anomalies" / "which coins flipped sentiment" | → [Anomaly Detection workflow](references/workflows.md#sentiment-anomaly-detection--multi-coin-scan) |
+| "过去一周有什么异动" / "sudden sentiment shifts" / "sentiment reversal" | → [Anomaly Detection workflow](references/workflows.md#sentiment-anomaly-detection--multi-coin-scan) |
+| "有没有突然转看涨/看跌的" / "any coins turning bullish/bearish" | → [Anomaly Detection workflow](references/workflows.md#sentiment-anomaly-detection--multi-coin-scan) |
+
+These queries require a **broad-then-deep** approach: first scan all coins for anomalies, then deep-dive with news correlation. Follow the multi-phase workflow in `references/workflows.md` — do NOT just pick a few coins to analyze.
+
+### Source-Filtered News
+
+Use `--platform` to filter by news source directly. Get available source names from `okx news platforms` first.
+
+| User says | Command |
+|-----------|---------|
+| "ChainCatcher 最近报道了什么" / "show me news from ChainCatcher" | `okx news latest --platform chaincatcher --importance low --limit 10` |
+| "Odaily 有什么新闻" / "news from techflowpost" | `okx news latest --platform odaily_flash --limit 10` |
+| "吴说区块链最近有什么" / "BWE news" | `okx news latest --platform wushou --importance low --limit 20` |
+
+**Important**: When filtering by source, always use `--importance low` and a larger `--limit` (10-20) to maximize results, since individual sources typically have fewer articles than the aggregated feed. The `--platform` parameter accepts values from `okx news platforms` (e.g. `blockbeats`, `odaily_flash`, `chaincatcher`, `techflowpost`, `bwe`, `528btc`, `panews`, `wushou`).
+
 ## Cross-Skill Workflows
 
 See [references/workflows.md](references/workflows.md) for multi-step scenarios (market overview, daily briefing, etc.) and full MCP tool → CLI mapping.
@@ -114,7 +142,7 @@ Get the latest crypto news sorted by time.
 
 ```bash
 okx news latest [--coins BTC,ETH] [--begin <ms>] [--end <ms>]
-               [--importance high|medium]
+               [--importance high|low] [--platform <source>]
                [--detail-lvl brief|summary|full] [--lang zh-CN|en-US]
                [--limit 10] [--after <cursor>] [--json]
 ```
@@ -137,7 +165,7 @@ Get news for specific coins.
 
 ```bash
 okx news by-coin --coins <BTC,ETH,...>
-               [--importance high|medium]
+               [--importance high|low] [--platform <source>]
                [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
                [--limit 10] [--json]
 ```
@@ -149,7 +177,8 @@ Full-text keyword search with optional filters.
 
 ```bash
 okx news search --keyword <text>
-               [--coins BTC,ETH] [--importance high|medium]
+               [--coins BTC,ETH] [--importance high|low]
+               [--platform <source>]
                [--sentiment bullish|bearish|neutral]
                [--sort-by latest|relevant]
                [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
@@ -173,17 +202,19 @@ Browse news filtered by sentiment (no keyword needed).
 
 ```bash
 okx news by-sentiment --sentiment <bullish|bearish|neutral>
-               [--coins BTC,ETH] [--limit 10] [--lang zh-CN|en-US]
-               [--after <cursor>] [--json]
+               [--coins BTC,ETH] [--importance high|low]
+               [--sort-by latest|relevant]
+               [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
+               [--limit 10] [--after <cursor>] [--json]
 ```
 
 ---
 
-### `okx news domains`
-List available news source domains.
+### `okx news platforms`
+List available news platforms. Use the returned values with `--platform` on `latest`, `by-coin`, or `search` commands to filter by source.
 
 ```bash
-okx news domains [--json]
+okx news platforms [--json]
 ```
 
 ---
@@ -242,6 +273,43 @@ okx news sentiment-rank [--period 1h|4h|24h]
 ## Coin Symbol Normalization
 
 The API only accepts standard uppercase ticker symbols (e.g. `BTC`, `ETH`, `SOL`). Users may refer to coins by full names, abbreviations, slang, or local-language nicknames. Always resolve these to the correct ticker before passing to any command. If the intended coin is ambiguous, ask the user to confirm before querying.
+
+## Empty Results & Web Search Fallback
+
+OKX news data may be sparse for niche coins or highly specific keyword searches. When a command returns empty or insufficient results:
+
+1. **Retry with relaxed filters** — remove `--importance`, broaden `--begin`/`--end`, or drop `--coins` to get general news
+2. **Use web search as a supplement** — search the web for `"<coin> news site:coindesk.com OR site:cointelegraph.com OR site:theblock.co"` to gather additional context, then combine with any OKX results into a unified briefing
+3. **Be transparent** — tell the user which results came from OKX API vs. web search so they can judge source credibility
+
+This fallback is especially valuable for:
+- Coins with low coverage (e.g. newly listed tokens)
+- Highly specific keyword searches with no matches
+
+## Known Limitations
+
+### Source Coverage
+
+Not all registered platforms in `okx news platforms` are actively producing articles. Based on recent evaluation, the consistently active sources are:
+
+| Source | Status | Notes |
+|--------|--------|-------|
+| `blockbeats` | Active | High volume |
+| `odaily_flash` | Active | High volume |
+| `chaincatcher` | Active | Medium volume |
+| `techflowpost` | Active | Medium volume |
+| `bwe` | Low activity | Few articles per week |
+| `panews` | Inconsistent | Registered but rarely appears in aggregated results; dedup issues |
+| `528btc` | Inactive | Registered but no articles found in 90+ days |
+| `wushou` | Inactive | Registered but no articles found in 90+ days |
+
+When a user asks for news from an inactive source, do NOT retry repeatedly or page through hundreds of articles looking for it. Instead, report that the source currently has no data and suggest alternatives (other active sources or web search).
+
+### Historical Search Limitations
+
+`okx news search` and `okx news by-coin` primarily index **recent articles** (typically today and recent days). Searching with `--begin`/`--end` for dates more than ~7 days ago may return empty results even if articles existed at that time. This is an API indexing limitation, not a data absence.
+
+For historical analysis, `okx news coin-trend` (sentiment trend data) is more reliable than article search — it retains time-series data for longer periods.
 
 ## Edge Cases
 

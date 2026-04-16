@@ -145,10 +145,30 @@ describe("handleNewsCommand latest — parameter routing", () => {
     assert.equal(captured.args["limit"], 20);
   });
 
+  it("--platform routes via v.platform", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "latest", [], vals({ platform: "blockbeats" }), false);
+    assert.equal(captured.args["platform"], "blockbeats");
+  });
+
   it("no --coins passes undefined", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "latest", [], vals({}), false);
     assert.equal(captured.args["coins"], undefined);
+  });
+});
+
+// ===========================================================================
+// news important
+// ===========================================================================
+
+describe("handleNewsCommand important — parameter routing", () => {
+  it("--platform routes via v.platform", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "important", [], vals({ platform: "blockbeats" }), false);
+    assert.equal(captured.tool, "news_get_latest");
+    assert.equal(captured.args["importance"], "high");
+    assert.equal(captured.args["platform"], "blockbeats");
   });
 });
 
@@ -175,6 +195,12 @@ describe("handleNewsCommand by-coin — parameter routing", () => {
     await handleNewsCommand(spy, "by-coin", ["BTC"], vals({ importance: "high" }), false);
     assert.equal(captured.args["importance"], "high");
   });
+
+  it("--platform routes via v.platform", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "by-coin", ["BTC"], vals({ platform: "odaily_flash" }), false);
+    assert.equal(captured.args["platform"], "odaily_flash");
+  });
 });
 
 // ===========================================================================
@@ -200,6 +226,12 @@ describe("handleNewsCommand search — parameter routing", () => {
     await handleNewsCommand(spy, "search", ["BTC"], vals({ "sort-by": "latest" }), false);
     assert.equal(captured.args["sortBy"], "latest");
     assert.equal(typeof captured.args["sortBy"], "string");
+  });
+
+  it("--platform routes via v.platform", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "search", ["ETF"], vals({ platform: "chaincatcher" }), false);
+    assert.equal(captured.args["platform"], "chaincatcher");
   });
 });
 
@@ -326,9 +358,9 @@ describe("news formatter paths — non-json output", () => {
     await handleNewsCommand(spy, "detail", ["123"], vals({}), false);
   });
 
-  it("domains: formats domain list", async () => {
+  it("platforms: formats platform list", async () => {
     const { spy } = makeSpy();
-    await handleNewsCommand(spy, "domains", [], vals({}), false);
+    await handleNewsCommand(spy, "platforms", [], vals({}), false);
   });
 
   it("coin-sentiment: formats sentiment snapshot", async () => {
@@ -356,9 +388,9 @@ describe("news formatter paths — non-json output", () => {
     await handleNewsCommand(spy, "detail", ["123"], vals({}), true);
   });
 
-  it("domains --json: outputs raw json", async () => {
+  it("platforms --json: outputs raw json", async () => {
     const { spy } = makeSpy();
-    await handleNewsCommand(spy, "domains", [], vals({}), true);
+    await handleNewsCommand(spy, "platforms", [], vals({}), true);
   });
 
   it("coin-sentiment --json: outputs raw json", async () => {

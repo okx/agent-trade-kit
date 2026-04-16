@@ -926,7 +926,7 @@ export const CLI_REGISTRY: CliRegistry = {
     commands: {
       latest: {
         toolName: "news_get_latest",
-        usage: "okx news latest [--coins BTC,ETH] [--lang zh-CN] [--limit 20]",
+        usage: "okx news latest [--coins BTC,ETH] [--platform blockbeats] [--lang zh-CN] [--limit 20]",
       },
       important: {
         toolName: "news_get_latest",
@@ -935,20 +935,20 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "by-coin": {
         toolName: "news_get_by_coin",
-        usage: "okx news by-coin --coins BTC [--importance high] [--lang zh-CN]",
+        usage: "okx news by-coin --coins BTC [--importance high] [--platform blockbeats] [--lang zh-CN]",
       },
       search: {
         toolName: "news_search",
-        usage: "okx news search --keyword <term> [--coins BTC] [--sentiment bullish] [--lang zh-CN]",
+        usage: "okx news search --keyword <term> [--coins BTC] [--sentiment bullish] [--platform blockbeats] [--lang zh-CN]",
       },
       detail: {
         toolName: "news_get_detail",
         usage: "okx news detail <id> [--lang zh-CN]",
       },
-      domains: {
+      platforms: {
         toolName: "news_get_domains",
-        usage: "okx news domains",
-        description: "List available news source domains",
+        usage: "okx news platforms",
+        description: "List available news platforms",
       },
       "coin-sentiment": {
         toolName: "news_get_coin_sentiment",
@@ -961,7 +961,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "by-sentiment": {
         toolName: "news_search",
-        usage: "okx news by-sentiment --sentiment bullish [--coins BTC] [--sort-by latest]",
+        usage: "okx news by-sentiment --sentiment bullish [--coins BTC] [--importance high] [--platform <source>] [--sort-by latest] [--begin <ms>] [--end <ms>]",
         description: "Browse news filtered by sentiment direction",
       },
       "sentiment-rank": {
