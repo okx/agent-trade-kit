@@ -12,6 +12,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+
+#### Added
+
+- **`news` module (restored)**: Orbit News API integration is back following compliance approval. Seven tools cover latest news, coin-specific news, search, article detail, domain listing, coin sentiment, and sentiment rankings. CLI: `okx news latest / by-coin / search / detail / domains / sentiment / sentiment-ranking`. `Accept-Language` now uses standard IETF BCP 47 format. (!251, !249, !235)
+
+- **Event contract module** (`event`): New binary prediction-markets module with 9 MCP tools and matching CLI commands — browse open events, query contract details, place and manage event-contract orders. (!216)
+
+- **Flash Earn module** (`earn.flash`): New instant-earn tools for flash-earn deposit and redemption operations. (!246)
+
+- **Three new market tools** — `market_filter` (screen instruments by multi-dimensional criteria), `market_get_oi_history` (open interest history), and `market_get_oi_change_filter` (filter by OI change magnitude). CLI: `okx market filter / oi-history / oi-change-filter`. (!245)
+
+- **Auto-generated CLI help from ToolSpec registry and `okx list-tools`**: CLI help is now derived from a declarative `CLI_REGISTRY` sourced from ToolSpec objects in `@agent-tradekit/core`, keeping help text in sync with the MCP tool registry. A new `okx list-tools [--json]` command serializes the full registry into structured JSON for AI agent self-discovery. (!234)
+
+- **`okx doh` binary management commands**: `okx doh status` reports binary path, size, SHA-256, and CDN match; `okx doh install` downloads or updates the binary; `okx doh remove` deletes it (with confirmation or `--force`). DoH resolver status is also surfaced in `okx --version` and `okx diagnose`. (!232)
+
+- **DoH (DNS-over-HTTPS) proxy for API requests**: When the OKX API domain is unreachable (e.g. DNS poisoning), the SDK transparently resolves an alternative proxy node via a local `okx-doh-resolver` binary, with cache-first strategy and automatic failed-node exclusion. `postinstall` downloads the platform binary to `~/.okx/bin/`; supports darwin-arm64, darwin-x64, linux-x64, linux-arm64, and win32-x64. (!230, !237)
+
+#### Fixed
+
+- **Error code remediation hints now match OKX official API error reference**: Custom suggestions replaced by verbatim text from OKX's official API error documentation. (#163, !250)
+
+- **CLI `list-tools` routing fix**: `okx list-tools` no longer falls through to "Unknown command" in the main router. (#161, !247)
+
+- **CLI help text: missing parameters audited and restored**: All parameters identified as missing from CLI help output have been added back. (#155, !244)
+
+- **`market_list_indicators`: improved descriptions and name validation**: Indicator names are now validated; unknown names return a clear error instead of silently returning empty results. (#153, !243)
+
+- **`market_get_funding_rate` validates SWAP `instId`**: Non-SWAP instrument IDs are now rejected with a clear error before reaching the OKX API. (#152, !242)
+
+- **Market filter docs: SPOT queries require explicit `quoteCcy=USDT`**: Clarified in tool and CLI descriptions that SPOT market queries must include `quoteCcy=USDT` to avoid empty results. (!257)
+
+- **Skills language-neutral instructions**: Removed hardcoded Chinese-language prompts from `SKILL.md` so agent behavior is consistent regardless of session locale. (!233)
+
+- **Skills: leverage error troubleshooting guidance**: Added specific remediation steps for leverage-related errors plus a general safeguard requiring read-only diagnosis before any write-operation fix. (!229)
+
+- **CLI miscellaneous fixes**: Addressed cosmetic and behavioral issues flagged in code review. (#141, #142, #143, !236)
+
+#### Changed
+
+- **Skills download: two-step presigned URL flow**: `skills_download` (MCP) and `okx skill download` (CLI) now obtain a short-lived presigned URL before fetching the skill archive, improving download security and reliability. (!240)
+
+- **DoH resolver updated to v9**: Binary updated with revised protocol and CDN endpoint list. (!255)
+
+- **Skills docs: TP/SL amend workflow clarified**: Skill documentation now guides users to `algo_amend_order` for modifying TP/SL on existing algo orders, improving discoverability. (!241)
+
+---
+
 #### Added
 
 - **Event contract module** (`event`): 9 new MCP tools and corresponding `okx event` CLI commands for trading binary event contracts — predict outcomes of real-world events on OKX's prediction market. Supports contract discovery, order placement, position management, and order history. (!216)
