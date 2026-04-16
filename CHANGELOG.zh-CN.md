@@ -18,7 +18,7 @@
 - **市场筛选、持仓量历史及持仓量变化筛选工具**：`market_filter` MCP 工具及 `okx market filter` CLI 命令，支持多条件合约筛选；`market_get_oi_history` / `okx market oi-history` 支持历史持仓量查询；`market_get_oi_change_filter` / `okx market oi-change-filter` 支持按持仓量变化筛选合约。(!245)
 - **闪电赚币模块**（`earn.flash`）：新增 MCP 工具及 `okx earn flash` CLI 命令，支持即时赚币操作。(!246)
 - **`news` 模块恢复上线**：资讯工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）及 `okx news` CLI 命令经合规审查后重新可用。(!235)
-- **Linux ARM64 DoH 二进制支持**：`postinstall` 现支持为 `linux-arm64` 系统下载 `okx-doh-resolver`，与 darwin-arm64、darwin-x64、linux-x64、win32-x64 共同覆盖主流平台。(!237)
+- **Linux ARM64 DoH 二进制支持**：`postinstall` 现支持为 `linux-arm64` 系统下载 `okx-pilot`，与 darwin-arm64、darwin-x64、linux-x64、win32-x64 共同覆盖主流平台。(!237)
 - **Skills 下载两步预签名流程**：`skills_download` 和 `okx skill download` 改用预签名 URL 方式下载，提升可靠性。(!240)
 - **CLI 帮助文本自动生成**：CLI 帮助文本现从声明式 `CLI_REGISTRY` 映射生成，不再依赖 640 行静态结构；描述直接取自 `@agent-tradekit/core` ToolSpec 对象，确保 CLI 与 MCP 帮助保持同步，双向漂移测试在 CI 阶段发现偏差。(#140, !234)
 - **`okx list-tools [--json]` 代理自发现命令**：将完整 CLI 注册表序列化为结构化 JSON，AI 代理可直接枚举所有能力、参数和工具名称，无需解析 `--help` 文本。(#140, !234)
@@ -96,8 +96,8 @@
 
 ### 新增
 
-- **DoH（DNS-over-HTTPS）代理**：当 OKX API 域名无法直连（如 DNS 污染）时，SDK 自动通过本地 `okx-doh-resolver` 二进制解析备用代理节点，透明切换。缓存优先策略：首次请求尝试直连，失败后调用二进制并缓存结果，后续请求直接复用，零额外开销。失效节点自动排除并重新解析，支持 `--verbose` 查看完整 DoH 生命周期日志。
-- **安装时自动下载 DoH 二进制**：`postinstall` 脚本从 CDN（多源备用）下载平台专属 `okx-doh-resolver` 到 `~/.okx/bin/`，完全 best-effort，不阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64、win32-x64。
+- **DoH（DNS-over-HTTPS）代理**：当 OKX API 域名无法直连（如 DNS 污染）时，SDK 自动通过本地 `okx-pilot` 二进制解析备用代理节点，透明切换。缓存优先策略：首次请求尝试直连，失败后调用二进制并缓存结果，后续请求直接复用，零额外开销。失效节点自动排除并重新解析，支持 `--verbose` 查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 脚本从 CDN（多源备用）下载平台专属 `okx-pilot` 到 `~/.okx/bin/`，完全 best-effort，不阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64、win32-x64。
 - **`context-kg/` 知识库**：为 AI agent 初始化结构化知识文件——5 个业务域文档（概述、交易、行情/账户、理财/机器人、Skills 生态）+ 4 个技术文档（架构、配置、错误处理、多站点）+ 质量目录占位。同步在 `config.toml.example` 中新增 `knowledge_dir` 配置项。(#137)
 
 ### 修复
@@ -168,8 +168,8 @@
 
 ### 新增
 
-- **DoH（DNS-over-HTTPS）代理支持**：当 OKX API 域名因 DNS 污染等原因无法直连时，SDK 会透明地通过本地 `okx-doh-resolver` 二进制解析备用代理节点。采用缓存优先策略：首次请求尝试直连，网络失败时调用二进制并缓存结果，后续请求复用缓存节点，零额外开销。故障节点自动排除并重新解析。`--verbose` 模式下可查看完整 DoH 生命周期日志。
-- **安装时自动下载 DoH 二进制**：`postinstall` 现从 CDN（多源容灾）下载对应平台的 `okx-doh-resolver` 二进制至 `~/.okx/bin/`。Best-effort，不会阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64 和 win32-x64。
+- **DoH（DNS-over-HTTPS）代理支持**：当 OKX API 域名因 DNS 污染等原因无法直连时，SDK 会透明地通过本地 `okx-pilot` 二进制解析备用代理节点。采用缓存优先策略：首次请求尝试直连，网络失败时调用二进制并缓存结果，后续请求复用缓存节点，零额外开销。故障节点自动排除并重新解析。`--verbose` 模式下可查看完整 DoH 生命周期日志。
+- **安装时自动下载 DoH 二进制**：`postinstall` 现从 CDN（多源容灾）下载对应平台的 `okx-pilot` 二进制至 `~/.okx/bin/`。Best-effort，不会阻塞 `npm install`。支持 darwin-arm64、darwin-x64、linux-x64 和 win32-x64。
 
 ---
 

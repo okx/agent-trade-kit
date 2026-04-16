@@ -1,7 +1,7 @@
-<!-- triggers: doh, dns, proxy, resolver, binary, cdn, cache, network, postinstall, okx-doh-resolver, DohManager, DohNode, install, remove, prepareDoh, handleNetworkFailure, cacheDirectIfNeeded, doh-cache -->
+<!-- triggers: doh, dns, proxy, resolver, binary, cdn, cache, network, postinstall, okx-pilot, DohManager, DohNode, install, remove, prepareDoh, handleNetworkFailure, cacheDirectIfNeeded, doh-cache -->
 # DoH (DNS-over-HTTPS) Proxy Subsystem
 
-The DoH subsystem provides transparent network resilience for the REST client. When the OKX API domain is unreachable via direct connection (e.g., DNS poisoning in certain regions), the SDK automatically resolves an alternative proxy node through a locally-installed `okx-doh-resolver` binary.
+The DoH subsystem provides transparent network resilience for the REST client. When the OKX API domain is unreachable via direct connection (e.g., DNS poisoning in certain regions), the SDK automatically resolves an alternative proxy node through a locally-installed `okx-pilot` binary.
 
 ## Design Goal
 
@@ -14,7 +14,7 @@ DohManager (packages/core/src/doh/manager.ts)
   ├── resolveDoh()           ← resolver.ts: cache-first DNS resolution
   │     └── readCache()      ← cache.ts
   ├── reResolveDoh()         ← resolver.ts: re-resolve with --exclude after failure
-  │     ├── execDohBinary()  ← binary.ts: invoke okx-doh-resolver
+  │     ├── execDohBinary()  ← binary.ts: invoke okx-pilot
   │     └── writeCache()     ← cache.ts: persist new proxy node
   └── cacheDirectIfNeeded()  ← calls writeCache() directly for mode=direct
 ```
@@ -39,7 +39,7 @@ The `DohManager` class encapsulates all DoH state and is the sole entry point fo
 
 ## Binary Distribution
 
-The `okx-doh-resolver` binary is a platform-native executable distributed via CDN:
+The `okx-pilot` binary is a platform-native executable distributed via CDN:
 
 | Platform | Directory |
 |----------|-----------|
@@ -57,7 +57,7 @@ Path template: `<CDN_HOST>/upgradeapp/doh/<platformDir>/<binaryName>`
 
 Each CDN source also provides `checksum.json` with `sha256`, `size`, and `target` for integrity verification. The installer atomically replaces the existing binary (POSIX: `rename(2)`; Windows: unlink + rename) and verifies hash before committing.
 
-Default install path: `~/.okx/bin/okx-doh-resolver` (or `okx-doh-resolver.exe` on Windows). Override via `OKX_DOH_BINARY_PATH` env var.
+Default install path: `~/.okx/bin/okx-pilot` (or `okx-pilot.exe` on Windows). Override via `OKX_DOH_BINARY_PATH` env var.
 
 ### `postinstall` Auto-Download
 
@@ -105,7 +105,7 @@ With `--verbose`, the REST client (via `DohManager`) emits lifecycle events to s
 | `packages/core/src/doh/manager.ts` | Orchestrator — state machine, cache reads/writes, retry logic |
 | `packages/core/src/doh/resolver.ts` | Cache-first resolution + re-resolution with exclusions |
 | `packages/core/src/doh/cache.ts` | Read/write `~/.okx/doh-cache.json` |
-| `packages/core/src/doh/binary.ts` | Execute `okx-doh-resolver` binary, parse JSON output |
+| `packages/core/src/doh/binary.ts` | Execute `okx-pilot` binary, parse JSON output |
 | `packages/core/src/doh/installer.ts` | Download, verify, and install binary from CDN |
 | `packages/core/src/doh/installer-types.ts` | Types: `DohLocalStatus`, `InstallResult`, `RemoveResult`, `CdnSource` |
 | `packages/core/src/doh/types.ts` | Core types: `DohNode`, `FailedNode`, `DohCacheEntry` |

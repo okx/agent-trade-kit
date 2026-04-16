@@ -131,6 +131,20 @@ describe("reResolveDoh", () => {
     assert.equal(file["direct.okx.com"].mode, "direct");
   });
 
+  it("classifies as proxy when ip differs from hostname even if host matches", async () => {
+    // This is the key bug fix: binary returns { ip: CDN, host: original_hostname }
+    // which should be treated as proxy (CDN bypasses DNS pollution), not direct.
+    const result = await reResolveDoh("cdnhost.okx.com", "", undefined, cachePath);
+
+    assert.equal(result.mode, "proxy");
+    assert.equal(result.node?.ip, "d1a9ug9i3w9ke0.cloudfront.net");
+    assert.equal(result.node?.host, "cdnhost.okx.com");
+
+    const file = JSON.parse(readFileSync(cachePath, "utf-8")) as DohCacheFile;
+    assert.equal(file["cdnhost.okx.com"].mode, "proxy");
+    assert.equal(file["cdnhost.okx.com"].node?.ip, "d1a9ug9i3w9ke0.cloudfront.net");
+  });
+
   it("returns mode=null and does NOT write cache when binary fails", async () => {
     const result = await reResolveDoh("fail.okx.com", "", undefined, cachePath);
 

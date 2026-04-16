@@ -29,11 +29,11 @@ describe("getDohBinaryPath", () => {
     assert.equal(getDohBinaryPath(), "/custom/path/doh");
   });
 
-  it("returns ~/.okx/bin/okx-doh-resolver when env is not set", async () => {
+  it("returns ~/.okx/bin/okx-pilot when env is not set", async () => {
     delete process.env.OKX_DOH_BINARY_PATH;
     const { getDohBinaryPath } = await import("../src/doh/binary.js");
     const path = getDohBinaryPath();
     assert.ok(path.includes(".okx"));
-    assert.ok(path.includes("okx-doh-resolver"));
+    assert.ok(path.includes("okx-pilot"));
   });
 });

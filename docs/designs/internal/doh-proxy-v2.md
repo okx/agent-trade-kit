@@ -142,7 +142,7 @@ npm install 时通过 postinstall 脚本下载到 ~/.okx/bin/：
 ## 二进制接口规范
 
 ```bash
-okx-doh-resolver --domain www.okx.com [--exclude 1.1.1.1,2.2.2.2] [--user-agent OKX/@okx_ai/...]
+okx-pilot --domain www.okx.com [--exclude 1.1.1.1,2.2.2.2] [--user-agent OKX/@okx_ai/...]
 ```
 
 ```json

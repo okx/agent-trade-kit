@@ -1,7 +1,7 @@
 /**
  * DoH binary installer — TypeScript equivalent of scripts/postinstall-notice.js.
  *
- * Provides status, install, and remove operations for the okx-doh-resolver binary.
+ * Provides status, install, and remove operations for the okx-pilot binary.
  * The CDN list and checksum logic mirrors the postinstall script; if CDN sources
  * change, update both files.
  */
@@ -61,7 +61,7 @@ export function getPlatformDir(): string | null {
  * Return the binary file name for the current platform.
  */
 export function getBinaryName(): string {
-  return platform() === "win32" ? "okx-doh-resolver.exe" : "okx-doh-resolver";
+  return platform() === "win32" ? "okx-pilot.exe" : "okx-pilot";
 }
 
 // ---------------------------------------------------------------------------
