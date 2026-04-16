@@ -45,6 +45,17 @@
 ### 新增
 
 - **context-kg 准确性漂移测试**：新增 `packages/cli/test/context-kg-accuracy.test.ts`，自动校验 `context-kg/` 中声明的工具数量、模块数量、skill pack 数量和测试文件数与代码实际状态一致——数字过时时以可操作的提示信息明确失败。(#160)
+- **新闻工具新增 `--platform` 参数**：`news_get_latest`、`news_get_by_coin`、`news_search` 现在支持 `platform` 参数，可按新闻来源过滤（如 `blockbeats`、`odaily_flash`）。可用来源通过 `okx news platforms` 列出。
+- **新闻 Demo 模式拦截**：除 `news_get_domains` 外，所有新闻工具在模拟盘模式下会返回明确的 `ConfigError`，不再返回异常数据。
+
+### 变更
+
+- **CLI `okx news domains` 重命名为 `okx news platforms`**：与 `--platform` 参数术语保持一致。
+- **Skill 重命名 `okx-cex-news` → `okx-sentiment-tracker`**：Skill 目录和 frontmatter name 已更新。MCP 工具名（`news_*`）和 CLI 命令（`okx news`）不变。
+
+### 移除
+
+- **`importance=medium` 枚举值**：从 `NEWS_IMPORTANCE` 校验中移除。OKX API 不支持 `medium`，传入会返回参数错误（51000）。仅 `high` 和 `low` 有效。
 
 ### 修复
 
@@ -277,7 +288,7 @@
 
 ### 移除
 
-- **`news` 模块已移除，等待合规审批**：[1.2.8-beta.4] 引入的 Orbit News API 集成已回退。所有新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_domains`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）、CLI 命令（`okx news …`）及 `okx-cex-news` Agent Skill 均已移除，待监管合规审批通过后方可重新上线。`skills`（技能市场）模块不受影响。
+- **`news` 模块已移除，等待合规审批**：[1.2.8-beta.4] 引入的 Orbit News API 集成已回退。所有新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_domains`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）、CLI 命令（`okx news …`）及 `okx-sentiment-tracker` Agent Skill 均已移除，待监管合规审批通过后方可重新上线。`skills`（技能市场）模块不受影响。
 
 ---
 
@@ -328,7 +339,7 @@
   - `news_get_coin_sentiment` — 获取币种的看涨/看跌快照或时间序列趋势；传入 `trendPoints` 进入趋势模式。
   - `news_get_sentiment_ranking` — 按热度或情绪方向对币种排名。
   - CLI 用法：`okx news latest`、`okx news by-coin <coins>`、`okx news search <关键词>`、`okx news detail <id>`、`okx news domains`、`okx news sentiment <coins>`、`okx news sentiment-ranking`。
-  - Agent Skill：`skills/okx-cex-news/`，含 workflows 引导文档。
+  - Agent Skill：`skills/okx-sentiment-tracker/`，含 workflows 引导文档。
 
 ### 新增
 

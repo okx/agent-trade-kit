@@ -1,6 +1,7 @@
-import type { ToolSpec } from "./types.js";
+import type { ToolSpec, ToolArgs, ToolContext } from "./types.js";
 import { asRecord, compactObject, normalizeResponse, readNumber, readString } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
+import { ConfigError } from "../utils/errors.js";
 
 const NEWS_SEARCH = "/api/v5/orbit/news-search";
 const NEWS_DETAIL = "/api/v5/orbit/news-detail";
@@ -17,7 +18,7 @@ function langHeader(lang: string | undefined): Record<string, string> {
 }
 
 const NEWS_DETAIL_LVL = ["brief", "summary", "full"] as const;
-const NEWS_IMPORTANCE = ["high", "medium", "low"] as const;
+const NEWS_IMPORTANCE = ["high", "low"] as const;
 const NEWS_SENTIMENT = ["bullish", "bearish", "neutral"] as const;
 const NEWS_SORT = ["latest", "relevant"] as const;
 const SENTIMENT_PERIOD = ["1h", "4h", "24h"] as const;
@@ -26,13 +27,14 @@ const SENTIMENT_PERIOD = ["1h", "4h", "24h"] as const;
 const D_COINS_NEWS = "Comma-separated uppercase ticker symbols (e.g. \"BTC,ETH\"). Normalize names/aliases to standard tickers.";
 const D_COINS_SENTIMENT = "Comma-separated uppercase ticker symbols, max 20 (e.g. \"BTC,ETH\"). Normalize names/aliases to standard tickers.";
 const D_LANGUAGE = "Content language: zh-CN or en-US. Infer from user's message. No server default.";
-const D_BEGIN = "Start time, Unix epoch milliseconds. Parse relative time if given (e.g. 'yesterday', 'last 7 days').";
+const D_BEGIN = "Start time, Unix epoch milliseconds. API defaults to 72 hours ago when omitted. Pass explicitly for older topics (e.g. 'last 30 days'). Max range: 180 days. Parse relative time if given.";
 const D_END = "End time, Unix epoch milliseconds. Parse relative time if given. Omit for no upper bound.";
-const D_IMPORTANCE = "Importance filter: high (server default), medium, low. Omit unless user wants broader coverage.";
+const D_IMPORTANCE = "Importance filter: high (server default) or low. Omit unless user wants broader coverage.";
+const D_PLATFORM = "Filter by news source. Use values from news_get_domains (e.g. blockbeats, odaily_flash). Omit for all sources.";
 const D_LIMIT = "Number of results (default 10, max 50).";
 
 export function registerNewsTools(): ToolSpec[] {
-  return [
+  const tools: ToolSpec[] = [
     // -----------------------------------------------------------------------
     // News browsing tools
     // -----------------------------------------------------------------------
@@ -40,13 +42,14 @@ export function registerNewsTools(): ToolSpec[] {
     {
       name: "news_get_latest",
       module: "news",
-      description: "Get crypto news sorted by time. Omitting importance still returns only high-importance news (server default). Pass importance='medium' or 'low' explicitly to broaden results. Use when user asks 'what happened recently', 'latest news', 'any big news today', or wants to browse without a keyword. For coin-specific news, use news_get_by_coin instead.",
+      description: "Get crypto news sorted by time. Omitting importance still returns only high-importance news (server default). Pass importance='low' explicitly to broaden results. Use when user asks 'what happened recently', 'latest news', 'any big news today', or wants to browse without a keyword. For coin-specific news, use news_get_by_coin instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           coins: { type: "string", description: D_COINS_NEWS + " Optional." },
           importance: { type: "string", enum: [...NEWS_IMPORTANCE], description: D_IMPORTANCE },
+          platform: { type: "string", description: D_PLATFORM },
           begin: { type: "number", description: D_BEGIN },
           end: { type: "number", description: D_END },
           language: { type: "string", enum: [...NEWS_LANGUAGE], description: D_LANGUAGE },
@@ -67,6 +70,7 @@ export function registerNewsTools(): ToolSpec[] {
           compactObject({
             sortBy: "latest",
             importance: readString(args, "importance"),
+            platform: readString(args, "platform"),
             ccyList: readString(args, "coins"),
             begin: readNumber(args, "begin"),
             end: readNumber(args, "end"),
@@ -91,6 +95,7 @@ export function registerNewsTools(): ToolSpec[] {
         properties: {
           coins: { type: "string", description: D_COINS_NEWS + " Required." },
           importance: { type: "string", enum: [...NEWS_IMPORTANCE], description: D_IMPORTANCE },
+          platform: { type: "string", description: D_PLATFORM },
           begin: { type: "number", description: D_BEGIN },
           end: { type: "number", description: D_END },
           language: { type: "string", enum: [...NEWS_LANGUAGE], description: D_LANGUAGE },
@@ -111,6 +116,7 @@ export function registerNewsTools(): ToolSpec[] {
             sortBy: "latest",
             ccyList: coins,
             importance: readString(args, "importance"),
+            platform: readString(args, "platform"),
             begin: readNumber(args, "begin"),
             end: readNumber(args, "end"),
             detailLvl: readString(args, "detailLvl"),
@@ -137,6 +143,7 @@ export function registerNewsTools(): ToolSpec[] {
           },
           coins: { type: "string", description: D_COINS_NEWS + " Optional." },
           importance: { type: "string", enum: [...NEWS_IMPORTANCE], description: D_IMPORTANCE },
+          platform: { type: "string", description: D_PLATFORM },
           sentiment: {
             type: "string",
             enum: [...NEWS_SENTIMENT],
@@ -164,6 +171,7 @@ export function registerNewsTools(): ToolSpec[] {
             keyword: readString(args, "keyword") || undefined,
             sortBy: readString(args, "sortBy") ?? "relevant",
             importance: readString(args, "importance"),
+            platform: readString(args, "platform"),
             ccyList: readString(args, "coins"),
             sentiment: readString(args, "sentiment"),
             begin: readNumber(args, "begin"),
@@ -314,4 +322,26 @@ export function registerNewsTools(): ToolSpec[] {
       },
     },
   ];
+
+  // news_get_domains is a pure info query (no user data) — exclude from demo guard
+  const domainsIdx = tools.findIndex((t) => t.name === "news_get_domains");
+  if (domainsIdx === -1) throw new Error("news_get_domains not found in tools list");
+  const [domainsTool] = tools.splice(domainsIdx, 1);
+  return [...tools.map(withNewsDemoGuard), domainsTool];
+}
+
+const NEWS_DEMO_MESSAGE = "News features are not available in demo/simulated trading mode.";
+const NEWS_DEMO_SUGGESTION = "Switch to a live profile to use News features.";
+
+function withNewsDemoGuard(tool: ToolSpec): ToolSpec {
+  const originalHandler = tool.handler;
+  return {
+    ...tool,
+    handler: async (args: ToolArgs, context: ToolContext): Promise<unknown> => {
+      if (context.config.demo) {
+        throw new ConfigError(NEWS_DEMO_MESSAGE, NEWS_DEMO_SUGGESTION);
+      }
+      return originalHandler(args, context);
+    },
+  };
 }

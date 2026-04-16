@@ -47,6 +47,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **context-kg accuracy drift test**: `packages/cli/test/context-kg-accuracy.test.ts` automatically validates that tool counts, module counts, skill pack counts, and test file counts declared in `context-kg/` match actual code state — fails loudly with actionable messages when documentation numbers drift. (#160)
+- **`--platform` parameter for news tools**: `news_get_latest`, `news_get_by_coin`, and `news_search` now accept a `platform` parameter to filter by news source (e.g. `blockbeats`, `odaily_flash`). Available sources can be listed with `okx news platforms`.
+- **News demo mode guard**: All news tools (except `news_get_domains`) now return a clear `ConfigError` in demo/simulated trading mode instead of returning anomalous data.
+
+### Changed
+
+- **CLI `okx news domains` renamed to `okx news platforms`**: Aligns CLI subcommand with the `--platform` parameter terminology.
+- **Skill renamed `okx-cex-news` → `okx-sentiment-tracker`**: Skill directory and frontmatter name updated. MCP tool names (`news_*`) and CLI commands (`okx news`) are unchanged.
+
+### Removed
+
+- **`importance=medium` enum value**: Removed from `NEWS_IMPORTANCE` validation. The OKX API does not support `medium`; passing it returned a parameter error (51000). Only `high` and `low` are valid.
 
 ### Fixed
 
@@ -280,7 +291,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **`news` module removed pending compliance approval**: The Orbit News API integration introduced in [1.2.8-beta.4] has been reverted. All news tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_domains`, `news_get_coin_sentiment`, `news_get_sentiment_ranking`), CLI commands (`okx news …`), and the `okx-cex-news` agent skill have been removed until regulatory compliance approval is obtained. The `skills` (Skill Marketplace) module is unaffected.
+- **`news` module removed pending compliance approval**: The Orbit News API integration introduced in [1.2.8-beta.4] has been reverted. All news tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_domains`, `news_get_coin_sentiment`, `news_get_sentiment_ranking`), CLI commands (`okx news …`), and the `okx-sentiment-tracker` agent skill have been removed until regulatory compliance approval is obtained. The `skills` (Skill Marketplace) module is unaffected.
 
 ---
 
@@ -331,7 +342,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `news_get_coin_sentiment` — Bullish/bearish snapshot or time-series trend for coins; pass `trendPoints` for trend mode.
   - `news_get_sentiment_ranking` — Rank coins by hotness or sentiment direction.
   - CLI: `okx news latest`, `okx news by-coin <coins>`, `okx news search <keyword>`, `okx news detail <id>`, `okx news domains`, `okx news sentiment <coins>`, `okx news sentiment-ranking`.
-  - Agent Skill: `skills/okx-cex-news/` with workflows guide.
+  - Agent Skill: `skills/okx-sentiment-tracker/` with workflows guide.
 
 ### Added
 

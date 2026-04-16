@@ -141,6 +141,7 @@ export interface CliValues {
   coins?: string;
   sentiment?: string;
   importance?: string;
+  platform?: string;
   keyword?: string;
   "detail-lvl"?: string;
   period?: string;
@@ -337,6 +338,7 @@ export const CLI_OPTIONS = {
   coins: { type: "string" },
   sentiment: { type: "string" },
   importance: { type: "string" },
+  platform: { type: "string" },
   keyword: { type: "string" },
   "detail-lvl": { type: "string" },
   period: { type: "string" },

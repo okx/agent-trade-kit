@@ -46,7 +46,7 @@ As of the latest registry scan, the server exposes **147 MCP tools** organized i
 - `skills/okx-cex-bot/` — bot lifecycle management
 - `skills/okx-cex-portfolio/` — portfolio overview
 - `skills/okx-cex-skill-mp/` — skill marketplace management
-- `skills/okx-cex-news/` — crypto news and market sentiment
+- `skills/okx-sentiment-tracker/` — crypto news and market sentiment
 
 Each skill pack's `SKILL.md` carries a `metadata.version` that must be synchronized with the package release version on every stable release.
 
