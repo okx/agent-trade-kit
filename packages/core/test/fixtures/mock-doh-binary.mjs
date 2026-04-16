@@ -5,6 +5,7 @@
  * Behavior is controlled by the --domain value:
  *   "proxy.okx.com"    → returns proxy node (192.0.2.1 / proxy1.com)
  *   "direct.okx.com"   → returns node matching hostname (direct detection)
+ *   "cdnhost.okx.com"  → returns CDN ip with original hostname as host (proxy, not direct)
  *   "fail.okx.com"     → returns code=1 (no available nodes)
  *   "multi.okx.com"    → returns different nodes based on --exclude list:
  *                      no exclude  → 192.0.2.1
@@ -36,6 +37,11 @@ switch (domain) {
   case "direct.okx.com":
     // Binary returns node matching hostname → classifyAndCache detects direct
     output = ok("direct.okx.com", "direct.okx.com", 600);
+    break;
+
+  case "cdnhost.okx.com":
+    // CDN ip but host equals original hostname — should be proxy, not direct
+    output = ok("d1a9ug9i3w9ke0.cloudfront.net", "cdnhost.okx.com", 30);
     break;
 
   case "fail.okx.com":
