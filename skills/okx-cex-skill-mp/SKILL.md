@@ -4,7 +4,7 @@ description: "Use this skill when the user asks to: 'find a trading skill', 'sea
 license: MIT
 metadata:
   author: okx
-  version: "1.3.0"
+  version: "1.3.1"
   homepage: "https://www.okx.com"
   agent:
     requires:

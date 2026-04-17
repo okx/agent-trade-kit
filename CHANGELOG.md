@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
 
+## [1.3.1] - 2026-04-17
 
-#### Added
+### Added
 
-- **`news` module (restored)**: Orbit News API integration is back following compliance approval. Seven tools cover latest news, coin-specific news, search, article detail, domain listing, coin sentiment, and sentiment rankings. CLI: `okx news latest / by-coin / search / detail / domains / sentiment / sentiment-ranking`. `Accept-Language` now uses standard IETF BCP 47 format. (!251, !249, !235)
+- **`news` module (restored)**: Orbit News API integration is back following compliance approval. Seven tools cover latest news, coin-specific news, search, article detail, platform listing, coin sentiment, and sentiment rankings. CLI: `okx news latest / by-coin / search / detail / platforms / sentiment / sentiment-ranking`. Supports `--platform` to filter by source (e.g. `blockbeats`, `odaily_flash`). `Accept-Language` uses standard IETF BCP 47 format. All news tools return a clear `ConfigError` in demo/simulated trading mode. (!251, !249, !235)
 
 - **Event contract module** (`event`): New binary prediction-markets module with 9 MCP tools and matching CLI commands — browse open events, query contract details, place and manage event-contract orders. (!216)
 
@@ -29,7 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **DoH (DNS-over-HTTPS) proxy for API requests**: When the OKX API domain is unreachable (e.g. DNS poisoning), the SDK transparently resolves an alternative proxy node via a local `okx-doh-resolver` binary, with cache-first strategy and automatic failed-node exclusion. `postinstall` downloads the platform binary to `~/.okx/bin/`; supports darwin-arm64, darwin-x64, linux-x64, linux-arm64, and win32-x64. (!230, !237)
 
-#### Fixed
+- **`context-kg/` agent knowledge base with accuracy drift test**: Structured knowledge files for AI agents covering trading, market/account, earn/bot, errors, multi-site architecture, DoH proxy, `tgtCcy=margin` usage, and test quality rules. Automated drift test validates declared counts match actual code state at CI time. (#137, #160, !231, !238, !248)
+
+### Fixed
 
 - **Error code remediation hints now match OKX official API error reference**: Custom suggestions replaced by verbatim text from OKX's official API error documentation. (#163, !250)
 
@@ -49,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CLI miscellaneous fixes**: Addressed cosmetic and behavioral issues flagged in code review. (#141, #142, #143, !236)
 
-#### Changed
+### Changed
 
 - **Skills download: two-step presigned URL flow**: `skills_download` (MCP) and `okx skill download` (CLI) now obtain a short-lived presigned URL before fetching the skill archive, improving download security and reliability. (!240)
 
@@ -57,59 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Skills docs: TP/SL amend workflow clarified**: Skill documentation now guides users to `algo_amend_order` for modifying TP/SL on existing algo orders, improving discoverability. (!241)
 
----
-
-#### Added
-
-- **Event contract module** (`event`): 9 new MCP tools and corresponding `okx event` CLI commands for trading binary event contracts — predict outcomes of real-world events on OKX's prediction market. Supports contract discovery, order placement, position management, and order history. (!216)
-- **Market filter, OI history, and OI change filter tools**: `market_filter` MCP tool and `okx market filter` CLI command for multi-criteria instrument screening; `market_get_oi_history` / `okx market oi-history` for historical open interest data; `market_get_oi_change_filter` / `okx market oi-change-filter` for screening instruments by open interest change. (!245)
-- **Flash earn module** (`earn.flash`): New MCP tools and `okx earn flash` CLI commands for instant earn operations. (!246)
-- **`news` module restored**: News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`, `news_get_coin_sentiment`, `news_get_sentiment_ranking`) and `okx news` CLI commands are available again following compliance review. (!235)
-- **Linux ARM64 support for DoH binary**: `postinstall` now downloads `okx-pilot` for `linux-arm64`, completing platform coverage alongside darwin-arm64, darwin-x64, linux-x64, and win32-x64. (!237)
-- **Skills download two-step presigned URL flow**: `skills_download` and `okx skill download` now use a presigned URL flow for more reliable file delivery. (!240)
-- **Auto-generated CLI help from ToolSpec registry**: CLI help text is now generated from a declarative `CLI_REGISTRY` map rather than a static 640-line structure; descriptions are sourced directly from `@agent-tradekit/core` ToolSpec objects, keeping CLI and MCP help in sync. A bidirectional drift test catches divergence at CI time. (#140, !234)
-- **`okx list-tools [--json]` agent self-discovery command**: Serializes the full CLI registry to structured JSON so AI agents can enumerate all capabilities, parameters, and tool names programmatically without parsing `--help` text. (#140, !234)
-- **`okx doh` binary management commands**: `okx doh status` shows binary path, file size, SHA-256, and CDN match status; `okx doh install` downloads or updates the binary; `okx doh remove` deletes it (with `--force`). DoH state is also reported in `okx --version` output and checked in `okx diagnose`. (#138, !232)
-- **DoH (DNS-over-HTTPS) proxy for REST API requests**: SDK transparently resolves an alternative proxy node when the OKX API domain is unreachable; cache-first strategy with automatic exclusion of failed nodes and `--verbose` logging support. (!230)
-- **`context-kg/` agent knowledge base**: Structured knowledge files for AI agents covering trading, market/account, earn/bot, errors, multi-site architecture, DoH proxy, `tgtCcy=margin` usage, and test quality rules. Includes `knowledge_dir` configuration entry example. (#137, !231, !238, !248)
-
-#### Fixed
-
-- **Error code suggestions** now align with OKX official API documentation — corrected inaccurate or mislabeled error descriptions across modules. (#163, !250)
-- **`news` module Accept-Language header** now uses standard IETF BCP 47 format (e.g. `zh-CN`, `en-US`) instead of a non-standard value; default language is also corrected. (!249)
-- **`okx list-tools` CLI routing** no longer falls through to "Unknown command"; the command is now correctly dispatched by the CLI router. (#161, !247)
-- **CLI help text** now includes all previously missing parameters for affected commands. (#155, !244)
-- **`market_list_indicators` descriptions and name validation**: Improved indicator and parameter descriptions; indicator names are now validated before the API call and unknown names return a clear error. (#153, !243)
-- **`market_get_funding_rate` SWAP instrument validation**: Non-SWAP `instId` values are now rejected with a descriptive error before reaching the API. (#152, !242)
-- **Skills docs language neutrality**: Removed hardcoded Chinese-language agent prompts from `SKILL.md` and related files; all instructions are now language-neutral. (!233)
-- **Skills docs leverage error guidance**: Added specific troubleshooting steps for leverage-related OKX API errors, reinforcing the read-first-then-confirm pattern before any write-operation remediation. (!229)
-- **CLI parameter and output formatting fixes**: Addressed review feedback across multiple commands. (#141, #142, #143, !236)
-
-#### Changed
-
-- **TP/SL amend discoverability in skills docs**: Agent guidance now explicitly directs users toward algo-order amend tools rather than cancel-and-replace when modifying take-profit or stop-loss on existing algo orders. (!241)
-
----
-
-### Added
-
-- **context-kg accuracy drift test**: `packages/cli/test/context-kg-accuracy.test.ts` automatically validates that tool counts, module counts, skill pack counts, and test file counts declared in `context-kg/` match actual code state — fails loudly with actionable messages when documentation numbers drift. (#160)
-- **`--platform` parameter for news tools**: `news_get_latest`, `news_get_by_coin`, and `news_search` now accept a `platform` parameter to filter by news source (e.g. `blockbeats`, `odaily_flash`). Available sources can be listed with `okx news platforms`.
-- **News demo mode guard**: All news tools (except `news_get_domains`) now return a clear `ConfigError` in demo/simulated trading mode instead of returning anomalous data.
-
-### Changed
-
 - **CLI `okx news domains` renamed to `okx news platforms`**: Aligns CLI subcommand with the `--platform` parameter terminology.
+
 - **Skill renamed `okx-cex-news` → `okx-sentiment-tracker`**: Skill directory and frontmatter name updated. MCP tool names (`news_*`) and CLI commands (`okx news`) are unchanged.
 
 ### Removed
 
 - **`importance=medium` enum value**: Removed from `NEWS_IMPORTANCE` validation. The OKX API does not support `medium`; passing it returned a parameter error (51000). Only `high` and `low` are valid.
-
-### Fixed
-
-- **`news` Accept-Language header**: Changed locale format from `en_US`/`zh_CN` to standard IETF BCP 47 `en-US`/`zh-CN`, fixing parameter errors on all news API calls.
-- **context-kg stale numbers**: Updated `context-kg/business/01-overview.md` (127 → 147 tools, 13 → 16 modules, 6 → 7 skill packs, module list rewritten to reflect actual `MODULES` registry), `context-kg/technical/01-architecture.md` (21 → 23 core test files, 37 → 39 CLI test files), and `context-kg/quality/01-placeholder.md` (P0/P2 descriptions updated to reflect current state). (#160)
 
 ---
 

@@ -11,11 +11,13 @@
 
 ## [Unreleased]
 
+---
 
+## [1.3.1] - 2026-04-17
 
-#### 新增
+### 新增
 
-- **`news` 模块（恢复上线）**：Orbit News API 集成获合规审批后重新上线，提供七个工具：最新资讯、按币种查询、搜索、文章详情、域名列表、币种情绪及情绪排行。CLI：`okx news latest / by-coin / search / detail / domains / sentiment / sentiment-ranking`。`Accept-Language` 请求头现使用标准 IETF BCP 47 格式。(!251, !249, !235)
+- **`news` 模块（恢复上线）**：Orbit News API 集成获合规审批后重新上线，提供七个工具：最新资讯、按币种查询、搜索、文章详情、来源列表、币种情绪及情绪排行。CLI：`okx news latest / by-coin / search / detail / platforms / sentiment / sentiment-ranking`。支持 `--platform` 参数按新闻来源过滤（如 `blockbeats`、`odaily_flash`）。`Accept-Language` 使用标准 IETF BCP 47 格式。所有新闻工具在模拟盘模式下返回明确的 `ConfigError`。(!251, !249, !235)
 
 - **事件合约模块**（`event`）：全新二元预测市场模块，包含 9 个 MCP 工具及对应 CLI 命令，支持浏览开放事件、查询合约详情、下单及管理事件合约订单。(!216)
 
@@ -29,7 +31,9 @@
 
 - **DoH（DNS-over-HTTPS）API 代理**：当 OKX API 域名无法直连时（如 DNS 污染），SDK 透明地通过本地 `okx-doh-resolver` 二进制解析备用代理节点，采用缓存优先策略并自动排除失败节点。`postinstall` 自动下载平台专用二进制至 `~/.okx/bin/`，支持 darwin-arm64、darwin-x64、linux-x64、linux-arm64 和 win32-x64。(!230, !237)
 
-#### 修复
+- **`context-kg/` 代理知识库及准确性漂移测试**：面向 AI 代理的结构化知识文件，涵盖交易、市场/账户、赚币/机器人、错误处理、多站点架构、DoH 代理、`tgtCcy=margin` 用法及测试质量规则。自动漂移测试在 CI 时校验声明数量与代码实际状态一致。(#137, #160, !231, !238, !248)
+
+### 修复
 
 - **错误码修复建议与 OKX 官方 API 错误文档一致**：自定义提示语替换为 OKX 官方 API 错误文档的原文内容。(#163, !250)
 
@@ -49,7 +53,7 @@
 
 - **CLI 代码审查建议修复**：修复代码审查中发现的多处外观和行为问题。(#141, #142, #143, !236)
 
-#### 变更
+### 变更
 
 - **Skills 下载改为两步预签名流程**：`skills_download`（MCP）和 `okx skill download`（CLI）现先获取短效预签名 URL 再下载技能包，提升下载安全性和可靠性。(!240)
 
@@ -57,55 +61,13 @@
 
 - **Skills 文档：止盈止损修改流程说明优化**：技能文档现引导用户对已有算法单使用 `algo_amend_order` 修改止盈止损，提升功能可发现性。(!241)
 
-#### 新增
-
-- **事件合约模块**（`event`）：新增 9 个 MCP 工具及对应的 `okx event` CLI 命令，支持交易二元事件合约——预测现实世界事件的结果。涵盖合约查询、下单、持仓管理及订单历史。(!216)
-- **市场筛选、持仓量历史及持仓量变化筛选工具**：`market_filter` MCP 工具及 `okx market filter` CLI 命令，支持多条件合约筛选；`market_get_oi_history` / `okx market oi-history` 支持历史持仓量查询；`market_get_oi_change_filter` / `okx market oi-change-filter` 支持按持仓量变化筛选合约。(!245)
-- **闪电赚币模块**（`earn.flash`）：新增 MCP 工具及 `okx earn flash` CLI 命令，支持即时赚币操作。(!246)
-- **`news` 模块恢复上线**：资讯工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`、`news_get_coin_sentiment`、`news_get_sentiment_ranking`）及 `okx news` CLI 命令经合规审查后重新可用。(!235)
-- **Linux ARM64 DoH 二进制支持**：`postinstall` 现支持为 `linux-arm64` 系统下载 `okx-pilot`，与 darwin-arm64、darwin-x64、linux-x64、win32-x64 共同覆盖主流平台。(!237)
-- **Skills 下载两步预签名流程**：`skills_download` 和 `okx skill download` 改用预签名 URL 方式下载，提升可靠性。(!240)
-- **CLI 帮助文本自动生成**：CLI 帮助文本现从声明式 `CLI_REGISTRY` 映射生成，不再依赖 640 行静态结构；描述直接取自 `@agent-tradekit/core` ToolSpec 对象，确保 CLI 与 MCP 帮助保持同步，双向漂移测试在 CI 阶段发现偏差。(#140, !234)
-- **`okx list-tools [--json]` 代理自发现命令**：将完整 CLI 注册表序列化为结构化 JSON，AI 代理可直接枚举所有能力、参数和工具名称，无需解析 `--help` 文本。(#140, !234)
-- **`okx doh` 二进制管理命令**：`okx doh status` 显示二进制路径、文件大小、SHA-256 及 CDN 匹配状态；`okx doh install` 下载或更新二进制；`okx doh remove` 删除（支持 `--force`）。DoH 状态同步显示在 `okx --version` 输出及 `okx diagnose` 诊断结果中。(#138, !232)
-- **REST API 请求 DoH（DNS over HTTPS）代理**：当 OKX API 域名无法直连时，SDK 透明切换至本地解析的代理节点；缓存优先策略，失效节点自动排除，支持 `--verbose` 全链路日志。(!230)
-- **`context-kg/` 代理知识库**：面向 AI 代理的结构化知识文件，涵盖交易、市场/账户、赚币/机器人、错误处理、多站点架构、DoH 代理、`tgtCcy=margin` 用法及测试质量规则，附 `knowledge_dir` 配置项示例。(#137, !231, !238, !248)
-
-#### 修复
-
-- **错误码建议**现与 OKX 官方 API 文档保持一致，修正了各模块中不准确或标注有误的错误描述。(#163, !250)
-- **`news` 模块 Accept-Language 请求头**改为使用标准 IETF BCP 47 格式（如 `zh-CN`、`en-US`），并修正了默认语言设置。(!249)
-- **`okx list-tools` CLI 路由**不再回退到 "Unknown command"，命令现在可由 CLI 路由层正确分发。(#161, !247)
-- **CLI 帮助文本**现包含此前遗漏的所有命令参数说明。(#155, !244)
-- **`market_list_indicators` 描述优化及名称校验**：改进指标和参数描述，未知指标名称现在在调用 API 前即返回明确错误提示。(#153, !243)
-- **`market_get_funding_rate` SWAP 合约校验**：非 SWAP 类型的 `instId` 现在在调用 API 前即被拒绝，并附带描述性错误提示。(#152, !242)
-- **Skills 文档语言中立化**：移除 `SKILL.md` 及相关文件中硬编码的中文提示词，所有指令改为语言中立表述，确保代理在任意语言环境下正常工作。(!233)
-- **Skills 文档杠杆错误排查指引**：新增杠杆相关 OKX API 错误的具体排查步骤，强化"先只读诊断、再确认写操作"的处理模式。(!229)
-- **CLI 参数及输出格式修复**：处理多条命令的评审反馈，修正参数处理和输出格式问题。(#141, #142, #143, !236)
-
-#### 变更
-
-- **Skills 文档 TP/SL 修改指引优化**：更新代理指导，在修改现有算法订单的止盈/止损时，明确引导用户使用算法订单修改工具（而非撤单后重建）。(!241)
-
-### 新增
-
-- **context-kg 准确性漂移测试**：新增 `packages/cli/test/context-kg-accuracy.test.ts`，自动校验 `context-kg/` 中声明的工具数量、模块数量、skill pack 数量和测试文件数与代码实际状态一致——数字过时时以可操作的提示信息明确失败。(#160)
-- **新闻工具新增 `--platform` 参数**：`news_get_latest`、`news_get_by_coin`、`news_search` 现在支持 `platform` 参数，可按新闻来源过滤（如 `blockbeats`、`odaily_flash`）。可用来源通过 `okx news platforms` 列出。
-- **新闻 Demo 模式拦截**：除 `news_get_domains` 外，所有新闻工具在模拟盘模式下会返回明确的 `ConfigError`，不再返回异常数据。
-
-### 变更
-
 - **CLI `okx news domains` 重命名为 `okx news platforms`**：与 `--platform` 参数术语保持一致。
+
 - **Skill 重命名 `okx-cex-news` → `okx-sentiment-tracker`**：Skill 目录和 frontmatter name 已更新。MCP 工具名（`news_*`）和 CLI 命令（`okx news`）不变。
 
 ### 移除
 
 - **`importance=medium` 枚举值**：从 `NEWS_IMPORTANCE` 校验中移除。OKX API 不支持 `medium`，传入会返回参数错误（51000）。仅 `high` 和 `low` 有效。
-
-### 修复
-
-- **`news` Accept-Language 请求头**：将语言格式从 `en_US`/`zh_CN` 改为标准 IETF BCP 47 格式 `en-US`/`zh-CN`，修复所有新闻 API 调用的参数错误。
-- **context-kg 数字过时问题**：更新 `context-kg/business/01-overview.md`（工具数 127 → 147，模块数 13 → 16，skill packs 6 → 7，模块列表重写以反映实际的 `MODULES` 注册表）、`context-kg/technical/01-architecture.md`（core 测试文件数 21 → 23，CLI 测试文件数 37 → 39）及 `context-kg/quality/01-placeholder.md`（P0/P2 描述更新以反映当前状态）。(#160)
 
 ---
 
