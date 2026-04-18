@@ -175,6 +175,9 @@ describe("news_get_latest", () => {
     const call = getLastCall()!;
     assert.equal(call.endpoint, "/api/v5/orbit/news-search");
     assert.equal(call.params["sortBy"], "latest");
+    // MCP handler deliberately forwards `undefined` when importance is omitted so
+    // the server applies its own default (high-only). The D_IMPORTANCE description
+    // instructs AI agents to pass 'low' explicitly when the user wants broad browsing.
     assert.equal(call.params["importance"], undefined);
     assert.equal(call.headers?.["Accept-Language"], "en-US");
     assert.equal(call.params["limit"], 10);

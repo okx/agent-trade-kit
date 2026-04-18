@@ -81,6 +81,8 @@ okx news sentiment-rank
 
 ### Browse News
 
+`latest`, `by-coin`, and `search` default `--importance low`, which returns **all** news (both high and low importance). Pass `--importance high` only when the user explicitly asks for major / breaking / important news. The dedicated `okx news important` command is a shortcut for that case.
+
 | User says | Command |
 |-----------|---------|
 | "what's been happening in crypto lately" / "catch me up on recent news" | `okx news latest` |
@@ -121,15 +123,17 @@ These queries require a **broad-then-deep** approach: first scan all coins for a
 
 ### Source-Filtered News
 
-Use `--platform` to filter by news source directly. Get available source names from `okx news platforms` first.
+Use `--platform` to filter by news source directly. Always resolve the exact value from `okx news platforms` — do not guess platform identifiers from the user's wording.
 
 | User says | Command |
 |-----------|---------|
-| "ChainCatcher 最近报道了什么" / "show me news from ChainCatcher" | `okx news latest --platform chaincatcher --importance low --limit 10` |
-| "Odaily 有什么新闻" / "news from techflowpost" | `okx news latest --platform odaily_flash --limit 10` |
-| "吴说区块链最近有什么" / "BWE news" | `okx news latest --platform wushou --importance low --limit 20` |
+| "ChainCatcher 最近报道了什么" / "show me news from ChainCatcher" | `okx news latest --platform <platform_id> --limit 10` |
+| "Odaily 有什么新闻" / "news from TechFlowPost" | `okx news latest --platform <platform_id> --limit 10` |
+| "吴说区块链最近有什么" / "news from a specific outlet" | `okx news latest --platform <platform_id> --limit 20` |
 
-**Important**: When filtering by source, always use `--importance low` and a larger `--limit` (10-20) to maximize results, since individual sources typically have fewer articles than the aggregated feed. The `--platform` parameter accepts values from `okx news platforms` (e.g. `blockbeats`, `odaily_flash`, `chaincatcher`, `techflowpost`, `bwe`, `528btc`, `panews`, `wushou`).
+**Important**: When filtering by source, use a larger `--limit` (10–20) to maximize results, since individual sources typically have fewer articles than the aggregated feed. `--importance low` (the default) is the right setting here; do not narrow to `--importance high`.
+
+**Posting cadence is uneven across platforms.** The API defaults `--begin` to 72 hours ago, which is too narrow for bursty sources and will often return 0 results. If a `--platform`-filtered query returns fewer than ~5 items (or 0), **retry with `--begin` set to 7 days back, then 30 days back** before concluding the source has no data. Resolve candidate platform IDs from `okx news platforms`; do not hardcode assumptions about which platforms are active.
 
 ## Cross-Skill Workflows
 
@@ -146,6 +150,8 @@ okx news latest [--coins BTC,ETH] [--begin <ms>] [--end <ms>]
                [--detail-lvl brief|summary|full] [--lang zh-CN|en-US]
                [--limit 10] [--after <cursor>] [--json]
 ```
+
+`--importance` default is `low` (returns all news, both high and low). Pass `--importance high` to narrow to breaking / major news only — or use `okx news important`.
 
 ---
 
@@ -170,6 +176,8 @@ okx news by-coin --coins <BTC,ETH,...>
                [--limit 10] [--json]
 ```
 
+`--importance` default is `low` (returns all news). Pass `--importance high` only for breaking / major news.
+
 ---
 
 ### `okx news search`
@@ -184,6 +192,8 @@ okx news search --keyword <text>
                [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
                [--limit 10] [--after <cursor>] [--json]
 ```
+
+`--importance` default is `low` (returns all news). Pass `--importance high` only for breaking / major news.
 
 ---
 
@@ -207,6 +217,8 @@ okx news by-sentiment --sentiment <bullish|bearish|neutral>
                [--begin <ms>] [--end <ms>] [--lang zh-CN|en-US]
                [--limit 10] [--after <cursor>] [--json]
 ```
+
+`--importance` default is `low` (returns all news). Pass `--importance high` only for breaking / major news.
 
 ---
 
@@ -262,7 +274,7 @@ okx news sentiment-rank [--period 1h|4h|24h]
 
 | Tool | Description |
 |------|-------------|
-| `news_get_latest` | Latest news sorted by time; pass `importance=high` for breaking news only |
+| `news_get_latest` | Latest news sorted by time. Server default `importance=high` (narrow); pass `importance=low` to broaden to all news. |
 | `news_get_by_coin` | News for specific coins (`coins` is comma-separated string) |
 | `news_search` | Full-text keyword search with filters (optional `sentiment` filter) |
 | `news_get_detail` | Full article content by ID |
@@ -276,34 +288,32 @@ The API only accepts standard uppercase ticker symbols (e.g. `BTC`, `ETH`, `SOL`
 
 ## Empty Results & Web Search Fallback
 
-OKX news data may be sparse for niche coins or highly specific keyword searches. When a command returns empty or insufficient results:
+OKX news data may be sparse for niche coins or highly specific keyword searches. The API default `--begin` window is only 72 hours, which alone accounts for many empty results. When a command returns empty or insufficient results, apply these steps in order — do not skip to web search:
 
-1. **Retry with relaxed filters** — remove `--importance`, broaden `--begin`/`--end`, or drop `--coins` to get general news
-2. **Use web search as a supplement** — search the web for `"<coin> news site:coindesk.com OR site:cointelegraph.com OR site:theblock.co"` to gather additional context, then combine with any OKX results into a unified briefing
-3. **Be transparent** — tell the user which results came from OKX API vs. web search so they can judge source credibility
+1. **If `--platform` was used** — broaden `--begin` to 7 days back, then 30 days back, before changing anything else. Bursty sources routinely return 0 items in the default window but dozens over a wider range.
+2. **If `--importance high` was passed** — drop it (default is already `low` = all news).
+3. **Broaden `--begin` / `--end`** for any query (not just `--platform`) when a narrow time window is suspected.
+4. **Drop `--coins`** to get general news if the coin-specific query yielded nothing.
+5. **Use web search as a supplement** — search the web for `"<topic> news site:coindesk.com OR site:cointelegraph.com OR site:theblock.co"` to gather additional context, then combine with any OKX results into a unified briefing.
+6. **Be transparent** — tell the user which results came from OKX API vs. web search so they can judge source credibility.
 
 This fallback is especially valuable for:
 - Coins with low coverage (e.g. newly listed tokens)
 - Highly specific keyword searches with no matches
+- `--platform` queries where the chosen source has uneven posting cadence
 
 ## Known Limitations
 
 ### Source Coverage
 
-Not all registered platforms in `okx news platforms` are actively producing articles. Based on recent evaluation, the consistently active sources are:
+Platform posting cadence varies and changes over time. Some sources publish many articles per day; others post in bursts with quiet stretches in between. A source returning few or zero articles in the **default 72-hour window is not evidence that it is inactive** — it may simply not have posted recently, or its recent posts may have been deduplicated out.
 
-| Source | Status | Notes |
-|--------|--------|-------|
-| `blockbeats` | Active | High volume |
-| `odaily_flash` | Active | High volume |
-| `chaincatcher` | Active | Medium volume |
-| `techflowpost` | Active | Medium volume |
-| `bwe` | Low activity | Few articles per week |
-| `panews` | Inconsistent | Registered but rarely appears in aggregated results; dedup issues |
-| `528btc` | Inactive | Registered but no articles found in 90+ days |
-| `wushou` | Inactive | Registered but no articles found in 90+ days |
+Before concluding a `--platform`-filtered query has no data:
 
-When a user asks for news from an inactive source, do NOT retry repeatedly or page through hundreds of articles looking for it. Instead, report that the source currently has no data and suggest alternatives (other active sources or web search).
+1. Broaden `--begin` to 7 days back, then 30 days back, and retry.
+2. If still empty after a 30-day window, report to the user that no recent articles were found for that source and suggest either removing `--platform` (to fall back to the aggregated feed) or web search.
+
+Do not hardcode assumptions about which platforms are active — resolve candidates from `okx news platforms` and let the data speak.
 
 ### Historical Search Limitations
 

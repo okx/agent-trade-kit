@@ -133,6 +133,12 @@ describe("handleNewsCommand latest — parameter routing", () => {
     assert.equal(captured.args["importance"], "high");
   });
 
+  it("no --importance defaults to 'low' (broad browsing)", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "latest", [], vals({}), false);
+    assert.equal(captured.args["importance"], "low");
+  });
+
   it("--language routes via v.lang", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "latest", [], vals({ lang: "zh" }), false);
@@ -196,6 +202,12 @@ describe("handleNewsCommand by-coin — parameter routing", () => {
     assert.equal(captured.args["importance"], "high");
   });
 
+  it("no --importance defaults to 'low' (broad browsing)", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "by-coin", ["BTC"], vals({}), false);
+    assert.equal(captured.args["importance"], "low");
+  });
+
   it("--platform routes via v.platform", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "by-coin", ["BTC"], vals({ platform: "odaily_flash" }), false);
@@ -232,6 +244,12 @@ describe("handleNewsCommand search — parameter routing", () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "search", ["ETF"], vals({ platform: "chaincatcher" }), false);
     assert.equal(captured.args["platform"], "chaincatcher");
+  });
+
+  it("no --importance defaults to 'low' (broad browsing)", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "search", ["BTC"], vals({}), false);
+    assert.equal(captured.args["importance"], "low");
   });
 });
 
@@ -351,6 +369,12 @@ describe("news formatter paths — non-json output", () => {
     assert.equal(captured.args["keyword"], undefined);
     assert.equal(captured.args["sentiment"], "bullish");
     assert.equal(captured.args["sortBy"], "latest");
+  });
+
+  it("by-sentiment: no --importance defaults to 'low' (broad browsing)", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "by-sentiment", [], vals({ sentiment: "bullish" }), false);
+    assert.equal(captured.args["importance"], "low");
   });
 
   it("detail: formats full article", async () => {
