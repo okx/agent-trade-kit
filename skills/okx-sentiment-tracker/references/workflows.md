@@ -289,7 +289,7 @@ okx news by-sentiment --sentiment bullish --coins ETH --importance high --begin 
 ```
 
 If either step returns sparse results, relax filters progressively:
-1. Drop `--importance` (keep coin + sentiment + time)
+1. Drop `--importance high` — the CLI default is `low` (all news); narrowing to high cuts results
 2. Widen `--begin`/`--end` range
 3. Supplement with `okx news coin-sentiment --coins ETH` for aggregate sentiment context
 
@@ -301,7 +301,7 @@ Present the cross-referenced results first, then mention any additional context 
 
 | CLI subcommand | MCP tool name | Notes |
 |---|---|---|
-| `news latest` | `news_get_latest` | Pass `importance=high` to get breaking news only |
+| `news latest` | `news_get_latest` | CLI defaults `importance=low` (all news). Pass `--importance high` to narrow to breaking news only. |
 | `news important` | `news_get_latest` | CLI pre-fills `importance=high`; no separate MCP tool |
 | `news by-coin` | `news_get_by_coin` | `coins` param is a comma-separated string |
 | `news search` | `news_search` | |

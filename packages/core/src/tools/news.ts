@@ -29,7 +29,7 @@ const D_COINS_SENTIMENT = "Comma-separated uppercase ticker symbols, max 20 (e.g
 const D_LANGUAGE = "Content language: zh-CN or en-US. Infer from user's message. No server default.";
 const D_BEGIN = "Start time, Unix epoch milliseconds. API defaults to 72 hours ago when omitted. Pass explicitly for older topics (e.g. 'last 30 days'). Max range: 180 days. Parse relative time if given.";
 const D_END = "End time, Unix epoch milliseconds. Parse relative time if given. Omit for no upper bound.";
-const D_IMPORTANCE = "Importance filter: high (server default) or low. Omit unless user wants broader coverage.";
+const D_IMPORTANCE = "Importance filter: 'low' returns all news (both low and high importance); 'high' narrows to major/breaking news only. Omitted → server default (high-only). Default to 'low' for broad browsing; pass 'high' only when the user explicitly asks for major news.";
 const D_PLATFORM = "Filter by news source. Use values from news_get_domains (e.g. blockbeats, odaily_flash). Omit for all sources.";
 const D_LIMIT = "Number of results (default 10, max 50).";
 
@@ -42,7 +42,7 @@ export function registerNewsTools(): ToolSpec[] {
     {
       name: "news_get_latest",
       module: "news",
-      description: "Get crypto news sorted by time. Omitting importance still returns only high-importance news (server default). Pass importance='low' explicitly to broaden results. Use when user asks 'what happened recently', 'latest news', 'any big news today', or wants to browse without a keyword. For coin-specific news, use news_get_by_coin instead.",
+      description: "Get crypto news sorted by time. For broad browsing ('what happened recently', 'latest news', 'any big news today'), pass importance='low' to include both high and low importance. Server default (when importance omitted) returns only high-importance news. For coin-specific news, use news_get_by_coin instead.",
       isWrite: false,
       inputSchema: {
         type: "object",

@@ -27,7 +27,7 @@ export async function cmdNewsLatest(
 ): Promise<void> {
   const result = await run("news_get_latest", {
     coins: opts.coins,
-    importance: opts.importance,
+    importance: opts.importance ?? "low",
     platform: opts.platform,
     begin: opts.begin,
     end: opts.end,
@@ -106,7 +106,7 @@ export async function cmdNewsByCoin(
 ): Promise<void> {
   const result = await run("news_get_by_coin", {
     coins,
-    importance: opts.importance,
+    importance: opts.importance ?? "low",
     platform: opts.platform,
     begin: opts.begin,
     end: opts.end,
@@ -150,7 +150,7 @@ export async function cmdNewsSearch(
   const result = await run("news_search", {
     keyword: keyword || undefined,
     coins: opts.coins,
-    importance: opts.importance,
+    importance: opts.importance ?? "low",
     platform: opts.platform,
     sentiment: opts.sentiment,
     sortBy: opts.sortBy,
