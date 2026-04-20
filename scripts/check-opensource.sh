@@ -22,16 +22,28 @@ if [ ! -f "$DENY_FILE" ]; then
   exit 2
 fi
 
+# Determine scan mode: diff vs full-tree.
+# Full-tree is used when the BASE ref is unknown or there is no merge-base
+# with HEAD (orphan branch, force-push rewriting history, first push, etc.).
+# In those cases we must scan everything in HEAD, otherwise an orphan commit
+# containing internal files would be waved through.
+SCAN_MODE="diff"
 if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
-  echo "error: base ref '$BASE' does not exist. Try: git fetch origin" >&2
-  exit 2
+  echo "check-opensource: base ref '$BASE' not found — full-tree scan" >&2
+  SCAN_MODE="full"
+elif ! git merge-base "$BASE" HEAD >/dev/null 2>&1; then
+  echo "check-opensource: no merge-base with $BASE — full-tree scan" >&2
+  SCAN_MODE="full"
 fi
 
-# Added / Copied / Modified / Renamed — exclude Deletions.
-CHANGED=$(git diff --name-only --diff-filter=ACMR "$BASE"...HEAD || true)
+if [ "$SCAN_MODE" = "full" ]; then
+  CHANGED=$(git ls-files)
+else
+  CHANGED=$(git diff --name-only --diff-filter=ACMR "$BASE"...HEAD || true)
+fi
 
 if [ -z "$CHANGED" ]; then
-  echo "check-opensource: no added/modified files vs $BASE — skip"
+  echo "check-opensource: no files to scan — skip"
   exit 0
 fi
 

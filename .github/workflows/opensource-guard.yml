@@ -7,7 +7,7 @@ on:
     branches: [master]
 
 jobs:
-  check:
+  opensource-guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
