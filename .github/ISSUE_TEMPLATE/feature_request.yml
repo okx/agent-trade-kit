@@ -1,0 +1,45 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["enhancement"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Please fill out the fields below to help us understand the request.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see.
+      placeholder: What would you like to be able to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case / Motivation
+      description: Describe the problem this feature solves or the workflow it enables.
+      placeholder: |
+        When I use okx-trade-mcp with Claude, I often need to...
+        Currently I have to workaround this by...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you've already tried.
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, links to OKX API docs, or examples that would help.
+    validations:
+      required: false

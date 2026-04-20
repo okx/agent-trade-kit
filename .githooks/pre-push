@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Local pre-push hook: runs the open-source guard against origin/master.
+# Enable once per clone:   git config core.hooksPath .githooks
+# Bypass (discouraged):    git push --no-verify
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+GUARD="$REPO_ROOT/scripts/check-opensource.sh"
+
+if [ ! -x "$GUARD" ]; then
+  echo "pre-push: $GUARD not found or not executable — skipping guard" >&2
+  exit 0
+fi
+
+# read pushed refs from stdin
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+
+  case "$remote_ref" in
+    refs/heads/master|refs/heads/main)
+      echo "pre-push: running open-source guard on $remote_ref ..."
+      "$GUARD" origin/master || exit 1
+      ;;
+    *)
+      # non-default branches: still run if you like; default is skip for speed
+      ;;
+  esac
+done
+
+exit 0

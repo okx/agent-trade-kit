@@ -1,0 +1,25 @@
+# OKX CLI 配置文件
+# 复制到 ~/.okx/config.toml 并填入你的 API 凭证
+#
+# 凭证申请：OKX 官网 → API → 创建 API Key
+# 模拟盘：OKX 官网 → 交易 → 模拟交易 → API 管理
+
+default_profile = "demo"
+
+[profiles.live]
+api_key = "your-live-api-key"
+secret_key = "your-live-secret-key"
+passphrase = "your-live-passphrase"
+
+[profiles.demo]
+api_key = "your-demo-api-key"
+secret_key = "your-demo-secret-key"
+passphrase = "your-demo-passphrase"
+demo = true
+
+# 代理（可选） / Proxy (optional)
+# proxy_url = "http://127.0.0.1:7890"
+# proxy_url = "http://user:password@proxy.example.com:8080"
+
+# 知识库目录 / Knowledge base directory (reserved for AI agent context systems)
+# knowledge_dir = "context-kg"

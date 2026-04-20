@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        > ⚠️ **IMPORTANT: Never paste API keys, secret keys, or passphrases** in this issue.
+        > If credentials were accidentally exposed, revoke them immediately in your OKX account settings.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug.
+      placeholder: What went wrong?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Run `okx-trade-mcp --modules spot`
+        2. Call tool `spot_place_order` with args `...`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include any error messages.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Please fill in your environment details.
+      value: |
+        - OS:
+        - Node.js version (`node --version`):
+        - okx-trade-mcp version (`npm list -g okx-trade-mcp`):
+        - okx-trade-cli version (`npm list -g okx-trade-cli`):
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: |
+        Paste any relevant log output here.
+        **Remove any API keys, secrets, or passphrases before pasting.**
+      render: shell

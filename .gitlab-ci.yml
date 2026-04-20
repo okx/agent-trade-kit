@@ -1,0 +1,66 @@
+default:
+  image: node:22
+
+stages:
+  - test
+  - integration
+  - quality
+
+# ── shared setup ──────────────────────────────────────────────────────────────
+
+.pnpm-setup: &pnpm-setup
+  before_script:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+
+# ── unit tests + lcov coverage (always, all branches) ────────────────────────
+
+unit-test:
+  stage: test
+  <<: *pnpm-setup
+  script:
+    - pnpm build
+    - pnpm test:coverage
+  coverage: '/All files\s*\|\s*([\d.]+)/'
+  artifacts:
+    paths:
+      - coverage/lcov.info
+    expire_in: 1 day
+
+# ── sonar scan (master + MR) ──────────────────────────────────────────────────
+
+sonar:
+  stage: quality
+  image: sonarsource/sonar-scanner-cli:latest
+  dependencies:
+    - unit-test
+  script:
+    - |
+      if [ -n "$CI_MERGE_REQUEST_IID" ]; then
+        sonar-scanner \
+          -Dsonar.host.url=$SONAR_HOST_URL \
+          -Dsonar.token=$SONAR_TOKEN \
+          -Dsonar.pullrequest.key=$CI_MERGE_REQUEST_IID \
+          -Dsonar.pullrequest.branch=$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME \
+          -Dsonar.pullrequest.base=$CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+      else
+        sonar-scanner \
+          -Dsonar.host.url=$SONAR_HOST_URL \
+          -Dsonar.token=$SONAR_TOKEN
+      fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ── smoke test (demo API, master only) ───────────────────────────────────────
+
+smoke-test:
+  stage: integration
+  <<: *pnpm-setup
+  variables:
+    OKX_DEMO: "1"
+  script:
+    - node --import tsx/esm scripts/smoke-test/run.ts --read-only
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  allow_failure: false

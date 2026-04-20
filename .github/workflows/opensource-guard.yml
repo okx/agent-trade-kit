@@ -1,0 +1,29 @@
+name: opensource-guard
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine base ref
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            # push to master: compare against previous commit
+            echo "ref=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run open-source guard
+        run: bash scripts/check-opensource.sh "${{ steps.base.outputs.ref }}"

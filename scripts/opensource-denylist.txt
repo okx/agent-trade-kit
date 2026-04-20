@@ -1,0 +1,40 @@
+# Open-source guard denylist.
+# Format:   <kind>:<regex>
+#   path:<regex>   -> matches against changed file paths (ERE)
+#   regex:<regex>  -> matches against file content (ERE, line-level)
+# Lines starting with # are comments. Blank lines ignored.
+# The guard script itself and this file are automatically excluded from content scans.
+
+# ----- Paths (internal tooling / editor config / scratch) -----
+path:^\.claude/
+path:^\.cursor/
+path:^\.idea/
+path:^\.agents/
+path:^\.worktrees/
+path:^memory/
+path:^aTempFiles/
+path:^context-kg/
+path:^CLAUDE\.md$
+path:(^|/)CLAUDE\.md$
+path:(^|/)internal/
+path:-internal\.md$
+path:\.internal\.
+
+# ----- Internal URLs / webhooks -----
+regex:open\.larksuite\.com/open-apis/bot/v2/hook/
+regex:open\.feishu\.cn/open-apis/bot/v2/hook/
+regex:([a-z0-9-]+\.)?okg\.com
+regex:([a-z0-9-]+\.)?internal(\.[a-z]+)?/
+regex:qqhrss\.com
+regex:okg-block\.sg\.larksuite\.com
+
+# ----- Internal ticket / identifier prefixes -----
+regex:\[TRDATA-[0-9]+\]
+regex:\[OKG-[0-9]+\]
+
+# ----- Common secret patterns -----
+regex:glpat-[A-Za-z0-9_-]{20,}
+regex:ghp_[A-Za-z0-9]{30,}
+regex:sk-[A-Za-z0-9]{20,}
+regex:AKIA[0-9A-Z]{16}
+regex:-----BEGIN (RSA |OPENSSH |EC |DSA |PGP )?PRIVATE KEY-----
