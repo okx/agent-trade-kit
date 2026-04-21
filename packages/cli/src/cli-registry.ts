@@ -129,17 +129,17 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       filter: {
         toolName: "market_filter",
-        usage: "okx market filter --instType <SPOT|SWAP|FUTURES> [--sortBy <field>] [--sortOrder <asc|desc>] [--limit <n>] [--baseCcy <ccy>] [--quoteCcy <ccy>] [--settleCcy <ccy>] [--instFamily <fam>] [--ctType <linear|inverse>] [--minLast <n>] [--maxLast <n>] [--minChg24hPct <n>] [--maxChg24hPct <n>] [--minMarketCapUsd <n>] [--maxMarketCapUsd <n>] [--minVolUsd24h <n>] [--maxVolUsd24h <n>] [--minFundingRate <n>] [--maxFundingRate <n>] [--minOiUsd <n>] [--maxOiUsd <n>]",
-        description: "Screen / rank instruments by multi-dimensional criteria (price, volume, OI, funding rate, market cap, etc.)",
+        usage: "okx market filter --instType <SPOT|SWAP|FUTURES> [--sortBy <last|chg24hPct|marketCapUsd|volUsd24h|fundingRate|oiUsd|listTime>] [--sortOrder <asc|desc>] [--limit <1-100>] [--baseCcy <ccy>] [--quoteCcy <ccy>] [--settleCcy <ccy>] [--instFamily <fam>] [--ctType <linear|inverse>] [--minLast <n>] [--maxLast <n>] [--minChg24hPct <n>] [--maxChg24hPct <n>] [--minMarketCapUsd <n>] [--maxMarketCapUsd <n>] [--minVolUsd24h <n>] [--maxVolUsd24h <n>] [--minFundingRate <n>] [--maxFundingRate <n>] [--minOiUsd <n>] [--maxOiUsd <n>]",
+        description: "Screen / rank instruments by multi-dimensional criteria (price, volume, OI, funding rate, market cap, etc.). For OI *change* ranking use `market oi-change`.",
       },
       "oi-history": {
         toolName: "market_get_oi_history",
-        usage: "okx market oi-history <instId> [--bar <5m|15m|1H|4H|1D>] [--limit <n>] [--ts <ms>]",
+        usage: "okx market oi-history <instId> [--bar <5m|15m|1H|4H|1D>] [--limit <1-500>] [--ts <ms>]",
         description: "Open interest history time series with bar-over-bar delta for a single instrument",
       },
       "oi-change": {
         toolName: "market_filter_oi_change",
-        usage: "okx market oi-change --instType <SWAP|FUTURES> [--bar <5m|15m|1H|4H|1D>] [--sortBy <field>] [--sortOrder <asc|desc>] [--limit <n>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]",
+        usage: "okx market oi-change --instType <SWAP|FUTURES> [--bar <5m|15m|1H|4H|1D>] [--sortBy <oiUsd|oiDeltaUsd|oiDeltaPct|absOiDeltaPct|volUsd24h|fundingRate|last>] [--sortOrder <asc|desc>] [--limit <1-100>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]",
         description: "Find instruments with largest OI changes over a bar window (accumulation/distribution scanner)",
       },
     },
@@ -152,10 +152,10 @@ export const CLI_REGISTRY: CliRegistry = {
             usage: "okx market indicator list",
             description: "List all supported technical indicators",
           },
-          "<instId> <indicator>": {
+          "<indicator> <instId>": {
             toolName: "market_get_indicator",
-            usage: "okx market indicator <instId> <indicator> [--bar <bar>] [--limit <n>] [--backtest-time <ts>] [--params <json>]",
-            description: "Get indicator values for an instrument (e.g. okx market indicator BTC-USDT-SWAP rsi)",
+            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--limit <1-100>] [--backtest-time <ts>] [--params <json>]",
+            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). NOTE: 1m is not supported for indicators.",
           },
         },
       },

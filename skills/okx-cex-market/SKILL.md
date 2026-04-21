@@ -110,10 +110,14 @@ All commands in this skill are read-only.
 - **`market filter` SPOT + quoteCcy**: when `--instType SPOT`, the API returns instruments across **all** quote currencies (USDT, USDC, BTC, ETH, etc.) mixed together — this pollutes sort order and bloats results. Always pass `--quoteCcy USDT` by default unless the user explicitly asks for other quote currencies.
 - **`market filter` chg24hPct**: value is a percentage number — `--minChg24hPct -5` means -5%, `--maxChg24hPct 10` means 10%
 - **`market oi-history` ts**: Unix ms timestamp; returns bars with ts ≤ this value for historical pagination
-- **`market oi-history` / `oi-change` bar**: valid values `5m` `15m` `1H` `4H` `1D` — default `1H`
+- **`market oi-history` / `oi-change` bar**: valid values `5m` `15m` `1H` `4H` `1D` — default `1H`. Server accepts case variants (`1h` == `1H`) but prefer canonical casing.
+- **`market oi-history` limit**: 1–500 (default 50)
 - **`market oi-change` instType**: only `SWAP` or `FUTURES` supported (not SPOT)
 - **`market oi-change` minAbsOiDeltaPct**: filters by absolute OI change — `1.0` keeps only rows where |oiDeltaPct| ≥ 1%
-- **`market oi-change` sortBy values**: `oiUsd` `oiDeltaUsd` `oiDeltaPct` `volUsd24h` `last` — default `oiDeltaPct`
+- **`market oi-change` sortBy values**: `oiUsd` `oiDeltaUsd` `oiDeltaPct` `absOiDeltaPct` `volUsd24h` `fundingRate` `last` — default `oiDeltaPct` (signed). Use `absOiDeltaPct` to rank by |oiDeltaPct| (largest magnitude regardless of direction).
+- **`market oi-change` limit**: 1–100 (default 20). For deeper than 100 rows, fetch `oi-history` per instId.
+- **indicator `--bar` valid values**: `3m` `5m` `15m` `1H` `4H` `12Hutc` `1Dutc` `3Dutc` `1Wutc` — `1m` is **not supported** for indicators (use `candles` for 1-minute data)
+- **indicator `--limit`**: 1–100 (only used with `returnList`, i.e. when a historical series is requested)
 - **indicator arg order**: indicator name before instId — `okx market indicator rsi BTC-USDT`
 - **indicator `--params`**: comma-separated, no spaces — `--params 5,20`
 - **BTC-only indicators**: `ahr999`, `rainbow` — BTC-USDT only
