@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`context-kg/` upstream API specs**: Three new business-domain reference docs under `context-kg/business/` capturing upstream OKX API contracts consumed by the repo — `06-leaderboard-smartmoney-api.md` (7 leaderboard / smart-money endpoints backing issue #94, with live-probe status and field-drift notes), `07-dcd-api.md` (8 DCD structured-product endpoints with state machine and error codes), `08-dca-api.md` (19 Spot/Contract DCA bot endpoints with sync-copy restrictions). Intended as the source of truth for cross-checking tool design, request/response shapes, and enum values during implementation.
+
 ### Changed
 
 - **News CLI `--importance` default switched to `low`** for `okx news latest`, `okx news by-coin`, and `okx news search`. Previously these commands forwarded `undefined` to the server, which applies its `high`-only default and silently narrowed results. They now default to `low` (returns all news, both high and low importance) for broader browsing. Pass `--importance high` explicitly — or use the dedicated `okx news important` command — when you only want breaking / major news. MCP `news_get_latest` / `news_get_by_coin` / `news_search` tool descriptions updated to reflect the same semantics so AI agents pick `low` for broad queries and `high` only when the user explicitly asks for major news.

@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`context-kg/` 上游 API 规格**：在 `context-kg/business/` 新增三份业务域参考文档，记录本仓库调用的上游 OKX API 合约 —— `06-leaderboard-smartmoney-api.md`（issue #94 所需的 7 个牛人榜/聪明钱端点，含实盘探测状态和字段漂移说明）、`07-dcd-api.md`（8 个 DCD 结构化产品端点，含状态机和错误码）、`08-dca-api.md`（19 个现货/合约 DCA 机器人端点，含同步跟单限制）。用作实现阶段核对工具设计、请求/响应结构、枚举值的权威依据。
+
 ### 变更
 
 - **News CLI `--importance` 默认值改为 `low`**：`okx news latest`、`okx news by-coin`、`okx news search` 原先在用户未指定 `--importance` 时会透传 `undefined`，服务端按 `high` 默认只返回高重要性新闻，导致结果偏窄。现在三个命令默认使用 `low`（返回全部新闻，同时包含 high 和 low），更贴合"尽可能多"的浏览意图。用户只想看突发 / 重大新闻时，显式传 `--importance high`，或使用专门的 `okx news important` 命令。MCP `news_get_latest` / `news_get_by_coin` / `news_search` 工具描述同步更新，引导 AI 在用户泛泛浏览时使用 `low`，仅在明确要求"重要新闻"时切换到 `high`。
