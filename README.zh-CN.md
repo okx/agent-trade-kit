@@ -29,7 +29,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 
 | 特性 | 说明 |
 |------|------|
-| **140 个工具，10 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 → 事件合约 → 资讯 |
+| **145 个工具，11 大模块** | 完整交易生命周期：行情 → 下单 → 算法单 → 账户管理 → 赚币 → 交易机器人 → 事件合约 → 资讯 → 聪明钱信号 |
 | **内置算法单** | 条件单、OCO 止盈止损、追踪止损 |
 | **安全控制** | `--read-only` 只读模式、按模块过滤、内置限速器 |
 | **零基础设施** | 本地 stdio 进程，无需服务器或数据库 |
@@ -51,6 +51,7 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 | `earn` | 23 | 简单赚币：余额、申购、赎回、出借利率管理、**定期赚币** (10)。链上质押/DeFi (6)。双币赢/Dual Currency Deposit (6)。**闪赚** (1)。子模块：`earn.savings`、`earn.onchain`、`earn.dcd`、`earn.flash`。包含在 `all` 中。 | [→](docs/modules/earn.md) |
 | `bot` | 10 | 交易机器人：网格 (5)、DCA — 现货 & 合约 (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
 | `news` | 7 | 加密资讯：最新新闻、按币种查询、全文搜索、文章详情、来源列表、币种情绪（快照 + 趋势） | [→](docs/modules/news.md) |
+| `smartmoney` | 5 | 聪明钱信号：多币种概览、单币种共识信号、信号历史时间线、交易员排行榜、交易员详情（复合） — 全部只读 | [→](docs/modules/smartmoney.md) |
 
 ---
 
@@ -115,6 +116,7 @@ okx account balance
 | [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | 账户：余额、持仓、盈亏、资金划转 | 是 |
 | [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | 交易机器人：网格、DCA（现货 & 合约） | 是 |
 | [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | 赚币：简单赚币、链上质押、双币赢、自动赚币 | 是 |
+| [`okx-cex-smartmoney`](skills/okx-cex-smartmoney/SKILL.md) | 聪明钱：交易员排行榜、共识信号、持仓分析 | 是 |
 
 **[Skills 说明文档 →](skills/README.zh-CN.md)**
 

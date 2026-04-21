@@ -8,6 +8,7 @@ import { registerSkillsTools } from "./skills.js";
 import { registerBotTools } from "./bot/index.js";
 import { registerAllEarnTools } from "./earn/index.js";
 import { registerEventContractTools } from "./event-trade.js";
+import { registerSmartmoneyTools } from "./smartmoney.js";
 import { registerFuturesTools } from "./futures-trade.js";
 import { registerIndicatorTools } from "./indicator.js";
 import { registerMarketTools } from "./market.js";
@@ -44,6 +45,7 @@ export function allToolSpecs(): ToolSpec[] {
     ...registerNewsTools(),
     ...registerBotTools(),
     ...registerAllEarnTools(),
+    ...registerSmartmoneyTools(),
     ...registerAuditTools(),
     ...registerSkillsTools(),
   ];

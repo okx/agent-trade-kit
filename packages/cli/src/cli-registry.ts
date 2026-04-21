@@ -866,6 +866,38 @@ export const CLI_REGISTRY: CliRegistry = {
     },
   },
 
+  // ── smartmoney ─────────────────────────────────────────────────────────────
+  smartmoney: {
+    description: "Smart money signals — trader leaderboard, consensus signals, and position analysis",
+    commands: {
+      overview: {
+        toolName: "smartmoney_get_overview",
+        usage: "okx smartmoney overview [--dataVersion <ver>] [--ts <ms>] [--instType <SWAP|SPOT>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--json]",
+        description: "Multi-currency smart money overview with aggregated signals",
+      },
+      signal: {
+        toolName: "smartmoney_get_signal",
+        usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--dataVersion <ver>] [--ts <ms>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
+        description: "Single-currency aggregated consensus signal",
+      },
+      "signal-history": {
+        toolName: "smartmoney_get_signal_history",
+        usage: "okx smartmoney signal-history --instId <id> [--dataVersion <ver>] [--ts <ms>] [--granularity <1h|1d>] [--limit <n>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--json]",
+        description: "Signal history timeline for trend analysis",
+      },
+      traders: {
+        toolName: "smartmoney_get_traders",
+        usage: "okx smartmoney traders [--dataVersion <ts>] [--sortType <pnl|pnl_ratio>] [--period <\"\"|3|7|30|90>] [--pnl <n>] [--winRatio <r>] [--maxRetreat <r>] [--asset <n>] [--authorIds <ids>] [--limit <n>] [--after <id>] [--before <id>] [--json]",
+        description: "List/filter traders from the smart money leaderboard",
+      },
+      trader: {
+        toolName: "smartmoney_get_trader_detail",
+        usage: "okx smartmoney trader --authorId <id> [--period <3|7|30|90>] [--instCcy <ccy>] [--tradeLimit <n>] [--json]",
+        description: "Trader full portrait (profile + positions + trades)",
+      },
+    },
+  },
+
   // ── config ─────────────────────────────────────────────────────────────────
   config: {
     description: "Manage CLI configuration profiles",

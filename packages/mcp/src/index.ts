@@ -20,11 +20,14 @@ Usage: okx-trade-mcp [options]
 
 Options:
   --modules <list>     Comma-separated list of modules to load
-                       Available: market, spot, swap, futures, option, account, news
+                       Available: market, spot, swap, futures, option, account,
+                                  event, news, smartmoney, skills,
+                                  earn.savings, earn.onchain, earn.dcd, earn.autoearn, earn.flash,
                                   bot.grid, bot.dca
-                       Alias: "bot" = all bot sub-modules (bot.grid + bot.dca)
+                       Alias: "bot" = bot.grid + bot.dca
+                              "earn" / "earn.all" = all earn sub-modules
                        Special: "all" loads all modules
-                       Default: spot,swap,option,account,bot.grid
+                       Default: spot,swap,option,account,bot.grid,skills
 
   --profile <name>     Profile to load from ${configFilePath()}
                        Falls back to default_profile in config, then "default"

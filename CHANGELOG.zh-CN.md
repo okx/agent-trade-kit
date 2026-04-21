@@ -13,6 +13,8 @@
 
 ### 新增
 
+- **Smart Money 模块**（`smartmoney`）：新增 5 个只读 MCP 工具（`smartmoney_get_overview`、`smartmoney_get_signal`、`smartmoney_get_signal_history`、`smartmoney_get_traders`、`smartmoney_get_trader_detail`）及对应 CLI 命令，支持查询交易员排行榜、持仓分析和聪明钱信号。
+
 - **`context-kg/` 上游 API 规格**：在 `context-kg/business/` 新增三份业务域参考文档，记录本仓库调用的上游 OKX API 合约 —— `06-leaderboard-smartmoney-api.md`（issue #94 所需的 7 个牛人榜/聪明钱端点，含实盘探测状态和字段漂移说明）、`07-dcd-api.md`（8 个 DCD 结构化产品端点，含状态机和错误码）、`08-dca-api.md`（19 个现货/合约 DCA 机器人端点，含同步跟单限制）。用作实现阶段核对工具设计、请求/响应结构、枚举值的权威依据。
 
 ### 变更

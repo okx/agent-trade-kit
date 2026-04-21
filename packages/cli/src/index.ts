@@ -148,6 +148,13 @@ import {
   cmdEarnLendingRateHistory,
 } from "./commands/earn.js";
 import {
+  cmdSmartmoneyOverview,
+  cmdSmartmoneySignal,
+  cmdSmartmoneySignalHistory,
+  cmdSmartmoneyTraders,
+  cmdSmartmoneyTraderDetail,
+} from "./commands/smartmoney.js";
+import {
   cmdAutoEarnStatus,
   cmdAutoEarnOn,
   cmdAutoEarnOff,
@@ -338,6 +345,9 @@ function handleMarketFilterCommand(
       limit,
       json,
     });
+  errorLine(`Unknown market command: ${action}`);
+  errorLine("Valid: ticker, tickers, orderbook, candles, trades, instruments, mark-price, funding-rate, open-interest, index-ticker, price-limit, stock-tokens, instruments-by-category, indicator, filter, oi-history, oi-change");
+  process.exitCode = 1;
 }
 
 function handleIndicatorAction(
@@ -1129,6 +1139,55 @@ function handleEarnFlashEarnCommand(
   process.exitCode = 1;
 }
 
+export function handleSmartmoneyCommand(
+  run: ToolRunner,
+  action: string,
+  rest: string[],
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  const poolFilters = {
+    sortType: v.sortType, period: v.period, pnl: v.pnl,
+    winRatio: v.winRatio, maxRetreat: v.maxRetreat, asset: v.asset,
+  };
+  if (action === "overview")
+    return cmdSmartmoneyOverview(run, {
+      dataVersion: v.dataVersion, ts: v.ts, instType: v.instType,
+      ...poolFilters, lmtNum: v.lmtNum, instCcyList: v.instCcyList,
+      instCcy: v.instCcy, topInstruments: v.topInstruments, json,
+    });
+  if (action === "signal")
+    return cmdSmartmoneySignal(run, {
+      instId: v.instId, dataVersion: v.dataVersion, ts: v.ts,
+      ...poolFilters, instCcy: v.instCcy, lmtNum: v.lmtNum,
+      authorIds: v.authorIds, json,
+    });
+  if (action === "signal-history") {
+    if (!v.instId) { errorLine("Missing required --instId: okx smartmoney signal-history --instId <id>"); process.exitCode = 1; return; }
+    return cmdSmartmoneySignalHistory(run, {
+      instId: v.instId, dataVersion: v.dataVersion, ts: v.ts,
+      granularity: v.granularity, limit: v.limit,
+      ...poolFilters, json,
+    });
+  }
+  if (action === "traders")
+    return cmdSmartmoneyTraders(run, {
+      dataVersion: v.dataVersion, ...poolFilters,
+      authorIds: v.authorIds, after: v.after, before: v.before,
+      limit: v.limit, json,
+    });
+  if (action === "trader") {
+    if (!v.authorId) { errorLine("Missing required --authorId: okx smartmoney trader --authorId <id>"); process.exitCode = 1; return; }
+    return cmdSmartmoneyTraderDetail(run, {
+      authorId: v.authorId, period: v.period,
+      instCcy: v.instCcy, tradeLimit: v.tradeLimit, json,
+    });
+  }
+  errorLine(`Unknown smartmoney command: ${action}`);
+  errorLine("Valid: overview, signal, signal-history, traders, trader");
+  process.exitCode = 1;
+}
+
 function handleEarnSavingsCommand(
   run: ToolRunner,
   action: string,
@@ -1490,6 +1549,7 @@ async function main(): Promise<void> {
     news:    () => handleNewsCommand(run, action, rest, v, json),
     bot:     () => handleBotCommand(run, action, rest, v, json),
     earn:    () => handleEarnCommand(run, action, rest, v, json),
+    smartmoney: () => handleSmartmoneyCommand(run, action, rest, v, json),
     skill:   () => handleSkillCommand(run, action, rest, v, json, config),
   };
   const handler = moduleHandlers[module];
