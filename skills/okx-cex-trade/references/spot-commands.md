@@ -180,6 +180,30 @@ Returns: `algoId`, `instId`, type, `side`, `sz`, `tpTrigger`, `slTrigger`, `stat
 
 ---
 
+## Spot — Set Leverage (margin trading)
+
+```bash
+okx spot leverage ( --instId <pair> | --ccy <ccy> ) --lever <n> --mgnMode <cross|isolated> [--json]
+```
+
+Use this to set leverage for spot **margin** (borrowing) trading. Pass **exactly one** of `--instId` (pair-level) or `--ccy` (currency-level cross).
+
+| Param | Required | Description |
+|---|---|---|
+| `--instId` | Cond. | Pair-level leverage, e.g. `BTC-USDT`. Works with `isolated` or `cross`. Mutually exclusive with `--ccy`. |
+| `--ccy` | Cond. | Currency-level leverage, e.g. `BTC`. Only for borrow-enabled spot / multi-ccy margin / portfolio margin accounts. Requires `--mgnMode cross`. |
+| `--lever` | Yes | Positive number (e.g. `3`). Max depends on the pair / account policy. |
+| `--mgnMode` | Yes | `cross` or `isolated`. Must be `cross` when `--ccy` is used. |
+
+Scenarios (mirror OKX `POST /api/v5/account/set-leverage`):
+- `--instId + --mgnMode isolated` → pair-level isolated margin
+- `--instId + --mgnMode cross`    → pair-level cross margin (contract-mode account)
+- `--ccy    + --mgnMode cross`    → currency-level cross (spot-with-borrow / multi-ccy / portfolio margin)
+
+For SWAP / FUTURES leverage see `okx swap leverage` / `okx futures leverage`.
+
+---
+
 ## Edge Cases — Spot
 
 - **Market order size**: default `--sz` is in base currency (e.g., BTC amount). If user specifies a USDT amount, use `--tgtCcy quote_ccy` and pass the USDT value as `--sz` directly — do NOT manually convert

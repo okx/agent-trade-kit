@@ -13,6 +13,8 @@
 
 ### 新增
 
+- **`spot_set_leverage` MCP 工具及 `okx spot leverage` CLI 命令**：设置现货保证金或全仓杠杆倍数。支持 `--instId`（标的级别）或 `--ccy`（币种级别）与 `--lever`、`--mgnMode` 组合使用。HTTP 请求发出前进行输入验证——非数字、零值或负值的 `lever` 将立即返回可操作的错误信息。覆盖 OKX 现货/保证金全部 5 种杠杆场景。
+
 - **Smart Money 模块**（`smartmoney`）：新增 5 个只读 MCP 工具（`smartmoney_get_overview`、`smartmoney_get_signal`、`smartmoney_get_signal_history`、`smartmoney_get_traders`、`smartmoney_get_trader_detail`）及对应 CLI 命令，支持查询交易员排行榜、持仓分析和聪明钱信号。
 
 - **`context-kg/` 上游 API 规格**：在 `context-kg/business/` 新增三份业务域参考文档，记录本仓库调用的上游 OKX API 合约 —— `06-leaderboard-smartmoney-api.md`（issue #94 所需的 7 个牛人榜/聪明钱端点，含实盘探测状态和字段漂移说明）、`07-dcd-api.md`（8 个 DCD 结构化产品端点，含状态机和错误码）、`08-dca-api.md`（19 个现货/合约 DCA 机器人端点，含同步跟单限制）。用作实现阶段核对工具设计、请求/响应结构、枚举值的权威依据。
@@ -21,6 +23,10 @@
 #### 破坏性变更
 
 - **`grid_stop_order` MCP 工具：`stopType` 值 `"3"`、`"5"`、`"6"` 已明确删除**（ALGO-37613）— 这些值对网格机器人停止操作不再有效，禁止继续使用。有效集合缩减为 `["1","2"]`：`"1"` 立即平仓退出（默认），`"2"` 停止策略但不平仓。传入 `"3"`/`"5"`/`"6"` 的调用方将在 schema 校验阶段失败。**迁移方案**：根据期望的退出行为，将 `"3"/"5"/"6"` 替换为 `"1"`（立即平仓）或 `"2"`（保留持仓）。
+
+### 修复
+
+- **`swap_set_leverage` / `futures_set_leverage` 输入校验增强**：无效的 `lever` 值（非数字、零值、负值）现在在 HTTP 请求发出前即被拒绝，并返回明确的错误信息，不再透传为 OKX 51xxx 错误。`mgnMode` 和 `posSide` 字段校验已对齐允许枚举值。`cross` 与 `long`/`short` 的组合被明确拦截，提示"posSide 仅在逐仓模式下有效"，与 OKX 业务规则一致，可将约 9.7% 的无效请求失败率显著降低。工具描述已重写，枚举了 SWAP/FUTURES 的三种适用场景（全仓指数级 / 逐仓单向 / 逐仓对冲），并明确标注组合保证金全仓模式不支持。
 
 ### 变更
 

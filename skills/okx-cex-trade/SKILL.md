@@ -223,7 +223,7 @@ okx event place --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome 
 
 ## Command Index
 
-### Spot Orders (11 commands)
+### Spot Orders (12 commands)
 
 | # | Command | Type | Description |
 |---|---|---|---|
@@ -238,6 +238,7 @@ okx event place --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome 
 | 9 | `okx spot get` | READ | Single spot order details |
 | 10 | `okx spot fills` | READ | Spot trade fill history |
 | 11 | `okx spot algo orders` | READ | List spot TP/SL algo orders |
+| 12 | `okx spot leverage` | WRITE | Set leverage for spot **margin** (borrowing). Pair-level (`--instId`) or currency-level cross (`--ccy`, required for borrow-enabled / multi-ccy / portfolio margin) |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/spot-commands.md`.
 
@@ -245,21 +246,21 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 12 | `okx swap place` | WRITE | Place perpetual swap order |
-| 13 | `okx swap cancel` | WRITE | Cancel swap order |
-| 14 | `okx swap amend` | WRITE | Amend swap order price or size |
-| 15 | `okx swap close` | WRITE | Close entire position at market |
-| 16 | `okx swap leverage` | WRITE | Set leverage for an instrument |
-| 17 | `okx swap algo place` | WRITE | Place swap TP/SL algo order |
-| 18 | `okx swap algo trail` | WRITE | Place swap trailing stop order |
-| 19 | `okx swap algo amend` | WRITE | Amend swap algo order |
-| 20 | `okx swap algo cancel` | WRITE | Cancel swap algo order |
-| 21 | `okx swap positions` | READ | Open perpetual swap positions |
-| 22 | `okx swap orders` | READ | List open or historical swap orders |
-| 23 | `okx swap get` | READ | Single swap order details |
-| 24 | `okx swap fills` | READ | Swap trade fill history |
-| 25 | `okx swap get-leverage` | READ | Current leverage settings |
-| 26 | `okx swap algo orders` | READ | List swap algo orders |
+| 13 | `okx swap place` | WRITE | Place perpetual swap order |
+| 14 | `okx swap cancel` | WRITE | Cancel swap order |
+| 15 | `okx swap amend` | WRITE | Amend swap order price or size |
+| 16 | `okx swap close` | WRITE | Close entire position at market |
+| 17 | `okx swap leverage` | WRITE | Set leverage for an instrument |
+| 18 | `okx swap algo place` | WRITE | Place swap TP/SL algo order |
+| 19 | `okx swap algo trail` | WRITE | Place swap trailing stop order |
+| 20 | `okx swap algo amend` | WRITE | Amend swap algo order |
+| 21 | `okx swap algo cancel` | WRITE | Cancel swap algo order |
+| 22 | `okx swap positions` | READ | Open perpetual swap positions |
+| 23 | `okx swap orders` | READ | List open or historical swap orders |
+| 24 | `okx swap get` | READ | Single swap order details |
+| 25 | `okx swap fills` | READ | Swap trade fill history |
+| 26 | `okx swap get-leverage` | READ | Current leverage settings |
+| 27 | `okx swap algo orders` | READ | List swap algo orders |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/swap-commands.md`.
 
@@ -267,21 +268,21 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 27 | `okx futures place` | WRITE | Place delivery futures order |
-| 28 | `okx futures cancel` | WRITE | Cancel delivery futures order |
-| 29 | `okx futures amend` | WRITE | Amend delivery futures order price or size |
-| 30 | `okx futures close` | WRITE | Close entire futures position at market |
-| 31 | `okx futures leverage` | WRITE | Set leverage for a futures instrument |
-| 32 | `okx futures algo place` | WRITE | Place futures TP/SL algo order |
-| 33 | `okx futures algo trail` | WRITE | Place futures trailing stop order |
-| 34 | `okx futures algo amend` | WRITE | Amend futures algo order |
-| 35 | `okx futures algo cancel` | WRITE | Cancel futures algo order |
-| 36 | `okx futures orders` | READ | List delivery futures orders |
-| 37 | `okx futures positions` | READ | Open delivery futures positions |
-| 38 | `okx futures fills` | READ | Delivery futures fill history |
-| 39 | `okx futures get` | READ | Single delivery futures order details |
-| 40 | `okx futures get-leverage` | READ | Current futures leverage settings |
-| 41 | `okx futures algo orders` | READ | List futures algo orders |
+| 28 | `okx futures place` | WRITE | Place delivery futures order |
+| 29 | `okx futures cancel` | WRITE | Cancel delivery futures order |
+| 30 | `okx futures amend` | WRITE | Amend delivery futures order price or size |
+| 31 | `okx futures close` | WRITE | Close entire futures position at market |
+| 32 | `okx futures leverage` | WRITE | Set leverage for a futures instrument |
+| 33 | `okx futures algo place` | WRITE | Place futures TP/SL algo order |
+| 34 | `okx futures algo trail` | WRITE | Place futures trailing stop order |
+| 35 | `okx futures algo amend` | WRITE | Amend futures algo order |
+| 36 | `okx futures algo cancel` | WRITE | Cancel futures algo order |
+| 37 | `okx futures orders` | READ | List delivery futures orders |
+| 38 | `okx futures positions` | READ | Open delivery futures positions |
+| 39 | `okx futures fills` | READ | Delivery futures fill history |
+| 40 | `okx futures get` | READ | Single delivery futures order details |
+| 41 | `okx futures get-leverage` | READ | Current futures leverage settings |
+| 42 | `okx futures algo orders` | READ | List futures algo orders |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/futures-commands.md`.
 
@@ -289,16 +290,16 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 42 | `okx option instruments` | READ | Option chain: list available contracts for an underlying |
-| 43 | `okx option greeks` | READ | Implied volatility + Greeks (delta/gamma/theta/vega) by underlying |
-| 44 | `okx option place` | WRITE | Place option order (call or put, buyer or seller) |
-| 45 | `okx option cancel` | WRITE | Cancel unfilled option order |
-| 46 | `okx option amend` | WRITE | Amend option order price or size |
-| 47 | `okx option batch-cancel` | WRITE | Batch cancel up to 20 option orders |
-| 48 | `okx option orders` | READ | List option orders (live / history / archive) |
-| 49 | `okx option get` | READ | Single option order details |
-| 50 | `okx option positions` | READ | Open option positions with live Greeks |
-| 51 | `okx option fills` | READ | Option trade fill history |
+| 43 | `okx option instruments` | READ | Option chain: list available contracts for an underlying |
+| 44 | `okx option greeks` | READ | Implied volatility + Greeks (delta/gamma/theta/vega) by underlying |
+| 45 | `okx option place` | WRITE | Place option order (call or put, buyer or seller) |
+| 46 | `okx option cancel` | WRITE | Cancel unfilled option order |
+| 47 | `okx option amend` | WRITE | Amend option order price or size |
+| 48 | `okx option batch-cancel` | WRITE | Batch cancel up to 20 option orders |
+| 49 | `okx option orders` | READ | List option orders (live / history / archive) |
+| 50 | `okx option get` | READ | Single option order details |
+| 51 | `okx option positions` | READ | Open option positions with live Greeks |
+| 52 | `okx option fills` | READ | Option trade fill history |
 
 For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and edge cases, read `{baseDir}/references/options-commands.md`.
 
@@ -306,15 +307,15 @@ For full command syntax, USDT-to-contracts conversion formula, tdMode rules, and
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 52 | `okx event browse` | READ | Browse active event contracts grouped by type (series + live markets in one call) |
-| 53 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
-| 54 | `okx event events <seriesId>` | READ | List events in a series |
-| 55 | `okx event markets <seriesId>` | READ | List markets; expired includes Outcome and Settlement value |
-| 56 | `okx event place ...` | WRITE | Place event order (outcome required) |
-| 57 | `okx event amend <instId> <ordId>` | WRITE | Amend event order (price/size) |
-| 58 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
-| 59 | `okx event orders` | READ | Pending or historical orders |
-| 60 | `okx event fills` | READ | Fill history |
+| 53 | `okx event browse` | READ | Browse active event contracts grouped by type (series + live markets in one call) |
+| 54 | `okx event series` | READ | List event series (e.g. BTC-ABOVE-DAILY, BTC-UPDOWN-15MIN) |
+| 55 | `okx event events <seriesId>` | READ | List events in a series |
+| 56 | `okx event markets <seriesId>` | READ | List markets; expired includes Outcome and Settlement value |
+| 57 | `okx event place ...` | WRITE | Place event order (outcome required) |
+| 58 | `okx event amend <instId> <ordId>` | WRITE | Amend event order (price/size) |
+| 59 | `okx event cancel <instId> <ordId>` | WRITE | Cancel event order |
+| 60 | `okx event orders` | READ | Pending or historical orders |
+| 61 | `okx event fills` | READ | Fill history |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/event-commands.md`.
 
@@ -401,7 +402,7 @@ For cross-skill workflows and step-by-step examples, read `{baseDir}/references/
 - Option place: confirm `--instId`, `--side`, `--sz`, `--tdMode` (and `--tgtCcy quote_ccy` or `--tgtCcy margin` if USDT amount — system auto-converts); do NOT attach TP/SL
 - Event Contract place: confirm `--instId`, `--side`, `--outcome`, `--sz`, `--ordType`; for market orders sz is quote currency amount, for limit orders sz is number of contracts + `--px` required
 - Swap/Futures close: confirm `--instId`, `--mgnMode`, `--posSide`
-- Leverage: confirm new leverage and impact on existing positions. **If set-leverage fails** (error mentions "cancel orders or stop bots"): troubleshoot in priority order — (1) query pending algo orders first (`swap/futures algo-orders --status pending`), as this is the most common blocker; (2) only if no algo orders, check active bots (`bot grid-orders`). **Do NOT automatically cancel orders or stop bots** — present findings and let the user decide
+- Leverage: confirm new leverage and impact on existing positions. **Pre-checks to avoid common 400s**: (a) `--lever` must be a positive number within the instrument's max (see `okx market instruments` → `lever`); (b) for `--mgnMode isolated` in hedge pos mode, `--posSide` is required — each side (`long`, `short`) must be set **separately**, setting one does NOT auto-apply to the other; (c) **portfolio-margin accounts cannot adjust `cross` leverage for SWAP/FUTURES** — OKX will reject; if unsure, run `okx account config` and check `acctLv` first. **If set-leverage fails** (error mentions "cancel orders or stop bots"): troubleshoot in priority order — (1) query pending algo orders first (`swap/futures algo-orders --status pending`), as this is the most common blocker; (2) only if no algo orders, check active bots (`bot grid-orders`). **Do NOT automatically cancel orders or stop bots** — present findings and let the user decide
 - Algo place (TP/SL): confirm trigger prices; use `--tpOrdPx=-1` for market execution
 - Algo trail: confirm `--callbackRatio` (e.g., `0.02` = 2%) or `--callbackSpread`
 

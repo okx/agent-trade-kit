@@ -18,6 +18,7 @@ import {
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
+import { ValidationError } from "../utils/errors.js";
 
 export interface ContractConfig {
   /** Tool name prefix, e.g. "swap" → "swap_place_order" */
@@ -382,31 +383,65 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     {
       name: n("set_leverage"),
       module,
-      description: `Set leverage for a ${label} instrument or position. [CAUTION] Changes risk parameters.`,
+      description:
+        `Set leverage for a ${label} instrument or position. [CAUTION] Changes risk parameters.\n` +
+        "Scenarios (SWAP/FUTURES only):\n" +
+        "  • cross + any instId under the index → sets leverage at the index level\n" +
+        "  • isolated + buy-sell (net) posMode → instId only\n" +
+        "  • isolated + long-short (hedge) posMode → instId + posSide=long|short (BOTH directions must be set separately)\n" +
+        "Not supported: PORTFOLIO MARGIN accounts cannot adjust cross leverage for SWAP/FUTURES — the request will be rejected by OKX. " +
+        "Use account_get_config first if unsure of the account's margin mode.",
       isWrite: true,
       inputSchema: {
         type: "object",
         properties: {
           instId: { type: "string", description: instIdExample },
-          lever: { type: "string", description: "Leverage, e.g. '10'" },
+          lever: {
+            type: "string",
+            description: "Leverage multiplier as a positive number string, e.g. '10'. Max value depends on the instrument (query market_get_instruments → lever).",
+          },
           mgnMode: { type: "string", enum: ["cross", "isolated"] },
           posSide: {
             type: "string",
-            enum: ["long", "short", "net"],
-            description: "Required for isolated margin in hedge mode",
+            enum: ["long", "short"],
+            description:
+              "REQUIRED when mgnMode=isolated AND the account is in hedge (long/short) position mode. " +
+              "Use 'long' or 'short' — setting one side does NOT auto-apply to the other. " +
+              "Omit entirely for one-way (net) position mode or for cross margin.",
           },
         },
         required: ["instId", "lever", "mgnMode"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const instId = requireString(args, "instId");
+        const leverRaw = requireString(args, "lever");
+        const leverNum = Number(leverRaw);
+        if (!Number.isFinite(leverNum) || leverNum <= 0) {
+          throw new ValidationError(
+            `Parameter "lever" must be a positive number string, got "${leverRaw}".`,
+          );
+        }
+        const mgnMode = requireString(args, "mgnMode");
+        assertEnum(mgnMode, "mgnMode", ["cross", "isolated"] as const);
+        const posSide = readString(args, "posSide");
+        if (posSide !== undefined) {
+          assertEnum(posSide, "posSide", ["long", "short"] as const);
+          // OKX only accepts posSide in isolated+hedge mode; reject it for cross margin.
+          if (mgnMode === "cross") {
+            throw new ValidationError(
+              `posSide="${posSide}" is only valid with mgnMode="isolated" in hedge mode. ` +
+              `Omit posSide for cross margin.`,
+            );
+          }
+        }
         const response = await context.client.privatePost(
           "/api/v5/account/set-leverage",
           compactObject({
-            instId: requireString(args, "instId"),
-            lever: requireString(args, "lever"),
-            mgnMode: requireString(args, "mgnMode"),
-            posSide: readString(args, "posSide"),
+            instId,
+            lever: leverRaw,
+            mgnMode,
+            posSide,
           }),
           privateRateLimit(n("set_leverage"), 20),
         );

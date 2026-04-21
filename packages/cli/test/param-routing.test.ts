@@ -214,6 +214,32 @@ describe("handleSpotCommand — parameter routing", () => {
         );
         assert.equal(captured.args["instId"], "BTC-USDT");
     });
+
+    it("leverage: instId comes from v.instId (not rest[N])", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSpotCommand(spy, "leverage", [], vals({
+            instId: "BTC-USDT",
+            lever: "3",
+            mgnMode: "isolated",
+        }), false);
+        assert.equal(captured.args["instId"], "BTC-USDT");
+        assert.equal(captured.args["ccy"], undefined);
+        assert.equal(captured.args["lever"], "3");
+        assert.equal(captured.args["mgnMode"], "isolated");
+    });
+
+    it("leverage: ccy comes from v.ccy (not rest[N])", async () => {
+        const {spy, captured} = makeSpy();
+        await handleSpotCommand(spy, "leverage", [], vals({
+            ccy: "BTC",
+            lever: "5",
+            mgnMode: "cross",
+        }), false);
+        assert.equal(captured.args["ccy"], "BTC");
+        assert.equal(captured.args["instId"], undefined);
+        assert.equal(captured.args["lever"], "5");
+        assert.equal(captured.args["mgnMode"], "cross");
+    });
 });
 
 // ===========================================================================

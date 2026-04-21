@@ -11,6 +11,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
+import { ValidationError } from "../utils/errors.js";
 
 export function registerSpotTradeTools(): ToolSpec[] {
   return [
@@ -731,6 +732,90 @@ export function registerSpotTradeTools(): ToolSpec[] {
           "/api/v5/trade/cancel-batch-orders",
           orders as Record<string, unknown>[],
           privateRateLimit("spot_batch_cancel", 60),
+        );
+        return normalizeResponse(response);
+      },
+    },
+
+    // ── set_leverage (SPOT margin: instId-level isolated OR ccy-level cross) ──
+    // Covers OKX scenarios 1–5 (everything except SWAP/FUTURES, which are in
+    // contract-trade.ts). Callers supply exactly one of {instId, ccy}:
+    //  • instId + isolated       → scenario 1 (pair-level margin)
+    //  • instId + cross          → scenario 3 (contract-mode pair-level cross margin)
+    //  • ccy + cross             → scenarios 2 / 4 / 5 (spot/multi-ccy/PM currency-level cross)
+    // Not applicable: posSide (spot has no long/short hedge).
+    {
+      name: "spot_set_leverage",
+      module: "spot",
+      description:
+        "Set leverage for SPOT margin trading. Provide exactly ONE of instId (pair-level) or ccy (currency-level cross, requires borrow-enabled account / multi-ccy / portfolio margin). " +
+        "[CAUTION] Changes risk parameters.\n" +
+        "Scenarios:\n" +
+        "  • instId + mgnMode=isolated → pair-level isolated margin\n" +
+        "  • instId + mgnMode=cross    → pair-level cross margin (contract-mode account)\n" +
+        "  • ccy    + mgnMode=cross    → currency-level cross margin (spot-with-borrow / multi-ccy / portfolio margin)\n" +
+        "When ccy is supplied, mgnMode MUST be cross. posSide is never applicable to spot margin.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: {
+            type: "string",
+            description: "Spot pair, e.g. BTC-USDT. Provide instId OR ccy, not both.",
+          },
+          ccy: {
+            type: "string",
+            description: "Margin currency, e.g. BTC. Required only for currency-level cross margin (borrow-enabled / multi-ccy / portfolio margin). Mutually exclusive with instId.",
+          },
+          lever: {
+            type: "string",
+            description: "Leverage multiplier as a positive number string, e.g. '3'. Max depends on the pair (query market_get_instruments → lever) or the account policy for ccy-level.",
+          },
+          mgnMode: {
+            type: "string",
+            enum: ["cross", "isolated"],
+            description: "cross or isolated. Must be cross when ccy is supplied.",
+          },
+        },
+        required: ["lever", "mgnMode"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const instId = readString(args, "instId");
+        const ccy = readString(args, "ccy");
+        if (!instId && !ccy) {
+          throw new ValidationError(
+            `Missing required parameter: provide either "instId" (pair-level) or "ccy" (currency-level cross margin).`,
+          );
+        }
+        if (instId && ccy) {
+          throw new ValidationError(
+            `Parameters "instId" and "ccy" are mutually exclusive — provide only one. instId sets pair-level leverage; ccy sets currency-level cross margin leverage.`,
+          );
+        }
+        const leverRaw = requireString(args, "lever");
+        const leverNum = Number(leverRaw);
+        if (!Number.isFinite(leverNum) || leverNum <= 0) {
+          throw new ValidationError(
+            `Parameter "lever" must be a positive number string, got "${leverRaw}".`,
+          );
+        }
+        const mgnMode = requireString(args, "mgnMode");
+        assertEnum(mgnMode, "mgnMode", ["cross", "isolated"] as const);
+        if (ccy && mgnMode !== "cross") {
+          throw new ValidationError(
+            `When "ccy" is supplied, "mgnMode" must be "cross" (currency-level leverage only applies to cross margin).`,
+          );
+        }
+        const response = await context.client.privatePost(
+          "/api/v5/account/set-leverage",
+          compactObject({
+            instId,
+            ccy,
+            lever: leverRaw,
+            mgnMode,
+          }),
+          privateRateLimit("spot_set_leverage", 20),
         );
         return normalizeResponse(response);
       },

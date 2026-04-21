@@ -278,6 +278,11 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx spot batch --action <place|amend|cancel> --orders '<json>'",
         description: "Batch place, amend, or cancel spot orders",
       },
+      leverage: {
+        toolName: "spot_set_leverage",
+        usage: "okx spot leverage ( --instId <pair> | --ccy <ccy> ) --lever <positive-number> --mgnMode <cross|isolated>",
+        description: "Set leverage for SPOT margin. Provide instId (pair-level) OR ccy (currency-level cross, for borrow-enabled/multi-ccy/portfolio margin). When ccy is used, mgnMode must be cross.",
+      },
     },
     subgroups: {
       algo: {
@@ -360,8 +365,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       leverage: {
         toolName: "swap_set_leverage",
-        usage: "okx swap leverage --instId <id> --lever <n> --mgnMode <cross|isolated> [--posSide <side>]",
-        description: "Set leverage for a swap instrument",
+        usage: "okx swap leverage --instId <id> --lever <positive-number> --mgnMode <cross|isolated> [--posSide <long|short>]",
+        description: "Set leverage for a swap instrument. posSide is REQUIRED when mgnMode=isolated and account is in hedge mode — must be set for BOTH long and short separately. Not supported for portfolio margin + cross.",
       },
       "get-leverage": {
         toolName: "swap_get_leverage",
@@ -460,8 +465,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       leverage: {
         toolName: "futures_set_leverage",
-        usage: "okx futures leverage --instId <id> --lever <n> --mgnMode <cross|isolated> [--posSide <net|long|short>]",
-        description: "Set leverage for a futures instrument",
+        usage: "okx futures leverage --instId <id> --lever <positive-number> --mgnMode <cross|isolated> [--posSide <long|short>]",
+        description: "Set leverage for a futures instrument. posSide is REQUIRED when mgnMode=isolated and account is in hedge mode — must be set for BOTH long and short separately. Not supported for portfolio margin + cross.",
       },
       batch: {
         toolName: "futures_batch_orders",
