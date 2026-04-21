@@ -165,6 +165,7 @@ import {
   cmdGridDetails,
   cmdGridSubOrders,
   cmdGridCreate,
+  cmdGridAmend,
   cmdGridStop,
   cmdDcaCreate,
   cmdDcaStop,
@@ -1017,6 +1018,20 @@ export function handleBotGridCommand(
       tpRatio: v.tpRatio,
       slRatio: v.slRatio,
       algoClOrdId: v.algoClOrdId,
+      json,
+    });
+  if (subAction === "amend")
+    return cmdGridAmend(run, {
+      algoId: v.algoId!,
+      instId: v.instId,
+      maxPx: v.maxPx,
+      minPx: v.minPx,
+      gridNum: v.gridNum,
+      tpTriggerPx: v.tpTriggerPx,
+      slTriggerPx: v.slTriggerPx,
+      tpRatio: v.tpRatio,
+      slRatio: v.slRatio,
+      topUpAmt: v.topUpAmt,
       json,
     });
   if (subAction === "stop")

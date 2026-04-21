@@ -5,6 +5,7 @@ import {
   cmdGridOrders,
   cmdGridDetails,
   cmdGridCreate,
+  cmdGridAmend,
   cmdGridStop,
   cmdDcaOrders,
   cmdDcaDetails,
@@ -139,6 +140,113 @@ describe("cmdGridCreate", () => {
     assert.ok(out.join("").includes("Grid bot created"));
     assert.ok(out.join("").includes("GRID_COINM_001"));
     assert.equal(err.join(""), "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdGridAmend
+// ---------------------------------------------------------------------------
+describe("cmdGridAmend", () => {
+  it("outputs success message when item has algoId (price-range mode)", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "GRID001" }]);
+    await cmdGridAmend(runner, {
+      algoId: "GRID001", maxPx: "60000", minPx: "40000", gridNum: "20", json: false,
+    });
+    assert.ok(out.join("").includes("Grid bot amended"));
+    assert.ok(out.join("").includes("GRID001"));
+    assert.ok(out.join("").includes("OK"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs success message in TP/SL mode", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "GRID002" }]);
+    await cmdGridAmend(runner, {
+      algoId: "GRID002", instId: "BTC-USDT", tpTriggerPx: "70000", slTriggerPx: "38000", json: false,
+    });
+    assert.ok(out.join("").includes("Grid bot amended"));
+    assert.ok(out.join("").includes("GRID002"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs success in combined mode (price-range + TP/SL)", async () => {
+    const runner: ToolRunner = async () =>
+      fakeResult([{ algoId: "GRID003" }, { algoId: "GRID003" }]);
+    await cmdGridAmend(runner, {
+      algoId: "GRID003",
+      maxPx: "60000", minPx: "40000", gridNum: "10",
+      instId: "BTC-USDT", tpTriggerPx: "65000",
+      json: false,
+    });
+    assert.ok(out.join("").includes("Grid bot amended"));
+    assert.ok(out.join("").includes("GRID003"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs error to stderr when sCode is non-zero", async () => {
+    const runner: ToolRunner = async () =>
+      fakeResult([{ sCode: "51042", sMsg: "Grid not found" }]);
+    await cmdGridAmend(runner, { algoId: "GRID999", maxPx: "60000", minPx: "40000", gridNum: "10", json: false });
+    assert.ok(err.join("").includes("Grid not found"));
+    assert.ok(err.join("").includes("51042"));
+    assert.equal(out.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "GRID001" }]);
+    await cmdGridAmend(runner, { algoId: "GRID001", tpRatio: "0.1", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+
+  it("passes price-range params to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "GRID001" }]);
+    };
+    await cmdGridAmend(spy, {
+      algoId: "GRID001", maxPx: "62000", minPx: "41000", gridNum: "15",
+      topUpAmt: "500", json: false,
+    });
+    assert.equal(captured["algoId"],   "GRID001");
+    assert.equal(captured["maxPx"],    "62000");
+    assert.equal(captured["minPx"],    "41000");
+    assert.equal(captured["gridNum"],  "15");
+    assert.equal(captured["topUpAmt"], "500");
+  });
+
+  it("passes TP/SL params to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "GRID001" }]);
+    };
+    await cmdGridAmend(spy, {
+      algoId: "GRID001", instId: "BTC-USDT",
+      tpTriggerPx: "70000", slTriggerPx: "35000",
+      tpRatio: "0.12", slRatio: "0.08",
+      json: false,
+    });
+    assert.equal(captured["algoId"],      "GRID001");
+    assert.equal(captured["instId"],      "BTC-USDT");
+    assert.equal(captured["tpTriggerPx"], "70000");
+    assert.equal(captured["slTriggerPx"], "35000");
+    assert.equal(captured["tpRatio"],     "0.12");
+    assert.equal(captured["slRatio"],     "0.08");
+  });
+
+  it("passes '-1' to clear TP/SL", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "GRID001" }]);
+    };
+    await cmdGridAmend(spy, {
+      algoId: "GRID001", instId: "BTC-USDT",
+      tpTriggerPx: "-1", slTriggerPx: "-1",
+      json: false,
+    });
+    assert.equal(captured["tpTriggerPx"], "-1");
+    assert.equal(captured["slTriggerPx"], "-1");
   });
 });
 

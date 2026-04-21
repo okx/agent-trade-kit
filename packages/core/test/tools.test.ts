@@ -2181,8 +2181,8 @@ describe("grid tools module field", () => {
     }
   });
 
-  it("registers exactly 5 grid tools", () => {
-    assert.equal(tools.length, 5);
+  it("registers exactly 6 grid tools", () => {
+    assert.equal(tools.length, 6);
   });
 });
 
@@ -2938,6 +2938,213 @@ describe("dca tools registration", () => {
         `${tool.name} should have module bot.dca`,
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid — grid_amend_order
+// ---------------------------------------------------------------------------
+
+describe("grid_amend_order — price-range mode", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_amend_order")!;
+
+  it("calls amend-algo-basic-param with correct params", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "123", maxPx: "105000", minPx: "85000", gridNum: "20" },
+      makeContext(client),
+    );
+    const calls = getCalls();
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0]!.endpoint.includes("amend-algo-basic-param"));
+    assert.equal(calls[0]!.params.algoId, "123");
+    assert.equal(calls[0]!.params.maxPx, "105000");
+    assert.equal(calls[0]!.params.minPx, "85000");
+    assert.equal(calls[0]!.params.gridNum, "20");
+  });
+
+  it("passes topUpAmt as topupAmount in price-range mode", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "123", maxPx: "105000", minPx: "85000", gridNum: "20", topUpAmt: "50" },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.topupAmount, "50");
+  });
+
+  it("omits topupAmount when topUpAmt not provided", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "123", maxPx: "105000", minPx: "85000", gridNum: "20" },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.topupAmount, undefined);
+  });
+});
+
+describe("grid_amend_order — TP/SL mode", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_amend_order")!;
+
+  it("calls amend-order-algo with correct TP/SL params", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "456", instId: "BTC-USDT", tpTriggerPx: "110000", slTriggerPx: "80000" },
+      makeContext(client),
+    );
+    const calls = getCalls();
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0]!.endpoint.includes("amend-order-algo"));
+    assert.equal(calls[0]!.params.algoId, "456");
+    assert.equal(calls[0]!.params.instId, "BTC-USDT");
+    assert.equal(calls[0]!.params.tpTriggerPx, "110000");
+    assert.equal(calls[0]!.params.slTriggerPx, "80000");
+  });
+
+  it("passes tpRatio and slRatio in TP/SL mode", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "456", instId: "BTC-USDT-SWAP", tpRatio: "0.1", slRatio: "0.05" },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.tpRatio, "0.1");
+    assert.equal(params.slRatio, "0.05");
+  });
+
+  it("passes '-1' values to clear TP/SL", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "456", instId: "BTC-USDT", tpTriggerPx: "-1", slTriggerPx: "-1" },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.tpTriggerPx, "-1");
+    assert.equal(params.slTriggerPx, "-1");
+  });
+
+  it("triggers TP/SL mode from tpTriggerPx alone when instId is also present", async () => {
+    const { client, getCalls } = makeMockClient();
+    // instId required by API but TP/SL mode detection works from any TPSL field
+    await tool.handler(
+      { algoId: "456", instId: "BTC-USDT", tpTriggerPx: "110000" },
+      makeContext(client),
+    );
+    const calls = getCalls();
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0]!.endpoint.includes("amend-order-algo"));
+  });
+});
+
+describe("grid_amend_order — combined mode", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_amend_order")!;
+
+  it("calls both endpoints sequentially when both modes are specified", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      {
+        algoId: "789",
+        maxPx: "105000",
+        minPx: "85000",
+        gridNum: "20",
+        instId: "BTC-USDT",
+        tpTriggerPx: "110000",
+        slTriggerPx: "80000",
+      },
+      makeContext(client),
+    );
+    const calls = getCalls();
+    assert.equal(calls.length, 2);
+    assert.ok(calls[0]!.endpoint.includes("amend-algo-basic-param"), "first call should be price-range");
+    assert.ok(calls[1]!.endpoint.includes("amend-order-algo"), "second call should be TP/SL");
+  });
+
+  it("merged result contains data from both calls", async () => {
+    const { client } = makeMockClient();
+    const result = await tool.handler(
+      {
+        algoId: "789",
+        maxPx: "105000",
+        minPx: "85000",
+        gridNum: "20",
+        instId: "BTC-USDT",
+        tpTriggerPx: "110000",
+      },
+      makeContext(client),
+    ) as { data: unknown[] };
+    assert.ok(Array.isArray(result.data));
+    assert.equal(result.data.length, 2);
+  });
+});
+
+describe("grid_amend_order — validation", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_amend_order")!;
+
+  it("throws OkxApiError when no mode params provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "123" }, makeContext(client)),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.ok((err as OkxApiError).message.includes("Nothing to amend"));
+        return true;
+      },
+    );
+  });
+
+  it("throws Nothing to amend when only instId is provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "123", instId: "BTC-USDT" }, makeContext(client)),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.ok((err as OkxApiError).message.includes("Nothing to amend"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when TP/SL fields provided but instId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "123", tpTriggerPx: "110000" }, makeContext(client)),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.ok((err as OkxApiError).message.includes("instId"));
+        return true;
+      },
+    );
+  });
+
+  it("enriches error message when price-range succeeds but TP/SL fails", async () => {
+    let callCount = 0;
+    const client = {
+      privatePost: async (endpoint: string) => {
+        callCount++;
+        if (endpoint.includes("amend-order-algo")) {
+          throw new OkxApiError("network error", { code: "", endpoint });
+        }
+        return { data: [{ algoId: "789" }], requestTime: 0 };
+      },
+    } as unknown as Parameters<typeof makeContext>[0];
+    await assert.rejects(
+      () =>
+        tool.handler(
+          { algoId: "789", maxPx: "105000", minPx: "85000", gridNum: "20", instId: "BTC-USDT", tpTriggerPx: "110000" },
+          makeContext(client),
+        ),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.ok((err as OkxApiError).message.includes("price-range amend already succeeded"));
+        return true;
+      },
+    );
+    assert.equal(callCount, 2);
   });
 });
 

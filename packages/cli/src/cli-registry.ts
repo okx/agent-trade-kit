@@ -774,9 +774,14 @@ export const CLI_REGISTRY: CliRegistry = {
             usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]\n                   [--tpTriggerPx <px>] [--slTriggerPx <px>] [--tpRatio <n>] [--slRatio <n>] [--algoClOrdId <id>]",
             description: "Create a new grid bot order (contract grid opens base position by default)",
           },
+          amend: {
+            toolName: "grid_amend_order",
+            usage: "okx bot grid amend --algoId <id> --maxPx <px> --minPx <px> --gridNum <n> [--topUpAmt <n>]\n                   okx bot grid amend --algoId <id> --instId <id> [--tpTriggerPx <px>] [--slTriggerPx <px>] [--tpRatio <n>] [--slRatio <n>] [--topUpAmt <n>]",
+            description: "Amend a running grid bot. Price-range mode: provide --maxPx/--minPx/--gridNum. TP/SL mode: provide --instId and TP/SL flags.",
+          },
           stop: {
             toolName: "grid_stop_order",
-            usage: "okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2|3|5|6>]",
+            usage: "okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2>]",
             description: "Stop a running grid bot order",
           },
         },

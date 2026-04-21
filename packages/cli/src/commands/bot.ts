@@ -154,6 +154,47 @@ export async function cmdGridCreate(
   emitWriteResult(data?.[0], "Grid bot created", "algoId");
 }
 
+export async function cmdGridAmend(
+  run: ToolRunner,
+  opts: {
+    algoId: string;
+    // price-range mode
+    maxPx?: string;
+    minPx?: string;
+    gridNum?: string;
+    // TP/SL mode
+    instId?: string;
+    tpTriggerPx?: string;
+    slTriggerPx?: string;
+    tpRatio?: string;
+    slRatio?: string;
+    // shared optional
+    topUpAmt?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("grid_amend_order", {
+    algoId: opts.algoId,
+    instId: opts.instId,
+    maxPx: opts.maxPx,
+    minPx: opts.minPx,
+    gridNum: opts.gridNum,
+    tpTriggerPx: opts.tpTriggerPx,
+    slTriggerPx: opts.slTriggerPx,
+    tpRatio: opts.tpRatio,
+    slRatio: opts.slRatio,
+    topUpAmt: opts.topUpAmt,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const item = data?.[0];
+  if (item?.["algoId"]) {
+    outputLine(`Grid bot amended: ${item["algoId"]} (OK)`);
+  } else {
+    emitWriteResult(item, "Grid bot amended", "algoId");
+  }
+}
+
 export async function cmdGridStop(
   run: ToolRunner,
   opts: {

@@ -88,6 +88,7 @@ Stop immediately. Guide user to update `~/.okx/config.toml` with their editor. V
 | Command | Type | Description |
 |---|---|---|
 | `okx bot grid create` | WRITE | Create a grid bot (spot or contract) |
+| `okx bot grid amend` | WRITE | Amend price range, grid count, or TP/SL of a running grid bot |
 | `okx bot grid stop` | WRITE | Stop a grid bot |
 | `okx bot grid orders` | READ | List active or history grid bots |
 | `okx bot grid details` | READ | Grid bot details + PnL |
@@ -113,11 +114,12 @@ Parse user request → determine module (Grid / DCA) and action (create / stop /
 
 **READ commands** (orders, details, sub-orders): run immediately after profile confirmation.
 
-**WRITE commands** (create, stop): confirm key parameters with user once before executing.
+**WRITE commands** (create, amend, stop): confirm key parameters with user once before executing.
 
 ### Step 3 — Verify after writes
 
 - After create → run the corresponding `orders` command to confirm active
+- After amend → run `bot grid details` to confirm updated config
 - After stop → run `orders --history` to confirm stopped
 
 ## Key Rules
@@ -165,11 +167,49 @@ okx bot grid create --instId <id> --algoOrdType <type> \
 
 ---
 
+### Grid Bot — Amend
+
+```bash
+okx bot grid amend --algoId <id> \
+  [--maxPx <px> --minPx <px> --gridNum <n>] \
+  [--instId <id>] \
+  [--tpTriggerPx <px>] [--slTriggerPx <px>] \
+  [--tpRatio <ratio>] [--slRatio <ratio>] \
+  [--topUpAmt <n>] [--json]
+```
+
+Supports two modes that can be combined in one call:
+
+**Price-range mode** — triggered when `--maxPx` is provided:
+
+| Param | Required | Description |
+|---|---|---|
+| `--algoId` | Yes | Grid bot algo order ID |
+| `--maxPx` | Yes | New upper price boundary |
+| `--minPx` | Yes (with maxPx) | New lower price boundary |
+| `--gridNum` | Yes (with maxPx) | New grid count (integer) |
+| `--topUpAmt` | No | Extra margin to add (contract grid only; omit to auto-use minimum required) |
+
+**TP/SL mode** — triggered when at least one TP/SL param is provided; `--instId` is also required:
+
+| Param | Required | Description |
+|---|---|---|
+| `--instId` | Yes | Instrument ID (e.g., `BTC-USDT`) |
+| `--tpTriggerPx` | No | Take-profit trigger price (absolute). Pass `-1` to clear |
+| `--slTriggerPx` | No | Stop-loss trigger price (absolute). Pass `-1` to clear |
+| `--tpRatio` | No | Take-profit ratio (e.g., `0.1` = 10%). Contract grid only. Pass `-1` to clear |
+| `--slRatio` | No | Stop-loss ratio (e.g., `0.1` = 10%). Contract grid only. Pass `-1` to clear |
+| `--topUpAmt` | No | Extra margin to add (contract grid only) |
+
+> **Note**: `tpTriggerPx`/`tpRatio` are mutually exclusive. Same for `slTriggerPx`/`slRatio`.
+
+---
+
 ### Grid Bot — Stop
 
 ```bash
 okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> \
-  [--stopType <1|2|3|5|6>] [--json]
+  [--stopType <1|2>] [--json]
 ```
 
 > **`--algoId`** and **`--algoOrdType`** must come from `bot grid orders` output. The `algoOrdType` must match the bot's actual type — do not guess.
@@ -178,9 +218,6 @@ okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> \
 |---|---|
 | `1` | Stop + sell/close all positions at market (default) |
 | `2` | Stop + keep current assets as-is |
-| `3` | Stop + close at limit prices |
-| `5` | Stop + partial close |
-| `6` | Stop without selling (smart arbitrage) |
 
 ---
 
@@ -345,6 +382,20 @@ okx bot dca create --algoOrdType spot_dca --instId BTC-USDT --direction long \
   --initOrdAmt 100 --safetyOrdAmt 50 --maxSafetyOrds 3 \
   --pxSteps 0.03 --pxStepsMult 1.2 --volMult 1.5 --tpPct 0.05
 
+# Amend grid price range
+okx bot grid amend --algoId 3486105572796182528 --maxPx 102000 --minPx 88000 --gridNum 14
+
+# Amend grid TP/SL
+okx bot grid amend --algoId 3486105572796182528 --instId BTC-USDT --tpTriggerPx 110000 --slTriggerPx 80000
+
+# Amend both in one call (combined mode)
+okx bot grid amend --algoId 3486105572796182528 \
+  --maxPx 102000 --minPx 88000 --gridNum 14 \
+  --instId BTC-USDT --tpTriggerPx 110000 --slTriggerPx 80000
+
+# Clear TP/SL (use =-1 syntax for negative values)
+okx bot grid amend --algoId 3486105572796182528 --instId BTC-USDT --tpTriggerPx=-1 --slTriggerPx=-1
+
 # List all active bots
 okx bot grid orders --algoOrdType grid
 okx bot grid orders --algoOrdType contract_grid
@@ -406,8 +457,13 @@ okx bot dca orders --algoOrdType spot_dca
 - **Contract grid basePos**: defaults to `true` — long/short grids automatically open a base position at creation. Neutral direction ignores this. Pass `--no-basePos` to disable
 - **Contract grid --sz**: investment margin in USDT (USDT-M) or coin (coin-M), not number of contracts
 - **Coin-margined grids**: use inverse instruments (e.g., `BTC-USD-SWAP`). Margin unit is the base coin (BTC), not USDT
-- **Stop type**: `stopType 1` sells/closes all (default); `stopType 2` keeps assets; `stopType 5/6` for contract grid positions
+- **Stop type**: `stopType 1` sells/closes all (default); `stopType 2` keeps assets as-is (spot grid) or leaves position open for manual close (contract grid)
 - **TP/SL**: `tpTriggerPx`/`tpRatio` and `slTriggerPx`/`slRatio` are mutually exclusive pairs. Ratio-based TP/SL is contract grid only
+- **Amend — at least one mode required**: must provide either price-range params (`--maxPx`+`--minPx`+`--gridNum`) or TP/SL params; providing neither returns a validation error
+- **Amend — combined mode**: price-range and TP/SL can be combined in one call (two sequential API requests internally)
+- **Amend — clear TP/SL**: pass `--tpTriggerPx=-1` or `--slTriggerPx=-1` (use `=` syntax for negative values, not `--flag -1`)
+- **Amend — contract grid topUpAmt**: if new range requires more margin, provide `--topUpAmt`; omit to auto-use the minimum required
+- **Amend — spot grid topUpAmt**: not supported; omit `--topUpAmt` for spot grids
 - **Already stopped bot**: stop returns error — check `bot grid orders --history` first to confirm state
 - **Insufficient margin (51340)**: extract required minimum from error, check balance via `okx-cex-portfolio`, report shortfall to user — do NOT auto-transfer
 - **Demo mode**: `okx --profile demo bot grid create ...` — safe for testing, no real funds
