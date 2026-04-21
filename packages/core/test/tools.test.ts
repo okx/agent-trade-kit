@@ -1524,6 +1524,67 @@ describe("swap_set_leverage", () => {
     assert.equal(params.lever, "5");
     assert.equal(params.mgnMode, "isolated");
   });
+
+  it("rejects non-numeric lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "abc", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /lever.*positive number/i,
+    );
+  });
+
+  it("rejects zero / negative lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "0", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /lever.*positive number/i,
+    );
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "-5", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /lever.*positive number/i,
+    );
+  });
+
+  it("rejects invalid mgnMode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "portfolio" },
+        makeContext(client),
+      ),
+      /mgnMode.*cross.*isolated/i,
+    );
+  });
+
+  it("rejects long/short posSide with cross margin", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "cross", posSide: "long" },
+        makeContext(client),
+      ),
+      /posSide.*only valid.*isolated/i,
+    );
+  });
+
+  it("accepts long posSide with isolated margin (hedge mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "isolated", posSide: "long" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, "long");
+  });
 });
 
 describe("swap_get_leverage", () => {
