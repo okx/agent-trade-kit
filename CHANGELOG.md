@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Smart Money module** (`smartmoney`): 5 new read-only MCP tools (`smartmoney_get_overview`, `smartmoney_get_signal`, `smartmoney_get_signal_history`, `smartmoney_get_traders`, `smartmoney_get_trader_detail`) and corresponding CLI commands for accessing trader leaderboard, position analysis, and smart money signals.
 
 - **`context-kg/` upstream API specs**: Three new business-domain reference docs under `context-kg/business/` capturing upstream OKX API contracts consumed by the repo — `06-leaderboard-smartmoney-api.md` (7 leaderboard / smart-money endpoints backing issue #94, with live-probe status and field-drift notes), `07-dcd-api.md` (8 DCD structured-product endpoints with state machine and error codes), `08-dca-api.md` (19 Spot/Contract DCA bot endpoints with sync-copy restrictions). Intended as the source of truth for cross-checking tool design, request/response shapes, and enum values during implementation.
+- **`grid_amend_order` MCP tool and `okx bot grid amend` CLI command** — Amend a running grid bot without stopping it. Supports three modes combinable in a single call: price-range mode (`maxPx`+`minPx`+`gridNum`) to adjust the upper/lower boundary and grid count; TP/SL mode (`instId` + any of `tpTriggerPx`/`slTriggerPx`/`tpRatio`/`slRatio`) to set or clear take-profit/stop-loss; and combined mode for both at once. Pass `"-1"` to explicitly clear an existing TP or SL. CLI: `okx bot grid amend --algoId <id> [--maxPx ..] [--minPx ..] [--gridNum ..] [--instId ..] [--tpTriggerPx ..] [--slTriggerPx ..]`.
+
+#### Breaking Changes
+
+- **`grid_stop_order` MCP tool: `stopType` values `"3"`, `"5"`, and `"6"` explicitly removed** (ALGO-37613) — These values are no longer valid for grid bot stop operations and must not be used. The valid set is now `["1","2"]` only: `"1"` closes all positions immediately (default clean exit), `"2"` stops the strategy without selling. Callers passing `"3"`, `"5"`, or `"6"` will fail schema validation. **Migration**: replace any usage of `"3"/"5"/"6"` with `"1"` (immediate close) or `"2"` (keep positions) based on the desired exit behaviour.
 
 ### Changed
 

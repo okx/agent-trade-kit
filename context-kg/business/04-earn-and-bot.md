@@ -49,11 +49,13 @@ The bot module exposes two automated strategy types. Like earn, it uses `bot.all
 
 ### grid (`bot/grid.ts`)
 - Grid trading bots: place buy/sell orders at regular price intervals
-- Supports spot grid, futures grid, and contract grid variants
-- `bot_create_grid` — create a new grid bot (write)
-- `bot_list_grid` — list running grid bots with PnL
-- `bot_stop_grid` — terminate a grid bot (write)
-- `bot_get_grid_orders` — view orders placed by the bot
+- Supports spot grid and contract grid variants
+- `grid_create_order` — create a new grid bot (write)
+- `grid_list_orders` — list running or historical grid bots with PnL
+- `grid_get_order_details` — get detail of a specific grid bot
+- `grid_get_sub_orders` — list sub-orders (grid trades) of a bot
+- `grid_amend_order` — amend a running grid bot without stopping it (write); supports price-range mode (maxPx/minPx/gridNum), TP/SL mode (instId + tpTriggerPx/slTriggerPx/tpRatio/slRatio), or both combined in one call
+- `grid_stop_order` — terminate a grid bot (write); stopType `"1"` closes all positions (default), `"2"` keeps positions open
 
 ### dca (`bot/dca.ts`)
 - DCA (Dollar Cost Averaging) bots: recurring purchases at fixed intervals

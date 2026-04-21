@@ -200,6 +200,7 @@ export class OkxRestClient {
     path: string,
     body?: RequestConfig["body"],
     rateLimit?: RequestConfig["rateLimit"],
+    retryOnNetworkError?: boolean,
   ): Promise<RequestResult<TData>> {
     return this.request<TData>({
       method: "POST",
@@ -207,6 +208,7 @@ export class OkxRestClient {
       auth: "private",
       body,
       rateLimit,
+      retryOnNetworkError,
     });
   }
 
@@ -567,10 +569,11 @@ export class OkxRestClient {
         vlog(`Network failure, refreshing DoH: ${cause}`);
       }
       const shouldRetry = await this.doh.handleNetworkFailure();
-      // Only auto-retry GET (safe & idempotent).
-      // POST/write requests (orders, transfers) must NOT auto-retry:
+      // Only auto-retry GET (safe & idempotent) or POST endpoints explicitly
+      // marked retryOnNetworkError=true (idempotent ops like amend/stop bots).
+      // Regular POST/write requests (orders, transfers) must NOT auto-retry:
       // DoH re-resolution takes seconds, price may have moved.
-      if (shouldRetry && reqConfig.method === "GET") {
+      if (shouldRetry && (reqConfig.method === "GET" || reqConfig.retryOnNetworkError)) {
         return this.request(reqConfig);
       }
     }

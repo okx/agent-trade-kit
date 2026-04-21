@@ -50,6 +50,7 @@ export interface CliValues {
   slRatio?: string;
   algoClOrdId?: string;
   stopType?: string;
+  topUpAmt?: string;
   live?: boolean;
   instType?: string;
   instCategory?: string;
@@ -262,6 +263,7 @@ export const CLI_OPTIONS = {
   slRatio: { type: "string" },
   algoClOrdId: { type: "string" },
   stopType: { type: "string" },
+  topUpAmt: { type: "string" },
   live: { type: "boolean", default: false },
   // market extras
   instType: { type: "string" },

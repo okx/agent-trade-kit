@@ -248,11 +248,165 @@ export function registerGridTools(): ToolSpec[] {
       },
     },
     {
+      name: "grid_amend_order",
+      module: "bot.grid",
+      description:
+        "Amend a running grid bot. [CAUTION] Modifies a running bot. " +
+        "Use grid_list_orders to confirm the bot is running and obtain the algoId before calling.\n" +
+        "Supports two modes, which can be combined in a single call:\n" +
+        "• Price-range mode (maxPx+minPx+gridNum): change upper/lower price boundary and grid count. " +
+        "Contract grid: if new range requires more margin, pass topUpAmt; " +
+        "omit to auto-use the minimum required. Spot grid: topUpAmt is not supported.\n" +
+        "• TP/SL mode (instId + any of tpTriggerPx/slTriggerPx/tpRatio/slRatio): " +
+        "update take-profit and/or stop-loss. Pass '-1' to explicitly clear an existing TP or SL. " +
+        "tpTriggerPx/slTriggerPx are absolute prices; tpRatio/slRatio are profit ratios (e.g. '0.1' = 10%).\n" +
+        "When both sets of params are provided, both APIs are called sequentially.\n" +
+        "Do NOT use to create a new grid bot — use grid_create_order instead. " +
+        "Do NOT use to stop a grid bot — use grid_stop_order instead.",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: {
+            type: "string",
+            description: "Grid bot algo order ID (required)",
+          },
+          // ── Price-range mode ──────────────────────────────────────────────
+          maxPx: {
+            type: "string",
+            description: "[Price-range mode] New upper price boundary. Triggers amend-algo-basic-param when provided.",
+          },
+          minPx: {
+            type: "string",
+            description: "[Price-range mode] New lower price boundary. Required when maxPx is set.",
+          },
+          gridNum: {
+            type: "string",
+            description: "[Price-range mode] New number of grid intervals (integer). Required when maxPx is set.",
+          },
+          // ── TP/SL mode ────────────────────────────────────────────────────
+          instId: {
+            type: "string",
+            description: "[TP/SL mode] Instrument ID, e.g. BTC-USDT. Required when setting TP/SL.",
+          },
+          tpTriggerPx: {
+            type: "string",
+            description: "[TP/SL mode] Take-profit trigger price (absolute). Pass '-1' to clear.",
+          },
+          slTriggerPx: {
+            type: "string",
+            description: "[TP/SL mode] Stop-loss trigger price (absolute). Pass '-1' to clear.",
+          },
+          tpRatio: {
+            type: "string",
+            description: "[TP/SL mode] Take-profit ratio, e.g. '0.1' = 10% profit. Pass '-1' to clear.",
+          },
+          slRatio: {
+            type: "string",
+            description: "[TP/SL mode] Stop-loss ratio, e.g. '0.1' = 10% drawdown. Pass '-1' to clear.",
+          },
+          // ── Shared optional ───────────────────────────────────────────────
+          topUpAmt: {
+            type: "string",
+            description:
+              "Top-up amount. In price-range mode maps to topupAmount (contract grid only; " +
+              "omit to use minimum required). In TP/SL mode maps to topUpAmt.",
+          },
+        },
+        required: ["algoId"],
+      },
+      handler: async (rawArgs, context) => {
+        const args    = asRecord(rawArgs);
+        const algoId  = requireString(args, "algoId");
+        const maxPx   = readString(args, "maxPx");
+        const instId  = readString(args, "instId");
+
+        // Detect which mode(s) to run.
+        // TP/SL mode requires at least one TP/SL field; instId alone is not enough.
+        const hasTpsl = readString(args, "tpTriggerPx")
+          || readString(args, "slTriggerPx")
+          || readString(args, "tpRatio")
+          || readString(args, "slRatio");
+
+        if (!maxPx && !hasTpsl) {
+          throw new OkxApiError(
+            "Nothing to amend. Provide maxPx+minPx+gridNum for price-range mode, " +
+            "or any of tpTriggerPx/slTriggerPx/tpRatio/slRatio (instId also required) for TP/SL mode (both can be combined).",
+            { code: "", endpoint: "grid_amend_order" },
+          );
+        }
+
+        // Validate before any API call to avoid partial-success scenarios
+        if (hasTpsl && !instId) {
+          throw new OkxApiError(
+            "TP/SL mode requires instId. Provide instId alongside the TP/SL parameters.",
+            { code: "", endpoint: "grid_amend_order" },
+          );
+        }
+
+        const results: ReturnType<typeof normalizeWrite>[] = [];
+
+        // ── Price-range mode: POST amend-algo-basic-param ─────────────────
+        if (maxPx) {
+          results.push(normalizeWrite(await context.client.privatePost(
+            "/api/v5/tradingBot/grid/amend-algo-basic-param",
+            compactObject({
+              algoId,
+              maxPx,
+              minPx:       requireString(args, "minPx"),
+              gridNum:     requireString(args, "gridNum"),
+              // API field is "topupAmount" (lowercase u) — different from TP/SL mode's "topUpAmt"
+              // Contract grid only; omitting lets the API use the minimum required
+              topupAmount: readString(args, "topUpAmt"),
+            }),
+            privateRateLimit("grid_amend_order", 20),
+            true, // retryOnNetworkError: amend sets fixed values, safe to retry
+          )));
+        }
+
+        // ── TP/SL mode: POST amend-order-algo ────────────────────────────
+        if (hasTpsl) {
+          try {
+            results.push(normalizeWrite(await context.client.privatePost(
+              "/api/v5/tradingBot/grid/amend-order-algo",
+              compactObject({
+                algoId,
+                instId,
+                tpTriggerPx: readString(args, "tpTriggerPx"),
+                slTriggerPx: readString(args, "slTriggerPx"),
+                tpRatio: readString(args, "tpRatio"),
+                slRatio: readString(args, "slRatio"),
+                topUpAmt: readString(args, "topUpAmt"), // API field is "topUpAmt" (uppercase U) — different from price-range mode's "topupAmount"
+              }),
+              privateRateLimit("grid_amend_order", 20),
+              true, // retryOnNetworkError: amend sets fixed values, safe to retry
+            )));
+          } catch (err) {
+            if (results.length > 0) {
+              const msg = err instanceof Error ? err.message : String(err);
+              throw new OkxApiError(
+                `TP/SL amend failed (price-range amend already succeeded): ${msg}`,
+                { code: "", endpoint: "grid_amend_order" },
+              );
+            }
+            throw err;
+          }
+        }
+
+        // Flatten data arrays from all responses into a single list
+        const merged = results.flatMap((r) => (Array.isArray(r.data) ? r.data : [r.data]));
+        return { endpoint: results[0]!.endpoint, requestTime: results[0]!.requestTime, data: merged };
+      },
+    },
+    {
       name: "grid_stop_order",
       module: "bot.grid",
       description:
-        "Stop a grid bot. [CAUTION] Closes or cancels orders. " +
-        "For contract: stopType controls close ('1') vs cancel-only ('2').",
+        "Stop a running grid bot. [CAUTION] This stops the strategy and handles open orders/positions " +
+        "according to stopType. Default (stopType='1') closes all positions immediately — use this for " +
+        "a clean exit. stopType='2' stops the strategy without selling: " +
+        "spot grid keeps all base assets as-is (no sell-back to quote); " +
+        "contract grid cancels all grid orders but leaves the position open for manual close later.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -261,13 +415,18 @@ export function registerGridTools(): ToolSpec[] {
           algoOrdType: {
             type: "string",
             enum: ["grid", "contract_grid"],
-            description: "grid=Spot, contract_grid=Contract",
+            description: "grid=Spot grid, contract_grid=Contract grid",
           },
-          instId: { type: "string", description: "e.g. BTC-USDT, BTC-USD-SWAP" },
+          instId: { type: "string", description: "Instrument ID, e.g. BTC-USDT, BTC-USDT-SWAP" },
           stopType: {
             type: "string",
-            enum: ["1", "2", "3", "5", "6"],
-            description: "1=close all (default); 2=keep assets; 3=limit close; 5=partial; 6=no sell",
+            enum: ["1", "2"],
+            description:
+              "'1' (default): stop strategy and sell — spot grid sells all base assets back to quote; " +
+              "contract grid market-closes all positions. " +
+              "'2': stop strategy without selling — spot grid keeps base assets as-is; " +
+              "contract grid cancels all grid orders but leaves the position open. " +
+              "After stopType='2', the remaining position can be closed manually from the Positions page.",
           },
         },
         required: ["algoId", "algoOrdType", "instId"],
@@ -283,6 +442,7 @@ export function registerGridTools(): ToolSpec[] {
             stopType: readString(args, "stopType") ?? "1",
           })],
           privateRateLimit("grid_stop_order", 20),
+          true, // retryOnNetworkError: safe to retry — already-stopped returns an error but does not harm state
         );
         return normalizeWrite(response);
       },

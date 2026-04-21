@@ -735,6 +735,43 @@ describe("handleBotGridCommand — parameter routing", () => {
         assert.equal(captured.args["instId"], "BTC-USD-SWAP");
         assert.equal(captured.args["algoOrdType"], "contract_grid");
     });
+
+    it("amend: algoId comes from v.algoId (not rest[N])", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "GRID_AMEND_001",
+            maxPx: "62000", minPx: "41000", gridNum: "15",
+        }), ["amend"], false);
+        assert.equal(captured.args["algoId"], "GRID_AMEND_001");
+    });
+
+    it("amend: price-range params come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "GRID_AMEND_001",
+            maxPx: "62000", minPx: "41000", gridNum: "15",
+            topUpAmt: "500",
+        }), ["amend"], false);
+        assert.equal(captured.args["maxPx"],    "62000");
+        assert.equal(captured.args["minPx"],    "41000");
+        assert.equal(captured.args["gridNum"],  "15");
+        assert.equal(captured.args["topUpAmt"], "500");
+    });
+
+    it("amend: TP/SL params come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "GRID_AMEND_001",
+            instId: "BTC-USDT",
+            tpTriggerPx: "70000", slTriggerPx: "35000",
+            tpRatio: "0.12", slRatio: "0.08",
+        }), ["amend"], false);
+        assert.equal(captured.args["instId"],      "BTC-USDT");
+        assert.equal(captured.args["tpTriggerPx"], "70000");
+        assert.equal(captured.args["slTriggerPx"], "35000");
+        assert.equal(captured.args["tpRatio"],     "0.12");
+        assert.equal(captured.args["slRatio"],     "0.08");
+    });
 });
 
 // ===========================================================================
