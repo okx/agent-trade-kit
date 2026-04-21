@@ -82,9 +82,11 @@ okx futures leverage --instId <id> --lever <n> --mgnMode <cross|isolated> \
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--instId` | Yes | - | Futures instrument |
-| `--lever` | Yes | - | Leverage multiplier (e.g., `10`) |
+| `--lever` | Yes | - | Positive number, e.g., `10`. Max allowed depends on the instrument (query `okx market instruments`). |
 | `--mgnMode` | Yes | - | `cross` or `isolated` |
-| `--posSide` | Cond. | - | `long` or `short` — required for isolated mode in hedge mode |
+| `--posSide` | Cond. | - | `long` or `short` — required for `isolated` in hedge (`long_short_mode`) pos mode. Each side must be set **separately** (setting `long` does NOT auto-apply to `short`). Omit for net mode or for `cross`. |
+
+**Not supported**: Portfolio-margin accounts cannot adjust `cross` leverage for FUTURES — OKX always rejects. If unsure of account mode, run `okx account config` first and check `acctLv`.
 
 ---
 
