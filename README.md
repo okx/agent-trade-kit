@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **140 tools across 10 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news |
+| **145 tools across 11 modules** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news → smart money signals |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -51,6 +51,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `earn` | 23 | Simple Earn: balance, purchase, redeem, lending rate, **fixed-term orders** (10). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). **Flash Earn** (1). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`, `earn.flash`. Included in `all`. | [→](docs/modules/earn.md) |
 | `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 | `news` | 7 | Crypto news: latest news, by-coin filter, full-text search, article detail, news sources, coin sentiment (snapshot + trend) | [→](docs/modules/news.md) |
+| `smartmoney` | 5 | Smart money signals: multi-currency overview, single-currency consensus signal, signal history timeline, trader leaderboard, trader detail (composite) — all read-only | [→](docs/modules/smartmoney.md) |
 
 ---
 
@@ -115,6 +116,7 @@ Pre-built skill files for AI agent frameworks are included in the [`skills/`](sk
 | [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | Account: balances, positions, P&L, transfers | Yes |
 | [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | Trading bots: grid and DCA (spot & contract) | Yes |
 | [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | Earn: Simple Earn, On-chain staking, Dual Investment, AutoEarn | Yes |
+| [`okx-cex-smartmoney`](skills/okx-cex-smartmoney/SKILL.md) | Smart Money: trader leaderboard, consensus signals, position analysis | Yes |
 
 **[Skills documentation →](skills/README.md)**
 

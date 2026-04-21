@@ -19,8 +19,9 @@ import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
 import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
 import { registerAllEarnTools } from "../src/tools/earn/index.js";
+import { registerSmartmoneyTools } from "../src/tools/smartmoney.js";
 import { assertNotDemo } from "../src/tools/common.js";
-import { ConfigError, OkxApiError } from "../src/utils/errors.js";
+import { ConfigError, OkxApiError, ValidationError } from "../src/utils/errors.js";
 import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
 
 // ---------------------------------------------------------------------------
@@ -4607,5 +4608,206 @@ describe("option_place_order — tgtCcy conversion", () => {
     const call = getLastCall()!;
     assert.equal(call.params.sz, "3");
     assert.equal(call.params.tgtCcy, undefined, "tgtCcy should not be passed when not specified");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// smartmoney demo guard (smartmoney.ts — withSmartmoneyDemoGuard)
+// ---------------------------------------------------------------------------
+
+describe("smartmoney demo guard", () => {
+  const tools = registerSmartmoneyTools();
+
+  it("all smartmoney tools should throw ConfigError in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoCtx: ToolContext = {
+      client: client as ToolContext["client"],
+      config: {
+        ...makeContext(client).config,
+        demo: true,
+      },
+    };
+    for (const tool of tools) {
+      await assert.rejects(
+        () => tool.handler({}, demoCtx),
+        (err: unknown) =>
+          err instanceof ConfigError &&
+          /not available in demo/i.test((err as ConfigError).message),
+        `${tool.name} should be blocked by demo guard`,
+      );
+    }
+  });
+
+  it("does not throw demo guard when demo=false", async () => {
+    const { client } = makeMockClient();
+    const ctx: ToolContext = {
+      client: client as ToolContext["client"],
+      config: {
+        ...makeContext(client).config,
+        demo: false,
+      },
+    };
+    const tool = tools[0]!;
+    // handler may throw for other reasons (e.g. missing required params / API error),
+    // but must NOT throw ConfigError due to the demo guard
+    try {
+      await tool.handler({}, ctx);
+    } catch (err) {
+      assert.ok(
+        !(err instanceof ConfigError && /not available in demo/i.test((err as ConfigError).message)),
+        "demo guard should not block when demo=false",
+      );
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// smartmoney handler validation & routing (smartmoney.ts)
+// ---------------------------------------------------------------------------
+
+describe("smartmoney_get_overview", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_overview")!;
+
+  it("throws ValidationError when neither dataVersion nor ts is provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({}, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /dataVersion.*ts/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("calls overview endpoint with dataVersion", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ dataVersion: "202604021200" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/overview");
+    assert.equal(getLastCall()?.params.dataVersion, "202604021200");
+  });
+
+  it("calls overview endpoint with ts", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ts: "1712000000000" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/overview");
+    assert.equal(getLastCall()?.params.ts, "1712000000000");
+  });
+
+  it("passes pool filter params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ts: "1712000000000", pnl: "PNL_TOP20", winRatio: "WR_GE_80" }, makeContext(client));
+    assert.equal(getLastCall()?.params.pnl, "PNL_TOP20");
+    assert.equal(getLastCall()?.params.winRatio, "WR_GE_80");
+  });
+});
+
+describe("smartmoney_get_signal", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_signal")!;
+
+  it("throws ValidationError when neither instId nor instCcy is provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ dataVersion: "202604021200" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /instId.*instCcy/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("throws ValidationError when neither dataVersion nor ts is provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instCcy: "BTC" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /dataVersion.*ts/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("calls signal endpoint with instCcy and ts", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instCcy: "BTC", ts: "1712000000000" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/signal");
+    assert.equal(getLastCall()?.params.instCcy, "BTC");
+    assert.equal(getLastCall()?.params.ts, "1712000000000");
+  });
+});
+
+describe("smartmoney_get_signal_history", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_signal_history")!;
+
+  it("throws when instId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ dataVersion: "202604021200" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when neither dataVersion nor ts is provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /dataVersion.*ts/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("calls signal-history endpoint", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-SWAP", ts: "1712000000000", granularity: "1d" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/signal-history");
+    assert.equal(getLastCall()?.params.instId, "BTC-USDT-SWAP");
+    assert.equal(getLastCall()?.params.granularity, "1d");
+  });
+});
+
+describe("smartmoney_get_traders", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_traders")!;
+
+  it("calls leaderboard endpoint", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/leaderboard");
+  });
+
+  it("passes filter and pagination params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ sortType: "pnl", period: "30", limit: "10" }, makeContext(client));
+    assert.equal(getLastCall()?.params.sortType, "pnl");
+    assert.equal(getLastCall()?.params.period, "30");
+    assert.equal(getLastCall()?.params.limit, "10");
+  });
+});
+
+describe("smartmoney_get_trader_detail", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_trader_detail")!;
+
+  it("throws when authorId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({}, makeContext(client)),
+    );
+  });
+
+  it("fires 3 parallel requests", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ authorId: "12345" }, makeContext(client));
+    const endpoints = getCalls().map((c) => c.endpoint).sort();
+    assert.deepEqual(endpoints, [
+      "/api/v5/orbit/public/leaderboard",
+      "/api/v5/orbit/public/position-current",
+      "/api/v5/orbit/public/trade-records",
+    ]);
+  });
+
+  it("passes authorId to all 3 endpoints", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ authorId: "99", instCcy: "ETH", tradeLimit: "50" }, makeContext(client));
+    const calls = getCalls();
+    const leaderboard = calls.find((c) => c.endpoint.includes("leaderboard"))!;
+    const positions = calls.find((c) => c.endpoint.includes("position-current"))!;
+    const trades = calls.find((c) => c.endpoint.includes("trade-records"))!;
+    assert.equal(leaderboard.params.authorIds, "99");
+    assert.equal(positions.params.authorId, "99");
+    assert.equal(positions.params.instCcy, "ETH");
+    assert.equal(trades.params.authorId, "99");
+    assert.equal(trades.params.limit, "50");
   });
 });

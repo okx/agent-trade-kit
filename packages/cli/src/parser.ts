@@ -102,6 +102,22 @@ export interface CliValues {
   // audit
   since?: string;
   tool?: string;
+  // smartmoney
+  authorId?: string;
+  authorIds?: string;
+  dataVersion?: string;
+  sortType?: string;
+  granularity?: string;
+  lmtNum?: string;
+  instCcy?: string;
+  instCcyList?: string;
+  topInstruments?: string;
+  tradeLimit?: string;
+  // smartmoney pool filters
+  pnl?: string;
+  winRatio?: string;
+  maxRetreat?: string;
+  asset?: string;
   // upgrade
   beta?: boolean;
   check?: boolean;
@@ -302,6 +318,22 @@ export const CLI_OPTIONS = {
   // audit
   since: { type: "string" },
   tool: { type: "string" },
+  // smartmoney
+  authorId: { type: "string" },
+  authorIds: { type: "string" },
+  dataVersion: { type: "string" },
+  sortType: { type: "string" },
+  granularity: { type: "string" },
+  lmtNum: { type: "string" },
+  instCcy: { type: "string" },
+  instCcyList: { type: "string" },
+  topInstruments: { type: "string" },
+  tradeLimit: { type: "string" },
+  // smartmoney pool filters
+  pnl: { type: "string" },
+  winRatio: { type: "string" },
+  maxRetreat: { type: "string" },
+  asset: { type: "string" },
   // upgrade
   beta:  { type: "boolean", default: false },
   check: { type: "boolean", default: false },

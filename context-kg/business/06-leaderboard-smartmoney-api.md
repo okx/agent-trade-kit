@@ -3,25 +3,23 @@
 
 **Source**: [BE] LeaderBoard 牛人榜 Open API (Lark wiki `LXD8wjXzpiYhEyk3r8Dlfa6Tgqc`, revised 2026-04-01)
 
-**Purpose**: Upstream OKX Open API endpoints that back **issue #94** (`feat(market): add smart money / top trader signal tools`). These are NOT yet implemented in this repo — this doc is the source of truth for MCP tool design, parameter validation, and response mapping. Cross-check field names and types here before coding.
+**Purpose**: Upstream OKX Open API endpoints that back **issue #94** (`feat(market): add smart money / top trader signal tools`). This doc is the source of truth for MCP tool design, parameter validation, and response mapping.
 
 **Related PRD**: [牛人榜聪明钱 MCP](https://okg-block.sg.larksuite.com/docx/RERSdvXQYoXYquxyFJPllVSpgog) · Jira: [ALGO-35975](https://okcoin.atlassian.net/browse/ALGO-35975)
 
-## Deployment Status (2026-04-17 live probe)
+## Deployment Status (2026-04-21 confirmed)
 
-Tested against `www.okx.com` with a live account:
+All endpoints are live on `www.okx.com`:
 
 | Endpoint | Status |
 |---|---|
-| `3.1 GET /api/v5/orbit/public/leaderboard` | ✅ Live, returns real traders |
+| `3.1 GET /api/v5/orbit/public/leaderboard` | ✅ Live |
 | `3.2 GET /api/v5/orbit/public/position-current` | ✅ Live |
 | `3.3 GET /api/v5/orbit/public/position-history` | ✅ Live |
 | `3.4 GET /api/v5/orbit/public/trade-records` | ✅ Live |
-| `4.1 GET /api/v5/journal/public/smartmoney/signal` | ⏳ Scheduled 2026-04-20 go-live — currently 404 |
-| `4.2 GET /api/v5/journal/public/smartmoney/signal-history` | ⏳ Scheduled 2026-04-20 go-live — currently 404 |
-| `4.3 GET /api/v5/journal/public/smartmoney/overview` | ⏳ Scheduled 2026-04-20 go-live — currently 404 |
-
-`journal/*` currently returns OKX's marketing HTML (gateway doesn't route the prefix yet); `public/community/smartmoney/*` returns plain "Not Found". Tried variants `journal/public/smartmoney`, `public/community/smartmoney`, `orbit/public/smartmoney`, `journal/smartmoney` — all 404 as of 2026-04-17. Re-probe after 2026-04-20 to confirm paths and field shapes.
+| `4.1 GET /api/v5/journal/public/smartmoney/signal` | ✅ Live (went live 2026-04-20) |
+| `4.2 GET /api/v5/journal/public/smartmoney/signal-history` | ✅ Live (went live 2026-04-20) |
+| `4.3 GET /api/v5/journal/public/smartmoney/overview` | ✅ Live (went live 2026-04-20) |
 
 ## Field Drift vs Source Doc (3.x — from live responses)
 
@@ -221,89 +219,111 @@ Backed by priAPI `/priapi/v5/content/public/community/user/trade-records`.
 
 **No direct priAPI** — BE aggregates every minute from full-pool `position-current` snapshot. Returns aggregated directional bias, conviction, avg entry, and trend deltas for one instrument across the qualifying trader pool.
 
-### Request
+> **Confirmed 2026-04-21**: Response is a **flat array** `data[]` with a single object `data[0]`. All fields are top-level — no nested sub-objects.
+
+### Request (12 params)
 
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `dataVersion` | String | No¹ | — | `yyyyMMddHHmm` |
-| `ts` | String | No¹ | — | Snapshot Unix ms. **Either `dataVersion` or `ts` must be provided; if both, `ts` wins** |
+| `instId` | String | No* | — | Full instrument name (e.g. `BTC-USDT-SWAP`). Either instId or instCcy must be provided; instId takes precedence |
+| `instCcy` | String | No* | — | Currency code (e.g. `BTC`). Applies to SPOT and SWAP only. Single currency only (comma-separated not supported) |
+| `dataVersion` | String | No** | — | `yyyyMMddHHmm` UTC |
+| `ts` | String | No** | — | UTC ms. **Either `dataVersion` or `ts` must be provided; if both, `ts` wins** |
 | `sortType` | String | No | `pnl` | Enum: `pnl`, `pnlRatio` — selects who enters the pool |
-| `period` | String | No | `""` | Enum: `""`, `3`, `7`, `30`, `90` (days) |
-| `pnl` | String | No | `""` | Tier enum: `PNL_ANY`, `PNL_TOP50` (≥P50), `PNL_TOP20` (≥P80), `PNL_TOP5` (≥P95). **Daily update** |
-| `winRatio` | String | No | `""` | Tier enum: `WR_ANY`, `WR_GE_50`, `WR_GE_80`. Daily update |
-| `maxRetreat` | String | No | `""` | Tier enum: `MR_ANY`, `MR_LE_20`, `MR_LE_50`. Daily update |
-| `asset` | String | No | `""` | Tier enum: `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5`. Daily update |
-| `lmtNum` | String | No | — | Top-N by `sortType` descending |
-| `authorIds` | Array<String> | No | — | Restrict pool to these IDs |
-| `instCcy` | String | No | — | Base ccy filter (SPOT / SWAP) |
+| `period` | String | No | `90` | Enum: `3`, `7`, `30`, `90` (days) — win-ratio calculation window |
+| `pnl` | String | No | `PNL_ANY` | Tier enum: `PNL_ANY`, `PNL_TOP50`, `PNL_TOP20`, `PNL_TOP5` |
+| `winRatio` | String | No | `WR_ANY` | Tier enum: `WR_ANY`, `WR_GE_50`, `WR_GE_80` |
+| `maxRetreat` | String | No | `MR_ANY` | Tier enum: `MR_ANY`, `MR_LE_20`, `MR_LE_50` |
+| `asset` | String | No | `AUM_ANY` | Tier enum: `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` |
+| `lmtNum` | Integer | No | `100` | Candidate trader pool size limit, range 1-500 |
+| `authorIds` | String | No | — | Comma-separated user_id list (e.g. `1001,1002,1003`) |
 
-¹ At least one of `dataVersion`/`ts` required.
+\* At least one of `instId`/`instCcy` required.
+\*\* At least one of `dataVersion`/`ts` required.
 
-### Response (`data` object, not array)
+All enums are case-insensitive; invalid values silently fall back to default.
+
+### Response (27 fields, flat `data[0]`)
 
 | Field | Type | Notes |
 |---|---|---|
-| `dataVersion` | String | `yyyyMMddHHmm` |
-| `ts` | String | Snapshot Unix ms |
-| `traderPool.totalPool` | String | Total qualifying traders |
-| `traderPool.tradersWithPosition` | String | Traders with an `instId` position — "how many smart money watching this coin" |
-| `traderPool.tradersTotal` | String | Traders passing the filter |
-| `longRatio` | String | `longCount / (longCount + shortCount)` — headcount long/short ratio |
-| `weightedLongRatio` | String | `Σ(notionalUsd × isLong) / Σ(notionalUsd)` — capital-weighted directional bias |
-| `avgLongWinRatio` | String | Mean winRatio of long-holders for this instId |
+| `instId` | String | Instrument name (echoes uppercase ccy name if instCcy was used) |
+| `instType` | String | SPOT / MARGIN / FUTURES / SWAP / OPTION; empty when using instCcy path |
+| `longRatio` | String | Long trader ratio (0~1, e.g. `"0.65"`) |
+| `weightedLongRatio` | String | Notional-weighted long ratio |
+| `avgLongWinRatio` | String | Mean winRatio of long-holders (period window) |
 | `avgShortWinRatio` | String | Mean winRatio of short-holders |
-| `trend.longRatioVs1h` | String | `current - snapshot_1h_ago` (delta) |
-| `trend.longRatioVs24h` | String | Delta vs 24h ago |
-| `trend.longRatioVs7d` | String | Delta vs 7d ago (may be dropped — large data) |
-| `entryDistribution.smartMoneyLongAvgEntry` | String | `Σ(openAvgPx × notional) / Σ(notional)` over long positions |
-| `entryDistribution.smartMoneyShortAvgEntry` | String | Same over short positions |
-| `capitalFlow.totalNotionalVs24h` | String | `(T_now - T_24h) / T_24h` — change in total notional |
-
-Example response includes nested `marketContext` (`currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`) — final inclusion TBD with BE.
+| `longNotionalUsdt` | String | Total long notional value (USDT) |
+| `shortNotionalUsdt` | String | Total short notional value (USDT) |
+| `netNotionalUsdt` | String | Net notional (long − short, can be negative) |
+| `tradersWithPosition` | Integer | Traders currently holding positions |
+| `longTraders` | Integer | Long-side trader count |
+| `shortTraders` | Integer | Short-side trader count |
+| `vs1h` | String | longRatio delta vs 1h ago |
+| `vs24h` | String | longRatio delta vs 24h ago |
+| `vs7d` | String | longRatio delta vs 7d ago |
+| `ts` | Long | Actual snapshot timestamp (UTC ms) |
+| `tradersTotal` | Integer | Final candidate pool size after filtering |
+| `smartMoneyLongAvgEntry` | String | Weighted avg entry price for longs |
+| `smartMoneyShortAvgEntry` | String | Weighted avg entry price for shorts |
+| `totalNotionalVs24h` | String | Total notional change rate vs 24h (may be empty) |
+| `currentPrice` | String | Current mark price (reserved, may be empty) |
+| `priceChange24h` | String | 24h price change rate (reserved) |
+| `fundingRate` | String | Funding rate (reserved) |
+| `openInterest` | String | Open interest (reserved) |
+| `longShortAccountRatio` | String | Long/short account ratio (reserved) |
+| `timestamp` | String | ISO-8601 string of `ts` (human-readable, e.g. `"2026-04-17T10:00:00Z"`) |
+| `dataVersion` | String | `yyyyMMddHHmm` UTC, corresponds to `ts` |
 
 ---
 
 ## 4.2 Signal History — `GET /api/v5/journal/public/smartmoney/signal-history`
 
-Time series of aggregated signals for one instrument.
+Time series of aggregated signals for one instrument. Sorted by `ts` DESC.
 
-### Request
+> **Confirmed 2026-04-21**: Response is a **flat array** `data[]`. No nested `snapshots[]` or `traderPool.*`. `instCcy` param is NOT supported by this endpoint — always use `instId`.
+
+### Request (11 params)
 
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `instId` | String | **Yes** | — | e.g. `BTC-USDT-SWAP` |
-| `granularity` | String | No | `4h` | Enum: `1h`, `4h`, `1d` — bucket interval for snapshot replay |
-| `dataVersion` | String | No¹ | — | `yyyyMMddHHmm`, timezone UTC+8 |
-| `ts` | String | No¹ | — | Unix ms. Either `dataVersion` or `ts` required; if both, `ts` wins |
-| `period` | String | No | `""` | Same enum as 4.1 |
-| `pnl` / `winRatio` / `maxRetreat` / `asset` | String | No | `""` | Same tier enums as 4.1 |
-| `instCcy` | String | No | — | Base ccy filter |
+| `dataVersion` | String | No¹ | — | `yyyyMMddHHmm` UTC |
+| `ts` | String | No¹ | — | UTC ms. Either `dataVersion` or `ts` required; if both, `ts` wins |
+| `sortType` | String | No | `pnl` | Same enum as 4.1 |
+| `period` | String | No | `90` | Same enum as 4.1 (only affects trader pool selection; response has no win-ratio fields) |
+| `pnl` | String | No | `PNL_ANY` | Same tier enums as 4.1 |
+| `winRatio` | String | No | `WR_ANY` | Same tier enums as 4.1 |
+| `maxRetreat` | String | No | `MR_ANY` | Same tier enums as 4.1 |
+| `asset` | String | No | `AUM_ANY` | Same tier enums as 4.1 |
+| `granularity` | String | No | `1h` | Only `1h` or `1d`; other values (including old `5m`/`15m`/`30m`/`4h`) fall back to `1h` |
+| `limit` | Integer | No | `24` | Data points to return, range 1-500 |
 
-### Response (`data`)
+¹ At least one of `dataVersion`/`ts` required.
+
+### Response (10 fields per item, flat `data[]`, sorted by ts DESC)
 
 | Field | Type | Notes |
 |---|---|---|
-| `instId` | String | |
-| `granularity` | String | Echo of request |
-| `snapshots[]` | Array | One entry per bucket |
-| `snapshots[].ts` | String | Unix ms |
-| `snapshots[].longRatio` | String | Headcount ratio at snapshot |
-| `snapshots[].weightedLongRatio` | String | Capital-weighted ratio |
-| `snapshots[].tradersWithPosition` | String | Count of holders at snapshot |
-| `snapshots[].netNotionalUsdt` | String | `Σ long_notional - Σ short_notional` — net directional USD |
-| `snapshots[].totalNotionalUsdt` | String | `Σ long_notional + Σ short_notional` — total capital on instId |
-| `snapshots[].priceAtSnapshot` | String | Last trade price from `/api/v5/market/ticker` `last` field at snapshot time |
-
-Also returns `traderPool.totalPool` and `traderPool.qualified` (post-filter count) at the top level.
+| `instId` | String | Echoes input instId |
+| `longRatio` | String | Long ratio at this time bucket |
+| `weightedLongRatio` | String | Capital-weighted long ratio |
+| `tradersWithPosition` | Integer | Traders with positions at this time bucket |
+| `netNotionalUsdt` | String | Net notional (long − short) |
+| `totalNotionalUsdt` | String | Total notional (long + short) |
+| `ts` | Long | Time bucket timestamp (UTC ms) |
+| `tradersTotal` | Integer | Candidate pool size |
+| `tradersQualified` | Integer | Traders passing filter criteria at this time bucket |
+| `dataVersion` | String | `yyyyMMddHHmm` UTC for this time bucket |
 
 ### Tier Enums (shared with 4.1 & 4.3)
 
 | Tier | Meaning |
 |---|---|
-| `pnlTier` (percentile) | `PNL_ANY`, `PNL_TOP50` (P≥50), `PNL_TOP20` (P≥80), `PNL_TOP5` (P≥95) |
-| `winRateTier` (fixed threshold) | `WR_ANY`, `WR_GE_50`, `WR_GE_80` |
-| `maxRetreatTier` (fixed threshold) | `MR_ANY`, `MR_LE_20`, `MR_LE_50` |
-| `aumTier` (percentile) | `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` |
+| `pnl` (percentile) | `PNL_ANY`, `PNL_TOP50` (P≥50), `PNL_TOP20` (P≥80), `PNL_TOP5` (P≥95) |
+| `winRatio` (fixed threshold) | `WR_ANY`, `WR_GE_50`, `WR_GE_80` |
+| `maxRetreat` (fixed threshold) | `MR_ANY`, `MR_LE_20`, `MR_LE_50` |
+| `asset` (percentile) | `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` |
 
 Rationale: PnL and AUM use percentile because their distributions are heavy-tailed; winRatio and maxRetreat use fixed thresholds because their scales are bounded.
 
@@ -313,37 +333,45 @@ Rationale: PnL and AUM use percentile because their distributions are heavy-tail
 
 Cross-instrument scan — returns smart money signal for the top-N most-held instruments, sorted by `tradersWithPosition` descending.
 
-### Request
+> **Confirmed 2026-04-21**: Response is a **flat array** `data[]`. No nested `signals[]`, `traderPool.*`, or `ccySignal` wrappers.
+
+### Request (13 params)
 
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `dataVersion` | String | No¹ | — | `yyyyMMddHHmm` |
-| `ts` | String | No¹ | — | Unix ms. Either required; `ts` wins if both |
-| `lmtNum` | String | No | — | Top-N traders by `sortType` to include in pool |
-| `sortType` | String | No | `pnl` | `pnl` / `pnlRatio` |
-| `authorIds` | Array<String> | No | — | Restrict pool |
-| `period` | String | No | `""` | Same enum |
-| `pnl` / `winRatio` / `maxRetreat` / `asset` | String | No | `""` | Same tier enums as 4.1 |
-| `instCcyList` | Object | No | — | Filter to specific base ccys (SPOT / SWAP) |
-| `topInstruments` | Array<String> | No | — | Pre-set instrument list (e.g. `["SOL","BTC","ETH"]`) |
+| `instType` | String | No | `SWAP` | Instrument type: SPOT / MARGIN / FUTURES / SWAP / OPTION |
+| `dataVersion` | String | No¹ | — | `yyyyMMddHHmm` UTC |
+| `ts` | String | No¹ | — | UTC ms. Either required; `ts` wins if both |
+| `sortType` | String | No | `pnl` | Same enum as 4.1 |
+| `period` | String | No | `90` | Same enum as 4.1 |
+| `pnl` | String | No | `PNL_ANY` | Same tier enums as 4.1 |
+| `winRatio` | String | No | `WR_ANY` | Same tier enums as 4.1 |
+| `maxRetreat` | String | No | `MR_ANY` | Same tier enums as 4.1 |
+| `asset` | String | No | `AUM_ANY` | Same tier enums as 4.1 |
+| `lmtNum` | Integer | No | `100` | Candidate trader pool size limit |
+| `topInstruments` | Integer | No | `20` | Return top N instruments (range 1-100), sorted by tradersWithPosition DESC |
+| `instCcyList` | String | No | — | Comma-separated currencies (e.g. `BTC,ETH,SOL`); only returns prefix-matched instruments |
+| `instCcy` | String | No | — | Same as instCcyList (compatibility alias); instCcyList takes precedence |
 
-### Response (`data`)
+¹ At least one of `dataVersion`/`ts` required.
+
+**Filter order**: SQL first limits by `topInstruments` → then filters by `instCcyList` currency prefix → `topNUsed` = final result count. So `topInstruments=3 & instCcyList=BTC` may return < 3 items.
+
+### Response (11 fields per item, flat `data[]`)
 
 | Field | Type | Notes |
 |---|---|---|
-| `ts` / `dataVersion` | String | |
-| `traderPool.totalPool` | String | Full leaderboard count |
-| `traderPool.qualified` | String | Passing filter |
-| `traderPool.topNUsed` | String | Actual traders matched on instId |
-| `signals[]` | Array | **Sorted by `tradersWithPosition` DESC** |
-| `signals[].instId` | String | |
-| `signals[].tradersWithPosition` | String | # of smart-money holders — low count = weak signal |
-| `signals[].longRatio` | String | Headcount long ratio |
-| `signals[].weightedLongRatio` | String | Capital-weighted long ratio |
-| `signals[].netNotionalUsdt` | String | Net directional USD (cross-instrument conviction comparator) |
-| `signals[].longRatioVs24h` | String | 24h delta |
-
-Example response also uses a `ccySignal` object nesting — verify final shape vs example JSON with BE.
+| `instId` | String | Full instrument name (e.g. `BTC-USDT-SWAP`) |
+| `longRatio` | String | Long ratio |
+| `weightedLongRatio` | String | Capital-weighted long ratio |
+| `tradersWithPosition` | Integer | Traders with positions |
+| `netNotionalUsdt` | String | Net notional (long − short) |
+| `vs24h` | String | longRatio delta vs 24h ago |
+| `ts` | Long | Snapshot timestamp (UTC ms) |
+| `tradersTotal` | Integer | Candidate pool size |
+| `tradersQualified` | Integer | Traders passing filter criteria |
+| `topNUsed` | Integer | Actual result count (= data.length) |
+| `dataVersion` | String | `yyyyMMddHHmm` UTC |
 
 ---
 

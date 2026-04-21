@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Smart Money module** (`smartmoney`): 5 new read-only MCP tools (`smartmoney_get_overview`, `smartmoney_get_signal`, `smartmoney_get_signal_history`, `smartmoney_get_traders`, `smartmoney_get_trader_detail`) and corresponding CLI commands for accessing trader leaderboard, position analysis, and smart money signals.
+
 - **`context-kg/` upstream API specs**: Three new business-domain reference docs under `context-kg/business/` capturing upstream OKX API contracts consumed by the repo — `06-leaderboard-smartmoney-api.md` (7 leaderboard / smart-money endpoints backing issue #94, with live-probe status and field-drift notes), `07-dcd-api.md` (8 DCD structured-product endpoints with state machine and error codes), `08-dca-api.md` (19 Spot/Contract DCA bot endpoints with sync-copy restrictions). Intended as the source of truth for cross-checking tool design, request/response shapes, and enum values during implementation.
 
 ### Changed
