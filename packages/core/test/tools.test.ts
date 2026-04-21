@@ -1295,6 +1295,99 @@ describe("spot_cancel_order", () => {
   });
 });
 
+describe("spot_set_leverage", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_set_leverage")!;
+
+  it("instId + isolated → pair-level margin", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", lever: "5", mgnMode: "isolated" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/set-leverage");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.instId, "BTC-USDT");
+    assert.equal(params.mgnMode, "isolated");
+    assert.equal(params.ccy, undefined);
+  });
+
+  it("ccy + cross → currency-level cross margin", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { ccy: "BTC", lever: "3", mgnMode: "cross" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.ccy, "BTC");
+    assert.equal(params.mgnMode, "cross");
+    assert.equal(params.instId, undefined);
+  });
+
+  it("rejects missing instId and ccy", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ lever: "5", mgnMode: "cross" }, makeContext(client)),
+      /provide either "instId".*"ccy"/,
+    );
+  });
+
+  it("rejects both instId and ccy together", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", ccy: "BTC", lever: "5", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /mutually exclusive/,
+    );
+  });
+
+  it("rejects ccy with isolated mgnMode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { ccy: "BTC", lever: "5", mgnMode: "isolated" },
+        makeContext(client),
+      ),
+      /"ccy" is supplied.*"mgnMode" must be "cross"/,
+    );
+  });
+
+  it("rejects non-numeric lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", lever: "abc", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /positive number/,
+    );
+  });
+
+  it("rejects zero / negative lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", lever: "0", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /positive number/,
+    );
+  });
+
+  it("rejects invalid mgnMode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", lever: "5", mgnMode: "portfolio" },
+        makeContext(client),
+      ),
+      /mgnMode.*cross.*isolated/i,
+    );
+  });
+});
+
 describe("spot_amend_order", () => {
   const tools = registerSpotTradeTools();
   const tool = tools.find((t) => t.name === "spot_amend_order")!;

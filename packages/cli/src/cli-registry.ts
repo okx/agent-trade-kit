@@ -278,6 +278,11 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx spot batch --action <place|amend|cancel> --orders '<json>'",
         description: "Batch place, amend, or cancel spot orders",
       },
+      leverage: {
+        toolName: "spot_set_leverage",
+        usage: "okx spot leverage ( --instId <pair> | --ccy <ccy> ) --lever <positive-number> --mgnMode <cross|isolated>",
+        description: "Set leverage for SPOT margin. Provide instId (pair-level) OR ccy (currency-level cross, for borrow-enabled/multi-ccy/portfolio margin). When ccy is used, mgnMode must be cross.",
+      },
     },
     subgroups: {
       algo: {

@@ -74,6 +74,7 @@ import {
   cmdSpotAlgoOrders,
   cmdSpotAlgoTrailPlace,
   cmdSpotBatch,
+  cmdSpotSetLeverage,
 } from "./commands/spot.js";
 import {
   cmdSwapPositions,
@@ -568,6 +569,14 @@ export function handleSpotCommand(
     return handleSpotAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
     return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, json });
+  if (action === "leverage")
+    return cmdSpotSetLeverage(run, {
+      instId: v.instId,
+      ccy: v.ccy,
+      lever: v.lever!,
+      mgnMode: v.mgnMode!,
+      json,
+    });
 }
 
 export function handleSwapAlgoCommand(

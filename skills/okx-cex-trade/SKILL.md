@@ -238,6 +238,7 @@ okx event place --instId BTC-ABOVE-DAILY-260224-1600-70000 --side buy --outcome 
 | 9 | `okx spot get` | READ | Single spot order details |
 | 10 | `okx spot fills` | READ | Spot trade fill history |
 | 11 | `okx spot algo orders` | READ | List spot TP/SL algo orders |
+| 11a | `okx spot leverage` | WRITE | Set leverage for spot **margin** (borrowing). Pair-level (`--instId`) or currency-level cross (`--ccy`, required for borrow-enabled / multi-ccy / portfolio margin) |
 
 For full command syntax, parameter tables, and edge cases, read `{baseDir}/references/spot-commands.md`.
 
