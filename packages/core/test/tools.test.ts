@@ -1669,6 +1669,38 @@ describe("swap_set_leverage", () => {
     );
   });
 
+  it("rejects net posSide with cross margin", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "cross", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("rejects net posSide with isolated margin (net is not a valid posSide value)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "isolated", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("accepts cross margin with no posSide (one-way mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "cross" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, undefined);
+  });
+
   it("accepts long posSide with isolated margin (hedge mode)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
@@ -4568,6 +4600,42 @@ describe("futures_set_leverage", () => {
     await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated" }, makeContext(client));
     assert.equal(getLastCall()?.params.lever, "5");
     assert.equal(getLastCall()?.params.mgnMode, "isolated");
+  });
+
+  it("rejects net posSide with cross margin", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-240329", lever: "5", mgnMode: "cross", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("rejects net posSide with isolated margin (net is not a valid posSide value)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("accepts cross margin with no posSide (one-way mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "cross" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, undefined);
+  });
+
+  it("accepts long posSide with isolated margin (hedge mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated", posSide: "long" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, "long");
   });
 });
 

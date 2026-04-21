@@ -403,11 +403,11 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           mgnMode: { type: "string", enum: ["cross", "isolated"] },
           posSide: {
             type: "string",
-            enum: ["long", "short", "net"],
+            enum: ["long", "short"],
             description:
               "REQUIRED when mgnMode=isolated AND the account is in hedge (long/short) position mode. " +
               "Use 'long' or 'short' — setting one side does NOT auto-apply to the other. " +
-              "Omit for one-way (net) position mode or for cross margin.",
+              "Omit entirely for one-way (net) position mode or for cross margin.",
           },
         },
         required: ["instId", "lever", "mgnMode"],
@@ -426,9 +426,9 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
         assertEnum(mgnMode, "mgnMode", ["cross", "isolated"] as const);
         const posSide = readString(args, "posSide");
         if (posSide !== undefined) {
-          assertEnum(posSide, "posSide", ["long", "short", "net"] as const);
-          // OKX rejects posSide for cross margin; catch it here with a clearer hint.
-          if (mgnMode === "cross" && posSide !== "net") {
+          assertEnum(posSide, "posSide", ["long", "short"] as const);
+          // OKX only accepts posSide in isolated+hedge mode; reject it for cross margin.
+          if (mgnMode === "cross") {
             throw new ValidationError(
               `posSide="${posSide}" is only valid with mgnMode="isolated" in hedge mode. ` +
               `Omit posSide for cross margin.`,

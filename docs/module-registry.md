@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~36,981 tokens | **Over budget:** ~11,981 tokens | **Tools:** 152 (92 read / 60 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~37,201 tokens | **Over budget:** ~12,201 tokens | **Tools:** 153 (92 read / 61 write)
 
 > Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 92 工具, ~18,977 tokens。
 
