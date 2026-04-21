@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2-beta.1] - 2026-04-21
+
 ### Added
 
 - **`spot_set_leverage` MCP tool and `okx spot leverage` CLI command**: Set the leverage ratio for a spot margin or cross-margin instrument. Accepts `--instId` (instrument-level) or `--ccy` (currency-level) alongside `--lever` and `--mgnMode`. Input is validated before the HTTP call — non-numeric, zero, or negative `lever` values are rejected immediately with an actionable error. Supports all 5 OKX leverage scenarios for SPOT/MARGIN.

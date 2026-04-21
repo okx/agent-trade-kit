@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.2-beta.1] - 2026-04-21
+
 ### 新增
 
 - **`spot_set_leverage` MCP 工具及 `okx spot leverage` CLI 命令**：设置现货保证金或全仓杠杆倍数。支持 `--instId`（标的级别）或 `--ccy`（币种级别）与 `--lever`、`--mgnMode` 组合使用。HTTP 请求发出前进行输入验证——非数字、零值或负值的 `lever` 将立即返回可操作的错误信息。覆盖 OKX 现货/保证金全部 5 种杠杆场景。

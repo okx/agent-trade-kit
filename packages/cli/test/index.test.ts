@@ -1,4 +1,4 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before, after, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -20,6 +20,10 @@ import {
   handleFuturesCommand,
   handleEarnCommand,
 } from "../src/index.js";
+
+// CLI dispatch helpers set `process.exitCode = 1` on unknown actions; reset
+// between tests so a leaked exit code doesn't fail the test file as a whole.
+afterEach(() => { process.exitCode = 0; });
 
 // ---------------------------------------------------------------------------
 // Helper: capture stdout without writing to the terminal

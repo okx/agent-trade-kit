@@ -44,7 +44,12 @@ beforeEach(() => setOutput({
     }, err: () => {
     }
 }));
-afterEach(() => resetOutput());
+afterEach(() => {
+    resetOutput();
+    // CLI dispatch helpers set `process.exitCode = 1` on unknown actions; reset
+    // between tests so a leaked exit code doesn't fail the test file as a whole.
+    process.exitCode = 0;
+});
 
 // Fake results matching ToolResult shape used by each cmd
 const fakeOrderResult = {
