@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`spot_set_leverage` MCP tool and `okx spot leverage` CLI command**: Set the leverage ratio for a spot margin or cross-margin instrument. Accepts `--instId` (instrument-level) or `--ccy` (currency-level) alongside `--lever` and `--mgnMode`. Input is validated before the HTTP call — non-numeric, zero, or negative `lever` values are rejected immediately with an actionable error. Supports all 5 OKX leverage scenarios for SPOT/MARGIN.
+
 - **Smart Money module** (`smartmoney`): 5 new read-only MCP tools (`smartmoney_get_overview`, `smartmoney_get_signal`, `smartmoney_get_signal_history`, `smartmoney_get_traders`, `smartmoney_get_trader_detail`) and corresponding CLI commands for accessing trader leaderboard, position analysis, and smart money signals.
 
 - **`context-kg/` upstream API specs**: Three new business-domain reference docs under `context-kg/business/` capturing upstream OKX API contracts consumed by the repo — `06-leaderboard-smartmoney-api.md` (7 leaderboard / smart-money endpoints backing issue #94, with live-probe status and field-drift notes), `07-dcd-api.md` (8 DCD structured-product endpoints with state machine and error codes), `08-dca-api.md` (19 Spot/Contract DCA bot endpoints with sync-copy restrictions). Intended as the source of truth for cross-checking tool design, request/response shapes, and enum values during implementation.
@@ -21,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Breaking Changes
 
 - **`grid_stop_order` MCP tool: `stopType` values `"3"`, `"5"`, and `"6"` explicitly removed** (ALGO-37613) — These values are no longer valid for grid bot stop operations and must not be used. The valid set is now `["1","2"]` only: `"1"` closes all positions immediately (default clean exit), `"2"` stops the strategy without selling. Callers passing `"3"`, `"5"`, or `"6"` will fail schema validation. **Migration**: replace any usage of `"3"/"5"/"6"` with `"1"` (immediate close) or `"2"` (keep positions) based on the desired exit behaviour.
+
+### Fixed
+
+- **`swap_set_leverage` / `futures_set_leverage` input validation**: Invalid `lever` values (non-numeric, zero, negative) are now rejected before the HTTP call with a clear error message instead of surfacing an opaque OKX 51xxx error. `mgnMode` and `posSide` are validated against allowed enums. The `cross` + `long`/`short` combination is explicitly blocked with the hint "posSide only valid with isolated margin mode", matching OKX's business rule and reducing the ~9.7% failure rate from callers sending invalid combinations. Tool descriptions are rewritten to enumerate the three applicable SWAP/FUTURES scenarios (cross index-level / isolated one-way / isolated hedge) and explicitly flag portfolio-margin cross as unsupported.
 
 ### Changed
 
