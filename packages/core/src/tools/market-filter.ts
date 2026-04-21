@@ -109,7 +109,9 @@ export function registerMarketFilterTools(): ToolSpec[] {
           sortBy: {
             type: "string",
             enum: ["last", "chg24hPct", "marketCapUsd", "volUsd24h", "fundingRate", "oiUsd", "listTime"],
-            description: "Sort field. Default: volUsd24h. Note: marketCapUsd is only meaningful for SPOT (null for SWAP/FUTURES).",
+            description:
+              "Sort field. Default: volUsd24h. Note: marketCapUsd is only meaningful for SPOT (null for SWAP/FUTURES). " +
+              "To rank by OI *change* (oiDeltaPct / absOiDeltaPct), use market_filter_oi_change — market_filter only sorts by the current snapshot.",
           },
           sortOrder: {
             type: "string",
@@ -236,7 +238,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
           bar: {
             type: "string",
             enum: [...OI_BARS],
-            description: "Bar window for OI change computation: 5m, 15m, 1H, 4H, 1D. Default: 1H",
+            description: "Bar window for OI change computation: 5m, 15m, 1H, 4H, 1D (case-insensitive on server, but send canonical form here). Default: 1H",
           },
           // Filters
           minOiUsd: {
@@ -254,8 +256,12 @@ export function registerMarketFilterTools(): ToolSpec[] {
           // Sort / pagination
           sortBy: {
             type: "string",
-            enum: ["oiUsd", "oiDeltaUsd", "oiDeltaPct", "volUsd24h", "last"],
-            description: "Sort field. Default: oiDeltaPct (largest movers first)",
+            enum: ["oiUsd", "oiDeltaUsd", "oiDeltaPct", "absOiDeltaPct", "volUsd24h", "fundingRate", "last"],
+            description:
+              "Sort field. Default: oiDeltaPct (largest movers first, signed — longs and shorts separate). " +
+              "Use absOiDeltaPct to sort by |oiDeltaPct| (largest-magnitude moves regardless of direction). " +
+              "fundingRate is also supported for SWAP. " +
+              "Do NOT use the market_filter tool's sort fields (chg24hPct, marketCapUsd, listTime) here — they are not in the OI-change Row.",
           },
           sortOrder: {
             type: "string",
