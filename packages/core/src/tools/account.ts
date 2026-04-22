@@ -161,12 +161,18 @@ export function registerAccountTools(): ToolSpec[] {
             description:
               "Include total asset valuation breakdown by account type (trading/funding/earn). Default false.",
           },
+          valuationCcy: {
+            type: "string",
+            description:
+              "Currency used to denominate the total asset valuation (e.g. USDT, BTC). Default USDT. Only applies when showValuation=true.",
+          },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const ccy = readString(args, "ccy");
         const showValuation = readBoolean(args, "showValuation");
+        const valuationCcy = readString(args, "valuationCcy") ?? "USDT";
         if (showValuation) {
           const balanceResp = await context.client.privateGet(
             "/api/v5/asset/balances",
@@ -174,17 +180,27 @@ export function registerAccountTools(): ToolSpec[] {
             privateRateLimit("account_get_asset_balance", 6),
           );
           let valuationData: unknown = null;
+          let valuationError: string | undefined;
           try {
             const valuationResp = await context.client.privateGet(
               "/api/v5/asset/asset-valuation",
-              {},
+              { ccy: valuationCcy },
               privateRateLimit("account_get_asset_valuation", 1),
             );
             valuationData = valuationResp.data;
-          } catch {
+          } catch (err) {
             // valuation is best-effort; balance data is still returned
+            valuationError = err instanceof Error ? err.message : String(err);
           }
-          return { ...normalizeResponse(balanceResp), valuation: valuationData };
+          const valuationResult: Record<string, unknown> = {
+            ...normalizeResponse(balanceResp),
+            valuation: valuationData,
+            valuationCcy,
+          };
+          if (valuationError !== undefined) {
+            valuationResult["valuationError"] = valuationError;
+          }
+          return valuationResult;
         }
         const balanceResp = await context.client.privateGet(
           "/api/v5/asset/balances",

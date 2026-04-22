@@ -32,6 +32,7 @@ import {
     handleEventCommand,
 } from "../src/index.js";
 import type {CliValues} from "../src/index.js";
+import {cmdAccountAssetBalance} from "../src/commands/account.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1207,5 +1208,58 @@ describe("handleMarketCommand — filter/oi-history/oi-change parameter routing"
         const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
         await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", minOiUsd: "100000000"}), false);
         assert.equal(captured.args["minOiUsd"], "100000000");
+    });
+});
+
+// ===========================================================================
+// ACCOUNT — asset-balance valuationCcy routing
+// ===========================================================================
+
+const fakeAssetBalanceResult = {
+    endpoint: "GET /api/v5/asset/balances",
+    requestTime: new Date().toISOString(),
+    data: [],
+    valuation: null,
+    valuationCcy: "USDT",
+};
+
+function makeAssetBalanceSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<string, unknown> } } {
+    const captured = {tool: "", args: {} as Record<string, unknown>};
+    const spy: ToolRunner = async (tool, args) => {
+        captured.tool = tool as string;
+        captured.args = args as Record<string, unknown>;
+        return fakeAssetBalanceResult;
+    };
+    return {spy, captured};
+}
+
+describe("cmdAccountAssetBalance — valuationCcy parameter routing", () => {
+    it("passes valuationCcy='BTC' to tool when provided", async () => {
+        const {spy, captured} = makeAssetBalanceSpy();
+        await cmdAccountAssetBalance(spy, undefined, false, true, "BTC");
+        assert.equal(captured.tool, "account_get_asset_balance");
+        assert.equal(captured.args["valuationCcy"], "BTC",
+            "--valuationCcy BTC should reach the tool as valuationCcy='BTC'");
+    });
+
+    it("passes valuationCcy='USDT' to tool when explicitly set to USDT", async () => {
+        const {spy, captured} = makeAssetBalanceSpy();
+        await cmdAccountAssetBalance(spy, undefined, false, true, "USDT");
+        assert.equal(captured.args["valuationCcy"], "USDT");
+    });
+
+    it("omits valuationCcy from tool args when not provided (tool uses its own default)", async () => {
+        const {spy, captured} = makeAssetBalanceSpy();
+        await cmdAccountAssetBalance(spy, undefined, false, true, undefined);
+        assert.equal(captured.args["valuationCcy"], undefined,
+            "when CLI caller omits --valuationCcy, the tool should apply its own default (USDT)");
+    });
+
+    it("passes valuationCcy through to tool even when showValuation is false (tool ignores it)", async () => {
+        const {spy, captured} = makeAssetBalanceSpy();
+        await cmdAccountAssetBalance(spy, undefined, false, false, "BTC");
+        // valuationCcy is still passed through — the tool itself ignores it when showValuation=false
+        // this test just verifies the routing layer passes the arg correctly
+        assert.equal(captured.args["valuationCcy"], "BTC");
     });
 });
