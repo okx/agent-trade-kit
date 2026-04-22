@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CLI no longer silently exits 0 on unknown subcommands** (issue #173). Previously, every second-level module dispatcher (`swap`, `spot`, `futures`, `option`, `account`, `bot`) fell through to `return undefined` when the action name didn't match any registered branch, producing an invisible failure — `okx swap place-algo` would exit 0 with no output, misleading scripts with `&& echo OK` and masking the real problem. Each dispatcher now calls the shared `unknownSubcommand()` helper which emits `Unknown command: okx <mod> <action>` to stderr, lists the available subcommands, suggests an MCP-name-to-CLI rewrite when applicable (`place-algo` → `algo place`), and sets a non-zero exit code. Reported via CS Telegram 2026-04-21 — customer's `okx --profile demo swap place-algo ...` returned silently, leaving them unable to tell whether the feature was broken or the command wrong.
+
+- **`skills/okx-cex-trade/` reference docs now call out the CLI↔MCP naming mismatch.** `SKILL.md` has a top-level note; `references/swap-commands.md` has a dedicated "Naming — CLI vs MCP tool" table mapping each tool identifier to its CLI subcommand path. Motivated by the same #173 report: customers see `swap_place_algo_order` in MCP tool listings and guess the CLI form is `swap place-algo`, which silently failed pre-fix and now errors explicitly.
+
 ## [1.3.2-beta.1] - 2026-04-21
 
 ### Added

@@ -21,6 +21,8 @@ metadata:
 
 Spot, perpetual swap, delivery futures, **options**, and **event contract** order management on OKX exchange. Place, cancel, amend, and monitor orders; query option chains and Greeks; trade binary outcome event contracts (Yes/No, Up/Down); set take-profit/stop-loss and trailing stops; manage leverage and positions. **Requires API credentials.**
 
+> **CLI vs MCP tool names** — Subcommands use spaces (`okx swap algo place`, `okx bot grid create`), not hyphens. Do NOT convert an MCP tool identifier (`swap_place_algo_order`) into a hyphen-joined CLI command (`okx swap place-algo`) — that will be rejected with "Unknown command". Per-module mapping tables live in `references/<module>-commands.md`.
+
 ## Preflight
 
 Before running any command, follow [`../_shared/preflight.md`](../_shared/preflight.md).

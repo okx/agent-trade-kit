@@ -11,6 +11,12 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **CLI 不再在遇到未知子命令时静默退出 0**（issue #173）。之前每个二级 module 分发器（`swap`、`spot`、`futures`、`option`、`account`、`bot`）在 action 名未命中任何注册分支时，会 `return undefined` 直接 fall-through——`okx swap place-algo` 直接 exit 0 无任何输出，脚本里的 `&& echo OK` 会把失败当成功，完全掩盖真实问题。现在每个分发器调用共享的 `unknownSubcommand()` helper：向 stderr 打印 `Unknown command: okx <模块> <动作>`、列出该模块可用子命令、在适配场景下建议从 MCP 名反推 CLI 形式（如 `place-algo` → `algo place`），并设置非零 exit code。线索来自 CS Telegram 2026-04-21 客户反馈——`okx --profile demo swap place-algo ...` 全静默退出，客户无法判断是功能坏了还是命令写错了。
+
+- **`skills/okx-cex-trade/` 参考文档现在显式说明 CLI ↔ MCP 命名不一致**。顶层 `SKILL.md` 加了 warning；`references/swap-commands.md` 加了专门的"Naming — CLI vs MCP tool"映射表，把每个 MCP 工具标识符和对应的 CLI 子命令路径一一列出。和上一条同一 #173 事件：客户看到 MCP 工具列表里的 `swap_place_algo_order` 就把 CLI 形式猜成 `swap place-algo`——修复前会静默失败，现在会显式报错。
+
 ## [1.3.2-beta.1] - 2026-04-21
 
 ### 新增
