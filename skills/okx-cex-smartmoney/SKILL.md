@@ -49,8 +49,6 @@ Run `okx config show` before any authenticated command.
 - Error or no configuration → **stop**, guide user to run `okx config init`, wait for completion.
 - Credentials configured → proceed.
 
-Smart Money does not support demo mode. Always use `--profile live` silently — don't mention it unless there's an error.
-
 **On 401 errors:** stop immediately, tell the user their credentials may be invalid or expired, guide them to update `~/.okx/config.toml` (do NOT ask them to paste credentials into chat), then verify with `okx config show` and retry.
 
 ---
@@ -121,7 +119,6 @@ For multi-step workflows (recommend traders then drill down, signal analysis wit
 - **Output:** Always pass `--json` to list/query commands and render results as a Markdown table — never paste raw terminal output.
 - **Network errors:** If commands fail with a connection error, prompt user to check VPN: `curl -I https://www.okx.com`
 - **Language:** Always respond in the user's language.
-- **Demo mode:** Smart Money does not support demo/simulated mode. All commands use real data.
 - **Signal availability:** Signal commands (overview, signal, signal-history) require either `--dataVersion` or `--ts`.
 
 For number/time formatting and response structure conventions, read `{baseDir}/references/templates.md`.

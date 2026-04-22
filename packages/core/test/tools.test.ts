@@ -4819,13 +4819,13 @@ describe("option_place_order — tgtCcy conversion", () => {
 });
 
 // ---------------------------------------------------------------------------
-// smartmoney demo guard (smartmoney.ts — withSmartmoneyDemoGuard)
+// smartmoney: no demo guard — tools work in both live and demo mode
 // ---------------------------------------------------------------------------
 
-describe("smartmoney demo guard", () => {
+describe("smartmoney allows demo mode", () => {
   const tools = registerSmartmoneyTools();
 
-  it("all smartmoney tools should throw ConfigError in demo mode", async () => {
+  it("does not throw ConfigError in demo mode (throws ValidationError instead)", async () => {
     const { client } = makeMockClient();
     const demoCtx: ToolContext = {
       client: client as ToolContext["client"],
@@ -4834,37 +4834,13 @@ describe("smartmoney demo guard", () => {
         demo: true,
       },
     };
-    for (const tool of tools) {
-      await assert.rejects(
-        () => tool.handler({}, demoCtx),
-        (err: unknown) =>
-          err instanceof ConfigError &&
-          /not available in demo/i.test((err as ConfigError).message),
-        `${tool.name} should be blocked by demo guard`,
-      );
-    }
-  });
-
-  it("does not throw demo guard when demo=false", async () => {
-    const { client } = makeMockClient();
-    const ctx: ToolContext = {
-      client: client as ToolContext["client"],
-      config: {
-        ...makeContext(client).config,
-        demo: false,
-      },
-    };
-    const tool = tools[0]!;
-    // handler may throw for other reasons (e.g. missing required params / API error),
-    // but must NOT throw ConfigError due to the demo guard
-    try {
-      await tool.handler({}, ctx);
-    } catch (err) {
-      assert.ok(
-        !(err instanceof ConfigError && /not available in demo/i.test((err as ConfigError).message)),
-        "demo guard should not block when demo=false",
-      );
-    }
+    // overview requires dataVersion or ts — should throw ValidationError, not ConfigError
+    const overview = tools.find((t) => t.name === "smartmoney_get_overview")!;
+    await assert.rejects(
+      () => overview.handler({}, demoCtx),
+      (err: unknown) => err instanceof ValidationError,
+      "should throw ValidationError (missing params), not ConfigError (demo block)",
+    );
   });
 });
 

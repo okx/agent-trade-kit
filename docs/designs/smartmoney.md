@@ -7,9 +7,9 @@
 - **预期调用量**: 中频——行情分析类查询，用户分析市场时高频调用，日常低频
 - **依赖模块**: market（可配合 `market_get_ticker` 查当前价格做交叉分析）
 - **风控要求**: 无——全部为只读查询，不涉及资金操作
-- **模拟盘**: 不支持——所有 tool 在 demo 模式下会抛出 ConfigError 提示切换到 live profile
+- **模拟盘**: 支持——demo 模式下正常查询，返回数据与 live 一致
 - **站点支持**: global（所有端点已正式上线）
-- **API 权限**: 需要 Read-only API key（API 路径含 `public` 但实际需鉴权调用）
+- **API 权限**: 需要 Read-only API key（`privateGet` 鉴权调用）
 
 ---
 

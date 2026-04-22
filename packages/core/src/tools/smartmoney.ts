@@ -1,4 +1,4 @@
-import type { ToolSpec, ToolArgs, ToolContext } from "./types.js";
+import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
@@ -7,7 +7,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
-import { ConfigError, ValidationError } from "../utils/errors.js";
+import { ValidationError } from "../utils/errors.js";
 
 /* ------------------------------------------------------------------ */
 /*  API path constants                                                 */
@@ -102,31 +102,6 @@ function extractLeaderboardData(data: unknown): unknown[] {
     if (Array.isArray(inner)) return inner;
   }
   return [];
-}
-
-/* ------------------------------------------------------------------ */
-/*  Demo-mode guard                                                    */
-/* ------------------------------------------------------------------ */
-
-const SMARTMONEY_DEMO_MESSAGE =
-  "Smart Money features are not available in demo/simulated trading mode.";
-const SMARTMONEY_DEMO_SUGGESTION =
-  "Switch to a live profile to use Smart Money features.";
-
-function withSmartmoneyDemoGuard(tool: ToolSpec): ToolSpec {
-  const originalHandler = tool.handler;
-  return {
-    ...tool,
-    handler: async (args: ToolArgs, context: ToolContext): Promise<unknown> => {
-      if (context.config.demo) {
-        throw new ConfigError(
-          SMARTMONEY_DEMO_MESSAGE,
-          SMARTMONEY_DEMO_SUGGESTION,
-        );
-      }
-      return originalHandler(args, context);
-    },
-  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -456,5 +431,5 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
     },
   ];
-  return tools.map(withSmartmoneyDemoGuard);
+  return tools;
 }

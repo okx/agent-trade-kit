@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Smart Money signal API paths changed: `/api/v5/journal/public/smartmoney/*` → `/api/v5/journal/smartmoney/*` to align with upstream OKX endpoint (4.1 signal, 4.2 signal-history, 4.3 overview).
+- Removed demo-mode guard from Smart Money module — all 5 tools now work in both live and simulated trading mode. Previously they threw `ConfigError` in demo mode.
+
 - **News CLI `--importance` default switched to `low`** for `okx news latest`, `okx news by-coin`, and `okx news search`. Previously these commands forwarded `undefined` to the server, which applies its `high`-only default and silently narrowed results. They now default to `low` (returns all news, both high and low importance) for broader browsing. Pass `--importance high` explicitly — or use the dedicated `okx news important` command — when you only want breaking / major news. MCP `news_get_latest` / `news_get_by_coin` / `news_search` tool descriptions updated to reflect the same semantics so AI agents pick `low` for broad queries and `high` only when the user explicitly asks for major news.
 
 - **News skill: time-window handling for `--platform` queries**. The API's default `--begin` window is 72 hours, too narrow for bursty news sources and a frequent cause of empty results. `okx-sentiment-tracker` Source-Filtered News and Empty Results fallback sections now instruct agents to broaden `--begin` to 7 then 30 days before concluding a source has no data. The Known Limitations "Source Coverage" table that hardcoded per-platform activity labels was removed — those labels were based on the narrow 72-hour assumption and could mislead agents into giving up prematurely. Replaced with a generic rule that platform cadence is uneven and candidates should be resolved from `okx news platforms` rather than assumed.

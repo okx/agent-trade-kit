@@ -21,9 +21,6 @@ Aggregates pool traders' positions for a single currency to produce long/short r
 | `--lmtNum` | No | `100` | Candidate trader pool size limit (range 1-500) |
 | `--authorIds` | No | - | Comma-separated user IDs for precise filtering (e.g. `1001,1002,1003`) |
 
-\* `instId` and `instCcy` must provide at least one.
-\*\* `dataVersion` and `ts` must provide at least one.
-
 Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) also apply.
 
 ### Signal Filter Enum Values
@@ -94,8 +91,6 @@ Returns historical signal snapshots for a given instrument. Sorted by ts DESC. U
 | `--limit` | No | `24` | Number of data points to return (range 1-500) |
 Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum tiers also apply.
 
-\* `dataVersion` and `ts` must provide at least one.
-
 ### Response Fields (10 fields per item, array `data[]`, sorted by ts DESC)
 
 | Field | Type | Description |
@@ -132,8 +127,6 @@ Returns aggregated signal snapshots for top currencies, ranked by tradersWithPos
 | `--instCcy` | No | - | Single currency filter, alias for instCcyList. instCcyList takes precedence. |
 | `--topInstruments` | No | `20` | Number of top instruments to return (range 1-100) |
 | `--lmtNum` | No | `100` | Candidate trader pool size limit |
-
-\* `dataVersion` and `ts` must provide at least one.
 
 Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum tiers also apply.
 
