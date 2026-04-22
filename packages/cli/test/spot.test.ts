@@ -13,6 +13,7 @@ import {
   cmdSpotAlgoOrders,
   cmdSpotFills,
   cmdSpotBatch,
+  cmdSpotSetLeverage,
 } from "../src/commands/spot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -651,5 +652,66 @@ describe("cmdSpotBatch", () => {
     assert.ok(out.join("").includes("111: OK"));
     assert.ok(out.join("").includes("222: OK"));
     assert.equal(err.join(""), "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdSpotSetLeverage — spot margin leverage (instId or ccy level)
+// ---------------------------------------------------------------------------
+describe("cmdSpotSetLeverage", () => {
+  const fakeLeverResult = {
+    code: "0",
+    msg: "",
+    data: [{ instId: "BTC-USDT", lever: "3", mgnMode: "isolated" }],
+  };
+
+  it("calls spot_set_leverage with instId (pair-level)", async () => {
+    let capturedTool: string | undefined;
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (tool, params) => {
+      capturedTool = tool; capturedParams = params as Record<string, unknown>; return fakeLeverResult;
+    };
+    await cmdSpotSetLeverage(runner, {
+      instId: "BTC-USDT",
+      lever: "3",
+      mgnMode: "isolated",
+      json: false,
+    });
+    assert.equal(capturedTool, "spot_set_leverage");
+    assert.equal(capturedParams!["instId"], "BTC-USDT");
+    assert.equal(capturedParams!["ccy"], undefined);
+    assert.equal(capturedParams!["lever"], "3");
+    assert.equal(capturedParams!["mgnMode"], "isolated");
+    assert.ok(out.join("").includes("3x BTC-USDT"));
+  });
+
+  it("calls spot_set_leverage with ccy (currency-level cross)", async () => {
+    let capturedParams: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      capturedParams = params as Record<string, unknown>;
+      return { code: "0", msg: "", data: [{ ccy: "BTC", lever: "5", mgnMode: "cross" }] };
+    };
+    await cmdSpotSetLeverage(runner, {
+      ccy: "BTC",
+      lever: "5",
+      mgnMode: "cross",
+      json: false,
+    });
+    assert.equal(capturedParams!["ccy"], "BTC");
+    assert.equal(capturedParams!["instId"], undefined);
+    assert.equal(capturedParams!["lever"], "5");
+    assert.equal(capturedParams!["mgnMode"], "cross");
+    assert.ok(out.join("").includes("5x BTC"));
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeLeverResult;
+    await cmdSpotSetLeverage(runner, {
+      instId: "BTC-USDT",
+      lever: "3",
+      mgnMode: "isolated",
+      json: true,
+    });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });

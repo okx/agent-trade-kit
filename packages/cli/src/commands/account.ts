@@ -37,13 +37,15 @@ export async function cmdAccountAssetBalance(
   ccy: string | undefined,
   json: boolean,
   showValuation?: boolean,
+  valuationCcy?: string,
 ): Promise<void> {
   const result = await run("account_get_asset_balance", {
     ccy,
     ...(showValuation ? { showValuation: true } : {}),
+    ...(valuationCcy !== undefined ? { valuationCcy } : {}),
   }) as unknown as Record<string, unknown>;
   const data = (result.data ?? []) as Record<string, unknown>[];
-  if (json) return printJson(showValuation ? { data, valuation: result.valuation } : data);
+  if (json) return printJson(showValuation ? { data, valuation: result.valuation, valuationCcy: result.valuationCcy } : data);
   const assetRows = data
     .filter((r) => Number(r["bal"]) > 0)
     .map((r) => ({
@@ -60,7 +62,7 @@ export async function cmdAccountAssetBalance(
   if (showValuation && result.valuation) {
     const valuationData = (result.valuation as Record<string, unknown>[]) ?? [];
     outputLine("");
-    outputLine("Asset Valuation by Account Type:");
+    outputLine(`Asset Valuation by Account Type (${String(result.valuationCcy ?? "USDT")}):`);
     printTable(
       valuationData.map((v) => {
         const details = (v["details"] as Record<string, unknown>) ?? {};

@@ -10,14 +10,14 @@ The project is a pnpm workspace monorepo containing three packages:
 | Package | Path | Purpose |
 |---------|------|---------|
 | `@okx-trade/core` | `packages/core` | Shared SDK: REST client, tool definitions, config parsing, error types |
-| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~153 tools over stdio (JSON-RPC 2.0) |
+| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~154 tools over stdio (JSON-RPC 2.0) |
 | `@okx-trade/cli` | `packages/cli` | CLI binary (`okx`) for direct terminal use |
 
 **Bundling**: tsup (ESM output). **Testing**: node:test. **Validation**: zod. **Config**: TOML via smol-toml.
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **153 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **154 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
 
 - **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)
@@ -34,7 +34,7 @@ As of the latest registry scan, the server exposes **153 MCP tools** organized i
 - **earn.flash** — flash earn (short-window high-yield projects)
 - **bot.grid** — grid trading bot (create, monitor, stop)
 - **bot.dca** — DCA (Martingale) bot (spot or contract recurring buys)
-- **smartmoney** — smart money signals (trader leaderboard, consensus signals, position analysis)
+- **smartmoney** — smart-money signals, trader leaderboard, consensus/position analysis
 - **skills** — skills marketplace (search, install, manage skill packs)
 
 ## Skills Ecosystem
@@ -47,8 +47,8 @@ As of the latest registry scan, the server exposes **153 MCP tools** organized i
 - `skills/okx-cex-bot/` — bot lifecycle management
 - `skills/okx-cex-portfolio/` — portfolio overview
 - `skills/okx-cex-skill-mp/` — skill marketplace management
+- `skills/okx-cex-smartmoney/` — smart-money signals and trader leaderboard
 - `skills/okx-sentiment-tracker/` — crypto news and market sentiment
-- `skills/okx-cex-smartmoney/` — smart money signals and trader analytics
 
 Each skill pack's `SKILL.md` carries a `metadata.version` that must be synchronized with the package release version on every stable release.
 

@@ -11,7 +11,21 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`market` 分发器：`orderbook`、`candles`、`trades`、`funding-rate` 不再触发虚假的 `Unknown market command` 错误和 exit 1**（issue #175，回归来自 2026-04-14 的 commit `9fd4717`）。该次重构将过滤命令提取到 `handleMarketFilterCommand`，但在函数尾部保留了 `errorLine + exitCode=1` 的副作用代码。由于 `handleMarketPublicCommand` 无条件以 tail-call 方式调用 `handleMarketFilterCommand` 作为兜底，这段副作用会在 `handleMarketDataCommand` 有机会分发之前就触发——四个子命令的 stdout 输出正确 JSON，但同时向 stderr 写入了报错并 exit 1，导致使用 `set -e` 的脚本即便 API 调用成功也会被强制中断。修复方案：从 `handleMarketFilterCommand` 尾部移除副作用代码块（无匹配时静默返回 `undefined`，与其他所有子处理函数保持一致）；在 `handleMarketCommand` 中两个子分发器均返回 `undefined` 后调用 `unknownSubcommand("market", action, [...])`——与 #173 之后 `swap`、`spot`、`futures`、`option`、`account`、`bot` 所采用的模式完全相同。真正未知的 market 子命令（如 `okx market foo`）仍会通过 `unknownSubcommand()` 输出结构化诊断信息并 exit 1。
+
+- **`account_get_asset_balance` 总资产估值现在默认以 USDT 计价**（issue #174）。此前 `showValuation=true` 调用 `/api/v5/asset/asset-valuation` 时未传 `ccy` 参数，OKX 默认以 BTC 计价——持有 $3,834 的用户会看到 `0.049` 而非 `3834`。新增 `valuationCcy` 参数（默认 `"USDT"`），该值现在作为 `ccy` 参数传入估值接口。调用方可以覆盖为任意 OKX 支持的计价币种（例如 `valuationCcy="BTC"`）。所选计价币种同时以 `valuationCcy` 字段回写到返回 JSON 中，方便调用方判断单位。CLI：`okx account asset-balance --valuation` 现在默认显示 USDT 计价的总资产；如需 BTC 计价请用 `--valuationCcy BTC`。
+
+- **CLI 不再在遇到未知子命令时静默退出 0**（issue #173）。之前每个二级 module 分发器（`swap`、`spot`、`futures`、`option`、`account`、`bot`）在 action 名未命中任何注册分支时，会 `return undefined` 直接 fall-through——`okx swap place-algo` 直接 exit 0 无任何输出，脚本里的 `&& echo OK` 会把失败当成功，完全掩盖真实问题。现在每个分发器调用共享的 `unknownSubcommand()` helper：向 stderr 打印 `Unknown command: okx <模块> <动作>`、列出该模块可用子命令、在适配场景下建议从 MCP 名反推 CLI 形式（如 `place-algo` → `algo place`），并设置非零 exit code。线索来自 CS Telegram 2026-04-21 客户反馈——`okx --profile demo swap place-algo ...` 全静默退出，客户无法判断是功能坏了还是命令写错了。
+
+- **`skills/okx-cex-trade/` 参考文档现在显式说明 CLI ↔ MCP 命名不一致**。顶层 `SKILL.md` 加了 warning；`references/swap-commands.md` 加了专门的"Naming — CLI vs MCP tool"映射表，把每个 MCP 工具标识符和对应的 CLI 子命令路径一一列出。和上一条同一 #173 事件：客户看到 MCP 工具列表里的 `swap_place_algo_order` 就把 CLI 形式猜成 `swap place-algo`——修复前会静默失败，现在会显式报错。
+
+## [1.3.2-beta.1] - 2026-04-21
+
 ### 新增
+
+- **`spot_set_leverage` MCP 工具及 `okx spot leverage` CLI 命令**：设置现货保证金或全仓杠杆倍数。支持 `--instId`（标的级别）或 `--ccy`（币种级别）与 `--lever`、`--mgnMode` 组合使用。HTTP 请求发出前进行输入验证——非数字、零值或负值的 `lever` 将立即返回可操作的错误信息。覆盖 OKX 现货/保证金全部 5 种杠杆场景。
 
 - **Smart Money 模块**（`smartmoney`）：新增 5 个只读 MCP 工具（`smartmoney_get_overview`、`smartmoney_get_signal`、`smartmoney_get_signal_history`、`smartmoney_get_traders`、`smartmoney_get_trader_detail`）及对应 CLI 命令，支持查询交易员排行榜、持仓分析和聪明钱信号。
 
@@ -21,6 +35,10 @@
 #### 破坏性变更
 
 - **`grid_stop_order` MCP 工具：`stopType` 值 `"3"`、`"5"`、`"6"` 已明确删除**（ALGO-37613）— 这些值对网格机器人停止操作不再有效，禁止继续使用。有效集合缩减为 `["1","2"]`：`"1"` 立即平仓退出（默认），`"2"` 停止策略但不平仓。传入 `"3"`/`"5"`/`"6"` 的调用方将在 schema 校验阶段失败。**迁移方案**：根据期望的退出行为，将 `"3"/"5"/"6"` 替换为 `"1"`（立即平仓）或 `"2"`（保留持仓）。
+
+### 修复
+
+- **`swap_set_leverage` / `futures_set_leverage` 输入校验增强**：无效的 `lever` 值（非数字、零值、负值）现在在 HTTP 请求发出前即被拒绝，并返回明确的错误信息，不再透传为 OKX 51xxx 错误。`mgnMode` 和 `posSide` 字段校验已对齐允许枚举值。`cross` 与 `long`/`short` 的组合被明确拦截，提示"posSide 仅在逐仓模式下有效"，与 OKX 业务规则一致，可将约 9.7% 的无效请求失败率显著降低。工具描述已重写，枚举了 SWAP/FUTURES 的三种适用场景（全仓指数级 / 逐仓单向 / 逐仓对冲），并明确标注组合保证金全仓模式不支持。
 
 ### 变更
 

@@ -330,3 +330,20 @@ export async function cmdSpotBatch(
   if (opts.json) return printJson(data);
   emitBatchResults(data ?? []);
 }
+
+export async function cmdSpotSetLeverage(
+  run: ToolRunner,
+  opts: { instId?: string; ccy?: string; lever: string; mgnMode: string; json: boolean },
+): Promise<void> {
+  const result = await run("spot_set_leverage", {
+    instId: opts.instId,
+    ccy: opts.ccy,
+    lever: opts.lever,
+    mgnMode: opts.mgnMode,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  const r = data?.[0];
+  const target = r?.["instId"] ?? r?.["ccy"] ?? "";
+  outputLine(`Leverage set: ${r?.["lever"]}x ${target} (${r?.["mgnMode"]})`);
+}

@@ -11,7 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`market` dispatcher: `orderbook`, `candles`, `trades`, `funding-rate` no longer emit spurious `Unknown market command` error and exit 1** (issue #175, regression introduced by commit `9fd4717` on 2026-04-14). The `handleMarketFilterCommand` refactor in that commit left an `errorLine + exitCode=1` block at its tail. Because `handleMarketPublicCommand` unconditionally tail-calls `handleMarketFilterCommand` as its fallback, the error fired before `handleMarketDataCommand` had a chance to dispatch the action — all four subcommands produced correct JSON on stdout but also wrote an error to stderr and exited 1, causing `set -e` scripts to hard-fail even though the underlying API call succeeded. Fix: removed the side-effect block from `handleMarketFilterCommand` (it now returns `undefined` silently on no match, consistent with every other sub-handler), and added `unknownSubcommand("market", action, [...])` in `handleMarketCommand` after both sub-dispatchers return `undefined` — the same pattern used by `swap`, `spot`, `futures`, `option`, `account`, and `bot` post-#173. Truly unknown market actions (e.g. `okx market foo`) continue to error with the structured diagnostic from `unknownSubcommand()` and exit 1.
+
+- **`account_get_asset_balance` total asset valuation now defaults to USDT denomination** (issue #174). Previously, `showValuation=true` called `/api/v5/asset/asset-valuation` with no `ccy` parameter, causing OKX to default to BTC — a user with $3,834 in assets would see `0.049` instead of `3834`. A new `valuationCcy` parameter (default `"USDT"`) is now passed to the valuation endpoint. Callers can override to any OKX-supported currency (e.g. `valuationCcy="BTC"`). The chosen denomination is stamped as `valuationCcy` in the returned JSON. CLI: `okx account asset-balance --valuation` now shows USDT-denominated totals by default; use `--valuationCcy BTC` for BTC-denominated totals.
+
+- **CLI no longer silently exits 0 on unknown subcommands** (issue #173). Previously, every second-level module dispatcher (`swap`, `spot`, `futures`, `option`, `account`, `bot`) fell through to `return undefined` when the action name didn't match any registered branch, producing an invisible failure — `okx swap place-algo` would exit 0 with no output, misleading scripts with `&& echo OK` and masking the real problem. Each dispatcher now calls the shared `unknownSubcommand()` helper which emits `Unknown command: okx <mod> <action>` to stderr, lists the available subcommands, suggests an MCP-name-to-CLI rewrite when applicable (`place-algo` → `algo place`), and sets a non-zero exit code. Reported via CS Telegram 2026-04-21 — customer's `okx --profile demo swap place-algo ...` returned silently, leaving them unable to tell whether the feature was broken or the command wrong.
+
+- **`skills/okx-cex-trade/` reference docs now call out the CLI↔MCP naming mismatch.** `SKILL.md` has a top-level note; `references/swap-commands.md` has a dedicated "Naming — CLI vs MCP tool" table mapping each tool identifier to its CLI subcommand path. Motivated by the same #173 report: customers see `swap_place_algo_order` in MCP tool listings and guess the CLI form is `swap place-algo`, which silently failed pre-fix and now errors explicitly.
+
+## [1.3.2-beta.1] - 2026-04-21
+
 ### Added
+
+- **`spot_set_leverage` MCP tool and `okx spot leverage` CLI command**: Set the leverage ratio for a spot margin or cross-margin instrument. Accepts `--instId` (instrument-level) or `--ccy` (currency-level) alongside `--lever` and `--mgnMode`. Input is validated before the HTTP call — non-numeric, zero, or negative `lever` values are rejected immediately with an actionable error. Supports all 5 OKX leverage scenarios for SPOT/MARGIN.
 
 - **Smart Money module** (`smartmoney`): 5 new read-only MCP tools (`smartmoney_get_overview`, `smartmoney_get_signal`, `smartmoney_get_signal_history`, `smartmoney_get_traders`, `smartmoney_get_trader_detail`) and corresponding CLI commands for accessing trader leaderboard, position analysis, and smart money signals.
 
@@ -21,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Breaking Changes
 
 - **`grid_stop_order` MCP tool: `stopType` values `"3"`, `"5"`, and `"6"` explicitly removed** (ALGO-37613) — These values are no longer valid for grid bot stop operations and must not be used. The valid set is now `["1","2"]` only: `"1"` closes all positions immediately (default clean exit), `"2"` stops the strategy without selling. Callers passing `"3"`, `"5"`, or `"6"` will fail schema validation. **Migration**: replace any usage of `"3"/"5"/"6"` with `"1"` (immediate close) or `"2"` (keep positions) based on the desired exit behaviour.
+
+### Fixed
+
+- **`swap_set_leverage` / `futures_set_leverage` input validation**: Invalid `lever` values (non-numeric, zero, negative) are now rejected before the HTTP call with a clear error message instead of surfacing an opaque OKX 51xxx error. `mgnMode` and `posSide` are validated against allowed enums. The `cross` + `long`/`short` combination is explicitly blocked with the hint "posSide only valid with isolated margin mode", matching OKX's business rule and reducing the ~9.7% failure rate from callers sending invalid combinations. Tool descriptions are rewritten to enumerate the three applicable SWAP/FUTURES scenarios (cross index-level / isolated one-way / isolated hedge) and explicitly flag portfolio-margin cross as unsupported.
 
 ### Changed
 

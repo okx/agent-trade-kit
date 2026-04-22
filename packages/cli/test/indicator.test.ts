@@ -4,12 +4,16 @@
  *
  * No real network calls are made; a spy ToolRunner is used.
  */
-import { describe, it } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { handleMarketPublicCommand } from "../src/index.js";
 import type { CliValues } from "../src/index.js";
 import { cmdMarketIndicator } from "../src/commands/market.js";
+
+// CLI dispatch helpers set `process.exitCode = 1` on unknown actions; reset
+// between tests so a leaked exit code doesn't fail the test file as a whole.
+afterEach(() => { process.exitCode = 0; });
 
 // ---------------------------------------------------------------------------
 // Helpers

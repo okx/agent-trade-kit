@@ -8,6 +8,7 @@ const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
 import { cmdDiagnose } from "./commands/diagnose.js";
+import { unknownSubcommand } from "./unknown-command.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
 import {
@@ -74,6 +75,7 @@ import {
   cmdSpotAlgoOrders,
   cmdSpotAlgoTrailPlace,
   cmdSpotBatch,
+  cmdSpotSetLeverage,
 } from "./commands/spot.js";
 import {
   cmdSwapPositions,
@@ -346,9 +348,6 @@ function handleMarketFilterCommand(
       limit,
       json,
     });
-  errorLine(`Unknown market command: ${action}`);
-  errorLine("Valid: ticker, tickers, orderbook, candles, trades, instruments, mark-price, funding-rate, open-interest, index-ticker, price-limit, stock-tokens, instruments-by-category, indicator, filter, oi-history, oi-change");
-  process.exitCode = 1;
 }
 
 function handleIndicatorAction(
@@ -397,10 +396,16 @@ export function handleMarketCommand(
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
-  return (
+  const result =
     handleMarketPublicCommand(run, action, rest, v, json) ??
-    handleMarketDataCommand(run, action, rest, v, json)
-  );
+    handleMarketDataCommand(run, action, rest, v, json);
+  if (result !== undefined) return result;
+  unknownSubcommand("market", action, [
+    "ticker", "tickers", "orderbook", "candles", "trades", "instruments",
+    "mark-price", "funding-rate", "open-interest", "index-ticker", "price-limit",
+    "stock-tokens", "instruments-by-category", "indicator", "filter",
+    "oi-history", "oi-change", "index-candles",
+  ]);
 }
 
 export function handleAccountWriteCommand(
@@ -426,6 +431,11 @@ export function handleAccountWriteCommand(
       subAcct: v.subAcct,
       json,
     });
+  unknownSubcommand("account", action, [
+    "audit", "balance", "asset-balance", "positions", "positions-history",
+    "bills", "fees", "config",
+    "set-position-mode", "max-size", "max-avail-size", "max-withdrawal", "transfer",
+  ]);
 }
 
 function handleAccountCommand(
@@ -439,7 +449,7 @@ function handleAccountCommand(
     return cmdAccountAudit({ limit: v.limit, tool: v.tool, since: v.since, json });
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "balance") return cmdAccountBalance(run, rest[0], json);
-  if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json, v.valuation);
+  if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json, v.valuation, v.valuationCcy);
   if (action === "positions")
     return cmdAccountPositions(run, { instType: v.instType, instId: v.instId, json });
   if (action === "positions-history")
@@ -518,6 +528,7 @@ export function handleSpotAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("spot algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
 }
 
 export function handleSpotCommand(
@@ -568,6 +579,19 @@ export function handleSpotCommand(
     return handleSpotAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
     return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, json });
+  if (action === "leverage")
+    return cmdSpotSetLeverage(run, {
+      instId: v.instId,
+      ccy: v.ccy,
+      lever: v.lever!,
+      mgnMode: v.mgnMode!,
+      json,
+    });
+  unknownSubcommand("spot", action, [
+    "orders", "get", "fills",
+    "place", "cancel", "amend",
+    "algo", "batch", "leverage",
+  ]);
 }
 
 export function handleSwapAlgoCommand(
@@ -629,6 +653,7 @@ export function handleSwapAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("swap algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
 }
 
 function handleSwapQuery(
@@ -718,6 +743,11 @@ export function handleSwapCommand(
     return handleSwapAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
     return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
+  unknownSubcommand("swap", action, [
+    "positions", "orders", "get", "fills", "get-leverage",
+    "place", "cancel", "amend", "close", "leverage",
+    "algo", "batch",
+  ]);
 }
 
 export function handleOptionAlgoCommand(
@@ -762,6 +792,7 @@ export function handleOptionAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("option algo", subAction, ["place", "amend", "cancel", "orders"]);
 }
 
 export function handleOptionCommand(
@@ -819,6 +850,10 @@ export function handleOptionCommand(
     return cmdOptionBatchCancel(run, { orders: v.orders!, json });
   if (action === "algo")
     return handleOptionAlgoCommand(run, rest[0], v, json);
+  unknownSubcommand("option", action, [
+    "orders", "get", "positions", "fills", "instruments", "greeks",
+    "place", "cancel", "amend", "batch-cancel", "algo",
+  ]);
 }
 
 export function handleFuturesAlgoCommand(
@@ -880,6 +915,7 @@ export function handleFuturesAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("futures algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
 }
 
 function resolveFuturesOrdersStatus(v: CliValues): "archive" | "history" | "open" {
@@ -969,6 +1005,11 @@ export function handleFuturesCommand(
     return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, json });
   if (action === "algo")
     return handleFuturesAlgoCommand(run, rest[0], v, json);
+  unknownSubcommand("futures", action, [
+    "orders", "positions", "fills", "get", "get-leverage",
+    "place", "cancel", "amend", "close", "leverage",
+    "batch", "algo",
+  ]);
 }
 
 export function handleBotGridCommand(
@@ -1042,6 +1083,7 @@ export function handleBotGridCommand(
       stopType: v.stopType,
       json,
     });
+  unknownSubcommand("bot grid", subAction, ["orders", "details", "sub-orders", "create", "amend", "stop"]);
 }
 
 export function handleBotDcaCommand(
@@ -1088,6 +1130,7 @@ export function handleBotDcaCommand(
     });
   if (subAction === "stop")
     return cmdDcaStop(run, { algoId: v.algoId!, algoOrdType, stopType: v.stopType, json });
+  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop"]);
 }
 
 export function handleBotCommand(
@@ -1099,6 +1142,7 @@ export function handleBotCommand(
 ): Promise<void> | void {
   if (action === "grid") return handleBotGridCommand(run, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
+  unknownSubcommand("bot", action, ["grid", "dca"]);
 }
 
 export function handleEarnCommand(

@@ -1,5 +1,25 @@
 # Spot Command Reference
 
+## Naming — CLI vs MCP tool
+
+This CLI uses **space-separated subcommands** (`okx spot algo place`). The MCP tool names surfaced to AI agents use a **single underscored identifier** (`spot_place_algo_order`). They are the same feature on two different surfaces. Mapping examples:
+
+| CLI command | MCP tool name |
+|---|---|
+| `okx spot place` | `spot_place_order` |
+| `okx spot algo place` | `spot_place_algo_order` |
+| `okx spot algo trail` | `spot_place_algo_order` w/ `ordType=move_order_stop` |
+| `okx spot cancel` | `spot_cancel_order` |
+| `okx spot algo cancel` | `spot_cancel_algo_order` |
+| `okx spot amend` | `spot_amend_order` |
+| `okx spot algo amend` | `spot_amend_algo_order` |
+| `okx spot orders` | `spot_get_orders` |
+| `okx spot fills` | `spot_get_fills` |
+| `okx spot batch` | `spot_batch_orders` |
+| `okx spot leverage` | `spot_set_leverage` |
+
+**Do NOT convert MCP tool names to hyphen-joined CLI commands.** `okx spot place-order` is **not** a valid command — the CLI will reject it with "Unknown command". Use `okx spot place` instead.
+
 ## Order Type Reference
 
 | `--ordType` | Description | Requires `--px` |
@@ -177,6 +197,30 @@ okx spot algo orders [--instId <id>] [--history] [--ordType <type>] [--json]
 ```
 
 Returns: `algoId`, `instId`, type, `side`, `sz`, `tpTrigger`, `slTrigger`, `state`.
+
+---
+
+## Spot — Set Leverage (margin trading)
+
+```bash
+okx spot leverage ( --instId <pair> | --ccy <ccy> ) --lever <n> --mgnMode <cross|isolated> [--json]
+```
+
+Use this to set leverage for spot **margin** (borrowing) trading. Pass **exactly one** of `--instId` (pair-level) or `--ccy` (currency-level cross).
+
+| Param | Required | Description |
+|---|---|---|
+| `--instId` | Cond. | Pair-level leverage, e.g. `BTC-USDT`. Works with `isolated` or `cross`. Mutually exclusive with `--ccy`. |
+| `--ccy` | Cond. | Currency-level leverage, e.g. `BTC`. Only for borrow-enabled spot / multi-ccy margin / portfolio margin accounts. Requires `--mgnMode cross`. |
+| `--lever` | Yes | Positive number (e.g. `3`). Max depends on the pair / account policy. |
+| `--mgnMode` | Yes | `cross` or `isolated`. Must be `cross` when `--ccy` is used. |
+
+Scenarios (mirror OKX `POST /api/v5/account/set-leverage`):
+- `--instId + --mgnMode isolated` → pair-level isolated margin
+- `--instId + --mgnMode cross`    → pair-level cross margin (contract-mode account)
+- `--ccy    + --mgnMode cross`    → currency-level cross (spot-with-borrow / multi-ccy / portfolio margin)
+
+For SWAP / FUTURES leverage see `okx swap leverage` / `okx futures leverage`.
 
 ---
 

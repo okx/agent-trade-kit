@@ -1295,6 +1295,99 @@ describe("spot_cancel_order", () => {
   });
 });
 
+describe("spot_set_leverage", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_set_leverage")!;
+
+  it("instId + isolated → pair-level margin", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", lever: "5", mgnMode: "isolated" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/account/set-leverage");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.instId, "BTC-USDT");
+    assert.equal(params.mgnMode, "isolated");
+    assert.equal(params.ccy, undefined);
+  });
+
+  it("ccy + cross → currency-level cross margin", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { ccy: "BTC", lever: "3", mgnMode: "cross" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.ccy, "BTC");
+    assert.equal(params.mgnMode, "cross");
+    assert.equal(params.instId, undefined);
+  });
+
+  it("rejects missing instId and ccy", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ lever: "5", mgnMode: "cross" }, makeContext(client)),
+      /provide either "instId".*"ccy"/,
+    );
+  });
+
+  it("rejects both instId and ccy together", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", ccy: "BTC", lever: "5", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /mutually exclusive/,
+    );
+  });
+
+  it("rejects ccy with isolated mgnMode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { ccy: "BTC", lever: "5", mgnMode: "isolated" },
+        makeContext(client),
+      ),
+      /"ccy" is supplied.*"mgnMode" must be "cross"/,
+    );
+  });
+
+  it("rejects non-numeric lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", lever: "abc", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /positive number/,
+    );
+  });
+
+  it("rejects zero / negative lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", lever: "0", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /positive number/,
+    );
+  });
+
+  it("rejects invalid mgnMode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT", lever: "5", mgnMode: "portfolio" },
+        makeContext(client),
+      ),
+      /mgnMode.*cross.*isolated/i,
+    );
+  });
+});
+
 describe("spot_amend_order", () => {
   const tools = registerSpotTradeTools();
   const tool = tools.find((t) => t.name === "spot_amend_order")!;
@@ -1524,6 +1617,99 @@ describe("swap_set_leverage", () => {
     assert.equal(params.lever, "5");
     assert.equal(params.mgnMode, "isolated");
   });
+
+  it("rejects non-numeric lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "abc", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /lever.*positive number/i,
+    );
+  });
+
+  it("rejects zero / negative lever", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "0", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /lever.*positive number/i,
+    );
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "-5", mgnMode: "cross" },
+        makeContext(client),
+      ),
+      /lever.*positive number/i,
+    );
+  });
+
+  it("rejects invalid mgnMode", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "portfolio" },
+        makeContext(client),
+      ),
+      /mgnMode.*cross.*isolated/i,
+    );
+  });
+
+  it("rejects long/short posSide with cross margin", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "cross", posSide: "long" },
+        makeContext(client),
+      ),
+      /posSide.*only valid.*isolated/i,
+    );
+  });
+
+  it("rejects net posSide with cross margin", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "cross", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("rejects net posSide with isolated margin (net is not a valid posSide value)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "isolated", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("accepts cross margin with no posSide (one-way mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "cross" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, undefined);
+  });
+
+  it("accepts long posSide with isolated margin (hedge mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", lever: "5", mgnMode: "isolated", posSide: "long" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, "long");
+  });
 });
 
 describe("swap_get_leverage", () => {
@@ -1655,7 +1841,7 @@ describe("account_get_asset_balance", () => {
     assert.ok("valuation" in result, "result should contain valuation field");
   });
 
-  it("does not pass ccy to /asset/asset-valuation when showValuation=true", async () => {
+  it("balance-filter ccy and valuationCcy are independent when showValuation=true", async () => {
     const callParams: Record<string, Record<string, unknown>> = {};
     const client = {
       publicGet: async (endpoint: string, params: Record<string, unknown>) => {
@@ -1671,11 +1857,126 @@ describe("account_get_asset_balance", () => {
         return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
       },
     };
-    await tool.handler({ ccy: "USDT", showValuation: true }, makeContext(client));
-    // ccy is a balance filter, not a quote currency — should not be forwarded to the valuation endpoint
-    assert.equal(callParams["/api/v5/asset/asset-valuation"]?.ccy, undefined);
-    // ccy should still be passed to the balances endpoint as a filter
-    assert.equal(callParams["/api/v5/asset/balances"]?.ccy, "USDT");
+    // Pass ccy=ETH as a balance filter, but no valuationCcy — so valuation should use default USDT
+    await tool.handler({ ccy: "ETH", showValuation: true }, makeContext(client));
+    // Balance endpoint receives the balance filter
+    assert.equal(callParams["/api/v5/asset/balances"]?.ccy, "ETH",
+      "balance filter ccy should reach /asset/balances");
+    // Valuation endpoint receives valuationCcy default (USDT), NOT the balance filter ccy (ETH)
+    assert.equal(callParams["/api/v5/asset/asset-valuation"]?.ccy, "USDT",
+      "valuation endpoint should use valuationCcy (default USDT), not the balance filter ccy");
+  });
+
+  it("passes USDT to /asset/asset-valuation by default when showValuation=true", async () => {
+    const callParams: Record<string, Record<string, unknown>> = {};
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    await tool.handler({ showValuation: true }, makeContext(client));
+    assert.equal(callParams["/api/v5/asset/asset-valuation"]?.ccy, "USDT",
+      "default valuationCcy should be USDT so totals are shown in dollars, not BTC");
+  });
+
+  it("passes valuationCcy=BTC to /asset/asset-valuation when showValuation=true and valuationCcy='BTC'", async () => {
+    const callParams: Record<string, Record<string, unknown>> = {};
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    const result = await tool.handler({ showValuation: true, valuationCcy: "BTC" }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(callParams["/api/v5/asset/asset-valuation"]?.ccy, "BTC",
+      "explicit valuationCcy override should be forwarded");
+    assert.equal(result["valuationCcy"], "BTC",
+      "valuationCcy should be stamped into result so callers know what denomination was used");
+  });
+
+  it("stamps valuationCcy='USDT' into result when showValuation=true with default", async () => {
+    const callParams: Record<string, Record<string, unknown>> = {};
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        callParams[endpoint] = params;
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    const result = await tool.handler({ showValuation: true }, makeContext(client)) as Record<string, unknown>;
+    assert.equal(result["valuationCcy"], "USDT",
+      "valuationCcy should be stamped into result to make denomination visible to callers");
+  });
+
+  it("does not call /asset/asset-valuation when showValuation is omitted", async () => {
+    const endpointsCalled: string[] = [];
+    const client = {
+      publicGet: async (endpoint: string, params: Record<string, unknown>) => {
+        endpointsCalled.push(endpoint);
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privateGet: async (endpoint: string, params: Record<string, unknown>) => {
+        endpointsCalled.push(endpoint);
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+      privatePost: async (endpoint: string, params: Record<string, unknown>) => {
+        endpointsCalled.push(endpoint);
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [] };
+      },
+    };
+    await tool.handler({}, makeContext(client));
+    assert.ok(!endpointsCalled.includes("/api/v5/asset/asset-valuation"),
+      "valuation endpoint must not be called when showValuation is not set");
+  });
+
+  it("surfaces valuationError when /asset/asset-valuation throws, while still returning balance data", async () => {
+    const client = {
+      publicGet: async (endpoint: string, _params: Record<string, unknown>) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [],
+      }),
+      privateGet: async (endpoint: string, _params: Record<string, unknown>) => {
+        if (endpoint === "/api/v5/asset/asset-valuation") {
+          throw new Error("ccy not supported");
+        }
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [{ ccy: "USDT", bal: "100" }] };
+      },
+      privatePost: async (endpoint: string, _params: Record<string, unknown>) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [],
+      }),
+    };
+    const result = await tool.handler({ showValuation: true }, makeContext(client)) as Record<string, unknown>;
+    assert.ok("data" in result, "balance data should still be returned when valuation fails");
+    assert.equal(result["valuation"], null, "valuation should be null when the endpoint throws");
+    assert.equal(result["valuationError"], "ccy not supported",
+      "valuationError should surface the error message so callers can distinguish no-balance from API errors");
   });
 });
 
@@ -4414,6 +4715,42 @@ describe("futures_set_leverage", () => {
     await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated" }, makeContext(client));
     assert.equal(getLastCall()?.params.lever, "5");
     assert.equal(getLastCall()?.params.mgnMode, "isolated");
+  });
+
+  it("rejects net posSide with cross margin", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-240329", lever: "5", mgnMode: "cross", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("rejects net posSide with isolated margin (net is not a valid posSide value)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated", posSide: "net" },
+        makeContext(client),
+      ),
+      /posSide.*long.*short/i,
+    );
+  });
+
+  it("accepts cross margin with no posSide (one-way mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "cross" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, undefined);
+  });
+
+  it("accepts long posSide with isolated margin (hedge mode)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT-240329", lever: "5", mgnMode: "isolated", posSide: "long" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.posSide, "long");
   });
 });
 

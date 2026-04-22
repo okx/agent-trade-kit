@@ -1,5 +1,21 @@
 # Swap / Perpetual Command Reference
 
+## Naming — CLI vs MCP tool
+
+This CLI uses **space-separated subcommands** (`okx swap algo place`). The MCP tool names surfaced to AI agents use a **single underscored identifier** (`swap_place_algo_order`). They are the same feature on two different surfaces. Mapping examples:
+
+| CLI command | MCP tool name |
+|---|---|
+| `okx swap place` | `swap_place_order` |
+| `okx swap algo place` | `swap_place_algo_order` |
+| `okx swap algo trail` | `swap_place_move_stop_order` (deprecated alias) / `swap_place_algo_order` w/ `ordType=move_order_stop` |
+| `okx swap cancel` | `swap_cancel_order` |
+| `okx swap algo cancel` | `swap_cancel_algo_order` |
+| `okx swap amend` | `swap_amend_order` |
+| `okx swap algo amend` | `swap_amend_algo_order` |
+
+**Do NOT convert MCP tool names to hyphen-joined CLI commands.** `okx swap place-algo` is **not** a valid command — the CLI will reject it with "Unknown command". Use `okx swap algo place` instead.
+
 ## Swap — Place Order
 
 ```bash
@@ -78,9 +94,11 @@ okx swap leverage --instId <id> --lever <n> --mgnMode <cross|isolated> \
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--instId` | Yes | - | Swap instrument |
-| `--lever` | Yes | - | Leverage multiplier (e.g., `10`) |
+| `--lever` | Yes | - | Positive number, e.g., `10`. Max allowed depends on the instrument (query `okx market instruments`). |
 | `--mgnMode` | Yes | - | `cross` or `isolated` |
-| `--posSide` | Cond. | - | `long` or `short` — required for isolated mode in hedge mode |
+| `--posSide` | Cond. | - | `long` or `short` — required for `isolated` in hedge (`long_short_mode`) pos mode. Each side must be set **separately** (setting `long` does NOT auto-apply to `short`). Omit for net mode or for `cross`. |
+
+**Not supported**: Portfolio-margin accounts cannot adjust `cross` leverage for SWAP — OKX always rejects. If unsure of account mode, run `okx account config` first and check `acctLv`.
 
 > ⚠ **Stock tokens** (e.g., `TSLA-USDT-SWAP`): maximum leverage is **5x**. The exchange will reject `--lever` values above 5 for stock token instruments.
 
