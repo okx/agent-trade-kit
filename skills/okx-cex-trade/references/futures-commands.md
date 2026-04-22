@@ -1,5 +1,28 @@
 # Futures / Delivery Command Reference
 
+## Naming — CLI vs MCP tool
+
+This CLI uses **space-separated subcommands** (`okx futures algo place`). The MCP tool names surfaced to AI agents use a **single underscored identifier** (`futures_place_algo_order`). They are the same feature on two different surfaces. Mapping examples:
+
+| CLI command | MCP tool name |
+|---|---|
+| `okx futures place` | `futures_place_order` |
+| `okx futures algo place` | `futures_place_algo_order` |
+| `okx futures algo trail` | `futures_place_move_stop_order` (deprecated alias) / `futures_place_algo_order` w/ `ordType=move_order_stop` |
+| `okx futures cancel` | `futures_cancel_order` |
+| `okx futures algo cancel` | `futures_cancel_algo_orders` |
+| `okx futures amend` | `futures_amend_order` |
+| `okx futures algo amend` | `futures_amend_algo_order` |
+| `okx futures close` | `futures_close_position` |
+| `okx futures leverage` | `futures_set_leverage` |
+| `okx futures get-leverage` | `futures_get_leverage` |
+| `okx futures orders` | `futures_get_orders` |
+| `okx futures positions` | `futures_get_positions` |
+| `okx futures fills` | `futures_get_fills` |
+| `okx futures batch` | `futures_batch_orders` |
+
+**Do NOT convert MCP tool names to hyphen-joined CLI commands.** `okx futures place-algo` is **not** a valid command — the CLI will reject it with "Unknown command". Use `okx futures algo place` instead.
+
 ## Futures — Place Order
 
 ```bash

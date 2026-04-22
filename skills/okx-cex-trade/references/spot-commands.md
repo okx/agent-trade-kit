@@ -1,5 +1,25 @@
 # Spot Command Reference
 
+## Naming — CLI vs MCP tool
+
+This CLI uses **space-separated subcommands** (`okx spot algo place`). The MCP tool names surfaced to AI agents use a **single underscored identifier** (`spot_place_algo_order`). They are the same feature on two different surfaces. Mapping examples:
+
+| CLI command | MCP tool name |
+|---|---|
+| `okx spot place` | `spot_place_order` |
+| `okx spot algo place` | `spot_place_algo_order` |
+| `okx spot algo trail` | `spot_place_algo_order` w/ `ordType=move_order_stop` |
+| `okx spot cancel` | `spot_cancel_order` |
+| `okx spot algo cancel` | `spot_cancel_algo_order` |
+| `okx spot amend` | `spot_amend_order` |
+| `okx spot algo amend` | `spot_amend_algo_order` |
+| `okx spot orders` | `spot_get_orders` |
+| `okx spot fills` | `spot_get_fills` |
+| `okx spot batch` | `spot_batch_orders` |
+| `okx spot leverage` | `spot_set_leverage` |
+
+**Do NOT convert MCP tool names to hyphen-joined CLI commands.** `okx spot place-order` is **not** a valid command — the CLI will reject it with "Unknown command". Use `okx spot place` instead.
+
 ## Order Type Reference
 
 | `--ordType` | Description | Requires `--px` |
