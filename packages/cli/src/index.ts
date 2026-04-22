@@ -348,9 +348,6 @@ function handleMarketFilterCommand(
       limit,
       json,
     });
-  errorLine(`Unknown market command: ${action}`);
-  errorLine("Valid: ticker, tickers, orderbook, candles, trades, instruments, mark-price, funding-rate, open-interest, index-ticker, price-limit, stock-tokens, instruments-by-category, indicator, filter, oi-history, oi-change");
-  process.exitCode = 1;
 }
 
 function handleIndicatorAction(
@@ -399,10 +396,16 @@ export function handleMarketCommand(
   v: CliValues,
   json: boolean
 ): Promise<void> | void {
-  return (
+  const result =
     handleMarketPublicCommand(run, action, rest, v, json) ??
-    handleMarketDataCommand(run, action, rest, v, json)
-  );
+    handleMarketDataCommand(run, action, rest, v, json);
+  if (result !== undefined) return result;
+  unknownSubcommand("market", action, [
+    "ticker", "tickers", "orderbook", "candles", "trades", "instruments",
+    "mark-price", "funding-rate", "open-interest", "index-ticker", "price-limit",
+    "stock-tokens", "instruments-by-category", "indicator", "filter",
+    "oi-history", "oi-change", "index-candles",
+  ]);
 }
 
 export function handleAccountWriteCommand(
