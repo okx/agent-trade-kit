@@ -1,6 +1,6 @@
 ---
 name: okx-cex-trade
-description: "This skill should be used when the user asks to 'buy BTC', 'sell ETH', 'place a limit order', 'place a market order', 'cancel my order', 'amend my order', 'long BTC perp', 'short ETH swap', 'open a position', 'close a position', 'set take profit', 'set stop loss', 'add a trailing stop', 'set leverage', 'check my orders', 'order status', 'fill history', 'trade history', 'buy a call', 'sell a put', 'buy call option', 'sell put option', 'option chain', 'implied volatility', 'IV', 'option Greeks', 'delta', 'gamma', 'theta', 'vega', 'delta hedge', 'option order', 'option position', 'option fills', 'event contract', 'buy Yes', 'buy No', 'buy Up', 'buy Down', 'BTC above', 'price above', '15min price', 'prediction market', or any request to place/cancel/amend spot, perpetual swap, delivery futures, options, or event contract orders on OKX CEX. Covers spot trading, swap/perpetual contracts, delivery futures, options (calls/puts, Greeks, IV), event contracts (binary Yes/No or Up/Down outcomes), and conditional (TP/SL/trailing) algo orders. Requires API credentials. Do NOT use for market data (use okx-cex-market), account balance/positions (use okx-cex-portfolio), or grid/DCA bots (use okx-cex-bot)."
+description: "This skill should be used when the user asks to 'buy BTC', 'sell ETH', 'place a limit order', 'place a market order', 'cancel my order', 'amend my order', 'long BTC perp', 'short ETH swap', 'open a position', 'close a position', 'set take profit', 'set stop loss', 'add a trailing stop', 'set leverage', 'check my orders', 'order status', 'fill history', 'trade history', 'buy a call', 'sell a put', 'buy call option', 'sell put option', 'option chain', 'implied volatility', 'IV', 'option Greeks', 'delta', 'gamma', 'theta', 'vega', 'delta hedge', 'option order', 'option position', 'option fills', 'event contract', 'buy Yes', 'buy No', 'buy Up', 'buy Down', 'BTC above', 'price above', '15min price', 'prediction market', 'browse event contracts', 'what event contracts are available', 'show event contracts', 'list event contracts', 'active event contracts', 'available prediction markets', 'how many event contracts', or any request to browse, place, cancel, or amend spot, perpetual swap, delivery futures, options, or event contract orders on OKX CEX. Covers spot trading, swap/perpetual contracts, delivery futures, options (calls/puts, Greeks, IV), event contracts (browsing available markets AND binary Yes/No or Up/Down trading), and conditional (TP/SL/trailing) algo orders. Requires API credentials. Do NOT use for market data (use okx-cex-market), account balance/positions (use okx-cex-portfolio), or grid/DCA bots (use okx-cex-bot)."
 license: MIT
 metadata:
   author: okx
@@ -110,8 +110,11 @@ Profile is the single control for 实盘/模拟盘 switching:
 - For market data (prices, charts, depth, funding rates) → use `okx-cex-market`
 - For account balance, P&L, positions, fees, transfers → use `okx-cex-portfolio`
 - For regular spot/swap/futures/options/algo orders → use `okx-cex-trade` (this skill)
-- For event contracts (prediction markets, binary outcomes) → use `okx-cex-trade` (this skill)
+- For **browsing/discovering** event contracts (what's available, how many, list active) → use `okx-cex-trade` with `okx event browse` / `okx event series`
+- For **trading** event contracts (place/cancel/amend prediction market orders) → use `okx-cex-trade` with `okx event place` / `okx event cancel` / `okx event amend`
 - For grid and DCA trading bots → use `okx-cex-bot`
+
+> **Important**: When user asks about "contracts" in the context of event contracts or prediction markets, route to this skill — NOT to `okx-cex-portfolio`. Portfolio does not handle event contracts — it covers account balance, positions, P&L, and transfers only.
 
 ## Sz Handling for Derivatives
 
