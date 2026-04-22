@@ -8,6 +8,7 @@ const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
 import { cmdDiagnose } from "./commands/diagnose.js";
+import { unknownSubcommand } from "./unknown-command.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
 import {
@@ -427,6 +428,11 @@ export function handleAccountWriteCommand(
       subAcct: v.subAcct,
       json,
     });
+  unknownSubcommand("account", action, [
+    "audit", "balance", "asset-balance", "positions", "positions-history",
+    "bills", "fees", "config",
+    "set-position-mode", "max-size", "max-avail-size", "max-withdrawal", "transfer",
+  ]);
 }
 
 function handleAccountCommand(
@@ -519,6 +525,7 @@ export function handleSpotAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("spot algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
 }
 
 export function handleSpotCommand(
@@ -577,6 +584,11 @@ export function handleSpotCommand(
       mgnMode: v.mgnMode!,
       json,
     });
+  unknownSubcommand("spot", action, [
+    "orders", "get", "fills",
+    "place", "cancel", "amend",
+    "algo", "batch", "leverage",
+  ]);
 }
 
 export function handleSwapAlgoCommand(
@@ -638,6 +650,7 @@ export function handleSwapAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("swap algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
 }
 
 function handleSwapQuery(
@@ -727,6 +740,11 @@ export function handleSwapCommand(
     return handleSwapAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
     return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
+  unknownSubcommand("swap", action, [
+    "positions", "orders", "get", "fills", "get-leverage",
+    "place", "cancel", "amend", "close", "leverage",
+    "algo", "batch",
+  ]);
 }
 
 export function handleOptionAlgoCommand(
@@ -771,6 +789,7 @@ export function handleOptionAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("option algo", subAction, ["place", "amend", "cancel", "orders"]);
 }
 
 export function handleOptionCommand(
@@ -828,6 +847,10 @@ export function handleOptionCommand(
     return cmdOptionBatchCancel(run, { orders: v.orders!, json });
   if (action === "algo")
     return handleOptionAlgoCommand(run, rest[0], v, json);
+  unknownSubcommand("option", action, [
+    "orders", "get", "positions", "fills", "instruments", "greeks",
+    "place", "cancel", "amend", "batch-cancel", "algo",
+  ]);
 }
 
 export function handleFuturesAlgoCommand(
@@ -889,6 +912,7 @@ export function handleFuturesAlgoCommand(
       ordType: v.ordType,
       json,
     });
+  unknownSubcommand("futures algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
 }
 
 function resolveFuturesOrdersStatus(v: CliValues): "archive" | "history" | "open" {
@@ -978,6 +1002,11 @@ export function handleFuturesCommand(
     return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, json });
   if (action === "algo")
     return handleFuturesAlgoCommand(run, rest[0], v, json);
+  unknownSubcommand("futures", action, [
+    "orders", "positions", "fills", "get", "get-leverage",
+    "place", "cancel", "amend", "close", "leverage",
+    "batch", "algo",
+  ]);
 }
 
 export function handleBotGridCommand(
@@ -1051,6 +1080,7 @@ export function handleBotGridCommand(
       stopType: v.stopType,
       json,
     });
+  unknownSubcommand("bot grid", subAction, ["orders", "details", "sub-orders", "create", "amend", "stop"]);
 }
 
 export function handleBotDcaCommand(
@@ -1097,6 +1127,7 @@ export function handleBotDcaCommand(
     });
   if (subAction === "stop")
     return cmdDcaStop(run, { algoId: v.algoId!, algoOrdType, stopType: v.stopType, json });
+  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop"]);
 }
 
 export function handleBotCommand(
@@ -1108,6 +1139,7 @@ export function handleBotCommand(
 ): Promise<void> | void {
   if (action === "grid") return handleBotGridCommand(run, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
+  unknownSubcommand("bot", action, ["grid", "dca"]);
 }
 
 export function handleEarnCommand(

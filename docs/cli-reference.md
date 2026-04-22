@@ -1,5 +1,9 @@
 # CLI Reference
 
+## CLI vs MCP tool names
+
+Subcommands use **spaces** (`okx swap algo place`, `okx bot grid create`), not hyphens. AI agents see the same features under underscored MCP tool names (`swap_place_algo_order`, `bot_grid_create_order`). Do **NOT** convert an MCP tool identifier into a hyphen-joined CLI command — `okx swap place-algo` is not a valid command and will be rejected with `Unknown command`. Per-module mapping tables live in `skills/okx-cex-trade/references/<module>-commands.md`.
+
 ## Installation
 
 ```bash

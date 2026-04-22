@@ -101,6 +101,8 @@ okx spot place --instId BTC-USDT --side buy --ordType market --sz 100
 okx account balance
 ```
 
+> **Naming note** — CLI subcommands use **spaces** (`okx swap algo place`). AI agents see the same features under underscored MCP tool names (`swap_place_algo_order`). Do not convert MCP identifiers into hyphen-joined CLI commands — `okx swap place-algo` is not valid. See [CLI reference · CLI vs MCP tool names](docs/cli-reference.md#cli-vs-mcp-tool-names).
+
 **[Full CLI reference →](docs/cli-reference.md)**
 
 ---

@@ -1,5 +1,27 @@
 # Options Command Reference
 
+## Naming — CLI vs MCP tool
+
+This CLI uses **space-separated subcommands** (`okx option place`). The MCP tool names surfaced to AI agents use a **single underscored identifier** (`option_place_order`). They are the same feature on two different surfaces. Mapping examples:
+
+| CLI command | MCP tool name |
+|---|---|
+| `okx option place` | `option_place_order` |
+| `okx option algo place` | `option_place_algo_order` |
+| `okx option cancel` | `option_cancel_order` |
+| `okx option algo cancel` | `option_cancel_algo_orders` |
+| `okx option batch-cancel` | `option_batch_cancel` |
+| `okx option amend` | `option_amend_order` |
+| `okx option algo amend` | `option_amend_algo_order` |
+| `okx option orders` | `option_get_orders` |
+| `okx option get` | `option_get_order` |
+| `okx option positions` | `option_get_positions` |
+| `okx option fills` | `option_get_fills` |
+| `okx option instruments` | `option_get_instruments` |
+| `okx option greeks` | `option_get_greeks` |
+
+**Do NOT convert MCP tool names to hyphen-joined CLI commands.** `okx option place-order` is **not** a valid command — the CLI will reject it with "Unknown command". Use `okx option place` instead.
+
 ## USDT Amount for Options — Use `--tgtCcy quote_ccy` or `--tgtCcy margin`
 
 Options (`*-USD-YYMMDD-strike-C/P`) support two USDT-based sizing modes:
