@@ -37,10 +37,12 @@ export async function cmdAccountAssetBalance(
   ccy: string | undefined,
   json: boolean,
   showValuation?: boolean,
+  valuationCcy?: string,
 ): Promise<void> {
   const result = await run("account_get_asset_balance", {
     ccy,
     ...(showValuation ? { showValuation: true } : {}),
+    ...(valuationCcy !== undefined ? { valuationCcy } : {}),
   }) as unknown as Record<string, unknown>;
   const data = (result.data ?? []) as Record<string, unknown>[];
   if (json) return printJson(showValuation ? { data, valuation: result.valuation } : data);
