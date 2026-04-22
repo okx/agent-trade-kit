@@ -1952,6 +1952,32 @@ describe("account_get_asset_balance", () => {
     assert.ok(!endpointsCalled.includes("/api/v5/asset/asset-valuation"),
       "valuation endpoint must not be called when showValuation is not set");
   });
+
+  it("surfaces valuationError when /asset/asset-valuation throws, while still returning balance data", async () => {
+    const client = {
+      publicGet: async (endpoint: string, _params: Record<string, unknown>) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [],
+      }),
+      privateGet: async (endpoint: string, _params: Record<string, unknown>) => {
+        if (endpoint === "/api/v5/asset/asset-valuation") {
+          throw new Error("ccy not supported");
+        }
+        return { endpoint, requestTime: "2024-01-01T00:00:00.000Z", data: [{ ccy: "USDT", bal: "100" }] };
+      },
+      privatePost: async (endpoint: string, _params: Record<string, unknown>) => ({
+        endpoint,
+        requestTime: "2024-01-01T00:00:00.000Z",
+        data: [],
+      }),
+    };
+    const result = await tool.handler({ showValuation: true }, makeContext(client)) as Record<string, unknown>;
+    assert.ok("data" in result, "balance data should still be returned when valuation fails");
+    assert.equal(result["valuation"], null, "valuation should be null when the endpoint throws");
+    assert.equal(result["valuationError"], "ccy not supported",
+      "valuationError should surface the error message so callers can distinguish no-balance from API errors");
+  });
 });
 
 // ---------------------------------------------------------------------------

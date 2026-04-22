@@ -180,6 +180,7 @@ export function registerAccountTools(): ToolSpec[] {
             privateRateLimit("account_get_asset_balance", 6),
           );
           let valuationData: unknown = null;
+          let valuationError: string | undefined;
           try {
             const valuationResp = await context.client.privateGet(
               "/api/v5/asset/asset-valuation",
@@ -187,10 +188,19 @@ export function registerAccountTools(): ToolSpec[] {
               privateRateLimit("account_get_asset_valuation", 1),
             );
             valuationData = valuationResp.data;
-          } catch {
+          } catch (err) {
             // valuation is best-effort; balance data is still returned
+            valuationError = err instanceof Error ? err.message : String(err);
           }
-          return { ...normalizeResponse(balanceResp), valuation: valuationData, valuationCcy };
+          const valuationResult: Record<string, unknown> = {
+            ...normalizeResponse(balanceResp),
+            valuation: valuationData,
+            valuationCcy,
+          };
+          if (valuationError !== undefined) {
+            valuationResult["valuationError"] = valuationError;
+          }
+          return valuationResult;
         }
         const balanceResp = await context.client.privateGet(
           "/api/v5/asset/balances",

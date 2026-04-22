@@ -62,7 +62,7 @@ export async function cmdAccountAssetBalance(
   if (showValuation && result.valuation) {
     const valuationData = (result.valuation as Record<string, unknown>[]) ?? [];
     outputLine("");
-    outputLine("Asset Valuation by Account Type:");
+    outputLine(`Asset Valuation by Account Type (${String(result.valuationCcy ?? "USDT")}):`);
     printTable(
       valuationData.map((v) => {
         const details = (v["details"] as Record<string, unknown>) ?? {};

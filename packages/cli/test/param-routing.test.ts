@@ -1255,7 +1255,7 @@ describe("cmdAccountAssetBalance — valuationCcy parameter routing", () => {
             "when CLI caller omits --valuationCcy, the tool should apply its own default (USDT)");
     });
 
-    it("does not pass valuationCcy when showValuation is false", async () => {
+    it("passes valuationCcy through to tool even when showValuation is false (tool ignores it)", async () => {
         const {spy, captured} = makeAssetBalanceSpy();
         await cmdAccountAssetBalance(spy, undefined, false, false, "BTC");
         // valuationCcy is still passed through — the tool itself ignores it when showValuation=false
