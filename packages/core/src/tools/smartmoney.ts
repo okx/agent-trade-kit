@@ -17,9 +17,9 @@ import { ConfigError, ValidationError } from "../utils/errors.js";
 const PATH_LEADERBOARD = "/api/v5/orbit/public/leaderboard";
 const PATH_POSITION_CURRENT = "/api/v5/orbit/public/position-current";
 const PATH_TRADE_RECORDS = "/api/v5/orbit/public/trade-records";
-const PATH_OVERVIEW = "/api/v5/journal/public/smartmoney/overview";
-const PATH_SIGNAL = "/api/v5/journal/public/smartmoney/signal";
-const PATH_SIGNAL_HISTORY = "/api/v5/journal/public/smartmoney/signal-history";
+const PATH_OVERVIEW = "/api/v5/journal/smartmoney/overview";
+const PATH_SIGNAL = "/api/v5/journal/smartmoney/signal";
+const PATH_SIGNAL_HISTORY = "/api/v5/journal/smartmoney/signal-history";
 
 /* ------------------------------------------------------------------ */
 /*  Shared trader-pool filter properties & reader                      */
@@ -297,11 +297,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           },
           granularity: {
             type: "string",
-            description: "1h or 1d",
+            description: "1h or 1d (default 1h)",
           },
           limit: {
             type: "string",
-            description: "Data points 1-500",
+            description: "Data points 1-500 (default 24)",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
         },

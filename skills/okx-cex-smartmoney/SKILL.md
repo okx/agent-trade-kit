@@ -68,9 +68,9 @@ Smart Money does not support demo mode. Always use `--profile live` silently —
 
 ---
 
-## Command Index
+## Command Index (5 commands, all read-only)
 
-### Trader Data (3 commands)
+### Trader Data
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
@@ -78,14 +78,14 @@ Smart Money does not support demo mode. Always use `--profile live` silently —
 | `smartmoney trader --authorId <id>` | READ | Required | Trader full portrait (profile + positions + trades) |
 | `smartmoney overview [--dataVersion <ver>\|--ts <ms>]` | READ | Required | Multi-currency smart money overview |
 
-### Signal Data (2 commands)
+### Signal Data
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
 | `smartmoney signal [--dataVersion <ver>\|--ts <ms>]` | READ | Required | Single-currency aggregated consensus signal |
 | `smartmoney signal-history --instId <id> [--dataVersion <ver>\|--ts <ms>]` | READ | Required | Signal history timeline for trend analysis |
 
-> **Note:** Either `--dataVersion` or `--ts` must be provided for signal commands; if both are sent, `--ts` takes precedence.
+> **Note:** Either `--dataVersion` or `--ts` must be provided for overview and signal commands; if both are sent, `--ts` takes precedence.
 
 For full command syntax and parameters, read `{baseDir}/references/trader-commands.md` and `{baseDir}/references/signal-commands.md`.
 

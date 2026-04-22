@@ -17,9 +17,9 @@ All endpoints are live on `www.okx.com`:
 | `3.2 GET /api/v5/orbit/public/position-current` | ✅ Live |
 | `3.3 GET /api/v5/orbit/public/position-history` | ✅ Live |
 | `3.4 GET /api/v5/orbit/public/trade-records` | ✅ Live |
-| `4.1 GET /api/v5/journal/public/smartmoney/signal` | ✅ Live (went live 2026-04-20) |
-| `4.2 GET /api/v5/journal/public/smartmoney/signal-history` | ✅ Live (went live 2026-04-20) |
-| `4.3 GET /api/v5/journal/public/smartmoney/overview` | ✅ Live (went live 2026-04-20) |
+| `4.1 GET /api/v5/journal/smartmoney/signal` | ✅ Live (went live 2026-04-20) |
+| `4.2 GET /api/v5/journal/smartmoney/signal-history` | ✅ Live (went live 2026-04-20) |
+| `4.3 GET /api/v5/journal/smartmoney/overview` | ✅ Live (went live 2026-04-20) |
 
 ## Field Drift vs Source Doc (3.x — from live responses)
 
@@ -36,7 +36,7 @@ All endpoints are live on `www.okx.com`:
 The source Lark doc lists API paths in two places; the 需求概览 prefixes are **authoritative** (confirmed by PM 2026-04-17, aligned with change log 2026-03-20 "API接口和 orbit 保持一致"):
 
 - `3.1–3.4` (reuse priAPI) → **`/api/v5/orbit/public/*`**
-- `4.1–4.3` (aggregate signals) → **`/api/v5/journal/public/smartmoney/*`**
+- `4.1–4.3` (aggregate signals) → **`/api/v5/journal/smartmoney/*`**
 
 Ignore the `/api/v5/public/community/*` paths that still appear in the detailed 3.x / 4.x sections — those are stale drafts.
 
@@ -59,9 +59,9 @@ Ignore the `/api/v5/public/community/*` paths that still appear in the detailed 
 | 3.2 | `GET /api/v5/orbit/public/position-current` | Trader's current positions |
 | 3.3 | `GET /api/v5/orbit/public/position-history` | Trader's closed-position history |
 | 3.4 | `GET /api/v5/orbit/public/trade-records` | Trader's recent order/fill records |
-| 4.1 | `GET /api/v5/journal/public/smartmoney/signal` | Aggregated smart-money signal for one instrument |
-| 4.2 | `GET /api/v5/journal/public/smartmoney/signal-history` | Time-series of signal snapshots |
-| 4.3 | `GET /api/v5/journal/public/smartmoney/overview` | Multi-instrument smart-money overview |
+| 4.1 | `GET /api/v5/journal/smartmoney/signal` | Aggregated smart-money signal for one instrument |
+| 4.2 | `GET /api/v5/journal/smartmoney/signal-history` | Time-series of signal snapshots |
+| 4.3 | `GET /api/v5/journal/smartmoney/overview` | Multi-instrument smart-money overview |
 
 ---
 
@@ -215,7 +215,7 @@ Backed by priAPI `/priapi/v5/content/public/community/user/trade-records`.
 
 ---
 
-## 4.1 Single-Instrument Smart Money Signal — `GET /api/v5/journal/public/smartmoney/signal`
+## 4.1 Single-Instrument Smart Money Signal — `GET /api/v5/journal/smartmoney/signal`
 
 **No direct priAPI** — BE aggregates every minute from full-pool `position-current` snapshot. Returns aggregated directional bias, conviction, avg entry, and trend deltas for one instrument across the qualifying trader pool.
 
@@ -277,7 +277,7 @@ All enums are case-insensitive; invalid values silently fall back to default.
 
 ---
 
-## 4.2 Signal History — `GET /api/v5/journal/public/smartmoney/signal-history`
+## 4.2 Signal History — `GET /api/v5/journal/smartmoney/signal-history`
 
 Time series of aggregated signals for one instrument. Sorted by `ts` DESC.
 
@@ -329,7 +329,7 @@ Rationale: PnL and AUM use percentile because their distributions are heavy-tail
 
 ---
 
-## 4.3 Multi-Instrument Overview — `GET /api/v5/journal/public/smartmoney/overview`
+## 4.3 Multi-Instrument Overview — `GET /api/v5/journal/smartmoney/overview`
 
 Cross-instrument scan — returns smart money signal for the top-N most-held instruments, sorted by `tradersWithPosition` descending.
 
@@ -394,7 +394,7 @@ Potential MCP tool split (subject to design review per `docs/mcp-design-guidelin
 - Registry entry required in `docs/module-registry.md`; module token budget ≤ 25k.
 - Every new MCP tool needs a paired CLI command (Triangle Sync: CLI / MCP / Skills).
 - Tier enums (`PNL_TOP20`, `WR_GE_80`, ...) should be validated with zod enums, not free-form strings.
-- URL prefixes are final: `/api/v5/orbit/public/*` for 3.1–3.4, `/api/v5/journal/public/smartmoney/*` for 4.1–4.3.
+- URL prefixes are final: `/api/v5/orbit/public/*` for 3.1–3.4, `/api/v5/journal/smartmoney/*` for 4.1–4.3.
 
 ## Timeline (from source doc)
 

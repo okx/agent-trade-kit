@@ -4887,14 +4887,14 @@ describe("smartmoney_get_overview", () => {
   it("calls overview endpoint with dataVersion", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ dataVersion: "202604021200" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/overview");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
     assert.equal(getLastCall()?.params.dataVersion, "202604021200");
   });
 
   it("calls overview endpoint with ts", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ ts: "1712000000000" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/overview");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
     assert.equal(getLastCall()?.params.ts, "1712000000000");
   });
 
@@ -4929,7 +4929,7 @@ describe("smartmoney_get_signal", () => {
   it("calls signal endpoint with instCcy and ts", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ instCcy: "BTC", ts: "1712000000000" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/signal");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal");
     assert.equal(getLastCall()?.params.instCcy, "BTC");
     assert.equal(getLastCall()?.params.ts, "1712000000000");
   });
@@ -4957,7 +4957,7 @@ describe("smartmoney_get_signal_history", () => {
   it("calls signal-history endpoint", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ instId: "BTC-USDT-SWAP", ts: "1712000000000", granularity: "1d" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/signal-history");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal-history");
     assert.equal(getLastCall()?.params.instId, "BTC-USDT-SWAP");
     assert.equal(getLastCall()?.params.granularity, "1d");
   });

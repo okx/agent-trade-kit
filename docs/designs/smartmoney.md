@@ -42,9 +42,9 @@ API 映射：
 
 | Tool | API Path |
 |------|----------|
-| `smartmoney_get_overview` | GET /api/v5/journal/public/smartmoney/overview |
-| `smartmoney_get_signal` | GET /api/v5/journal/public/smartmoney/signal |
-| `smartmoney_get_signal_history` | GET /api/v5/journal/public/smartmoney/signal-history |
+| `smartmoney_get_overview` | GET /api/v5/journal/smartmoney/overview |
+| `smartmoney_get_signal` | GET /api/v5/journal/smartmoney/signal |
+| `smartmoney_get_signal_history` | GET /api/v5/journal/smartmoney/signal-history |
 | `smartmoney_get_traders` | GET /api/v5/orbit/public/leaderboard |
 | `smartmoney_get_trader_detail` | GET /api/v5/orbit/public/leaderboard + position-current + trade-records (composite) |
 
