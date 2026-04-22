@@ -45,7 +45,7 @@ export async function cmdAccountAssetBalance(
     ...(valuationCcy !== undefined ? { valuationCcy } : {}),
   }) as unknown as Record<string, unknown>;
   const data = (result.data ?? []) as Record<string, unknown>[];
-  if (json) return printJson(showValuation ? { data, valuation: result.valuation } : data);
+  if (json) return printJson(showValuation ? { data, valuation: result.valuation, valuationCcy: result.valuationCcy } : data);
   const assetRows = data
     .filter((r) => Number(r["bal"]) > 0)
     .map((r) => ({

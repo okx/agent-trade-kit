@@ -228,3 +228,32 @@ describe("earn --rate option", () => {
     assert.equal(values.rate, undefined);
   });
 });
+
+// ---------------------------------------------------------------------------
+// parseCli — account asset-balance --valuationCcy flag (integration guard)
+// This test exercises the parser layer directly so that any rename of the
+// CLI_OPTIONS key (e.g. back to 'valuation-ccy') is caught immediately.
+// ---------------------------------------------------------------------------
+describe("account asset-balance --valuationCcy parser integration", () => {
+  it("--valuationCcy BTC sets valuationCcy to 'BTC'", () => {
+    const { values } = parseCli(["account", "asset-balance", "--valuationCcy", "BTC"]);
+    assert.equal(values.valuationCcy, "BTC");
+  });
+
+  it("--valuationCcy USDT sets valuationCcy to 'USDT'", () => {
+    const { values } = parseCli(["account", "asset-balance", "--valuationCcy", "USDT"]);
+    assert.equal(values.valuationCcy, "USDT");
+  });
+
+  it("valuationCcy is undefined when flag is absent", () => {
+    const { values } = parseCli(["account", "asset-balance"]);
+    assert.equal(values.valuationCcy, undefined);
+  });
+
+  it("--valuation-ccy is rejected as unknown option (kebab form must not silently work)", () => {
+    assert.throws(
+      () => parseCli(["account", "asset-balance", "--valuation-ccy", "BTC"]),
+      { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" },
+    );
+  });
+});

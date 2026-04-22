@@ -152,7 +152,7 @@ okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 |---|---|---|---|
 | 1 | `okx account balance [ccy]` | READ | Trading account equity, available, frozen |
 | 2a | `okx account asset-balance [ccy]` | READ | Funding account balance (per-currency list) |
-| 2b | `okx account asset-balance [ccy] --valuation [--valuation-ccy <ccy>]` | READ | Same + total asset valuation across trading/funding/earn; denomination defaults to USDT, override with `--valuation-ccy BTC` |
+| 2b | `okx account asset-balance [ccy] --valuation [--valuationCcy <ccy>]` | READ | Same + total asset valuation across trading/funding/earn; denomination defaults to USDT, override with `--valuationCcy BTC` |
 | 3 | `okx account positions` | READ | Open contract/swap positions |
 | 4 | `okx account positions-history` | READ | Closed positions + realized PnL |
 | 5 | `okx account bills` | READ | Account ledger (deposits, withdrawals, trades) |
@@ -294,20 +294,20 @@ Returns table: `currency`, `equity`, `available`, `frozen`. Only shows currencie
 ### Asset Balance — Funding Account
 
 ```bash
-okx account asset-balance [ccy] [--valuation] [--valuation-ccy <ccy>] [--json]
+okx account asset-balance [ccy] [--valuation] [--valuationCcy <ccy>] [--json]
 ```
 
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `ccy` | No | - | Filter to a specific currency (e.g., `USDT`); does not affect valuation denomination |
 | `--valuation` | No | false | Also show total asset valuation across all account types (trading/funding/earn) |
-| `--valuation-ccy` | No | `USDT` | Currency in which to denominate the total asset valuation (e.g., `USDT`, `BTC`). Only used when `--valuation` is set. |
+| `--valuationCcy` | No | `USDT` | Currency in which to denominate the total asset valuation (e.g., `USDT`, `BTC`). Only used when `--valuation` is set. |
 
 Returns: `ccy`, `bal`, `availBal`, `frozenBal`. Only shows currencies with balance > 0.
 
-With `--valuation`: additionally prints a valuation summary table with `totalBal` and per-account-type breakdown (`classic`/`earn`/`funding`/`trading`). The numbers are denominated in `--valuation-ccy` (default `USDT`).
+With `--valuation`: additionally prints a valuation summary table with `totalBal` and per-account-type breakdown (`classic`/`earn`/`funding`/`trading`). The numbers are denominated in `--valuationCcy` (default `USDT`).
 
-**Important**: `ccy` (balance filter) and `--valuation-ccy` (valuation denomination) are independent parameters — `ccy=BTC` filters the balance list to BTC rows but does NOT change the valuation currency; set `--valuation-ccy BTC` explicitly for BTC-denominated totals.
+**Important**: `ccy` (balance filter) and `--valuationCcy` (valuation denomination) are independent parameters — `ccy=BTC` filters the balance list to BTC rows but does NOT change the valuation currency; set `--valuationCcy BTC` explicitly for BTC-denominated totals.
 
 ---
 

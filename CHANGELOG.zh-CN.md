@@ -13,7 +13,7 @@
 
 ### 修复
 
-- **`account_get_asset_balance` 总资产估值现在默认以 USDT 计价**（issue #174）。此前 `showValuation=true` 调用 `/api/v5/asset/asset-valuation` 时未传 `ccy` 参数，OKX 默认以 BTC 计价——持有 $3,834 的用户会看到 `0.049` 而非 `3834`。新增 `valuationCcy` 参数（默认 `"USDT"`），该值现在作为 `ccy` 参数传入估值接口。调用方可以覆盖为任意 OKX 支持的计价币种（例如 `valuationCcy="BTC"`）。所选计价币种同时以 `valuationCcy` 字段回写到返回 JSON 中，方便调用方判断单位。CLI：`okx account asset-balance --valuation` 现在默认显示 USDT 计价的总资产；如需 BTC 计价请用 `--valuation-ccy BTC`。
+- **`account_get_asset_balance` 总资产估值现在默认以 USDT 计价**（issue #174）。此前 `showValuation=true` 调用 `/api/v5/asset/asset-valuation` 时未传 `ccy` 参数，OKX 默认以 BTC 计价——持有 $3,834 的用户会看到 `0.049` 而非 `3834`。新增 `valuationCcy` 参数（默认 `"USDT"`），该值现在作为 `ccy` 参数传入估值接口。调用方可以覆盖为任意 OKX 支持的计价币种（例如 `valuationCcy="BTC"`）。所选计价币种同时以 `valuationCcy` 字段回写到返回 JSON 中，方便调用方判断单位。CLI：`okx account asset-balance --valuation` 现在默认显示 USDT 计价的总资产；如需 BTC 计价请用 `--valuationCcy BTC`。
 
 - **CLI 不再在遇到未知子命令时静默退出 0**（issue #173）。之前每个二级 module 分发器（`swap`、`spot`、`futures`、`option`、`account`、`bot`）在 action 名未命中任何注册分支时，会 `return undefined` 直接 fall-through——`okx swap place-algo` 直接 exit 0 无任何输出，脚本里的 `&& echo OK` 会把失败当成功，完全掩盖真实问题。现在每个分发器调用共享的 `unknownSubcommand()` helper：向 stderr 打印 `Unknown command: okx <模块> <动作>`、列出该模块可用子命令、在适配场景下建议从 MCP 名反推 CLI 形式（如 `place-algo` → `algo place`），并设置非零 exit code。线索来自 CS Telegram 2026-04-21 客户反馈——`okx --profile demo swap place-algo ...` 全静默退出，客户无法判断是功能坏了还是命令写错了。
 

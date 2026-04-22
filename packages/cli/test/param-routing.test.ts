@@ -1239,7 +1239,7 @@ describe("cmdAccountAssetBalance — valuationCcy parameter routing", () => {
         await cmdAccountAssetBalance(spy, undefined, false, true, "BTC");
         assert.equal(captured.tool, "account_get_asset_balance");
         assert.equal(captured.args["valuationCcy"], "BTC",
-            "--valuation-ccy BTC should reach the tool as valuationCcy='BTC'");
+            "--valuationCcy BTC should reach the tool as valuationCcy='BTC'");
     });
 
     it("passes valuationCcy='USDT' to tool when explicitly set to USDT", async () => {
@@ -1252,7 +1252,7 @@ describe("cmdAccountAssetBalance — valuationCcy parameter routing", () => {
         const {spy, captured} = makeAssetBalanceSpy();
         await cmdAccountAssetBalance(spy, undefined, false, true, undefined);
         assert.equal(captured.args["valuationCcy"], undefined,
-            "when CLI caller omits --valuation-ccy, the tool should apply its own default (USDT)");
+            "when CLI caller omits --valuationCcy, the tool should apply its own default (USDT)");
     });
 
     it("does not pass valuationCcy when showValuation is false", async () => {
