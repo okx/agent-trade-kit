@@ -1,5 +1,23 @@
 # Event Contract Commands — Full Parameter Reference
 
+## Naming — CLI vs MCP tool
+
+This CLI uses **space-separated subcommands** (`okx event place`). The MCP tool names surfaced to AI agents use a **single underscored identifier** (`event_place_order`). They are the same feature on two different surfaces. Mapping examples:
+
+| CLI command | MCP tool name |
+|---|---|
+| `okx event browse` | `event_browse` |
+| `okx event series` | `event_get_series` |
+| `okx event events` | `event_get_events` |
+| `okx event markets` | `event_get_markets` |
+| `okx event place` | `event_place_order` |
+| `okx event amend` | `event_amend_order` |
+| `okx event cancel` | `event_cancel_order` |
+| `okx event orders` | `event_get_orders` |
+| `okx event fills` | `event_get_fills` |
+
+**Do NOT convert MCP tool names to hyphen-joined CLI commands.** `okx event place-order` is **not** a valid command — the CLI will reject it with "Unknown command". Use `okx event place` instead.
+
 ## Outcome Values
 
 | User input | Meaning | Applies to |

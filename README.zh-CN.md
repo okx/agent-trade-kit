@@ -101,6 +101,8 @@ okx spot place --instId BTC-USDT --side buy --ordType market --sz 100
 okx account balance
 ```
 
+> **命名提示** —— CLI 子命令用**空格**分层（`okx swap algo place`）。AI agent 看到的同一功能是下划线命名的 MCP 工具（`swap_place_algo_order`）。**不要**把 MCP 工具名转成短横线合并的 CLI 形式——`okx swap place-algo` 不是合法命令，CLI 会报 `Unknown command`。详见 [CLI 参考 · CLI vs MCP 命名规则](docs/cli-reference.md#cli-vs-mcp-tool-names)。
+
 **[完整 CLI 命令参考 →](docs/cli-reference.md)**
 
 ---
