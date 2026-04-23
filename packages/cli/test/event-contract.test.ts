@@ -12,6 +12,8 @@ import {
   cmdEventAmend,
   cmdEventCancel,
 } from "../src/commands/event-contract.js";
+import { handleEventCommand } from "../src/index.js";
+import type { CliValues } from "../src/index.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
 // ---------------------------------------------------------------------------
@@ -671,5 +673,94 @@ describe("cmdEventPlace pre-order summary", () => {
     assert.ok(text.includes("Placing:"), "should print placing summary");
     assert.ok(text.includes("market order"), "should mention market order");
     assert.ok(text.includes("sz=5"), "should show amount");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleEventCommand orders/fills — parameter routing (spy ToolRunner)
+// ---------------------------------------------------------------------------
+
+// Spy helper: captures tool name and args passed to the ToolRunner
+function makeSpyRunner(): { spy: ToolRunner; captured: { tool: string; args: Record<string, unknown> } } {
+  const captured = { tool: "", args: {} as Record<string, unknown> };
+  const spy: ToolRunner = async (tool, args) => {
+    captured.tool = tool as string;
+    captured.args = args as Record<string, unknown>;
+    return {
+      endpoint: "GET /api/v5/trade/orders-history",
+      requestTime: new Date().toISOString(),
+      data: [],
+    };
+  };
+  return { spy, captured };
+}
+
+function vals(overrides: Partial<CliValues>): CliValues {
+  return overrides as CliValues;
+}
+
+describe("handleEventCommand orders — parameter routing", () => {
+  it("--status archive passes status: 'archive' to the tool", async () => {
+    const { spy, captured } = makeSpyRunner();
+    await handleEventCommand(spy, "orders", [], vals({ status: "archive" }), false);
+    assert.equal(captured.tool, "event_get_orders");
+    assert.equal(captured.args["status"], "archive");
+  });
+
+  it("--ordType --state --begin --end --after --before all pass through from named flags", async () => {
+    const { spy, captured } = makeSpyRunner();
+    await handleEventCommand(spy, "orders", [], vals({
+      ordType: "limit",
+      state: "filled",
+      begin: "123",
+      end: "456",
+      after: "A",
+      before: "B",
+    }), false);
+    assert.equal(captured.tool, "event_get_orders");
+    assert.equal(captured.args["ordType"], "limit");
+    assert.equal(captured.args["state"], "filled");
+    assert.equal(captured.args["begin"], "123");
+    assert.equal(captured.args["end"], "456");
+    assert.equal(captured.args["after"], "A");
+    assert.equal(captured.args["before"], "B");
+  });
+
+  it("named --status is not overridden by positional args", async () => {
+    const { spy, captured } = makeSpyRunner();
+    await handleEventCommand(spy, "orders", ["ignored-positional"], vals({ status: "archive" }), false);
+    assert.equal(captured.args["status"], "archive");
+  });
+});
+
+describe("handleEventCommand fills — parameter routing", () => {
+  it("--archive passes archive: true (boolean) to the tool", async () => {
+    const { spy, captured } = makeSpyRunner();
+    await handleEventCommand(spy, "fills", [], vals({ archive: true }), false);
+    assert.equal(captured.tool, "event_get_fills");
+    assert.strictEqual(captured.args["archive"], true, "archive must be boolean true, not string");
+  });
+
+  it("--ordId --begin --end --after --before all pass through from named flags", async () => {
+    const { spy, captured } = makeSpyRunner();
+    await handleEventCommand(spy, "fills", [], vals({
+      ordId: "X",
+      begin: "123",
+      end: "456",
+      after: "A",
+      before: "B",
+    }), false);
+    assert.equal(captured.tool, "event_get_fills");
+    assert.equal(captured.args["ordId"], "X");
+    assert.equal(captured.args["begin"], "123");
+    assert.equal(captured.args["end"], "456");
+    assert.equal(captured.args["after"], "A");
+    assert.equal(captured.args["before"], "B");
+  });
+
+  it("named --ordId is not overridden by positional args", async () => {
+    const { spy, captured } = makeSpyRunner();
+    await handleEventCommand(spy, "fills", ["ignored-positional"], vals({ ordId: "real-id" }), false);
+    assert.equal(captured.args["ordId"], "real-id");
   });
 });

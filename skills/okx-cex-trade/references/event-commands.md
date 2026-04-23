@@ -182,14 +182,20 @@ okx event amend <instId> <ordId> [--px <prob>] [--sz <n>] [--json]
 ### `okx event orders`
 
 ```bash
-okx event orders [--instId <id>] [--state live] [--limit <n>] [--json]
+okx event orders [--status <open|history|archive>] [--instId <id>] [--ordType <type>] [--state <canceled|filled>] [--after <id>] [--before <id>] [--begin <ms>] [--end <ms>] [--limit <n>] [--json]
 ```
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `--status` | string | No | `history` (default, 7d); `open` = active; `archive` = 3mo |
 | `--instId` | string | No | Filter by instrument ID |
-| `--state` | string | No | `live` = pending only; omit for history |
-| `--limit` | number | No | Max results (default 20) |
+| `--ordType` | string | No | Order type filter |
+| `--state` | string | No | `canceled` or `filled` (only for history/archive) |
+| `--after` | string | No | Cursor: older than this order ID |
+| `--before` | string | No | Cursor: newer than this order ID |
+| `--begin` | string | No | Start time (ms) |
+| `--end` | string | No | End time (ms) |
+| `--limit` | number | No | Max results (default 100) |
 
 **Output fields**: Order number, Contract, Direction, Outcome, Order type, Price, Size, Filled, Status
 
@@ -198,13 +204,19 @@ okx event orders [--instId <id>] [--state live] [--limit <n>] [--json]
 ### `okx event fills`
 
 ```bash
-okx event fills [--instId <id>] [--limit <n>] [--json]
+okx event fills [--archive] [--instId <id>] [--ordId <id>] [--after <id>] [--before <id>] [--begin <ms>] [--end <ms>] [--limit <n>] [--json]
 ```
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `--archive` | boolean | No | `true` = up to 3mo; default = last 3d |
 | `--instId` | string | No | Filter by instrument ID |
-| `--limit` | number | No | Max results (default 20) |
+| `--ordId` | string | No | Filter by order ID |
+| `--after` | string | No | Cursor: older than this bill ID |
+| `--before` | string | No | Cursor: newer than this bill ID |
+| `--begin` | string | No | Start time (ms) |
+| `--end` | string | No | End time (ms) |
+| `--limit` | number | No | Max results (default 100, 20 for archive) |
 
 **Output fields**: Trade ID, Order number, Contract, Direction, Outcome, Fill price, Fill size, Time
 

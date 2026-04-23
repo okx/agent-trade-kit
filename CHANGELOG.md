@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.3.2-beta.3] - 2026-04-23
 
+### Fixed
+
+- **`event_get_orders` / `event_get_fills` returning empty arrays** — root cause: for EVENTS instType, `/api/v5/trade/fills` (3-day window) often returns empty while `/api/v5/trade/fills-history` (3-month) contains the data. The wrapper lacked `archive` mode and other query parameters. Added `archive` mode for fills, `status` (open/history/archive) routing for orders, time-range filters (`begin`/`end`), cursor pagination (`after`/`before`), and `ordId` filter. Also confirmed that `instFamily` is NOT supported for EVENTS on trade endpoints (causes HTTP 400). Response now includes `requestParams` for debugging.
+
 ### Changed
 
 - **`smartmoney` description cleanup.** MCP / CLI / skill now consistently use "instId takes precedence if both set". Pool-filter descriptions keep enums / defaults / key semantics (`PNL_TOP20` = top 20 %, `period` = win-rate window only) but drop verbose prose; tool descriptions now state ts-or-dataVersion requirement up front. Docs only, no runtime change.

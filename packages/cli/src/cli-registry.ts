@@ -865,12 +865,12 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       orders: {
         toolName: "event_get_orders",
-        usage: "okx event orders [--instId <id>] [--state live] [--limit <n>] [--json]",
+        usage: "okx event orders [--status <open|history|archive>] [--instId <id>] [--ordType <type>] [--state <canceled|filled>] [--after <id>] [--before <id>] [--begin <ms>] [--end <ms>] [--limit <n>] [--json]",
         description: "Query event contract orders",
       },
       fills: {
         toolName: "event_get_fills",
-        usage: "okx event fills [--instId <id>] [--limit <n>] [--json]",
+        usage: "okx event fills [--archive] [--instId <id>] [--ordId <id>] [--after <id>] [--before <id>] [--begin <ms>] [--end <ms>] [--limit <n>] [--json]",
         description: "Get event contract fill history",
       },
     },

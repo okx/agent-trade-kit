@@ -13,6 +13,10 @@
 
 ## [1.3.2-beta.3] - 2026-04-23
 
+### 修复
+
+- **`event_get_orders` / `event_get_fills` 返回空数组** — 根因：EVENTS 合约的 `/api/v5/trade/fills`（3 天窗口）经常返回空，而 `/api/v5/trade/fills-history`（3 个月）才有数据。wrapper 缺少 `archive` 模式和其他查询参数。已添加 fills 的 `archive` 模式、orders 的 `status`（open/history/archive）路由、时间范围过滤（`begin`/`end`）、游标分页（`after`/`before`）和 `ordId` 过滤。同时确认 `instFamily` 对 EVENTS 不支持（会导致 HTTP 400）。响应中新增 `requestParams` 字段便于调试。
+
 ### 变更
 
 - **`smartmoney` 描述优化。** MCP / CLI / skill 统一为 "instId takes precedence if both set"。池过滤器描述保留枚举/默认值/关键语义（`PNL_TOP20` = 前 20%、`period` 仅胜率窗口），去掉冗长解释；各 tool 描述显式 ts-or-dataVersion 必填。仅文档变更，无运行时行为变化。
