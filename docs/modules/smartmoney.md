@@ -8,8 +8,6 @@
 
 Smart money analytics module — trader leaderboard, position tracking, and aggregated consensus signals. All tools are read-only.
 
-> **Demo mode not supported.** All Smart Money tools throw a `ConfigError` when called in simulated trading mode. Switch to a live profile to use this module.
-
 ### Tools
 
 | Name | R/W | Description |
@@ -66,8 +64,6 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 ## 中文
 
 聪明钱分析模块 — 交易员排行榜、持仓追踪和聚合共识信号。所有工具均为只读。
-
-> **不支持模拟盘。** 所有 Smart Money 工具在模拟交易模式下会抛出 `ConfigError`，需切换到实盘 profile 才能使用。
 
 ### 工具列表
 

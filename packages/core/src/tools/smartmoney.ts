@@ -1,4 +1,4 @@
-import type { ToolSpec, ToolArgs, ToolContext } from "./types.js";
+import type { ToolSpec } from "./types.js";
 import {
   asRecord,
   compactObject,
@@ -7,7 +7,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
-import { ConfigError, ValidationError } from "../utils/errors.js";
+import { ValidationError } from "../utils/errors.js";
 
 /* ------------------------------------------------------------------ */
 /*  API path constants                                                 */
@@ -17,9 +17,9 @@ import { ConfigError, ValidationError } from "../utils/errors.js";
 const PATH_LEADERBOARD = "/api/v5/orbit/public/leaderboard";
 const PATH_POSITION_CURRENT = "/api/v5/orbit/public/position-current";
 const PATH_TRADE_RECORDS = "/api/v5/orbit/public/trade-records";
-const PATH_OVERVIEW = "/api/v5/journal/public/smartmoney/overview";
-const PATH_SIGNAL = "/api/v5/journal/public/smartmoney/signal";
-const PATH_SIGNAL_HISTORY = "/api/v5/journal/public/smartmoney/signal-history";
+const PATH_OVERVIEW = "/api/v5/journal/smartmoney/overview";
+const PATH_SIGNAL = "/api/v5/journal/smartmoney/signal";
+const PATH_SIGNAL_HISTORY = "/api/v5/journal/smartmoney/signal-history";
 
 /* ------------------------------------------------------------------ */
 /*  Shared trader-pool filter properties & reader                      */
@@ -102,31 +102,6 @@ function extractLeaderboardData(data: unknown): unknown[] {
     if (Array.isArray(inner)) return inner;
   }
   return [];
-}
-
-/* ------------------------------------------------------------------ */
-/*  Demo-mode guard                                                    */
-/* ------------------------------------------------------------------ */
-
-const SMARTMONEY_DEMO_MESSAGE =
-  "Smart Money features are not available in demo/simulated trading mode.";
-const SMARTMONEY_DEMO_SUGGESTION =
-  "Switch to a live profile to use Smart Money features.";
-
-function withSmartmoneyDemoGuard(tool: ToolSpec): ToolSpec {
-  const originalHandler = tool.handler;
-  return {
-    ...tool,
-    handler: async (args: ToolArgs, context: ToolContext): Promise<unknown> => {
-      if (context.config.demo) {
-        throw new ConfigError(
-          SMARTMONEY_DEMO_MESSAGE,
-          SMARTMONEY_DEMO_SUGGESTION,
-        );
-      }
-      return originalHandler(args, context);
-    },
-  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -297,11 +272,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           },
           granularity: {
             type: "string",
-            description: "1h or 1d",
+            description: "1h or 1d (default 1h)",
           },
           limit: {
             type: "string",
-            description: "Data points 1-500",
+            description: "Data points 1-500 (default 24)",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
         },
@@ -456,5 +431,5 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
     },
   ];
-  return tools.map(withSmartmoneyDemoGuard);
+  return tools;
 }
