@@ -150,12 +150,6 @@ export async function cmdSkillAdd(
     validateSkillMdExists(contentDir);
 
     // Step 4: Install via npx skills add
-    if (opts?.project && !opts?.agent) {
-      outputLine(
-        "Note: no --agent specified; skills will auto-detect agent config directories in this project. " +
-        "Use --agent <name> (e.g. claude-code) to target a specific agent.",
-      );
-    }
     outputLine("Installing to detected agents...");
     try {
       execFileSync(resolveNpx(), buildSkillsAddArgs(contentDir, opts), {
