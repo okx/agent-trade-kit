@@ -294,11 +294,22 @@ export async function cmdEventMarkets(
 
 export async function cmdEventOrders(
   run: ToolRunner,
-  opts: { instId?: string; state?: string; limit?: number; json: boolean },
+  opts: {
+    status?: string; instId?: string;
+    ordType?: string; state?: string;
+    after?: string; before?: string; begin?: string; end?: string;
+    limit?: number; json: boolean;
+  },
 ): Promise<void> {
   const result = await run("event_get_orders", {
+    status: opts.status,
     instId: opts.instId,
+    ordType: opts.ordType,
     state: opts.state,
+    after: opts.after,
+    before: opts.before,
+    begin: opts.begin,
+    end: opts.end,
     limit: opts.limit,
   });
   const data = getData(result) as Record<string, unknown>[];
@@ -318,10 +329,21 @@ export async function cmdEventOrders(
 
 export async function cmdEventFills(
   run: ToolRunner,
-  opts: { instId?: string; limit?: number; json: boolean },
+  opts: {
+    archive?: boolean; instId?: string;
+    ordId?: string;
+    after?: string; before?: string; begin?: string; end?: string;
+    limit?: number; json: boolean;
+  },
 ): Promise<void> {
   const result = await run("event_get_fills", {
+    archive: opts.archive,
     instId: opts.instId,
+    ordId: opts.ordId,
+    after: opts.after,
+    before: opts.before,
+    begin: opts.begin,
+    end: opts.end,
     limit: opts.limit,
   });
   const data = getData(result) as Record<string, unknown>[];

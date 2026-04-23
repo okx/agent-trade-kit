@@ -1461,8 +1461,18 @@ export function handleEventCommand(
     }),
     amend: () => cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json }),
     cancel: () => cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json }),
-    orders: () => cmdEventOrders(run, { instId: v.instId, state: v.state, limit, json }),
-    fills: () => cmdEventFills(run, { instId: v.instId, limit, json }),
+    orders: () => cmdEventOrders(run, {
+      status: v.status, instId: v.instId,
+      ordType: v.ordType, state: v.state,
+      after: v.after, before: v.before, begin: v.begin, end: v.end,
+      limit, json,
+    }),
+    fills: () => cmdEventFills(run, {
+      archive: v.archive ?? false,
+      instId: v.instId, ordId: v.ordId,
+      after: v.after, before: v.before, begin: v.begin, end: v.end,
+      limit, json,
+    }),
   };
   const handler = handlers[action];
   if (handler) return handler();

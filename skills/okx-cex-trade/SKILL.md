@@ -375,7 +375,7 @@ Event contract trading flow:
 2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains the instrument ID for each tradeable contract; if a live Price is shown, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
 3. **Check event details** → `okx event events <seriesId>`
 4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
-5. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
+5. **Track** → `okx event orders --status open` / `okx account positions --instType EVENTS`
 6. **Exit or settle** → sell via `okx event place <instId> sell <outcome> <sz>`, or wait for `--state expired`
 
 Edge cases:
@@ -441,7 +441,7 @@ This applies to all error codes whose messages suggest destructive actions, incl
 - After swap algo place/trail: run `okx swap algo orders` to confirm algo is active
 - After futures algo place/trail: run `okx futures algo orders` to confirm algo is active
 - After cancel: run `okx spot orders` / `okx swap orders` / `okx futures orders` / `okx event orders` to confirm order is gone
-- After `event place`: run `okx event orders --state live` to confirm order is pending
+- After `event place`: run `okx event orders --status open` to confirm order is pending
 - After `event cancel`: run `okx event orders` to confirm order is gone
 
 ## Global Notes

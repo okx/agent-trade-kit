@@ -24,11 +24,12 @@ import {
   asRecord,
   compactObject,
   normalizeResponse,
+  readBoolean,
   readNumber,
   readString,
   requireString,
 } from "./helpers.js";
-import { privateRateLimit } from "./common.js";
+import { privateRateLimit, CURSOR_PROPS, TIME_RANGE_PROPS, readPaginationParams } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
 import { formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "../utils/event-format.js";
 import {
@@ -281,39 +282,45 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_orders",
       module: "event",
-      description: "Query event contract orders. state=live for open orders; omit for history. outcome pre-translated (YES/NO/UP/DOWN).",
+      description: "Query event contract orders (open, 7d history, or 3-month archive). outcome pre-translated (YES/NO/UP/DOWN). Do NOT use for trade executions — use event_get_fills for fill records and settlement outcomes.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
+          status: {
+            type: "string",
+            enum: ["open", "history", "archive"],
+            description: "open=active, history=7d (default), archive=3mo",
+          },
           instId: {
             type: "string",
             description: "Event contract instrument ID",
           },
-          state: {
-            type: "string",
-            description: "live=pending orders; omit for history",
-          },
-          limit: {
-            type: "number",
-            description: "Max results (default 20)",
-          },
+          ordType: { type: "string", description: "Order type filter" },
+          state: { type: "string", description: "canceled|filled (only for history/archive)" },
+          ...CURSOR_PROPS,
+          ...TIME_RANGE_PROPS,
+          limit: { type: "number", description: "Max results (default 100)" },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const state = readString(args, "state");
-        const isPending = state === "live";
-        const endpoint = isPending
-          ? "/api/v5/trade/orders-pending"
-          : "/api/v5/trade/orders-history";
+        const status = readString(args, "status") ?? "history";
+        const endpointMap: Record<string, string> = {
+          open: "/api/v5/trade/orders-pending",
+          archive: "/api/v5/trade/orders-history-archive",
+        };
+        const endpoint = endpointMap[status] ?? "/api/v5/trade/orders-history";
+        const params = compactObject({
+          instType: "EVENTS",
+          instId: readString(args, "instId"),
+          ordType: readString(args, "ordType"),
+          state: readString(args, "state"),
+          ...readPaginationParams(args, readString, readNumber),
+        });
         const response = await context.client.privateGet(
           endpoint,
-          compactObject({
-            instType: "EVENTS",
-            instId: readString(args, "instId"),
-            limit: readNumber(args, "limit"),
-          }),
+          params,
           privateRateLimit("event_get_orders", 20),
         );
         const base = normalizeResponse(response);
@@ -329,44 +336,54 @@ export function registerEventContractTools(): ToolSpec[] {
               };
             })
           : base["data"];
-        return { ...base, data };
+        return { ...base, data, requestParams: params };
       },
     },
 
     {
       name: "event_get_fills",
       module: "event",
-      description: "Get event contract fill history. outcome pre-translated (YES/NO/UP/DOWN). Each record includes a 'type' field: 'fill' (subType 410, opening trade) or 'settlement' (subType 414 win / subType 415 loss, contract expiry payout). Settlement records include 'settlementResult' (win/loss) and 'pnl' fields — no separate market lookup needed to determine outcome.",
+      description: "Get event contract fill history (trade executions and settlement payouts). archive=true for up to 3mo, false (default) for last 3d. outcome pre-translated (YES/NO/UP/DOWN). Each record includes a 'type' field: 'fill' (opening trade) or 'settlement' (expiry payout with settlementResult win/loss and pnl). Do NOT use for order status — use event_get_orders instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
+          archive: {
+            type: "boolean",
+            description: "true=up to 3mo, false=3d (default)",
+          },
           instId: {
             type: "string",
             description: "Event contract instrument ID",
           },
-          limit: {
-            type: "number",
-            description: "Max results (default 20)",
-          },
+          ordId: { type: "string", description: "Order ID filter" },
+          ...CURSOR_PROPS,
+          ...TIME_RANGE_PROPS,
+          limit: { type: "number", description: "Max results (default 100 or 20 for archive)" },
         },
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const archive = readBoolean(args, "archive") ?? false;
+        const path = archive ? "/api/v5/trade/fills-history" : "/api/v5/trade/fills";
+        const paging = readPaginationParams(args, readString, readNumber);
+        const params = compactObject({
+          instType: "EVENTS",
+          instId: readString(args, "instId"),
+          ordId: readString(args, "ordId"),
+          ...paging,
+          limit: paging.limit ?? (archive ? 20 : undefined),
+        });
         const response = await context.client.privateGet(
-          "/api/v5/trade/fills",
-          compactObject({
-            instType: "EVENTS",
-            instId: readString(args, "instId"),
-            limit: readNumber(args, "limit"),
-          }),
+          path,
+          params,
           privateRateLimit("event_get_fills", 20),
         );
         const base = normalizeResponse(response);
         const data = Array.isArray(base["data"])
           ? (base["data"] as Record<string, unknown>[]).map(enrichFill)
           : base["data"];
-        return { ...base, data };
+        return { ...base, data, requestParams: params };
       },
     },
 
@@ -462,7 +479,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_amend_order",
       module: "event",
-      description: "Amend a pending event contract order (change price or size). [CAUTION] Modifies a real order. Before amending, call event_get_orders(state=live) to obtain the ordId and confirm the order is still pending. Only limit/post_only orders can be amended.",
+      description: "Amend a pending event contract order (change price or size). [CAUTION] Modifies a real order. Before amending, call event_get_orders(status=open) to obtain the ordId and confirm the order is still pending. Only limit/post_only orders can be amended.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -494,7 +511,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_cancel_order",
       module: "event",
-      description: "Cancel a pending event contract order. [CAUTION] Cancels a real order. Before cancelling, call event_get_orders(state=live) to obtain the ordId and confirm the order is still pending. instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair.",
+      description: "Cancel a pending event contract order. [CAUTION] Cancels a real order. Before cancelling, call event_get_orders(status=open) to obtain the ordId and confirm the order is still pending. instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair.",
       isWrite: true,
       inputSchema: {
         type: "object",

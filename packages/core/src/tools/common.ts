@@ -28,6 +28,30 @@ export function privateRateLimit(key: string, rps = 10): RateLimitConfig {
   };
 }
 
+export const CURSOR_PROPS = {
+  after: { type: "string" as const, description: "Cursor: return older records" },
+  before: { type: "string" as const, description: "Cursor: return newer records" },
+} as const;
+
+export const TIME_RANGE_PROPS = {
+  begin: { type: "string" as const, description: "Start time (ms)" },
+  end: { type: "string" as const, description: "End time (ms)" },
+} as const;
+
+export function readPaginationParams(
+  args: Record<string, unknown>,
+  readStr: (a: Record<string, unknown>, k: string) => string | undefined,
+  readNum: (a: Record<string, unknown>, k: string) => number | undefined,
+): Record<string, string | number | undefined> {
+  return {
+    after: readStr(args, "after"),
+    before: readStr(args, "before"),
+    begin: readStr(args, "begin"),
+    end: readStr(args, "end"),
+    limit: readNum(args, "limit"),
+  };
+}
+
 /**
  * Throw a ConfigError if demo/simulated trading mode is active.
  * Use this for endpoints that OKX does not support in simulated trading.
