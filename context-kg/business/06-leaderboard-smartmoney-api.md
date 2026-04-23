@@ -225,8 +225,8 @@ Backed by priAPI `/priapi/v5/content/public/community/user/trade-records`.
 
 | Field | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `instId` | String | No* | — | Full instrument name (e.g. `BTC-USDT-SWAP`). Either instId or instCcy must be provided; instId takes precedence |
-| `instCcy` | String | No* | — | Currency code (e.g. `BTC`). Applies to SPOT and SWAP only. Single currency only (comma-separated not supported) |
+| `instId` | String | No* | — | **Recommended.** Full instrument name (e.g. `BTC-USDT-SWAP`). Either instId or instCcy must be provided; instId takes precedence |
+| `instCcy` | String | No* | — | Currency code (e.g. `BTC`). Applies to SPOT and SWAP only. Single currency only (comma-separated not supported). `instId` takes precedence if both set. |
 | `dataVersion` | String | No** | — | `yyyyMMddHHmm` UTC |
 | `ts` | String | No** | — | UTC ms. **Either `dataVersion` or `ts` must be provided; if both, `ts` wins** |
 | `sortType` | String | No | `pnl` | Enum: `pnl`, `pnlRatio` — selects who enters the pool |
