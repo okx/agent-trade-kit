@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`smartmoney` description cleanup.** MCP / CLI / skill now consistently use "instId takes precedence if both set". Pool-filter descriptions keep enums / defaults / key semantics (`PNL_TOP20` = top 20 %, `period` = win-rate window only) but drop verbose prose; tool descriptions now state ts-or-dataVersion requirement up front. Docs only, no runtime change.
+
 ## [1.3.2-beta.2] - 2026-04-23
 
 ### Changed

@@ -882,18 +882,18 @@ export const CLI_REGISTRY: CliRegistry = {
     commands: {
       overview: {
         toolName: "smartmoney_get_overview",
-        usage: "okx smartmoney overview [--dataVersion <ver>] [--ts <ms>] [--instType <SWAP|SPOT>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--json]",
-        description: "Multi-currency smart money overview with aggregated signals",
+        usage: "okx smartmoney overview [--ts <ms> | --dataVersion <ver>] [--instType <SWAP|SPOT>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--json]",
+        description: "Multi-currency smart money overview ranked by tradersWithPosition DESC (requires --ts or --dataVersion; --ts takes precedence)",
       },
       signal: {
         toolName: "smartmoney_get_signal",
-        usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--dataVersion <ver>] [--ts <ms>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
-        description: "Single-currency aggregated consensus signal (prefer --instId; --instCcy may return empty)",
+        usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--ts <ms> | --dataVersion <ver>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
+        description: "Single-currency aggregated consensus signal (requires --instId or --instCcy, and --ts or --dataVersion; --instId / --ts take precedence)",
       },
       "signal-history": {
         toolName: "smartmoney_get_signal_history",
-        usage: "okx smartmoney signal-history --instId <id> [--dataVersion <ver>] [--ts <ms>] [--granularity <1h|1d>] [--limit <n>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--json]",
-        description: "Signal history timeline for trend analysis",
+        usage: "okx smartmoney signal-history --instId <id> [--ts <ms> | --dataVersion <ver>] [--granularity <1h|1d>] [--limit <n>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--json]",
+        description: "Signal history timeline sorted by ts DESC (requires --instId and --ts/--dataVersion)",
       },
       traders: {
         toolName: "smartmoney_get_traders",

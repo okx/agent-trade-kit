@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **`smartmoney` 描述优化。** MCP / CLI / skill 统一为 "instId takes precedence if both set"。池过滤器描述保留枚举/默认值/关键语义（`PNL_TOP20` = 前 20%、`period` 仅胜率窗口），去掉冗长解释；各 tool 描述显式 ts-or-dataVersion 必填。仅文档变更，无运行时行为变化。
+
 ## [1.3.2-beta.2] - 2026-04-23
 
 ### 变更

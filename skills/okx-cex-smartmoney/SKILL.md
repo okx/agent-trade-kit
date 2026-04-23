@@ -74,16 +74,16 @@ Run `okx config show` before any authenticated command.
 |---|---|---|---|
 | `smartmoney traders` | READ | Required | List/filter traders from leaderboard |
 | `smartmoney trader --authorId <id>` | READ | Required | Trader full portrait (profile + positions + trades) |
-| `smartmoney overview [--dataVersion <ver>\|--ts <ms>]` | READ | Required | Multi-currency smart money overview |
+| `smartmoney overview [--ts <ms>\|--dataVersion <ver>]` | READ | Required | Multi-currency smart money overview (prefer --ts) |
 
 ### Signal Data
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `smartmoney signal [--dataVersion <ver>\|--ts <ms>]` | READ | Required | Single-currency aggregated consensus signal |
-| `smartmoney signal-history --instId <id> [--dataVersion <ver>\|--ts <ms>]` | READ | Required | Signal history timeline for trend analysis |
+| `smartmoney signal [--ts <ms>\|--dataVersion <ver>]` | READ | Required | Single-currency aggregated consensus signal (prefer --ts) |
+| `smartmoney signal-history --instId <id> [--ts <ms>\|--dataVersion <ver>]` | READ | Required | Signal history timeline for trend analysis (prefer --ts) |
 
-> **Note:** Either `--dataVersion` or `--ts` must be provided for overview and signal commands; if both are sent, `--ts` takes precedence.
+> **Note:** Prefer `--ts` (e.g. `--ts $(date +%s)000` for latest snapshot) for overview / signal / signal-history; `--dataVersion` is an alternative for replaying a prior snapshot. At least one of the two must be provided; if both are sent, `--ts` wins.
 
 For full command syntax and parameters, read `{baseDir}/references/trader-commands.md` and `{baseDir}/references/signal-commands.md`.
 
@@ -119,6 +119,6 @@ For multi-step workflows (recommend traders then drill down, signal analysis wit
 - **Output:** Always pass `--json` to list/query commands and render results as a Markdown table — never paste raw terminal output.
 - **Network errors:** If commands fail with a connection error, prompt user to check VPN: `curl -I https://www.okx.com`
 - **Language:** Always respond in the user's language.
-- **Signal availability:** Signal commands (overview, signal, signal-history) require either `--dataVersion` or `--ts`.
+- **Signal availability:** Signal commands (overview, signal, signal-history) require either `--ts` (preferred — use `$(date +%s)000` for latest) or `--dataVersion` (for historical snapshot replay). If both are sent, `--ts` wins.
 
 For number/time formatting and response structure conventions, read `{baseDir}/references/templates.md`.

@@ -12,11 +12,11 @@ Smart money analytics module — trader leaderboard, position tracking, and aggr
 
 | Name | R/W | Description |
 |---|---|---|
-| smartmoney_get_overview | R | Multi-currency smart money overview with aggregated signals |
-| smartmoney_get_signal | R | Single-currency aggregated consensus signal (long/short ratio, entry prices, capital flow) |
-| smartmoney_get_signal_history | R | Signal history timeline for trend analysis and backtesting |
-| smartmoney_get_traders | R | List/filter traders from the smart money leaderboard |
-| smartmoney_get_trader_detail | R | Trader full portrait (profile + current positions + trade records) |
+| smartmoney_get_overview | R | Multi-currency overview ranked by `tradersWithPosition` DESC. Requires `ts` or `dataVersion` (ts wins). |
+| smartmoney_get_signal | R | Single-currency consensus signal (long/short ratio, entry prices, capital flow). Requires `instId` or `instCcy` (instId wins), and `ts` or `dataVersion` (ts wins). |
+| smartmoney_get_signal_history | R | Signal history timeline sorted by `ts` DESC. Requires `instId`, and `ts` or `dataVersion`. Default `granularity=1h`, `limit=24`. |
+| smartmoney_get_traders | R | List/filter leaderboard traders. Uses **numeric thresholds** (USD / ratio) for pool filters, NOT the enum tiers used by signal/overview. |
+| smartmoney_get_trader_detail | R | Trader full portrait: profile + current positions + trade records (composite, fires 3 parallel requests). Requires `authorId`. |
 
 5 tools (all read-only)
 
@@ -30,12 +30,14 @@ All signal/leaderboard tools accept shared pool filters as flat parameters:
 
 | Parameter | Signal endpoints (overview, signal, signal-history) | Leaderboard endpoints |
 |---|---|---|
-| sortType | pnl, pnlRatio | pnl, pnl_ratio |
-| period | 3, 7, 30, 90 (days) | "", 3, 7, 30, 90 (days) |
-| pnl | Enum: PNL_ANY, PNL_TOP50, PNL_TOP20, PNL_TOP5 | Numeric: min USD |
-| winRatio | Enum: WR_ANY, WR_GE_50, WR_GE_80 | Numeric: min ratio (0.8 = 80%) |
-| maxRetreat | Enum: MR_ANY, MR_LE_20, MR_LE_50 | Numeric: max ratio (0.1 = 10%) |
-| asset | Enum: AUM_ANY, AUM_TOP50, AUM_TOP20, AUM_TOP5 | Numeric: min USD |
+| sortType | `pnl` / `pnlRatio` (camelCase) — pool ranking basis | `pnl` / `pnl_ratio` (snake_case) |
+| period | `3` / `7` / `30` / `90` (days, default 90) — **win-rate window only**, not snapshot range | `""` / `3` / `7` / `30` / `90` (days, `""`=all) |
+| pnl | Enum — percentile: `PNL_TOP20` = top **20 %** of traders, **not** top 20 traders | Numeric: min USD threshold |
+| winRatio | Enum — threshold: `WR_GE_80` = keep win-rate **≥ 80 %** | Numeric: min ratio (0.8 = 80 %) |
+| maxRetreat | Enum — threshold: `MR_LE_20` = keep drawdown **≤ 20 %** | Numeric: max ratio (0.1 = 10 %) |
+| asset | Enum — percentile: `AUM_TOP20` = top **20 %** of traders by AUM | Numeric: min USD threshold |
+
+> **Important for AI agents:** Signal and leaderboard endpoints share parameter **names** but use **different value types**. Passing `pnl=PNL_TOP50` to `smartmoney_get_traders` or `pnl=10000` to `smartmoney_get_signal` will not behave as expected — signal/overview enums silently fall back to `*_ANY` default on invalid input.
 
 ### Typical Workflow
 
@@ -69,11 +71,11 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 
 | 名称 | 读/写 | 说明 |
 |---|---|---|
-| smartmoney_get_overview | 读 | 多币种聪明钱概览（聚合信号） |
-| smartmoney_get_signal | 读 | 单币种聚合共识信号（多空比、入场价、资金流向） |
-| smartmoney_get_signal_history | 读 | 信号历史时间线（趋势分析与回测） |
-| smartmoney_get_traders | 读 | 交易员排行榜列表/筛选 |
-| smartmoney_get_trader_detail | 读 | 交易员详情（画像 + 当前持仓 + 交易记录） |
+| smartmoney_get_overview | 读 | 多币种概览，按 `tradersWithPosition` DESC 排序。必须传 `ts` 或 `dataVersion`（ts 优先）。 |
+| smartmoney_get_signal | 读 | 单币种聚合共识信号（多空比、入场价、资金流向）。必须传 `instId` 或 `instCcy`（instId 优先），以及 `ts` 或 `dataVersion`（ts 优先）。 |
+| smartmoney_get_signal_history | 读 | 信号历史时间线，按 `ts` DESC 排序。必须传 `instId`，以及 `ts` 或 `dataVersion`。默认 `granularity=1h`、`limit=24`。 |
+| smartmoney_get_traders | 读 | 交易员排行榜列表/筛选。池过滤器使用**数值阈值**（USD / 比率），**与 signal/overview 的枚举不同**。 |
+| smartmoney_get_trader_detail | 读 | 交易员完整画像：档案 + 当前持仓 + 交易记录（复合接口，并发 3 个请求）。必须传 `authorId`。 |
 
 共 5 个工具（全部只读）
 
@@ -87,12 +89,14 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 
 | 参数 | Signal 端点（overview, signal, signal-history） | Leaderboard 端点 |
 |---|---|---|
-| sortType | pnl, pnlRatio | pnl, pnl_ratio |
-| period | 3, 7, 30, 90（天） | "", 3, 7, 30, 90（天） |
-| pnl | 枚举: PNL_ANY, PNL_TOP50, PNL_TOP20, PNL_TOP5 | 数值: 最低 PnL（USD） |
-| winRatio | 枚举: WR_ANY, WR_GE_50, WR_GE_80 | 数值: 最低胜率（0.8 = 80%） |
-| maxRetreat | 枚举: MR_ANY, MR_LE_20, MR_LE_50 | 数值: 最大回撤（0.1 = 10%） |
-| asset | 枚举: AUM_ANY, AUM_TOP50, AUM_TOP20, AUM_TOP5 | 数值: 最低资产（USD） |
+| sortType | `pnl` / `pnlRatio`（驼峰） — 交易员池排名依据 | `pnl` / `pnl_ratio`（下划线） |
+| period | `3` / `7` / `30` / `90`（天，默认 90）— **仅**胜率计算窗口，**不**影响快照时间范围 | `""` / `3` / `7` / `30` / `90`（天，`""`=all） |
+| pnl | 枚举 — 百分位：`PNL_TOP20` = PnL **前 20%** 交易员，**不是**前 20 个 | 数值：最低 PnL（USD） |
+| winRatio | 枚举 — 阈值：`WR_GE_80` = 保留胜率 **≥ 80%** | 数值：最低胜率（0.8 = 80%） |
+| maxRetreat | 枚举 — 阈值：`MR_LE_20` = 保留回撤 **≤ 20%** | 数值：最大回撤（0.1 = 10%） |
+| asset | 枚举 — 百分位：`AUM_TOP20` = AUM **前 20%** 交易员 | 数值：最低资产（USD） |
+
+> **AI agent 注意：** signal 和 leaderboard 端点**参数名相同但取值类型不同**。把 `pnl=PNL_TOP50` 传给 `smartmoney_get_traders`，或把 `pnl=10000` 传给 `smartmoney_get_signal`，都不会按预期工作 —— signal/overview 的枚举遇到非法值会**静默回退**到 `*_ANY` 默认。
 
 ### 典型工作流
 

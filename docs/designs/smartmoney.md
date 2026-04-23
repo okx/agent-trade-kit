@@ -20,7 +20,7 @@ smartmoney 作为**顶层模块**，提供 5 个只读 MCP tool。不进入默�
 职责范围：
 - 查询交易员排行榜（leaderboard）和单个交易员详情（profile + 持仓 + 交易记录）
 - 查询聪明钱聚合共识信号（多币种概览、单币种信号、信号历史时间线）
-- 提供池过滤器参数，按 PnL、胜率、回撤、资产、在线时长筛选交易员池
+- 提供池过滤器参数（sortType/period/pnl/winRatio/maxRetreat/asset），按 PnL、胜率、回撤、资产筛选交易员池
 
 不在范围内：
 - 行情价格、技术指标（由 market 模块负责）
@@ -106,7 +106,7 @@ smartmoney_get_signal_history (Read) ← 信号时间线
 
 ```
 1. smartmoney_get_overview(dataVersion=<ts>) → 多币种概览
-2. smartmoney_get_signal(dataVersion=<ts>, instId=BTC-USDT-SWAP) → 单币种信号（推荐 instId；instCcy 可能返空）
+2. smartmoney_get_signal(ts=<ms>, instId=BTC-USDT-SWAP) → 单币种信号（推荐 instId；instCcy 仅 SPOT/SWAP，instId 优先）
 3. market_get_ticker(instId=BTC-USDT-SWAP) → 当前价格（跨模块）
 4. 比较 smart money avg entry vs 当前价格
 ```

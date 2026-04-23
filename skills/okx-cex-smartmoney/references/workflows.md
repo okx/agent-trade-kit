@@ -65,7 +65,7 @@ okx --profile live smartmoney traders --maxRetreat 0.1 --period 30 --limit 10 --
 # Use --ts with current timestamp in ms
 ts=$(date +%s)000
 
-# Prefer --instId; --instCcy may return empty
+# Prefer --instId; --instCcy (e.g. BTC) is also accepted for SPOT/SWAP, but --instId takes precedence
 okx --profile live smartmoney signal --ts $ts --instId BTC-USDT-SWAP --json
 ```
 
@@ -111,7 +111,7 @@ Present as time series table showing: ts, longRatio, weightedLongRatio, tradersW
 
 ```bash
 # Parallel execution:
-# 1. Smart money signal (already includes marketContext). Prefer --instId; --instCcy may return empty.
+# 1. Smart money signal (already includes marketContext). Prefer --instId; --instCcy (SPOT/SWAP only) is also accepted, but --instId takes precedence.
 okx --profile live smartmoney signal --ts $(date +%s)000 --instId BTC-USDT-SWAP --json
 
 # 2. Current market price (via okx-cex-market skill, for real-time price)
