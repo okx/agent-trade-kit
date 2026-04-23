@@ -10,12 +10,14 @@ okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--dataVersion <ver>] [-
 
 Aggregates pool traders' positions for a single currency to produce long/short ratio, weighted ratio, avg entry price, capital flow, trend deltas, and market context.
 
+> **Use `--instId` (e.g. `BTC-USDT-SWAP`).** `--instCcy` is accepted by the endpoint but may return an empty result; stick with `--instId` for reliable data.
+
 ### Parameters
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--instId` | Cond. | - | Full instrument name (e.g. `BTC-USDT-SWAP`). **At least one of instId / instCcy required**; instId takes precedence. |
-| `--instCcy` | Cond. | - | Currency code (e.g. `BTC`). **At least one of instId / instCcy required**. Applies to SPOT and SWAP. |
+| `--instId` | Cond. | - | **Recommended.** Full instrument name (e.g. `BTC-USDT-SWAP`). **At least one of instId / instCcy required**; instId takes precedence. |
+| `--instCcy` | Cond. | - | Currency code (e.g. `BTC`). Applies to SPOT and SWAP. **May return empty — prefer `--instId` for reliable results.** |
 | `--dataVersion` | Cond. | - | Snapshot version (yyyyMMddHHmm UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
 | `--ts` | Cond. | - | Snapshot timestamp (ms UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
 | `--lmtNum` | No | `100` | Candidate trader pool size limit (range 1-500) |

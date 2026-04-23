@@ -184,7 +184,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       module: "smartmoney",
       description:
         "Single-currency consensus signal: long/short ratio, entry prices, trend, capital flow. " +
-        "Requires instId or instCcy. Pass ts=Date.now() for latest data, or dataVersion from a prior call. " +
+        "Prefer instId (e.g. BTC-USDT-SWAP); instCcy is accepted but may return empty — use instId for reliable results. " +
+        "Pass ts=Date.now() for latest data, or dataVersion from a prior call. " +
         "For multi-currency overview, use smartmoney_get_overview. For timeline, use smartmoney_get_signal_history.",
       isWrite: false,
       inputSchema: {
@@ -192,11 +193,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "e.g. BTC-USDT-SWAP (or use instCcy)",
+            description: "Recommended. e.g. BTC-USDT-SWAP",
           },
           instCcy: {
             type: "string",
-            description: "e.g. BTC, SPOT/SWAP only (or use instId)",
+            description: "e.g. BTC, SPOT/SWAP only. May return empty — prefer instId.",
           },
           dataVersion: {
             type: "string",

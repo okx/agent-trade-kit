@@ -22,7 +22,7 @@ Smart money analytics module — trader leaderboard, position tracking, and aggr
 
 ### Token Budget Estimate
 
-Estimated ~1,588 tokens (5 tools, 5,559 chars)
+Estimated ~1,624 tokens (5 tools, 5,684 chars)
 
 ### Pool Filter Parameters
 
@@ -55,7 +55,7 @@ List traders → Drill into trader detail → Check signal overview → Deep-div
 okx smartmoney traders --period 30 --sortType pnl --limit 10 --json
 okx smartmoney trader --authorId <id> --json
 okx smartmoney overview --ts <ms> --json
-okx smartmoney signal --ts <ms> --instCcy BTC --json
+okx smartmoney signal --ts <ms> --instId BTC-USDT-SWAP --json
 okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d --json
 ```
 
@@ -79,7 +79,7 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 
 ### Token 预算估算
 
-约 1,588 tokens（5 个工具，5,559 chars）
+约 1,624 tokens（5 个工具，5,684 chars）
 
 ### 池过滤器参数
 
@@ -112,6 +112,6 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 okx smartmoney traders --period 30 --sortType pnl --limit 10 --json
 okx smartmoney trader --authorId <id> --json
 okx smartmoney overview --ts <ms> --json
-okx smartmoney signal --ts <ms> --instCcy BTC --json
+okx smartmoney signal --ts <ms> --instId BTC-USDT-SWAP --json
 okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d --json
 ```

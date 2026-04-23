@@ -13,6 +13,8 @@
 
 ### 变更
 
+- **`smartmoney signal` / `smartmoney_get_signal`：文档推荐使用 `--instId`，`--instCcy` 可能返空。** `/api/v5/journal/smartmoney/signal` 接口按 spec 支持 `instCcy`，但实际调用时即便 `/overview` 能用同样的 `instCcy` 返回数据，`/signal` 仍可能返回 `data: []`。工具描述、CLI 参考文档和 API 文档现已引导调用方使用 `--instId`（如 `BTC-USDT-SWAP`）以获得稳定结果。未改代码，`instCcy` 仍会照常透传。
+
 - **`okx doh` 命令已替换为 `okx pilot`**（issue #169）。`doh` CLI 模块已移除，改为 `pilot`（`okx pilot status/install/remove`）。现在运行 `okx doh` 会报未知命令。
 
 - **CDN 路径统一：`installer.ts` 与 `postinstall-notice.js` 现均使用 `/upgradeapp/tools/pilot`**（issue #169）。此前两个文件不同步——`installer.ts` 使用 `/upgradeapp/doh`，而 `postinstall-notice.js` 已更新为 `/upgradeapp/tools/doh`。两者现统一指向 `/upgradeapp/tools/pilot`，旧路径已不再有效。
