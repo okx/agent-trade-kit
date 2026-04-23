@@ -464,11 +464,12 @@ export async function cmdMarketOiHistory(
     limit: opts.limit,
     ts:    opts.ts,
   });
-  const data = getData(result) as Record<string, unknown> | null;
+  const data = getData(result);
   if (opts.json) return printJson(data);
-  const rows = (data?.["rows"] ?? []) as Record<string, unknown>[];
+  const entry = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null | undefined;
+  const rows = (entry?.["rows"] ?? []) as Record<string, unknown>[];
   if (!rows.length) { outputLine("No OI data"); return; }
-  outputLine(`${data?.["instId"] ?? instId}  bar=${data?.["bar"] ?? opts.bar ?? "1H"}`);
+  outputLine(`${entry?.["instId"] ?? instId}  bar=${entry?.["bar"] ?? opts.bar ?? "1H"}`);
   printTable(
     rows.map((r) => ({
       ts:          new Date(Number(r["ts"])).toLocaleString(),

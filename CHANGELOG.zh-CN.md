@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.2-beta.3] - 2026-04-23
+
 ### 变更
 
 - **`smartmoney` 描述优化。** MCP / CLI / skill 统一为 "instId takes precedence if both set"。池过滤器描述保留枚举/默认值/关键语义（`PNL_TOP20` = 前 20%、`period` 仅胜率窗口），去掉冗长解释；各 tool 描述显式 ts-or-dataVersion 必填。仅文档变更，无运行时行为变化。
@@ -36,6 +38,8 @@
 - **`okx doh` 命令已移除，替换为 `okx pilot`**。三个子命令均已迁移：`okx pilot status`、`okx pilot install`、`okx pilot remove`。
 
 ### 修复
+
+- **`okx market oi-history` 表格渲染修复——不再在有数据时错误打印 "No OI data"**。接口返回的 `data` 是数组 `[{ instId, bar, rows: [...] }]`，但 CLI 直接在数组上访问 `data["rows"]`，结果恒为 `undefined`，永远走到"空数据"分支。现在 handler 先取 `data[0]` 再读 `rows`/`instId`/`bar`。`--json` 模式原本就不受影响，输出保持不变。单元测试同步更新为真实的数组包裹形状，防止此类 bug 在测试中被悄悄吃掉。
 
 - **Pilot 二进制安装器现已支持 `linux-arm64` 平台**（issue #166）。`getPlatformDir()` 缺少 `"linux-arm64"` 映射条目，导致 ARM64 Linux 主机安装/更新时回退到 `undefined`，将二进制写入错误路径。现已补充 `"linux-arm64": "linux-arm64"` 条目。
 

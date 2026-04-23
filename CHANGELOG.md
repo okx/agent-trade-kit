@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2-beta.3] - 2026-04-23
+
 ### Changed
 
 - **`smartmoney` description cleanup.** MCP / CLI / skill now consistently use "instId takes precedence if both set". Pool-filter descriptions keep enums / defaults / key semantics (`PNL_TOP20` = top 20 %, `period` = win-rate window only) but drop verbose prose; tool descriptions now state ts-or-dataVersion requirement up front. Docs only, no runtime change.
@@ -36,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`okx doh` command removed, replaced by `okx pilot`**. All three subcommands are available as `okx pilot status`, `okx pilot install`, `okx pilot remove`.
 
 ### Fixed
+
+- **`okx market oi-history` table rendering fixed — no longer prints "No OI data" when data exists**. The API returns `data` as an array `[{ instId, bar, rows: [...] }]`, but the CLI was accessing `data["rows"]` directly on the array, which yielded `undefined` and always fell into the empty-data branch. The handler now unwraps `data[0]` before reading `rows`/`instId`/`bar`. `--json` mode was unaffected and keeps its current output. Unit tests updated to mirror the real array-wrapped API shape so this class of bug cannot recur silently.
 
 - **`linux-arm64` platform now included in Pilot binary installer** (issue #166). `getPlatformDir()` was missing an entry for `"linux-arm64"`, causing install/update to fall back to `undefined` and write the binary to the wrong path on ARM64 Linux hosts. The entry `"linux-arm64": "linux-arm64"` is now present.
 
