@@ -888,7 +888,7 @@ export const CLI_REGISTRY: CliRegistry = {
       signal: {
         toolName: "smartmoney_get_signal",
         usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--dataVersion <ver>] [--ts <ms>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
-        description: "Single-currency aggregated consensus signal",
+        description: "Single-currency aggregated consensus signal (prefer --instId; --instCcy may return empty)",
       },
       "signal-history": {
         toolName: "smartmoney_get_signal_history",
