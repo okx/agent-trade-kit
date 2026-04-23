@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.2-beta.3] - 2026-04-23
+
 ### 变更
 
 - **`okx doh` 命令已替换为 `okx pilot`**（issue #169）。`doh` CLI 模块已移除，改为 `pilot`（`okx pilot status/install/remove`）。现在运行 `okx doh` 会报未知命令。

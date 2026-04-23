@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2-beta.3] - 2026-04-23
+
 ### Changed
 
 - **`okx doh` command replaced by `okx pilot`** (issue #169). The `doh` CLI module is removed and replaced by `pilot` (`okx pilot status/install/remove`). Running `okx doh` will now report an unknown command.
