@@ -9,20 +9,20 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { readCache, writeCache, invalidateCache } from "../src/doh/cache.js";
-import type { DohCacheEntry, DohCacheFile } from "../src/doh/types.js";
+import { readCache, writeCache, invalidateCache } from "../src/pilot/cache.js";
+import type { PilotCacheEntry, PilotCacheFile } from "../src/pilot/types.js";
 
 let tempDir: string;
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "doh-cache-test-"));
+  tempDir = mkdtempSync(join(tmpdir(), "pilot-cache-test-"));
 });
 
 afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-describe("DohCache: readCache", () => {
+describe("PilotCache: readCache", () => {
   it("returns null when cache file does not exist", () => {
     const result = readCache("www.okx.com", join(tempDir, "nonexistent.json"));
     assert.equal(result, null);
@@ -37,13 +37,13 @@ describe("DohCache: readCache", () => {
 
   it("returns parsed cache entry for matching hostname", () => {
     const cachePath = join(tempDir, "cache.json");
-    const entry: DohCacheEntry = {
+    const entry: PilotCacheEntry = {
       mode: "proxy",
       node: { ip: "192.0.2.1", host: "proxy.com", ttl: 120 },
       failedNodes: [],
       updatedAt: Date.now(),
     };
-    const file: DohCacheFile = { "www.okx.com": entry };
+    const file: PilotCacheFile = { "www.okx.com": entry };
     writeFileSync(cachePath, JSON.stringify(file));
     const result = readCache("www.okx.com", cachePath);
     assert.deepEqual(result, entry);
@@ -51,7 +51,7 @@ describe("DohCache: readCache", () => {
 
   it("returns null when hostname not in cache", () => {
     const cachePath = join(tempDir, "cache.json");
-    const file: DohCacheFile = {
+    const file: PilotCacheFile = {
       "www.okx.com": {
         mode: "direct", node: null, failedNodes: [], updatedAt: Date.now(),
       },
@@ -62,10 +62,10 @@ describe("DohCache: readCache", () => {
   });
 });
 
-describe("DohCache: writeCache", () => {
+describe("PilotCache: writeCache", () => {
   it("writes cache entry under hostname key", () => {
     const cachePath = join(tempDir, "cache.json");
-    const entry: DohCacheEntry = {
+    const entry: PilotCacheEntry = {
       mode: "direct",
       node: null,
       failedNodes: [],
@@ -73,20 +73,20 @@ describe("DohCache: writeCache", () => {
     };
     writeCache("www.okx.com", entry, cachePath);
     const raw = readFileSync(cachePath, "utf-8");
-    const file = JSON.parse(raw) as DohCacheFile;
+    const file = JSON.parse(raw) as PilotCacheFile;
     assert.deepEqual(file["www.okx.com"], entry);
   });
 
   it("preserves entries for other hostnames", () => {
     const cachePath = join(tempDir, "cache.json");
-    const existing: DohCacheFile = {
+    const existing: PilotCacheFile = {
       "www.okx.com": {
         mode: "direct", node: null, failedNodes: [], updatedAt: 1000,
       },
     };
     writeFileSync(cachePath, JSON.stringify(existing));
 
-    const newEntry: DohCacheEntry = {
+    const newEntry: PilotCacheEntry = {
       mode: "proxy",
       node: { ip: "198.51.100.2", host: "proxy2.com", ttl: 60 },
       failedNodes: [],
@@ -95,7 +95,7 @@ describe("DohCache: writeCache", () => {
     writeCache("www.other.com", newEntry, cachePath);
 
     const raw = readFileSync(cachePath, "utf-8");
-    const file = JSON.parse(raw) as DohCacheFile;
+    const file = JSON.parse(raw) as PilotCacheFile;
     assert.deepEqual(file["www.okx.com"], existing["www.okx.com"]);
     assert.deepEqual(file["www.other.com"], newEntry);
   });
@@ -112,7 +112,7 @@ describe("DohCache: writeCache", () => {
   });
 });
 
-describe("DohCache: invalidateCache", () => {
+describe("PilotCache: invalidateCache", () => {
   it("deletes cache file", () => {
     const cachePath = join(tempDir, "cache.json");
     writeFileSync(cachePath, "{}");

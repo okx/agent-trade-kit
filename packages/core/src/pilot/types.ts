@@ -1,5 +1,5 @@
-/** A resolved DoH proxy node returned by the okx-pilot binary. */
-export interface DohNode {
+/** A resolved Pilot proxy node returned by the okx-pilot binary. */
+export interface PilotNode {
   /** Proxy node IP address (e.g. "47.242.161.22") */
   ip: string;
   /** Proxy hostname for Host header / TLS SNI (e.g. "okexweb.qqhrss.com") */
@@ -16,19 +16,19 @@ export interface FailedNode {
 }
 
 /** Raw JSON output from the okx-pilot binary. */
-export interface DohBinaryResponse {
+export interface PilotBinaryResponse {
   code: number;
-  data?: DohNode;
+  data?: PilotNode;
   cached?: boolean;
   msg?: string;
 }
 
 /** Per-domain cache entry. */
-export interface DohCacheEntry {
+export interface PilotCacheEntry {
   /** "proxy" = use node, "direct" = use www.okx.com */
   mode: "proxy" | "direct";
   /** The proxy node (only when mode=proxy) */
-  node: DohNode | null;
+  node: PilotNode | null;
   /** Nodes that failed and should be excluded on next binary call */
   failedNodes: FailedNode[];
   /** Timestamp (ms) when cache was written */
@@ -36,7 +36,7 @@ export interface DohCacheEntry {
 }
 
 /**
- * Persisted cache file at ~/.okx/doh-cache.json.
+ * Persisted cache file at ~/.okx/pilot-cache.json.
  * Keyed by hostname (e.g. "www.okx.com").
  */
-export type DohCacheFile = Record<string, DohCacheEntry>;
+export type PilotCacheFile = Record<string, PilotCacheEntry>;

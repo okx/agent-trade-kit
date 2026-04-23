@@ -13,19 +13,20 @@ import { tmpdir, platform } from "node:os";
 import { createHash } from "node:crypto";
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from "node:http";
 import {
-  getDohStatus,
+  getPilotStatus,
   hashFile,
-  removeDohBinary,
-  installDohBinary,
+  removePilotBinary,
+  installPilotBinary,
   getPlatformDir,
   getBinaryName,
-} from "../src/doh/installer.js";
-import type { DohLocalStatus, InstallResult, RemoveResult } from "../src/doh/installer-types.js";
+  PLATFORM_MAP,
+} from "../src/pilot/installer.js";
+import type { PilotLocalStatus, InstallResult, RemoveResult } from "../src/pilot/installer-types.js";
 
 let tempDir: string;
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "doh-installer-test-"));
+  tempDir = mkdtempSync(join(tmpdir(), "pilot-installer-test-"));
 });
 
 afterEach(() => {
@@ -75,6 +76,20 @@ describe("getPlatformDir", () => {
     const b = getPlatformDir();
     assert.equal(a, b);
   });
+
+  it("linux-arm64 is a supported platform (regression guard for issue #166 bug 1)", () => {
+    // Assert directly against PLATFORM_MAP so this test is not vacuous on
+    // non-Linux hosts — it would catch any accidental removal of the entry.
+    const dir = PLATFORM_MAP["linux-arm64"];
+    assert.equal(dir, "linux-arm64", "PLATFORM_MAP must contain linux-arm64 entry");
+  });
+
+  it("win32-arm64 is a supported platform", () => {
+    // Assert directly against PLATFORM_MAP so this test fires on any host,
+    // guarding against accidental removal of the win32-arm64 entry.
+    const dir = PLATFORM_MAP["win32-arm64"];
+    assert.equal(dir, "win32-arm64", "PLATFORM_MAP must contain win32-arm64 entry");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -98,13 +113,13 @@ describe("getBinaryName", () => {
 });
 
 // ---------------------------------------------------------------------------
-// getDohStatus
+// getPilotStatus
 // ---------------------------------------------------------------------------
 
-describe("getDohStatus", () => {
+describe("getPilotStatus", () => {
   it("returns exists=false when binary is absent", () => {
     const binaryPath = join(tempDir, "nonexistent-binary");
-    const status: DohLocalStatus = getDohStatus(binaryPath);
+    const status: PilotLocalStatus = getPilotStatus(binaryPath);
     assert.equal(status.binaryPath, binaryPath);
     assert.equal(status.exists, false);
     assert.equal(status.fileSize, undefined);
@@ -114,7 +129,7 @@ describe("getDohStatus", () => {
   it("returns exists=true with size and sha256 when binary is present", () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("fake-binary-content"));
-    const status: DohLocalStatus = getDohStatus(binaryPath);
+    const status: PilotLocalStatus = getPilotStatus(binaryPath);
     assert.equal(status.exists, true);
     assert.equal(status.binaryPath, binaryPath);
     assert.ok(typeof status.fileSize === "number" && status.fileSize > 0);
@@ -124,7 +139,7 @@ describe("getDohStatus", () => {
   it("includes platform in the result", () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("content"));
-    const status: DohLocalStatus = getDohStatus(binaryPath);
+    const status: PilotLocalStatus = getPilotStatus(binaryPath);
     // platform can be null on unsupported systems, otherwise a string
     assert.ok(status.platform === null || typeof status.platform === "string");
   });
@@ -132,7 +147,7 @@ describe("getDohStatus", () => {
   it("returns exists=true but no fileSize/sha256 when skipHash is true", () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("skip-hash-content"));
-    const status: DohLocalStatus = getDohStatus(binaryPath, { skipHash: true });
+    const status: PilotLocalStatus = getPilotStatus(binaryPath, { skipHash: true });
     assert.equal(status.exists, true);
     assert.equal(status.binaryPath, binaryPath);
     assert.equal(status.fileSize, undefined, "fileSize should be undefined with skipHash");
@@ -143,7 +158,7 @@ describe("getDohStatus", () => {
   it("returns sha256 when skipHash is false (explicit default)", () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("explicit-no-skip"));
-    const status: DohLocalStatus = getDohStatus(binaryPath, { skipHash: false });
+    const status: PilotLocalStatus = getPilotStatus(binaryPath, { skipHash: false });
     assert.equal(status.exists, true);
     assert.ok(typeof status.sha256 === "string" && status.sha256.length === 64);
     assert.ok(typeof status.fileSize === "number" && status.fileSize > 0);
@@ -151,7 +166,7 @@ describe("getDohStatus", () => {
 
   it("returns exists=false with no hash when binary absent and skipHash is true", () => {
     const binaryPath = join(tempDir, "nonexistent");
-    const status: DohLocalStatus = getDohStatus(binaryPath, { skipHash: true });
+    const status: PilotLocalStatus = getPilotStatus(binaryPath, { skipHash: true });
     assert.equal(status.exists, false);
     assert.equal(status.fileSize, undefined);
     assert.equal(status.sha256, undefined);
@@ -159,82 +174,82 @@ describe("getDohStatus", () => {
 });
 
 // ---------------------------------------------------------------------------
-// removeDohBinary
+// removePilotBinary
 // ---------------------------------------------------------------------------
 
-describe("removeDohBinary", () => {
+describe("removePilotBinary", () => {
   it("returns status=removed when binary exists", () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("fake"));
-    const result: RemoveResult = removeDohBinary(binaryPath);
+    const result: RemoveResult = removePilotBinary(binaryPath);
     assert.equal(result.status, "removed");
     assert.equal(existsSync(binaryPath), false);
   });
 
   it("returns status=not-found when binary does not exist", () => {
     const binaryPath = join(tempDir, "nonexistent");
-    const result: RemoveResult = removeDohBinary(binaryPath);
+    const result: RemoveResult = removePilotBinary(binaryPath);
     assert.equal(result.status, "not-found");
   });
 });
 
 // ---------------------------------------------------------------------------
-// installDohBinary — edge cases
+// installPilotBinary — edge cases
 // ---------------------------------------------------------------------------
 
-describe("installDohBinary", () => {
+describe("installPilotBinary", () => {
   it("returns status=failed when no CDN sources provided (empty list)", async () => {
     const destPath = join(tempDir, "okx-pilot");
     // Pass an empty CDN list to simulate all CDN sources unavailable
-    const result: InstallResult = await installDohBinary(destPath, []);
+    const result: InstallResult = await installPilotBinary(destPath, []);
     assert.equal(result.status, "failed");
     assert.ok(typeof result.error === "string");
   });
 
-  it("returns up-to-date when OKX_DOH_BINARY_PATH env is set and no destPath provided", async () => {
-    const savedEnv = process.env.OKX_DOH_BINARY_PATH;
+  it("returns up-to-date when OKX_PILOT_BINARY_PATH env is set and no destPath provided", async () => {
+    const savedEnv = process.env.OKX_PILOT_BINARY_PATH;
     try {
-      process.env.OKX_DOH_BINARY_PATH = "/some/custom/path";
+      process.env.OKX_PILOT_BINARY_PATH = "/some/custom/path";
       // Pass undefined destPath so installPreChecks sees the env override
-      const result: InstallResult = await installDohBinary(undefined, []);
+      const result: InstallResult = await installPilotBinary(undefined, []);
       assert.equal(result.status, "up-to-date");
       assert.equal(result.source, "(env override)");
     } finally {
       if (savedEnv === undefined) {
-        delete process.env.OKX_DOH_BINARY_PATH;
+        delete process.env.OKX_PILOT_BINARY_PATH;
       } else {
-        process.env.OKX_DOH_BINARY_PATH = savedEnv;
+        process.env.OKX_PILOT_BINARY_PATH = savedEnv;
       }
     }
   });
 
   it("env override is bypassed when destPath is explicitly provided", async () => {
-    const savedEnv = process.env.OKX_DOH_BINARY_PATH;
+    const savedEnv = process.env.OKX_PILOT_BINARY_PATH;
     try {
-      process.env.OKX_DOH_BINARY_PATH = "/some/custom/path";
+      process.env.OKX_PILOT_BINARY_PATH = "/some/custom/path";
       const destPath = join(tempDir, "okx-pilot");
       // With destPath provided, env override should be ignored; empty sources -> failed
-      const result: InstallResult = await installDohBinary(destPath, []);
+      const result: InstallResult = await installPilotBinary(destPath, []);
       assert.equal(result.status, "failed");
     } finally {
       if (savedEnv === undefined) {
-        delete process.env.OKX_DOH_BINARY_PATH;
+        delete process.env.OKX_PILOT_BINARY_PATH;
       } else {
-        process.env.OKX_DOH_BINARY_PATH = savedEnv;
+        process.env.OKX_PILOT_BINARY_PATH = savedEnv;
       }
     }
   });
 });
 
 // ---------------------------------------------------------------------------
-// installDohBinary — mock HTTP server tests
+// installPilotBinary — mock HTTP server tests
 // ---------------------------------------------------------------------------
 
-describe("installDohBinary with mock CDN server", () => {
+describe("installPilotBinary with mock CDN server", () => {
   let server: Server;
   let serverPort: number;
   // Content for the fake binary
-  const binaryContent = Buffer.from("fake-doh-binary-content-for-testing");
+  const binaryContent = Buffer.from("fake-pilot-binary-content-for-testing");
   const binaryHash = createHash("sha256").update(binaryContent).digest("hex");
   const binarySize = binaryContent.byteLength;
   const platformDir = getPlatformDir();
@@ -305,7 +320,7 @@ describe("installDohBinary with mock CDN server", () => {
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
     const progress: string[] = [];
 
-    const result = await installDohBinary(destPath, sources, (msg) => progress.push(msg));
+    const result = await installPilotBinary(destPath, sources, (msg) => progress.push(msg));
 
     assert.equal(result.status, "installed");
     assert.equal(result.source, `127.0.0.1:${serverPort}`);
@@ -327,7 +342,7 @@ describe("installDohBinary with mock CDN server", () => {
     writeFileSync(destPath, binaryContent);
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "up-to-date");
     assert.equal(result.source, `127.0.0.1:${serverPort}`);
@@ -345,7 +360,7 @@ describe("installDohBinary with mock CDN server", () => {
     };
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "failed");
     assert.ok(result.error?.includes("SHA-256 mismatch"), `expected SHA-256 mismatch error, got: ${result.error}`);
@@ -362,7 +377,7 @@ describe("installDohBinary with mock CDN server", () => {
     };
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "failed");
     assert.ok(result.error?.includes("Size mismatch"), `expected size mismatch error, got: ${result.error}`);
@@ -376,7 +391,7 @@ describe("installDohBinary with mock CDN server", () => {
     checksumResponse = { foo: "bar" };
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "failed");
   });
@@ -388,7 +403,7 @@ describe("installDohBinary with mock CDN server", () => {
     checksumResponse = null; // will cause 500 response
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "failed");
     assert.ok(typeof result.error === "string");
@@ -401,7 +416,7 @@ describe("installDohBinary with mock CDN server", () => {
     serveBinary = false; // server returns 500 for binary
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "failed");
   });
@@ -417,7 +432,7 @@ describe("installDohBinary with mock CDN server", () => {
     };
 
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
-    const result = await installDohBinary(destPath, sources);
+    const result = await installPilotBinary(destPath, sources);
 
     assert.equal(result.status, "failed");
     assert.ok(result.error?.includes("Target mismatch") || result.error?.includes("mismatch"));

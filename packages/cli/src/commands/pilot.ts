@@ -1,5 +1,5 @@
 /**
- * `okx doh` command — DoH binary management.
+ * `okx pilot` command — Pilot binary management.
  *
  * Sub-commands:
  *   status   — show local binary info + CDN match
@@ -9,21 +9,21 @@
 
 import readline from "node:readline";
 import {
-  getDohStatus,
+  getPilotStatus,
   fetchCdnChecksum,
-  installDohBinary,
-  removeDohBinary,
-  readDohCache,
+  installPilotBinary,
+  removePilotBinary,
+  readPilotCache,
 } from "@agent-tradekit/core";
-import type { DohLocalStatus, CdnChecksum } from "@agent-tradekit/core";
+import type { PilotLocalStatus, CdnChecksum } from "@agent-tradekit/core";
 import { outputLine, errorLine } from "../formatter.js";
 
 // ---------------------------------------------------------------------------
-// status helpers (extracted to reduce cognitive complexity of cmdDohStatus)
+// status helpers (extracted to reduce cognitive complexity of cmdPilotStatus)
 // ---------------------------------------------------------------------------
 
 function resolveChecksumMatch(
-  local: DohLocalStatus,
+  local: PilotLocalStatus,
   cdnChecksum: CdnChecksum | null,
   cdnError: string | null,
 ): "match" | "mismatch" | "unavailable" | "not-installed" {
@@ -40,13 +40,13 @@ function checksumMatchLabel(match: string): string {
 }
 
 function formatStatusText(
-  local: DohLocalStatus,
+  local: PilotLocalStatus,
   checksumMatch: string,
   cdnChecksum: CdnChecksum | null,
   runtimeMode: string,
 ): void {
   outputLine("");
-  outputLine("  DoH Resolver Status");
+  outputLine("  Pilot Status");
   outputLine("  " + "─".repeat(40));
   outputLine(`  Binary path : ${local.binaryPath}`);
   outputLine(`  Installed   : ${local.exists ? "yes" : "no"}`);
@@ -67,13 +67,13 @@ function formatStatusText(
 // status
 // ---------------------------------------------------------------------------
 
-export async function cmdDohStatus(json: boolean, binaryPath?: string): Promise<void> {
-  const local: DohLocalStatus = getDohStatus(binaryPath);
+export async function cmdPilotStatus(json: boolean, binaryPath?: string): Promise<void> {
+  const local: PilotLocalStatus = getPilotStatus(binaryPath);
 
-  // Read runtime mode from DoH cache (best-effort)
+  // Read runtime mode from Pilot cache (best-effort)
   let runtimeMode: string = "no cache";
   try {
-    const cacheEntry = readDohCache("www.okx.com");
+    const cacheEntry = readPilotCache("www.okx.com");
     if (cacheEntry) {
       runtimeMode = cacheEntry.mode; // "proxy" | "direct"
     }
@@ -118,7 +118,7 @@ export async function cmdDohStatus(json: boolean, binaryPath?: string): Promise<
 // install
 // ---------------------------------------------------------------------------
 
-export async function cmdDohInstall(json: boolean, binaryPath?: string): Promise<void> {
+export async function cmdPilotInstall(json: boolean, binaryPath?: string): Promise<void> {
   const messages: string[] = [];
   const onProgress = (msg: string): void => {
     if (!json) {
@@ -129,10 +129,10 @@ export async function cmdDohInstall(json: boolean, binaryPath?: string): Promise
 
   if (!json) {
     outputLine("");
-    outputLine("  Installing DoH resolver...");
+    outputLine("  Installing Pilot...");
   }
 
-  const result = await installDohBinary(binaryPath, undefined, onProgress);
+  const result = await installPilotBinary(binaryPath, undefined, onProgress);
 
   if (json) {
     outputLine(JSON.stringify({ status: result.status, source: result.source ?? null, error: result.error ?? null, messages }));
@@ -143,9 +143,9 @@ export async function cmdDohInstall(json: boolean, binaryPath?: string): Promise
   }
 
   if (result.status === "installed") {
-    outputLine(`  ✓ DoH resolver installed successfully (${result.source ?? ""})`);
+    outputLine(`  ✓ Pilot installed successfully (${result.source ?? ""})`);
   } else if (result.status === "up-to-date") {
-    outputLine("  ✓ DoH resolver is already up to date");
+    outputLine("  ✓ Pilot is already up to date");
   } else {
     errorLine(`  ✗ Installation failed: ${result.error ?? "unknown error"}`);
     errorLine("  Hint: check network connectivity or try again later");
@@ -158,14 +158,14 @@ export async function cmdDohInstall(json: boolean, binaryPath?: string): Promise
 // remove
 // ---------------------------------------------------------------------------
 
-export async function cmdDohRemove(force: boolean, json: boolean, binaryPath?: string): Promise<void> {
-  const local: DohLocalStatus = getDohStatus(binaryPath);
+export async function cmdPilotRemove(force: boolean, json: boolean, binaryPath?: string): Promise<void> {
+  const local: PilotLocalStatus = getPilotStatus(binaryPath);
 
   if (!local.exists) {
     if (json) {
       outputLine(JSON.stringify({ status: "not-installed" }));
     } else {
-      outputLine("  DoH resolver is not installed.");
+      outputLine("  Pilot is not installed.");
     }
     return;
   }
@@ -179,7 +179,7 @@ export async function cmdDohRemove(force: boolean, json: boolean, binaryPath?: s
     }
 
     const confirmed = await askConfirmation(
-      `  Remove DoH resolver at ${local.binaryPath}? [y/N] `,
+      `  Remove Pilot at ${local.binaryPath}? [y/N] `,
     );
     if (!confirmed) {
       outputLine("  Cancelled.");
@@ -187,7 +187,7 @@ export async function cmdDohRemove(force: boolean, json: boolean, binaryPath?: s
     }
   }
 
-  const result = removeDohBinary(binaryPath);
+  const result = removePilotBinary(binaryPath);
 
   if (json) {
     outputLine(JSON.stringify({ status: result.status, path: local.binaryPath }));
@@ -197,7 +197,7 @@ export async function cmdDohRemove(force: boolean, json: boolean, binaryPath?: s
   if (result.status === "removed") {
     outputLine(`  ✓ Removed: ${local.binaryPath}`);
   } else {
-    outputLine("  DoH resolver is not installed.");
+    outputLine("  Pilot is not installed.");
   }
 }
 

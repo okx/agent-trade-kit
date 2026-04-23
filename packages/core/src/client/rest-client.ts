@@ -1,5 +1,5 @@
 import { ProxyAgent } from "undici";
-import { DohManager } from "../doh/manager.js";
+import { PilotManager } from "../pilot/manager.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
   AuthenticationError,
@@ -109,7 +109,7 @@ export class OkxRestClient {
   private readonly config: OkxConfig;
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
-  private readonly doh: DohManager;
+  private readonly pilot: PilotManager;
 
   public constructor(config: OkxConfig) {
     this.config = config;
@@ -117,7 +117,7 @@ export class OkxRestClient {
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
     }
-    this.doh = new DohManager({
+    this.pilot = new PilotManager({
       baseUrl: config.baseUrl,
       packageUserAgent: config.userAgent,
       verbose: config.verbose,
@@ -362,13 +362,13 @@ export class OkxRestClient {
     body?: Record<string, unknown>,
     opts?: BinaryRequestOptions,
   ): Promise<BinaryResult> {
-    this.doh.prepareDoh();
+    this.pilot.preparePilot();
 
     const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
     const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
     const bodyJson = body ? JSON.stringify(body) : "";
     const endpoint = `POST ${path}`;
-    const conn = this.doh.getConnectionParams();
+    const conn = this.pilot.getConnectionParams();
 
     this.logRequest("POST", `${conn.baseUrl}${path}`, "private");
 
@@ -383,15 +383,15 @@ export class OkxRestClient {
     try {
       response = await this.fetchBinary(path, endpoint, headers, bodyJson, t0);
     } catch (error) {
-      // Refresh DoH state for subsequent requests (but never auto-retry POST)
-      this.doh.handleNetworkFailure().catch(() => {});
+      // Refresh Pilot state for subsequent requests (but never auto-retry POST)
+      try { await this.pilot.handleNetworkFailure(); } catch {}
       throw error;
     }
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
 
     // Network path is valid — cache direct mode if this was the first successful connection
-    this.doh.cacheDirectIfNeeded();
+    this.pilot.cacheDirectIfNeeded();
 
     if (!response.ok) {
       const text = await response.text();
@@ -423,20 +423,20 @@ export class OkxRestClient {
   /**
    * Send an unauthenticated GET request and return the raw binary response.
    * Used for pre-signed download URLs where auth is embedded in the token.
-   * Inherits proxy, timeout, DoH, and verbose capabilities from the client.
+   * Inherits proxy, timeout, Pilot, and verbose capabilities from the client.
    */
   public async publicGetBinary(
     path: string,
     query?: QueryParams,
     opts?: BinaryRequestOptions,
   ): Promise<BinaryResult> {
-    this.doh.prepareDoh();
+    this.pilot.preparePilot();
 
     const maxBytes = opts?.maxBytes ?? OkxRestClient.DEFAULT_MAX_BYTES;
     const expectedCT = opts?.expectedContentType ?? "application/octet-stream";
     const queryString = buildQueryString(query);
     const requestPath = queryString ? `${path}?${queryString}` : path;
-    const conn = this.doh.getConnectionParams();
+    const conn = this.pilot.getConnectionParams();
     const url = `${conn.baseUrl}${requestPath}`;
 
     this.logRequest("GET", url, "public");
@@ -455,13 +455,13 @@ export class OkxRestClient {
         dispatcher: this.dispatcher ?? conn.dispatcher,
       } as RequestInit);
     } catch (error) {
-      this.doh.handleNetworkFailure().catch(() => {});
+      try { await this.pilot.handleNetworkFailure(); } catch {}
       throw new NetworkError(`Failed to call OKX endpoint GET ${path}.`, `GET ${path}`, error);
     }
 
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
-    this.doh.cacheDirectIfNeeded();
+    this.pilot.cacheDirectIfNeeded();
 
     if (!response.ok) {
       const text = await response.text();
@@ -492,7 +492,7 @@ export class OkxRestClient {
 
   /** Execute fetch for binary endpoint, wrapping network errors. */
   private async fetchBinary(path: string, endpoint: string, headers: Headers, bodyJson: string, t0: number): Promise<Response> {
-    const conn = this.doh.getConnectionParams();
+    const conn = this.pilot.getConnectionParams();
     try {
       const fetchOptions: Record<string, unknown> = {
         method: "POST", headers, body: bodyJson || undefined,
@@ -520,7 +520,7 @@ export class OkxRestClient {
     });
 
     // Direct connection UA (e.g. "okx-trade-mcp/1.2.9").
-    // DoH proxy requests override this with dohUserAgent in request()/privatePostBinary().
+    // Pilot proxy requests override this with pilotUserAgent in request()/privatePostBinary().
     if (this.config.userAgent) {
       headers.set("User-Agent", this.config.userAgent);
     }
@@ -553,7 +553,7 @@ export class OkxRestClient {
   // ---------------------------------------------------------------------------
 
   /**
-   * Handle network error during a JSON request: refresh DoH and maybe retry.
+   * Handle network error during a JSON request: refresh Pilot and maybe retry.
    * Always either returns a retry result or throws NetworkError.
    */
   private async handleRequestNetworkError<TData>(
@@ -562,17 +562,17 @@ export class OkxRestClient {
     requestPath: string,
     t0: number,
   ): Promise<RequestResult<TData>> {
-    // Network failure → refresh DoH state for subsequent requests
-    if (!this.doh.hasRetried) {
+    // Network failure → refresh Pilot state for subsequent requests
+    if (!this.pilot.hasRetried) {
       if (this.config.verbose) {
         const cause = error instanceof Error ? error.message : String(error);
-        vlog(`Network failure, refreshing DoH: ${cause}`);
+        vlog(`Network failure, refreshing Pilot: ${cause}`);
       }
-      const shouldRetry = await this.doh.handleNetworkFailure();
+      const shouldRetry = await this.pilot.handleNetworkFailure();
       // Only auto-retry GET (safe & idempotent) or POST endpoints explicitly
       // marked retryOnNetworkError=true (idempotent ops like amend/stop bots).
       // Regular POST/write requests (orders, transfers) must NOT auto-retry:
-      // DoH re-resolution takes seconds, price may have moved.
+      // Pilot re-resolution takes seconds, price may have moved.
       if (shouldRetry && (reqConfig.method === "GET" || reqConfig.retryOnNetworkError)) {
         return this.request(reqConfig);
       }
@@ -593,13 +593,13 @@ export class OkxRestClient {
   private async request<TData = unknown>(
     reqConfig: RequestConfig,
   ): Promise<RequestResult<TData>> {
-    this.doh.prepareDoh();
+    this.pilot.preparePilot();
 
     const queryString = buildQueryString(reqConfig.query);
     const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
 
-    // Route: proxy_url → DoH proxy → direct
-    const conn = this.doh.getConnectionParams();
+    // Route: proxy_url → Pilot proxy → direct
+    const conn = this.pilot.getConnectionParams();
     const url = `${conn.baseUrl}${requestPath}`;
     const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";
     const timestamp = getNow();
@@ -634,7 +634,7 @@ export class OkxRestClient {
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
 
-    this.doh.cacheDirectIfNeeded();
+    this.pilot.cacheDirectIfNeeded();
 
     return this.processResponse<TData>(rawText, response, elapsed, traceId, reqConfig, requestPath);
   }

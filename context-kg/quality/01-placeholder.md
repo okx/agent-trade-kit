@@ -76,7 +76,7 @@ The smoke tests (`scripts/smoke-test/run.ts`) are excluded from `pnpm test:unit`
 Smoke test coverage goals:
 - One happy-path test per instrument type (spot, swap, futures, option)
 - One test for each `tgtCcy` mode (`base_ccy`, `quote_ccy`, `margin`)
-- DoH binary download and `okx doh status` command
+- Pilot binary download and `okx pilot status` command
 
 ## Code Quality Constraints
 

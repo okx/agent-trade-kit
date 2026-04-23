@@ -201,8 +201,8 @@ import {
   cmdSkillList,
 } from "./commands/skill.js";
 import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext, setJsonEnvEnabled } from "./formatter.js";
-import { cmdDohStatus, cmdDohInstall, cmdDohRemove } from "./commands/doh.js";
-import { getDohStatus } from "@agent-tradekit/core";
+import { cmdPilotStatus, cmdPilotInstall, cmdPilotRemove } from "./commands/pilot.js";
+import { getPilotStatus } from "@agent-tradekit/core";
 import {
   cmdEventBrowse,
   cmdEventSeries,
@@ -223,17 +223,17 @@ export type { CliValues } from "./parser.js";
 // Command handlers
 // ---------------------------------------------------------------------------
 
-export function handleDohCommand(
+export function handlePilotCommand(
   action: string,
   json: boolean,
   force: boolean,
   binaryPath?: string,
 ): Promise<void> | void {
-  if (action === "status") return cmdDohStatus(json, binaryPath);
-  if (action === "install") return cmdDohInstall(json, binaryPath);
-  if (action === "remove") return cmdDohRemove(force, json, binaryPath);
-  errorLine(`Unknown doh command: ${action}`);
-  errorLine("Usage: okx doh <status|install|remove>");
+  if (action === "status") return cmdPilotStatus(json, binaryPath);
+  if (action === "install") return cmdPilotInstall(json, binaryPath);
+  if (action === "remove") return cmdPilotRemove(force, json, binaryPath);
+  errorLine(`Unknown pilot command: ${action}`);
+  errorLine("Usage: okx pilot <status|install|remove>");
   process.exitCode = 1;
 }
 
@@ -1537,11 +1537,11 @@ async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<vo
 function printVersion(): void {
   outputLine(`${CLI_VERSION} (${GIT_HASH})`);
   // Use skipHash: true — only need existence/platform, not SHA-256
-  const dohStatus = getDohStatus(undefined, { skipHash: true });
-  if (dohStatus.exists) {
-    outputLine(`DoH resolver: installed (${dohStatus.platform ?? "unknown"})`);
+  const pilotStatus = getPilotStatus(undefined, { skipHash: true });
+  if (pilotStatus.exists) {
+    outputLine(`Pilot: installed (${pilotStatus.platform ?? "unknown"})`);
   } else {
-    outputLine("DoH resolver: not installed");
+    outputLine("Pilot: not installed");
   }
 }
 
@@ -1555,7 +1555,7 @@ function routeManagementCommand(
   if (module === "config") { const r = handleConfigCommand(action as string, rest, json, v.lang, v.force); return r ?? true; }
   if (module === "setup") { handleSetupCommand(v); return true; }
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
-  if (module === "doh") { const r = handleDohCommand(action as string, json, v.force ?? false); return r ?? true; }
+  if (module === "pilot") { const r = handlePilotCommand(action as string, json, v.force ?? false); return r ?? true; }
   if (module === "diagnose") return runDiagnose(v);
   if (module === "list-tools") { cmdListTools(json); return true; }
   return undefined;
