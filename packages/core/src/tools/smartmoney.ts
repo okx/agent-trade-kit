@@ -29,27 +29,27 @@ const PATH_SIGNAL_HISTORY = "/api/v5/journal/smartmoney/signal-history";
 const SIGNAL_POOL_FILTER_PROPS = {
   sortType: {
     type: "string" as const,
-    description: "pnl or pnlRatio",
+    description: "Pool ranking: pnl|pnlRatio (default pnl)",
   },
   period: {
     type: "string" as const,
-    description: "3|7|30|90 days",
+    description: "Win-rate window days: 3|7|30|90 (default 90). Not snapshot range.",
   },
   pnl: {
     type: "string" as const,
-    description: "PNL_ANY|PNL_TOP50|PNL_TOP20|PNL_TOP5",
+    description: "Top N% by PnL: PNL_ANY|PNL_TOP50|PNL_TOP20|PNL_TOP5 (default PNL_ANY)",
   },
   winRatio: {
     type: "string" as const,
-    description: "WR_ANY|WR_GE_50|WR_GE_80",
+    description: "Min win-rate: WR_ANY|WR_GE_50|WR_GE_80 (default WR_ANY)",
   },
   maxRetreat: {
     type: "string" as const,
-    description: "MR_ANY|MR_LE_20|MR_LE_50",
+    description: "Max drawdown: MR_ANY|MR_LE_20|MR_LE_50 (default MR_ANY)",
   },
   asset: {
     type: "string" as const,
-    description: "AUM_ANY|AUM_TOP50|AUM_TOP20|AUM_TOP5",
+    description: "Top N% by AUM: AUM_ANY|AUM_TOP50|AUM_TOP20|AUM_TOP5 (default AUM_ANY)",
   },
 };
 
@@ -115,41 +115,41 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_overview",
       module: "smartmoney",
       description:
-        "Multi-currency smart money overview ranked by most-watched currencies. " +
-        "Pass ts=Date.now() for latest data, or dataVersion (yyyyMMddHHmm) from a prior call. " +
+        "Multi-currency smart money overview, ranked by tradersWithPosition DESC (most-watched first). " +
+        "Requires either ts (recommended, Date.now()) or dataVersion (yyyyMMddHHmm UTC) — at least one must be set; ts wins when both are sent. " +
         "For single-currency signal with entry prices and trend, use smartmoney_get_signal.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          dataVersion: {
-            type: "string",
-            description: "yyyyMMddHHmm UTC (or use ts)",
-          },
           ts: {
             type: "string",
-            description: "Timestamp ms (or use dataVersion)",
+            description: "Recommended. Timestamp ms — use Date.now() for latest.",
+          },
+          dataVersion: {
+            type: "string",
+            description: "Alternative. yyyyMMddHHmm UTC for prior snapshot. If both sent, ts wins.",
           },
           instType: {
             type: "string",
-            description: "SPOT|MARGIN|FUTURES|SWAP|OPTION",
+            description: "SPOT|MARGIN|FUTURES|SWAP|OPTION (default SWAP)",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
           lmtNum: {
             type: "string",
-            description: "Trader pool size 1-500",
+            description: "Trader pool size 1-500 (default 100)",
           },
           instCcyList: {
             type: "string",
-            description: "Comma-separated e.g. BTC,ETH,SOL",
+            description: "Comma-separated currency codes e.g. BTC,ETH,SOL (prefix-matched against instId)",
           },
           instCcy: {
             type: "string",
-            description: "Single currency e.g. BTC",
+            description: "Single currency e.g. BTC; alias for instCcyList (instCcyList wins if both set)",
           },
           topInstruments: {
             type: "string",
-            description: "Top N instruments 1-100",
+            description: "Top N instruments 1-100 (default 20)",
           },
         },
       },
@@ -184,7 +184,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       module: "smartmoney",
       description:
         "Single-currency consensus signal: long/short ratio, entry prices, trend, capital flow. " +
-        "Requires instId or instCcy. Pass ts=Date.now() for latest data, or dataVersion from a prior call. " +
+        "Requires either instId (e.g. BTC-USDT-SWAP, recommended) or instCcy (SPOT/SWAP only) — instId wins when both are sent. " +
+        "Requires either ts (recommended, Date.now()) or dataVersion (yyyyMMddHHmm UTC) — at least one must be set; ts wins when both are sent. " +
         "For multi-currency overview, use smartmoney_get_overview. For timeline, use smartmoney_get_signal_history.",
       isWrite: false,
       inputSchema: {
@@ -192,28 +193,28 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         properties: {
           instId: {
             type: "string",
-            description: "e.g. BTC-USDT-SWAP (or use instCcy)",
+            description: "Recommended. e.g. BTC-USDT-SWAP",
           },
           instCcy: {
             type: "string",
-            description: "e.g. BTC, SPOT/SWAP only (or use instId)",
-          },
-          dataVersion: {
-            type: "string",
-            description: "yyyyMMddHHmm UTC (or use ts)",
+            description: "e.g. BTC (SPOT/SWAP only); instId takes precedence if both set",
           },
           ts: {
             type: "string",
-            description: "Timestamp ms (or use dataVersion)",
+            description: "Recommended. Timestamp ms — use Date.now() for latest.",
+          },
+          dataVersion: {
+            type: "string",
+            description: "Alternative. yyyyMMddHHmm UTC for prior snapshot. If both sent, ts wins.",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
           lmtNum: {
             type: "string",
-            description: "Trader pool size 1-500",
+            description: "Trader pool size 1-500 (default 100)",
           },
           authorIds: {
             type: "string",
-            description: "Comma-separated user IDs e.g. 1001,1002",
+            description: "Comma-separated user IDs e.g. 1001,1002 — restricts the trader pool to these IDs only (precise filter)",
           },
         },
       },
@@ -251,8 +252,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_signal_history",
       module: "smartmoney",
       description:
-        "Signal history timeline sorted by ts DESC for trend analysis. " +
-        "Requires instId. Pass ts=Date.now() for latest data, or dataVersion from a prior call. " +
+        "Signal history timeline sorted by ts DESC for trend analysis. Requires instId. " +
+        "Requires either ts (recommended, Date.now()) or dataVersion (yyyyMMddHHmm UTC) — at least one must be set; ts wins when both are sent. " +
         "For current snapshot, use smartmoney_get_signal.",
       isWrite: false,
       inputSchema: {
@@ -262,13 +263,13 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             type: "string",
             description: "e.g. BTC-USDT-SWAP",
           },
-          dataVersion: {
-            type: "string",
-            description: "yyyyMMddHHmm UTC (or use ts)",
-          },
           ts: {
             type: "string",
-            description: "Timestamp ms (or use dataVersion)",
+            description: "Recommended. Timestamp ms — use Date.now() for latest.",
+          },
+          dataVersion: {
+            type: "string",
+            description: "Alternative. yyyyMMddHHmm UTC for prior snapshot. If both sent, ts wins.",
           },
           granularity: {
             type: "string",

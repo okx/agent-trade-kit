@@ -20,7 +20,7 @@ smartmoney 作为**顶层模块**，提供 5 个只读 MCP tool。不进入默�
 职责范围：
 - 查询交易员排行榜（leaderboard）和单个交易员详情（profile + 持仓 + 交易记录）
 - 查询聪明钱聚合共识信号（多币种概览、单币种信号、信号历史时间线）
-- 提供池过滤器参数，按 PnL、胜率、回撤、资产、在线时长筛选交易员池
+- 提供池过滤器参数（sortType/period/pnl/winRatio/maxRetreat/asset），按 PnL、胜率、回撤、资产筛选交易员池
 
 不在范围内：
 - 行情价格、技术指标（由 market 模块负责）
@@ -56,9 +56,9 @@ API 映射：
 
 | 项目 | 估算 |
 |------|------|
-| smartmoney 模块（5 tool, 5,559 chars） | ~1,588 tokens |
-| 全局变化 | 147 → 152 tools, ~35,450 → ~37,323 tokens |
-| 预算上限 | 25,000 tokens（全量加载时已超标，readOnly 模式 ~19,319 tokens 在预算内） |
+| smartmoney 模块（5 tool, 5,684 chars） | ~1,624 tokens |
+| 全局（截至 2026-04-23） | 154 tools, ~38,956 tokens |
+| 预算上限 | 25,000 tokens（全量加载时已超标，readOnly 模式 ~19,267 tokens 在预算内） |
 
 5 个只读 tool，无 write 操作。smartmoney 不在 DEFAULT_MODULES 中，按需加载可有效控制实际 token 消耗。全量加载时全局已超预算，后续需按超预算策略（见 mcp-design-guideline §4.3）精简。
 
@@ -106,7 +106,7 @@ smartmoney_get_signal_history (Read) ← 信号时间线
 
 ```
 1. smartmoney_get_overview(dataVersion=<ts>) → 多币种概览
-2. smartmoney_get_signal(dataVersion=<ts>, instCcy=BTC) → 单币种信号
+2. smartmoney_get_signal(ts=<ms>, instId=BTC-USDT-SWAP) → 单币种信号（推荐 instId；instCcy 仅 SPOT/SWAP，instId 优先）
 3. market_get_ticker(instId=BTC-USDT-SWAP) → 当前价格（跨模块）
 4. 比较 smart money avg entry vs 当前价格
 ```

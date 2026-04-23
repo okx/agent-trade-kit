@@ -20,7 +20,7 @@ Unregistered modules will be rejected during review.
 | news | ✅ approved | 7 | 7 | 0 | ~2,552 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
 | event | ✅ approved | 9 | 6 | 3 | ~2,332 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
 | earn.savings | ✅ approved | 9 | 4 | 5 | ~2,020 | _(founding module)_ | @Jasmine.Li | — |
-| smartmoney | ✅ approved | 5 | 5 | 0 | ~1,531 | [smartmoney](designs/smartmoney.md) | @lewei.li | 2026-04-09 |
+| smartmoney | ✅ approved | 5 | 5 | 0 | ~1,624 | [smartmoney](designs/smartmoney.md) | @Jasmine.Li | 2026-04-22 |
 | bot.grid | ✅ approved | 5 | 3 | 2 | ~1,376 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,341 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |

@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`smartmoney` description cleanup.** MCP / CLI / skill now consistently use "instId takes precedence if both set". Pool-filter descriptions keep enums / defaults / key semantics (`PNL_TOP20` = top 20 %, `period` = win-rate window only) but drop verbose prose; tool descriptions now state ts-or-dataVersion requirement up front. Docs only, no runtime change.
+
+## [1.3.2-beta.2] - 2026-04-23
+
+### Changed
+
+- **`smartmoney signal` / `smartmoney_get_signal`: document `--instId` as recommended; `--instCcy` may return empty.** The `/api/v5/journal/smartmoney/signal` endpoint accepts `instCcy` per spec but in practice may return `data: []` even when the same `instCcy` works on `/overview`. Tool description, CLI reference, and API doc now steer callers to `--instId` (e.g. `BTC-USDT-SWAP`) for reliable single-currency signals. No code change — `instCcy` is still passed through.
+
 - **`okx doh` command replaced by `okx pilot`** (issue #169). The `doh` CLI module is removed and replaced by `pilot` (`okx pilot status/install/remove`). Running `okx doh` will now report an unknown command.
 
 - **CDN path unified: both `installer.ts` and `postinstall-notice.js` now use `/upgradeapp/tools/pilot`** (issue #169). Previously the two files were out of sync — `installer.ts` used `/upgradeapp/doh` while `postinstall-notice.js` was already at `/upgradeapp/tools/doh`. Both now converge on `/upgradeapp/tools/pilot`. The old paths are no longer valid.
