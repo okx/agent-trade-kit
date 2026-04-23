@@ -24,7 +24,25 @@ okx list-tools --json
 
 This outputs a machine-readable JSON listing of all CLI modules, commands, tool names, and parameters. Use it to enumerate capabilities without parsing `--help` text.
 
-## Step 2 — Skill version drift check
+## Step 2 — Detect auth method (once per session)
+
+```bash
+okx auth status --json
+```
+
+Parse the JSON output to determine the authentication method. **Remember this for the entire session** — it decides how demo/live mode is controlled.
+
+| `apiKey` field | `status` field | Auth method | Mode switching |
+|---|---|---|---|
+| `true` | *(any)* | **API Key** | Use `--profile <name>` (profile name comes from `okx config show --json`) |
+| absent / `false` | `logged_in` | **OAuth** | Use `--demo` flag for simulated trading; omit for live (default) |
+| absent / `false` | `not_logged_in` | **No auth** | Stop — load `okx-cex-auth` skill to login |
+
+**API Key users** have profiles in `~/.okx/config.toml` with a `demo` field that controls the trading mode. Use `--profile <name>` to select the correct profile. Run `okx config show --json` to discover available profile names and their `demo` settings.
+
+**OAuth users** have a single profile without a `demo` field. Use `--demo` to enable simulated trading, or omit the flag for live trading (default). Do **not** use `--profile` to switch modes — OAuth profiles do not carry demo/live configuration.
+
+## Step 3 — Skill version drift check
 
 ```bash
 okx --version
