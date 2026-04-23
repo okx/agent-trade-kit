@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.2-beta.2] - 2026-04-23
+
 ### 变更
 
 - **`smartmoney signal` / `smartmoney_get_signal`：文档推荐使用 `--instId`，`--instCcy` 可能返空。** `/api/v5/journal/smartmoney/signal` 接口按 spec 支持 `instCcy`，但实际调用时即便 `/overview` 能用同样的 `instCcy` 返回数据，`/signal` 仍可能返回 `data: []`。工具描述、CLI 参考文档和 API 文档现已引导调用方使用 `--instId`（如 `BTC-USDT-SWAP`）以获得稳定结果。未改代码，`instCcy` 仍会照常透传。
