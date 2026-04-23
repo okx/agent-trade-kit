@@ -33,6 +33,25 @@ function resolveNpx(): string {
 export const THIRD_PARTY_INSTALL_NOTICE =
   "Note: This skill was created by a third-party developer, not by OKX. Review SKILL.md before use.";
 
+/**
+ * Build arguments for the `npx skills add` command.
+ * @param contentDir - Path to the skill directory
+ * @param opts - Optional flags: { project?: boolean; agent?: string }
+ * @returns Array of command arguments
+ */
+export function buildSkillsAddArgs(
+  contentDir: string,
+  opts?: { project?: boolean; agent?: string },
+): string[] {
+  const args = ["skills", "add", contentDir, "-y"];
+  if (!opts?.project) {
+    args.push("-g");
+  } else if (opts.agent) {
+    args.push("-a", opts.agent);
+  }
+  return args;
+}
+
 // ---------------------------------------------------------------------------
 // okx skill search <keyword>
 // ---------------------------------------------------------------------------
@@ -112,6 +131,7 @@ export async function cmdSkillAdd(
   name: string,
   config: OkxConfig,
   json: boolean,
+  opts?: { project?: boolean; agent?: string },
 ): Promise<void> {
   const tmpBase = join(tmpdir(), `okx-skill-${randomUUID()}`);
   mkdirSync(tmpBase, { recursive: true });
@@ -132,7 +152,7 @@ export async function cmdSkillAdd(
     // Step 4: Install via npx skills add
     outputLine("Installing to detected agents...");
     try {
-      execFileSync(resolveNpx(), ["skills", "add", contentDir, "-y", "-g"], {
+      execFileSync(resolveNpx(), buildSkillsAddArgs(contentDir, opts), {
         stdio: "inherit",
         timeout: 60_000,
       });

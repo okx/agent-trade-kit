@@ -1278,9 +1278,9 @@ function requireSkillName(rest: string[], usage: string): string | undefined {
   return name;
 }
 
-function handleSkillAdd(rest: string[], config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
-  const n = requireSkillName(rest, "Usage: okx skill add <name>");
-  if (n) return cmdSkillAdd(n, config, json);
+function handleSkillAdd(rest: string[], config: import("@agent-tradekit/core").OkxConfig, json: boolean, v: CliValues): Promise<void> | void {
+  const n = requireSkillName(rest, "Usage: okx skill add <name> [--project [--agent <name>]]");
+  if (n) return cmdSkillAdd(n, config, json, { project: v.project, agent: v.agent });
 }
 
 function handleSkillDownload(rest: string[], v: CliValues, config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
@@ -1310,7 +1310,7 @@ export function handleSkillCommand(
   if (action === "search") return cmdSkillSearch(run, { keyword: rest[0] ?? v.keyword, categories: v.categories, page: v.page, limit: v.limit, json });
   if (action === "categories") return cmdSkillCategories(run, json);
   if (action === "list") return cmdSkillList(json);
-  if (action === "add") return handleSkillAdd(rest, config, json);
+  if (action === "add") return handleSkillAdd(rest, config, json, v);
   if (action === "download") return handleSkillDownload(rest, v, config, json);
   if (action === "remove") return handleSkillRemove(rest, json);
   if (action === "check") return handleSkillCheck(run, rest, json);
