@@ -9,7 +9,7 @@ beforeEach(() => setOutput({ out: () => {}, err: () => {} }));
 afterEach(() => resetOutput());
 
 const fakeResult = {
-  endpoint: "GET /api/v5/journal/public/smartmoney/overview",
+  endpoint: "GET /api/v5/journal/smartmoney/overview",
   requestTime: new Date().toISOString(),
   data: [],
 };

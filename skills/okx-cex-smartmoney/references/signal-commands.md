@@ -1,6 +1,6 @@
 # Signal Commands Reference
 
-> Signal endpoints are under `/api/v5/journal/public/smartmoney/`.
+> Signal endpoints are under `/api/v5/journal/smartmoney/`.
 
 ## smartmoney signal — Consensus Signal
 
@@ -14,15 +14,12 @@ Aggregates pool traders' positions for a single currency to produce long/short r
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--instId` | No* | - | Full instrument name (e.g. `BTC-USDT-SWAP`). Either instId or instCcy must be provided; instId takes precedence. |
-| `--instCcy` | No* | - | Currency code (e.g. `BTC`). Either instCcy or instId must be provided. Applies to SPOT and SWAP. |
-| `--dataVersion` | No** | - | Snapshot version (yyyyMMddHHmm UTC). Either dataVersion or ts must be provided; if both are sent, ts takes precedence. |
-| `--ts` | No** | - | Snapshot timestamp (ms UTC). Either ts or dataVersion must be provided; if both are sent, ts takes precedence. |
+| `--instId` | Cond. | - | Full instrument name (e.g. `BTC-USDT-SWAP`). **At least one of instId / instCcy required**; instId takes precedence. |
+| `--instCcy` | Cond. | - | Currency code (e.g. `BTC`). **At least one of instId / instCcy required**. Applies to SPOT and SWAP. |
+| `--dataVersion` | Cond. | - | Snapshot version (yyyyMMddHHmm UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
+| `--ts` | Cond. | - | Snapshot timestamp (ms UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
 | `--lmtNum` | No | `100` | Candidate trader pool size limit (range 1-500) |
 | `--authorIds` | No | - | Comma-separated user IDs for precise filtering (e.g. `1001,1002,1003`) |
-
-\* `instId` and `instCcy` must provide at least one.
-\*\* `dataVersion` and `ts` must provide at least one.
 
 Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) also apply.
 
@@ -88,13 +85,11 @@ Returns historical signal snapshots for a given instrument. Sorted by ts DESC. U
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--instId` | Yes | - | Full instrument name (e.g. `BTC-USDT-SWAP`) |
-| `--dataVersion` | No* | - | Snapshot version (yyyyMMddHHmm UTC). Either dataVersion or ts must be provided; if both are sent, ts takes precedence. |
-| `--ts` | No* | - | Snapshot timestamp (ms UTC). Either ts or dataVersion must be provided; if both are sent, ts takes precedence. |
+| `--dataVersion` | Cond. | - | Snapshot version (yyyyMMddHHmm UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
+| `--ts` | Cond. | - | Snapshot timestamp (ms UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
 | `--granularity` | No | `1h` | Time granularity: `1h`, `1d`. Other values fall back to `1h`. |
 | `--limit` | No | `24` | Number of data points to return (range 1-500) |
 Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum tiers also apply.
-
-\* `dataVersion` and `ts` must provide at least one.
 
 ### Response Fields (10 fields per item, array `data[]`, sorted by ts DESC)
 
@@ -125,15 +120,13 @@ Returns aggregated signal snapshots for top currencies, ranked by tradersWithPos
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--dataVersion` | No* | - | Snapshot version (yyyyMMddHHmm UTC). Either dataVersion or ts must be provided; if both are sent, ts takes precedence. |
-| `--ts` | No* | - | Snapshot timestamp (ms UTC). Either ts or dataVersion must be provided; if both are sent, ts takes precedence. |
+| `--dataVersion` | Cond. | - | Snapshot version (yyyyMMddHHmm UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
+| `--ts` | Cond. | - | Snapshot timestamp (ms UTC). **At least one of dataVersion / ts required**; if both sent, ts takes precedence. |
 | `--instType` | No | `SWAP` | Instrument type: SPOT, MARGIN, FUTURES, SWAP, OPTION |
 | `--instCcyList` | No | - | Comma-separated currencies (e.g. `BTC,ETH,SOL`). Only returns prefix-matched instruments. |
 | `--instCcy` | No | - | Single currency filter, alias for instCcyList. instCcyList takes precedence. |
 | `--topInstruments` | No | `20` | Number of top instruments to return (range 1-100) |
 | `--lmtNum` | No | `100` | Candidate trader pool size limit |
-
-\* `dataVersion` and `ts` must provide at least one.
 
 Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum tiers also apply.
 

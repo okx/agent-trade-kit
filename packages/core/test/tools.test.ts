@@ -5156,13 +5156,13 @@ describe("option_place_order — tgtCcy conversion", () => {
 });
 
 // ---------------------------------------------------------------------------
-// smartmoney demo guard (smartmoney.ts — withSmartmoneyDemoGuard)
+// smartmoney: no demo guard — tools work in both live and demo mode
 // ---------------------------------------------------------------------------
 
-describe("smartmoney demo guard", () => {
+describe("smartmoney allows demo mode", () => {
   const tools = registerSmartmoneyTools();
 
-  it("all smartmoney tools should throw ConfigError in demo mode", async () => {
+  it("does not throw ConfigError in demo mode (throws ValidationError instead)", async () => {
     const { client } = makeMockClient();
     const demoCtx: ToolContext = {
       client: client as ToolContext["client"],
@@ -5171,37 +5171,13 @@ describe("smartmoney demo guard", () => {
         demo: true,
       },
     };
-    for (const tool of tools) {
-      await assert.rejects(
-        () => tool.handler({}, demoCtx),
-        (err: unknown) =>
-          err instanceof ConfigError &&
-          /not available in demo/i.test((err as ConfigError).message),
-        `${tool.name} should be blocked by demo guard`,
-      );
-    }
-  });
-
-  it("does not throw demo guard when demo=false", async () => {
-    const { client } = makeMockClient();
-    const ctx: ToolContext = {
-      client: client as ToolContext["client"],
-      config: {
-        ...makeContext(client).config,
-        demo: false,
-      },
-    };
-    const tool = tools[0]!;
-    // handler may throw for other reasons (e.g. missing required params / API error),
-    // but must NOT throw ConfigError due to the demo guard
-    try {
-      await tool.handler({}, ctx);
-    } catch (err) {
-      assert.ok(
-        !(err instanceof ConfigError && /not available in demo/i.test((err as ConfigError).message)),
-        "demo guard should not block when demo=false",
-      );
-    }
+    // overview requires dataVersion or ts — should throw ValidationError, not ConfigError
+    const overview = tools.find((t) => t.name === "smartmoney_get_overview")!;
+    await assert.rejects(
+      () => overview.handler({}, demoCtx),
+      (err: unknown) => err instanceof ValidationError,
+      "should throw ValidationError (missing params), not ConfigError (demo block)",
+    );
   });
 });
 
@@ -5224,14 +5200,14 @@ describe("smartmoney_get_overview", () => {
   it("calls overview endpoint with dataVersion", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ dataVersion: "202604021200" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/overview");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
     assert.equal(getLastCall()?.params.dataVersion, "202604021200");
   });
 
   it("calls overview endpoint with ts", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ ts: "1712000000000" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/overview");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
     assert.equal(getLastCall()?.params.ts, "1712000000000");
   });
 
@@ -5266,7 +5242,7 @@ describe("smartmoney_get_signal", () => {
   it("calls signal endpoint with instCcy and ts", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ instCcy: "BTC", ts: "1712000000000" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/signal");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal");
     assert.equal(getLastCall()?.params.instCcy, "BTC");
     assert.equal(getLastCall()?.params.ts, "1712000000000");
   });
@@ -5294,7 +5270,7 @@ describe("smartmoney_get_signal_history", () => {
   it("calls signal-history endpoint", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ instId: "BTC-USDT-SWAP", ts: "1712000000000", granularity: "1d" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/public/smartmoney/signal-history");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal-history");
     assert.equal(getLastCall()?.params.instId, "BTC-USDT-SWAP");
     assert.equal(getLastCall()?.params.granularity, "1d");
   });

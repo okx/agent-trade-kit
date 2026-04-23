@@ -23,8 +23,8 @@ okx smartmoney traders [--sortType <type>] [--period <d>] [--pnl <n>] [--winRati
 |---|---|---|---|
 | `--dataVersion` | No | latest | Snapshot version (yyyyMMddHHmm), updates every 5 min |
 | `--authorIds` | No | - | Comma-separated author IDs for search |
-| `--after` | No | - | Pagination: authorId cursor (before) |
-| `--before` | No | - | Pagination: authorId cursor (after) |
+| `--after` | No | - | Pagination: return results after this authorId |
+| `--before` | No | - | Pagination: return results before this authorId |
 | `--limit` | No | `100` | Max results (max 100) |
 
 ### Response Fields
@@ -70,6 +70,22 @@ Aggregates three API calls in parallel:
 | `--period` | No | all | Performance period: `3`, `7`, `30`, `90` (days) |
 | `--instCcy` | No | - | Filter positions/trades by currency (e.g. `BTC`) |
 | `--tradeLimit` | No | `10` | Max trade records to return |
+
+### Composite Response Structure
+
+The `--json` output wraps three sub-results:
+
+```json
+{
+  "endpoint": "smartmoney_get_trader_detail (composite)",
+  "requestTime": "2026-04-09T12:00:00.000Z",
+  "data": {
+    "profile": [ { ...leaderboard fields... } ],
+    "positions": [ { ...position fields... } ],
+    "trades": [ { ...trade record fields... } ]
+  }
+}
+```
 
 ### Current Position Fields
 
