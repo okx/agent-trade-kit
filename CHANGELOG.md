@@ -170,11 +170,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Flash Earn module** (`earn.flash`): New `earn_get_flash_earn_projects` MCP tool and `okx earn flash-earn projects` CLI command for browsing upcoming and in-progress Flash Earn opportunities.
 - **`context-kg/` knowledge base expanded**: Added DoH subsystem doc, `tgtCcy=margin` documentation, architecture updates, and full testing & QA specification. (#150)
 - **Skills download two-step presign flow**: `skills_download` / `okx skill download` now uses a presigned URL flow for more reliable binary downloads.
+- **OAuth Bearer token authentication (`okx auth`)**: New authentication method via the `okx-auth` Rust binary. Supports OAuth 2.1 device flow — `okx auth login` initiates browser-based login, `okx auth status` shows session state, `okx auth logout` revokes tokens. The binary handles token storage, refresh (300 s TTL lead), and scrypt + AES-256-GCM encryption. Tokens are read via fd3 pipe at request time with a 60 s JS-side cache. Auth mode is selected dynamically per request: API key HMAC (if configured) takes priority; OAuth Bearer token is used as fallback.
+- **`okx auth install/install-status/remove` CLI commands**: Manage the `okx-auth` binary installation. CDN download with checksum verification, atomic replacement, and multi-source fallback — mirrors the DoH installer pattern.
+- **`skills/okx-cex-auth/SKILL.md`**: New skill documentation for OAuth authentication workflows.
+- **`postinstall` auto-download for okx-auth binary**: Best-effort download alongside the existing DoH binary during `npm install`.
+- **`context-kg/` knowledge base**: Added `technical/06-oauth-authentication.md` covering OAuth subsystem architecture, binary distribution, fd3 token retrieval, auth priority, and CLI commands.
 
 ### Changed
 
 - **`market_get_indicator` improved descriptions and pre-call name validation**: Descriptions now list common indicator names and link to `market_list_indicators`. Unknown names return a `ValidationError` with similar-name suggestions before any API call. (#153)
 - **`market_filter` `marketCapUsd` is SPOT-only**: Description clarified that `marketCapUsd` filter only applies to `instType=SPOT` per upstream API constraint.
+- **`loadConfig()` is now async** (returns `Promise<OkxConfig>`): Startup now calls `execAuthStatus()` to detect OAuth login state.
+- **`OkxConfig` requires `profile` field**: Resolved profile name is now included for OAuth token storage path resolution.
+- **`OkxRestClient.buildHeaders()` is now async**: Supports dynamic auth method selection (API key HMAC or OAuth Bearer token) at request time.
 
 ### Fixed
 

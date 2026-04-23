@@ -5,9 +5,11 @@ import {
   AuthenticationError,
   ConfigError,
   NetworkError,
+  NotLoggedInError,
   OkxApiError,
   RateLimitError,
 } from "../utils/errors.js";
+import { execAuthToken } from "../auth/binary.js";
 
 type CodeBehavior =
   | { retry: true; suggestion: string }
@@ -101,6 +103,11 @@ function maskKey(key: string): string {
   return `${key.slice(0, 3)}***${key.slice(-3)}`;
 }
 
+/** JS-side cache TTL for OAuth tokens (ms). The okx-auth binary handles
+ *  refresh internally (300s TTL lead); we re-call it every 60s so it
+ *  can serve a fresh token when needed. */
+const TOKEN_CACHE_TTL_MS = 60_000;
+
 function vlog(message: string): void {
   process.stderr.write(`[verbose] ${message}\n`);
 }
@@ -109,6 +116,8 @@ export class OkxRestClient {
   private readonly config: OkxConfig;
   private readonly rateLimiter: RateLimiter;
   private readonly dispatcher?: ProxyAgent;
+  private cachedAccessToken?: string;
+  private cachedAccessTokenAt = 0;
   private readonly pilot: PilotManager;
 
   public constructor(config: OkxConfig) {
@@ -123,6 +132,61 @@ export class OkxRestClient {
       verbose: config.verbose,
       hasCustomProxy: !!config.proxyUrl,
     });
+  }
+
+  /**
+   * Resolve OAuth access token via the okx-auth binary (fd3 pipe).
+   * Caches the token for 60 s to avoid spawning the binary on every
+   * request. The binary handles refresh internally (300s TTL lead),
+   * so periodic re-calls let it serve a fresh token when needed.
+   * Returns null when not logged in.
+   */
+  private async resolveAccessToken(): Promise<string | null> {
+    if (this.cachedAccessToken && Date.now() - this.cachedAccessTokenAt < TOKEN_CACHE_TTL_MS) {
+      return this.cachedAccessToken;
+    }
+
+    try {
+      const token = await execAuthToken();
+      this.cachedAccessToken = token;
+      this.cachedAccessTokenAt = Date.now();
+      return token;
+    } catch (e) {
+      if (e instanceof NotLoggedInError) {
+        return null;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Dynamic auth — determines auth method per request.
+   *
+   * 1. API key in config → HMAC signing (no OAuth fallback)
+   * 2. OAuth token via okx-auth binary → Bearer token
+   * 3. Neither → throw ConfigError
+   */
+  private async applyAuth(
+    headers: Headers, method: string, requestPath: string, bodyJson: string, timestamp: string,
+  ): Promise<void> {
+    // 1. API key exists → HMAC signing (no OAuth fallback)
+    if (this.config.apiKey && this.config.secretKey && this.config.passphrase) {
+      this.setAuthHeaders(headers, method, requestPath, bodyJson, timestamp);
+      return;
+    }
+
+    // 2. OAuth token via okx-auth binary
+    const accessToken = await this.resolveAccessToken();
+    if (accessToken) {
+      headers.set("Authorization", `Bearer ${accessToken}`);
+      return;
+    }
+
+    // 3. Neither
+    throw new ConfigError(
+      "No credentials found.",
+      "Run `okx auth login` to authenticate, or configure API key credentials.",
+    );
   }
 
   /** The canonical base URL for this client (e.g. https://www.okx.com). */
@@ -215,26 +279,12 @@ export class OkxRestClient {
   private setAuthHeaders(
     headers: Headers, method: string, requestPath: string, bodyJson: string, timestamp: string,
   ): void {
-    if (!this.config.hasAuth) {
-      throw new ConfigError(
-        "Private endpoint requires API credentials.",
-        "Configure OKX_API_KEY, OKX_SECRET_KEY and OKX_PASSPHRASE.",
-      );
-    }
-
-    if (!this.config.apiKey || !this.config.secretKey || !this.config.passphrase) {
-      throw new ConfigError(
-        "Invalid private API credentials state.",
-        "Ensure all OKX credentials are set.",
-      );
-    }
-
-    // OKX signature: timestamp + METHOD + requestPath + body
+    // Caller (applyAuth) already verified apiKey/secretKey/passphrase exist
     const payload = `${timestamp}${method.toUpperCase()}${requestPath}${bodyJson}`;
-    const signature = signOkxPayload(payload, this.config.secretKey);
-    headers.set("OK-ACCESS-KEY", this.config.apiKey);
+    const signature = signOkxPayload(payload, this.config.secretKey!);
+    headers.set("OK-ACCESS-KEY", this.config.apiKey!);
     headers.set("OK-ACCESS-SIGN", signature);
-    headers.set("OK-ACCESS-PASSPHRASE", this.config.passphrase);
+    headers.set("OK-ACCESS-PASSPHRASE", this.config.passphrase!);
     headers.set("OK-ACCESS-TIMESTAMP", timestamp);
   }
 
@@ -373,7 +423,7 @@ export class OkxRestClient {
     this.logRequest("POST", `${conn.baseUrl}${path}`, "private");
 
     const reqConfig = { method: "POST", path, auth: "private" } as RequestConfig;
-    const headers = this.buildHeaders(reqConfig, path, bodyJson, getNow());
+    const headers = await this.buildHeaders(reqConfig, path, bodyJson, getNow());
     if (conn.userAgent) {
       headers.set("User-Agent", conn.userAgent);
     }
@@ -513,7 +563,7 @@ export class OkxRestClient {
   // ---------------------------------------------------------------------------
 
   /** Build HTTP headers. reqConfig.extraHeaders must NOT contain auth keys (OK-ACCESS-*). */
-  private buildHeaders(reqConfig: RequestConfig, requestPath: string, bodyJson: string, timestamp: string): Headers {
+  private async buildHeaders(reqConfig: RequestConfig, requestPath: string, bodyJson: string, timestamp: string): Promise<Headers> {
     const headers = new Headers({
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -526,7 +576,7 @@ export class OkxRestClient {
     }
 
     if (reqConfig.auth === "private") {
-      this.setAuthHeaders(headers, reqConfig.method, requestPath, bodyJson, timestamp);
+      await this.applyAuth(headers, reqConfig.method, requestPath, bodyJson, timestamp);
     }
 
     // simulatedTrading on individual requests takes precedence over config.demo.
@@ -544,6 +594,7 @@ export class OkxRestClient {
         headers.set(key, value);
       }
     }
+
 
     return headers;
   }
@@ -610,7 +661,7 @@ export class OkxRestClient {
       await this.rateLimiter.consume(reqConfig.rateLimit);
     }
 
-    const headers = this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
+    const headers = await this.buildHeaders(reqConfig, requestPath, bodyJson, timestamp);
     if (conn.userAgent) {
       headers.set("User-Agent", conn.userAgent);
     }

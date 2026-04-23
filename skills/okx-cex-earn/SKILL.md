@@ -32,24 +32,28 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
    ```
 2. Configure credentials:
    ```bash
-   okx config add-profile AK=<your_api_key> SK=<your_secret_key> PP=<your_passphrase> name=live
-   # or interactive wizard:
-   okx config init
+   okx config init   # select site -> follow browser OAuth flow
    ```
-3. Verify: `okx --profile live earn savings balance`
+3. Verify: `okx earn savings balance`
+
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ---
 
 ## Credential & Profile Check
 
-Run `okx config show` before any authenticated command.
+Run `okx auth status --json` before any authenticated command. The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
 
-- Error or no configuration → **stop**, guide user to run `okx config init`, wait for completion.
-- Credentials configured → proceed.
+- `"apiKey": true` — **API Key mode**. Proceed.
+- `"status": "logged_in"` (no `apiKey`) — **OAuth mode**. Proceed.
+- `"status": "not_logged_in"` (no `apiKey`) — **stop**, load `okx-cex-auth` skill and follow login steps, wait for completion.
+- `"status": "pending"` — login is in progress, wait for it to complete.
 
-OKX Earn does not support demo mode. Always use `--profile live` silently — don't mention it unless there's an error.
+OKX Earn does not support demo mode. Always use live mode silently — don't mention it unless there's an error.
+- **API Key users**: use `--profile <live-profile>` (the profile without `demo=true`).
+- **OAuth users**: no flag needed (live is the default).
 
-**On 401 errors:** stop immediately, tell the user their credentials may be invalid or expired, guide them to update `~/.okx/config.toml` (do NOT ask them to paste credentials into chat), then verify with `okx config show` and retry.
+**On authentication errors (401 / "Session expired" / "Run `okx auth login` first"):** stop immediately, load `okx-cex-auth` skill and follow re-authentication steps, then retry.
 
 ---
 
@@ -94,7 +98,7 @@ For full command syntax, rate field semantics, and confirmation templates, read 
 | `earn dcd orders` | READ | Required | Full order list / history |
 | `earn dcd redeem-execute --ordId` | WRITE | Required | Two-step early redemption: preview then execute |
 
-> DCD does **not** support demo/simulated trading mode. Always use `--profile live`.
+> DCD does **not** support demo/simulated trading mode. Always use live mode (API Key: `--profile <live-profile>`; OAuth: no flag needed).
 
 For full command syntax, product concepts, and error codes, read `{baseDir}/references/dcd-commands.md`.
 
@@ -135,7 +139,7 @@ For full command syntax, earnType inference rules, and MCP tool reference, read 
 
 ### Step 0 — Credential & Profile Check
 
-Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Always use `--profile live` silently.
+Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Always use live mode silently.
 
 ### Step 1 — Identify earn intent
 
@@ -163,10 +167,10 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 When user asks to view "earn positions" or "赚币持仓" (regardless of whether they mention DCD explicitly), query all position-bearing sub-modules simultaneously (Flash Earn is query-only, no positions):
 
 ```bash
-okx --profile live earn savings balance --json        # Simple Earn Flexible (活期)
-okx --profile live earn savings fixed-orders --json   # Simple Earn Fixed (定期)
-okx --profile live earn onchain orders --json         # On-chain Earn
-okx --profile live earn dcd orders --json             # Dual Investment (双币赢)
+okx earn savings balance --json        # Simple Earn Flexible (活期)
+okx earn savings fixed-orders --json   # Simple Earn Fixed (定期)
+okx earn onchain orders --json         # On-chain Earn
+okx earn dcd orders --json             # Dual Investment (双币赢)
 ```
 
 Only present sections that have actual holdings. For DCD: translate state codes using the table in `{baseDir}/references/dcd-commands.md`.

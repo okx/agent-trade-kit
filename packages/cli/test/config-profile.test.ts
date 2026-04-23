@@ -118,12 +118,12 @@ describe("inferSiteFromBaseUrl", () => {
     assert.equal(inferSiteFromBaseUrl("https://www.okx.com"), "global");
   });
 
-  it("returns eea for my.okx.com (EEA webUrl)", () => {
-    assert.equal(inferSiteFromBaseUrl("https://my.okx.com"), "eea");
+  it("returns eea for eea.okx.com (EEA)", () => {
+    assert.equal(inferSiteFromBaseUrl("https://eea.okx.com"), "eea");
   });
 
-  it("returns us for app.okx.com", () => {
-    assert.equal(inferSiteFromBaseUrl("https://app.okx.com"), "us");
+  it("returns us for us.okx.com", () => {
+    assert.equal(inferSiteFromBaseUrl("https://us.okx.com"), "us");
   });
 
   it("returns global for undefined", () => {

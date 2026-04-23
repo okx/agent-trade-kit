@@ -1,13 +1,14 @@
 import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
+import { handleAuthCommand } from "./commands/auth.js";
+import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
 
 const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
-import { cmdDiagnose } from "./commands/diagnose.js";
 import { unknownSubcommand } from "./unknown-command.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
@@ -1534,9 +1535,9 @@ export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger
 
 // Extracted to reduce cognitive complexity of main()
 async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<void> {
-  let config: ReturnType<typeof loadProfileConfig> | undefined;
+  let config: Awaited<ReturnType<typeof loadProfileConfig>> | undefined;
   try {
-    config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+    config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   } catch {
     // Config parse failed — diagnose will detect and report it
   }
@@ -1564,6 +1565,7 @@ function routeManagementCommand(
 ): Promise<void> | true | undefined {
   if (module === "config") { const r = handleConfigCommand(action as string, rest, json, v.lang, v.force); return r ?? true; }
   if (module === "setup") { handleSetupCommand(v); return true; }
+  if (module === "auth") return handleAuthCommand(action as string, rest, v);
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
   if (module === "pilot") { const r = handlePilotCommand(action as string, json, v.force ?? false); return r ?? true; }
   if (module === "diagnose") return runDiagnose(v);
@@ -1598,7 +1600,7 @@ async function main(): Promise<void> {
   const mgmt = routeManagementCommand(module, action, rest, json, v);
   if (mgmt !== undefined) return mgmt === true ? undefined : mgmt;
 
-  const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  const config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
   setJsonEnvEnabled(v.env ?? false);
 

@@ -294,7 +294,7 @@ function tally(results: Result[]) {
 async function main() {
   const { readOnly, moduleFilter, futuresInst, profile } = parseArgs();
 
-  const config = loadConfig({
+  const config = await loadConfig({
     readOnly: false,
     demo: true,
     modules: moduleFilter.length > 0 ? moduleFilter.join(",") : "all",
