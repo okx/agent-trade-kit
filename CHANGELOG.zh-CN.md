@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`okx auth login` 现在会在已有 API key 配置时拒绝启动 OAuth。** 之前 `cmdAuthLogin` 不看 `~/.okx/config.toml` 就直接 spawn `okx-auth` binary，导致 agent 按旧 skill 流程在已有 API key profile 的机器上发起 OAuth device flow，用户会拿到一个根本不需要的登录 URL + 验证码。修复后 `cmdAuthLogin` 先调 `readFullConfig()`：任一 profile 有非空 `api_key` 时打印 `"API key already configured (profile: <name>). OAuth login skipped — API key will be used automatically."` 并直接 exit 0，不再 spawn binary。`--manual` 模式下改输出 JSON `{"status":"skipped","reason":"api_key_configured","profile":"<name>","message":"..."}`，方便 agent 程序化识别。与 REST client 中既有的 "api_key 优先、从不回退 OAuth"（`rest-client.ts applyAuth`）形成双保险。
+
+- **`skills/okx-cex-auth/SKILL.md` 的 pre-flight 决策树重写**，改为严格的三步序：（1）先看有没有选过 site（`config show --json` 任一 profile 的 `site` 字段 ∪ `auth status --json` 的 `site` 字段），没选过则 agent 在对话里按固定文案弹出站点菜单让用户选，**然后**才进入任何登录分支；（2）再看有没有 `api_key`，有就停；（3）都没有才真正走 OAuth，并带上第 1 步选定的 `--site`。此前决策树把 "First-Time Setup 或 Login Flow" 当成可互换分支，模型因而可能跳过站点选择、直接让 `okx-auth` binary 兜底到 `global`。同步修正了"`okx config init` 一步搞定 site 选择 + OAuth"的错误描述——`cmdConfigInit` 是 API key 向导（site + demo/live + AK/SK/PP），不触碰 OAuth。新增 **Step 0.2.a**：当 config 里有 api_key profile 但 API 调用返回 `401 Unauthorized` / `Invalid Sign` 时，**OAuth 登录不是有效的补救**——rest-client 依然优先用那条坏掉的 api_key，拿到 OAuth token 也用不上。agent 必须中性列出两条路（换新 api_key，或先删 profile 再走 OAuth）让用户选，不许把 OAuth 标成"推荐"。修复在 openclaw 里观察到的 Haiku 4.5 错误行为：在有坏 api_key 的情况下把 OAuth 打上"推荐"标签，而实际上 OAuth 根本没法生效。
+
+- **`skills/_shared/preflight.md` 和 `skills/okx-cex-portfolio/SKILL.md` 的认证方式检测修正。** 此前两份文档都用 `okx auth status --json` 的 `apiKey` 字段来区分 API key 模式和 OAuth 模式——但这个字段反映的是 `okx-auth` binary 自身的状态，**无论 `~/.okx/config.toml` 里有没有 API key profile 永远是 `false`**，根本检测不到 API key 用户。后果：agent 按老 preflight 查出来 `apiKey: false, status: not_logged_in` 就会判成"无认证"，把已经有效配置了 API key 的用户误导到 OAuth 登录流程。修复后要求**同时**跑 `okx config show --json`（API key 的唯一可靠来源）和 `okx auth status --json`（OAuth session 状态），决策表先查 API key，不再依赖 `apiKey` 这个不可靠字段。
+
 ## [1.3.2-beta.3] - 2026-04-23
 
 ### 修复

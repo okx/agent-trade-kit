@@ -26,21 +26,29 @@ This outputs a machine-readable JSON listing of all CLI modules, commands, tool 
 
 ## Step 2 — Detect auth method (once per session)
 
+Run **both** commands — they report different things and must be combined:
+
 ```bash
-okx auth status --json
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
 ```
 
-Parse the JSON output to determine the authentication method. **Remember this for the entire session** — it decides how demo/live mode is controlled.
+> ⚠ **DO NOT** rely on the `apiKey` field from `okx auth status --json` to detect API-key mode. That field reports the auth-binary's internal state and is `false` regardless of whether `~/.okx/config.toml` has an API-key profile. The only authoritative source of truth for "has API key credentials" is `okx config show --json`.
 
-| `apiKey` field | `status` field | Auth method | Mode switching |
-|---|---|---|---|
-| `true` | *(any)* | **API Key** | Use `--profile <name>` (profile name comes from `okx config show --json`) |
-| absent / `false` | `logged_in` | **OAuth** | Use `--demo` flag for simulated trading; omit for live (default) |
-| absent / `false` | `not_logged_in` | **No auth** | Stop — load `okx-cex-auth` skill to login |
+Decision table (applied **in this order** — first match wins):
 
-**API Key users** have profiles in `~/.okx/config.toml` with a `demo` field that controls the trading mode. Use `--profile <name>` to select the correct profile. Run `okx config show --json` to discover available profile names and their `demo` settings.
+| Condition | Auth method | Action |
+|---|---|---|
+| `config show --json` has any profile with a non-empty `api_key` field | **API Key** | Use it. The REST client prefers API key over OAuth and never falls back. Use `--profile <name>` to select profile for demo/live switching. DO NOT run `okx auth login` — the CLI will refuse with `{"status":"skipped","reason":"api_key_configured",...}` anyway. |
+| No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` | **OAuth** | Use it. `--demo` flag controls trading mode. |
+| No API-key profile **AND** `auth status --json` returns `"status":"pending"` | OAuth login in progress | Wait / poll; do not start a new login. |
+| No API-key profile **AND** `auth status --json` returns `"status":"not_logged_in"` | **No auth** | Stop — load `okx-cex-auth` skill to login. |
 
-**OAuth users** have a single profile without a `demo` field. Use `--demo` to enable simulated trading, or omit the flag for live trading (default). Do **not** use `--profile` to switch modes — OAuth profiles do not carry demo/live configuration.
+**Remember the outcome for the entire session.** Auth-method branching drives demo/live switching for every subsequent command.
+
+**API Key users** have one or more profiles in `~/.okx/config.toml`, each carrying its own `demo` flag and `site`. Use `--profile <name>` to select the correct profile; do **not** use `--demo` alone because it won't pick a profile.
+
+**OAuth users** have a single implicit `oauth` profile without a `demo` field. Use `--demo` to enable simulated trading, or omit for live (default). Do **not** use `--profile` to switch modes — OAuth profiles don't carry demo/live.
 
 ## Step 3 — Skill version drift check
 

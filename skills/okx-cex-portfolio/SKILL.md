@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.1-beta.17"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -49,14 +49,19 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ### Step A — Verify credentials
 
+Check **both** sources (see [preflight Step 2](../_shared/preflight.md#step-2--detect-auth-method-once-per-session) for the decision table). `okx auth status --json` alone is insufficient — its `apiKey` field is always `false` and does NOT reflect the TOML config.
+
 ```bash
-okx auth status --json
+okx config show --json      # authoritative for API-key presence
+okx auth status --json      # authoritative for OAuth session state
 ```
 
-- `"apiKey": true` — **API Key mode**. Proceed to Step B.
-- `"status": "logged_in"` (no `apiKey`) — **OAuth mode**. Proceed to Step B.
-- `"status": "not_logged_in"` (no `apiKey`) — **stop all operations**, load `okx-cex-auth` skill and follow login steps, wait for completion.
-- `"status": "pending"` — login is in progress, wait for it to complete.
+Branch in this order — first match wins:
+
+- `config show` has any profile with a non-empty `api_key` — **API Key mode**. Proceed to Step B.
+- No API-key profile **AND** `auth status` returns `"status": "logged_in"` — **OAuth mode**. Proceed to Step B.
+- No API-key profile **AND** `auth status` returns `"status": "pending"` — login in progress, wait.
+- No API-key profile **AND** `auth status` returns `"status": "not_logged_in"` — **stop all operations**, load `okx-cex-auth` skill and follow login steps, wait for completion.
 
 ### Step B — Confirm trading mode
 

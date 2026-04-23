@@ -9,6 +9,7 @@ import {
   ensureAuthBinaryLatest,
   updateAuthBinaryCache,
   clearAuthBinaryCache,
+  readFullConfig,
 } from "@agent-tradekit/core";
 import type { AuthLocalStatus, CdnChecksum } from "@agent-tradekit/core";
 import { outputLine, errorLine } from "../formatter.js";
@@ -71,7 +72,42 @@ export interface AuthLoginArgs {
   manual?: boolean;
 }
 
+/**
+ * Return the name of the first profile with a non-empty api_key, or null.
+ * Used to short-circuit OAuth login when API key credentials are already present —
+ * the REST client prefers API key over OAuth and never falls back (see
+ * rest-client.ts applyAuth), so starting an OAuth flow in that state is wasted
+ * effort and confuses the user.
+ */
+function findApiKeyProfile(): string | null {
+  let config;
+  try {
+    config = readFullConfig();
+  } catch {
+    return null;
+  }
+  for (const [name, profile] of Object.entries(config.profiles ?? {})) {
+    if (profile?.api_key) return name;
+  }
+  return null;
+}
+
 export async function cmdAuthLogin(args: AuthLoginArgs): Promise<void> {
+  const apiKeyProfile = findApiKeyProfile();
+  if (apiKeyProfile) {
+    if (args.manual) {
+      outputLine(JSON.stringify({
+        status: "skipped",
+        reason: "api_key_configured",
+        profile: apiKeyProfile,
+        message: `API key already configured (profile: ${apiKeyProfile}). OAuth login skipped — API key will be used automatically.`,
+      }));
+    } else {
+      outputLine(`API key already configured (profile: ${apiKeyProfile}). OAuth login skipped — API key will be used automatically.`);
+    }
+    return;
+  }
+
   const cliArgs = ["login"];
   if (args.site) cliArgs.push("--site", args.site);
   if (args.manual) cliArgs.push("--manual");

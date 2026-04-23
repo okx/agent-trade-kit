@@ -10,6 +10,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -53,6 +54,7 @@ const ENV_KEYS = [
   "MOCK_AUTH_TOKEN",
   "MOCK_AUTH_STATUS_JSON",
   "MOCK_AUTH_ARGS_FILE",
+  "HOME",
 ] as const;
 
 type SavedEnv = Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -353,6 +355,9 @@ describe("cmdAuthLogin", () => {
     saved = saveEnv();
     savedExitCode = process.exitCode;
     process.exitCode = undefined;
+    // Point HOME at the empty tempDir so findApiKeyProfile() sees no config
+    // and the api_key guard does not short-circuit these tests.
+    process.env.HOME = tempDir;
   });
   afterEach(() => {
     restoreEnv(saved);
@@ -378,6 +383,71 @@ describe("cmdAuthLogin", () => {
     process.env.MOCK_AUTH_EXIT = "0";
     await cmdAuthLogin({ site: "global", manual: true });
     assert.equal(process.exitCode, undefined);
+  });
+
+  describe("api_key guard", () => {
+    /** Write a minimal config.toml with one profile, optionally with api_key. */
+    function writeConfig(withApiKey: boolean, profileName = "prod"): void {
+      const cfgDir = join(tempDir, ".okx");
+      mkdirSync(cfgDir, { recursive: true });
+      const lines = [
+        `default_profile = "${profileName}"`,
+        ``,
+        `[profiles.${profileName}]`,
+        withApiKey ? `api_key = "AKXX"` : ``,
+        `site = "global"`,
+      ];
+      writeFileSync(join(cfgDir, "config.toml"), lines.filter(Boolean).join("\n"), "utf-8");
+    }
+
+    it("skips OAuth and prints text message when any profile has api_key", async () => {
+      writeConfig(true, "prod");
+      // Point to a nonexistent binary: guard must fire before spawn.
+      process.env.OKX_AUTH_BIN = join(tempDir, "nonexistent-okx-auth");
+      const cap = createCapture();
+      cap.install();
+      try {
+        await cmdAuthLogin({});
+      } finally {
+        cap.restore();
+      }
+      assert.equal(process.exitCode, undefined, "guard should exit cleanly");
+      assert.ok(cap.stdout().includes("API key already configured"));
+      assert.ok(cap.stdout().includes("prod"));
+    });
+
+    it("emits structured JSON when --manual and api_key profile exists", async () => {
+      writeConfig(true, "myprof");
+      process.env.OKX_AUTH_BIN = join(tempDir, "nonexistent-okx-auth");
+      const cap = createCapture();
+      cap.install();
+      try {
+        await cmdAuthLogin({ manual: true });
+      } finally {
+        cap.restore();
+      }
+      assert.equal(process.exitCode, undefined);
+      const data = JSON.parse(cap.stdout().trim());
+      assert.equal(data.status, "skipped");
+      assert.equal(data.reason, "api_key_configured");
+      assert.equal(data.profile, "myprof");
+    });
+
+    it("proceeds to OAuth when config has profile without api_key", async () => {
+      writeConfig(false);
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "0";
+      await cmdAuthLogin({});
+      assert.equal(process.exitCode, undefined);
+    });
+
+    it("proceeds to OAuth when no config file exists", async () => {
+      // No config written, tempDir is clean.
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "0";
+      await cmdAuthLogin({});
+      assert.equal(process.exitCode, undefined);
+    });
   });
 });
 
@@ -463,6 +533,9 @@ describe("handleAuthCommand — parameter routing", () => {
     process.env.OKX_AUTH_BIN = MOCK_BINARY;
     process.env.MOCK_AUTH_EXIT = "0";
     process.env.MOCK_AUTH_ARGS_FILE = argsFile;
+    // Point HOME at empty tempDir so the api_key guard does not short-circuit
+    // login routing tests.
+    process.env.HOME = tempDir;
   });
 
   afterEach(() => {

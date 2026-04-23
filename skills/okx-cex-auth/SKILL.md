@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.1-beta.17"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -25,11 +25,15 @@ OAuth 2.0 device flow authentication for OKX CLI. Guides first-time setup, re-au
 
 | Site | Region | URL |
 | -------- | ----------------------- | --------------- |
-| `global` | Global (default) | `www.okx.com` |
-| `eea`    | EEA              | `my.okx.com`  |
-| `us`     | US               | `app.okx.com` |
+| `global` | Global | `www.okx.com` |
+| `eea`    | EEA    | `my.okx.com`  |
+| `us`     | US     | `app.okx.com` |
 
-Use `--site <global|eea|us>` on `okx auth login` to override the configured site. Optional — if omitted, uses the site from config (set during `okx config init`).
+Site is a separate dimension from auth method. Both API-key and OAuth paths require a site. Once selected, a site is persisted:
+- **API-key users**: `profile.site` in `~/.okx/config.toml` (written by `okx config init`).
+- **OAuth users**: saved inside the `okx-auth` binary state the first time `okx auth login --site <X>` succeeds, and returned by `okx auth status --json` as the `site` field.
+
+There is **no `okx config set-site` command** — site cannot be persisted independently of an auth attempt. For OAuth flows, the agent must remember the user's choice within the conversation and pass `--site <X>` on `okx auth login`.
 
 ## Prerequisites
 
@@ -41,70 +45,132 @@ npm install -g @okx_ai/okx-trade-cli
 
 ## Step 0: Pre-flight Check (MANDATORY)
 
-**Before running `okx config init` or `okx auth login`, you MUST run this check first.** Skipping it causes unnecessary login prompts when credentials already exist.
+Run both in parallel:
 
 ```bash
 okx config show --json
 okx auth status --json
 ```
 
-**Decision tree:**
+Then apply the following three checks **in strict order** — each step short-circuits the rest.
 
-| Condition                                                                     | Action                                                                                               |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `config show` output contains any profile with a non-empty `api_key` field    | **STOP.** API key already configured. Tell the user "已配置 API key (profile: <name>)" and proceed with their original request. DO NOT run `okx config init` or `okx auth login`. |
-| `auth status --json` returns `"status": "logged_in"`                          | **STOP.** Valid OAuth session exists. Tell the user "你已通过 OAuth 登录，站点: <site>, 权限: <scopes>" (EN: "You have logged in, site: <site>, scopes: <scopes>") and proceed. DO NOT re-login. |
-| `auth status --json` returns `"status": "pending"`                            | Previous login in progress — follow [Login Flow](#login-flow) polling. Do NOT start a new login.   |
-| Neither condition above holds (no api_key, OAuth `not_logged_in` / no config) | Proceed to [First-Time Setup](#first-time-setup) or [Login Flow](#login-flow).                     |
+### Step 0.1 — Site check (independent of auth mode)
 
-**Rule of thumb:** if the user **already has any valid credential** (API key OR OAuth session), you MUST NOT start a new login flow. The CLI's `rest-client` prefers API key over OAuth and will never fallback to OAuth when API key is present — starting an OAuth login in that case is wasted effort that confuses the user.
+A site is considered already selected if **either** is true:
+- `config show --json` has any profile with a non-empty `site` field, OR
+- `auth status --json` returns a non-empty `site` field **AND** `status` is `logged_in` or `pending`.
 
-## First-Time Setup
+> ⚠ When `status` is `not_logged_in`, the `site` field from `auth status --json` is a **default placeholder** (typically `"global"`) that the auth binary emits regardless of user choice — it does NOT mean the user ever picked a site. Treat it as absent.
 
-> **Prerequisite:** Complete [Step 0: Pre-flight Check](#step-0-pre-flight-check-mandatory) first. Skip this section entirely if credentials already exist.
+If **neither** condition above holds, site has never been chosen. You MUST ask the user to pick one before any login attempt by echoing the following menu verbatim (Chinese), and wait for their reply:
 
-Run the interactive setup wizard — handles site selection and OAuth login in one flow:
+> 您需要选择要连接的 OKX 站点：
+> 1) Global (www.okx.com)
+> 2) EEA (my.okx.com)
+> 3) US (app.okx.com)
 
-```bash
-okx config init
-```
+Map the reply (`1`/`2`/`3` or `global`/`eea`/`us`) to the corresponding site id and remember it for the rest of this flow. Do NOT default to `global` silently — that hides the regional choice from the user.
 
-> If you already have a config, the command will skip setup and suggest `okx auth login` to re-authenticate.
+### Step 0.2 — API-key check
 
-Wizard steps:
+Parse `config show --json`: does any profile have a non-empty `api_key` field?
 
-1. **Select site:**
-   - `1` — Global (`www.okx.com`) — default, most users
-   - `2` — EEA (`my.okx.com`) — European Economic Area
-   - `3` — US (`app.okx.com`) — United States
-2. **Login flow** — see [Login Flow](#login-flow) below
+If yes → **STOP.** Tell the user "已配置 API key (profile: <name>)" and proceed with their original request directly. DO NOT run `okx auth login` or `okx config init`.
+
+> The CLI's REST client always prefers API key over OAuth and never falls back (see `rest-client.ts applyAuth`). Starting an OAuth login in this state is wasted effort — any OAuth token obtained would not be used, because the broken API key is still picked first.
+>
+> Belt-and-suspenders: as of CLI `1.3.1-beta.17`, `okx auth login` itself refuses to start OAuth when any profile has `api_key` — in `--manual` mode it emits `{"status":"skipped","reason":"api_key_configured","profile":"<name>"}`. Treat that output as success.
+
+#### Step 0.2.a — Handling an invalid API key (401 / signature error)
+
+If Step 0.2 detected an `api_key` profile and the subsequent API call returns an authentication error (`401 Unauthorized`, `Invalid Sign`, `Invalid API-KEY`, OKX error code `50111`/`50113`), **the API key is bad — OAuth login is NOT a valid remediation**. Per `rest-client.ts applyAuth`, any OAuth token obtained afterwards would still not be used because the broken API key is still picked first.
+
+Present the user with exactly these two options, neutrally (do NOT label OAuth as "recommended"):
+
+1. **Replace the API key** — the user generates a new key on the OKX web console (`https://<site>/account/my-api`) and either provides `AK/SK/PP` to you or re-runs `okx config init` themselves.
+2. **Switch entirely to OAuth** — first remove the broken API-key profile (`okx config use <other-profile>` or delete the profile block in `~/.okx/config.toml`), THEN run the OAuth login flow from Step 0.3.
+
+Option 2 requires removing the profile first. If you attempt `okx auth login` while the API key profile still exists, the CLI guard will skip OAuth with `{"status":"skipped","reason":"api_key_configured",...}` and nothing will change.
+
+Wait for the user's choice. Do not pick for them.
+
+### Step 0.3 — OAuth check
+
+Use `auth status --json`:
+
+| `status` value  | Action |
+| --------------- | ------ |
+| `logged_in`     | **STOP.** Tell the user "你已通过 OAuth 登录，站点: <site>, 权限: <scopes>" and proceed. |
+| `pending`       | Previous login in progress — follow [Login Flow](#login-flow) polling. Do NOT start a new login. |
+| `not_logged_in` | Proceed to [Login Flow](#login-flow) with the site chosen in Step 0.1. |
 
 ## Login Flow
 
-> **Prerequisite:** Complete [Step 0: Pre-flight Check](#step-0-pre-flight-check-mandatory) first. Never start a new login if an API key is configured or an OAuth session is already valid.
+> **Prerequisite:** Step 0 completed. You have a site (from config, auth state, or user selection) and you confirmed no `api_key` profile exists.
 
-`okx auth login` is a **blocking command** — it polls the server until the user authorizes in their browser.
+`okx auth login` without `--manual` is a **blocking command** — it polls until the user authorizes in their browser.
 
 > **CRITICAL for AI agents:** You MUST use `okx auth login --manual` to avoid blocking. The `--manual` flag outputs a JSON payload with the verification URL and user code, then exits immediately — it does NOT block.
 
 ### Agent login procedure
 
-1. Run `okx auth login --manual [--site <global|eea|us>]` — this prints a JSON object with `verification_uri` and `user_code`, then exits.
-2. Present the verification URL and user code to the user. Tell them to open the URL in their browser and enter the code.
+1. Run `okx auth login --manual --site <global|eea|us>` with the site chosen in Step 0.1.
+   - If the CLI returns `{"status":"skipped","reason":"api_key_configured",...}`, your Step 0.2 check was stale — re-read `config show --json` and stop. Do not retry.
+   - Otherwise the CLI prints a single line of JSON: `{"verificationUri":"...","userCode":"XXXX-XXXX","expiresIn":600}`.
+
+2. **Surface the verification URL and user code in your assistant reply — NOT only inside a tool-output block.**
+
+   > ⚠ **CRITICAL.** The tool-output panel in many UIs (openclaw-control-ui, Claude Desktop, IDE chat panels) is collapsible and users may run with it hidden by default. If the URL and code appear ONLY in tool stdout, users cannot authorize. You MUST echo the parsed fields in your own natural-language response so they render as plain chat text.
+
+   Parse the JSON returned by the previous step and include **all three** fields below in your reply. Do not abbreviate with "the link above" or "the code from the output" — repeat the full URL and the full code inline. Example reply format (Chinese):
+
+   ```
+   请在浏览器中打开下面的链接并输入验证码完成授权：
+
+   链接：<verificationUri>
+   验证码：<userCode>
+   （有效期 <expiresIn>/60 分钟）
+
+   我会每隔几秒检查一次你的授权状态，等你在浏览器上完成即可。
+   ```
+
+   English equivalent is fine when the user is conversing in English. Either way, the URL and code must appear as plain text in the assistant message.
+
 3. **Poll for completion** by running `okx auth status --json` periodically (every 5–10 seconds).
    - `"status": "pending"` → still waiting for user authorization, keep polling
-   - `"status": "logged_in"` → success. Tell the user "你已通过 OAuth 登录，站点: <site>, 权限: <scopes>" (EN: "You have logged in, site: <site>, scopes: <scopes>") and proceed with the user's original request.
+   - `"status": "logged_in"` → success. Tell the user "你已通过 OAuth 登录，站点: <site>, 权限: <scopes>" and proceed with the user's original request.
    - `"status": "not_logged_in"` → the device code expired or was rejected, ask the user if they want to retry
+
 4. **Do NOT run any other `okx` commands** while waiting for authorization.
 
 ### Interactive login (user runs directly in terminal)
 
 1. **Tell the user BEFORE running** that they will need to authorize in their browser.
-2. **Run `okx auth login [--site <global|eea|us>]`** — the command will block and poll until the user completes authorization.
+2. **Run `okx auth login --site <global|eea|us>`** — the command will block and poll until the user completes authorization.
 3. **Do NOT assume the command is stuck.** The polling phase produces no output — this is normal.
 4. **Check the result:**
    - `Logged in successfully!` — proceed with the user's original request.
+   - `API key already configured ...` — Step 0.2 check was stale, use the existing API key.
    - Login failed — show the error and ask if they want to retry.
+
+## First-Time Setup (API-key users only)
+
+> `okx config init` is an **API-key** wizard. It prompts for site, then demo/live, then asks for `AK/SK/PP` credentials. It does NOT perform OAuth. Use it only when the user explicitly wants to configure an API key.
+
+```bash
+okx config init
+```
+
+Wizard steps:
+
+1. **Select site:**
+   - `1` — Global (`www.okx.com`)
+   - `2` — EEA (`my.okx.com`) — European Economic Area
+   - `3` — US (`app.okx.com`) — United States
+2. **Demo / live**: whether this profile should target simulated trading.
+3. **AK / SK / Passphrase**: credentials created on the OKX web console.
+
+After `okx config init` completes, re-run the Step 0 pre-flight check — `api_key` will now be present and Step 0.2 will short-circuit any further login.
 
 ## Login Status Check
 
