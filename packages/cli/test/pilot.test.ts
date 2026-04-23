@@ -5,12 +5,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { printHelp } from "../src/help.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
-import { handleDohCommand } from "../src/index.js";
+import { handlePilotCommand } from "../src/index.js";
 
 let tempDir: string;
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "doh-cli-test-"));
+  tempDir = mkdtempSync(join(tmpdir(), "pilot-cli-test-"));
 });
 
 afterEach(() => {
@@ -18,11 +18,11 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Help tree — doh module must appear in global help
+// Help tree — pilot module must appear in global help
 // ---------------------------------------------------------------------------
 
-describe("printHelp() — doh module in global overview", () => {
-  it("includes doh in module list", () => {
+describe("printHelp() — pilot module in global overview", () => {
+  it("includes pilot in module list", () => {
     const chunks: string[] = [];
     setOutput({ out: (m) => chunks.push(m), err: () => {} });
     try {
@@ -31,16 +31,16 @@ describe("printHelp() — doh module in global overview", () => {
       resetOutput();
     }
     const out = chunks.join("");
-    assert.ok(out.includes("doh"), "global help should list doh module");
+    assert.ok(out.includes("pilot"), "global help should list pilot module");
   });
 });
 
-describe('printHelp("doh") — doh module detail', () => {
+describe('printHelp("pilot") — pilot module detail', () => {
   it("includes status, install, and remove commands", () => {
     const chunks: string[] = [];
     setOutput({ out: (m) => chunks.push(m), err: () => {} });
     try {
-      printHelp("doh");
+      printHelp("pilot");
     } finally {
       resetOutput();
     }
@@ -54,20 +54,20 @@ describe('printHelp("doh") — doh module detail', () => {
     const chunks: string[] = [];
     setOutput({ out: (m) => chunks.push(m), err: () => {} });
     try {
-      printHelp("doh");
+      printHelp("pilot");
     } finally {
       resetOutput();
     }
     const out = chunks.join("");
-    assert.ok(out.includes("okx doh"), "should include okx doh usage");
+    assert.ok(out.includes("okx pilot"), "should include okx pilot usage");
   });
 });
 
 // ---------------------------------------------------------------------------
-// handleDohCommand routing
+// handlePilotCommand routing
 // ---------------------------------------------------------------------------
 
-describe("handleDohCommand routing", () => {
+describe("handlePilotCommand routing", () => {
   it("dispatches status action without error", async () => {
     const binaryPath = join(tempDir, "no-binary");
     // status with non-existent binary should print 'not installed' info
@@ -75,7 +75,7 @@ describe("handleDohCommand routing", () => {
     let err = "";
     setOutput({ out: (m) => { out += m; }, err: (m) => { err += m; } });
     try {
-      await handleDohCommand("status", false, false, binaryPath);
+      await handlePilotCommand("status", false, false, binaryPath);
     } finally {
       resetOutput();
     }
@@ -89,7 +89,7 @@ describe("handleDohCommand routing", () => {
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
       // force=true to skip confirmation
-      await handleDohCommand("remove", false, true, binaryPath);
+      await handlePilotCommand("remove", false, true, binaryPath);
     } finally {
       resetOutput();
     }
@@ -102,19 +102,19 @@ describe("handleDohCommand routing", () => {
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      await handleDohCommand("remove", false, true, binaryPath);
+      await handlePilotCommand("remove", false, true, binaryPath);
     } finally {
       resetOutput();
     }
     assert.ok(out.includes("removed") || out.includes("Removed"), "should confirm removal");
   });
 
-  it("sets exitCode=1 for unknown doh action", async () => {
+  it("sets exitCode=1 for unknown pilot action", async () => {
     const origCode = process.exitCode;
     let err = "";
     setOutput({ out: () => {}, err: (m) => { err += m; } });
     try {
-      await handleDohCommand("unknown-action", false, false);
+      await handlePilotCommand("unknown-action", false, false);
     } finally {
       resetOutput();
     }
@@ -124,16 +124,16 @@ describe("handleDohCommand routing", () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleDohCommand — status with --json
+// handlePilotCommand — status with --json
 // ---------------------------------------------------------------------------
 
-describe("handleDohCommand — status --json", () => {
+describe("handlePilotCommand — status --json", () => {
   it("returns valid JSON when binary does not exist", async () => {
     const binaryPath = join(tempDir, "no-binary");
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      await handleDohCommand("status", true, false, binaryPath);
+      await handlePilotCommand("status", true, false, binaryPath);
     } finally {
       resetOutput();
     }
@@ -152,7 +152,7 @@ describe("handleDohCommand — status --json", () => {
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      await handleDohCommand("status", true, false, binaryPath);
+      await handlePilotCommand("status", true, false, binaryPath);
     } finally {
       resetOutput();
     }
@@ -167,17 +167,17 @@ describe("handleDohCommand — status --json", () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleDohCommand — status with existing binary (text mode)
+// handlePilotCommand — status with existing binary (text mode)
 // ---------------------------------------------------------------------------
 
-describe("handleDohCommand — status with existing binary (text)", () => {
+describe("handlePilotCommand — status with existing binary (text)", () => {
   it("shows 'Installed   : yes' for an existing binary", async () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("status-text-binary"));
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      await handleDohCommand("status", false, false, binaryPath);
+      await handlePilotCommand("status", false, false, binaryPath);
     } finally {
       resetOutput();
     }
@@ -188,18 +188,18 @@ describe("handleDohCommand — status with existing binary (text)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleDohCommand — install --json with empty sources
+// handlePilotCommand — install --json with empty sources
 // ---------------------------------------------------------------------------
 
-describe("handleDohCommand — install --json", () => {
+describe("handlePilotCommand — install --json", () => {
   it("returns valid JSON output with expected shape", async () => {
     const binaryPath = join(tempDir, "okx-pilot");
     let out = "";
     const origCode = process.exitCode;
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      // installDohBinary with default CDN sources — may succeed or fail depending on network
-      await handleDohCommand("install", true, false, binaryPath);
+      // installPilotBinary with default CDN sources — may succeed or fail depending on network
+      await handlePilotCommand("install", true, false, binaryPath);
     } finally {
       resetOutput();
     }
@@ -222,7 +222,7 @@ describe("handleDohCommand — install --json", () => {
     const origCode = process.exitCode;
     setOutput({ out: (m) => { out += m; }, err: (m) => { err += m; } });
     try {
-      await handleDohCommand("install", false, false, binaryPath);
+      await handlePilotCommand("install", false, false, binaryPath);
     } finally {
       resetOutput();
     }
@@ -237,16 +237,16 @@ describe("handleDohCommand — install --json", () => {
 });
 
 // ---------------------------------------------------------------------------
-// handleDohCommand — remove --json
+// handlePilotCommand — remove --json
 // ---------------------------------------------------------------------------
 
-describe("handleDohCommand — remove --json", () => {
+describe("handlePilotCommand — remove --json", () => {
   it("returns JSON with status=not-installed when binary absent", async () => {
     const binaryPath = join(tempDir, "no-binary");
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      await handleDohCommand("remove", true, true, binaryPath);
+      await handlePilotCommand("remove", true, true, binaryPath);
     } finally {
       resetOutput();
     }
@@ -260,7 +260,7 @@ describe("handleDohCommand — remove --json", () => {
     let out = "";
     setOutput({ out: (m) => { out += m; }, err: () => {} });
     try {
-      await handleDohCommand("remove", true, true, binaryPath);
+      await handlePilotCommand("remove", true, true, binaryPath);
     } finally {
       resetOutput();
     }

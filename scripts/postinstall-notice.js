@@ -25,7 +25,7 @@ try {
 }
 
 // ---------------------------------------------------------------------------
-// DoH binary download (best-effort, never blocks npm install)
+// Pilot binary download (best-effort, never blocks npm install)
 // ---------------------------------------------------------------------------
 
 const CDN_SOURCES = [
@@ -33,7 +33,7 @@ const CDN_SOURCES = [
   { host: 'static.okx.com',  protocol: 'https' },
   { host: 'static.coinall.ltd', protocol: 'https'  },
 ];
-const CDN_PATH_PREFIX = '/upgradeapp/tools/doh';
+const CDN_PATH_PREFIX = '/upgradeapp/tools/pilot';
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 const BIN_DIR = join(homedir(), '.okx', 'bin');
 
@@ -145,8 +145,8 @@ function verifyBinary(filePath, checksum, platformDir) {
   }
 }
 
-async function downloadDohBinary() {
-  if (process.env.OKX_DOH_BINARY_PATH) return;
+async function downloadPilotBinary() {
+  if (process.env.OKX_PILOT_BINARY_PATH) return;
 
   const platformDir = getPlatformDir();
   if (!platformDir) return;
@@ -177,7 +177,7 @@ async function downloadDohBinary() {
 
       // If local binary already matches, skip download
       if (existsSync(destPath) && verifyBinary(destPath, checksum, platformDir)) {
-        process.stderr.write('  ✓ DoH resolver up to date (checksum match)\n');
+        process.stderr.write('  ✓ Pilot up to date (checksum match)\n');
         return;
       }
 
@@ -202,17 +202,17 @@ async function downloadDohBinary() {
         chmodSync(destPath, 0o755);
       }
 
-      process.stderr.write(`  ✓ DoH resolver downloaded and verified (${host})\n`);
+      process.stderr.write(`  ✓ Pilot downloaded and verified (${host})\n`);
       return;
     } catch (err) {
       try { unlinkSync(tmpPath); } catch { /* ignore */ }
-      process.stderr.write(`  [doh] ${host} failed: ${err instanceof Error ? err.message : err}\n`);
+      process.stderr.write(`  [pilot] ${host} failed: ${err instanceof Error ? err.message : err}\n`);
     }
   }
 
-  process.stderr.write('  ⓘ DoH resolver not available (download or verification failed), using direct connection.\n');
+  process.stderr.write('  ⓘ Pilot not available (download or verification failed), using direct connection.\n');
 }
 
-downloadDohBinary().catch(() => {
+downloadPilotBinary().catch(() => {
   // Never block npm install
 });

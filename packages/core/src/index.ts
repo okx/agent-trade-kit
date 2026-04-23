@@ -33,18 +33,18 @@ export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCateg
 export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
 export { findDateIdx, formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "./utils/event-format.js";
 export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";
-export { getDohBinaryPath } from "./doh/binary.js";
+export { getPilotBinaryPath } from "./pilot/binary.js";
 export {
-  getDohStatus,
+  getPilotStatus,
   fetchCdnChecksum,
-  installDohBinary,
-  removeDohBinary,
+  installPilotBinary,
+  removePilotBinary,
   getPlatformDir,
   getBinaryName,
   hashFile,
   CDN_SOURCES,
   CDN_PATH_PREFIX,
   DOWNLOAD_TIMEOUT_MS,
-} from "./doh/installer.js";
-export type { DohLocalStatus, CdnChecksum, InstallResult, RemoveResult, CdnSource } from "./doh/installer-types.js";
-export { readCache as readDohCache, getDefaultCachePath } from "./doh/cache.js";
+} from "./pilot/installer.js";
+export type { PilotLocalStatus, CdnChecksum, InstallResult, RemoveResult, CdnSource } from "./pilot/installer-types.js";
+export { readCache as readPilotCache, getDefaultCachePath } from "./pilot/cache.js";

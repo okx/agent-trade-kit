@@ -33,7 +33,7 @@ export interface RequestConfig {
   simulatedTrading?: boolean;
   extraHeaders?: Record<string, string>;
   /**
-   * When true, a POST request is retried with direct connection after DoH proxy failure.
+   * When true, a POST request is retried with direct connection after Pilot proxy failure.
    * Only set this for idempotent POST endpoints (e.g. amend/stop bots) where
    * sending the same request twice is safe. Never set for order-placement endpoints.
    */

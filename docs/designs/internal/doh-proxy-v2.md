@@ -21,7 +21,7 @@ v1 方案每次请求都调 DoH 二进制（即使二进制内部有缓存，仍
 
 **关键改进点：**
 
-1. 双层缓存：TS 文件缓存（~/.okx/doh-cache.json）+ 二进制内部缓存，大多数请求零开销命中缓存
+1. 双层缓存：TS 文件缓存（~/.okx/doh-cache.json，renamed to ~/.okx/pilot-cache.json in v1.4.0）+ 二进制内部缓存，大多数请求零开销命中缓存
 2. 直连验证：无缓存时先试直连，成功则缓存 mode=direct，海外用户永远不触发二进制
 3. 懒加载二进制：仅在直连失败时才调用 DoH 二进制，不拖累正常用户
 4. 链式 failover：节点 A 失败 → --exclude A → 节点 B → 失败 → --exclude A,B → 直连兜底
@@ -82,7 +82,7 @@ DoH 相关代码位于 `packages/core/src/doh/` 目录，共 4 个文件：
 ### 缓存文件格式
 
 ```json
-// ~/.okx/doh-cache.json
+// ~/.okx/doh-cache.json (renamed to ~/.okx/pilot-cache.json in v1.4.0)
 {
   "www.okx.com": {
     "mode": "proxy",
@@ -137,7 +137,7 @@ npm install 时通过 postinstall 脚本下载到 ~/.okx/bin/：
 - CDN 多源兜底：static.okx.com → pcdoh.qcxex.com → static.coinall.ltd
 - 超时 30s，最多 5 次重定向
 - 下载失败不阻塞 npm install
-- 已设置 OKX_DOH_BINARY_PATH 时跳过下载
+- 已设置 OKX_DOH_BINARY_PATH 时跳过下载（renamed to OKX_PILOT_BINARY_PATH in v1.4.0）
 
 ## 二进制接口规范
 

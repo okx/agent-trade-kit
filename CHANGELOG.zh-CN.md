@@ -11,7 +11,27 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **`okx doh` 命令已替换为 `okx pilot`**（issue #169）。`doh` CLI 模块已移除，改为 `pilot`（`okx pilot status/install/remove`）。现在运行 `okx doh` 会报未知命令。
+
+- **CDN 路径统一：`installer.ts` 与 `postinstall-notice.js` 现均使用 `/upgradeapp/tools/pilot`**（issue #169）。此前两个文件不同步——`installer.ts` 使用 `/upgradeapp/doh`，而 `postinstall-notice.js` 已更新为 `/upgradeapp/tools/doh`。两者现统一指向 `/upgradeapp/tools/pilot`，旧路径已不再有效。
+
+#### 破坏性变更
+
+- **环境变量 `OKX_DOH_BINARY_PATH` 已重命名为 `OKX_PILOT_BINARY_PATH`**。不提供向后兼容的 shim。请更新所有设置了此变量的脚本或 shell 配置文件。
+
+- **环境变量 `OKX_DOH_CACHE_PATH` 已重命名为 `OKX_PILOT_CACHE_PATH`**。不提供向后兼容的 shim。请更新所有设置了此变量的脚本或 shell 配置文件。
+
+- **缓存文件 `~/.okx/doh-cache.json` 已替换为 `~/.okx/pilot-cache.json`**。旧文件已废弃，可安全删除（`rm ~/.okx/doh-cache.json`）。新缓存将在下次请求时自动生成。
+
+- **`okx doh` 命令已移除，替换为 `okx pilot`**。三个子命令均已迁移：`okx pilot status`、`okx pilot install`、`okx pilot remove`。
+
 ### 修复
+
+- **Pilot 二进制安装器现已支持 `linux-arm64` 平台**（issue #166）。`getPlatformDir()` 缺少 `"linux-arm64"` 映射条目，导致 ARM64 Linux 主机安装/更新时回退到 `undefined`，将二进制写入错误路径。现已补充 `"linux-arm64": "linux-arm64"` 条目。
+
+- **网络故障时 Pilot 代理重解析现在使用 `await` 等待完成**（issue #166）。`rest-client.ts` 中有两处调用 `handleNetworkFailure()` 为 fire-and-forget（`handleNetworkFailure().catch(() => {})`），导致缓存写入和代理状态更新可能与重试请求产生竞态条件。两处现均改为 `try { await this.pilot.handleNetworkFailure(); } catch {}`，确保代理节点完全解析、缓存已持久化后再发起重试。
 
 - **`market` 分发器：`orderbook`、`candles`、`trades`、`funding-rate` 不再触发虚假的 `Unknown market command` 错误和 exit 1**（issue #175，回归来自 2026-04-14 的 commit `9fd4717`）。该次重构将过滤命令提取到 `handleMarketFilterCommand`，但在函数尾部保留了 `errorLine + exitCode=1` 的副作用代码。由于 `handleMarketPublicCommand` 无条件以 tail-call 方式调用 `handleMarketFilterCommand` 作为兜底，这段副作用会在 `handleMarketDataCommand` 有机会分发之前就触发——四个子命令的 stdout 输出正确 JSON，但同时向 stderr 写入了报错并 exit 1，导致使用 `set -e` 的脚本即便 API 调用成功也会被强制中断。修复方案：从 `handleMarketFilterCommand` 尾部移除副作用代码块（无匹配时静默返回 `undefined`，与其他所有子处理函数保持一致）；在 `handleMarketCommand` 中两个子分发器均返回 `undefined` 后调用 `unknownSubcommand("market", action, [...])`——与 #173 之后 `swap`、`spot`、`futures`、`option`、`account`、`bot` 所采用的模式完全相同。真正未知的 market 子命令（如 `okx market foo`）仍会通过 `unknownSubcommand()` 输出结构化诊断信息并 exit 1。
 

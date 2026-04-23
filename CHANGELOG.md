@@ -11,7 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`okx doh` command replaced by `okx pilot`** (issue #169). The `doh` CLI module is removed and replaced by `pilot` (`okx pilot status/install/remove`). Running `okx doh` will now report an unknown command.
+
+- **CDN path unified: both `installer.ts` and `postinstall-notice.js` now use `/upgradeapp/tools/pilot`** (issue #169). Previously the two files were out of sync — `installer.ts` used `/upgradeapp/doh` while `postinstall-notice.js` was already at `/upgradeapp/tools/doh`. Both now converge on `/upgradeapp/tools/pilot`. The old paths are no longer valid.
+
+#### BREAKING CHANGES
+
+- **`OKX_DOH_BINARY_PATH` environment variable renamed to `OKX_PILOT_BINARY_PATH`**. No backward-compatible shim is provided. Update any scripts or shell profiles that set this variable.
+
+- **`OKX_DOH_CACHE_PATH` environment variable renamed to `OKX_PILOT_CACHE_PATH`**. No backward-compatible shim is provided. Update any scripts or shell profiles that set this variable.
+
+- **Cache file `~/.okx/doh-cache.json` replaced by `~/.okx/pilot-cache.json`**. The old file is now obsolete and can be safely deleted (`rm ~/.okx/doh-cache.json`). The new cache will be populated automatically on the next request.
+
+- **`okx doh` command removed, replaced by `okx pilot`**. All three subcommands are available as `okx pilot status`, `okx pilot install`, `okx pilot remove`.
+
 ### Fixed
+
+- **`linux-arm64` platform now included in Pilot binary installer** (issue #166). `getPlatformDir()` was missing an entry for `"linux-arm64"`, causing install/update to fall back to `undefined` and write the binary to the wrong path on ARM64 Linux hosts. The entry `"linux-arm64": "linux-arm64"` is now present.
+
+- **Pilot proxy re-resolution is now `await`-ed before continuing on network failure** (issue #166). Two call sites in `rest-client.ts` invoked `handleNetworkFailure()` as fire-and-forget (`handleNetworkFailure().catch(() => {})`), meaning the cache write and proxy state update could race with the retry request. Both sites now use `try { await this.pilot.handleNetworkFailure(); } catch {}`, ensuring the proxy node is fully resolved and the cache is persisted before the retry is issued.
 
 - **`market` dispatcher: `orderbook`, `candles`, `trades`, `funding-rate` no longer emit spurious `Unknown market command` error and exit 1** (issue #175, regression introduced by commit `9fd4717` on 2026-04-14). The `handleMarketFilterCommand` refactor in that commit left an `errorLine + exitCode=1` block at its tail. Because `handleMarketPublicCommand` unconditionally tail-calls `handleMarketFilterCommand` as its fallback, the error fired before `handleMarketDataCommand` had a chance to dispatch the action — all four subcommands produced correct JSON on stdout but also wrote an error to stderr and exited 1, causing `set -e` scripts to hard-fail even though the underlying API call succeeded. Fix: removed the side-effect block from `handleMarketFilterCommand` (it now returns `undefined` silently on no match, consistent with every other sub-handler), and added `unknownSubcommand("market", action, [...])` in `handleMarketCommand` after both sub-dispatchers return `undefined` — the same pattern used by `swap`, `spot`, `futures`, `option`, `account`, and `bot` post-#173. Truly unknown market actions (e.g. `okx market foo`) continue to error with the structured diagnostic from `unknownSubcommand()` and exit 1.
 
