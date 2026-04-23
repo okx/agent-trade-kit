@@ -18,6 +18,7 @@ import {
   cmdSkillCheck,
   THIRD_PARTY_INSTALL_NOTICE,
   printSkillInstallResult,
+  buildSkillsAddArgs,
 } from "../src/commands/skill.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 import type { CliValues } from "../src/index.js";
@@ -484,5 +485,42 @@ describe("printSkillInstallResult", () => {
     assert.equal(parsed.name, "my-skill");
     assert.equal(parsed.version, "1.0.0");
     assert.equal(parsed.status, "installed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// buildSkillsAddArgs — pure args-builder
+// ---------------------------------------------------------------------------
+
+describe("buildSkillsAddArgs", () => {
+  it("defaults to global install (-g) when no opts provided", () => {
+    const args = buildSkillsAddArgs("/tmp/content");
+    assert.deepEqual(args, ["skills", "add", "/tmp/content", "-y", "-g"]);
+  });
+
+  it("defaults to global install (-g) when project is false", () => {
+    const args = buildSkillsAddArgs("/tmp/content", { project: false });
+    assert.deepEqual(args, ["skills", "add", "/tmp/content", "-y", "-g"]);
+  });
+
+  it("omits -g when project is true", () => {
+    const args = buildSkillsAddArgs("/tmp/content", { project: true });
+    assert.deepEqual(args, ["skills", "add", "/tmp/content", "-y"]);
+  });
+
+  it("appends -a <agent> when agent is specified with project", () => {
+    const args = buildSkillsAddArgs("/tmp/content", { project: true, agent: "claude-code" });
+    assert.deepEqual(args, ["skills", "add", "/tmp/content", "-y", "-a", "claude-code"]);
+  });
+
+  it("ignores agent when project is false (global install)", () => {
+    // --agent without --project is silently ignored per spec
+    const args = buildSkillsAddArgs("/tmp/content", { project: false, agent: "claude-code" });
+    assert.deepEqual(args, ["skills", "add", "/tmp/content", "-y", "-g"]);
+  });
+
+  it("accepts different agent names", () => {
+    const args = buildSkillsAddArgs("/tmp/content", { project: true, agent: "cursor" });
+    assert.deepEqual(args, ["skills", "add", "/tmp/content", "-y", "-a", "cursor"]);
   });
 });

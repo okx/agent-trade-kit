@@ -152,6 +152,8 @@ export interface CliValues {
   dir?: string;
   page?: string;
   format?: string;
+  project?: boolean;
+  agent?: string;
   // event contract
   underlying?: string;
   seriesId?: string;
@@ -349,6 +351,8 @@ export const CLI_OPTIONS = {
   dir: { type: "string" },
   page: { type: "string" },
   format: { type: "string" },
+  project: { type: "boolean" },
+  agent: { type: "string" },
   // event contract
   underlying: { type: "string" },
   seriesId: { type: "string" },

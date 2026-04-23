@@ -994,7 +994,7 @@ export const CLI_REGISTRY: CliRegistry = {
       add: {
         // Composite: downloads + installs via npx; no single ToolSpec
         toolName: null,
-        usage: "okx skill add <name>",
+        usage: "okx skill add <name> [--project [--agent <name>]]",
         description: "Download and install a skill to detected agents",
       },
       download: {
