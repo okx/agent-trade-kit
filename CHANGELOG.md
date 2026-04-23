@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`okx market oi-history` table rendering fixed — no longer prints "No OI data" when data exists**. The API returns `data` as an array `[{ instId, bar, rows: [...] }]`, but the CLI was accessing `data["rows"]` directly on the array, which yielded `undefined` and always fell into the empty-data branch. The handler now unwraps `data[0]` before reading `rows`/`instId`/`bar`. `--json` mode was unaffected and keeps its current output. Unit tests updated to mirror the real array-wrapped API shape so this class of bug cannot recur silently.
+
 - **`linux-arm64` platform now included in Pilot binary installer** (issue #166). `getPlatformDir()` was missing an entry for `"linux-arm64"`, causing install/update to fall back to `undefined` and write the binary to the wrong path on ARM64 Linux hosts. The entry `"linux-arm64": "linux-arm64"` is now present.
 
 - **Pilot proxy re-resolution is now `await`-ed before continuing on network failure** (issue #166). Two call sites in `rest-client.ts` invoked `handleNetworkFailure()` as fire-and-forget (`handleNetworkFailure().catch(() => {})`), meaning the cache write and proxy state update could race with the retry request. Both sites now use `try { await this.pilot.handleNetworkFailure(); } catch {}`, ensuring the proxy node is fully resolved and the cache is persisted before the retry is issued.
