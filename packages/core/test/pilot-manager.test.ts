@@ -1,6 +1,6 @@
 /**
- * Unit tests for DohManager state machine:
- * prepareDoh(), getConnectionParams(), handleNetworkFailure(), cacheDirectIfNeeded().
+ * Unit tests for PilotManager state machine:
+ * preparePilot(), getConnectionParams(), handleNetworkFailure(), cacheDirectIfNeeded().
  *
  * Uses mock binary + temp cache files to control resolver behavior.
  */
@@ -16,8 +16,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { DohManager } from "../src/doh/manager.js";
-import type { DohCacheFile } from "../src/doh/types.js";
+import { PilotManager } from "../src/pilot/manager.js";
+import type { PilotCacheFile } from "../src/pilot/types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -28,41 +28,41 @@ const BASE_URL = "https://www.okx.com";
 let tempDir: string;
 let cachePath: string;
 
-// DohManager reads cache via resolveDoh which uses the default cache path.
+// PilotManager reads cache via resolvePilot which uses the default cache path.
 // We override the env var to point the binary at our mock, and seed the cache
 // file at the default location. To isolate tests we use a per-test cache path
 // and monkey-patch the resolver's cache path via the environment.
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "doh-manager-test-"));
-  cachePath = join(tempDir, "doh-cache.json");
-  process.env.OKX_DOH_BINARY_PATH = MOCK_BINARY;
+  tempDir = mkdtempSync(join(tmpdir(), "pilot-manager-test-"));
+  cachePath = join(tempDir, "pilot-cache.json");
+  process.env.OKX_PILOT_BINARY_PATH = MOCK_BINARY;
   // Point the cache module to our temp file
-  process.env.OKX_DOH_CACHE_PATH = cachePath;
+  process.env.OKX_PILOT_CACHE_PATH = cachePath;
 });
 
 afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
-  delete process.env.OKX_DOH_BINARY_PATH;
-  delete process.env.OKX_DOH_CACHE_PATH;
+  delete process.env.OKX_PILOT_BINARY_PATH;
+  delete process.env.OKX_PILOT_CACHE_PATH;
 });
 
-function seedCache(file: DohCacheFile): void {
+function seedCache(file: PilotCacheFile): void {
   writeFileSync(cachePath, JSON.stringify(file));
 }
 
-function readCacheFile(): DohCacheFile {
-  return JSON.parse(readFileSync(cachePath, "utf-8")) as DohCacheFile;
+function readCacheFile(): PilotCacheFile {
+  return JSON.parse(readFileSync(cachePath, "utf-8")) as PilotCacheFile;
 }
 
 // ---------------------------------------------------------------------------
-// prepareDoh
+// preparePilot
 // ---------------------------------------------------------------------------
 
-describe("DohManager.prepareDoh", () => {
-  it("skips DoH entirely when hasCustomProxy is true", () => {
-    const mgr = new DohManager({ baseUrl: BASE_URL, hasCustomProxy: true });
-    mgr.prepareDoh();
+describe("PilotManager.preparePilot", () => {
+  it("skips Pilot entirely when hasCustomProxy is true", () => {
+    const mgr = new PilotManager({ baseUrl: BASE_URL, hasCustomProxy: true });
+    mgr.preparePilot();
 
     const conn = mgr.getConnectionParams();
     assert.equal(conn.baseUrl, BASE_URL);
@@ -72,8 +72,8 @@ describe("DohManager.prepareDoh", () => {
   });
 
   it("returns direct params when no cache exists (directUnverified)", () => {
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot();
 
     const conn = mgr.getConnectionParams();
     assert.equal(conn.baseUrl, BASE_URL);
@@ -87,8 +87,8 @@ describe("DohManager.prepareDoh", () => {
       },
     });
 
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot();
 
     const conn = mgr.getConnectionParams();
     assert.equal(conn.baseUrl, BASE_URL);
@@ -105,8 +105,8 @@ describe("DohManager.prepareDoh", () => {
       },
     });
 
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot();
 
     const conn = mgr.getConnectionParams();
     assert.equal(conn.baseUrl, "https://proxy1.com");
@@ -116,8 +116,8 @@ describe("DohManager.prepareDoh", () => {
   });
 
   it("is idempotent — second call does nothing", () => {
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot();
     // Seed cache AFTER first call — should be ignored
     seedCache({
       "www.okx.com": {
@@ -127,7 +127,7 @@ describe("DohManager.prepareDoh", () => {
         updatedAt: Date.now(),
       },
     });
-    mgr.prepareDoh();
+    mgr.preparePilot();
 
     assert.equal(mgr.isProxyActive, false);
   });
@@ -137,10 +137,10 @@ describe("DohManager.prepareDoh", () => {
 // cacheDirectIfNeeded
 // ---------------------------------------------------------------------------
 
-describe("DohManager.cacheDirectIfNeeded", () => {
+describe("PilotManager.cacheDirectIfNeeded", () => {
   it("caches mode=direct after first successful direct connection", () => {
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh(); // no cache → directUnverified=true
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot(); // no cache → directUnverified=true
 
     mgr.cacheDirectIfNeeded();
 
@@ -149,8 +149,8 @@ describe("DohManager.cacheDirectIfNeeded", () => {
   });
 
   it("does nothing on second call (already verified)", () => {
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot();
     mgr.cacheDirectIfNeeded();
 
     // Modify cache to proxy — cacheDirectIfNeeded should NOT overwrite
@@ -178,8 +178,8 @@ describe("DohManager.cacheDirectIfNeeded", () => {
       },
     });
 
-    const mgr = new DohManager({ baseUrl: BASE_URL });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: BASE_URL });
+    mgr.preparePilot();
 
     mgr.cacheDirectIfNeeded(); // should be no-op since proxy is active
     const file = readCacheFile();
@@ -191,14 +191,11 @@ describe("DohManager.cacheDirectIfNeeded", () => {
 // handleNetworkFailure
 // ---------------------------------------------------------------------------
 
-describe("DohManager.handleNetworkFailure", () => {
+describe("PilotManager.handleNetworkFailure", () => {
   it("re-resolves to proxy node when direct connection fails", async () => {
-    // No cache → direct first → failure → calls binary for "www.okx.com"
-    // Mock binary returns proxy node for domain not in its switch → "unknown domain" → fail
-    // But we need to use a domain the mock recognizes
-    // Use proxy.okx.com as base URL so mock returns a proxy node
-    const mgr = new DohManager({ baseUrl: "https://proxy.okx.com" });
-    mgr.prepareDoh(); // no cache → directUnverified
+    // No cache → direct first → failure → calls binary for "proxy.okx.com"
+    const mgr = new PilotManager({ baseUrl: "https://proxy.okx.com" });
+    mgr.preparePilot(); // no cache → directUnverified
 
     const shouldRetry = await mgr.handleNetworkFailure();
     assert.equal(shouldRetry, true);
@@ -208,9 +205,9 @@ describe("DohManager.handleNetworkFailure", () => {
     assert.equal(conn.baseUrl, "https://proxy1.com");
   });
 
-  it("resets dohRetried after successful re-resolution (MCP long-running)", async () => {
-    const mgr = new DohManager({ baseUrl: "https://proxy.okx.com" });
-    mgr.prepareDoh();
+  it("resets pilotRetried after successful re-resolution (MCP long-running)", async () => {
+    const mgr = new PilotManager({ baseUrl: "https://proxy.okx.com" });
+    mgr.preparePilot();
 
     await mgr.handleNetworkFailure();
     assert.equal(mgr.hasRetried, false); // reset after successful proxy switch
@@ -222,8 +219,8 @@ describe("DohManager.handleNetworkFailure", () => {
 
   it("returns false on second failure if re-resolution failed", async () => {
     // Use fail.okx.com — mock binary returns code=1
-    const mgr = new DohManager({ baseUrl: "https://fail.okx.com" });
-    mgr.prepareDoh();
+    const mgr = new PilotManager({ baseUrl: "https://fail.okx.com" });
+    mgr.preparePilot();
 
     const first = await mgr.handleNetworkFailure();
     assert.equal(first, true); // retries with direct
@@ -243,8 +240,8 @@ describe("DohManager.handleNetworkFailure", () => {
       },
     });
 
-    const mgr = new DohManager({ baseUrl: "https://multi.okx.com" });
-    mgr.prepareDoh(); // loads proxy node 192.0.2.1
+    const mgr = new PilotManager({ baseUrl: "https://multi.okx.com" });
+    mgr.preparePilot(); // loads proxy node 192.0.2.1
 
     assert.equal(mgr.isProxyActive, true);
 

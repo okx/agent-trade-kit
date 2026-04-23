@@ -1,5 +1,5 @@
 /**
- * DoH binary installer — TypeScript equivalent of scripts/postinstall-notice.js.
+ * Pilot binary installer — TypeScript equivalent of scripts/postinstall-notice.js.
  *
  * Provides status, install, and remove operations for the okx-pilot binary.
  * The CDN list and checksum logic mirrors the postinstall script; if CDN sources
@@ -21,8 +21,8 @@ import { join, dirname } from "node:path";
 import { get as httpsGet } from "node:https";
 import { get as httpGet } from "node:http";
 
-import type { DohLocalStatus, CdnChecksum, CdnSource, InstallResult, RemoveResult } from "./installer-types.js";
-import { getDohBinaryPath } from "./binary.js";
+import type { PilotLocalStatus, CdnChecksum, CdnSource, InstallResult, RemoveResult } from "./installer-types.js";
+import { getPilotBinaryPath } from "./binary.js";
 
 // ---------------------------------------------------------------------------
 // Constants (mirrors postinstall-notice.js)
@@ -34,12 +34,26 @@ export const CDN_SOURCES: CdnSource[] = [
   { host: "static.coinall.ltd", protocol: "https" },
 ];
 
-export const CDN_PATH_PREFIX = "/upgradeapp/doh";
+export const CDN_PATH_PREFIX = "/upgradeapp/tools/pilot";
 export const DOWNLOAD_TIMEOUT_MS = 30_000;
 
 // ---------------------------------------------------------------------------
 // Platform helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Supported platform → CDN directory name mapping.
+ * Exported so tests can assert that specific platforms are present without
+ * having to run on that platform (guards against accidental removal of entries).
+ */
+export const PLATFORM_MAP: Record<string, string> = {
+  "darwin-arm64": "darwin-arm64",
+  "darwin-x64": "darwin-x64",
+  "linux-arm64": "linux-arm64",
+  "linux-x64": "linux-x64",
+  "win32-arm64": "win32-arm64",
+  "win32-x64": "win32-x64",
+};
 
 /**
  * Return the platform directory string (e.g. "darwin-arm64"),
@@ -48,13 +62,7 @@ export const DOWNLOAD_TIMEOUT_MS = 30_000;
 export function getPlatformDir(): string | null {
   const p = platform();
   const a = arch();
-  const map: Record<string, string> = {
-    "darwin-arm64": "darwin-arm64",
-    "darwin-x64": "darwin-x64",
-    "linux-x64": "linux-x64",
-    "win32-x64": "win32-x64",
-  };
-  return map[`${p}-${a}`] ?? null;
+  return PLATFORM_MAP[`${p}-${a}`] ?? null;
 }
 
 /**
@@ -84,14 +92,14 @@ export function hashFile(filePath: string): { size: number; sha256: string } {
 // ---------------------------------------------------------------------------
 
 /**
- * Return local DoH binary status synchronously (no network I/O).
+ * Return local Pilot binary status synchronously (no network I/O).
  * Accepts an optional binaryPath override for testing.
  *
  * Pass `skipHash: true` for fast checks (e.g. --version output) that only
  * need existence info — avoids reading and hashing a multi-MB binary.
  */
-export function getDohStatus(binaryPath?: string, opts?: { skipHash?: boolean }): DohLocalStatus {
-  const resolvedPath = binaryPath ?? getDohBinaryPath();
+export function getPilotStatus(binaryPath?: string, opts?: { skipHash?: boolean }): PilotLocalStatus {
+  const resolvedPath = binaryPath ?? getPilotBinaryPath();
   const platformDir = getPlatformDir();
 
   if (!existsSync(resolvedPath)) {
@@ -160,7 +168,7 @@ export async function fetchCdnChecksum(
 }
 
 // ---------------------------------------------------------------------------
-// Install helpers (extracted to reduce cognitive complexity of installDohBinary)
+// Install helpers (extracted to reduce cognitive complexity of installPilotBinary)
 // ---------------------------------------------------------------------------
 
 interface ValidatedChecksum {
@@ -253,16 +261,16 @@ function atomicReplace(tmpPath: string, resolvedDest: string): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Download and install the DoH binary.
+ * Download and install the Pilot binary.
  * Verifies checksum and performs atomic replacement.
  *
  * @param destPath    Override the destination path (for testing).
  * @param sources     Override CDN sources (for testing).
  * @param onProgress  Optional progress callback.
  */
-/** Pre-flight checks for installDohBinary. Returns an early InstallResult or null to continue. */
+/** Pre-flight checks for installPilotBinary. Returns an early InstallResult or null to continue. */
 function installPreChecks(destPath: string | undefined, sources: CdnSource[]): InstallResult | null {
-  if (!destPath && process.env.OKX_DOH_BINARY_PATH) {
+  if (!destPath && process.env.OKX_PILOT_BINARY_PATH) {
     return { status: "up-to-date", source: "(env override)" };
   }
   if (!getPlatformDir()) {
@@ -282,7 +290,7 @@ function isLocalUpToDate(
   return localHash !== null && localHash.size === checksum.size && localHash.sha256 === checksum.sha256;
 }
 
-export async function installDohBinary(
+export async function installPilotBinary(
   destPath?: string,
   sources: CdnSource[] = CDN_SOURCES,
   onProgress?: (msg: string) => void,
@@ -329,11 +337,11 @@ export async function installDohBinary(
 }
 
 /**
- * Remove the DoH binary from disk.
+ * Remove the Pilot binary from disk.
  * Accepts an optional binaryPath override for testing.
  */
-export function removeDohBinary(binaryPath?: string): RemoveResult {
-  const resolvedPath = binaryPath ?? getDohBinaryPath();
+export function removePilotBinary(binaryPath?: string): RemoveResult {
+  const resolvedPath = binaryPath ?? getPilotBinaryPath();
   try {
     unlinkSync(resolvedPath);
     return { status: "removed" };

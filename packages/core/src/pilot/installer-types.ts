@@ -1,5 +1,5 @@
-/** Local DoH binary status (synchronous, no network). */
-export interface DohLocalStatus {
+/** Local Pilot binary status (synchronous, no network). */
+export interface PilotLocalStatus {
   /** Absolute path to the binary file. */
   binaryPath: string;
   /** Whether the binary file exists on disk. */
@@ -24,7 +24,7 @@ export interface CdnChecksum {
   source: string;
 }
 
-/** Result of a DoH binary installation attempt. */
+/** Result of a Pilot binary installation attempt. */
 export interface InstallResult {
   status: "installed" | "up-to-date" | "failed";
   /** CDN host that served the binary (only when status=installed). */
@@ -33,7 +33,7 @@ export interface InstallResult {
   error?: string;
 }
 
-/** Result of a DoH binary removal attempt. */
+/** Result of a Pilot binary removal attempt. */
 export interface RemoveResult {
   status: "removed" | "not-found";
 }

@@ -1,44 +1,44 @@
 import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { DohBinaryResponse, DohNode } from "./types.js";
+import type { PilotBinaryResponse, PilotNode } from "./types.js";
 
-/** Default timeout for the DoH binary (ms). */
+/** Default timeout for the Pilot binary (ms). */
 const EXEC_TIMEOUT_MS = 30_000;
 
 /** Only allow *.okx.com domains */
 const ALLOWED_DOMAIN_RE = /^[\w.-]+\.okx\.com$/;
 
 /** Directory under the user's home where the binary lives. */
-const DOH_BIN_DIR = join(homedir(), ".okx", "bin");
+const PILOT_BIN_DIR = join(homedir(), ".okx", "bin");
 
 /**
  * Return the expected path to the okx-pilot binary.
- * Respects the `OKX_DOH_BINARY_PATH` environment variable.
+ * Respects the `OKX_PILOT_BINARY_PATH` environment variable.
  */
-export function getDohBinaryPath(): string {
-  if (process.env.OKX_DOH_BINARY_PATH) {
-    return process.env.OKX_DOH_BINARY_PATH;
+export function getPilotBinaryPath(): string {
+  if (process.env.OKX_PILOT_BINARY_PATH) {
+    return process.env.OKX_PILOT_BINARY_PATH;
   }
   const ext = process.platform === "win32" ? ".exe" : "";
-  return join(DOH_BIN_DIR, `okx-pilot${ext}`);
+  return join(PILOT_BIN_DIR, `okx-pilot${ext}`);
 }
 
 /**
  * Execute the okx-pilot binary for the given domain.
  *
- * @returns The resolved DohNode, or null on any failure (binary missing,
+ * @returns The resolved PilotNode, or null on any failure (binary missing,
  *          timeout, non-zero exit, malformed output).
  */
-export function execDohBinary(
+export function execPilotBinary(
   domain: string,
   exclude: string[] = [],
   userAgent?: string,
-): Promise<DohNode | null> {
+): Promise<PilotNode | null> {
   if (!ALLOWED_DOMAIN_RE.test(domain)) {
     return Promise.resolve(null);
   }
-  const binPath = getDohBinaryPath();
+  const binPath = getPilotBinaryPath();
   const args = ["--domain", domain];
   if (exclude.length > 0) {
     args.push("--exclude", exclude.join(","));
@@ -57,7 +57,7 @@ export function execDohBinary(
           return;
         }
         try {
-          const result: DohBinaryResponse = JSON.parse(stdout);
+          const result: PilotBinaryResponse = JSON.parse(stdout);
           if (result.code === 0 && result.data) {
             resolve(result.data);
           } else {

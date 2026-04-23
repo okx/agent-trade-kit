@@ -1,4 +1,4 @@
-<!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, doh, list-tools -->
+<!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, doh, pilot, Pilot, okx-pilot, pilot-cache, PilotManager, PilotNode, list-tools -->
 # System Architecture
 
 ## Five-Layer Stack
@@ -72,9 +72,9 @@ The CLI does NOT call OKX API directly — it calls the same tool handlers as th
 
 Test command: `pnpm test:unit` (runs node:test across all packages).
 
-## DoH Network Resilience Layer
+## Pilot Network Resilience Layer
 
-A **DoH proxy layer** sits between the REST client and the OKX API, providing transparent fallback for users in restricted network environments (DNS poisoning). See `context-kg/technical/05-doh-proxy.md` for full details.
+A **Pilot proxy layer** sits between the REST client and the OKX API, providing transparent fallback for users in restricted network environments (DNS poisoning). See `context-kg/technical/05-pilot-proxy.md` for full details.
 
 ## Agent Self-Discovery (`okx list-tools`)
 

@@ -941,24 +941,24 @@ export const CLI_REGISTRY: CliRegistry = {
     usage: `okx setup --client <${SUPPORTED_CLIENTS.join("|")}> [--profile <name>] [--modules <list>]`,
   },
 
-  // ── doh ────────────────────────────────────────────────────────────────────
-  doh: {
-    description: "Manage DoH (DNS-over-HTTPS) resolver binary",
+  // ── pilot ──────────────────────────────────────────────────────────────────
+  pilot: {
+    description: "Manage Pilot proxy resolver binary",
     commands: {
       status: {
         toolName: null,
-        usage: "okx doh status [--json]",
-        description: "Show DoH binary info, checksum, and CDN match status",
+        usage: "okx pilot status [--json]",
+        description: "Show Pilot binary info, checksum, and CDN match status",
       },
       install: {
         toolName: null,
-        usage: "okx doh install [--json]",
-        description: "Download or update the DoH resolver binary",
+        usage: "okx pilot install [--json]",
+        description: "Download or update the Pilot binary",
       },
       remove: {
         toolName: null,
-        usage: "okx doh remove [--force] [--json]",
-        description: "Remove the DoH resolver binary (prompts for confirmation without --force)",
+        usage: "okx pilot remove [--force] [--json]",
+        description: "Remove the Pilot binary (prompts for confirmation without --force)",
       },
     },
   },

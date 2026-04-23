@@ -1,6 +1,6 @@
-import { execDohBinary } from "./binary.js";
+import { execPilotBinary } from "./binary.js";
 import { readCache, writeCache } from "./cache.js";
-import type { DohNode, FailedNode } from "./types.js";
+import type { PilotNode, FailedNode } from "./types.js";
 
 /** Failed nodes older than this are automatically removed (ms). */
 const FAILED_NODE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -9,19 +9,19 @@ export interface ResolveResult {
   /** "proxy" | "direct" | null (binary missing/failed, fallback to direct) */
   mode: "proxy" | "direct" | null;
   /** The proxy node, if mode=proxy */
-  node: DohNode | null;
+  node: PilotNode | null;
 }
 
 /**
  * Classify a binary result into mode + write cache.
- * Shared by resolveDoh and reResolveDoh to avoid duplication.
+ * Shared by resolvePilot and reResolvePilot to avoid duplication.
  *
  * Note: node.ip may be a domain (CNAME) rather than an actual IP address.
- * We cache the raw value as-is; the DohManager resolves it at connection time
+ * We cache the raw value as-is; the PilotManager resolves it at connection time
  * via dns.lookup so the IP stays fresh and doesn't go stale on disk.
  */
 function classifyAndCache(
-  node: DohNode | null,
+  node: PilotNode | null,
   hostname: string,
   failedNodes: FailedNode[],
   cachePath?: string,
@@ -53,10 +53,10 @@ function getActiveFailedNodes(nodes: FailedNode[] | undefined): FailedNode[] {
 }
 
 /**
- * Resolve DoH with cache-first strategy
+ * Resolve Pilot with cache-first strategy
  * @param hostname - The target hostname (e.g. "www.okx.com")
  */
-export function resolveDoh(hostname: string, cachePath?: string): ResolveResult {
+export function resolvePilot(hostname: string, cachePath?: string): ResolveResult {
   const entry = readCache(hostname, cachePath);
   if (entry) {
     if (entry.mode === "direct") {
@@ -68,7 +68,7 @@ export function resolveDoh(hostname: string, cachePath?: string): ResolveResult 
   }
 
   // No cache → let caller try direct first.
-  // If direct fails, handleDohNetworkFailure() will call the binary.
+  // If direct fails, handlePilotNetworkFailure() will call the binary.
   return { mode: null, node: null };
 }
 
@@ -79,7 +79,7 @@ export function resolveDoh(hostname: string, cachePath?: string): ResolveResult 
  * @param hostname - The target hostname
  * @param failedIp - The IP that just failed
  */
-export async function reResolveDoh(
+export async function reResolvePilot(
   hostname: string,
   failedIp: string,
   userAgent?: string,
@@ -96,6 +96,6 @@ export async function reResolveDoh(
     : active;
 
   const excludeIps = failedNodes.map((n) => n.ip);
-  const node = await execDohBinary(hostname, excludeIps, userAgent);
+  const node = await execPilotBinary(hostname, excludeIps, userAgent);
   return classifyAndCache(node, hostname, failedNodes, cachePath);
 }

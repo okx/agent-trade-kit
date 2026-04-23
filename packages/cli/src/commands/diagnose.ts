@@ -3,7 +3,7 @@ import net from "node:net";
 import os from "node:os";
 import tls from "node:tls";
 import type { OkxConfig } from "@agent-tradekit/core";
-import { OkxRestClient, readFullConfig, configFilePath, getDohStatus, fetchCdnChecksum, readDohCache } from "@agent-tradekit/core";
+import { OkxRestClient, readFullConfig, configFilePath, getPilotStatus, fetchCdnChecksum, readPilotCache } from "@agent-tradekit/core";
 import { Report, ok, fail, warn, section, readCliVersion, writeReportIfRequested } from "./diagnose-utils.js";
 import { outputLine } from "../formatter.js";
 import { cmdDiagnoseMcp } from "./diagnose-mcp.js";
@@ -319,49 +319,49 @@ export async function cmdDiagnose(config: OkxConfig | undefined, profile: string
   return runCliChecks(config, profile, options.output);
 }
 
-async function checkDoh(report: Report): Promise<void> {
-  section("DoH Resolver");
+async function checkPilot(report: Report): Promise<void> {
+  section("Pilot");
 
-  const local = getDohStatus();
+  const local = getPilotStatus();
 
   if (!local.exists) {
-    fail("DoH binary", "not installed", [
-      "Run: okx doh install",
+    fail("Pilot binary", "not installed", [
+      "Run: okx pilot install",
       "Or wait for the next npm install to auto-download",
     ]);
-    report.add("doh_binary", "not installed");
+    report.add("pilot_binary", "not installed");
     return;
   }
 
-  ok("DoH binary", local.binaryPath);
-  report.add("doh_binary", `installed (${local.platform ?? "unknown"})`);
+  ok("Pilot binary", local.binaryPath);
+  report.add("pilot_binary", `installed (${local.platform ?? "unknown"})`);
 
   // CDN checksum comparison — use a 5s timeout to match other network probes
   const cdnChecksum = await fetchCdnChecksum(undefined, 5_000);
   if (!cdnChecksum) {
-    warn("DoH checksum", "CDN unreachable — cannot verify");
-    report.add("doh_checksum", "CDN unreachable");
+    warn("Pilot checksum", "CDN unreachable — cannot verify");
+    report.add("pilot_checksum", "CDN unreachable");
   } else if (cdnChecksum.sha256 === local.sha256) {
-    ok("DoH checksum", `match (${cdnChecksum.source})`);
-    report.add("doh_checksum", `match (${cdnChecksum.source})`);
+    ok("Pilot checksum", `match (${cdnChecksum.source})`);
+    report.add("pilot_checksum", `match (${cdnChecksum.source})`);
   } else {
-    warn("DoH checksum", "mismatch — update available", ["Run: okx doh install"]);
-    report.add("doh_checksum", "mismatch");
+    warn("Pilot checksum", "mismatch — update available", ["Run: okx pilot install"]);
+    report.add("pilot_checksum", "mismatch");
   }
 
-  // Runtime DoH mode from cache
+  // Runtime Pilot mode from cache
   try {
-    const cacheEntry = readDohCache("www.okx.com");
+    const cacheEntry = readPilotCache("www.okx.com");
     if (cacheEntry) {
-      ok("DoH mode", cacheEntry.mode);
-      report.add("doh_mode", cacheEntry.mode);
+      ok("Pilot mode", cacheEntry.mode);
+      report.add("pilot_mode", cacheEntry.mode);
     } else {
-      ok("DoH mode", "no cache (will auto-detect on next request)");
-      report.add("doh_mode", "no cache");
+      ok("Pilot mode", "no cache (will auto-detect on next request)");
+      report.add("pilot_mode", "no cache");
     }
   } catch {
-    ok("DoH mode", "no cache");
-    report.add("doh_mode", "no cache");
+    ok("Pilot mode", "no cache");
+    report.add("pilot_mode", "no cache");
   }
 }
 
@@ -396,7 +396,7 @@ async function runCliChecks(config: OkxConfig | undefined, profile: string, outp
 
   const configFilePassed = checkConfigFile(report);
   const envPassed = checkEnvironment(report);
-  await checkDoh(report);
+  await checkPilot(report);
 
   if (!config) {
     // Config parse failed — skip remaining checks that need config

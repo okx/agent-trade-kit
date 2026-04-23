@@ -7,11 +7,11 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
-import type { DohCacheEntry, DohCacheFile } from "./types.js";
+import type { PilotCacheEntry, PilotCacheFile } from "./types.js";
 
-/** Default cache file path (overridable via OKX_DOH_CACHE_PATH for testing). */
+/** Default cache file path (overridable via OKX_PILOT_CACHE_PATH for testing). */
 export function getDefaultCachePath(): string {
-  return process.env.OKX_DOH_CACHE_PATH || join(homedir(), ".okx", "doh-cache.json");
+  return process.env.OKX_PILOT_CACHE_PATH || join(homedir(), ".okx", "pilot-cache.json");
 }
 
 /**
@@ -21,10 +21,10 @@ export function getDefaultCachePath(): string {
 export function readCache(
   hostname: string,
   cachePath: string = getDefaultCachePath(),
-): DohCacheEntry | null {
+): PilotCacheEntry | null {
   try {
     const raw = readFileSync(cachePath, "utf-8");
-    const file = JSON.parse(raw) as DohCacheFile;
+    const file = JSON.parse(raw) as PilotCacheFile;
     return file[hostname] ?? null;
   } catch {
     return null;
@@ -38,16 +38,16 @@ export function readCache(
  */
 export function writeCache(
   hostname: string,
-  entry: DohCacheEntry,
+  entry: PilotCacheEntry,
   cachePath: string = getDefaultCachePath(),
 ): void {
   try {
     const dir = dirname(cachePath);
     mkdirSync(dir, { recursive: true });
 
-    let file: DohCacheFile = {};
+    let file: PilotCacheFile = {};
     try {
-      file = JSON.parse(readFileSync(cachePath, "utf-8")) as DohCacheFile;
+      file = JSON.parse(readFileSync(cachePath, "utf-8")) as PilotCacheFile;
     } catch {
       // File missing or corrupted — start fresh
     }

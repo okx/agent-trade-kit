@@ -89,7 +89,7 @@ export type CliModuleKey =
   | "bot"
   | "config"
   | "setup"
-  | "doh"
+  | "pilot"
   | "diagnose"
   | "upgrade"
   | "skill";
@@ -118,7 +118,7 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   bot:             "Trading bot strategies (grid, dca)",
   config:          "Manage CLI configuration profiles",
   setup:           "Set up client integrations (Cursor, Windsurf, Claude, etc.)",
-  doh:             "Manage DoH (DNS-over-HTTPS) resolver binary",
+  pilot:           "Manage Pilot proxy resolver binary",
   diagnose:        "Run network / MCP server diagnostics",
   upgrade:         "Upgrade okx CLI and MCP server to the latest stable version",
   skill:           SKILLS_MARKETPLACE_DESC,
