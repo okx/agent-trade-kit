@@ -29,6 +29,8 @@
 
 ### 修复
 
+- **`okx market oi-history` 表格渲染修复——不再在有数据时错误打印 "No OI data"**。接口返回的 `data` 是数组 `[{ instId, bar, rows: [...] }]`，但 CLI 直接在数组上访问 `data["rows"]`，结果恒为 `undefined`，永远走到"空数据"分支。现在 handler 先取 `data[0]` 再读 `rows`/`instId`/`bar`。`--json` 模式原本就不受影响，输出保持不变。单元测试同步更新为真实的数组包裹形状，防止此类 bug 在测试中被悄悄吃掉。
+
 - **Pilot 二进制安装器现已支持 `linux-arm64` 平台**（issue #166）。`getPlatformDir()` 缺少 `"linux-arm64"` 映射条目，导致 ARM64 Linux 主机安装/更新时回退到 `undefined`，将二进制写入错误路径。现已补充 `"linux-arm64": "linux-arm64"` 条目。
 
 - **网络故障时 Pilot 代理重解析现在使用 `await` 等待完成**（issue #166）。`rest-client.ts` 中有两处调用 `handleNetworkFailure()` 为 fire-and-forget（`handleNetworkFailure().catch(() => {})`），导致缓存写入和代理状态更新可能与重试请求产生竞态条件。两处现均改为 `try { await this.pilot.handleNetworkFailure(); } catch {}`，确保代理节点完全解析、缓存已持久化后再发起重试。

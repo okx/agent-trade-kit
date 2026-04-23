@@ -201,18 +201,18 @@ describe("cmdMarketFilter", () => {
 // ---------------------------------------------------------------------------
 describe("cmdMarketOiHistory", () => {
   it("outputs 'No OI data' when rows are empty", async () => {
-    const runner: ToolRunner = async () => fakeResult({ instId: "BTC-USDT-SWAP", bar: "1H", rows: [] });
+    const runner: ToolRunner = async () => fakeResult([{ instId: "BTC-USDT-SWAP", bar: "1H", rows: [] }]);
     await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
     assert.ok(out.join("").includes("No OI data"));
     assert.equal(err.join(""), "");
   });
 
   it("outputs OI table with non-null values", async () => {
-    const runner: ToolRunner = async () => fakeResult({
+    const runner: ToolRunner = async () => fakeResult([{
       instId: "BTC-USDT-SWAP",
       bar: "1H",
       rows: [{ ts: "1700000000000", oiUsd: "2000000000", oiDeltaUsd: "50000000", oiDeltaPct: "2.5", oiCont: "40000" }],
-    });
+    }]);
     await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
     const combined = out.join("");
     assert.ok(combined.includes("BTC-USDT-SWAP"));
@@ -221,11 +221,11 @@ describe("cmdMarketOiHistory", () => {
   });
 
   it("shows '-' for null OI fields", async () => {
-    const runner: ToolRunner = async () => fakeResult({
+    const runner: ToolRunner = async () => fakeResult([{
       instId: "BTC-USDT-SWAP",
       bar: "1H",
       rows: [{ ts: "1700000000000", oiUsd: null, oiDeltaUsd: null, oiDeltaPct: null, oiCont: null }],
-    });
+    }]);
     await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
     const combined = out.join("");
     assert.ok(combined.includes("-"));
@@ -233,17 +233,24 @@ describe("cmdMarketOiHistory", () => {
   });
 
   it("falls back to instId param when data.instId is absent", async () => {
-    const runner: ToolRunner = async () => fakeResult({
+    const runner: ToolRunner = async () => fakeResult([{
       bar: "4H",
       rows: [{ ts: "1700000000000", oiUsd: "1000000", oiDeltaUsd: "0", oiDeltaPct: "0", oiCont: "200" }],
-    });
+    }]);
     await cmdMarketOiHistory(runner, "ETH-USDT-SWAP", { bar: "4H", json: false });
     assert.ok(out.join("").includes("ETH-USDT-SWAP"));
     assert.equal(err.join(""), "");
   });
 
+  it("outputs 'No OI data' when data array is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: false });
+    assert.ok(out.join("").includes("No OI data"));
+    assert.equal(err.join(""), "");
+  });
+
   it("outputs JSON when json=true", async () => {
-    const runner: ToolRunner = async () => fakeResult({ instId: "BTC-USDT-SWAP", bar: "1H", rows: [] });
+    const runner: ToolRunner = async () => fakeResult([{ instId: "BTC-USDT-SWAP", bar: "1H", rows: [] }]);
     await cmdMarketOiHistory(runner, "BTC-USDT-SWAP", { json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
