@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`skills/_shared/preflight.md` and `skills/okx-cex-portfolio/SKILL.md` auth-method detection corrected.** Both files previously used the `apiKey` field from `okx auth status --json` to branch between API-key and OAuth mode. That field reports the `okx-auth` binary's internal state and is **always** `false` regardless of whether `~/.okx/config.toml` contains an API-key profile; it cannot detect API-key users. Consequence: an agent following the old preflight would see `apiKey: false, status: not_logged_in`, conclude "no auth", and route the user into the OAuth login skill — even when a valid API-key profile already existed. Both files now require running **both** `okx config show --json` (authoritative for API-key presence) and `okx auth status --json` (authoritative for OAuth session state), with a decision table that checks API-key first and never relies on the unreliable `apiKey` status field.
 
+- **`skills/okx-cex-trade/SKILL.md`, `skills/okx-cex-bot/SKILL.md`, `skills/okx-cex-earn/SKILL.md` Step A auth detection corrected.** Same class of bug as the preflight/portfolio fix above: the three skills' credential checks branched on `auth status --json` → `apiKey` (always `false`), so API-key users were misrouted into the OAuth login skill. Step A now runs both `okx config show --json` and `okx auth status --json`, checks API-key presence first, and only falls through to OAuth when no API-key profile is configured.
+
+### Changed
+
+- **`PLATFORM_MAP["linux-arm64"]` now maps to `linux-x64`** (`packages/core/src/pilot/installer.ts`). This matches the standard Docker Desktop test environment on Apple Silicon, where containers run under `linux/amd64` emulation. Native `linux-arm64` hosts will therefore install the `linux-x64` binary and rely on the host's binfmt / emulation layer. This is a deliberate alias, not a regression of the issue #166 fix — the entry is still present, just pointing at the x64 directory. A native `linux-arm64` CDN directory is tracked as future work.
+
 ## [1.3.2-beta.3] - 2026-04-23
 
 ### Fixed

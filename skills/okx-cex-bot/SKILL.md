@@ -42,14 +42,19 @@ okx config init   # select site -> follow browser OAuth flow
 
 ### Step A — Verify credentials
 
+Run **both** commands — the `apiKey` field from `okx auth status --json` is the auth-binary's internal state and is always `false` regardless of whether `~/.okx/config.toml` has an API-key profile. `okx config show --json` is the only authoritative source for API-key presence.
+
 ```bash
-okx auth status --json
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
 ```
 
-- `"apiKey": true` — **API Key mode**. Proceed to Step B.
-- `"status": "logged_in"` (no `apiKey`) — **OAuth mode**. Proceed to Step B.
-- `"status": "not_logged_in"` (no `apiKey`) — stop, load `okx-cex-auth` skill and follow login steps, wait for completion.
-- `"status": "pending"` — login is in progress, wait for it to complete.
+Apply **in this order** — first match wins:
+
+- `config show --json` has any profile with a non-empty `api_key` field → **API Key mode**. Proceed to Step B.
+- No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` → **OAuth mode**. Proceed to Step B.
+- No API-key profile **AND** `"status":"pending"` — login is in progress, wait for it to complete.
+- No API-key profile **AND** `"status":"not_logged_in"` — stop, load `okx-cex-auth` skill and follow login steps, wait for completion.
 
 ### Step B — Confirm trading mode
 

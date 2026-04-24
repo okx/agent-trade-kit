@@ -42,12 +42,19 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ## Credential & Profile Check
 
-Run `okx auth status --json` before any authenticated command. The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
+Run **both** commands before any authenticated command — the `apiKey` field from `okx auth status --json` is the auth-binary's internal state and is always `false` regardless of whether `~/.okx/config.toml` has an API-key profile. `okx config show --json` is the only authoritative source for API-key presence. The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
 
-- `"apiKey": true` — **API Key mode**. Proceed.
-- `"status": "logged_in"` (no `apiKey`) — **OAuth mode**. Proceed.
-- `"status": "not_logged_in"` (no `apiKey`) — **stop**, load `okx-cex-auth` skill and follow login steps, wait for completion.
-- `"status": "pending"` — login is in progress, wait for it to complete.
+```bash
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
+```
+
+Apply **in this order** — first match wins:
+
+- `config show --json` has any profile with a non-empty `api_key` field → **API Key mode**. Proceed.
+- No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` → **OAuth mode**. Proceed.
+- No API-key profile **AND** `"status":"pending"` — login is in progress, wait for it to complete.
+- No API-key profile **AND** `"status":"not_logged_in"` — **stop**, load `okx-cex-auth` skill and follow login steps, wait for completion.
 
 OKX Earn does not support demo mode. Always use live mode silently — don't mention it unless there's an error.
 - **API Key users**: use `--profile <live-profile>` (the profile without `demo=true`).

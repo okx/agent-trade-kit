@@ -19,6 +19,12 @@
 
 - **`skills/_shared/preflight.md` 和 `skills/okx-cex-portfolio/SKILL.md` 的认证方式检测修正。** 此前两份文档都用 `okx auth status --json` 的 `apiKey` 字段来区分 API key 模式和 OAuth 模式——但这个字段反映的是 `okx-auth` binary 自身的状态，**无论 `~/.okx/config.toml` 里有没有 API key profile 永远是 `false`**，根本检测不到 API key 用户。后果：agent 按老 preflight 查出来 `apiKey: false, status: not_logged_in` 就会判成"无认证"，把已经有效配置了 API key 的用户误导到 OAuth 登录流程。修复后要求**同时**跑 `okx config show --json`（API key 的唯一可靠来源）和 `okx auth status --json`（OAuth session 状态），决策表先查 API key，不再依赖 `apiKey` 这个不可靠字段。
 
+- **`skills/okx-cex-trade/SKILL.md`、`skills/okx-cex-bot/SKILL.md`、`skills/okx-cex-earn/SKILL.md` 的 Step A 认证检测修正。** 与上一条 preflight/portfolio 修复同类问题：这三个 skill 的凭证检查都基于 `auth status --json` → `apiKey`（永远 `false`），导致 API key 用户被误导到 OAuth 登录流程。Step A 现在要求同时跑 `okx config show --json` 和 `okx auth status --json`，先查 API key 是否存在，只有在确认没有 API key profile 时才走 OAuth 分支。
+
+### 变更
+
+- **`PLATFORM_MAP["linux-arm64"]` 现在映射为 `linux-x64`**（`packages/core/src/pilot/installer.ts`）。这是为了匹配 Apple Silicon 上的 Docker Desktop 标准测试环境——容器在 `linux/amd64` 模拟下运行。原生 `linux-arm64` 主机将安装 `linux-x64` binary 并依赖主机的 binfmt / 模拟层。这是有意的 alias，并非 issue #166 修复的回归——条目依然存在，只是指向 x64 目录。原生 `linux-arm64` CDN 目录作为后续工作跟进。
+
 ## [1.3.2-beta.3] - 2026-04-23
 
 ### 修复

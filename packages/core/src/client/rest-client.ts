@@ -595,7 +595,6 @@ export class OkxRestClient {
       }
     }
 
-
     return headers;
   }
 

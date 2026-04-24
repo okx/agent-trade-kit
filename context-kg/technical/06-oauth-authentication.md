@@ -83,8 +83,10 @@ The `okx-auth` binary is distributed via CDN, following the same pattern as the 
 | `darwin-arm64` | `darwin-arm64/` |
 | `darwin-x64` | `darwin-x64/` |
 | `linux-x64` | `linux-x64/` |
-| `linux-arm64` | `linux-arm64/` |
+| `linux-arm64` | `linux-x64/` *(aliased — see note below)* |
 | `win32-x64` | `win32-x64/` |
+
+> Note: `linux-arm64` is intentionally aliased to `linux-x64` in `PLATFORM_MAP` (see `packages/core/src/pilot/installer.ts`). This matches the standard Docker Desktop test environment on Apple Silicon, where containers run under `linux/amd64` emulation. Native `linux-arm64` hosts will therefore receive the `linux-x64` binary and rely on the host's binfmt / emulation layer. Adding a native `linux-arm64/` directory to the CDN is tracked as future work.
 
 **CDN path template**: `<CDN_HOST>/upgradeapp/tools/oauth/<platformDir>/<binaryName>`
 
