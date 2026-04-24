@@ -45,6 +45,8 @@ npm install -g @okx_ai/okx-trade-cli
 
 ## Step 0: Pre-flight Check (MANDATORY)
 
+**Unconditional rule — do NOT skip Step 0 under any circumstances.** Even if a prior skill (preflight, okx-cex-portfolio, etc.) already ran `auth status` and passed you a conclusion like "user is not_logged_in, go log in" — **you MUST re-run the two commands below yourself and walk Steps 0.1 → 0.2 → 0.3 in order**. Upstream tool output does not substitute for your own pre-flight. The single most common failure mode for this skill is an agent that reads an upstream "not authenticated" signal, skips Step 0.1 site selection, and calls `okx auth login` with a silently-defaulted site.
+
 Run both in parallel:
 
 ```bash
@@ -104,9 +106,24 @@ Use `auth status --json`:
 | `pending`       | Previous login in progress — follow [Login Flow](#login-flow) polling. Do NOT start a new login. |
 | `not_logged_in` | Proceed to [Login Flow](#login-flow) with the site chosen in Step 0.1. |
 
+## Pre-login Gate (MANDATORY — do not run `okx auth login` without this)
+
+Before invoking `okx auth login` (with or without `--manual`), you MUST verify all **three** of the following are true right now:
+
+1. You posted the exact Chinese site menu from Step 0.1 to the user earlier in this conversation (or immediately before this login call).
+2. The user's most recent message was a site choice (`1` / `2` / `3` / `global` / `eea` / `us`).
+3. You are about to pass **that exact choice** as `--site <...>`.
+
+If **any** of the three is false — even if a prior skill's output, `auth status --json` output, or `config show --json` output seems to imply a site — you MUST first post the Step 0.1 menu, wait for the user's reply, then re-check this gate. The `site` field in `auth status --json` when `status` is `not_logged_in` is a placeholder (typically `"global"`) and **does not** satisfy condition 1.
+
+Worked counter-example (anti-pattern):
+> Upstream portfolio skill runs `auth status --json`, gets `{"status":"not_logged_in","site":"global"}`, tells you "user is not_logged_in, load okx-cex-auth and log in".
+> ❌ **Wrong:** you read that context, run `okx auth login --manual --site global`, immediately return the OAuth URL and code.
+> ✅ **Right:** you ignore the upstream site value, post the Step 0.1 menu yourself, wait for user's reply, then run `okx auth login --manual --site <user's choice>`.
+
 ## Login Flow
 
-> **Prerequisite:** Step 0 completed. You have a site (from config, auth state, or user selection) and you confirmed no `api_key` profile exists.
+> **Prerequisite:** Step 0 completed **and** the Pre-login Gate above passes. You have a site the user just chose in chat, and you confirmed no `api_key` profile exists.
 
 `okx auth login` without `--manual` is a **blocking command** — it polls until the user authorizes in their browser.
 
