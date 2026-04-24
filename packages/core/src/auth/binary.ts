@@ -29,7 +29,7 @@ export function getAuthBinaryPath(): string {
  * The binary writes the token to fd 3 and closes it (EOF).
  * Node.js `spawn` with `stdio[3] = 'pipe'` creates the pipe automatically.
  *
- * Unlike DoH (which returns null on failure), this function throws typed errors
+ * Unlike the pilot binary (which returns null on failure), this function throws typed errors
  * because callers need to distinguish "not logged in" from "binary missing".
  */
 export function execAuthToken(): Promise<string> {

@@ -2,7 +2,7 @@
  * okx-auth binary installer — TypeScript equivalent of the postinstall section.
  *
  * Provides status, install, and remove operations for the okx-auth binary.
- * Mirrors the DoH installer pattern (doh/installer.ts).
+ * Mirrors the pilot binary installer pattern (pilot/installer.ts).
  */
 
 import {

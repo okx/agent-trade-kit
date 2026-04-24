@@ -1,4 +1,4 @@
-<!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, doh, pilot, Pilot, okx-pilot, pilot-cache, PilotManager, PilotNode, list-tools -->
+<!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, pilot, Pilot, okx-pilot, pilot-cache, PilotManager, PilotNode, list-tools -->
 # System Architecture
 
 ## Five-Layer Stack

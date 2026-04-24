@@ -76,7 +76,7 @@ The 60 s JS cache means the binary is invoked at most once per minute in steady 
 
 ## Binary Distribution
 
-The `okx-auth` binary is distributed via CDN, following the same pattern as the DoH resolver:
+The `okx-auth` binary is distributed via CDN, following the same CDN-download pattern as the pilot binary:
 
 | Platform | Directory |
 |----------|-----------|
@@ -90,7 +90,7 @@ The `okx-auth` binary is distributed via CDN, following the same pattern as the 
 
 **CDN path template**: `<CDN_HOST>/upgradeapp/tools/oauth/<platformDir>/<binaryName>`
 
-**CDN sources** (shared with DoH, tried in order):
+**CDN sources** (shared with the pilot binary, tried in order):
 1. `https://static.jingyunyilian.com`
 2. `https://static.okx.com`
 3. `https://static.coinall.ltd`
@@ -101,7 +101,7 @@ Default install path: `~/.okx/bin/okx-auth` (or `okx-auth.exe` on Windows). Over
 
 ### `postinstall` Auto-Download
 
-The `scripts/postinstall-notice.js` script attempts best-effort download of both the DoH and okx-auth binaries after `npm install`. Failure is non-fatal. Users can run `okx auth install` manually.
+The `scripts/postinstall-notice.js` script attempts best-effort download of both the pilot and okx-auth binaries after `npm install`. Failure is non-fatal. Users can run `okx auth install` manually.
 
 ## CLI Commands (`okx auth`)
 
