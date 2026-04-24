@@ -14,6 +14,7 @@
 ### 修复
 
 - **`suggestSubcommand` 不再幻觉出不存在的子命令路径**（issue #179）。此前，`packages/cli/src/unknown-command.ts` 中的 `x-y → y x` 启发式规则只要 `b` 出现在模块的 `knownActions` 列表中就会建议 `"<b> <a>"`，而不验证该路径是否真实存在。例如 `okx swap set-leverage` 会建议 `okx swap leverage set`，但该子命令根本不存在。修复方案：`suggestSubcommand` 新增 `knownPaths: readonly string[]` 参数，仅当组合路径被明确列出时才返回建议。`place-algo → algo place` 的正向场景（#173）得以保留——调用方传入 `["algo place", "algo cancel", ...]` 作为 `knownPaths`。不含多词子命令路径的模块默认传 `[]`，完全屏蔽错误建议。
+- **Codex CLI 无法加载 `okx-cex-trade` skill** — description 字段超过 Codex 1024 字符上限（原为 1448 字符）。通过去重同义触发词短语精简至 1017 字符，保留全部具体交易类型触发词。同步精简 `okx-sentiment-tracker`（944 → 652 字符）和 `okx-cex-market`（887 → 706 字符）以留有余量。新增 CI 测试 `packages/cli/test/skill-description-length.test.ts`，自动检查 1024 字符上限，防止未来回归。
 
 ## [1.3.2-beta.4] - 2026-04-24
 

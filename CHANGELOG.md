@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`suggestSubcommand` no longer hallucinate non-existent subcommand paths** (issue #179). Previously, the `x-y → y x` heuristic in `packages/cli/src/unknown-command.ts` would suggest `"<b> <a>"` whenever `b` appeared in the module's `knownActions` list, without verifying that the combined path actually exists. For example, `okx swap set-leverage` suggested `okx swap leverage set`, which is not a registered subcommand. Fix: `suggestSubcommand` now accepts a `knownPaths: readonly string[]` parameter and only returns the suggestion when the combined path is explicitly listed. The legitimate `place-algo → algo place` positive case (#173) is preserved — callers pass `["algo place", "algo cancel", ...]` as `knownPaths`. Modules without multi-token subcommand paths default to `[]`, suppressing spurious suggestions entirely.
+- **Codex CLI blocked from loading `okx-cex-trade` skill** — description field exceeded the 1024-char Codex limit (was 1448 chars). Trimmed by deduping synonymous trigger phrases; all concrete trade-type triggers preserved. Pre-emptively trimmed `okx-sentiment-tracker` (944 → 652 chars) and `okx-cex-market` (887 → 706 chars) for headroom. Added CI test `packages/cli/test/skill-description-length.test.ts` to enforce the 1024-char ceiling going forward.
 
 ## [1.3.2-beta.4] - 2026-04-24
 
