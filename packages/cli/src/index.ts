@@ -592,7 +592,7 @@ export function handleSpotCommand(
     "orders", "get", "fills",
     "place", "cancel", "amend",
     "algo", "batch", "leverage",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo trail", "algo orders"]);
 }
 
 export function handleSwapAlgoCommand(
@@ -748,7 +748,7 @@ export function handleSwapCommand(
     "positions", "orders", "get", "fills", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
     "algo", "batch",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo trail", "algo orders"]);
 }
 
 export function handleOptionAlgoCommand(
@@ -854,7 +854,7 @@ export function handleOptionCommand(
   unknownSubcommand("option", action, [
     "orders", "get", "positions", "fills", "instruments", "greeks",
     "place", "cancel", "amend", "batch-cancel", "algo",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo orders"]);
 }
 
 export function handleFuturesAlgoCommand(
@@ -1010,7 +1010,7 @@ export function handleFuturesCommand(
     "orders", "positions", "fills", "get", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
     "batch", "algo",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo trail", "algo orders"]);
 }
 
 export function handleBotGridCommand(

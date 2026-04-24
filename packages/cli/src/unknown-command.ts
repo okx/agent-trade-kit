@@ -10,17 +10,19 @@ import { errorLine } from "./formatter.js";
  *
  * Suggestions are heuristic:
  *   - `place-algo` → `algo place` (MCP tool names `<mod>_<action>_<object>` invert to CLI `<mod> <action> <object>` subcommand paths).
+ *     Only returned when the combined path `"algo place"` is in `knownPaths`.
  *   - Fall back to listing all registered actions.
  */
 export function unknownSubcommand(
   module: string,
   action: string | undefined,
   knownActions: readonly string[],
+  knownPaths: readonly string[] = [],
 ): void {
   const actionStr = action ?? "(missing)";
   errorLine(`Unknown command: okx ${module} ${actionStr}`);
 
-  const hint = suggestSubcommand(action, knownActions);
+  const hint = suggestSubcommand(action, knownActions, knownPaths);
   if (hint) {
     errorLine(`  Did you mean: okx ${module} ${hint} ?`);
   }
@@ -34,21 +36,30 @@ export function unknownSubcommand(
 
 /**
  * Best-effort suggestion for common typos. Currently:
- *   - Converts `x-y` (MCP-ish hyphen form) to `y x` if both halves are plausible.
- *     E.g. `place-algo` → `algo place` (matches MCP tool `<mod>_place_algo_order`).
+ *   - Converts `x-y` (MCP-ish hyphen form) to `y x` if the combined path exists in `knownPaths`.
+ *     E.g. `place-algo` → `algo place` (matches MCP tool `<mod>_place_algo_order`), only when
+ *     `"algo place"` is explicitly listed in `knownPaths`.
+ *
+ * `knownPaths` must contain the full multi-token path strings that are valid for the module
+ * (e.g. `["algo place", "algo cancel", "algo trail", "algo amend", "algo orders"]` for swap/spot).
+ * An empty `knownPaths` suppresses all heuristic suggestions, preventing hallucination of
+ * non-existent subcommands (issue #179).
  *
  * Returns undefined when no confident suggestion is available.
  */
 export function suggestSubcommand(
   action: string | undefined,
   knownActions: readonly string[],
+  knownPaths: readonly string[] = [],
 ): string | undefined {
   if (!action || !action.includes("-")) return undefined;
   const parts = action.split("-");
   if (parts.length !== 2) return undefined;
   const [a, b] = parts;
   // `x-y` → try `y x` form (MCP tool name inversion).
-  if (knownActions.includes(b)) {
+  // Validate that the combined path exists in the registered path list to avoid suggesting
+  // non-existent subcommands (e.g. "set-leverage" → "leverage set" was a hallucination).
+  if (knownActions.includes(b) && knownPaths.includes(`${b} ${a}`)) {
     return `${b} ${a}`;
   }
   return undefined;

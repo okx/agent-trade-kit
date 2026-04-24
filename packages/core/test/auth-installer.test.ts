@@ -1,7 +1,7 @@
 /**
  * Unit tests for the okx-auth binary installer.
  *
- * Mirrors the doh-installer.test.ts pattern: filesystem operations are tested
+ * Mirrors the pilot-installer.test.ts pattern: filesystem operations are tested
  * via temp directories and HTTP operations via a mock server on port 0.
  */
 import { describe, it, beforeEach, afterEach } from "node:test";

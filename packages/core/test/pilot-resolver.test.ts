@@ -1,7 +1,8 @@
 /**
  * Tests for Pilot resolver logic: resolvePilot, reResolvePilot, classifyAndCache.
  *
- * Uses a mock binary (test/fixtures/mock-doh-binary.mjs) controlled by domain name,
+ * Uses a mock binary (test/fixtures/mock-doh-binary.mjs) controlled by domain name
+ * (binary kept as-is to avoid breaking test setup — only this comment updated),
  * and temp-dir cache files to avoid touching real user cache.
  */
 import { describe, it, beforeEach, afterEach } from "node:test";
