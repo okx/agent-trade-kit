@@ -26,6 +26,7 @@ import type { ModuleId, SiteId } from "../src/constants.js";
 
 const BASE_CONFIG: OkxConfig = {
   hasAuth: false,
+  profile: "default",
   baseUrl: "https://www.okx.com",
   timeoutMs: 15_000,
   modules: ["market"] as ModuleId[],
@@ -705,13 +706,21 @@ describe("OkxRestClient: privateGet / privatePost", () => {
 
   it("throws ConfigError when private endpoint called without credentials", async () => {
     const { ConfigError } = await import("../src/utils/errors.js");
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG); // no auth
-      await assert.rejects(
-        () => client.privateGet("/api/v5/account/balance"),
-        (err: unknown) => err instanceof ConfigError,
-      );
-    });
+    // Point OKX_AUTH_BIN to a nonexistent path so OAuth lookup also fails
+    const origBin = process.env.OKX_AUTH_BIN;
+    process.env.OKX_AUTH_BIN = "/nonexistent/okx-auth";
+    try {
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+        const client = new OkxRestClient(BASE_CONFIG); // no auth
+        await assert.rejects(
+          () => client.privateGet("/api/v5/account/balance"),
+          (err: unknown) => err instanceof ConfigError,
+        );
+      });
+    } finally {
+      if (origBin === undefined) delete process.env.OKX_AUTH_BIN;
+      else process.env.OKX_AUTH_BIN = origBin;
+    }
   });
 });
 
@@ -984,4 +993,165 @@ describe("OkxRestClient: publicGetBinary", () => {
     });
   });
 });
+});
+
+// ---------------------------------------------------------------------------
+// OAuth Bearer token authentication
+// ---------------------------------------------------------------------------
+
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+describe("OkxRestClient: OAuth Bearer token auth", () => {
+  const __dirname = fileURLToPath(new URL(".", import.meta.url));
+  const MOCK_BINARY = join(__dirname, "fixtures", "mock-auth-binary.mjs");
+  let savedBin: string | undefined;
+  let savedExit: string | undefined;
+  let savedToken: string | undefined;
+  let savedStatus: string | undefined;
+
+  function saveOAuthEnv(): void {
+    savedBin = process.env.OKX_AUTH_BIN;
+    savedExit = process.env.MOCK_AUTH_EXIT;
+    savedToken = process.env.MOCK_AUTH_TOKEN;
+    savedStatus = process.env.MOCK_AUTH_STATUS_JSON;
+  }
+
+  function restoreOAuthEnv(): void {
+    const restore = (key: string, val: string | undefined) => {
+      if (val === undefined) delete process.env[key];
+      else process.env[key] = val;
+    };
+    restore("OKX_AUTH_BIN", savedBin);
+    restore("MOCK_AUTH_EXIT", savedExit);
+    restore("MOCK_AUTH_TOKEN", savedToken);
+    restore("MOCK_AUTH_STATUS_JSON", savedStatus);
+  }
+
+  /** Config with no API key — forces OAuth path. */
+  const OAUTH_CONFIG: OkxConfig = {
+    ...BASE_CONFIG,
+    hasAuth: true,
+  };
+
+  it("uses Bearer token header when no API key configured", async () => {
+    saveOAuthEnv();
+    try {
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "0";
+      process.env.MOCK_AUTH_TOKEN = "oauth-test-token-abc";
+
+      const captured: { req?: Request } = {};
+      const client = new OkxRestClient(OAUTH_CONFIG);
+      await withFetch(capturingFetch(captured), () =>
+        client.privateGet("/api/v5/account/balance"),
+      );
+      assert.equal(captured.req?.headers.get("Authorization"), "Bearer oauth-test-token-abc");
+      assert.equal(captured.req?.headers.get("OK-ACCESS-KEY"), null, "should NOT have HMAC key");
+    } finally {
+      restoreOAuthEnv();
+    }
+  });
+
+  it("caches token across multiple requests", async () => {
+    saveOAuthEnv();
+    try {
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "0";
+      process.env.MOCK_AUTH_TOKEN = "cached-token-xyz";
+
+      const client = new OkxRestClient(OAUTH_CONFIG);
+
+      const captured1: { req?: Request } = {};
+      await withFetch(capturingFetch(captured1), () =>
+        client.privateGet("/api/v5/account/balance"),
+      );
+
+      const captured2: { req?: Request } = {};
+      await withFetch(capturingFetch(captured2), () =>
+        client.privateGet("/api/v5/account/positions"),
+      );
+
+      assert.equal(captured1.req?.headers.get("Authorization"), "Bearer cached-token-xyz");
+      assert.equal(captured2.req?.headers.get("Authorization"), "Bearer cached-token-xyz");
+    } finally {
+      restoreOAuthEnv();
+    }
+  });
+
+  it("refreshes token after cache TTL expires", async () => {
+    saveOAuthEnv();
+    const realDateNow = Date.now;
+    let fakeNow = realDateNow.call(Date);
+    Date.now = () => fakeNow;
+    try {
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "0";
+      process.env.MOCK_AUTH_TOKEN = "token-first";
+
+      const client = new OkxRestClient(OAUTH_CONFIG);
+
+      // First request — caches "token-first"
+      const captured1: { req?: Request } = {};
+      await withFetch(capturingFetch(captured1), () =>
+        client.privateGet("/api/v5/account/balance"),
+      );
+      assert.equal(captured1.req?.headers.get("Authorization"), "Bearer token-first");
+
+      // Advance time past the 60s TTL and swap mock token
+      fakeNow += 61_000;
+      process.env.MOCK_AUTH_TOKEN = "token-refreshed";
+
+      // Second request — cache expired, binary called again
+      const captured2: { req?: Request } = {};
+      await withFetch(capturingFetch(captured2), () =>
+        client.privateGet("/api/v5/account/positions"),
+      );
+      assert.equal(captured2.req?.headers.get("Authorization"), "Bearer token-refreshed");
+    } finally {
+      Date.now = realDateNow;
+      restoreOAuthEnv();
+    }
+  });
+
+  it("throws ConfigError when not logged in and no API key", async () => {
+    saveOAuthEnv();
+    try {
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "2"; // NOT_LOGGED_IN
+      delete process.env.MOCK_AUTH_TOKEN;
+
+      const { ConfigError } = await import("../src/utils/errors.js");
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+        const client = new OkxRestClient(OAUTH_CONFIG);
+        await assert.rejects(
+          () => client.privateGet("/api/v5/account/balance"),
+          (err: unknown) =>
+            err instanceof ConfigError &&
+            err.message.includes("No credentials"),
+        );
+      });
+    } finally {
+      restoreOAuthEnv();
+    }
+  });
+
+  it("re-throws AuthenticationError for non-login failures", async () => {
+    saveOAuthEnv();
+    try {
+      process.env.OKX_AUTH_BIN = MOCK_BINARY;
+      process.env.MOCK_AUTH_EXIT = "1"; // UNAUTHORIZED_CALLER
+      delete process.env.MOCK_AUTH_TOKEN;
+
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
+        const client = new OkxRestClient(OAUTH_CONFIG);
+        await assert.rejects(
+          () => client.privateGet("/api/v5/account/balance"),
+          (err: unknown) => err instanceof AuthenticationError,
+        );
+      });
+    } finally {
+      restoreOAuthEnv();
+    }
+  });
 });

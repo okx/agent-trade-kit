@@ -39,7 +39,7 @@ As of the latest registry scan, the server exposes **154 MCP tools** organized i
 
 ## Skills Ecosystem
 
-**8 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
+**9 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
 
 - `skills/okx-cex-trade/` — trading operations
 - `skills/okx-cex-market/` — market data queries

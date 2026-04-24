@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.1-beta.17"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -132,5 +132,4 @@ All commands in this skill are read-only.
 - Rate limit: 20 req / 2 s per IP
 - Candle data is sorted newest-first
 - `vol24h` is in base currency (e.g., BTC for BTC-USDT)
-- `--profile` and `--demo`/`--live` do not affect market data results via CLI (public endpoints); they only determine the active trading environment context
-- When calling market MCP tools directly, pass `demo: true` to explicitly query simulated trading market data; the default is always live market data regardless of server demo mode
+- `--demo`/`--live` and `--profile` do not affect market data results via CLI (public endpoints); they only determine the active trading environment context

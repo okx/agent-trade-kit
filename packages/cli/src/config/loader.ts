@@ -18,7 +18,7 @@ export interface LoadProfileOptions {
  * Delegates to core's loadConfig which handles the full priority chain:
  *   env vars > ~/.okx/config.toml (selected profile) > defaults
  */
-export function loadProfileConfig(opts: LoadProfileOptions): OkxConfig {
+export async function loadProfileConfig(opts: LoadProfileOptions): Promise<OkxConfig> {
   return loadConfig({
     profile: opts.profile,
     modules: opts.modules,

@@ -170,6 +170,9 @@ export interface CliValues {
   dir?: string;
   page?: string;
   format?: string;
+  // auth
+  site?: string;
+  manual?: boolean;
   // event contract
   underlying?: string;
   seriesId?: string;
@@ -385,6 +388,9 @@ export const CLI_OPTIONS = {
   dir: { type: "string" },
   page: { type: "string" },
   format: { type: "string" },
+  // auth
+  site: { type: "string" },
+  manual: { type: "boolean", default: false },
   // event contract
   underlying: { type: "string" },
   seriesId: { type: "string" },

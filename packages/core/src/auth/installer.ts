@@ -1,13 +1,11 @@
 /**
- * Pilot binary installer — TypeScript equivalent of scripts/postinstall-notice.js.
+ * okx-auth binary installer — TypeScript equivalent of the postinstall section.
  *
- * Provides status, install, and remove operations for the okx-pilot binary.
- * The CDN list and checksum logic mirrors the postinstall script; if CDN sources
- * change, update both files.
+ * Provides status, install, and remove operations for the okx-auth binary.
+ * Mirrors the DoH installer pattern (doh/installer.ts).
  */
 
 import {
-  readFileSync,
   createWriteStream,
   mkdirSync,
   chmodSync,
@@ -15,76 +13,28 @@ import {
   unlinkSync,
   renameSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
-import { homedir, platform, arch } from "node:os";
+import { homedir, platform } from "node:os";
 import { join, dirname } from "node:path";
 import { get as httpsGet } from "node:https";
 import { get as httpGet } from "node:http";
 
-import type { PilotLocalStatus, CdnChecksum, CdnSource, InstallResult, RemoveResult } from "./installer-types.js";
-import { getPilotBinaryPath } from "./binary.js";
+import type { AuthLocalStatus } from "./installer-types.js";
+import type { CdnChecksum, CdnSource, InstallResult, RemoveResult } from "../pilot/installer-types.js";
+import { getPlatformDir, hashFile, CDN_SOURCES, DOWNLOAD_TIMEOUT_MS } from "../pilot/installer.js";
+import { getAuthBinaryPath } from "./binary.js";
 
 // ---------------------------------------------------------------------------
-// Constants (mirrors postinstall-notice.js)
+// Constants
 // ---------------------------------------------------------------------------
 
-export const CDN_SOURCES: CdnSource[] = [
-  { host: "static.jingyunyilian.com", protocol: "https" },
-  { host: "static.okx.com", protocol: "https" },
-  { host: "static.coinall.ltd", protocol: "https" },
-];
-
-export const CDN_PATH_PREFIX = "/upgradeapp/tools/pilot";
-export const DOWNLOAD_TIMEOUT_MS = 30_000;
+export const AUTH_CDN_PATH_PREFIX = "/upgradeapp/tools/oauth";
 
 // ---------------------------------------------------------------------------
-// Platform helpers
+// Binary name
 // ---------------------------------------------------------------------------
 
-/**
- * Supported platform → CDN directory name mapping.
- * Exported so tests can assert that specific platforms are present without
- * having to run on that platform (guards against accidental removal of entries).
- */
-export const PLATFORM_MAP: Record<string, string> = {
-  "darwin-arm64": "darwin-arm64",
-  "darwin-x64": "darwin-x64",
-  "linux-arm64": "linux-x64",
-  "linux-x64": "linux-x64",
-  "win32-arm64": "win32-arm64",
-  "win32-x64": "win32-x64",
-};
-
-/**
- * Return the platform directory string (e.g. "darwin-arm64"),
- * or null for unsupported platforms.
- */
-export function getPlatformDir(): string | null {
-  const p = platform();
-  const a = arch();
-  return PLATFORM_MAP[`${p}-${a}`] ?? null;
-}
-
-/**
- * Return the binary file name for the current platform.
- */
-export function getBinaryName(): string {
-  return platform() === "win32" ? "okx-pilot.exe" : "okx-pilot";
-}
-
-// ---------------------------------------------------------------------------
-// File utilities
-// ---------------------------------------------------------------------------
-
-/**
- * Read a file and return its size + SHA-256 hex digest in one pass.
- */
-export function hashFile(filePath: string): { size: number; sha256: string } {
-  const buf = readFileSync(filePath);
-  return {
-    size: buf.byteLength,
-    sha256: createHash("sha256").update(buf).digest("hex"),
-  };
+export function getAuthBinaryName(): string {
+  return platform() === "win32" ? "okx-auth.exe" : "okx-auth";
 }
 
 // ---------------------------------------------------------------------------
@@ -92,55 +42,36 @@ export function hashFile(filePath: string): { size: number; sha256: string } {
 // ---------------------------------------------------------------------------
 
 /**
- * Return local Pilot binary status synchronously (no network I/O).
- * Accepts an optional binaryPath override for testing.
- *
- * Pass `skipHash: true` for fast checks (e.g. --version output) that only
- * need existence info — avoids reading and hashing a multi-MB binary.
+ * Return local okx-auth binary status synchronously (no network I/O).
  */
-export function getPilotStatus(binaryPath?: string, opts?: { skipHash?: boolean }): PilotLocalStatus {
-  const resolvedPath = binaryPath ?? getPilotBinaryPath();
+export function getAuthStatus(binaryPath?: string, opts?: { skipHash?: boolean }): AuthLocalStatus {
+  const resolvedPath = binaryPath ?? getAuthBinaryPath();
   const platformDir = getPlatformDir();
 
   if (!existsSync(resolvedPath)) {
-    return {
-      binaryPath: resolvedPath,
-      exists: false,
-      platform: platformDir,
-    };
+    return { binaryPath: resolvedPath, exists: false, platform: platformDir };
   }
 
   if (opts?.skipHash) {
-    return {
-      binaryPath: resolvedPath,
-      exists: true,
-      platform: platformDir,
-    };
+    return { binaryPath: resolvedPath, exists: true, platform: platformDir };
   }
 
   const { size, sha256 } = hashFile(resolvedPath);
-  return {
-    binaryPath: resolvedPath,
-    exists: true,
-    platform: platformDir,
-    fileSize: size,
-    sha256,
-  };
+  return { binaryPath: resolvedPath, exists: true, platform: platformDir, fileSize: size, sha256 };
 }
 
 /**
  * Fetch the checksum.json from CDN for the current platform.
  * Returns null if all CDN sources fail or the platform is unsupported.
- * Never throws — all errors are swallowed and result in null.
  */
-export async function fetchCdnChecksum(
+export async function fetchAuthCdnChecksum(
   sources: CdnSource[] = CDN_SOURCES,
   timeoutMs: number = DOWNLOAD_TIMEOUT_MS,
 ): Promise<CdnChecksum | null> {
   const platformDir = getPlatformDir();
   if (!platformDir) return null;
 
-  const checksumPath = `${CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
+  const checksumPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
 
   for (const { host, protocol } of sources) {
     try {
@@ -154,12 +85,7 @@ export async function fetchCdnChecksum(
       ) {
         continue;
       }
-      return {
-        sha256: data.sha256,
-        size: data.size,
-        target: data.target,
-        source: host,
-      };
+      return { sha256: data.sha256, size: data.size, target: data.target, source: host };
     } catch {
       // Try next source
     }
@@ -168,7 +94,7 @@ export async function fetchCdnChecksum(
 }
 
 // ---------------------------------------------------------------------------
-// Install helpers (extracted to reduce cognitive complexity of installPilotBinary)
+// Install helpers
 // ---------------------------------------------------------------------------
 
 interface ValidatedChecksum {
@@ -177,9 +103,6 @@ interface ValidatedChecksum {
   target: string;
 }
 
-/**
- * Fetch checksum.json from a single CDN host and validate required fields + target platform.
- */
 async function fetchAndValidateChecksum(
   host: string,
   protocol: string,
@@ -202,17 +125,12 @@ async function fetchAndValidateChecksum(
   }
 
   if (checksum.target !== platformDir) {
-    throw new Error(
-      `Target mismatch: expected ${platformDir}, got ${checksum.target as string}`,
-    );
+    throw new Error(`Target mismatch: expected ${platformDir}, got ${checksum.target}`);
   }
 
-  return { sha256: checksum.sha256, size: checksum.size as number, target: checksum.target as string };
+  return { sha256: checksum.sha256, size: checksum.size, target: checksum.target };
 }
 
-/**
- * Download a binary to tmpPath and verify its hash against the expected checksum.
- */
 async function downloadAndVerify(
   host: string,
   protocol: string,
@@ -228,31 +146,18 @@ async function downloadAndVerify(
 
   const actual = hashFile(tmpPath);
   if (actual.size !== checksum.size) {
-    throw new Error(
-      `Size mismatch: expected ${checksum.size}, got ${actual.size}`,
-    );
+    throw new Error(`Size mismatch: expected ${checksum.size}, got ${actual.size}`);
   }
   if (actual.sha256 !== checksum.sha256) {
-    throw new Error(
-      `SHA-256 mismatch: expected ${checksum.sha256}, got ${actual.sha256}`,
-    );
+    throw new Error(`SHA-256 mismatch: expected ${checksum.sha256}, got ${actual.sha256}`);
   }
 }
 
-/**
- * Platform-aware atomic replacement of the destination binary.
- */
 function atomicReplace(tmpPath: string, resolvedDest: string): void {
-  // On POSIX, rename(2) atomically replaces the destination — no pre-unlink needed.
-  // On Windows, rename fails with EEXIST if the destination exists, so we must
-  // unlink first. Risk: if unlink succeeds but rename fails (e.g. file lock),
-  // the user loses both copies. We minimise the window by doing the unlink only
-  // on Windows and immediately rethrowing any rename error to trigger cleanup.
   if (platform() === "win32") {
     try { unlinkSync(resolvedDest); } catch { /* ignore ENOENT */ }
   }
   renameSync(tmpPath, resolvedDest);
-
   if (platform() !== "win32") {
     chmodSync(resolvedDest, 0o755);
   }
@@ -260,17 +165,8 @@ function atomicReplace(tmpPath: string, resolvedDest: string): void {
 
 // ---------------------------------------------------------------------------
 
-/**
- * Download and install the Pilot binary.
- * Verifies checksum and performs atomic replacement.
- *
- * @param destPath    Override the destination path (for testing).
- * @param sources     Override CDN sources (for testing).
- * @param onProgress  Optional progress callback.
- */
-/** Pre-flight checks for installPilotBinary. Returns an early InstallResult or null to continue. */
 function installPreChecks(destPath: string | undefined, sources: CdnSource[]): InstallResult | null {
-  if (!destPath && process.env.OKX_PILOT_BINARY_PATH) {
+  if (!destPath && process.env.OKX_AUTH_BIN) {
     return { status: "up-to-date", source: "(env override)" };
   }
   if (!getPlatformDir()) {
@@ -282,7 +178,6 @@ function installPreChecks(destPath: string | undefined, sources: CdnSource[]): I
   return null;
 }
 
-/** Check if local binary matches the CDN checksum. */
 function isLocalUpToDate(
   localHash: { size: number; sha256: string } | null,
   checksum: ValidatedChecksum,
@@ -290,7 +185,11 @@ function isLocalUpToDate(
   return localHash !== null && localHash.size === checksum.size && localHash.sha256 === checksum.sha256;
 }
 
-export async function installPilotBinary(
+/**
+ * Download and install the okx-auth binary.
+ * Verifies checksum and performs atomic replacement.
+ */
+export async function installAuthBinary(
   destPath?: string,
   sources: CdnSource[] = CDN_SOURCES,
   onProgress?: (msg: string) => void,
@@ -299,15 +198,15 @@ export async function installPilotBinary(
   if (earlyResult) return earlyResult;
 
   const platformDir = getPlatformDir()!;
-  const binaryName = getBinaryName();
+  const binaryName = getAuthBinaryName();
   const resolvedDest = destPath ?? join(homedir(), ".okx", "bin", binaryName);
   const tmpPath = resolvedDest + ".tmp";
 
   mkdirSync(dirname(resolvedDest), { recursive: true });
 
   const localHash = existsSync(resolvedDest) ? hashFile(resolvedDest) : null;
-  const checksumPath = `${CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
-  const binaryPath = `${CDN_PATH_PREFIX}/${platformDir}/${binaryName}`;
+  const checksumPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
+  const binaryPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/${binaryName}`;
   const errors: string[] = [];
 
   for (const { host, protocol } of sources) {
@@ -337,36 +236,30 @@ export async function installPilotBinary(
 }
 
 /**
- * Remove the Pilot binary from disk.
- * Accepts an optional binaryPath override for testing.
+ * Remove the okx-auth binary from disk.
  */
-export function removePilotBinary(binaryPath?: string): RemoveResult {
-  const resolvedPath = binaryPath ?? getPilotBinaryPath();
+export function removeAuthBinary(binaryPath?: string): RemoveResult {
+  const resolvedPath = binaryPath ?? getAuthBinaryPath();
   try {
     unlinkSync(resolvedPath);
     return { status: "removed" };
   } catch (err) {
-    // ENOENT = file was already absent — treat as not-found, not an error.
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       return { status: "not-found" };
     }
-    // Other errors (e.g. Windows file lock) — re-throw with context.
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to remove ${resolvedPath}: ${msg}`);
   }
 }
 
 // ---------------------------------------------------------------------------
-// HTTP utilities (mirrors postinstall-notice.js)
+// HTTP utilities (duplicated from pilot/installer.ts — same pattern)
 // ---------------------------------------------------------------------------
 
 function isRedirect(statusCode: number | undefined): boolean {
   return statusCode !== undefined && statusCode >= 300 && statusCode < 400;
 }
 
-/**
- * Validate a redirect and return the resolved location, or throw on error.
- */
 function validateRedirect(
   res: import("node:http").IncomingMessage,
   requestUrl: string,
@@ -398,7 +291,6 @@ function fetchResponse(
           redirects++;
           try {
             const location = validateRedirect(res, requestUrl, redirects, maxRedirects);
-            // Drain the redirect response body so the connection is returned to the pool.
             res.resume();
             doRequest(location);
           } catch (err) {

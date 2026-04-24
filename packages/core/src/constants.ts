@@ -27,7 +27,7 @@ export const OKX_SITES = {
   },
   us: {
     label: "US",
-    apiBaseUrl: "https://app.okx.com",
+    apiBaseUrl: "https://us.okx.com",
     webUrl: "https://app.okx.com",
   },
 } as const satisfies Record<string, OkxSite>;
