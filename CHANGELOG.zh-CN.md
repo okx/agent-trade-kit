@@ -11,6 +11,23 @@
 
 ## [Unreleased]
 
+## [1.3.2-beta.4] - 2026-04-24
+
+### 新增
+
+- **OAuth Bearer token 认证（`okx auth`）**：基于 `okx-auth` Rust 二进制的全新认证方式，支持 OAuth 2.1 Device Flow。`okx auth login` 发起浏览器登录，`okx auth status` 查看会话状态，`okx auth logout` 注销令牌。二进制负责令牌存储、刷新（300 秒提前量）及 scrypt + AES-256-GCM 加密。运行时通过 fd3 管道读取令牌，JS 侧 60 秒缓存。每次请求动态选择认证方式：API key HMAC 优先，OAuth Bearer token 兜底。
+- **`okx auth install/install-status/remove` CLI 命令**：管理 `okx-auth` 二进制安装。CDN 下载带校验和验证、原子替换及多源备用——复用 DoH installer 模式。
+- **`skills/okx-cex-auth/SKILL.md`**：新增 OAuth 认证工作流 Skill 文档。
+- **`postinstall` 自动下载 okx-auth 二进制**：`npm install` 时与 DoH 二进制一起 best-effort 下载。
+- **`context-kg/` 知识库**：新增 `technical/06-oauth-authentication.md`，覆盖 OAuth 子系统架构、二进制分发、fd3 令牌读取、认证优先级及 CLI 命令。
+
+### 变更
+
+- **`loadConfig()` 改为异步**（返回 `Promise<OkxConfig>`）：启动时调用 `execAuthStatus()` 检测 OAuth 登录状态。
+- **`OkxConfig` 新增必需字段 `profile`**：已解析的 profile 名称，用于 OAuth 令牌存储路径。
+- **`OkxRestClient.buildHeaders()` 改为异步**：支持每次请求动态选择认证方式（API key HMAC 或 OAuth Bearer token）。
+- **`PLATFORM_MAP["linux-arm64"]` 现在映射为 `linux-x64`**（`packages/core/src/pilot/installer.ts`）。这是为了匹配 Apple Silicon 上的 Docker Desktop 标准测试环境——容器在 `linux/amd64` 模拟下运行。原生 `linux-arm64` 主机将安装 `linux-x64` binary 并依赖主机的 binfmt / 模拟层。这是有意的 alias，并非 issue #166 修复的回归——条目依然存在，只是指向 x64 目录。原生 `linux-arm64` CDN 目录作为后续工作跟进。
+
 ### 修复
 
 - **`okx auth login` 现在会在已有 API key 配置时拒绝启动 OAuth。** 之前 `cmdAuthLogin` 不看 `~/.okx/config.toml` 就直接 spawn `okx-auth` binary，导致 agent 按旧 skill 流程在已有 API key profile 的机器上发起 OAuth device flow，用户会拿到一个根本不需要的登录 URL + 验证码。修复后 `cmdAuthLogin` 先调 `readFullConfig()`：任一 profile 有非空 `api_key` 时打印 `"API key already configured (profile: <name>). OAuth login skipped — API key will be used automatically."` 并直接 exit 0，不再 spawn binary。`--manual` 模式下改输出 JSON `{"status":"skipped","reason":"api_key_configured","profile":"<name>","message":"..."}`，方便 agent 程序化识别。与 REST client 中既有的 "api_key 优先、从不回退 OAuth"（`rest-client.ts applyAuth`）形成双保险。
@@ -20,10 +37,6 @@
 - **`skills/_shared/preflight.md` 和 `skills/okx-cex-portfolio/SKILL.md` 的认证方式检测修正。** 此前两份文档都用 `okx auth status --json` 的 `apiKey` 字段来区分 API key 模式和 OAuth 模式——但这个字段反映的是 `okx-auth` binary 自身的状态，**无论 `~/.okx/config.toml` 里有没有 API key profile 永远是 `false`**，根本检测不到 API key 用户。后果：agent 按老 preflight 查出来 `apiKey: false, status: not_logged_in` 就会判成"无认证"，把已经有效配置了 API key 的用户误导到 OAuth 登录流程。修复后要求**同时**跑 `okx config show --json`（API key 的唯一可靠来源）和 `okx auth status --json`（OAuth session 状态），决策表先查 API key，不再依赖 `apiKey` 这个不可靠字段。
 
 - **`skills/okx-cex-trade/SKILL.md`、`skills/okx-cex-bot/SKILL.md`、`skills/okx-cex-earn/SKILL.md` 的 Step A 认证检测修正。** 与上一条 preflight/portfolio 修复同类问题：这三个 skill 的凭证检查都基于 `auth status --json` → `apiKey`（永远 `false`），导致 API key 用户被误导到 OAuth 登录流程。Step A 现在要求同时跑 `okx config show --json` 和 `okx auth status --json`，先查 API key 是否存在，只有在确认没有 API key profile 时才走 OAuth 分支。
-
-### 变更
-
-- **`PLATFORM_MAP["linux-arm64"]` 现在映射为 `linux-x64`**（`packages/core/src/pilot/installer.ts`）。这是为了匹配 Apple Silicon 上的 Docker Desktop 标准测试环境——容器在 `linux/amd64` 模拟下运行。原生 `linux-arm64` 主机将安装 `linux-x64` binary 并依赖主机的 binfmt / 模拟层。这是有意的 alias，并非 issue #166 修复的回归——条目依然存在，只是指向 x64 目录。原生 `linux-arm64` CDN 目录作为后续工作跟进。
 
 ## [1.3.2-beta.3] - 2026-04-23
 
@@ -183,19 +196,11 @@
 - **Flash Earn 模块**（`earn.flash`）：`earn_get_flash_earn_projects` MCP 工具和 `okx earn flash-earn projects` CLI 命令，浏览即将开始和进行中的闪赚项目。
 - **`context-kg/` 知识库扩充**：新增 DoH 子系统文档，补充 `tgtCcy=margin` 说明，更新架构文档及完整测试 QA 规范。(#150)
 - **Skills 下载改用两步预签名流程**：`skills_download` / `okx skill download` 改用 presigned URL，提升下载可靠性。
-- **OAuth Bearer token 认证（`okx auth`）**：基于 `okx-auth` Rust 二进制的全新认证方式，支持 OAuth 2.1 Device Flow。`okx auth login` 发起浏览器登录，`okx auth status` 查看会话状态，`okx auth logout` 注销令牌。二进制负责令牌存储、刷新（300 秒提前量）及 scrypt + AES-256-GCM 加密。运行时通过 fd3 管道读取令牌，JS 侧 60 秒缓存。每次请求动态选择认证方式：API key HMAC 优先，OAuth Bearer token 兜底。
-- **`okx auth install/install-status/remove` CLI 命令**：管理 `okx-auth` 二进制安装。CDN 下载带校验和验证、原子替换及多源备用——复用 DoH installer 模式。
-- **`skills/okx-cex-auth/SKILL.md`**：新增 OAuth 认证工作流 Skill 文档。
-- **`postinstall` 自动下载 okx-auth 二进制**：`npm install` 时与 DoH 二进制一起 best-effort 下载。
-- **`context-kg/` 知识库**：新增 `technical/06-oauth-authentication.md`，覆盖 OAuth 子系统架构、二进制分发、fd3 令牌读取、认证优先级及 CLI 命令。
 
 ### 变更
 
 - **`market_get_indicator` 描述优化 + 指标名校验前置**：内联列出常用指标名并引导使用 `market_list_indicators`；未知指标名在 API 调用前抛出 `ValidationError` 并附相似名称建议。(#153)
 - **`market_filter` `marketCapUsd` 仅限 SPOT**：描述明确该过滤条件仅适用于 `instType=SPOT`，与上游 API 行为一致。
-- **`loadConfig()` 改为异步**（返回 `Promise<OkxConfig>`）：启动时调用 `execAuthStatus()` 检测 OAuth 登录状态。
-- **`OkxConfig` 新增必需字段 `profile`**：已解析的 profile 名称，用于 OAuth 令牌存储路径。
-- **`OkxRestClient.buildHeaders()` 改为异步**：支持每次请求动态选择认证方式（API key HMAC 或 OAuth Bearer token）。
 
 ### 修复
 
