@@ -45,14 +45,17 @@ metadata:
 
 `description` 字段由 agent 路由系统用于决定何时激活本 skill。包含 `references/` 子目录的 skill 使用 `{baseDir}` 作为运行时路径变量，指向该 skill 所在目录。
 
+> **`description` 长度限制**：Codex CLI 对此字段强制执行 **1024 字符上限**。超过此限制的描述会导致 Codex 拒绝加载该 skill 包。建议将描述控制在 900 字符以内，为后续新增触发词留有余量。CI 测试（`packages/cli/test/skill-description-length.test.ts`）会自动检查 1024 字符上限。
+
 ## 贡献
 
 新增或修改 skill：
 
 1. 遵循现有 SKILL.md 结构（frontmatter + 前置条件 + 命令索引 + 操作流程）
 2. 较大的 skill 将参考文件放在 `references/` 子目录
-3. frontmatter 中的 `description` 要尽量穷举触发场景——它直接影响 agent 路由准确率
-4. 分支与 review 规范见 [CONTRIBUTING.md](../CONTRIBUTING.md)
+3. `description` 中列举所有独立的用户意图触发词，同时尽量简洁——合并冗余枚举（例如"买入认购"/"卖出认沽"/"买入认购期权"→"买入/卖出认购/认沽"），而非逐一罗列每个变体；覆盖所有意图是路由准确率的关键
+4. 建议控制在 900 字符以内，为后续新增触发词留有余量；硬上限为 1024 字符（由 CI 强制执行）
+5. 分支与 review 规范见 [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 ## 许可证
 

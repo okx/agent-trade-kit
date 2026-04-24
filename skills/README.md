@@ -45,14 +45,17 @@ metadata:
 
 The `description` field is used by the agent routing system to decide when to activate the skill. Skills with `references/` subdirectories use `{baseDir}` as a runtime-resolved path variable pointing to that skill's directory.
 
+> **`description` length limit**: Codex CLI enforces a **1024-character maximum** on this field. Descriptions that exceed this limit prevent Codex from loading the skill pack. Keep descriptions under 900 chars to leave headroom for future trigger additions. A CI test (`packages/cli/test/skill-description-length.test.ts`) enforces the 1024-char ceiling automatically.
+
 ## Contributing
 
 To add or improve a skill:
 
 1. Follow the existing SKILL.md structure (frontmatter + prerequisites + command index + operation flow)
 2. Place reference files in a `references/` subdirectory if the skill is large
-3. Keep `description` in the frontmatter exhaustive — it determines agent routing accuracy
-4. See [CONTRIBUTING.md](../CONTRIBUTING.md) for branch and review conventions
+3. List all distinct user-intent triggers in `description` as concisely as possible — combine redundant enumerations (e.g. "buy call"/"sell put"/"buy call option" → "buy call/put") rather than listing every variant separately; completeness of intent coverage drives routing accuracy
+4. Target ≤ 900 chars to leave headroom for future additions; hard ceiling is 1024 chars (enforced by CI)
+5. See [CONTRIBUTING.md](../CONTRIBUTING.md) for branch and review conventions
 
 ## License
 
