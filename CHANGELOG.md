@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`skills/okx-cex-auth/SKILL.md` — strict display templates + wait-for-signal flow**:
+  - Login initiation: upgraded from "example reply format" to strict CN/EN templates with four mandatory fields (`site`, `verificationUri`, `userCode`, `expiresIn`). Template wording is now normative — agents must not abbreviate, reword, reorder, or translate.
+  - Polling removed: agents no longer auto-poll `okx auth status --json` every 5–10 s. They now wait for the user to signal completion (e.g. "done", "好了"), then run `auth status --json` once to verify.
+  - Login success display: restricted to `site` + `scopes` only. Explicit negative list forbids surfacing `expiresAt` / `ttl` (these are access-token TTL, not OAuth session lifetime — tokens auto-refresh transparently) and `profile` (internal routing field). If asked about session longevity, agents must use the fixed phrase "Session stays active as long as you use the CLI periodically." and never quote a number.
+  - Cross-section consistency: Step 0.3 table and Login Status Check table updated to reference the new strict templates and wait-for-signal semantics.
+
 ### Fixed
 
 - **`suggestSubcommand` no longer hallucinate non-existent subcommand paths** (issue #179). Previously, the `x-y → y x` heuristic in `packages/cli/src/unknown-command.ts` would suggest `"<b> <a>"` whenever `b` appeared in the module's `knownActions` list, without verifying that the combined path actually exists. For example, `okx swap set-leverage` suggested `okx swap leverage set`, which is not a registered subcommand. Fix: `suggestSubcommand` now accepts a `knownPaths: readonly string[]` parameter and only returns the suggestion when the combined path is explicitly listed. The legitimate `place-algo → algo place` positive case (#173) is preserved — callers pass `["algo place", "algo cancel", ...]` as `knownPaths`. Modules without multi-token subcommand paths default to `[]`, suppressing spurious suggestions entirely.
