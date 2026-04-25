@@ -295,8 +295,8 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "spot_place_algo_order",
-            usage: "okx spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                    [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                    [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                    [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--tdMode <cash|cross|isolated>]",
-            description: "Place a spot algo order (take-profit/stop-loss)",
+            usage: "okx spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                    [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                    [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                    [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--tdMode <cash|cross|isolated>]\n                    trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                    chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                    iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]",
+            description: "Place a spot algo order (TP/SL, pending order, chase, iceberg, twap)",
           },
           trail: {
             toolName: "spot_place_algo_order",
@@ -396,8 +396,8 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "swap_place_algo_order",
-            usage: "okx swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
-            description: "Place a swap algo order (take-profit/stop-loss)",
+            usage: "okx swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]\n                   trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                   chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                   iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]",
+            description: "Place a swap algo order (TP/SL, pending order, chase, iceberg, twap)",
           },
           amend: {
             toolName: "swap_amend_algo_order",
@@ -491,7 +491,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "futures_place_algo_order",
-            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]\n                   trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                   chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                   iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]",
             description: "Place a futures algo order (take-profit/stop-loss)",
           },
           amend: {

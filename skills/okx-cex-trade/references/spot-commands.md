@@ -138,6 +138,42 @@ okx spot algo place --instId BTC-USDT --side sell --ordType conditional \
 
 ---
 
+## Spot — Phase 2 Algo ordTypes (trigger / chase / iceberg / twap)
+
+### Pending Order (trigger)
+
+```bash
+# Buy BTC when price drops to 30000 (limit at 30050):
+okx spot algo place --instId BTC-USDT --side buy --ordType trigger \
+  --sz 0.01 --triggerPx 30000 --orderPx 30050
+```
+
+### Chase Order (chase)
+
+```bash
+# Chase-buy at ratio 0.001, max ratio 0.01:
+okx spot algo place --instId BTC-USDT --side buy --ordType chase \
+  --sz 0.01 --chaseType ratio --chaseVal 0.001 --maxChaseType ratio --maxChaseVal 0.01
+```
+
+### Iceberg Order (iceberg)
+
+```bash
+# Sell 1 BTC in 0.1 BTC chunks every 5 seconds, price ceiling 31000:
+okx spot algo place --instId BTC-USDT --side sell --ordType iceberg \
+  --sz 1 --szLimit 0.1 --pxLimit 31000 --timeInterval 5 --pxVar 0.001
+```
+
+### TWAP Order (twap)
+
+```bash
+# Buy 0.5 BTC over time (0.1 BTC per 20s, price cap 30500):
+okx spot algo place --instId BTC-USDT --side buy --ordType twap \
+  --sz 0.5 --szLimit 0.1 --pxLimit 30500 --timeInterval 20 --pxSpread 20
+```
+
+---
+
 ## Spot — Amend Algo
 
 ```bash

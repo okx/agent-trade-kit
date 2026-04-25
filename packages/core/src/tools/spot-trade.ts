@@ -1,12 +1,18 @@
 import type { ToolSpec } from "./types.js";
 import {
+  CHASE_FLAGS_SCHEMA,
+  ICEBERG_TWAP_FLAGS_SCHEMA,
   SL_TRIGGER_PX_TYPE_SCHEMA,
   STP_MODE_SCHEMA,
   TP_ORD_KIND_SCHEMA,
   TP_TRIGGER_PX_TYPE_SCHEMA,
+  TRIGGER_FLAGS_SCHEMA,
   asRecord,
   assertEnum,
   buildAttachAlgoOrds,
+  buildChaseOrdTypeBody,
+  buildIcebergTwapOrdTypeBody,
+  buildTriggerOrdTypeBody,
   compactObject,
   normalizeResponse,
   readBoolean,
@@ -274,7 +280,10 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_place_algo_order",
       module: "spot",
       description:
-        "Place a spot algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). [CAUTION] Executes real trades.",
+        "Place a spot algo order. [CAUTION] Executes real trades. " +
+        "conditional: single TP/SL. oco: TP+SL pair. move_order_stop: trailing stop. " +
+        "trigger: pending order at triggerPx. chase: follow best bid/ask. " +
+        "iceberg: split large order into child orders. twap: time-weighted split.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -294,8 +303,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           ordType: {
             type: "string",
-            enum: ["conditional", "oco", "move_order_stop"],
-            description: "conditional=single TP/SL, oco=TP+SL pair, move_order_stop=trailing stop",
+            enum: ["conditional", "oco", "move_order_stop", "trigger", "chase", "iceberg", "twap"],
+            description: "conditional=single TP/SL, oco=TP+SL pair, move_order_stop=trailing stop, trigger=pending order, chase=follow best bid/ask, iceberg=split order, twap=time-weighted split",
           },
           sz: {
             type: "string",
@@ -338,33 +347,54 @@ export function registerSpotTradeTools(): ToolSpec[] {
             type: "string",
             description: "Activation price, trailing starts when market hits this (move_order_stop only)",
           },
+          ...TRIGGER_FLAGS_SCHEMA,
+          ...CHASE_FLAGS_SCHEMA,
+          ...ICEBERG_TWAP_FLAGS_SCHEMA,
         },
         required: ["instId", "side", "ordType", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const ordType = requireString(args, "ordType");
+        const base: Record<string, unknown> = compactObject({
+          instId: requireString(args, "instId"),
+          tdMode: readString(args, "tdMode") ?? "cash",
+          side: requireString(args, "side"),
+          ordType,
+          sz: requireString(args, "sz"),
+          tgtCcy: readString(args, "tgtCcy"),
+          stpMode: readString(args, "stpMode"),
+          tag: context.config.sourceTag,
+        });
+        switch (ordType) {
+                    case "trigger":
+            Object.assign(base, buildTriggerOrdTypeBody(args));
+            break;
+          case "chase":
+            Object.assign(base, buildChaseOrdTypeBody(args));
+            break;
+          case "iceberg":
+          case "twap":
+            Object.assign(base, buildIcebergTwapOrdTypeBody(args));
+            break;
+          default:
+            Object.assign(base, compactObject({
+              tpTriggerPx: readString(args, "tpTriggerPx"),
+              tpOrdPx: readString(args, "tpOrdPx"),
+              tpOrdKind: readString(args, "tpOrdKind"),
+              tpTriggerPxType: readString(args, "tpTriggerPxType"),
+              slTriggerPx: readString(args, "slTriggerPx"),
+              slOrdPx: readString(args, "slOrdPx"),
+              slTriggerPxType: readString(args, "slTriggerPxType"),
+              callbackRatio: readString(args, "callbackRatio"),
+              callbackSpread: readString(args, "callbackSpread"),
+              activePx: readString(args, "activePx"),
+            }));
+            break;
+        }
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
-          compactObject({
-            instId: requireString(args, "instId"),
-            tdMode: readString(args, "tdMode") ?? "cash",
-            side: requireString(args, "side"),
-            ordType: requireString(args, "ordType"),
-            sz: requireString(args, "sz"),
-            tgtCcy: readString(args, "tgtCcy"),
-            tpTriggerPx: readString(args, "tpTriggerPx"),
-            tpOrdPx: readString(args, "tpOrdPx"),
-            tpOrdKind: readString(args, "tpOrdKind"),
-            tpTriggerPxType: readString(args, "tpTriggerPxType"),
-            slTriggerPx: readString(args, "slTriggerPx"),
-            slOrdPx: readString(args, "slOrdPx"),
-            slTriggerPxType: readString(args, "slTriggerPxType"),
-            stpMode: readString(args, "stpMode"),
-            callbackRatio: readString(args, "callbackRatio"),
-            callbackSpread: readString(args, "callbackSpread"),
-            activePx: readString(args, "activePx"),
-            tag: context.config.sourceTag,
-          }),
+          base,
           privateRateLimit("spot_place_algo_order", 20),
         );
         return normalizeResponse(response);

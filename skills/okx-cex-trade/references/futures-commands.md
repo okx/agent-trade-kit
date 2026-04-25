@@ -251,6 +251,46 @@ okx futures algo trail --instId <id> --side <buy|sell> --sz <n> \
 
 ---
 
+## Futures — Phase 2 Algo ordTypes (trigger / chase / iceberg / twap)
+
+### Pending Order (trigger)
+
+```bash
+# Buy 1 BTC-USDT-250926 when price drops to 50000:
+okx futures algo place --instId BTC-USDT-250926 --side buy --ordType trigger \
+  --sz 1 --tdMode cross \
+  --triggerPx 50000 --orderPx 50100
+```
+
+### Chase Order (chase)
+
+```bash
+# Chase-sell at distance 1 tick, max distance 5 ticks:
+okx futures algo place --instId BTC-USDT-250926 --side sell --ordType chase \
+  --sz 2 --tdMode cross --posSide long \
+  --chaseType distance --chaseVal 1 --maxChaseType distance --maxChaseVal 5
+```
+
+### Iceberg Order (iceberg)
+
+```bash
+# Sell 10 contracts in 1-contract chunks every 15s, price ceiling 51000:
+okx futures algo place --instId BTC-USDT-250926 --side sell --ordType iceberg \
+  --sz 10 --tdMode cross --posSide long \
+  --szLimit 1 --pxLimit 51000 --timeInterval 15 --pxVar 0.002
+```
+
+### TWAP Order (twap)
+
+```bash
+# Buy 5 contracts over time (1 per 30s, price cap 50500):
+okx futures algo place --instId BTC-USDT-250926 --side buy --ordType twap \
+  --sz 5 --tdMode cross \
+  --szLimit 1 --pxLimit 50500 --timeInterval 30 --pxSpread 30
+```
+
+---
+
 ## Futures — Amend Algo
 
 ```bash

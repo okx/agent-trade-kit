@@ -33,6 +33,19 @@ export interface CliValues {
   slTriggerPxType?: string;
   stpMode?: string;
   cxlOnClosePos?: boolean;
+  // Phase 2 algo ordType flags (issue #181)
+  orderPx?: string;
+  advanceOrdType?: string;
+  triggerPxType?: string;
+  chaseType?: string;
+  chaseVal?: string;
+  maxChaseType?: string;
+  maxChaseVal?: string;
+  pxVar?: string;
+  pxSpread?: string;
+  szLimit?: string;
+  pxLimit?: string;
+  timeInterval?: string;
   algoId?: string;
   reduceOnly?: boolean;
   newSz?: string;
@@ -253,6 +266,19 @@ export const CLI_OPTIONS = {
   slTriggerPxType: { type: "string" },
   stpMode: { type: "string" },
   cxlOnClosePos: { type: "boolean", default: false },
+  // Phase 2 algo ordType flags (issue #181)
+  orderPx: { type: "string" },
+  advanceOrdType: { type: "string" },
+  triggerPxType: { type: "string" },
+  chaseType: { type: "string" },
+  chaseVal: { type: "string" },
+  maxChaseType: { type: "string" },
+  maxChaseVal: { type: "string" },
+  pxVar: { type: "string" },
+  pxSpread: { type: "string" },
+  szLimit: { type: "string" },
+  pxLimit: { type: "string" },
+  timeInterval: { type: "string" },
   algoId: { type: "string" },
   reduceOnly: { type: "boolean", default: false },
   // algo amend

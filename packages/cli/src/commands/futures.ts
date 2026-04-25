@@ -305,6 +305,22 @@ export async function cmdFuturesAlgoPlace(
     callbackRatio?: string;
     callbackSpread?: string;
     activePx?: string;
+    // Phase 2: trigger
+    triggerPx?: string;
+    orderPx?: string;
+    advanceOrdType?: string;
+    triggerPxType?: string;
+    // Phase 2: chase
+    chaseType?: string;
+    chaseVal?: string;
+    maxChaseType?: string;
+    maxChaseVal?: string;
+    // Phase 2: iceberg/twap
+    pxVar?: string;
+    pxSpread?: string;
+    szLimit?: string;
+    pxLimit?: string;
+    timeInterval?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -330,6 +346,19 @@ export async function cmdFuturesAlgoPlace(
     callbackRatio: opts.callbackRatio,
     callbackSpread: opts.callbackSpread,
     activePx: opts.activePx,
+    triggerPx: opts.triggerPx,
+    orderPx: opts.orderPx,
+    advanceOrdType: opts.advanceOrdType,
+    triggerPxType: opts.triggerPxType,
+    chaseType: opts.chaseType,
+    chaseVal: opts.chaseVal,
+    maxChaseType: opts.maxChaseType,
+    maxChaseVal: opts.maxChaseVal,
+    pxVar: opts.pxVar,
+    pxSpread: opts.pxSpread,
+    szLimit: opts.szLimit,
+    pxLimit: opts.pxLimit,
+    timeInterval: opts.timeInterval,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
