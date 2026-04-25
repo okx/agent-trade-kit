@@ -9,6 +9,7 @@ import {
   TRIGGER_FLAGS_SCHEMA,
   asRecord,
   assertEnum,
+  buildAlgoConditionalCommonFields,
   buildAttachAlgoOrds,
   buildChaseOrdTypeBody,
   buildIcebergTwapOrdTypeBody,
@@ -95,6 +96,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const attachAlgoOrds = buildAttachAlgoOrds(args);
+        const banAmend = args.banAmend;
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -107,6 +109,10 @@ export function registerSpotTradeTools(): ToolSpec[] {
             px: readString(args, "px"),
             clOrdId: readString(args, "clOrdId"),
             stpMode: readString(args, "stpMode"),
+            // Phase 3c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+            tradeQuoteCcy: readString(args, "tradeQuoteCcy"),
+            banAmend: typeof banAmend === "boolean" ? String(banAmend) : undefined,
+            pxAmendType: readString(args, "pxAmendType"),
             tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
@@ -364,6 +370,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
           sz: requireString(args, "sz"),
           tgtCcy: readString(args, "tgtCcy"),
           stpMode: readString(args, "stpMode"),
+          // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+          pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
         });
         switch (ordType) {
@@ -378,17 +386,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
+            // conditional / oco / move_order_stop — Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
             Object.assign(base, compactObject({
-              tpTriggerPx: readString(args, "tpTriggerPx"),
-              tpOrdPx: readString(args, "tpOrdPx"),
-              tpOrdKind: readString(args, "tpOrdKind"),
-              tpTriggerPxType: readString(args, "tpTriggerPxType"),
-              slTriggerPx: readString(args, "slTriggerPx"),
-              slOrdPx: readString(args, "slOrdPx"),
-              slTriggerPxType: readString(args, "slTriggerPxType"),
+              ...buildAlgoConditionalCommonFields(args),
               callbackRatio: readString(args, "callbackRatio"),
               callbackSpread: readString(args, "callbackSpread"),
-              activePx: readString(args, "activePx"),
             }));
             break;
         }

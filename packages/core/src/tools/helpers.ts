@@ -298,6 +298,30 @@ export function buildIcebergTwapOrdTypeBody(args: Record<string, unknown>): Reco
   });
 }
 
+/**
+ * Common conditional/oco/move_order_stop default-branch fields shared by
+ * swap/futures/spot algo handlers. Excludes the callback fields (`callBackRatio`
+ * / `callBackSpread` vs `callbackRatio` / `callbackSpread`) due to casing
+ * differences between modules; callers add those inline. Extracted to fix
+ * Sonar `new_duplicated_lines_density` flagging the identical 10-line block
+ * across all three algo tool handlers.
+ */
+export function buildAlgoConditionalCommonFields(args: Record<string, unknown>): Record<string, unknown> {
+  return {
+    tpTriggerPx: readString(args, "tpTriggerPx"),
+    tpOrdPx: readString(args, "tpOrdPx"),
+    tpOrdKind: readString(args, "tpOrdKind"),
+    tpTriggerPxType: readString(args, "tpTriggerPxType"),
+    tpTriggerRatio: readString(args, "tpTriggerRatio"),
+    slTriggerPx: readString(args, "slTriggerPx"),
+    slOrdPx: readString(args, "slOrdPx"),
+    slTriggerPxType: readString(args, "slTriggerPxType"),
+    slTriggerRatio: readString(args, "slTriggerRatio"),
+    closeFraction: readString(args, "closeFraction"),
+    activePx: readString(args, "activePx"),
+  };
+}
+
 export function buildAttachAlgoOrds(
   source: Record<string, unknown>,
 ): Record<string, unknown>[] | undefined {
@@ -308,6 +332,9 @@ export function buildAttachAlgoOrds(
   const tpOrdKind = readString(source, "tpOrdKind");
   const tpTriggerPxType = readString(source, "tpTriggerPxType");
   const slTriggerPxType = readString(source, "slTriggerPxType");
+  // Phase 3a+c CLI power-user flags — ratio-based triggers (issue #182, CLI-only)
+  const tpTriggerRatio = readString(source, "tpTriggerRatio");
+  const slTriggerRatio = readString(source, "slTriggerRatio");
   const entry = compactObject({
     tpTriggerPx,
     tpOrdPx,
@@ -316,6 +343,8 @@ export function buildAttachAlgoOrds(
     tpOrdKind,
     tpTriggerPxType,
     slTriggerPxType,
+    tpTriggerRatio,
+    slTriggerRatio,
   });
   return Object.keys(entry).length > 0 ? [entry] : undefined;
 }

@@ -167,3 +167,83 @@ for (const { name, cmd, instId, supportsCxlOnClosePos } of ALGO_MODULES) {
     });
   });
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3a+c: CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+// ---------------------------------------------------------------------------
+
+// Place: pxAmendType forwarded from all 3 modules
+for (const { name, cmd, instId } of PLACE_MODULES) {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place — Phase 3c flags`, () => {
+    it("forwards pxAmendType", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, { ...basePlaceOpts(instId), pxAmendType: "1" });
+      assert.equal(c.get().pxAmendType, "1");
+    });
+
+    it("omits Phase 3c flags when not provided (backward compat)", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, basePlaceOpts(instId));
+      assert.equal(c.get().pxAmendType, undefined, "pxAmendType must not leak");
+    });
+  });
+}
+
+// Spot place: tradeQuoteCcy and banAmend
+describe("cmdSpotPlace — Phase 3c spot-specific flags", () => {
+  it("forwards tradeQuoteCcy", async () => {
+    const c = makeCapture();
+    await cmdSpotPlace(c.runner, { ...basePlaceOpts("BTC-USDT"), tradeQuoteCcy: "USDC" } as Record<string, unknown> as Parameters<typeof cmdSpotPlace>[1]);
+    assert.equal(c.get().tradeQuoteCcy, "USDC");
+  });
+
+  it("forwards banAmend=true", async () => {
+    const c = makeCapture();
+    await cmdSpotPlace(c.runner, { ...basePlaceOpts("BTC-USDT"), banAmend: true } as Record<string, unknown> as Parameters<typeof cmdSpotPlace>[1]);
+    assert.equal(c.get().banAmend, true);
+  });
+
+  it("omits tradeQuoteCcy and banAmend when not provided (backward compat)", async () => {
+    const c = makeCapture();
+    await cmdSpotPlace(c.runner, basePlaceOpts("BTC-USDT") as Parameters<typeof cmdSpotPlace>[1]);
+    assert.equal(c.get().tradeQuoteCcy, undefined, "tradeQuoteCcy must not leak");
+    assert.equal(c.get().banAmend, undefined, "banAmend must not leak");
+  });
+});
+
+// Algo place: tpTriggerRatio, slTriggerRatio, closeFraction, pxAmendType
+for (const { name, cmd, instId } of ALGO_MODULES) {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — Phase 3a flags`, () => {
+    it("forwards tpTriggerRatio", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, { ...baseAlgoOpts(instId), tpTriggerRatio: "0.3" });
+      assert.equal(c.get().tpTriggerRatio, "0.3");
+    });
+
+    it("forwards slTriggerRatio", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, { ...baseAlgoOpts(instId), slTriggerRatio: "0.05" });
+      assert.equal(c.get().slTriggerRatio, "0.05");
+    });
+
+    it("forwards closeFraction", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, { ...baseAlgoOpts(instId), closeFraction: "0.5" });
+      assert.equal(c.get().closeFraction, "0.5");
+    });
+
+    it("forwards pxAmendType", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, { ...baseAlgoOpts(instId), pxAmendType: "0" });
+      assert.equal(c.get().pxAmendType, "0");
+    });
+
+    it("omits Phase 3a flags when not provided (backward compat)", async () => {
+      const c = makeCapture();
+      await cmd(c.runner, baseAlgoOpts(instId));
+      for (const k of ["tpTriggerRatio", "slTriggerRatio", "closeFraction", "pxAmendType"]) {
+        assert.equal(c.get()[k], undefined, `${k} must not leak into payload`);
+      }
+    });
+  });
+}

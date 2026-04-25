@@ -9,6 +9,7 @@ import {
   TP_TRIGGER_PX_TYPE_SCHEMA,
   TRIGGER_FLAGS_SCHEMA,
   asRecord,
+  buildAlgoConditionalCommonFields,
   buildAttachAlgoOrds,
   buildChaseOrdTypeBody,
   buildIcebergTwapOrdTypeBody,
@@ -145,6 +146,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
           reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
           clOrdId: readString(args, "clOrdId"),
+          // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+          pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
         });
         switch (ordType) {
@@ -159,18 +162,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop — Phase 1 / pre-existing behavior
+            // conditional / oco / move_order_stop — Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
             Object.assign(base, compactObject({
-              tpTriggerPx: readString(args, "tpTriggerPx"),
-              tpOrdPx: readString(args, "tpOrdPx"),
-              tpOrdKind: readString(args, "tpOrdKind"),
-              tpTriggerPxType: readString(args, "tpTriggerPxType"),
-              slTriggerPx: readString(args, "slTriggerPx"),
-              slOrdPx: readString(args, "slOrdPx"),
-              slTriggerPxType: readString(args, "slTriggerPxType"),
+              ...buildAlgoConditionalCommonFields(args),
               callBackRatio: readString(args, "callbackRatio"),
               callBackSpread: readString(args, "callbackSpread"),
-              activePx: readString(args, "activePx"),
             }));
             break;
         }
@@ -535,6 +531,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
           reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
           clOrdId: readString(args, "clOrdId"),
+          // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+          pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
         });
         switch (ordType) {
@@ -549,17 +547,11 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
+            // conditional / oco / move_order_stop — Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
             Object.assign(base, compactObject({
-              tpTriggerPx: readString(args, "tpTriggerPx"),
-              tpOrdPx: readString(args, "tpOrdPx"),
-              tpOrdKind: readString(args, "tpOrdKind"),
-              tpTriggerPxType: readString(args, "tpTriggerPxType"),
-              slTriggerPx: readString(args, "slTriggerPx"),
-              slOrdPx: readString(args, "slOrdPx"),
-              slTriggerPxType: readString(args, "slTriggerPxType"),
+              ...buildAlgoConditionalCommonFields(args),
               callBackRatio: readString(args, "callbackRatio"),
               callBackSpread: readString(args, "callbackSpread"),
-              activePx: readString(args, "activePx"),
             }));
             break;
         }
