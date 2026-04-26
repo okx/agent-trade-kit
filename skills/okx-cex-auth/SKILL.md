@@ -102,8 +102,8 @@ Use `auth status --json`:
 
 | `status` value  | Action |
 | --------------- | ------ |
-| `logged_in`     | **STOP.** Tell the user "你已通过 OAuth 登录，站点: <site>, 权限: <scopes>" and proceed. |
-| `pending`       | Previous login in progress — follow [Login Flow](#login-flow) polling. Do NOT start a new login. |
+| `logged_in`     | **STOP.** Reply using the success template from [Agent login procedure](#agent-login-procedure) Step 3 `logged_in` branch (site + scopes only; see its negative-list rules), then proceed. |
+| `pending`       | Previous login in progress — follow [Login Flow](#login-flow) wait-for-signal procedure. Do NOT start a new login, do NOT auto-poll. |
 | `not_logged_in` | Proceed to [Login Flow](#login-flow) with the site chosen in Step 0.1. |
 
 ## Pre-login Gate (MANDATORY — do not run `okx auth login` without this)
@@ -139,24 +139,63 @@ Worked counter-example (anti-pattern):
 
    > ⚠ **CRITICAL.** The tool-output panel in many UIs (openclaw-control-ui, Claude Desktop, IDE chat panels) is collapsible and users may run with it hidden by default. If the URL and code appear ONLY in tool stdout, users cannot authorize. You MUST echo the parsed fields in your own natural-language response so they render as plain chat text.
 
-   Parse the JSON returned by the previous step and include **all three** fields below in your reply. Do not abbreviate with "the link above" or "the code from the output" — repeat the full URL and the full code inline. Example reply format (Chinese):
+   Parse the JSON returned by the previous step and reply using **exactly one** of the templates below (verbatim except for field substitution). The wording is normative — do not abbreviate, reword, reorder, or translate.
+
+   **Chinese template** (use when the user is conversing in Chinese):
 
    ```
    请在浏览器中打开下面的链接并输入验证码完成授权：
 
+   站点：<site>
    链接：<verificationUri>
    验证码：<userCode>
    （有效期 <expiresIn>/60 分钟）
 
-   我会每隔几秒检查一次你的授权状态，等你在浏览器上完成即可。
+   通过链接完成授权，然后告诉我。
    ```
 
-   English equivalent is fine when the user is conversing in English. Either way, the URL and code must appear as plain text in the assistant message.
+   **English template** (use when the user is conversing in English):
 
-3. **Poll for completion** by running `okx auth status --json` periodically (every 5–10 seconds).
-   - `"status": "pending"` → still waiting for user authorization, keep polling
-   - `"status": "logged_in"` → success. Tell the user "你已通过 OAuth 登录，站点: <site>, 权限: <scopes>" and proceed with the user's original request.
-   - `"status": "not_logged_in"` → the device code expired or was rejected, ask the user if they want to retry
+   ```
+   Please open the link below in your browser and enter the verification code to authorize:
+
+   Site: <site>
+   URL: <verificationUri>
+   Code: <userCode>
+   (Valid for <expiresIn/60> minutes)
+
+   Please authorise current session with access to your account, tell me when you are done.
+   ```
+
+   All four fields — `site`, `verificationUri`, `userCode`, `expiresIn` — must appear as plain text in the assistant message.
+
+3. **Wait for the user to signal completion** (e.g. "done", "ok", "好了", "完成了"). Do NOT auto-poll. Upon receiving the signal, run `okx auth status --json` **once** to verify, then branch:
+   - `"status": "logged_in"` → success. Reply using **exactly one** of the templates below (verbatim except for field substitution), then proceed with the user's original request in the same turn.
+
+     **Chinese template**:
+
+     ```
+     登录成功。
+     站点：<site>
+     权限：<scopes>
+     ```
+
+     **English template**:
+
+     ```
+     Login successful.
+     Site: <site>
+     Scopes: <scopes>
+     ```
+
+     **DO NOT include any other field from `auth status --json` in this reply.** Specifically:
+     - `expiresAt` / `ttl` refer to the short-lived access token, not the OAuth session. The CLI auto-refreshes tokens transparently; surfacing these values will mislead users into thinking their login expires soon.
+     - `profile` is an internal routing field with no user value.
+     - Only `site` and `scopes` are user-relevant.
+     - If asked about session longevity, say "Session stays active as long as you use the CLI periodically." Do not quote a number.
+
+   - `"status": "pending"` → authorization not yet complete; tell the user it's not done yet and wait for another signal. Do NOT auto-poll.
+   - `"status": "not_logged_in"` → device code expired or was rejected; ask the user whether to retry.
 
 4. **Do NOT run any other `okx` commands** while waiting for authorization.
 
@@ -207,7 +246,7 @@ Run `okx auth status --json` to check login status. Parse the JSON output:
 | `status` value   | Meaning                        | Action                          |
 | ----------------- | ------------------------------ | ------------------------------- |
 | `logged_in`       | Valid session                  | Proceed                        |
-| `pending`         | Login in progress              | Keep polling                   |
+| `pending`         | Login in progress              | Wait for user to signal completion; do NOT auto-poll |
 | `not_logged_in`   | No active session              | Run `okx auth login --manual`  |
 
 ## Re-authentication (Session Expired)
