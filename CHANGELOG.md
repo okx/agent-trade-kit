@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2-beta.7] - 2026-04-27
+
 ### Changed
 
 - **`skills/okx-cex-auth/SKILL.md` — strict display templates + wait-for-signal flow**:

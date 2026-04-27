@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.2-beta.7] - 2026-04-27
+
 ### 变更
 
 - **`skills/okx-cex-auth/SKILL.md` — 严格展示模板 + 等用户信号流程**：

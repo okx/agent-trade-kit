@@ -13,7 +13,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.2-beta.4"
+        package: "@okx_ai/okx-trade-cli@1.3.2-beta.7"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
