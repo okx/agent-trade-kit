@@ -9,6 +9,14 @@
 
 ---
 
+## [Unreleased]
+
+### 变更
+
+- **`skills/okx-cex-smartmoney` — 从 skill 描述中剥离跟单类触发词**：移除 SKILL.md description 中的 `带单员` / `lead traders` 关键词，以及 `references/workflows.md` 中的「推荐带单员」示例。Smart money 专属触发词（`top traders` / `leaderboard` / `牛人榜` / `交易员排行` / `recommend traders` 等）保持不变。
+
+---
+
 ## [1.3.2] - 2026-04-27
 
 ### 变更
