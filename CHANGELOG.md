@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`skills/okx-cex-smartmoney` — drop copy-trading triggers from skill description**: removed `带单员` / `lead traders` from the SKILL.md description and the "推荐带单员" example in `references/workflows.md`. Smart-money-specific triggers (`top traders`, `leaderboard`, `牛人榜`, `交易员排行`, `recommend traders`, etc.) are preserved.
+- **`skills/okx-cex-smartmoney`**: drop off-scope `带单员` / `lead traders` triggers from skill and workflows; align Prerequisites and Credential & Profile Check with `okx-cex-earn` (OAuth-friendly `okx config init`, dual-source auth check, 401 routes to `okx-cex-auth` skill).
 
 ---
 

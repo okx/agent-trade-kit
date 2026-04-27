@@ -13,7 +13,7 @@
 
 ### 变更
 
-- **`skills/okx-cex-smartmoney` — 从 skill 描述中剥离跟单类触发词**：移除 SKILL.md description 中的 `带单员` / `lead traders` 关键词，以及 `references/workflows.md` 中的「推荐带单员」示例。Smart money 专属触发词（`top traders` / `leaderboard` / `牛人榜` / `交易员排行` / `recommend traders` 等）保持不变。
+- **`skills/okx-cex-smartmoney`**：从 skill 与 workflows 中移除不属于本域的 `带单员` / `lead traders` 触发词；Prerequisites 与 Credential & Profile Check 对齐 `okx-cex-earn`（改用 `okx config init` OAuth 流程、双源校验、401 引导到 `okx-cex-auth` skill）。
 
 ---
 

@@ -34,22 +34,35 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
    ```
 2. Configure credentials:
    ```bash
-   okx config add-profile AK=<your_api_key> SK=<your_secret_key> PP=<your_passphrase> name=live
-   # or interactive wizard:
-   okx config init
+   okx config init   # select site -> follow browser OAuth flow
    ```
-3. Verify: `okx --profile live smartmoney traders --limit 5`
+3. Verify: `okx smartmoney traders`
+
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ---
 
 ## Credential & Profile Check
 
-Run `okx config show` before any authenticated command.
+Run **both** commands before any authenticated command — the `apiKey` field from `okx auth status --json` is the auth-binary's internal state and is always `false` regardless of whether `~/.okx/config.toml` has an API-key profile. `okx config show --json` is the only authoritative source for API-key presence. The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
 
-- Error or no configuration → **stop**, guide user to run `okx config init`, wait for completion.
-- Credentials configured → proceed.
+```bash
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
+```
 
-**On 401 errors:** stop immediately, tell the user their credentials may be invalid or expired, guide them to update `~/.okx/config.toml` (do NOT ask them to paste credentials into chat), then verify with `okx config show` and retry.
+Apply **in this order** — first match wins:
+
+- `config show --json` has any profile with a non-empty `api_key` field → **API Key mode**. Proceed.
+- No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` → **OAuth mode**. Proceed.
+- No API-key profile **AND** `"status":"pending"` — login is in progress, wait for it to complete.
+- No API-key profile **AND** `"status":"not_logged_in"` — **stop**, load `okx-cex-auth` skill and follow login steps, wait for completion.
+
+Smart Money does not support demo mode (leaderboard data is live-only). Always use live mode silently — don't mention it unless there's an error.
+- **API Key users**: use `--profile <live-profile>` (the profile without `demo=true`).
+- **OAuth users**: no flag needed (live is the default).
+
+**On authentication errors (401 / "Session expired" / "Run `okx auth login` first"):** stop immediately, load `okx-cex-auth` skill and follow re-authentication steps, then retry.
 
 ---
 
@@ -61,7 +74,7 @@ Run `okx config show` before any authenticated command.
 | Spot / swap / futures / options orders | `okx-cex-trade` |
 | Account balance, positions, transfers | `okx-cex-portfolio` |
 | Grid / DCA trading bots | `okx-cex-bot` |
-| Simple Earn, On-chain Earn, DCD | `okx-cex-earn` |
+| Simple Earn, Flash Earn, On-chain Earn, Dual Investment (双币赢), or AutoEarn (自动赚币) | `okx-cex-earn` |
 | Smart Money leaderboard, signals, trader analytics | **This skill** |
 
 ---
@@ -93,7 +106,7 @@ For full command syntax and parameters, read `{baseDir}/references/trader-comman
 
 ### Step 0 — Credential & Profile Check
 
-Before any command: see [Credential & Profile Check](#credential--profile-check). Always use `--profile live` silently.
+Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Always use live mode silently.
 
 ### Step 1 — Identify intent
 
