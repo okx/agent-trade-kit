@@ -186,8 +186,12 @@ export async function cmdOptionPlace(
     clOrdId?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
+    tpOrdKind?: string;
+    tpTriggerPxType?: string;
     slTriggerPx?: string;
     slOrdPx?: string;
+    slTriggerPxType?: string;
+    stpMode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -203,8 +207,12 @@ export async function cmdOptionPlace(
     clOrdId: opts.clOrdId,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
+    tpOrdKind: opts.tpOrdKind,
+    tpTriggerPxType: opts.tpTriggerPxType,
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
+    slTriggerPxType: opts.slTriggerPxType,
+    stpMode: opts.stpMode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

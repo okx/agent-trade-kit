@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Phase 1 algo order flags — `--tpOrdKind`, `--tpTriggerPxType`, `--slTriggerPxType`, `--stpMode`, `--cxlOnClosePos`** (issue #178). Five new optional flags for trade order placement, closing the highest-ROI subset of the CLI/MCP↔OKX OpenAPI drift. `--tpOrdKind limit` places an immediate limit TP order (no trigger phase). `--tpTriggerPxType`/`--slTriggerPxType` control the TP/SL trigger price source (`last`/`index`/`mark`). `--stpMode` enables self-trade prevention (`cancel_maker`/`cancel_taker`/`cancel_both`). `--cxlOnClosePos` auto-cancels algo orders when the associated position closes. All flags are optional; not passing them yields identical wire payload as before. Applies to: `okx {swap,spot,futures,option} place`, `okx {swap,futures} algo place`, `okx spot algo place`.
+
 ### Fixed
 
 - **`suggestSubcommand` no longer hallucinate non-existent subcommand paths** (issue #179). Previously, the `x-y → y x` heuristic in `packages/cli/src/unknown-command.ts` would suggest `"<b> <a>"` whenever `b` appeared in the module's `knownActions` list, without verifying that the combined path actually exists. For example, `okx swap set-leverage` suggested `okx swap leverage set`, which is not a registered subcommand. Fix: `suggestSubcommand` now accepts a `knownPaths: readonly string[]` parameter and only returns the suggestion when the combined path is explicitly listed. The legitimate `place-algo → algo place` positive case (#173) is preserved — callers pass `["algo place", "algo cancel", ...]` as `knownPaths`. Modules without multi-token subcommand paths default to `[]`, suppressing spurious suggestions entirely.

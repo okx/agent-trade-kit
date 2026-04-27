@@ -27,6 +27,12 @@ export interface CliValues {
   tpOrdPx?: string;
   slTriggerPx?: string;
   slOrdPx?: string;
+  // Phase 1 algo order flags (issue #178)
+  tpOrdKind?: string;
+  tpTriggerPxType?: string;
+  slTriggerPxType?: string;
+  stpMode?: string;
+  cxlOnClosePos?: boolean;
   algoId?: string;
   reduceOnly?: boolean;
   newSz?: string;
@@ -241,6 +247,12 @@ export const CLI_OPTIONS = {
   tpOrdPx: { type: "string" },
   slTriggerPx: { type: "string" },
   slOrdPx: { type: "string" },
+  // Phase 1 algo order flags (issue #178)
+  tpOrdKind: { type: "string" },
+  tpTriggerPxType: { type: "string" },
+  slTriggerPxType: { type: "string" },
+  stpMode: { type: "string" },
+  cxlOnClosePos: { type: "boolean", default: false },
   algoId: { type: "string" },
   reduceOnly: { type: "boolean", default: false },
   // algo amend

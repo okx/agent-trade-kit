@@ -41,8 +41,12 @@ okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | No | - | Attached take-profit trigger price |
 | `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
 | `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
 | `--clOrdId` | No | - | Client-assigned order ID (max 32 chars alphanumeric + `-` `_`) |
 
 ---
@@ -123,8 +127,9 @@ okx swap algo place --instId <id> --side <buy|sell> \
   [--clOrdId <id>] \
   [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--reduceOnly] \
-  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] [--slTriggerPxType <last|index|mark>] \
+  [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos] \
   [--callbackRatio <r>] [--callbackSpread <s>] [--activePx <p>] \
   [--json]
 ```
@@ -142,8 +147,13 @@ okx swap algo place --instId <id> --side <buy|sell> \
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
 | `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
 | `--slTriggerPx` | Cond. | - | Stop-loss trigger price |
 | `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
+| `--cxlOnClosePos` | No | false | Auto-cancel this algo order when the position is closed |
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |
@@ -162,6 +172,27 @@ okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
 okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
   --sz 500 --tgtCcy margin --tdMode cross --posSide long \
   --slTriggerPx 60000 --slOrdPx=-1
+```
+
+**Example — Immediate limit-order TP (tpOrdKind limit) — exits at a specific price without waiting for a trigger phase:**
+```bash
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx 105000 --tpOrdKind limit
+```
+
+**Example — Self-trade prevention (stpMode cancel_maker) — cancel maker side on self-trade:**
+```bash
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx=-1 --stpMode cancel_maker
+```
+
+**Example — Auto-cancel on position close (cxlOnClosePos):**
+```bash
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx=-1 --cxlOnClosePos
 ```
 
 ---

@@ -1,5 +1,10 @@
 import type { ToolSpec } from "./types.js";
 import {
+  CXL_ON_CLOSE_POS_SCHEMA,
+  SL_TRIGGER_PX_TYPE_SCHEMA,
+  STP_MODE_SCHEMA,
+  TP_ORD_KIND_SCHEMA,
+  TP_TRIGGER_PX_TYPE_SCHEMA,
   asRecord,
   compactObject,
   normalizeResponse,
@@ -61,11 +66,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "TP order price; -1=market (conditional/oco only)",
           },
-          tpTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          tpOrdKind: TP_ORD_KIND_SCHEMA,
+          tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
           slTriggerPx: {
             type: "string",
             description: "SL trigger price (conditional/oco only)",
@@ -74,11 +76,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "SL order price; -1=market (recommended) (conditional/oco only)",
           },
-          slTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+          stpMode: STP_MODE_SCHEMA,
+          cxlOnClosePos: CXL_ON_CLOSE_POS_SCHEMA,
           callbackRatio: {
             type: "string",
             description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread (move_order_stop only)",
@@ -110,6 +110,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const cxlOnClosePos = args.cxlOnClosePos;
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -130,10 +131,13 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             tgtCcy: resolved.tgtCcy,
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
+            tpOrdKind: readString(args, "tpOrdKind"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),
             slTriggerPx: readString(args, "slTriggerPx"),
             slOrdPx: readString(args, "slOrdPx"),
             slTriggerPxType: readString(args, "slTriggerPxType"),
+            stpMode: readString(args, "stpMode"),
+            cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
             callBackRatio: readString(args, "callbackRatio"),
             callBackSpread: readString(args, "callbackSpread"),
             activePx: readString(args, "activePx"),
@@ -428,11 +432,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "TP order price; -1=market (conditional/oco only)",
           },
-          tpTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          tpOrdKind: TP_ORD_KIND_SCHEMA,
+          tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
           slTriggerPx: {
             type: "string",
             description: "SL trigger price (conditional/oco only)",
@@ -441,11 +442,9 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "SL order price; -1=market (conditional/oco only)",
           },
-          slTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+          stpMode: STP_MODE_SCHEMA,
+          cxlOnClosePos: CXL_ON_CLOSE_POS_SCHEMA,
           callbackRatio: {
             type: "string",
             description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread (move_order_stop only)",
@@ -477,6 +476,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const cxlOnClosePos = args.cxlOnClosePos;
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -497,10 +497,13 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             tgtCcy: resolved.tgtCcy,
             tpTriggerPx: readString(args, "tpTriggerPx"),
             tpOrdPx: readString(args, "tpOrdPx"),
+            tpOrdKind: readString(args, "tpOrdKind"),
             tpTriggerPxType: readString(args, "tpTriggerPxType"),
             slTriggerPx: readString(args, "slTriggerPx"),
             slOrdPx: readString(args, "slOrdPx"),
             slTriggerPxType: readString(args, "slTriggerPxType"),
+            stpMode: readString(args, "stpMode"),
+            cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
             callBackRatio: readString(args, "callbackRatio"),
             callBackSpread: readString(args, "callbackSpread"),
             activePx: readString(args, "activePx"),
