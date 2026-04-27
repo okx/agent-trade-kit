@@ -6,6 +6,10 @@
 import type { ToolSpec } from "./types.js";
 import type { ModuleId } from "../constants.js";
 import {
+  SL_TRIGGER_PX_TYPE_SCHEMA,
+  STP_MODE_SCHEMA,
+  TP_ORD_KIND_SCHEMA,
+  TP_TRIGGER_PX_TYPE_SCHEMA,
   asRecord,
   assertEnum,
   buildAttachAlgoOrds,
@@ -88,8 +92,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           clOrdId: { type: "string", description: "Client order ID (max 32 chars)" },
           tpTriggerPx: { type: "string", description: "TP trigger price" },
           tpOrdPx: { type: "string", description: "TP order price; -1=market" },
+          tpOrdKind: TP_ORD_KIND_SCHEMA,
+          tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
           slTriggerPx: { type: "string", description: "SL trigger price" },
           slOrdPx: { type: "string", description: "SL order price; -1=market" },
+          slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+          stpMode: STP_MODE_SCHEMA,
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
@@ -118,6 +126,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
+            stpMode: readString(args, "stpMode"),
             tag: context.config.sourceTag,
             attachAlgoOrds,
           }),

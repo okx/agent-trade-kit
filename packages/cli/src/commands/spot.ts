@@ -60,8 +60,12 @@ export async function cmdSpotPlace(
     clOrdId?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
+    tpOrdKind?: string;
+    tpTriggerPxType?: string;
     slTriggerPx?: string;
     slOrdPx?: string;
+    slTriggerPxType?: string;
+    stpMode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -76,8 +80,12 @@ export async function cmdSpotPlace(
     clOrdId: opts.clOrdId,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
+    tpOrdKind: opts.tpOrdKind,
+    tpTriggerPxType: opts.tpTriggerPxType,
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
+    slTriggerPxType: opts.slTriggerPxType,
+    stpMode: opts.stpMode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -108,8 +116,12 @@ export async function cmdSpotAlgoPlace(
     tgtCcy?: string;
     tpTriggerPx?: string;
     tpOrdPx?: string;
+    tpOrdKind?: string;
+    tpTriggerPxType?: string;
     slTriggerPx?: string;
     slOrdPx?: string;
+    slTriggerPxType?: string;
+    stpMode?: string;
     callbackRatio?: string;
     callbackSpread?: string;
     activePx?: string;
@@ -126,8 +138,12 @@ export async function cmdSpotAlgoPlace(
     tgtCcy: opts.tgtCcy,
     tpTriggerPx: opts.tpTriggerPx,
     tpOrdPx: opts.tpOrdPx,
+    tpOrdKind: opts.tpOrdKind,
+    tpTriggerPxType: opts.tpTriggerPxType,
     slTriggerPx: opts.slTriggerPx,
     slOrdPx: opts.slOrdPx,
+    slTriggerPxType: opts.slTriggerPxType,
+    stpMode: opts.stpMode,
     callbackRatio: opts.callbackRatio,
     callbackSpread: opts.callbackSpread,
     activePx: opts.activePx,

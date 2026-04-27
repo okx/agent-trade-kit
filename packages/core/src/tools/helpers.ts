@@ -131,6 +131,61 @@ export function validateSwapInstId(instId: string): void {
   }
 }
 
+/**
+ * Shared inputSchema fragments for Phase 1 algo-flag fields (#178).
+ * Spread into a tool's `properties` object to avoid duplicating the same
+ * enum + description across every place / algo-place tool. Consolidated to
+ * resolve Sonar `new_duplicated_lines_density` flag on MR !289.
+ */
+export const TP_ORD_KIND_SCHEMA = {
+  type: "string",
+  enum: ["condition", "limit"],
+  description: "condition(default)=trigger-based TP; limit=immediate limit order (no trigger phase)",
+} as const;
+
+export const TP_TRIGGER_PX_TYPE_SCHEMA = {
+  type: "string",
+  enum: ["last", "index", "mark"],
+  description: "TP trigger price source: last(default)|index|mark",
+} as const;
+
+export const SL_TRIGGER_PX_TYPE_SCHEMA = {
+  type: "string",
+  enum: ["last", "index", "mark"],
+  description: "SL trigger price source: last(default)|index|mark",
+} as const;
+
+export const STP_MODE_SCHEMA = {
+  type: "string",
+  enum: ["cancel_maker", "cancel_taker", "cancel_both"],
+  description: "Self-trade prevention: cancel_maker|cancel_taker|cancel_both",
+} as const;
+
+export const CXL_ON_CLOSE_POS_SCHEMA = {
+  type: "boolean",
+  description: "Auto-cancel TP/SL when associated position closes (algo only)",
+} as const;
+
+/**
+ * Convenience grouping of all 5 Phase 1 algo flags applicable to PLACE-ORDER
+ * tools (no cxlOnClosePos — that's algo-only).
+ */
+export const PHASE1_PLACE_FLAGS_SCHEMA = {
+  tpOrdKind: TP_ORD_KIND_SCHEMA,
+  tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
+  slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+  stpMode: STP_MODE_SCHEMA,
+} as const;
+
+/**
+ * All 5 Phase 1 algo flags including cxlOnClosePos for ALGO-PLACE tools that
+ * support it (swap, futures). Spot algo does not support cxlOnClosePos.
+ */
+export const PHASE1_ALGO_FLAGS_SCHEMA = {
+  ...PHASE1_PLACE_FLAGS_SCHEMA,
+  cxlOnClosePos: CXL_ON_CLOSE_POS_SCHEMA,
+} as const;
+
 export function buildAttachAlgoOrds(
   source: Record<string, unknown>,
 ): Record<string, unknown>[] | undefined {
@@ -138,6 +193,17 @@ export function buildAttachAlgoOrds(
   const tpOrdPx = readString(source, "tpOrdPx");
   const slTriggerPx = readString(source, "slTriggerPx");
   const slOrdPx = readString(source, "slOrdPx");
-  const entry = compactObject({ tpTriggerPx, tpOrdPx, slTriggerPx, slOrdPx });
+  const tpOrdKind = readString(source, "tpOrdKind");
+  const tpTriggerPxType = readString(source, "tpTriggerPxType");
+  const slTriggerPxType = readString(source, "slTriggerPxType");
+  const entry = compactObject({
+    tpTriggerPx,
+    tpOrdPx,
+    slTriggerPx,
+    slOrdPx,
+    tpOrdKind,
+    tpTriggerPxType,
+    slTriggerPxType,
+  });
   return Object.keys(entry).length > 0 ? [entry] : undefined;
 }

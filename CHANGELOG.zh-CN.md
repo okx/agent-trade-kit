@@ -19,6 +19,10 @@
   - 登录成功展示：仅保留 `站点` + `权限` 两个字段。显式负面清单禁止暴露 `expiresAt` / `ttl`（这是 access token TTL，不是 OAuth session 有效期，token 会自动展期，显示会误导用户以为马上过期）和 `profile`（内部路由字段）。用户询问 session 何时过期时，必须使用固定话术 "Session stays active as long as you use the CLI periodically."，禁止引用具体数字。
   - 跨段落一致性：Step 0.3 表格与 Login Status Check 表格已同步引用新模板与等信号语义。
 
+### 新增
+
+- **Phase 1 算法订单参数 — `--tpOrdKind`、`--tpTriggerPxType`、`--slTriggerPxType`、`--stpMode`、`--cxlOnClosePos`**（issue #178）。新增五个可选参数，补齐 CLI/MCP 与 OKX OpenAPI 的高优先级参数差距。`--tpOrdKind limit` 立即以限价挂单形式下止盈（无触发阶段）。`--tpTriggerPxType`/`--slTriggerPxType` 控制止盈/止损触发价来源（`last`/`index`/`mark`）。`--stpMode` 启用自成交保护（`cancel_maker`/`cancel_taker`/`cancel_both`）。`--cxlOnClosePos` 在对应仓位平仓时自动撤销算法订单。所有参数均为可选；不传则与旧版行为完全一致，向后兼容。适用于：`okx {swap,spot,futures,option} place`、`okx {swap,futures} algo place`、`okx spot algo place`。
+
 ### 修复
 
 - **`suggestSubcommand` 不再幻觉出不存在的子命令路径**（issue #179）。此前，`packages/cli/src/unknown-command.ts` 中的 `x-y → y x` 启发式规则只要 `b` 出现在模块的 `knownActions` 列表中就会建议 `"<b> <a>"`，而不验证该路径是否真实存在。例如 `okx swap set-leverage` 会建议 `okx swap leverage set`，但该子命令根本不存在。修复方案：`suggestSubcommand` 新增 `knownPaths: readonly string[]` 参数，仅当组合路径被明确列出时才返回建议。`place-algo → algo place` 的正向场景（#173）得以保留——调用方传入 `["algo place", "algo cancel", ...]` 作为 `knownPaths`。不含多词子命令路径的模块默认传 `[]`，完全屏蔽错误建议。

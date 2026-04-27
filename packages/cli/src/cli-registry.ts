@@ -259,7 +259,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "spot_place_order",
-        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]\n                [--tgtCcy <base_ccy|quote_ccy>] [--clOrdId <id>]\n                [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]\n                [--tgtCcy <base_ccy|quote_ccy>] [--clOrdId <id>]\n                [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                [--stpMode <cancel_maker|cancel_taker|cancel_both>]",
         description: "Place a new spot order (supports attached TP/SL)",
       },
       amend: {
@@ -295,7 +295,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "spot_place_algo_order",
-            usage: "okx spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                    [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]\n                    [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--tdMode <cash|cross|isolated>]",
+            usage: "okx spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                    [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                    [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                    [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--tdMode <cash|cross|isolated>]",
             description: "Place a spot algo order (take-profit/stop-loss)",
           },
           trail: {
@@ -344,7 +344,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "swap_place_order",
-        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>]\n               [--tdMode <cross|isolated>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>]\n               [--tdMode <cross|isolated>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n               [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n               [--stpMode <cancel_maker|cancel_taker|cancel_both>]",
         description: "Place a new perpetual swap order (supports attached TP/SL)",
       },
       cancel: {
@@ -396,7 +396,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "swap_place_algo_order",
-            usage: "okx swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            usage: "okx swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
             description: "Place a swap algo order (take-profit/stop-loss)",
           },
           amend: {
@@ -435,7 +435,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "futures_place_order",
-        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tgtCcy <base_ccy|quote_ccy|margin>] [--clOrdId <id>]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tgtCcy <base_ccy|quote_ccy|margin>] [--clOrdId <id>]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                 [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                 [--stpMode <cancel_maker|cancel_taker|cancel_both>]",
         description: "Place a new futures order (supports attached TP/SL)",
       },
       cancel: {
@@ -491,7 +491,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "futures_place_algo_order",
-            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
             description: "Place a futures algo order (take-profit/stop-loss)",
           },
           amend: {
@@ -545,7 +545,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "option_place_order",
-        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--slTriggerPx <price>] [--slOrdPx <price|-1>]",
+        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n               [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n               [--stpMode <cancel_maker|cancel_taker|cancel_both>]",
         description: "Place a new option order",
       },
       cancel: {
@@ -575,7 +575,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "option_place_algo_order",
-            usage: "okx option algo place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --sz <n>\n                   [--ordType <conditional|oco>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--reduceOnly] [--clOrdId <id>]",
+            usage: "okx option algo place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --sz <n>\n                   [--ordType <conditional|oco>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--reduceOnly] [--clOrdId <id>]",
             description: "Place an option algo order (take-profit/stop-loss)",
           },
           amend: {
