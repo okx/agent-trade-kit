@@ -1,7 +1,8 @@
 import { BOT_DEFAULT_SUB_MODULES, BOT_SUB_MODULE_IDS, EARN_SUB_MODULE_IDS, DEFAULT_MODULES, DEFAULT_SOURCE_TAG, MODULES, OKX_SITES, SITE_IDS, type ModuleId, type SiteId } from "./constants.js";
 import { ConfigError } from "./utils/errors.js";
-import { readTomlProfile } from "./config/toml.js";
+import { readFullConfig } from "./config/toml.js";
 import type { OkxProfile } from "./config/toml.js";
+import { execAuthStatus } from "./auth/binary.js";
 
 export interface CliOptions {
   modules?: string;
@@ -19,7 +20,10 @@ export interface OkxConfig {
   apiKey?: string;
   secretKey?: string;
   passphrase?: string;
+  /** True if any credentials are available (OAuth token OR API key). */
   hasAuth: boolean;
+  /** Resolved profile name — used for OAuth token storage path. */
+  profile: string;
   baseUrl: string;
   timeoutMs: number;
   modules: ModuleId[];
@@ -75,18 +79,28 @@ function parseModuleList(rawModules?: string): ModuleId[] {
   return Array.from(deduped);
 }
 
-function loadCredentials(toml: OkxProfile): { apiKey?: string; secretKey?: string; passphrase?: string; hasAuth: boolean } {
+async function loadCredentials(toml: OkxProfile): Promise<{ apiKey?: string; secretKey?: string; passphrase?: string; hasAuth: boolean }> {
   const apiKey = process.env.OKX_API_KEY?.trim() ?? toml.api_key;
   const secretKey = process.env.OKX_SECRET_KEY?.trim() ?? toml.secret_key;
   const passphrase = process.env.OKX_PASSPHRASE?.trim() ?? toml.passphrase;
-  const hasAuth = Boolean(apiKey && secretKey && passphrase);
+  const hasApiKey = Boolean(apiKey && secretKey && passphrase);
   const partialAuth = Boolean(apiKey) || Boolean(secretKey) || Boolean(passphrase);
-  if (partialAuth && !hasAuth) {
+  if (partialAuth && !hasApiKey) {
     throw new ConfigError(
       "Partial API credentials detected.",
       "Set OKX_API_KEY, OKX_SECRET_KEY and OKX_PASSPHRASE together (env vars or config.toml profile).",
     );
   }
+
+  // hasAuth = true if either OAuth tokens (via okx-auth binary) or API key exists
+  // Auth mode is determined dynamically by rest-client at request time
+  let hasOAuth = false;
+  if (!hasApiKey) {
+    const status = await execAuthStatus();
+    hasOAuth = status?.status === "logged_in";
+  }
+  const hasAuth = hasOAuth || hasApiKey;
+
   return { apiKey, secretKey, passphrase, hasAuth };
 }
 
@@ -144,9 +158,11 @@ function resolveDemo(cli: CliOptions, toml: OkxProfile): boolean {
     (toml.demo ?? false);
 }
 
-export function loadConfig(cli: CliOptions): OkxConfig {
-  const toml = readTomlProfile(cli.profile);
-  const creds = loadCredentials(toml);
+export async function loadConfig(cli: CliOptions): Promise<OkxConfig> {
+  const config = readFullConfig();
+  const profileName = cli.profile ?? config.default_profile ?? "default";
+  const toml = config.profiles?.[profileName] ?? {};
+  const creds = await loadCredentials(toml);
 
   const demo = resolveDemo(cli, toml);
 
@@ -174,6 +190,7 @@ export function loadConfig(cli: CliOptions): OkxConfig {
 
   return {
     ...creds,
+    profile: profileName,
     baseUrl,
     timeoutMs: Math.floor(rawTimeout),
     modules: parseModuleList(cli.modules),

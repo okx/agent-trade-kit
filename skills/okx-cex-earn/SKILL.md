@@ -4,7 +4,7 @@ description: "Manages OKX Simple Earn (flexible savings/lending), Flash Earn, On
 license: MIT
 metadata:
   author: okx
-  version: "1.3.1"
+  version: "1.3.2"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.2"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -32,24 +32,35 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
    ```
 2. Configure credentials:
    ```bash
-   okx config add-profile AK=<your_api_key> SK=<your_secret_key> PP=<your_passphrase> name=live
-   # or interactive wizard:
-   okx config init
+   okx config init   # select site -> follow browser OAuth flow
    ```
-3. Verify: `okx --profile live earn savings balance`
+3. Verify: `okx earn savings balance`
+
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ---
 
 ## Credential & Profile Check
 
-Run `okx config show` before any authenticated command.
+Run **both** commands before any authenticated command — the `apiKey` field from `okx auth status --json` is the auth-binary's internal state and is always `false` regardless of whether `~/.okx/config.toml` has an API-key profile. `okx config show --json` is the only authoritative source for API-key presence. The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
 
-- Error or no configuration → **stop**, guide user to run `okx config init`, wait for completion.
-- Credentials configured → proceed.
+```bash
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
+```
 
-OKX Earn does not support demo mode. Always use `--profile live` silently — don't mention it unless there's an error.
+Apply **in this order** — first match wins:
 
-**On 401 errors:** stop immediately, tell the user their credentials may be invalid or expired, guide them to update `~/.okx/config.toml` (do NOT ask them to paste credentials into chat), then verify with `okx config show` and retry.
+- `config show --json` has any profile with a non-empty `api_key` field → **API Key mode**. Proceed.
+- No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` → **OAuth mode**. Proceed.
+- No API-key profile **AND** `"status":"pending"` — login is in progress, wait for it to complete.
+- No API-key profile **AND** `"status":"not_logged_in"` — **stop**, load `okx-cex-auth` skill and follow login steps, wait for completion.
+
+OKX Earn does not support demo mode. Always use live mode silently — don't mention it unless there's an error.
+- **API Key users**: use `--profile <live-profile>` (the profile without `demo=true`).
+- **OAuth users**: no flag needed (live is the default).
+
+**On authentication errors (401 / "Session expired" / "Run `okx auth login` first"):** stop immediately, load `okx-cex-auth` skill and follow re-authentication steps, then retry.
 
 ---
 
@@ -94,7 +105,7 @@ For full command syntax, rate field semantics, and confirmation templates, read 
 | `earn dcd orders` | READ | Required | Full order list / history |
 | `earn dcd redeem-execute --ordId` | WRITE | Required | Two-step early redemption: preview then execute |
 
-> DCD does **not** support demo/simulated trading mode. Always use `--profile live`.
+> DCD does **not** support demo/simulated trading mode. Always use live mode (API Key: `--profile <live-profile>`; OAuth: no flag needed).
 
 For full command syntax, product concepts, and error codes, read `{baseDir}/references/dcd-commands.md`.
 
@@ -135,7 +146,7 @@ For full command syntax, earnType inference rules, and MCP tool reference, read 
 
 ### Step 0 — Credential & Profile Check
 
-Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Always use `--profile live` silently.
+Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Always use live mode silently.
 
 ### Step 1 — Identify earn intent
 
@@ -163,10 +174,10 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 When user asks to view "earn positions" or "赚币持仓" (regardless of whether they mention DCD explicitly), query all position-bearing sub-modules simultaneously (Flash Earn is query-only, no positions):
 
 ```bash
-okx --profile live earn savings balance --json        # Simple Earn Flexible (活期)
-okx --profile live earn savings fixed-orders --json   # Simple Earn Fixed (定期)
-okx --profile live earn onchain orders --json         # On-chain Earn
-okx --profile live earn dcd orders --json             # Dual Investment (双币赢)
+okx earn savings balance --json        # Simple Earn Flexible (活期)
+okx earn savings fixed-orders --json   # Simple Earn Fixed (定期)
+okx earn onchain orders --json         # On-chain Earn
+okx earn dcd orders --json             # Dual Investment (双币赢)
 ```
 
 Only present sections that have actual holdings. For DCD: translate state codes using the table in `{baseDir}/references/dcd-commands.md`.

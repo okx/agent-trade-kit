@@ -4,7 +4,7 @@ description: "Use this skill when the user asks to: 'find a trading skill', 'sea
 license: MIT
 metadata:
   author: okx
-  version: "1.3.1"
+  version: "1.3.2"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.2"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---

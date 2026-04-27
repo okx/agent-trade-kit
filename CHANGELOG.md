@@ -9,9 +9,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.3.2] - 2026-04-27
+
+### Changed
+
+- **`skills/okx-cex-auth/SKILL.md` — strict display templates + wait-for-signal flow**:
+  - Login initiation: upgraded from "example reply format" to strict CN/EN templates with four mandatory fields (`site`, `verificationUri`, `userCode`, `expiresIn`). Template wording is now normative — agents must not abbreviate, reword, reorder, or translate.
+  - Polling removed: agents no longer auto-poll `okx auth status --json` every 5–10 s. They now wait for the user to signal completion (e.g. "done", "好了"), then run `auth status --json` once to verify.
+  - Login success display: restricted to `site` + `scopes` only. Explicit negative list forbids surfacing `expiresAt` / `ttl` (these are access-token TTL, not OAuth session lifetime — tokens auto-refresh transparently) and `profile` (internal routing field). If asked about session longevity, agents must use the fixed phrase "Session stays active as long as you use the CLI periodically." and never quote a number.
+  - Cross-section consistency: Step 0.3 table and Login Status Check table updated to reference the new strict templates and wait-for-signal semantics.
+
+### Fixed
+
+- **`suggestSubcommand` no longer hallucinate non-existent subcommand paths** (issue #179). Previously, the `x-y → y x` heuristic in `packages/cli/src/unknown-command.ts` would suggest `"<b> <a>"` whenever `b` appeared in the module's `knownActions` list, without verifying that the combined path actually exists. For example, `okx swap set-leverage` suggested `okx swap leverage set`, which is not a registered subcommand. Fix: `suggestSubcommand` now accepts a `knownPaths: readonly string[]` parameter and only returns the suggestion when the combined path is explicitly listed. The legitimate `place-algo → algo place` positive case (#173) is preserved — callers pass `["algo place", "algo cancel", ...]` as `knownPaths`. Modules without multi-token subcommand paths default to `[]`, suppressing spurious suggestions entirely.
+- **Codex CLI blocked from loading `okx-cex-trade` skill** — description field exceeded the 1024-char Codex limit (was 1448 chars). Trimmed by deduping synonymous trigger phrases; all concrete trade-type triggers preserved. Pre-emptively trimmed `okx-sentiment-tracker` (944 → 652 chars) and `okx-cex-market` (887 → 706 chars) for headroom. Added CI test `packages/cli/test/skill-description-length.test.ts` to enforce the 1024-char ceiling going forward.
+
+## [1.3.2-beta.4] - 2026-04-24
+
+### Added
+
+- **OAuth Bearer token authentication (`okx auth`)**: New authentication method via the `okx-auth` Rust binary. Supports OAuth 2.1 device flow — `okx auth login` initiates browser-based login, `okx auth status` shows session state, `okx auth logout` revokes tokens. The binary handles token storage, refresh (300 s TTL lead), and scrypt + AES-256-GCM encryption. Tokens are read via fd3 pipe at request time with a 60 s JS-side cache. Auth mode is selected dynamically per request: API key HMAC (if configured) takes priority; OAuth Bearer token is used as fallback.
+- **`okx auth install/install-status/remove` CLI commands**: Manage the `okx-auth` binary installation. CDN download with checksum verification, atomic replacement, and multi-source fallback — mirrors the DoH installer pattern.
+- **`skills/okx-cex-auth/SKILL.md`**: New skill documentation for OAuth authentication workflows.
+- **`postinstall` auto-download for okx-auth binary**: Best-effort download alongside the existing DoH binary during `npm install`.
+- **`context-kg/` knowledge base**: Added `technical/06-oauth-authentication.md` covering OAuth subsystem architecture, binary distribution, fd3 token retrieval, auth priority, and CLI commands.
+
+### Changed
+
+- **`loadConfig()` is now async** (returns `Promise<OkxConfig>`): Startup now calls `execAuthStatus()` to detect OAuth login state.
+- **`OkxConfig` requires `profile` field**: Resolved profile name is now included for OAuth token storage path resolution.
+- **`OkxRestClient.buildHeaders()` is now async**: Supports dynamic auth method selection (API key HMAC or OAuth Bearer token) at request time.
+- **`PLATFORM_MAP["linux-arm64"]` now maps to `linux-x64`** (`packages/core/src/pilot/installer.ts`). This matches the standard Docker Desktop test environment on Apple Silicon, where containers run under `linux/amd64` emulation. Native `linux-arm64` hosts will therefore install the `linux-x64` binary and rely on the host's binfmt / emulation layer. This is a deliberate alias, not a regression of the issue #166 fix — the entry is still present, just pointing at the x64 directory. A native `linux-arm64` CDN directory is tracked as future work.
+
+### Fixed
+
+- **`okx auth login` now refuses to start OAuth when API-key credentials are already configured.** Previously, `cmdAuthLogin` always spawned the `okx-auth` binary regardless of `~/.okx/config.toml` state. An agent following older guidance could start an OAuth device flow on a machine whose API-key profile was already good, producing a confusing login prompt and a URL/code the user did not need. `cmdAuthLogin` now calls `readFullConfig()` first: if any profile has a non-empty `api_key`, it prints `"API key already configured (profile: <name>). OAuth login skipped — API key will be used automatically."` and returns exit 0 without spawning the binary. In `--manual` mode the same outcome is encoded as JSON `{"status":"skipped","reason":"api_key_configured","profile":"<name>","message":"..."}` so agents can detect it programmatically. This belt-and-suspenders with the REST client's existing API-key preference (`rest-client.ts applyAuth` — API key is checked first and never falls back to OAuth).
+
+- **`skills/okx-cex-auth/SKILL.md` pre-flight decision tree rewritten** to match the three-step flow: (1) check whether any `site` has been selected (union of `config show --json` profiles and `auth status --json`), and if not, present the site menu in chat verbatim before any login attempt; (2) check `api_key` — stop if present; (3) only then proceed to OAuth with the chosen `--site`. Previously the tree offered "First-Time Setup **or** Login Flow" as interchangeable paths for the "no credential" case, which let the model skip site selection and fall back to the OAuth binary's default (`global`). Also corrected the false claim that `okx config init` "handles site selection and OAuth login in one flow" — `cmdConfigInit` is an API-key wizard (site + demo/live + AK/SK/PP) and never performs OAuth. A new **Step 0.2.a** section was added for the invalid-API-key case: when an API-key profile exists but the API call returns `401 Unauthorized` / `Invalid Sign`, OAuth login is **not** a valid remediation (the REST client still prefers the broken API key; any OAuth token obtained afterwards would go unused). The agent must present exactly two neutral options — replace the API key, or remove the broken profile before starting OAuth — and let the user choose. This prevents the Haiku 4.5 failure mode observed in openclaw where the agent silently labelled OAuth as "recommended" even though OAuth could not have worked without first clearing the broken profile.
+
+- **`skills/_shared/preflight.md` and `skills/okx-cex-portfolio/SKILL.md` auth-method detection corrected.** Both files previously used the `apiKey` field from `okx auth status --json` to branch between API-key and OAuth mode. That field reports the `okx-auth` binary's internal state and is **always** `false` regardless of whether `~/.okx/config.toml` contains an API-key profile; it cannot detect API-key users. Consequence: an agent following the old preflight would see `apiKey: false, status: not_logged_in`, conclude "no auth", and route the user into the OAuth login skill — even when a valid API-key profile already existed. Both files now require running **both** `okx config show --json` (authoritative for API-key presence) and `okx auth status --json` (authoritative for OAuth session state), with a decision table that checks API-key first and never relies on the unreliable `apiKey` status field.
+
+- **`skills/okx-cex-trade/SKILL.md`, `skills/okx-cex-bot/SKILL.md`, `skills/okx-cex-earn/SKILL.md` Step A auth detection corrected.** Same class of bug as the preflight/portfolio fix above: the three skills' credential checks branched on `auth status --json` → `apiKey` (always `false`), so API-key users were misrouted into the OAuth login skill. Step A now runs both `okx config show --json` and `okx auth status --json`, checks API-key presence first, and only falls through to OAuth when no API-key profile is configured.
 
 ## [1.3.2-beta.3] - 2026-04-23
+
+### Fixed
+
+- **`event_get_orders` / `event_get_fills` returning empty arrays** — root cause: for EVENTS instType, `/api/v5/trade/fills` (3-day window) often returns empty while `/api/v5/trade/fills-history` (3-month) contains the data. The wrapper lacked `archive` mode and other query parameters. Added `archive` mode for fills, `status` (open/history/archive) routing for orders, time-range filters (`begin`/`end`), cursor pagination (`after`/`before`), and `ordId` filter. Also confirmed that `instFamily` is NOT supported for EVENTS on trade endpoints (causes HTTP 400). Response now includes `requestParams` for debugging.
 
 ### Changed
 

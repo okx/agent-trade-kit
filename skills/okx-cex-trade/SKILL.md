@@ -1,10 +1,10 @@
 ---
 name: okx-cex-trade
-description: "This skill should be used when the user asks to 'buy BTC', 'sell ETH', 'place a limit order', 'place a market order', 'cancel my order', 'amend my order', 'long BTC perp', 'short ETH swap', 'open a position', 'close a position', 'set take profit', 'set stop loss', 'add a trailing stop', 'set leverage', 'check my orders', 'order status', 'fill history', 'trade history', 'buy a call', 'sell a put', 'buy call option', 'sell put option', 'option chain', 'implied volatility', 'IV', 'option Greeks', 'delta', 'gamma', 'theta', 'vega', 'delta hedge', 'option order', 'option position', 'option fills', 'event contract', 'buy Yes', 'buy No', 'buy Up', 'buy Down', 'BTC above', 'price above', '15min price', 'prediction market', 'browse event contracts', 'what event contracts are available', 'show event contracts', 'list event contracts', 'active event contracts', 'available prediction markets', 'how many event contracts', or any request to browse, place, cancel, or amend spot, perpetual swap, delivery futures, options, or event contract orders on OKX CEX. Covers spot trading, swap/perpetual contracts, delivery futures, options (calls/puts, Greeks, IV), event contracts (browsing available markets AND binary Yes/No or Up/Down trading), and conditional (TP/SL/trailing) algo orders. Requires API credentials. Do NOT use for market data (use okx-cex-market), account balance/positions (use okx-cex-portfolio), or grid/DCA bots (use okx-cex-bot)."
+description: "Use this skill when the user asks to 'buy BTC', 'sell ETH', 'place a limit order', 'cancel my order', 'amend my order', 'long BTC perp', 'short ETH swap', 'open a position', 'close a position', 'set TP/SL', 'trailing stop', 'set leverage', 'check my orders', 'fill history', 'buy/sell call/put option', 'option chain', 'implied volatility', 'IV', 'option Greeks (delta/gamma/theta/vega)', 'delta hedge', 'option fills', 'event contract', 'buy Yes/No', 'buy Up/Down', 'BTC above', 'price above', '15min price', 'prediction market', 'browse event contracts', 'list event contracts', 'available prediction markets', or any request to browse, place, cancel, or amend spot, swap, futures, options, or event contract orders on OKX. Covers spot trading, perpetual swap, delivery futures, options (calls/puts, Greeks, IV), event contracts (Yes/No, Up/Down), and algo orders (TP/SL/trailing). Requires API credentials. Do NOT use for market data (okx-cex-market), balances/positions (okx-cex-portfolio), or bots (okx-cex-bot)."
 license: MIT
 metadata:
   author: okx
-  version: "1.3.1"
+  version: "1.3.2"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.2"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -36,74 +36,71 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
    ```
 2. Configure credentials:
    ```bash
-   okx config init
-   ```
-   Or set environment variables:
-   ```bash
-   export OKX_API_KEY=your_key
-   export OKX_SECRET_KEY=your_secret
-   export OKX_PASSPHRASE=your_passphrase
+   okx config init   # select site -> follow browser OAuth flow
    ```
 3. Test with demo mode (simulated trading, no real funds):
    ```bash
-   okx --profile demo spot orders
+   okx --demo spot orders
    ```
+
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ## Credential & Profile Check
 
-**Run this check before any authenticated command.**
+**Run this check before any authenticated command.** The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
 
 ### Step A — Verify credentials
 
+Run **both** commands — the `apiKey` field from `okx auth status --json` is the auth-binary's internal state and is always `false` regardless of whether `~/.okx/config.toml` has an API-key profile. `okx config show --json` is the only authoritative source for API-key presence.
+
 ```bash
-okx config show       # verify configuration status (output is masked)
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
 ```
 
-- If the command returns an error or shows no configuration: **stop all operations**, guide the user to run `okx config init`, and wait for setup to complete before retrying.
-- If credentials are configured: proceed to Step B.
+Apply **in this order** — first match wins:
 
-### Step B — Confirm profile (required)
+- `config show --json` has any profile with a non-empty `api_key` field → **API Key mode**. Proceed to Step B.
+- No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` → **OAuth mode**. Proceed to Step B.
+- No API-key profile **AND** `"status":"pending"` — login is in progress, wait for it to complete.
+- No API-key profile **AND** `"status":"not_logged_in"` — **stop all operations**, load `okx-cex-auth` skill and follow login steps, wait for completion.
 
-`--profile` is **required** for all authenticated commands. Never add a profile implicitly.
-
-| Value | Mode | Funds |
-|---|---|---|
-| `live` | 实盘 | Real funds |
-| `demo` | 模拟盘 | Simulated funds |
+### Step B — Confirm trading mode
 
 **Resolution rules:**
-1. Current message intent is clear (e.g. "real" / "实盘" / "live" → `live`; "test" / "模拟" / "demo" → `demo`) → use it and inform the user: `"Using --profile live (实盘)"` or `"Using --profile demo (模拟盘)"`
-2. Current message has no explicit declaration → check conversation context for a previous profile:
-   - Found → use it, inform user: `"Continuing with --profile live (实盘) from earlier"`
+1. Current message intent is clear (e.g. "real" / "实盘" / "live" → live; "test" / "模拟" / "demo" → demo) → use it and inform the user
+2. Current message has no explicit declaration → check conversation context for a previous choice:
+   - Found → reuse it, inform user
    - Not found → ask: `"Live (实盘) or Demo (模拟盘)?"` — wait for answer before proceeding
 
-### Handling 401 Authentication Errors
+**How to apply the mode depends on auth method (detected in Step A):**
 
-If any command returns a 401 / authentication error:
+| Auth method | Live (实盘) | Demo (模拟盘) |
+|---|---|---|
+| **API Key** | `--profile <live-profile>` | `--profile <demo-profile>` |
+| **OAuth** | *(no flag needed, live is default)* | `--demo` |
+
+- **API Key users**: run `okx config show --json` to discover available profile names and their `demo` settings. Use `--profile <name>` to select the correct one.
+- **OAuth users**: omit flags for live trading; add `--demo` for simulated trading. Do **not** use `--profile` to switch modes.
+
+### Handling Authentication Errors
+
+**Authentication error** (error contains "401", "Session expired", or "Run `okx auth login` first"):
 1. **Stop immediately** — do not retry the same command
-2. Inform the user: "Authentication failed (401). Your API credentials may be invalid or expired."
-3. Guide the user to update credentials by editing the file directly with their local editor:
-   ```
-   ~/.okx/config.toml
-   ```
-   Update the fields `api_key`, `secret_key`, `passphrase` under the relevant profile.
-   Do NOT paste the new credentials into chat.
-4. After the user confirms the file is updated, run `okx config show` to verify (output is masked)
-5. Only then retry the original operation
+2. Inform the user: "Authentication failed. Your session may have expired."
+3. Load `okx-cex-auth` skill and follow the re-authentication steps
+4. After successful re-authentication, retry the original command
 
 ## Demo vs Live Mode
 
-Profile is the single control for 实盘/模拟盘 switching:
-
-| `--profile` | Mode | Funds |
-|---|---|---|
-| `live` | 实盘 | Real money — irreversible |
-| `demo` | 模拟盘 | Simulated — no real funds |
+| Mode | Funds | API Key param | OAuth param |
+|---|---|---|---|
+| 实盘 (live) | Real money — irreversible | `--profile <live-profile>` | *(default, no flag)* |
+| 模拟盘 (demo) | Simulated — no real funds | `--profile <demo-profile>` | `--demo` |
 
 **Rules:**
-1. `--profile` is **required** on every authenticated command — determined in "Credential & Profile Check" Step B
-2. Every response after a command must append: `[profile: live]` or `[profile: demo]`
-3. Do **not** use the `--demo` flag for mode switching — use `--profile` instead
+1. Trading mode is **required** on every authenticated command — determined in "Credential & Profile Check" Step B
+2. Every response after a command must append: `[mode: live]` or `[mode: demo]`
 
 ## Skill Routing
 
@@ -328,9 +325,9 @@ For full command syntax, parameter tables, and edge cases, read `{baseDir}/refer
 
 ### Step 0 — Credential & Profile Check
 
-Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Determine profile (`live` or `demo`) before executing.
+Before any authenticated command: see [Credential & Profile Check](#credential--profile-check). Determine auth method and trading mode before executing.
 
-After every command result: append `[profile: live]` or `[profile: demo]`.
+After every command result: append `[mode: live]` or `[mode: demo]`.
 
 ### Step 1 — Identify instrument type and action
 
@@ -375,7 +372,7 @@ Event contract trading flow:
 2. **Browse live markets** → `okx event markets <seriesId> --state live` — obtains the instrument ID for each tradeable contract; if a live Price is shown, it is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading
 3. **Check event details** → `okx event events <seriesId>`
 4. **Confirm + Place** → `okx event place <instId> <side> <outcome> <sz>` — only after user explicitly confirms
-5. **Track** → `okx event orders --state live` / `okx account positions --instType EVENTS`
+5. **Track** → `okx event orders --status open` / `okx account positions --instType EVENTS`
 6. **Exit or settle** → sell via `okx event place <instId> sell <outcome> <sz>`, or wait for `--state expired`
 
 Edge cases:
@@ -441,13 +438,13 @@ This applies to all error codes whose messages suggest destructive actions, incl
 - After swap algo place/trail: run `okx swap algo orders` to confirm algo is active
 - After futures algo place/trail: run `okx futures algo orders` to confirm algo is active
 - After cancel: run `okx spot orders` / `okx swap orders` / `okx futures orders` / `okx event orders` to confirm order is gone
-- After `event place`: run `okx event orders --state live` to confirm order is pending
+- After `event place`: run `okx event orders --status open` to confirm order is pending
 - After `event cancel`: run `okx event orders` to confirm order is gone
 
 ## Global Notes
 
-- All write commands require valid credentials in `~/.okx/config.toml` or env vars
-- `--profile <name>` is required for all authenticated commands
+- All write commands require valid credentials (OAuth session or API key in `~/.okx/config.toml`)
+- Auth method and trading mode are determined in "Credential & Profile Check"; see that section for parameter rules
 - `--json` returns the raw OKX API v5 response by default. Add `--env` to wrap the output as `{"env": "<live|demo>", "profile": "<name>", "data": <response>}` — useful when you need to know the active environment and credential profile
 - Rate limit: 60 order operations per 2 seconds per UID
 - Batch operations (batch cancel, batch amend) are available via MCP tools directly if needed

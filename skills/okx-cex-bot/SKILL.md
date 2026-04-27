@@ -4,7 +4,7 @@ description: Manage Grid bots (spot/contract/coin-margined) and DCA Martingale b
 license: MIT
 metadata:
   author: okx
-  version: "1.3.1"
+  version: "1.3.2"
   homepage: "https://www.okx.com"
   agent:
     emoji: "🤖"
@@ -13,7 +13,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.2"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -31,46 +31,56 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
 
 ```bash
 npm install -g @okx_ai/okx-trade-cli
+okx config init   # select site -> follow browser OAuth flow
 ```
 
-Check credentials, then set up if missing:
-
-```bash
-okx config show          # shows configured profiles (api_key shows last 4 chars)
-okx config init          # interactive wizard if not configured
-```
-
-> **Security**: NEVER accept API credentials in chat. Guide users to `okx config init` or edit `~/.okx/config.toml` directly.
+> **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
 ## Credential & Profile Check
 
-**Run before every authenticated command.**
+**Run before every authenticated command.** The auth method is detected during [preflight](../_shared/preflight.md) Step 2 and remembered for the session.
 
 ### Step A — Verify credentials
 
+Run **both** commands — the `apiKey` field from `okx auth status --json` is the auth-binary's internal state and is always `false` regardless of whether `~/.okx/config.toml` has an API-key profile. `okx config show --json` is the only authoritative source for API-key presence.
+
 ```bash
-okx config show
+okx config show --json      # reveals API-key profiles (TOML config)
+okx auth status --json      # reveals OAuth session state (auth-binary state)
 ```
 
-If no configuration → stop, guide user to `okx config init`, wait for completion.
+Apply **in this order** — first match wins:
 
-### Step B — Determine profile (required)
+- `config show --json` has any profile with a non-empty `api_key` field → **API Key mode**. Proceed to Step B.
+- No API-key profile **AND** `auth status --json` returns `"status":"logged_in"` → **OAuth mode**. Proceed to Step B.
+- No API-key profile **AND** `"status":"pending"` — login is in progress, wait for it to complete.
+- No API-key profile **AND** `"status":"not_logged_in"` — stop, load `okx-cex-auth` skill and follow login steps, wait for completion.
 
-| `--profile` | Mode | Funds |
-|---|---|---|
-| `live` | 实盘 | Real money |
-| `demo` | 模拟盘 | Simulated, safe for testing |
+### Step B — Confirm trading mode
 
 Resolution:
-1. User intent is clear ("real"/"实盘"/"live" → `live`; "test"/"模拟"/"demo" → `demo`) → use it, inform user
-2. No explicit declaration → check conversation context for previous profile → use it if found
+1. User intent is clear ("real"/"实盘"/"live" → live; "test"/"模拟"/"demo" → demo) → use it, inform user
+2. No explicit declaration → check conversation context for previous choice → reuse if found
 3. Nothing found → ask: "Live (实盘) or Demo (模拟盘)?" — wait before proceeding
 
-**After every command**: append `[profile: live]` or `[profile: demo]`
+**How to apply the mode depends on auth method (detected in Step A):**
+
+| Auth method | Live (实盘) | Demo (模拟盘) |
+|---|---|---|
+| **API Key** | `--profile <live-profile>` | `--profile <demo-profile>` |
+| **OAuth** | *(no flag needed, live is default)* | `--demo` |
+
+- **API Key users**: run `okx config show --json` to discover available profile names and their `demo` settings.
+- **OAuth users**: omit flags for live; add `--demo` for simulated trading.
+
+**After every command**: append `[mode: live]` or `[mode: demo]`
 
 ### Handling 401 Errors
 
-Stop immediately. Guide user to update `~/.okx/config.toml` with their editor. Verify with `okx config show` before retrying.
+**Authentication error** (error contains "401", "Session expired", or "Run `okx auth login` first"):
+1. Stop immediately
+2. Load `okx-cex-auth` skill and follow re-authentication steps
+3. Retry original command
 
 ## Skill Routing
 
@@ -466,7 +476,7 @@ okx bot dca orders --algoOrdType spot_dca
 - **Amend — spot grid topUpAmt**: not supported; omit `--topUpAmt` for spot grids
 - **Already stopped bot**: stop returns error — check `bot grid orders --history` first to confirm state
 - **Insufficient margin (51340)**: extract required minimum from error, check balance via `okx-cex-portfolio`, report shortfall to user — do NOT auto-transfer
-- **Demo mode**: `okx --profile demo bot grid create ...` — safe for testing, no real funds
+- **Demo mode**: `okx --demo bot grid create ...` (OAuth) or `okx --profile <demo-profile> bot grid create ...` (API Key) — safe for testing, no real funds
 - **algoClOrdId duplicate**: if the same `algoClOrdId` already exists, the API returns error code `51065`
 
 ### DCA Bot
@@ -478,7 +488,7 @@ okx bot dca orders --algoOrdType spot_dca
 - **volMult**: `1.0` = equal sizes; `>1.0` = increase per safety order (Martingale scaling)
 - **triggerStrategy**: `instant` starts immediately; `price` waits for trigger price (contract_dca only); `rsi` waits for RSI condition (both spot_dca and contract_dca)
 - **Already stopped bot**: stop returns error — check `bot dca orders --history` first
-- **Demo mode**: `okx --profile demo bot dca create ...` — safe testing, no real funds
+- **Demo mode**: `okx --demo bot dca create ...` (OAuth) or `okx --profile <demo-profile> bot dca create ...` (API Key) — safe testing, no real funds
 - **INVALID_PRICE_STEPS_MULTIPLIER error**: adjust `slPct`. Recalculate MPD = Σ(pxSteps × pxStepsMult^i) for i = 0..maxSafetyOrds−1, then set `slPct` > MPD
 - **algoClOrdId duplicate**: error code `51065`
 
@@ -554,7 +564,7 @@ okx bot dca orders --algoOrdType spot_dca
 ## Global Notes
 
 - All bots run on OKX servers — stopping the CLI does not affect them
-- `--profile` is required for all authenticated commands
+- Auth method and trading mode are determined in "Credential & Profile Check"; see that section for parameter rules
 - `--json` returns the raw OKX API v5 response by default. Add `--env` to wrap the output as `{"env": "<live|demo>", "profile": "<name>", "data": <response>}`
 - Rate limit: 20 requests per 2 seconds per UID
 - Grid `--gridNum` range: 2–100

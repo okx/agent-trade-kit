@@ -1,10 +1,10 @@
 ---
 name: okx-cex-market
-description: "Use this skill when the user asks for: price of any asset, ticker, order book, market depth, candles, OHLCV, funding rate, open interest, open interest history, OI change scanner, market screener/filter (top movers, high-volume, high-OI, newly listed), mark price, index price, recent trades, price limit, instrument list, stock tokens, metals prices (gold, silver, XAU, XAG), commodities prices (oil, crude, natural gas, OIL), forex rates (EUR/USD, GBP/USD, EURUSDT), bond instruments, non-crypto assets, tradeable instruments by category, or any technical indicator query (RSI, MACD, EMA, MA, Bollinger Bands, KDJ, SuperTrend, AHR999, BTC rainbow, and 70+ more indicators). All commands are read-only and do NOT require API credentials. Do NOT use for account balance/positions (use okx-cex-portfolio), placing/cancelling orders (use okx-cex-trade), or grid/DCA bots (use okx-cex-bot)."
+description: "Use this skill when the user asks for: price of any asset, ticker, order book, candles, OHLCV, funding rate, open interest, OI change scanner, market screener (top movers, high-volume, newly listed), mark price, index price, recent trades, instrument list, stock tokens, metals prices (gold, XAU, XAG), commodities (oil, OIL), forex rates (EUR/USD, EURUSDT), bond instruments, non-crypto assets, or any technical indicator query (RSI, MACD, EMA, Bollinger Bands, KDJ, SuperTrend, AHR999, BTC rainbow, and 70+ more). All commands are read-only and do NOT require API credentials. Do NOT use for account balance/positions (okx-cex-portfolio), placing/cancelling orders (okx-cex-trade), or bots (okx-cex-bot)."
 license: MIT
 metadata:
   author: okx
-  version: "1.3.1"
+  version: "1.3.2"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli"
+        package: "@okx_ai/okx-trade-cli@1.3.2"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -132,5 +132,4 @@ All commands in this skill are read-only.
 - Rate limit: 20 req / 2 s per IP
 - Candle data is sorted newest-first
 - `vol24h` is in base currency (e.g., BTC for BTC-USDT)
-- `--profile` and `--demo`/`--live` do not affect market data results via CLI (public endpoints); they only determine the active trading environment context
-- When calling market MCP tools directly, pass `demo: true` to explicitly query simulated trading market data; the default is always live market data regardless of server demo mode
+- `--demo`/`--live` and `--profile` do not affect market data results via CLI (public endpoints); they only determine the active trading environment context

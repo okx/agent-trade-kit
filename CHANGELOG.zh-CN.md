@@ -9,9 +9,53 @@
 
 ---
 
-## [Unreleased]
+## [1.3.2] - 2026-04-27
+
+### 变更
+
+- **`skills/okx-cex-auth/SKILL.md` — 严格展示模板 + 等用户信号流程**：
+  - 登录发起：从"示例回复格式"升级为中英双语严格模板，四个必显字段（`站点` / `链接` / `验证码` / `有效期`）。模板措辞为硬约束，不得缩写、改写、调序、翻译。
+  - 取消自动轮询：不再每 5–10 秒自动轮询 `okx auth status --json`。改为等用户信号（如 "done" / "好了"），收到后跑一次 `auth status --json` 验证。
+  - 登录成功展示：仅保留 `站点` + `权限` 两个字段。显式负面清单禁止暴露 `expiresAt` / `ttl`（这是 access token TTL，不是 OAuth session 有效期，token 会自动展期，显示会误导用户以为马上过期）和 `profile`（内部路由字段）。用户询问 session 何时过期时，必须使用固定话术 "Session stays active as long as you use the CLI periodically."，禁止引用具体数字。
+  - 跨段落一致性：Step 0.3 表格与 Login Status Check 表格已同步引用新模板与等信号语义。
+
+### 修复
+
+- **`suggestSubcommand` 不再幻觉出不存在的子命令路径**（issue #179）。此前，`packages/cli/src/unknown-command.ts` 中的 `x-y → y x` 启发式规则只要 `b` 出现在模块的 `knownActions` 列表中就会建议 `"<b> <a>"`，而不验证该路径是否真实存在。例如 `okx swap set-leverage` 会建议 `okx swap leverage set`，但该子命令根本不存在。修复方案：`suggestSubcommand` 新增 `knownPaths: readonly string[]` 参数，仅当组合路径被明确列出时才返回建议。`place-algo → algo place` 的正向场景（#173）得以保留——调用方传入 `["algo place", "algo cancel", ...]` 作为 `knownPaths`。不含多词子命令路径的模块默认传 `[]`，完全屏蔽错误建议。
+- **Codex CLI 无法加载 `okx-cex-trade` skill** — description 字段超过 Codex 1024 字符上限（原为 1448 字符）。通过去重同义触发词短语精简至 1017 字符，保留全部具体交易类型触发词。同步精简 `okx-sentiment-tracker`（944 → 652 字符）和 `okx-cex-market`（887 → 706 字符）以留有余量。新增 CI 测试 `packages/cli/test/skill-description-length.test.ts`，自动检查 1024 字符上限，防止未来回归。
+
+## [1.3.2-beta.4] - 2026-04-24
+
+### 新增
+
+- **OAuth Bearer token 认证（`okx auth`）**：基于 `okx-auth` Rust 二进制的全新认证方式，支持 OAuth 2.1 Device Flow。`okx auth login` 发起浏览器登录，`okx auth status` 查看会话状态，`okx auth logout` 注销令牌。二进制负责令牌存储、刷新（300 秒提前量）及 scrypt + AES-256-GCM 加密。运行时通过 fd3 管道读取令牌，JS 侧 60 秒缓存。每次请求动态选择认证方式：API key HMAC 优先，OAuth Bearer token 兜底。
+- **`okx auth install/install-status/remove` CLI 命令**：管理 `okx-auth` 二进制安装。CDN 下载带校验和验证、原子替换及多源备用——复用 DoH installer 模式。
+- **`skills/okx-cex-auth/SKILL.md`**：新增 OAuth 认证工作流 Skill 文档。
+- **`postinstall` 自动下载 okx-auth 二进制**：`npm install` 时与 DoH 二进制一起 best-effort 下载。
+- **`context-kg/` 知识库**：新增 `technical/06-oauth-authentication.md`，覆盖 OAuth 子系统架构、二进制分发、fd3 令牌读取、认证优先级及 CLI 命令。
+
+### 变更
+
+- **`loadConfig()` 改为异步**（返回 `Promise<OkxConfig>`）：启动时调用 `execAuthStatus()` 检测 OAuth 登录状态。
+- **`OkxConfig` 新增必需字段 `profile`**：已解析的 profile 名称，用于 OAuth 令牌存储路径。
+- **`OkxRestClient.buildHeaders()` 改为异步**：支持每次请求动态选择认证方式（API key HMAC 或 OAuth Bearer token）。
+- **`PLATFORM_MAP["linux-arm64"]` 现在映射为 `linux-x64`**（`packages/core/src/pilot/installer.ts`）。这是为了匹配 Apple Silicon 上的 Docker Desktop 标准测试环境——容器在 `linux/amd64` 模拟下运行。原生 `linux-arm64` 主机将安装 `linux-x64` binary 并依赖主机的 binfmt / 模拟层。这是有意的 alias，并非 issue #166 修复的回归——条目依然存在，只是指向 x64 目录。原生 `linux-arm64` CDN 目录作为后续工作跟进。
+
+### 修复
+
+- **`okx auth login` 现在会在已有 API key 配置时拒绝启动 OAuth。** 之前 `cmdAuthLogin` 不看 `~/.okx/config.toml` 就直接 spawn `okx-auth` binary，导致 agent 按旧 skill 流程在已有 API key profile 的机器上发起 OAuth device flow，用户会拿到一个根本不需要的登录 URL + 验证码。修复后 `cmdAuthLogin` 先调 `readFullConfig()`：任一 profile 有非空 `api_key` 时打印 `"API key already configured (profile: <name>). OAuth login skipped — API key will be used automatically."` 并直接 exit 0，不再 spawn binary。`--manual` 模式下改输出 JSON `{"status":"skipped","reason":"api_key_configured","profile":"<name>","message":"..."}`，方便 agent 程序化识别。与 REST client 中既有的 "api_key 优先、从不回退 OAuth"（`rest-client.ts applyAuth`）形成双保险。
+
+- **`skills/okx-cex-auth/SKILL.md` 的 pre-flight 决策树重写**，改为严格的三步序：（1）先看有没有选过 site（`config show --json` 任一 profile 的 `site` 字段 ∪ `auth status --json` 的 `site` 字段），没选过则 agent 在对话里按固定文案弹出站点菜单让用户选，**然后**才进入任何登录分支；（2）再看有没有 `api_key`，有就停；（3）都没有才真正走 OAuth，并带上第 1 步选定的 `--site`。此前决策树把 "First-Time Setup 或 Login Flow" 当成可互换分支，模型因而可能跳过站点选择、直接让 `okx-auth` binary 兜底到 `global`。同步修正了"`okx config init` 一步搞定 site 选择 + OAuth"的错误描述——`cmdConfigInit` 是 API key 向导（site + demo/live + AK/SK/PP），不触碰 OAuth。新增 **Step 0.2.a**：当 config 里有 api_key profile 但 API 调用返回 `401 Unauthorized` / `Invalid Sign` 时，**OAuth 登录不是有效的补救**——rest-client 依然优先用那条坏掉的 api_key，拿到 OAuth token 也用不上。agent 必须中性列出两条路（换新 api_key，或先删 profile 再走 OAuth）让用户选，不许把 OAuth 标成"推荐"。修复在 openclaw 里观察到的 Haiku 4.5 错误行为：在有坏 api_key 的情况下把 OAuth 打上"推荐"标签，而实际上 OAuth 根本没法生效。
+
+- **`skills/_shared/preflight.md` 和 `skills/okx-cex-portfolio/SKILL.md` 的认证方式检测修正。** 此前两份文档都用 `okx auth status --json` 的 `apiKey` 字段来区分 API key 模式和 OAuth 模式——但这个字段反映的是 `okx-auth` binary 自身的状态，**无论 `~/.okx/config.toml` 里有没有 API key profile 永远是 `false`**，根本检测不到 API key 用户。后果：agent 按老 preflight 查出来 `apiKey: false, status: not_logged_in` 就会判成"无认证"，把已经有效配置了 API key 的用户误导到 OAuth 登录流程。修复后要求**同时**跑 `okx config show --json`（API key 的唯一可靠来源）和 `okx auth status --json`（OAuth session 状态），决策表先查 API key，不再依赖 `apiKey` 这个不可靠字段。
+
+- **`skills/okx-cex-trade/SKILL.md`、`skills/okx-cex-bot/SKILL.md`、`skills/okx-cex-earn/SKILL.md` 的 Step A 认证检测修正。** 与上一条 preflight/portfolio 修复同类问题：这三个 skill 的凭证检查都基于 `auth status --json` → `apiKey`（永远 `false`），导致 API key 用户被误导到 OAuth 登录流程。Step A 现在要求同时跑 `okx config show --json` 和 `okx auth status --json`，先查 API key 是否存在，只有在确认没有 API key profile 时才走 OAuth 分支。
 
 ## [1.3.2-beta.3] - 2026-04-23
+
+### 修复
+
+- **`event_get_orders` / `event_get_fills` 返回空数组** — 根因：EVENTS 合约的 `/api/v5/trade/fills`（3 天窗口）经常返回空，而 `/api/v5/trade/fills-history`（3 个月）才有数据。wrapper 缺少 `archive` 模式和其他查询参数。已添加 fills 的 `archive` 模式、orders 的 `status`（open/history/archive）路由、时间范围过滤（`begin`/`end`）、游标分页（`after`/`before`）和 `ordId` 过滤。同时确认 `instFamily` 对 EVENTS 不支持（会导致 HTTP 400）。响应中新增 `requestParams` 字段便于调试。
 
 ### 变更
 

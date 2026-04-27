@@ -448,16 +448,7 @@ describe("event_get_orders routing", () => {
   const tools = registerEventContractTools();
   const tool = tools.find((t) => t.name === "event_get_orders")!;
 
-  it("routes to orders-pending when state=live", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler(
-      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", state: "live" },
-      makeContext(client),
-    );
-    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-pending");
-  });
-
-  it("routes to orders-history when state is omitted", async () => {
+  it("routes to orders-history by default (backward compatible)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       { instId: "BTC-ABOVE-DAILY-260224-1600-120000" },
@@ -466,23 +457,86 @@ describe("event_get_orders routing", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history");
   });
 
+  it("routes to orders-pending when status=open", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-ABOVE-DAILY-260224-1600-120000", status: "open" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-pending");
+  });
+
+  it("routes to orders-history-archive when status=archive", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { status: "archive" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/orders-history-archive");
+  });
+
   it("always passes instType=EVENTS", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.params["instType"], "EVENTS");
   });
+
+  it("passes begin, end, after, before params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        status: "history",
+        begin: "1713830400000",
+        end: "1713916800000",
+        after: "100",
+        before: "200",
+      },
+      makeContext(client),
+    );
+    const call = getLastCall()!;
+    assert.equal(call.params["begin"], "1713830400000");
+    assert.equal(call.params["end"], "1713916800000");
+    assert.equal(call.params["after"], "100");
+    assert.equal(call.params["before"], "200");
+  });
 });
 
-describe("event_get_fills passes instType=EVENTS", () => {
+describe("event_get_fills routing and params", () => {
   const tools = registerEventContractTools();
   const tool = tools.find((t) => t.name === "event_get_fills")!;
 
-  it("sends instType=EVENTS to fills endpoint", async () => {
+  it("sends instType=EVENTS to fills endpoint by default", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     const call = getLastCall()!;
     assert.equal(call.endpoint, "/api/v5/trade/fills");
     assert.equal(call.params["instType"], "EVENTS");
+  });
+
+  it("routes to fills-history when archive=true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ archive: true }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/trade/fills-history");
+  });
+
+  it("passes ordId, begin, end, after, before params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        ordId: "3504076293632565248",
+        begin: "1713830400000",
+        end: "1713916800000",
+        after: "100",
+        before: "200",
+      },
+      makeContext(client),
+    );
+    const call = getLastCall()!;
+    assert.equal(call.params["ordId"], "3504076293632565248");
+    assert.equal(call.params["begin"], "1713830400000");
+    assert.equal(call.params["end"], "1713916800000");
+    assert.equal(call.params["after"], "100");
+    assert.equal(call.params["before"], "200");
   });
 });
 

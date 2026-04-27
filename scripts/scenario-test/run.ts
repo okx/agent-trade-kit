@@ -46,7 +46,7 @@ function parseArgs() {
 async function main() {
   const { readOnly } = parseArgs();
 
-  const config = loadConfig({
+  const config = await loadConfig({
     readOnly: false,
     demo: true,
     modules: "all",

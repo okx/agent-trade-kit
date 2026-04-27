@@ -56,7 +56,7 @@ Step 2: [user confirms]
 okx event place BTC-ABOVE-DAILY-260320-1600-69700 buy YES 10 --px 0.6 --ordType limit
 ```
 
-After success: check Status, Order number, order type, and offer to check fill status (`okx event orders --state live`).
+After success: check Status, Order number, order type, and offer to check fill status (`okx event orders --status open`).
 
 ---
 
@@ -90,7 +90,7 @@ This is a data-driven suggestion — the user makes the final call.
 > User: "Has my order been filled?"
 
 ```
-Step 1: okx event orders --instId <instId> --state live
+Step 1: okx event orders --instId <instId> --status open
 → found: "Still resting in the order book"
 → empty: filled or cancelled
 
@@ -175,7 +175,7 @@ Present as a table with date, strike, settlement price, and outcome (✅/❌).
 `okx event cancel` requires both the instrument ID and Order number. If the user only provides the Order number, look up the instrument ID first — never ask the user for it.
 
 ```
-Step 1: okx event orders --state live
+Step 1: okx event orders --status open
 → if Order number found: use that row's instrument ID
 → if not found: okx event orders [history, no --state flag]
    → find matching Order number, extract instrument ID
@@ -233,7 +233,7 @@ okx event fills [--limit 10]
 > User: "Any pending orders?"
 
 ```
-okx event orders --state live
+okx event orders --status open
 → if empty: "No open orders at the moment."
 ```
 
@@ -249,7 +249,7 @@ okx event orders --state live
 6. **Translate all errors to user language**: never show `sCode`, `code`, or internal field names. Always give a next step.
 7. **After every place/cancel/close**, distinguish order type in the follow-up:
    - market order → "typically filled immediately — would you like me to confirm the fill?"
-   - limit / post_only → "may still be resting in the order book — would you like me to check? (`okx event orders --state live`)"
+   - limit / post_only → "may still be resting in the order book — would you like me to check? (`okx event orders --status open`)"
 8. **Positions show PnL context**: current exit value + breakeven + time remaining + expiry condition.
 9. **Never expose implementation details**: outcome codes, speedBump, tdMode, MCP internals.
 10. **Settled results**: use `okx event markets <seriesId> --state expired` (CLI) or `event_get_markets(seriesId, state="expired")` (MCP) — there is no separate `event ended` command.

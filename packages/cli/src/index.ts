@@ -1,13 +1,14 @@
 import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
+import { handleAuthCommand } from "./commands/auth.js";
+import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
 
 const _require = createRequire(import.meta.url);
 const CLI_VERSION = (_require("../package.json") as { version: string }).version;
 const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "dev";
-import { cmdDiagnose } from "./commands/diagnose.js";
 import { unknownSubcommand } from "./unknown-command.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
@@ -591,7 +592,7 @@ export function handleSpotCommand(
     "orders", "get", "fills",
     "place", "cancel", "amend",
     "algo", "batch", "leverage",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo trail", "algo orders"]);
 }
 
 export function handleSwapAlgoCommand(
@@ -747,7 +748,7 @@ export function handleSwapCommand(
     "positions", "orders", "get", "fills", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
     "algo", "batch",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo trail", "algo orders"]);
 }
 
 export function handleOptionAlgoCommand(
@@ -853,7 +854,7 @@ export function handleOptionCommand(
   unknownSubcommand("option", action, [
     "orders", "get", "positions", "fills", "instruments", "greeks",
     "place", "cancel", "amend", "batch-cancel", "algo",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo orders"]);
 }
 
 export function handleFuturesAlgoCommand(
@@ -1009,7 +1010,7 @@ export function handleFuturesCommand(
     "orders", "positions", "fills", "get", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
     "batch", "algo",
-  ]);
+  ], ["algo place", "algo cancel", "algo amend", "algo trail", "algo orders"]);
 }
 
 export function handleBotGridCommand(
@@ -1461,8 +1462,18 @@ export function handleEventCommand(
     }),
     amend: () => cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json }),
     cancel: () => cmdEventCancel(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, json }),
-    orders: () => cmdEventOrders(run, { instId: v.instId, state: v.state, limit, json }),
-    fills: () => cmdEventFills(run, { instId: v.instId, limit, json }),
+    orders: () => cmdEventOrders(run, {
+      status: v.status, instId: v.instId,
+      ordType: v.ordType, state: v.state,
+      after: v.after, before: v.before, begin: v.begin, end: v.end,
+      limit, json,
+    }),
+    fills: () => cmdEventFills(run, {
+      archive: v.archive ?? false,
+      instId: v.instId, ordId: v.ordId,
+      after: v.after, before: v.before, begin: v.begin, end: v.end,
+      limit, json,
+    }),
   };
   const handler = handlers[action];
   if (handler) return handler();
@@ -1524,9 +1535,9 @@ export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger
 
 // Extracted to reduce cognitive complexity of main()
 async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<void> {
-  let config: ReturnType<typeof loadProfileConfig> | undefined;
+  let config: Awaited<ReturnType<typeof loadProfileConfig>> | undefined;
   try {
-    config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+    config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   } catch {
     // Config parse failed — diagnose will detect and report it
   }
@@ -1554,6 +1565,7 @@ function routeManagementCommand(
 ): Promise<void> | true | undefined {
   if (module === "config") { const r = handleConfigCommand(action as string, rest, json, v.lang, v.force); return r ?? true; }
   if (module === "setup") { handleSetupCommand(v); return true; }
+  if (module === "auth") return handleAuthCommand(action as string, rest, v);
   if (module === "upgrade") return cmdUpgrade(CLI_VERSION, { beta: v.beta, check: v.check, force: v.force }, json);
   if (module === "pilot") { const r = handlePilotCommand(action as string, json, v.force ?? false); return r ?? true; }
   if (module === "diagnose") return runDiagnose(v);
@@ -1588,7 +1600,7 @@ async function main(): Promise<void> {
   const mgmt = routeManagementCommand(module, action, rest, json, v);
   if (mgmt !== undefined) return mgmt === true ? undefined : mgmt;
 
-  const config = loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  const config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
   setJsonEnvEnabled(v.env ?? false);
 

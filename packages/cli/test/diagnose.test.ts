@@ -12,6 +12,7 @@ import { cmdDiagnose } from "../src/commands/diagnose.js";
 
 const BASE_CONFIG: OkxConfig = {
   hasAuth: false,
+  profile: "default",
   baseUrl: "https://www.okx.com",
   timeoutMs: 5000,
   modules: ["market"],

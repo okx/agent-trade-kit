@@ -111,6 +111,6 @@ describe("Management command routing (#161)", () => {
     }
   });
 
-  // upgrade, doh, diagnose subprocess tests removed — they make network calls
+  // upgrade, pilot, diagnose subprocess tests removed — they make network calls
   // that slow CI. In-process coverage in management-routing.test.ts is sufficient.
 });
