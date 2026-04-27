@@ -21,6 +21,7 @@
 
 ### 新增
 
+- **Phase 2 算法订单类型 — `trigger`（挂单）、`chase`（追单）、`iceberg`（冰山）、`twap`**（issue #181）。在 `okx {swap,spot,futures} algo place` 上新增四个 `ordType` 值，补齐 OKX OpenAPI v5 枚举缺口。`trigger`（挂单）：市场价触达 `--triggerPx` 时自动挂出限价/市价单（需传 `--triggerPx` + `--orderPx`）。`chase`（追单）：智能追踪最优买卖价，在可配置距离/比例范围内跟单（`--chaseType`、`--chaseVal`、`--maxChaseType`、`--maxChaseVal`）。`iceberg`（冰山）：将大单拆分为固定间隔的子单以减少市场冲击（`--szLimit`、`--pxLimit`、`--timeInterval`、`--pxVar`/`--pxSpread`）。`twap`（时间加权均价）：与冰山共用同一组参数，按时间均匀拆单。向后兼容：现有 `conditional`/`oco`/`move_order_stop` 调用产生完全相同的报文。Token 预算增量：约 +600 tokens（3 个工具 × 4 个新 ordType × 约 5 个新参数）。
 - **Phase 1 算法订单参数 — `--tpOrdKind`、`--tpTriggerPxType`、`--slTriggerPxType`、`--stpMode`、`--cxlOnClosePos`**（issue #178）。新增五个可选参数，补齐 CLI/MCP 与 OKX OpenAPI 的高优先级参数差距。`--tpOrdKind limit` 立即以限价挂单形式下止盈（无触发阶段）。`--tpTriggerPxType`/`--slTriggerPxType` 控制止盈/止损触发价来源（`last`/`index`/`mark`）。`--stpMode` 启用自成交保护（`cancel_maker`/`cancel_taker`/`cancel_both`）。`--cxlOnClosePos` 在对应仓位平仓时自动撤销算法订单。所有参数均为可选；不传则与旧版行为完全一致，向后兼容。适用于：`okx {swap,spot,futures,option} place`、`okx {swap,futures} algo place`、`okx spot algo place`。
 
 ### 修复

@@ -216,6 +216,59 @@ okx swap algo trail --instId <id> --side <buy|sell> --sz <n> \
 
 ---
 
+## Swap — Phase 2 Algo ordTypes (trigger / chase / iceberg / twap)
+
+### Pending Order (trigger)
+
+Submits a limit order when the market price crosses `--triggerPx`.
+
+```bash
+# Buy 1 BTC-USDT-SWAP when price drops to 50000 (limit at 50100):
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType trigger \
+  --sz 1 --tdMode cross \
+  --triggerPx 50000 --orderPx 50100
+
+# Market-fill when triggered (orderPx -1); mark price as trigger source:
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType trigger \
+  --sz 1 --tdMode cross \
+  --triggerPx 50000 --orderPx -1 --triggerPxType mark
+```
+
+### Chase Order (chase)
+
+Smart-follows best bid/ask within configurable bounds.
+
+```bash
+# Chase buy at distance 0.5 ticks, max distance 2 ticks:
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType chase \
+  --sz 1 --tdMode cross \
+  --chaseType distance --chaseVal 0.5 --maxChaseType distance --maxChaseVal 2
+```
+
+### Iceberg Order (iceberg)
+
+Splits a large order into child orders to minimize market impact.
+
+```bash
+# Sell 10 BTC-USDT-SWAP in 0.5-contract chunks every 10s, price ceiling 51000:
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType iceberg \
+  --sz 10 --tdMode cross \
+  --szLimit 0.5 --pxLimit 51000 --timeInterval 10 --pxVar 0.001
+```
+
+### TWAP Order (twap)
+
+Time-weighted average price split — same params as iceberg.
+
+```bash
+# Buy 5 BTC-USDT-SWAP over time (1 contract per 30s, price cap 50500):
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType twap \
+  --sz 5 --tdMode cross \
+  --szLimit 1 --pxLimit 50500 --timeInterval 30 --pxSpread 50
+```
+
+---
+
 ## Swap — Amend Algo
 
 ```bash
