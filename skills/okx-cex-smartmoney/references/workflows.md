@@ -2,7 +2,7 @@
 
 ## 1. Recommend Top Traders
 
-> User: "推荐聪明钱" / "推荐带单员" / "top performers this month"
+> User: "推荐聪明钱" / "top performers this month"
 
 ```bash
 okx --profile live smartmoney traders --period 30 --sortType pnl --limit 10 --json
