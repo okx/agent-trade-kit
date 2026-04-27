@@ -41,8 +41,12 @@ okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | No | - | Attached take-profit trigger price |
 | `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
 | `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
 | `--clOrdId` | No | - | Client-assigned order ID (max 32 chars alphanumeric + `-` `_`) |
 
 ---
@@ -123,8 +127,9 @@ okx swap algo place --instId <id> --side <buy|sell> \
   [--clOrdId <id>] \
   [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--reduceOnly] \
-  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] [--slTriggerPxType <last|index|mark>] \
+  [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos] \
   [--callbackRatio <r>] [--callbackSpread <s>] [--activePx <p>] \
   [--json]
 ```
@@ -142,8 +147,13 @@ okx swap algo place --instId <id> --side <buy|sell> \
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
 | `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
 | `--slTriggerPx` | Cond. | - | Stop-loss trigger price |
 | `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
+| `--cxlOnClosePos` | No | false | Auto-cancel this algo order when the position is closed |
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |
@@ -164,6 +174,27 @@ okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
   --slTriggerPx 60000 --slOrdPx=-1
 ```
 
+**Example — Immediate limit-order TP (tpOrdKind limit) — exits at a specific price without waiting for a trigger phase:**
+```bash
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx 105000 --tpOrdKind limit
+```
+
+**Example — Self-trade prevention (stpMode cancel_maker) — cancel maker side on self-trade:**
+```bash
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx=-1 --stpMode cancel_maker
+```
+
+**Example — Auto-cancel on position close (cxlOnClosePos):**
+```bash
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx=-1 --cxlOnClosePos
+```
+
 ---
 
 ## Swap — Place Trailing Stop
@@ -182,6 +213,59 @@ okx swap algo trail --instId <id> --side <buy|sell> --sz <n> \
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |
+
+---
+
+## Swap — Phase 2 Algo ordTypes (trigger / chase / iceberg / twap)
+
+### Pending Order (trigger)
+
+Submits a limit order when the market price crosses `--triggerPx`.
+
+```bash
+# Buy 1 BTC-USDT-SWAP when price drops to 50000 (limit at 50100):
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType trigger \
+  --sz 1 --tdMode cross \
+  --triggerPx 50000 --orderPx 50100
+
+# Market-fill when triggered (orderPx -1); mark price as trigger source:
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType trigger \
+  --sz 1 --tdMode cross \
+  --triggerPx 50000 --orderPx -1 --triggerPxType mark
+```
+
+### Chase Order (chase)
+
+Smart-follows best bid/ask within configurable bounds.
+
+```bash
+# Chase buy at distance 0.5 ticks, max distance 2 ticks:
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType chase \
+  --sz 1 --tdMode cross \
+  --chaseType distance --chaseVal 0.5 --maxChaseType distance --maxChaseVal 2
+```
+
+### Iceberg Order (iceberg)
+
+Splits a large order into child orders to minimize market impact.
+
+```bash
+# Sell 10 BTC-USDT-SWAP in 0.5-contract chunks every 10s, price ceiling 51000:
+okx swap algo place --instId BTC-USDT-SWAP --side sell --ordType iceberg \
+  --sz 10 --tdMode cross \
+  --szLimit 0.5 --pxLimit 51000 --timeInterval 10 --pxVar 0.001
+```
+
+### TWAP Order (twap)
+
+Time-weighted average price split — same params as iceberg.
+
+```bash
+# Buy 5 BTC-USDT-SWAP over time (1 contract per 30s, price cap 50500):
+okx swap algo place --instId BTC-USDT-SWAP --side buy --ordType twap \
+  --sz 5 --tdMode cross \
+  --szLimit 1 --pxLimit 50500 --timeInterval 30 --pxSpread 50
+```
 
 ---
 

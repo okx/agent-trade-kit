@@ -1,6 +1,18 @@
 import type { ToolSpec } from "./types.js";
 import {
+  CHASE_FLAGS_SCHEMA,
+  CXL_ON_CLOSE_POS_SCHEMA,
+  ICEBERG_TWAP_FLAGS_SCHEMA,
+  SL_TRIGGER_PX_TYPE_SCHEMA,
+  STP_MODE_SCHEMA,
+  TP_ORD_KIND_SCHEMA,
+  TP_TRIGGER_PX_TYPE_SCHEMA,
+  TRIGGER_FLAGS_SCHEMA,
   asRecord,
+  buildAttachAlgoOrds,
+  buildChaseOrdTypeBody,
+  buildIcebergTwapOrdTypeBody,
+  buildTriggerOrdTypeBody,
   compactObject,
   normalizeResponse,
   readNumber,
@@ -16,11 +28,14 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       name: "swap_place_algo_order",
       module: "swap",
       description:
-        "Place a SWAP/FUTURES algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). [CAUTION] Executes real trades. " +
+        "Place a SWAP/FUTURES algo order. [CAUTION] Executes real trades. " +
         "conditional: single TP, single SL, or both on one order. " +
         "oco: TP+SL simultaneously — first trigger cancels the other. " +
-        "move_order_stop: provide callbackRatio (e.g. '0.01'=1%) OR callbackSpread, and optionally activePx. " +
-        "Set tpOrdPx='-1' or slOrdPx='-1' for market execution.",
+        "move_order_stop: trailing stop (callbackRatio or callbackSpread). " +
+        "trigger: pending order activated when triggerPx is hit (provide triggerPx + orderPx). " +
+        "chase: smart-follow best bid/ask. " +
+        "iceberg: split large order into child orders at intervals. " +
+        "twap: time-weighted average price order splitting.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -46,8 +61,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           ordType: {
             type: "string",
-            enum: ["conditional", "oco", "move_order_stop"],
-            description: "conditional=single TP/SL or both; oco=TP+SL pair (first trigger cancels other); move_order_stop=trailing stop",
+            enum: ["conditional", "oco", "move_order_stop", "trigger", "chase", "iceberg", "twap"],
+            description: "conditional=single TP/SL or both; oco=TP+SL pair; move_order_stop=trailing stop; trigger=pending order; chase=follow best bid/ask; iceberg=split order; twap=time-weighted split",
           },
           sz: {
             type: "string",
@@ -61,11 +76,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "TP order price; -1=market (conditional/oco only)",
           },
-          tpTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          tpOrdKind: TP_ORD_KIND_SCHEMA,
+          tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
           slTriggerPx: {
             type: "string",
             description: "SL trigger price (conditional/oco only)",
@@ -74,11 +86,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "SL order price; -1=market (recommended) (conditional/oco only)",
           },
-          slTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+          stpMode: STP_MODE_SCHEMA,
+          cxlOnClosePos: CXL_ON_CLOSE_POS_SCHEMA,
           callbackRatio: {
             type: "string",
             description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread (move_order_stop only)",
@@ -91,6 +101,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "Activation price; tracking starts after market reaches this level (move_order_stop only)",
           },
+          ...TRIGGER_FLAGS_SCHEMA,
+          ...CHASE_FLAGS_SCHEMA,
+          ...ICEBERG_TWAP_FLAGS_SCHEMA,
           tgtCcy: {
             type: "string",
             enum: ["base_ccy", "quote_ccy", "margin"],
@@ -110,6 +123,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const cxlOnClosePos = args.cxlOnClosePos;
+        const ordType = requireString(args, "ordType");
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -118,30 +133,50 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           context.client,
           readString(args, "tdMode"),
         );
+        const base: Record<string, unknown> = compactObject({
+          instId: requireString(args, "instId"),
+          tdMode: requireString(args, "tdMode"),
+          side: requireString(args, "side"),
+          posSide: readString(args, "posSide"),
+          ordType,
+          sz: resolved.sz,
+          tgtCcy: resolved.tgtCcy,
+          stpMode: readString(args, "stpMode"),
+          cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
+          reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
+          clOrdId: readString(args, "clOrdId"),
+          tag: context.config.sourceTag,
+        });
+        switch (ordType) {
+                    case "trigger":
+            Object.assign(base, buildTriggerOrdTypeBody(args));
+            break;
+          case "chase":
+            Object.assign(base, buildChaseOrdTypeBody(args));
+            break;
+          case "iceberg":
+          case "twap":
+            Object.assign(base, buildIcebergTwapOrdTypeBody(args));
+            break;
+          default:
+            // conditional / oco / move_order_stop — Phase 1 / pre-existing behavior
+            Object.assign(base, compactObject({
+              tpTriggerPx: readString(args, "tpTriggerPx"),
+              tpOrdPx: readString(args, "tpOrdPx"),
+              tpOrdKind: readString(args, "tpOrdKind"),
+              tpTriggerPxType: readString(args, "tpTriggerPxType"),
+              slTriggerPx: readString(args, "slTriggerPx"),
+              slOrdPx: readString(args, "slOrdPx"),
+              slTriggerPxType: readString(args, "slTriggerPxType"),
+              callBackRatio: readString(args, "callbackRatio"),
+              callBackSpread: readString(args, "callbackSpread"),
+              activePx: readString(args, "activePx"),
+            }));
+            break;
+        }
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
-          compactObject({
-            instId: requireString(args, "instId"),
-            tdMode: requireString(args, "tdMode"),
-            side: requireString(args, "side"),
-            posSide: readString(args, "posSide"),
-            ordType: requireString(args, "ordType"),
-            sz: resolved.sz,
-            tgtCcy: resolved.tgtCcy,
-            tpTriggerPx: readString(args, "tpTriggerPx"),
-            tpOrdPx: readString(args, "tpOrdPx"),
-            tpTriggerPxType: readString(args, "tpTriggerPxType"),
-            slTriggerPx: readString(args, "slTriggerPx"),
-            slOrdPx: readString(args, "slOrdPx"),
-            slTriggerPxType: readString(args, "slTriggerPxType"),
-            callBackRatio: readString(args, "callbackRatio"),
-            callBackSpread: readString(args, "callbackSpread"),
-            activePx: readString(args, "activePx"),
-            reduceOnly:
-              typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
-            clOrdId: readString(args, "clOrdId"),
-            tag: context.config.sourceTag,
-          }),
+          base,
           privateRateLimit("swap_place_algo_order", 20),
         );
         const result = normalizeResponse(response);
@@ -383,11 +418,14 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       name: "futures_place_algo_order",
       module: "futures",
       description:
-        "Place a FUTURES delivery algo order: TP/SL (conditional/oco) or trailing stop (move_order_stop). [CAUTION] Executes real trades. " +
+        "Place a FUTURES delivery algo order. [CAUTION] Executes real trades. " +
         "conditional: single TP, single SL, or both on one order. " +
         "oco: TP+SL simultaneously — first trigger cancels the other. " +
-        "move_order_stop: provide callbackRatio (e.g. '0.01'=1%) OR callbackSpread, and optionally activePx. " +
-        "Set tpOrdPx='-1' or slOrdPx='-1' for market execution.",
+        "move_order_stop: trailing stop (callbackRatio or callbackSpread). " +
+        "trigger: pending order activated when triggerPx is hit (provide triggerPx + orderPx). " +
+        "chase: smart-follow best bid/ask. " +
+        "iceberg: split large order into child orders at intervals. " +
+        "twap: time-weighted average price order splitting.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -413,8 +451,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           },
           ordType: {
             type: "string",
-            enum: ["conditional", "oco", "move_order_stop"],
-            description: "conditional=single TP/SL or both; oco=TP+SL pair; move_order_stop=trailing stop",
+            enum: ["conditional", "oco", "move_order_stop", "trigger", "chase", "iceberg", "twap"],
+            description: "conditional=single TP/SL or both; oco=TP+SL pair; move_order_stop=trailing stop; trigger=pending order; chase=follow best bid/ask; iceberg=split order; twap=time-weighted split",
           },
           sz: {
             type: "string",
@@ -428,11 +466,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "TP order price; -1=market (conditional/oco only)",
           },
-          tpTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          tpOrdKind: TP_ORD_KIND_SCHEMA,
+          tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
           slTriggerPx: {
             type: "string",
             description: "SL trigger price (conditional/oco only)",
@@ -441,11 +476,9 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "SL order price; -1=market (conditional/oco only)",
           },
-          slTriggerPxType: {
-            type: "string",
-            enum: ["last", "index", "mark"],
-            description: "last(default)|index|mark (conditional/oco only)",
-          },
+          slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+          stpMode: STP_MODE_SCHEMA,
+          cxlOnClosePos: CXL_ON_CLOSE_POS_SCHEMA,
           callbackRatio: {
             type: "string",
             description: "Callback ratio (e.g. '0.01'=1%); provide either ratio or spread (move_order_stop only)",
@@ -458,6 +491,9 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "Activation price; tracking starts after market reaches this level (move_order_stop only)",
           },
+          ...TRIGGER_FLAGS_SCHEMA,
+          ...CHASE_FLAGS_SCHEMA,
+          ...ICEBERG_TWAP_FLAGS_SCHEMA,
           tgtCcy: {
             type: "string",
             enum: ["base_ccy", "quote_ccy", "margin"],
@@ -477,6 +513,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const cxlOnClosePos = args.cxlOnClosePos;
+        const ordType = requireString(args, "ordType");
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -485,30 +523,49 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           context.client,
           readString(args, "tdMode"),
         );
+        const base: Record<string, unknown> = compactObject({
+          instId: requireString(args, "instId"),
+          tdMode: requireString(args, "tdMode"),
+          side: requireString(args, "side"),
+          posSide: readString(args, "posSide"),
+          ordType,
+          sz: resolved.sz,
+          tgtCcy: resolved.tgtCcy,
+          stpMode: readString(args, "stpMode"),
+          cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
+          reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
+          clOrdId: readString(args, "clOrdId"),
+          tag: context.config.sourceTag,
+        });
+        switch (ordType) {
+                    case "trigger":
+            Object.assign(base, buildTriggerOrdTypeBody(args));
+            break;
+          case "chase":
+            Object.assign(base, buildChaseOrdTypeBody(args));
+            break;
+          case "iceberg":
+          case "twap":
+            Object.assign(base, buildIcebergTwapOrdTypeBody(args));
+            break;
+          default:
+            Object.assign(base, compactObject({
+              tpTriggerPx: readString(args, "tpTriggerPx"),
+              tpOrdPx: readString(args, "tpOrdPx"),
+              tpOrdKind: readString(args, "tpOrdKind"),
+              tpTriggerPxType: readString(args, "tpTriggerPxType"),
+              slTriggerPx: readString(args, "slTriggerPx"),
+              slOrdPx: readString(args, "slOrdPx"),
+              slTriggerPxType: readString(args, "slTriggerPxType"),
+              callBackRatio: readString(args, "callbackRatio"),
+              callBackSpread: readString(args, "callbackSpread"),
+              activePx: readString(args, "activePx"),
+            }));
+            break;
+        }
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
-          compactObject({
-            instId: requireString(args, "instId"),
-            tdMode: requireString(args, "tdMode"),
-            side: requireString(args, "side"),
-            posSide: readString(args, "posSide"),
-            ordType: requireString(args, "ordType"),
-            sz: resolved.sz,
-            tgtCcy: resolved.tgtCcy,
-            tpTriggerPx: readString(args, "tpTriggerPx"),
-            tpOrdPx: readString(args, "tpOrdPx"),
-            tpTriggerPxType: readString(args, "tpTriggerPxType"),
-            slTriggerPx: readString(args, "slTriggerPx"),
-            slOrdPx: readString(args, "slOrdPx"),
-            slTriggerPxType: readString(args, "slTriggerPxType"),
-            callBackRatio: readString(args, "callbackRatio"),
-            callBackSpread: readString(args, "callbackSpread"),
-            activePx: readString(args, "activePx"),
-            reduceOnly:
-              typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
-            clOrdId: readString(args, "clOrdId"),
-            tag: context.config.sourceTag,
-          }),
+          base,
           privateRateLimit("futures_place_algo_order", 20),
         );
         const result = normalizeResponse(response);

@@ -48,8 +48,12 @@ okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n> \
 | `--reduceOnly` | No | false | Close-only; will not open a new position |
 | `--tpTriggerPx` | No | - | Attached take-profit trigger price |
 | `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
 | `--slTriggerPx` | No | - | Attached stop-loss trigger price |
 | `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
 | `--clOrdId` | No | - | Client-assigned order ID (max 32 chars alphanumeric + `-` `_`) |
 
 `--instId` format: `BTC-USDT-<YYMMDD>` (delivery date suffix).
@@ -172,8 +176,9 @@ okx futures algo place --instId <id> --side <buy|sell> \
   [--clOrdId <id>] \
   [--tgtCcy <base_ccy|quote_ccy|margin>] \
   [--posSide <long|short>] [--reduceOnly] \
-  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] \
-  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] [--slTriggerPxType <last|index|mark>] \
+  [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos] \
   [--callbackRatio <r>] [--callbackSpread <s>] [--activePx <p>] \
   [--json]
 ```
@@ -191,13 +196,39 @@ okx futures algo place --instId <id> --side <buy|sell> \
 | `--reduceOnly` | No | false | Close-only; will not open a new position if one doesn't exist |
 | `--tpTriggerPx` | Cond. | - | Take-profit trigger price |
 | `--tpOrdPx` | Cond. | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
 | `--slTriggerPx` | Cond. | - | Stop-loss trigger price |
 | `--slOrdPx` | Cond. | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
+| `--cxlOnClosePos` | No | false | Auto-cancel this algo order when the position is closed |
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |
 
 `--instId` format: `BTC-USDT-<YYMMDD>` (e.g., `BTC-USDT-250328`). For `move_order_stop`: provide `--callbackRatio` or `--callbackSpread` (one required).
+
+**Example — Immediate limit-order TP (tpOrdKind limit):**
+```bash
+okx futures algo place --instId BTC-USDT-260328 --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx 105000 --tpOrdKind limit
+```
+
+**Example — Self-trade prevention (stpMode cancel_maker):**
+```bash
+okx futures algo place --instId BTC-USDT-260328 --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx=-1 --stpMode cancel_maker
+```
+
+**Example — Auto-cancel on position close (cxlOnClosePos):**
+```bash
+okx futures algo place --instId BTC-USDT-260328 --side sell --ordType conditional \
+  --sz 1 --tdMode cross --posSide long \
+  --tpTriggerPx 105000 --tpOrdPx=-1 --cxlOnClosePos
+```
 
 ---
 
@@ -217,6 +248,46 @@ okx futures algo trail --instId <id> --side <buy|sell> --sz <n> \
 | `--callbackRatio` | Cond. | - | Trailing callback as a ratio (e.g., `0.02` = 2%); cannot be combined with `--callbackSpread` |
 | `--callbackSpread` | Cond. | - | Trailing callback as fixed price distance; cannot be combined with `--callbackRatio` |
 | `--activePx` | No | - | Price at which trailing stop becomes active |
+
+---
+
+## Futures — Phase 2 Algo ordTypes (trigger / chase / iceberg / twap)
+
+### Pending Order (trigger)
+
+```bash
+# Buy 1 BTC-USDT-250926 when price drops to 50000:
+okx futures algo place --instId BTC-USDT-250926 --side buy --ordType trigger \
+  --sz 1 --tdMode cross \
+  --triggerPx 50000 --orderPx 50100
+```
+
+### Chase Order (chase)
+
+```bash
+# Chase-sell at distance 1 tick, max distance 5 ticks:
+okx futures algo place --instId BTC-USDT-250926 --side sell --ordType chase \
+  --sz 2 --tdMode cross --posSide long \
+  --chaseType distance --chaseVal 1 --maxChaseType distance --maxChaseVal 5
+```
+
+### Iceberg Order (iceberg)
+
+```bash
+# Sell 10 contracts in 1-contract chunks every 15s, price ceiling 51000:
+okx futures algo place --instId BTC-USDT-250926 --side sell --ordType iceberg \
+  --sz 10 --tdMode cross --posSide long \
+  --szLimit 1 --pxLimit 51000 --timeInterval 15 --pxVar 0.002
+```
+
+### TWAP Order (twap)
+
+```bash
+# Buy 5 contracts over time (1 per 30s, price cap 50500):
+okx futures algo place --instId BTC-USDT-250926 --side buy --ordType twap \
+  --sz 5 --tdMode cross \
+  --szLimit 1 --pxLimit 50500 --timeInterval 30 --pxSpread 30
+```
 
 ---
 

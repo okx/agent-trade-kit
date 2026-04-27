@@ -87,7 +87,10 @@ Returns IV (`markVol`) and BS Greeks (`deltaBS`, `gammaBS`, `thetaBS`, `vegaBS`)
 ```bash
 okx option place --instId <id> --side <buy|sell> --ordType <type> \
   --tdMode <cash|cross|isolated> --sz <n> \
-  [--tgtCcy <quote_ccy|margin>] [--px <price>] [--reduceOnly] [--clOrdId <id>] [--json]
+  [--tgtCcy <quote_ccy|margin>] [--px <price>] [--reduceOnly] [--clOrdId <id>] \
+  [--tpTriggerPx <p>] [--tpOrdPx=<p|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>] \
+  [--slTriggerPx <p>] [--slOrdPx=<p|-1>] [--slTriggerPxType <last|index|mark>] \
+  [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--json]
 ```
 
 | Param | Required | Default | Description |
@@ -100,10 +103,32 @@ okx option place --instId <id> --side <buy|sell> --ordType <type> \
 | `--tgtCcy` | No | - | `quote_ccy`: sz is USDT notional value; `margin`: sz is USDT margin cost (position = sz * leverage). Both auto-convert to contracts |
 | `--px` | Cond. | - | Required for `limit`, `post_only`, `fok`, `ioc` |
 | `--reduceOnly` | No | false | Close-only; do not open a new position |
+| `--tpTriggerPx` | No | - | Attached take-profit trigger price |
+| `--tpOrdPx` | No | - | TP order price; use `-1` for market execution (must use `=` form: `--tpOrdPx=-1`) |
+| `--tpOrdKind` | No | condition | `condition`: trigger-based TP (default); `limit`: immediate limit-order TP (no trigger phase) |
+| `--tpTriggerPxType` | No | last | Price source for TP trigger: `last` (default), `index`, `mark` |
+| `--slTriggerPx` | No | - | Attached stop-loss trigger price |
+| `--slOrdPx` | No | - | SL order price; use `-1` for market execution (must use `=` form: `--slOrdPx=-1`) |
+| `--slTriggerPxType` | No | last | Price source for SL trigger: `last` (default), `index`, `mark` |
+| `--stpMode` | No | - | Self-trade prevention: `cancel_maker`, `cancel_taker`, `cancel_both` |
 
 **tdMode rules:**
 - Buyer (`side=buy`): always use `cash` — pay full premium, no margin call risk
 - Seller (`side=sell`): use `cross` or `isolated` — margin required, liquidation risk
+
+**Example — Immediate limit-order TP (tpOrdKind limit):**
+```bash
+okx option place --instId BTC-USD-260328-100000-C --side buy \
+  --ordType limit --tdMode cash --sz 1 --px 0.005 \
+  --tpTriggerPx 0.01 --tpOrdPx 0.01 --tpOrdKind limit
+```
+
+**Example — Self-trade prevention (stpMode cancel_maker):**
+```bash
+okx option place --instId BTC-USD-260328-100000-C --side buy \
+  --ordType limit --tdMode cash --sz 1 --px 0.005 \
+  --stpMode cancel_maker
+```
 
 ---
 

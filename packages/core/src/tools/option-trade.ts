@@ -1,5 +1,9 @@
 import type { ToolSpec } from "./types.js";
 import {
+  SL_TRIGGER_PX_TYPE_SCHEMA,
+  STP_MODE_SCHEMA,
+  TP_ORD_KIND_SCHEMA,
+  TP_TRIGGER_PX_TYPE_SCHEMA,
   asRecord,
   buildAttachAlgoOrds,
   compactObject,
@@ -70,6 +74,8 @@ export function registerOptionTools(): ToolSpec[] {
             type: "string",
             description: "TP order price; -1=market",
           },
+          tpOrdKind: TP_ORD_KIND_SCHEMA,
+          tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
           slTriggerPx: {
             type: "string",
             description: "SL trigger price",
@@ -78,6 +84,8 @@ export function registerOptionTools(): ToolSpec[] {
             type: "string",
             description: "SL order price; -1=market",
           },
+          slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+          stpMode: STP_MODE_SCHEMA,
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
@@ -105,6 +113,7 @@ export function registerOptionTools(): ToolSpec[] {
             px: readString(args, "px"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
+            stpMode: readString(args, "stpMode"),
             tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
