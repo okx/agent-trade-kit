@@ -91,6 +91,8 @@ export async function cmdSwapPlace(
     slOrdPx?: string;
     slTriggerPxType?: string;
     stpMode?: string;
+    // Phase 3c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+    pxAmendType?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -113,6 +115,7 @@ export async function cmdSwapPlace(
     slOrdPx: opts.slOrdPx,
     slTriggerPxType: opts.slTriggerPxType,
     stpMode: opts.stpMode,
+    pxAmendType: opts.pxAmendType,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -171,6 +174,11 @@ export async function cmdSwapAlgoPlace(
     szLimit?: string;
     pxLimit?: string;
     timeInterval?: string;
+    // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+    tpTriggerRatio?: string;
+    slTriggerRatio?: string;
+    closeFraction?: string;
+    pxAmendType?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -209,6 +217,10 @@ export async function cmdSwapAlgoPlace(
     szLimit: opts.szLimit,
     pxLimit: opts.pxLimit,
     timeInterval: opts.timeInterval,
+    tpTriggerRatio: opts.tpTriggerRatio,
+    slTriggerRatio: opts.slTriggerRatio,
+    closeFraction: opts.closeFraction,
+    pxAmendType: opts.pxAmendType,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

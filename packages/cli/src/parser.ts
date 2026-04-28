@@ -33,6 +33,12 @@ export interface CliValues {
   slTriggerPxType?: string;
   stpMode?: string;
   cxlOnClosePos?: boolean;
+  // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+  tpTriggerRatio?: string;
+  slTriggerRatio?: string;
+  closeFraction?: string;
+  banAmend?: boolean;
+  pxAmendType?: string;
   // Phase 2 algo ordType flags (issue #181)
   orderPx?: string;
   advanceOrdType?: string;
@@ -266,6 +272,12 @@ export const CLI_OPTIONS = {
   slTriggerPxType: { type: "string" },
   stpMode: { type: "string" },
   cxlOnClosePos: { type: "boolean", default: false },
+  // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+  tpTriggerRatio: { type: "string" },
+  slTriggerRatio: { type: "string" },
+  closeFraction: { type: "string" },
+  banAmend: { type: "boolean", default: false },
+  pxAmendType: { type: "string" },
   // Phase 2 algo ordType flags (issue #181)
   orderPx: { type: "string" },
   advanceOrdType: { type: "string" },

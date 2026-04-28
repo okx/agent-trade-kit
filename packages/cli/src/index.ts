@@ -524,6 +524,11 @@ export function handleSpotAlgoCommand(
       szLimit: v.szLimit,
       pxLimit: v.pxLimit,
       timeInterval: v.timeInterval,
+      // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+      tpTriggerRatio: v.tpTriggerRatio,
+      slTriggerRatio: v.slTriggerRatio,
+      closeFraction: v.closeFraction,
+      pxAmendType: v.pxAmendType,
       json,
     });
   if (subAction === "amend")
@@ -593,6 +598,10 @@ export function handleSpotCommand(
       slOrdPx: v.slOrdPx,
       slTriggerPxType: v.slTriggerPxType,
       stpMode: v.stpMode,
+      // Phase 3c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+      tradeQuoteCcy: v.tradeQuoteCcy,
+      banAmend: v.banAmend,
+      pxAmendType: v.pxAmendType,
       json,
     });
   if (action === "cancel")
@@ -671,6 +680,11 @@ export function handleSwapAlgoCommand(
       szLimit: v.szLimit,
       pxLimit: v.pxLimit,
       timeInterval: v.timeInterval,
+      // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+      tpTriggerRatio: v.tpTriggerRatio,
+      slTriggerRatio: v.slTriggerRatio,
+      closeFraction: v.closeFraction,
+      pxAmendType: v.pxAmendType,
       json,
     });
   if (subAction === "amend")
@@ -762,6 +776,8 @@ export function handleSwapCommand(
       slOrdPx: v.slOrdPx,
       slTriggerPxType: v.slTriggerPxType,
       stpMode: v.stpMode,
+      // Phase 3c CLI power-user flag (issue #182, CLI-only no MCP/skill exposure)
+      pxAmendType: v.pxAmendType,
       json,
     });
   if (action === "cancel")
@@ -959,6 +975,11 @@ export function handleFuturesAlgoCommand(
       szLimit: v.szLimit,
       pxLimit: v.pxLimit,
       timeInterval: v.timeInterval,
+      // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
+      tpTriggerRatio: v.tpTriggerRatio,
+      slTriggerRatio: v.slTriggerRatio,
+      closeFraction: v.closeFraction,
+      pxAmendType: v.pxAmendType,
       json,
     });
   if (subAction === "amend")
@@ -1042,6 +1063,8 @@ export function handleFuturesCommand(
       slOrdPx: v.slOrdPx,
       slTriggerPxType: v.slTriggerPxType,
       stpMode: v.stpMode,
+      // Phase 3c CLI power-user flag (issue #182, CLI-only no MCP/skill exposure)
+      pxAmendType: v.pxAmendType,
       json,
     });
   if (action === "cancel")

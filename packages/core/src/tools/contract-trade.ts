@@ -127,6 +127,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
             stpMode: readString(args, "stpMode"),
+            // Phase 3c CLI power-user flag (issue #182, CLI-only no MCP/skill exposure)
+            pxAmendType: readString(args, "pxAmendType"),
             tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
