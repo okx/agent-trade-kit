@@ -878,47 +878,57 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── smartmoney ─────────────────────────────────────────────────────────────
   smartmoney: {
-    description: "Smart money signals — trader leaderboard, consensus signals, and position analysis",
+    description: "Smart money analytics — trader leaderboard, consensus signals, and position analysis",
     commands: {
-      overview: {
-        toolName: "smartmoney_get_overview",
-        usage: "okx smartmoney overview [--ts <ms> | --dataVersion <ver>] [--instType <SWAP|SPOT>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--json]",
-        description: "Multi-currency smart money overview ranked by tradersWithPosition DESC (requires --ts or --dataVersion; --ts takes precedence)",
+      "top-traders": {
+        toolName: "smartmoney_get_top_traders",
+        usage: "okx smartmoney top-traders [--updateTime <ts>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <n>] [--winRate <r>] [--maxDrawdown <r>] [--asset <n>] [--after <id>] [--before <id>] [--limit <n>] [--json]",
+        description: "Leaderboard of top smart-money traders, ranked and filtered by pool conditions",
       },
-      signal: {
-        toolName: "smartmoney_get_signal",
-        usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--ts <ms> | --dataVersion <ver>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
-        description: "Single-currency aggregated consensus signal (requires --instId or --instCcy, and --ts or --dataVersion; --instId / --ts take precedence)",
+      "trader-performance": {
+        toolName: "smartmoney_get_trader_performance",
+        usage: "okx smartmoney trader-performance --authorIds <id1,id2> [--period <3|7|30|90>] [--json]",
+        description: "PnL / win-rate / drawdown profile for one or more traders by authorIds",
       },
-      "signal-history": {
-        toolName: "smartmoney_get_signal_history",
-        usage: "okx smartmoney signal-history --instId <id> [--ts <ms> | --dataVersion <ver>] [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--json]",
-        description: "Signal history timeline sorted by ts DESC (requires --instId and --ts/--dataVersion)",
-      },
-      traders: {
-        toolName: "smartmoney_get_traders",
-        usage: "okx smartmoney traders [--dataVersion <ts>] [--sortType <pnl|pnl_ratio>] [--period <\"\"|3|7|30|90>] [--pnl <n>] [--winRatio <r>] [--maxRetreat <r>] [--asset <n>] [--authorIds <ids>] [--limit <n>] [--after <id>] [--before <id>] [--json]",
-        description: "List/filter traders from the smart money leaderboard",
-      },
-      trader: {
-        toolName: "smartmoney_get_trader_detail",
-        usage: "okx smartmoney trader --authorId <id> [--period <3|7|30|90>] [--instCcy <ccy>] [--tradeLimit <n>] [--json]",
-        description: "Trader full portrait (profile + positions + trades, composite)",
-      },
-      positions: {
+      "trader-positions": {
         toolName: "smartmoney_get_trader_positions",
-        usage: "okx smartmoney positions --authorId <id> [--instCcy <ccy>] [--json]",
-        description: "Trader's current open positions",
+        usage: "okx smartmoney trader-positions --authorId <id> [--instCcy <ccy>] [--json]",
+        description: "Currently-open positions held by a single trader",
       },
-      trades: {
-        toolName: "smartmoney_get_trader_trades",
-        usage: "okx smartmoney trades --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]",
-        description: "Trader's recent order/fill records (paginated)",
-      },
-      "position-history": {
+      "trader-position-history": {
         toolName: "smartmoney_get_trader_position_history",
-        usage: "okx smartmoney position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]",
-        description: "Trader's closed-position history (paginated)",
+        usage: "okx smartmoney trader-position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]",
+        description: "Closed-position history of a single trader (paginated)",
+      },
+      "trader-order-history": {
+        toolName: "smartmoney_get_trader_order_history",
+        usage: "okx smartmoney trader-order-history --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]",
+        description: "Recent orders/fills placed by a single trader (paginated)",
+      },
+      "top-coin-signals": {
+        toolName: "smartmoney_get_top_coin_signals",
+        usage: "okx smartmoney top-coin-signals [--ts <ms>] [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--topInstruments <n>] [--json]",
+        description: "Top-N instruments most-watched by smart money right now",
+      },
+      "signal-by-coin": {
+        toolName: "smartmoney_get_signal_by_coin",
+        usage: "okx smartmoney signal-by-coin --instId <id> [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]",
+        description: "Single-asset smart-money consensus signal aggregated over a tier-filtered pool",
+      },
+      "signal-by-traders": {
+        toolName: "smartmoney_get_signal_by_traders",
+        usage: "okx smartmoney signal-by-traders --instId <id> --authorIds <id1,id2> [--lmtNum <n>] [--json]",
+        description: "Single-asset smart-money signal restricted to a hand-picked set of traders",
+      },
+      "signal-history-by-coin": {
+        toolName: "smartmoney_get_signal_history_by_coin",
+        usage: "okx smartmoney signal-history-by-coin --instId <id> --ts <ms> [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--json]",
+        description: "Time-series of single-asset smart-money signal aggregated over a tier-filtered pool",
+      },
+      "signal-history-by-traders": {
+        toolName: "smartmoney_get_signal_history_by_traders",
+        usage: "okx smartmoney signal-history-by-traders --instId <id> --authorIds <id1,id2> --ts <ms> [--granularity <1h|1d>] [--limit <n>] [--lmtNum <n>] [--json]",
+        description: "Time-series of single-asset smart-money signal restricted to a hand-picked set of traders",
       },
     },
   },

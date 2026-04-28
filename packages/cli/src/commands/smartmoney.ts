@@ -13,7 +13,7 @@ function printDataList(
   printTable(data.map(mapper));
 }
 
-/** Pool-filter fields for signal endpoints (overview / signal / signal-history). Enum tiers. */
+/** Pool-filter fields for signal endpoints (top-coin / signal / signal-history). Enum tiers. */
 export interface SignalPoolFilterOpts {
   sortBy?: string;
   period?: string;
@@ -23,13 +23,13 @@ export interface SignalPoolFilterOpts {
   aumTier?: string;
 }
 
-/** Pool-filter fields for the leaderboard (`traders`) endpoint. Numeric thresholds. */
+/** Pool-filter fields for the leaderboard (`top-traders`) endpoint. Numeric thresholds. */
 export interface LeaderboardPoolFilterOpts {
-  sortType?: string;
+  sortBy?: string;
   period?: string;
   pnl?: string;
-  winRatio?: string;
-  maxRetreat?: string;
+  winRate?: string;
+  maxDrawdown?: string;
   asset?: string;
 }
 
@@ -46,149 +46,32 @@ function signalPoolFilterArgs(o: SignalPoolFilterOpts): Record<string, unknown> 
 
 function leaderboardPoolFilterArgs(o: LeaderboardPoolFilterOpts): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  if (o.sortType) result.sortType = o.sortType;
+  if (o.sortBy) result.sortBy = o.sortBy;
   if (o.period) result.period = o.period;
   if (o.pnl) result.pnl = o.pnl;
-  if (o.winRatio) result.winRatio = o.winRatio;
-  if (o.maxRetreat) result.maxRetreat = o.maxRetreat;
+  if (o.winRate) result.winRate = o.winRate;
+  if (o.maxDrawdown) result.maxDrawdown = o.maxDrawdown;
   if (o.asset) result.asset = o.asset;
   return result;
 }
 
-export async function cmdSmartmoneyOverview(
-  run: ToolRunner,
-  opts: SignalPoolFilterOpts & {
-    dataVersion?: string;
-    ts?: string;
-    instType?: string;
-    lmtNum?: string;
-    instCcyList?: string;
-    instCcy?: string;
-    topInstruments?: string;
-    json: boolean;
-  },
-): Promise<void> {
-  const result = await run("smartmoney_get_overview", {
-    dataVersion: opts.dataVersion,
-    ts: opts.ts,
-    instType: opts.instType,
-    ...signalPoolFilterArgs(opts),
-    lmtNum: opts.lmtNum,
-    instCcyList: opts.instCcyList,
-    instCcy: opts.instCcy,
-    topInstruments: opts.topInstruments,
-  });
-  const data = extractData(result);
-  printDataList(data, opts.json, "No overview data", (r) => ({
-    instId: r["instId"],
-    tradersWithPosition: r["tradersWithPosition"],
-    longRatio: r["longRatio"],
-    weightedLongRatio: r["weightedLongRatio"],
-    netNotionalUsdt: r["netNotionalUsdt"],
-    vs24h: r["vs24h"],
-  }));
-}
+/* ------------------------------------------------------------------ */
+/*  Trader family (5)                                                  */
+/* ------------------------------------------------------------------ */
 
-export async function cmdSmartmoneySignal(
-  run: ToolRunner,
-  opts: SignalPoolFilterOpts & {
-    instId?: string;
-    dataVersion?: string;
-    ts?: string;
-    instCcy?: string;
-    lmtNum?: string;
-    authorIds?: string;
-    json: boolean;
-  },
-): Promise<void> {
-  const result = await run("smartmoney_get_signal", {
-    instId: opts.instId,
-    instCcy: opts.instCcy,
-    dataVersion: opts.dataVersion,
-    ts: opts.ts,
-    ...signalPoolFilterArgs(opts),
-    lmtNum: opts.lmtNum,
-    authorIds: opts.authorIds,
-  });
-  const data = extractData(result);
-  const signal = data[0] as Record<string, unknown> | undefined;
-  if (opts.json) { printJson(signal ?? {}); return; }
-  if (!signal) { outputLine("No signal data"); return; }
-
-  printKv({
-    instId: signal["instId"],
-    instType: signal["instType"],
-    tradersWithPosition: signal["tradersWithPosition"],
-    tradersTotal: signal["tradersTotal"],
-    longRatio: signal["longRatio"],
-    weightedLongRatio: signal["weightedLongRatio"],
-    avgLongWinRatio: signal["avgLongWinRatio"],
-    avgShortWinRatio: signal["avgShortWinRatio"],
-    longNotionalUsdt: signal["longNotionalUsdt"],
-    shortNotionalUsdt: signal["shortNotionalUsdt"],
-    netNotionalUsdt: signal["netNotionalUsdt"],
-    longTraders: signal["longTraders"],
-    shortTraders: signal["shortTraders"],
-    vs1h: signal["vs1h"],
-    vs24h: signal["vs24h"],
-    vs7d: signal["vs7d"],
-    smartMoneyLongAvgEntry: signal["smartMoneyLongAvgEntry"],
-    smartMoneyShortAvgEntry: signal["smartMoneyShortAvgEntry"],
-    totalNotionalVs24h: signal["totalNotionalVs24h"],
-    currentPrice: signal["currentPrice"],
-    priceChange24h: signal["priceChange24h"],
-    fundingRate: signal["fundingRate"],
-    openInterest: signal["openInterest"],
-    longShortAccountRatio: signal["longShortAccountRatio"],
-  });
-}
-
-export async function cmdSmartmoneySignalHistory(
-  run: ToolRunner,
-  opts: SignalPoolFilterOpts & {
-    instId: string;
-    dataVersion?: string;
-    ts?: string;
-    granularity?: string;
-    limit?: string;
-    json: boolean;
-  },
-): Promise<void> {
-  const result = await run("smartmoney_get_signal_history", {
-    instId: opts.instId,
-    dataVersion: opts.dataVersion,
-    ts: opts.ts,
-    granularity: opts.granularity,
-    limit: opts.limit,
-    ...signalPoolFilterArgs(opts),
-  });
-  const data = extractData(result);
-  printDataList(data, opts.json, "No signal history data", (r) => ({
-    ts: r["ts"],
-    longRatio: r["longRatio"],
-    weightedLongRatio: r["weightedLongRatio"],
-    tradersWithPosition: r["tradersWithPosition"],
-    netNotionalUsdt: r["netNotionalUsdt"],
-    totalNotionalUsdt: r["totalNotionalUsdt"],
-    tradersQualified: r["tradersQualified"],
-  }));
-}
-
-export async function cmdSmartmoneyTraders(
+export async function cmdSmartmoneyTopTraders(
   run: ToolRunner,
   opts: LeaderboardPoolFilterOpts & {
-    dataVersion?: string;
-    authorIds?: string;
+    updateTime?: string;
     after?: string;
     before?: string;
     limit?: string;
     json: boolean;
   },
 ): Promise<void> {
-  const data = extractData(await run("smartmoney_get_traders", {
-    dataVersion: opts.dataVersion,
+  const data = extractData(await run("smartmoney_get_top_traders", {
+    updateTime: opts.updateTime,
     ...leaderboardPoolFilterArgs(opts),
-    authorIds: opts.authorIds,
     after: opts.after,
     before: opts.before,
     limit: opts.limit,
@@ -198,7 +81,31 @@ export async function cmdSmartmoneyTraders(
     nickName: r["nickName"],
     pnl: r["pnl"],
     pnlRatio: r["pnlRatio"],
-    winRatio: r["winRatio"],
+    winRate: r["winRate"],
+    maxDrawdown: r["maxDrawdown"],
+    asset: r["asset"],
+  }));
+}
+
+export async function cmdSmartmoneyTraderPerformance(
+  run: ToolRunner,
+  opts: {
+    authorIds: string;
+    period?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const data = extractData(await run("smartmoney_get_trader_performance", {
+    authorIds: opts.authorIds,
+    period: opts.period,
+  }));
+  printDataList(data, opts.json, "No traders found", (r) => ({
+    authorId: r["authorId"],
+    nickName: r["nickName"],
+    pnl: r["pnl"],
+    pnlRatio: r["pnlRatio"],
+    winRate: r["winRate"],
+    maxDrawdown: r["maxDrawdown"],
     asset: r["asset"],
   }));
 }
@@ -223,40 +130,9 @@ export async function cmdSmartmoneyTraderPositions(
     avgPx: r["avgPx"],
     last: r["last"],
     notionalUsd: r["notionalUsd"],
+    upl: r["upl"],
     pnl: r["pnl"],
     positionIntensity: r["positionIntensity"],
-  }));
-}
-
-export async function cmdSmartmoneyTraderTrades(
-  run: ToolRunner,
-  opts: {
-    authorId: string;
-    instCcy?: string;
-    after?: string;
-    before?: string;
-    limit?: string;
-    json: boolean;
-  },
-): Promise<void> {
-  const result = await run("smartmoney_get_trader_trades", {
-    authorId: opts.authorId,
-    instCcy: opts.instCcy,
-    after: opts.after,
-    before: opts.before,
-    limit: opts.limit,
-  });
-  if (opts.json) { printJson(result); return; }
-  const data = extractData(result);
-  printDataList(data, false, "No trades found", (r) => ({
-    cTime: r["cTime"],
-    instId: r["instId"],
-    side: r["side"],
-    posSide: r["posSide"],
-    ordType: r["ordType"],
-    avgPx: r["avgPx"],
-    sz: r["sz"],
-    value: r["value"],
   }));
 }
 
@@ -293,55 +169,206 @@ export async function cmdSmartmoneyTraderPositionHistory(
   }));
 }
 
-export async function cmdSmartmoneyTraderDetail(
+export async function cmdSmartmoneyTraderOrderHistory(
   run: ToolRunner,
   opts: {
     authorId: string;
-    period?: string;
     instCcy?: string;
-    tradeLimit?: string;
+    after?: string;
+    before?: string;
+    limit?: string;
     json: boolean;
   },
 ): Promise<void> {
-  const result = await run("smartmoney_get_trader_detail", {
+  const result = await run("smartmoney_get_trader_order_history", {
     authorId: opts.authorId,
-    period: opts.period,
     instCcy: opts.instCcy,
-    tradeLimit: opts.tradeLimit,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
   });
-  const data = result as unknown as Record<string, unknown>;
-  const inner = data["data"] as Record<string, unknown> | undefined;
-  if (opts.json) { printJson(inner ?? {}); return; }
-  if (!inner) { outputLine("No data"); return; }
+  if (opts.json) { printJson(result); return; }
+  const data = extractData(result);
+  printDataList(data, false, "No order history", (r) => ({
+    cTime: r["cTime"],
+    instId: r["instId"],
+    side: r["side"],
+    posSide: r["posSide"],
+    ordType: r["ordType"],
+    avgPx: r["avgPx"],
+    sz: r["sz"],
+    value: r["value"],
+  }));
+}
 
-  // Profile
-  const profileArr = inner["profile"];
-  if (Array.isArray(profileArr) && profileArr.length > 0) {
-    const p = profileArr[0] as Record<string, unknown>;
-    outputLine("=== Profile ===");
-    printKv({
-      authorId: p["authorId"],
-      nickName: p["nickName"],
-      pnl: p["pnl"],
-      pnlRatio: p["pnlRatio"],
-      winRatio: p["winRatio"],
-      maxRetreat: p["maxRetreat"],
-      asset: p["asset"],
-      onboardDuration: p["onboardDuration"],
-    });
-  }
+/* ------------------------------------------------------------------ */
+/*  Signal/Coin family (5)                                             */
+/* ------------------------------------------------------------------ */
 
-  // Positions
-  const posArr = inner["positions"];
-  if (Array.isArray(posArr) && posArr.length > 0) {
-    outputLine("\n=== Current Positions ===");
-    printJson(posArr);
-  }
+export async function cmdSmartmoneyTopCoinSignals(
+  run: ToolRunner,
+  opts: SignalPoolFilterOpts & {
+    ts?: string;
+    lmtNum?: string;
+    topInstruments?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_top_coin_signals", {
+    ts: opts.ts,
+    ...signalPoolFilterArgs(opts),
+    lmtNum: opts.lmtNum,
+    topInstruments: opts.topInstruments,
+  });
+  const data = extractData(result);
+  printDataList(data, opts.json, "No top coin signals", (r) => ({
+    instId: r["instId"],
+    tradersWithPosition: r["tradersWithPosition"],
+    longRatio: r["longRatio"],
+    weightedLongRatio: r["weightedLongRatio"],
+    netNotionalUsdt: r["netNotionalUsdt"],
+    vs24h: r["vs24h"],
+  }));
+}
 
-  // Trades
-  const tradeArr = inner["trades"];
-  if (Array.isArray(tradeArr) && tradeArr.length > 0) {
-    outputLine("\n=== Recent Trades ===");
-    printJson(tradeArr);
-  }
+export async function cmdSmartmoneySignalByCoin(
+  run: ToolRunner,
+  opts: SignalPoolFilterOpts & {
+    instId: string;
+    lmtNum?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_signal_by_coin", {
+    instId: opts.instId,
+    ...signalPoolFilterArgs(opts),
+    lmtNum: opts.lmtNum,
+  });
+  const data = extractData(result);
+  const signal = data[0] as Record<string, unknown> | undefined;
+  if (opts.json) { printJson(signal ?? {}); return; }
+  if (!signal) { outputLine("No signal data"); return; }
+
+  printKv({
+    instId: signal["instId"],
+    tradersWithPosition: signal["tradersWithPosition"],
+    tradersTotal: signal["tradersTotal"],
+    longRatio: signal["longRatio"],
+    weightedLongRatio: signal["weightedLongRatio"],
+    avgLongWinRate: signal["avgLongWinRate"],
+    avgShortWinRate: signal["avgShortWinRate"],
+    longNotionalUsdt: signal["longNotionalUsdt"],
+    shortNotionalUsdt: signal["shortNotionalUsdt"],
+    netNotionalUsdt: signal["netNotionalUsdt"],
+    longTraders: signal["longTraders"],
+    shortTraders: signal["shortTraders"],
+    vs1h: signal["vs1h"],
+    vs24h: signal["vs24h"],
+    vs7d: signal["vs7d"],
+    smartMoneyLongAvgEntry: signal["smartMoneyLongAvgEntry"],
+    smartMoneyShortAvgEntry: signal["smartMoneyShortAvgEntry"],
+    totalNotionalVs24h: signal["totalNotionalVs24h"],
+  });
+}
+
+export async function cmdSmartmoneySignalByTraders(
+  run: ToolRunner,
+  opts: {
+    instId: string;
+    authorIds: string;
+    lmtNum?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_signal_by_traders", {
+    instId: opts.instId,
+    authorIds: opts.authorIds,
+    lmtNum: opts.lmtNum,
+  });
+  const data = extractData(result);
+  const signal = data[0] as Record<string, unknown> | undefined;
+  if (opts.json) { printJson(signal ?? {}); return; }
+  if (!signal) { outputLine("No signal data"); return; }
+
+  printKv({
+    instId: signal["instId"],
+    tradersWithPosition: signal["tradersWithPosition"],
+    tradersTotal: signal["tradersTotal"],
+    longRatio: signal["longRatio"],
+    weightedLongRatio: signal["weightedLongRatio"],
+    avgLongWinRate: signal["avgLongWinRate"],
+    avgShortWinRate: signal["avgShortWinRate"],
+    longNotionalUsdt: signal["longNotionalUsdt"],
+    shortNotionalUsdt: signal["shortNotionalUsdt"],
+    netNotionalUsdt: signal["netNotionalUsdt"],
+    longTraders: signal["longTraders"],
+    shortTraders: signal["shortTraders"],
+    vs1h: signal["vs1h"],
+    vs24h: signal["vs24h"],
+    vs7d: signal["vs7d"],
+    smartMoneyLongAvgEntry: signal["smartMoneyLongAvgEntry"],
+    smartMoneyShortAvgEntry: signal["smartMoneyShortAvgEntry"],
+    totalNotionalVs24h: signal["totalNotionalVs24h"],
+  });
+}
+
+export async function cmdSmartmoneySignalHistoryByCoin(
+  run: ToolRunner,
+  opts: SignalPoolFilterOpts & {
+    instId: string;
+    ts: string;
+    granularity?: string;
+    limit?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_signal_history_by_coin", {
+    instId: opts.instId,
+    ts: opts.ts,
+    granularity: opts.granularity,
+    limit: opts.limit,
+    ...signalPoolFilterArgs(opts),
+  });
+  const data = extractData(result);
+  printDataList(data, opts.json, "No signal history data", (r) => ({
+    ts: r["ts"],
+    longRatio: r["longRatio"],
+    weightedLongRatio: r["weightedLongRatio"],
+    tradersWithPosition: r["tradersWithPosition"],
+    netNotionalUsdt: r["netNotionalUsdt"],
+    totalNotionalUsdt: r["totalNotionalUsdt"],
+    tradersQualified: r["tradersQualified"],
+  }));
+}
+
+export async function cmdSmartmoneySignalHistoryByTraders(
+  run: ToolRunner,
+  opts: {
+    instId: string;
+    authorIds: string;
+    ts: string;
+    granularity?: string;
+    limit?: string;
+    lmtNum?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_signal_history_by_traders", {
+    instId: opts.instId,
+    authorIds: opts.authorIds,
+    ts: opts.ts,
+    granularity: opts.granularity,
+    limit: opts.limit,
+    lmtNum: opts.lmtNum,
+  });
+  const data = extractData(result);
+  printDataList(data, opts.json, "No signal history data", (r) => ({
+    ts: r["ts"],
+    longRatio: r["longRatio"],
+    weightedLongRatio: r["weightedLongRatio"],
+    tradersWithPosition: r["tradersWithPosition"],
+    netNotionalUsdt: r["netNotionalUsdt"],
+    totalNotionalUsdt: r["totalNotionalUsdt"],
+    tradersQualified: r["tradersQualified"],
+  }));
 }

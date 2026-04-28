@@ -126,18 +126,15 @@ export interface CliValues {
   // smartmoney
   authorId?: string;
   authorIds?: string;
-  dataVersion?: string;
-  sortType?: string;
+  updateTime?: string;
   granularity?: string;
   lmtNum?: string;
   instCcy?: string;
-  instCcyList?: string;
   topInstruments?: string;
-  tradeLimit?: string;
-  // smartmoney pool filters — leaderboard (numeric thresholds, traders endpoint)
+  // smartmoney pool filters — leaderboard (numeric thresholds, top-traders endpoint)
   pnl?: string;
-  winRatio?: string;
-  maxRetreat?: string;
+  winRate?: string;
+  maxDrawdown?: string;
   asset?: string;
   // smartmoney pool filters — signal endpoints (enum tiers; sortBy declared elsewhere)
   pnlTier?: string;
@@ -371,18 +368,15 @@ export const CLI_OPTIONS = {
   // smartmoney
   authorId: { type: "string" },
   authorIds: { type: "string" },
-  dataVersion: { type: "string" },
-  sortType: { type: "string" },
+  updateTime: { type: "string" },
   granularity: { type: "string" },
   lmtNum: { type: "string" },
   instCcy: { type: "string" },
-  instCcyList: { type: "string" },
   topInstruments: { type: "string" },
-  tradeLimit: { type: "string" },
   // smartmoney pool filters — leaderboard (numeric thresholds)
   pnl: { type: "string" },
-  winRatio: { type: "string" },
-  maxRetreat: { type: "string" },
+  winRate: { type: "string" },
+  maxDrawdown: { type: "string" },
   asset: { type: "string" },
   // smartmoney pool filters — signal endpoints (enum tiers)
   pnlTier: { type: "string" },
