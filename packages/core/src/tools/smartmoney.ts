@@ -5,10 +5,12 @@ import {
   normalizeResponse,
   readNumber,
   readString,
-  requireString,
 } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
 import { ValidationError } from "../utils/errors.js";
+
+/** Per-tool RPS cap; lower than the default 20 because upstream journal/smartmoney/* endpoints are heavier than market data. */
+const SMARTMONEY_RPS = 5;
 
 /* ------------------------------------------------------------------ */
 /*  API path constants                                                 */
@@ -216,7 +218,10 @@ function buildPagination(
     hasMore && last && typeof last === "object" && last !== null
       ? (last as Record<string, unknown>)[cursorField]
       : undefined;
-  return compactObject({ hasMore, nextAfter });
+  // `hasMore` is always emitted (even when false) so callers can branch on it
+  // unambiguously; `nextAfter` is conditional because an absent cursor is the
+  // canonical "no more pages" signal.
+  return nextAfter !== undefined ? { hasMore, nextAfter } : { hasMore };
 }
 
 /* ------------------------------------------------------------------ */
@@ -243,7 +248,10 @@ function resolveSignalTs(args: Record<string, unknown>): string {
   }
   const raw = Number(userTs);
   if (!Number.isFinite(raw)) {
-    throw new ValidationError(`"ts" must be a numeric UTC ms timestamp; got ${userTs}.`);
+    throw actionableError(
+      `"ts" must be a numeric UTC ms timestamp; got ${userTs}.`,
+      "Pass Date.now() for current time, or a numeric ms timestamp from a prior signal response.",
+    );
   }
   return floorTsToHour(raw);
 }
@@ -480,7 +488,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use to discover top performers. " +
         "For a specific trader's profile by ID use `smartmoney_get_trader_performance`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         { type: "array", items: { type: "object", properties: TRADER_ITEM_PROPS } },
         { pagination: PAGINATION_PROP },
@@ -523,7 +531,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             before: readString(args, "before"),
             limit,
           }),
-          publicRateLimit("smartmoney_get_top_traders", 5),
+          publicRateLimit("smartmoney_get_top_traders", SMARTMONEY_RPS),
         );
         const normalized = normalizeResponse(response);
         const data = extractLeaderboardData(normalized.data);
@@ -544,7 +552,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "(comma-separated for batch). " +
         "Use `smartmoney_get_top_traders` to discover authorIds first.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         items: { type: "object", properties: TRADER_ITEM_PROPS },
@@ -583,7 +591,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             authorIds,
             period: readString(args, "period"),
           }),
-          publicRateLimit("smartmoney_get_top_traders", 5),
+          publicRateLimit("smartmoney_get_trader_performance", SMARTMONEY_RPS),
         );
         const normalized = normalizeResponse(response);
         return { ...normalized, data: extractLeaderboardData(normalized.data) };
@@ -600,7 +608,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Get `authorId` from `smartmoney_get_top_traders` first. " +
         "For closed-position history use `smartmoney_get_trader_position_history`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         items: {
@@ -676,7 +684,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             authorId,
             instCcy: readString(args, "instCcy"),
           }),
-          publicRateLimit("smartmoney_trader_positions", 5),
+          publicRateLimit("smartmoney_get_trader_positions", SMARTMONEY_RPS),
         );
         const normalized = normalizeResponse(response);
         return { ...normalized, data: extractPositionData(normalized.data) };
@@ -692,7 +700,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use to study realized PnL pattern, holding duration, win/loss streaks, and how positions ended (closed vs liquidated). " +
         "For currently-open positions use `smartmoney_get_trader_positions`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         {
           type: "array",
@@ -700,7 +708,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             type: "object",
             properties: {
               posId: { type: "string", description: "Unique closed-position ID. Use as the `after` / `before` cursor when paginating." },
-              instId: { type: "string", description: "Instrument ID e.g. BTC-USD-SWAP." },
+              instId: { type: "string", description: "Instrument ID e.g. BTC-USDT-SWAP." },
               instType: {
                 type: "string",
                 description:
@@ -799,7 +807,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             before: readString(args, "before"),
             limit,
           }),
-          publicRateLimit("smartmoney_position_history", 5),
+          publicRateLimit("smartmoney_get_trader_position_history", SMARTMONEY_RPS),
         );
         const normalized = normalizeResponse(response);
         const data = Array.isArray(normalized.data) ? normalized.data : [];
@@ -821,7 +829,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use to see what trades a top trader has been making lately — direction, size, price, leverage. " +
         "Get `authorId` from `smartmoney_get_top_traders`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         {
           type: "array",
@@ -923,7 +931,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             before: readString(args, "before"),
             limit,
           }),
-          publicRateLimit("smartmoney_trade_records", 5),
+          publicRateLimit("smartmoney_get_trader_order_history", SMARTMONEY_RPS),
         );
         const normalized = normalizeResponse(response);
         const data = Array.isArray(normalized.data) ? normalized.data : [];
@@ -949,7 +957,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "For single-asset detail use `smartmoney_get_signal_by_coin`; " +
         "for time-series of one asset use `smartmoney_get_signal_history_by_coin`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description:
@@ -997,7 +1005,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             lmtNum: readNumber(args, "lmtNum"),
             topInstruments: readNumber(args, "topInstruments"),
           }),
-          publicRateLimit("smartmoney_get_top_coin_signals", 5),
+          publicRateLimit("smartmoney_get_top_coin_signals", SMARTMONEY_RPS),
         );
         return normalizeResponse(response);
       },
@@ -1015,7 +1023,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "for time-series use `smartmoney_get_signal_history_by_coin`. " +
         "Snapshot time is auto-resolved to the current hour.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Single-element array; consume `data[0]`.",
@@ -1059,7 +1067,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             ...readSignalPoolFilters(args),
             lmtNum: readNumber(args, "lmtNum"),
           }),
-          publicRateLimit("smartmoney_get_signal_by_coin", 5),
+          publicRateLimit("smartmoney_get_signal_by_coin", SMARTMONEY_RPS),
         );
         return normalizeResponse(response);
       },
@@ -1075,7 +1083,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "For a pool-filter view use `smartmoney_get_signal_by_coin`. " +
         "Snapshot time is auto-resolved to the current hour.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Single-element array; consume `data[0]`.",
@@ -1128,7 +1136,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             authorIds,
             lmtNum: readNumber(args, "lmtNum"),
           }),
-          publicRateLimit("smartmoney_get_signal_by_traders", 5),
+          publicRateLimit("smartmoney_get_signal_by_traders", SMARTMONEY_RPS),
         );
         return normalizeResponse(response);
       },
@@ -1146,7 +1154,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "For the latest snapshot only, use `smartmoney_get_signal_by_coin`. " +
         "For an authorIds-restricted time-series, use `smartmoney_get_signal_history_by_traders`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Time-bucket series for the requested instrument, sorted by time DESC (newest first).",
@@ -1199,6 +1207,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             "Pass a UTC ms timestamp anchor (e.g. `Date.now()`); the handler floors it to the hour.",
           );
         }
+        // ts is validated above; resolveSignalTs floor-aligns it to the hour.
         const response = await context.client.privateGet(
           PATH_SIGNAL_HISTORY,
           compactObject({
@@ -1208,7 +1217,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             limit: readNumber(args, "limit"),
             ...readSignalPoolFilters(args),
           }),
-          publicRateLimit("smartmoney_get_signal_history_by_coin", 5),
+          publicRateLimit("smartmoney_get_signal_history_by_coin", SMARTMONEY_RPS),
         );
         return normalizeResponse(response);
       },
@@ -1223,7 +1232,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use to track how a specific group of traders has evolved their long/short consensus over time. " +
         "For pool-filter time-series, use `smartmoney_get_signal_history_by_coin`.",
       isWrite: false,
-      annotations: { ...READ_ONLY_ANNOTATIONS },
+      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Time-bucket series for the requested instrument, sorted by time DESC (newest first).",
@@ -1293,7 +1302,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             "Pass a UTC ms timestamp anchor; the handler floors it to the hour.",
           );
         }
-        // Backend supports authorIds path on signal-history; verify on first call.
+        // ts is validated above; resolveSignalTs floor-aligns it to the hour.
+        // TODO(smartmoney): pending backend confirmation that authorIds is honored on /signal-history — see docs/designs/smartmoney-tool-redesign-2026-04-28.md §3.1 row 11.
         const response = await context.client.privateGet(
           PATH_SIGNAL_HISTORY,
           compactObject({
@@ -1304,7 +1314,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             limit: readNumber(args, "limit"),
             lmtNum: readNumber(args, "lmtNum"),
           }),
-          publicRateLimit("smartmoney_get_signal_history_by_traders", 5),
+          publicRateLimit("smartmoney_get_signal_history_by_traders", SMARTMONEY_RPS),
         );
         return normalizeResponse(response);
       },
@@ -1312,7 +1322,3 @@ export function registerSmartmoneyTools(): ToolSpec[] {
   ];
   return tools;
 }
-
-// `requireString` is re-exported via helpers; keep import to silence "unused" if
-// downstream future tools need it. (Currently only actionable error path is used.)
-void requireString;

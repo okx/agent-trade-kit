@@ -23,8 +23,15 @@ export interface ToolSpec {
   /**
    * Optional MCP tool-call annotations (mcp-builder G1 hint set).
    * When omitted, `toMcpTool` derives sensible defaults from `isWrite`.
+   * Typed instead of `Record<string, boolean>` so typos like `readonlyHint`
+   * (lowercase n) get caught at compile time.
    */
-  annotations?: Record<string, boolean>;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
   handler: (args: ToolArgs, context: ToolContext) => Promise<unknown>;
 }
 
