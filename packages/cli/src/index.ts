@@ -25,7 +25,7 @@ import {
 } from "./commands/news.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
-import { parseCli } from "./parser.js";
+import { parseCli, parseTpLevel } from "./parser.js";
 import type { CliValues } from "./parser.js";
 import {
   cmdMarketTicker,
@@ -491,7 +491,9 @@ export function handleSpotAlgoCommand(
       tdMode: v.tdMode,
       json,
     });
-  if (subAction === "place")
+  if (subAction === "place") {
+    // Phase 3b: detect --tpLevel + single-TP conflict before dispatch
+    assertNoTpConflict(v.tpLevel, { tpTriggerPx: v.tpTriggerPx, tpOrdPx: v.tpOrdPx });
     return cmdSpotAlgoPlace(run, {
       instId: v.instId!,
       tdMode: v.tdMode,
@@ -529,8 +531,11 @@ export function handleSpotAlgoCommand(
       slTriggerRatio: v.slTriggerRatio,
       closeFraction: v.closeFraction,
       pxAmendType: v.pxAmendType,
+      // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+      tpLevels: v.tpLevel?.map(parseTpLevel),
       json,
     });
+  }
   if (subAction === "amend")
     return cmdSpotAlgoAmend(run, {
       instId: v.instId!,
@@ -552,6 +557,29 @@ export function handleSpotAlgoCommand(
       json,
     });
   unknownSubcommand("spot algo", subAction, ["trail", "place", "amend", "cancel", "orders"]);
+}
+
+/**
+ * Phase 3b (issue #183): detect structural conflict between --tpLevel (multi-value)
+ * and single-TP fields (--tpTriggerPx / --tpOrdPx).
+ *
+ * Exported for direct testing in split-tp-routing.test.ts.
+ *
+ * @throws Error with a clear message if both tpLevel and a single-TP field are set.
+ */
+export function assertNoTpConflict(
+  tpLevel: string[] | undefined,
+  singleFields: Record<string, unknown>,
+): void {
+  if (!tpLevel || tpLevel.length === 0) return;
+  const conflicting = ["tpTriggerPx", "tpOrdPx"].filter((k) => singleFields[k] !== undefined);
+  if (conflicting.length > 0) {
+    const flagNames = conflicting.map((k) => `--${k}`).join(", ");
+    throw new Error(
+      `Cannot use --tpLevel together with ${flagNames}. ` +
+      `Use --tpLevel for split multi-tier take-profit, or single-TP flags for a single TP — not both.`,
+    );
+  }
 }
 
 export function handleSpotCommand(
@@ -580,7 +608,9 @@ export function handleSpotCommand(
       newPx: v.newPx,
       json,
     });
-  if (action === "place")
+  if (action === "place") {
+    // Phase 3b: detect --tpLevel + single-TP conflict before dispatch
+    assertNoTpConflict(v.tpLevel, { tpTriggerPx: v.tpTriggerPx, tpOrdPx: v.tpOrdPx });
     return cmdSpotPlace(run, {
       instId: v.instId!,
       tdMode: v.tdMode,
@@ -602,8 +632,11 @@ export function handleSpotCommand(
       tradeQuoteCcy: v.tradeQuoteCcy,
       banAmend: v.banAmend,
       pxAmendType: v.pxAmendType,
+      // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+      tpLevels: v.tpLevel?.map(parseTpLevel),
       json,
     });
+  }
   if (action === "cancel")
     return cmdSpotCancel(run, { instId: (v.instId ?? rest[0])!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "algo")
@@ -644,7 +677,9 @@ export function handleSwapAlgoCommand(
       reduceOnly: v.reduceOnly,
       json,
     });
-  if (subAction === "place")
+  if (subAction === "place") {
+    // Phase 3b: detect --tpLevel + single-TP conflict before dispatch
+    assertNoTpConflict(v.tpLevel, { tpTriggerPx: v.tpTriggerPx, tpOrdPx: v.tpOrdPx });
     return cmdSwapAlgoPlace(run, {
       instId: v.instId!,
       side: v.side!,
@@ -685,8 +720,11 @@ export function handleSwapAlgoCommand(
       slTriggerRatio: v.slTriggerRatio,
       closeFraction: v.closeFraction,
       pxAmendType: v.pxAmendType,
+      // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+      tpLevels: v.tpLevel?.map(parseTpLevel),
       json,
     });
+  }
   if (subAction === "amend")
     return cmdSwapAlgoAmend(run, {
       instId: v.instId!,
@@ -756,7 +794,9 @@ export function handleSwapCommand(
       autoCxl: v.autoCxl,
       json,
     });
-  if (action === "place")
+  if (action === "place") {
+    // Phase 3b: detect --tpLevel + single-TP conflict before dispatch
+    assertNoTpConflict(v.tpLevel, { tpTriggerPx: v.tpTriggerPx, tpOrdPx: v.tpOrdPx });
     return cmdSwapPlace(run, {
       instId: v.instId!,
       side: v.side!,
@@ -778,8 +818,11 @@ export function handleSwapCommand(
       stpMode: v.stpMode,
       // Phase 3c CLI power-user flag (issue #182, CLI-only no MCP/skill exposure)
       pxAmendType: v.pxAmendType,
+      // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+      tpLevels: v.tpLevel?.map(parseTpLevel),
       json,
     });
+  }
   if (action === "cancel")
     return cmdSwapCancel(run, { instId: (v.instId ?? rest[0])!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "amend")
@@ -939,7 +982,9 @@ export function handleFuturesAlgoCommand(
       reduceOnly: v.reduceOnly,
       json,
     });
-  if (subAction === "place")
+  if (subAction === "place") {
+    // Phase 3b: detect --tpLevel + single-TP conflict before dispatch
+    assertNoTpConflict(v.tpLevel, { tpTriggerPx: v.tpTriggerPx, tpOrdPx: v.tpOrdPx });
     return cmdFuturesAlgoPlace(run, {
       instId: v.instId!,
       side: v.side!,
@@ -980,8 +1025,11 @@ export function handleFuturesAlgoCommand(
       slTriggerRatio: v.slTriggerRatio,
       closeFraction: v.closeFraction,
       pxAmendType: v.pxAmendType,
+      // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+      tpLevels: v.tpLevel?.map(parseTpLevel),
       json,
     });
+  }
   if (subAction === "amend")
     return cmdFuturesAlgoAmend(run, {
       instId: v.instId!,
@@ -1043,7 +1091,9 @@ export function handleFuturesCommand(
 ): Promise<void> | void {
   const queryResult = handleFuturesQuery(run, action, v, json);
   if (queryResult !== undefined) return queryResult;
-  if (action === "place")
+  if (action === "place") {
+    // Phase 3b: detect --tpLevel + single-TP conflict before dispatch
+    assertNoTpConflict(v.tpLevel, { tpTriggerPx: v.tpTriggerPx, tpOrdPx: v.tpOrdPx });
     return cmdFuturesPlace(run, {
       instId: v.instId!,
       side: v.side!,
@@ -1065,8 +1115,11 @@ export function handleFuturesCommand(
       stpMode: v.stpMode,
       // Phase 3c CLI power-user flag (issue #182, CLI-only no MCP/skill exposure)
       pxAmendType: v.pxAmendType,
+      // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+      tpLevels: v.tpLevel?.map(parseTpLevel),
       json,
     });
+  }
   if (action === "cancel")
     return cmdFuturesCancel(run, { instId: (v.instId ?? rest[0])!, ordId: v.ordId, clOrdId: v.clOrdId, json });
   if (action === "amend")

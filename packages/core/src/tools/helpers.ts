@@ -325,6 +325,17 @@ export function buildAlgoConditionalCommonFields(args: Record<string, unknown>):
 export function buildAttachAlgoOrds(
   source: Record<string, unknown>,
 ): Record<string, unknown>[] | undefined {
+  // Phase 3b (issue #183): multi-entry path — CLI passes tpLevels as an array of level objects.
+  // Each level is compacted and returned as a separate attachAlgoOrds entry.
+  // This path takes priority over the single-entry path when tpLevels is a non-empty array.
+  const tpLevels = source["tpLevels"];
+  if (Array.isArray(tpLevels) && tpLevels.length > 0) {
+    return (tpLevels as Record<string, unknown>[]).map((level) =>
+      compactObject(level as Record<string, unknown>),
+    );
+  }
+
+  // Backward-compat single-entry path (Phase 1 + Phase 2 + Phase 3a+c behaviour unchanged).
   const tpTriggerPx = readString(source, "tpTriggerPx");
   const tpOrdPx = readString(source, "tpOrdPx");
   const slTriggerPx = readString(source, "slTriggerPx");

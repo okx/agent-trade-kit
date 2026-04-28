@@ -70,6 +70,8 @@ export async function cmdSpotPlace(
     tradeQuoteCcy?: string;
     banAmend?: boolean;
     pxAmendType?: string;
+    // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+    tpLevels?: Record<string, unknown>[];
     json: boolean;
   },
 ): Promise<void> {
@@ -93,6 +95,7 @@ export async function cmdSpotPlace(
     tradeQuoteCcy: opts.tradeQuoteCcy,
     banAmend: opts.banAmend,
     pxAmendType: opts.pxAmendType,
+    tpLevels: opts.tpLevels,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -153,6 +156,8 @@ export async function cmdSpotAlgoPlace(
     slTriggerRatio?: string;
     closeFraction?: string;
     pxAmendType?: string;
+    // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+    tpLevels?: Record<string, unknown>[];
     json: boolean;
   },
 ): Promise<void> {
@@ -192,6 +197,7 @@ export async function cmdSpotAlgoPlace(
     slTriggerRatio: opts.slTriggerRatio,
     closeFraction: opts.closeFraction,
     pxAmendType: opts.pxAmendType,
+    tpLevels: opts.tpLevels,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

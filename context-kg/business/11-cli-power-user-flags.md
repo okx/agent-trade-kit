@@ -73,3 +73,44 @@ These flags are CLI-only by TL decision (2026-04-25). Reasons:
 Users discover these flags via `okx swap algo place --help` (and equivalent for spot/futures).
 They are documented in the `usage:` strings in `cli-registry.ts` under the `power-user (CLI-only)`
 annotation.
+
+---
+
+## Flags Added (issue #183, Phase 3b)
+
+### Split multi-tier take-profit
+
+| Flag | Type | Applies to |
+|------|------|-----------|
+| `--tpLevel` | string (kv mini-DSL, repeatable) | place + algo place: swap/spot/futures |
+
+Enables attaching multiple take-profit levels to a single order by repeating `--tpLevel`.
+Each `--tpLevel` value is a comma-separated `key:value` string:
+
+```
+okx swap place ... \
+  --tpLevel "px:78000,sz:0.5,kind:limit" \
+  --tpLevel "px:81000,sz:0.5,kind:limit"
+```
+
+**Valid keys** and their OKX field mappings:
+
+| DSL key | OKX field | Description |
+|---------|-----------|-------------|
+| `px` | `tpOrdPx` | TP order price (or `-1` for market) |
+| `sz` | `sz` | Size for this TP level |
+| `kind` | `tpOrdKind` | `condition` or `limit` |
+| `triggerPx` | `tpTriggerPx` | TP trigger price |
+| `triggerPxType` | `tpTriggerPxType` | `last`, `index`, or `mark` |
+| `amendPxOnTrigger` | `amendPxOnTriggerType` | Auto-amend on trigger: `0` or `1` |
+| `clOrdId` | `attachAlgoClOrdId` | Client algo order ID for this level |
+
+**Conflict**: `--tpLevel` is mutually exclusive with `--tpTriggerPx`/`--tpOrdPx`. Passing both raises a CLI-layer error with a descriptive message.
+
+**Backward compat**: not passing `--tpLevel` (and not passing single-TP fields) produces identical wire payload to Phase 3a+c (no `attachAlgoOrds`).
+
+**OKX server validation**: OKX enforces split TP semantics (e.g. sum of `sz` ≤ position size, uniform `tpTriggerPxType` across levels per error 51080). CLI does not pre-validate these — let the server enforce.
+
+**clOrdId comma limitation**: The kv mini-DSL splits on all commas before parsing key:value pairs. Therefore `clOrdId` values that contain a comma (e.g. `clOrdId:tp-v2,x`) will be silently misparse — the parser will see `clOrdId` = `"tp-v2"` and then fail with "Unknown --tpLevel key: x". In practice OKX clOrdId values are alphanumeric with hyphens and do not contain commas, so this is not a practical concern; but do not use commas in clOrdId values passed to `--tpLevel`.
+
+**Implementation**: `buildAttachAlgoOrds` in `packages/core/src/tools/helpers.ts` detects a non-empty `tpLevels` array on the source object and maps each element to a compactObject entry. When `tpLevels` is absent or empty, the function falls through to the existing single-entry backward-compat path.
