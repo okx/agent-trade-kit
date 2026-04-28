@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/okx-agent-trade-kit-badge.png)](https://mseep.ai/app/okx-agent-trade-kit)
+
 # OKX Agent Trade Kit
 
 [![CI](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml/badge.svg)](https://github.com/okx/agent-tradekit/actions/workflows/ci.yml)
