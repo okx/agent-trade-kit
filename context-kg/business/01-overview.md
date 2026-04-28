@@ -17,7 +17,7 @@ The project is a pnpm workspace monorepo containing three packages:
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **154 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **157 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
 
 - **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)

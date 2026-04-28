@@ -6,6 +6,7 @@ import type { ModuleId } from "../constants.js";
 export type ToolArgs = Record<string, unknown>;
 
 export type JsonSchema = Tool["inputSchema"];
+export type OutputSchema = NonNullable<Tool["outputSchema"]>;
 
 export interface ToolContext {
   config: OkxConfig;
@@ -17,6 +18,7 @@ export interface ToolSpec {
   module: ModuleId;
   description: string;
   inputSchema: JsonSchema;
+  outputSchema?: OutputSchema;
   isWrite: boolean;
   handler: (args: ToolArgs, context: ToolContext) => Promise<unknown>;
 }
@@ -26,6 +28,7 @@ export function toMcpTool(tool: ToolSpec): Tool {
     name: tool.name,
     description: tool.description,
     inputSchema: tool.inputSchema,
+    ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
     annotations: {
       readOnlyHint: !tool.isWrite,
       destructiveHint: tool.isWrite,

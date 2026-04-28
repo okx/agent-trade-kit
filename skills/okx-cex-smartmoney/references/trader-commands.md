@@ -40,7 +40,26 @@ okx smartmoney traders [--sortType <type>] [--period <d>] [--pnl <n>] [--winRati
 | `maxRetreat` | String | Max drawdown |
 | `asset` | String | Total asset (USD) |
 | `onboardDuration` | String | Onboard days |
-| `rates` | Array | Historical return time series. Each item: `value` (String, return rate) and `statTime` (String, Unix ms e.g. "1736784000000") |
+| `rates` | Array | Historical return time series. Each item: `value` (String, decimal return rate, e.g. `"-0.06"` = -6%) and `statTime` (String, **YYMMDD** 6-digit, e.g. `"240726"` — NOT Unix ms despite what the upstream spec table says; see `context-kg/business/06-leaderboard-smartmoney-api.md` Field Drift §2). |
+
+### Pagination Metadata (top-level `pagination` field)
+
+`smartmoney_get_traders` returns a top-level `pagination` object alongside `data`:
+
+| Field | Type | Description |
+|---|---|---|
+| `hasMore` | Boolean | `true` when `data.length >= limit` (more results may follow) |
+| `nextAfter` | String | `authorId` of the last item — pass as `--after` in the next call (only present when `hasMore=true`) |
+
+**Example pagination loop:**
+```bash
+# Page 1
+okx smartmoney traders --period 30 --limit 100 --json
+# → pagination.hasMore=true, pagination.nextAfter="A123"
+
+# Page 2
+okx smartmoney traders --period 30 --limit 100 --after A123 --json
+```
 
 ### Trader Eligibility Criteria
 
@@ -131,9 +150,86 @@ The `--json` output wraps three sub-results:
 
 ---
 
+## smartmoney positions — Trader's Current Open Positions
+
+```bash
+okx smartmoney positions --authorId <id> [--instCcy <ccy>] [--json]
+```
+
+Atomic endpoint backing the `positions` slice of `smartmoney trader`. Use when you only need open positions and want to skip the profile + trades round-trips.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--authorId` | Yes | - | Trader's unique author ID (from `smartmoney traders`) |
+| `--instCcy` | No | - | Filter by base currency (e.g. `BTC`); SPOT/FUTURES only |
+
+Response fields: same as the **Position Fields** table above (`posId`, `instId`, `posSide`, `pos`, `lever`, `avgPx`, `last`, `notionalUsd`, `pnl`, `cTime`, `positionIntensity`).
+
+---
+
+## smartmoney trades — Trader's Recent Order/Fill Records
+
+```bash
+okx smartmoney trades --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]
+```
+
+Atomic endpoint backing the `trades` slice of `smartmoney trader`, with cursor pagination.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--authorId` | Yes | - | Trader's unique author ID |
+| `--instCcy` | No | - | Filter by base currency |
+| `--after` | No | - | Cursor: return trades before this `ordId` |
+| `--before` | No | - | Cursor: return trades after this `ordId` |
+| `--limit` | No | `10` | Max trades per page (1–100) |
+
+Response fields: same as the **Trade Record Fields** table above. The response also includes top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item's `ordId`; pass it as `--after` for the next page.
+
+---
+
+## smartmoney position-history — Trader's Closed-Position History
+
+```bash
+okx smartmoney position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]
+```
+
+New endpoint (no equivalent in `smartmoney trader`) — closed positions with realized PnL, paginated.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--authorId` | Yes | - | Trader's unique author ID |
+| `--instCcy` | No | - | Filter by base currency |
+| `--after` | No | - | Cursor: return positions before this `posId` |
+| `--before` | No | - | Cursor: return positions after this `posId` |
+| `--limit` | No | `10` | Max positions per page (1–100) |
+
+Response fields:
+
+| Field | Description |
+|---|---|
+| `posId` | Position ID |
+| `instId` | Instrument (e.g. BTC-USD-SWAP) |
+| `ctVal` | Contract value per contract |
+| `posSide` | long / short |
+| `lever` | Leverage |
+| `openAvgPx` / `closeAvgPx` | Open / close avg price |
+| `openMaxAmount` / `closeAmount` | Max held / closed size (contracts) |
+| `realizedPnl` | Realized PnL |
+| `pnl` | Close PnL |
+| `pnlRatio` | Realized PnL ratio (decimal) |
+| `closeType` | `allClose` / `partClose` / `liquidateClose` / `liquidateReceive` / `adl` |
+| `cTime` / `uTime` | Open / close time (Unix ms) |
+
+Top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item's `posId`.
+
+---
+
 ## MCP Tool Reference
 
 | CLI Command | MCP Tool |
 |---|---|
 | `smartmoney traders` | `smartmoney_get_traders` |
-| `smartmoney trader` | `smartmoney_get_trader_detail` |
+| `smartmoney trader` | `smartmoney_get_trader_detail` (composite) |
+| `smartmoney positions` | `smartmoney_get_trader_positions` (atomic) |
+| `smartmoney trades` | `smartmoney_get_trader_trades` (atomic, paginated) |
+| `smartmoney position-history` | `smartmoney_get_trader_position_history` (atomic, paginated) |

@@ -15,29 +15,42 @@ Smart money analytics module — trader leaderboard, position tracking, and aggr
 | smartmoney_get_overview | R | Multi-currency overview ranked by `tradersWithPosition` DESC. Requires `ts` or `dataVersion` (ts wins). |
 | smartmoney_get_signal | R | Single-currency consensus signal (long/short ratio, entry prices, capital flow). Requires `instId` or `instCcy` (instId wins), and `ts` or `dataVersion` (ts wins). |
 | smartmoney_get_signal_history | R | Signal history timeline sorted by `ts` DESC. Requires `instId`, and `ts` or `dataVersion`. Default `granularity=1h`, `limit=24`. |
-| smartmoney_get_traders | R | List/filter leaderboard traders. Uses **numeric thresholds** (USD / ratio) for pool filters, NOT the enum tiers used by signal/overview. |
-| smartmoney_get_trader_detail | R | Trader full portrait: profile + current positions + trade records (composite, fires 3 parallel requests). Requires `authorId`. |
+| smartmoney_get_traders | R | List/filter leaderboard traders. Uses **numeric thresholds** (USD / ratio) for pool filters, NOT the enum tiers used by signal/overview. Paginated. |
+| smartmoney_get_trader_positions | R | Trader's current open positions. Atomic; requires `authorId`. |
+| smartmoney_get_trader_trades | R | Trader's recent order/fill records. Atomic, paginated by `ordId`; requires `authorId`. |
+| smartmoney_get_trader_position_history | R | Trader's closed-position history. Atomic, paginated by `posId`; requires `authorId`. |
+| smartmoney_get_trader_detail | R | Trader full portrait: profile + current positions + trade records. **Composite convenience** (fires 3 parallel requests). For finer control, use the 3 atomic tools above. Requires `authorId`. |
 
-5 tools (all read-only)
+8 tools (all read-only)
 
 ### Token Budget Estimate
 
-Estimated ~1,624 tokens (5 tools, 5,684 chars)
+Estimated ~4,713 tokens (8 tools, ~18,850 chars). Increase from the original ~1,624 (5 tools, no outputSchema) reflects: (a) `outputSchema` on every tool so agents can introspect response shape without exploratory calls; (b) 3 new atomic trader endpoints (positions / trades / position-history) added for "comprehensive API coverage" per mcp-builder principle.
+
+### Pagination
+
+Cursor pagination is exposed on three list tools as a top-level `pagination: { hasMore, nextAfter }` object. `nextAfter` carries the last item's cursor field; pass it as the next call's `--after` flag when `hasMore=true`:
+
+| Tool | Cursor field |
+|---|---|
+| `smartmoney_get_traders` | `authorId` |
+| `smartmoney_get_trader_trades` | `ordId` |
+| `smartmoney_get_trader_position_history` | `posId` |
 
 ### Pool Filter Parameters
 
-All signal/leaderboard tools accept shared pool filters as flat parameters:
+Signal and leaderboard endpoints expose **disjoint** parameter names so callers can't confuse enum tiers with raw thresholds:
 
-| Parameter | Signal endpoints (overview, signal, signal-history) | Leaderboard endpoints |
+| Signal endpoints (overview, signal, signal-history) | Leaderboard endpoint (traders) | Notes |
 |---|---|---|
-| sortType | `pnl` / `pnlRatio` (camelCase) — pool ranking basis | `pnl` / `pnl_ratio` (snake_case) |
-| period | `3` / `7` / `30` / `90` (days, default 90) — **win-rate window only**, not snapshot range | `""` / `3` / `7` / `30` / `90` (days, `""`=all) |
-| pnl | Enum — percentile: `PNL_TOP20` = top **20 %** of traders, **not** top 20 traders | Numeric: min USD threshold |
-| winRatio | Enum — threshold: `WR_GE_80` = keep win-rate **≥ 80 %** | Numeric: min ratio (0.8 = 80 %) |
-| maxRetreat | Enum — threshold: `MR_LE_20` = keep drawdown **≤ 20 %** | Numeric: max ratio (0.1 = 10 %) |
-| asset | Enum — percentile: `AUM_TOP20` = top **20 %** of traders by AUM | Numeric: min USD threshold |
+| `sortBy` — `pnl` / `pnlRatio` (camelCase) | `sortType` — `pnl` / `pnl_ratio` (snake_case) | Pool ranking key |
+| `period` — `3` / `7` / `30` / `90` (days, default 90); win-rate window only | `period` — `""` / `3` / `7` / `30` / `90` (`""` = all-time) | Shared name |
+| `pnlTier` — enum percentile, e.g. `PNL_TOP20` = top 20% of pool by PnL | `pnl` — numeric min PnL (USD) | Tier vs threshold |
+| `winRateTier` — enum threshold, e.g. `WR_GE_80` = win-rate ≥ 80% | `winRatio` — numeric min ratio (0.8 = 80%) | |
+| `maxDrawdownTier` — enum threshold, e.g. `MR_LE_20` = drawdown ≤ 20% | `maxRetreat` — numeric max ratio (0.1 = 10%) | |
+| `aumTier` — enum percentile, e.g. `AUM_TOP20` = top 20% of pool by AUM | `asset` — numeric min AUM (USD) | |
 
-> **Important for AI agents:** Signal and leaderboard endpoints share parameter **names** but use **different value types**. Passing `pnl=PNL_TOP50` to `smartmoney_get_traders` or `pnl=10000` to `smartmoney_get_signal` will not behave as expected — signal/overview enums silently fall back to `*_ANY` default on invalid input.
+> **Note for AI agents:** signal-side names carry a `Tier` suffix (or use industry terms `aum`/`maxDrawdown`) so they don't collide with response fields like `pnl` / `winRatio`. The upstream API still uses the leaderboard names; the MCP/CLI layer maps signal-side public names back internally.
 
 ### Typical Workflow
 
@@ -56,6 +69,9 @@ List traders → Drill into trader detail → Check signal overview → Deep-div
 ```bash
 okx smartmoney traders --period 30 --sortType pnl --limit 10 --json
 okx smartmoney trader --authorId <id> --json
+okx smartmoney positions --authorId <id> --json
+okx smartmoney trades --authorId <id> --limit 20 --json
+okx smartmoney position-history --authorId <id> --limit 20 --json
 okx smartmoney overview --ts <ms> --json
 okx smartmoney signal --ts <ms> --instId BTC-USDT-SWAP --json
 okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d --json
@@ -74,29 +90,42 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 | smartmoney_get_overview | 读 | 多币种概览，按 `tradersWithPosition` DESC 排序。必须传 `ts` 或 `dataVersion`（ts 优先）。 |
 | smartmoney_get_signal | 读 | 单币种聚合共识信号（多空比、入场价、资金流向）。必须传 `instId` 或 `instCcy`（instId 优先），以及 `ts` 或 `dataVersion`（ts 优先）。 |
 | smartmoney_get_signal_history | 读 | 信号历史时间线，按 `ts` DESC 排序。必须传 `instId`，以及 `ts` 或 `dataVersion`。默认 `granularity=1h`、`limit=24`。 |
-| smartmoney_get_traders | 读 | 交易员排行榜列表/筛选。池过滤器使用**数值阈值**（USD / 比率），**与 signal/overview 的枚举不同**。 |
-| smartmoney_get_trader_detail | 读 | 交易员完整画像：档案 + 当前持仓 + 交易记录（复合接口，并发 3 个请求）。必须传 `authorId`。 |
+| smartmoney_get_traders | 读 | 交易员排行榜列表/筛选。池过滤器使用**数值阈值**（USD / 比率），**与 signal/overview 的枚举不同**。支持分页。 |
+| smartmoney_get_trader_positions | 读 | 单个交易员当前开仓。原子工具；必须传 `authorId`。 |
+| smartmoney_get_trader_trades | 读 | 单个交易员近期成交记录。原子工具，按 `ordId` 游标分页；必须传 `authorId`。 |
+| smartmoney_get_trader_position_history | 读 | 单个交易员历史平仓。原子工具，按 `posId` 游标分页；必须传 `authorId`。 |
+| smartmoney_get_trader_detail | 读 | 交易员完整画像：档案 + 当前持仓 + 交易记录。**复合便捷工具**（并发 3 个请求）；需要更细粒度访问时用上面 3 个原子工具。必须传 `authorId`。 |
 
-共 5 个工具（全部只读）
+共 8 个工具（全部只读）
 
 ### Token 预算估算
 
-约 1,624 tokens（5 个工具，5,684 chars）
+约 4,713 tokens（8 个工具，~18,850 chars）。相比最初的 ~1,624（5 个工具、无 outputSchema），增长来自：(a) 每个工具都加了 `outputSchema`，agent 不必试探即可知道返回字段；(b) 新增 3 个原子工具（positions / trades / position-history），实现 mcp-builder 推崇的"comprehensive API coverage"。
+
+### 分页
+
+3 个列表工具在响应顶层返回 `pagination: { hasMore, nextAfter }`。`nextAfter` 是最后一条的游标字段；当 `hasMore=true` 时把它作为下一次调用的 `--after` 游标传入：
+
+| 工具 | 游标字段 |
+|---|---|
+| `smartmoney_get_traders` | `authorId` |
+| `smartmoney_get_trader_trades` | `ordId` |
+| `smartmoney_get_trader_position_history` | `posId` |
 
 ### 池过滤器参数
 
-所有信号/排行榜工具共享扁平化的池过滤器参数：
+Signal 与 Leaderboard 端点的池过滤器参数名**故意拆开**，避免 AI 把枚举档位和数值阈值混淆：
 
-| 参数 | Signal 端点（overview, signal, signal-history） | Leaderboard 端点 |
+| Signal 端点（overview, signal, signal-history） | Leaderboard 端点（traders） | 说明 |
 |---|---|---|
-| sortType | `pnl` / `pnlRatio`（驼峰） — 交易员池排名依据 | `pnl` / `pnl_ratio`（下划线） |
-| period | `3` / `7` / `30` / `90`（天，默认 90）— **仅**胜率计算窗口，**不**影响快照时间范围 | `""` / `3` / `7` / `30` / `90`（天，`""`=all） |
-| pnl | 枚举 — 百分位：`PNL_TOP20` = PnL **前 20%** 交易员，**不是**前 20 个 | 数值：最低 PnL（USD） |
-| winRatio | 枚举 — 阈值：`WR_GE_80` = 保留胜率 **≥ 80%** | 数值：最低胜率（0.8 = 80%） |
-| maxRetreat | 枚举 — 阈值：`MR_LE_20` = 保留回撤 **≤ 20%** | 数值：最大回撤（0.1 = 10%） |
-| asset | 枚举 — 百分位：`AUM_TOP20` = AUM **前 20%** 交易员 | 数值：最低资产（USD） |
+| `sortBy` — `pnl` / `pnlRatio`（驼峰） | `sortType` — `pnl` / `pnl_ratio`（下划线） | 池排名依据 |
+| `period` — `3` / `7` / `30` / `90`（天，默认 90，仅胜率计算窗口） | `period` — `""` / `3` / `7` / `30` / `90`（`""` = all-time） | 同名 |
+| `pnlTier` — 百分位枚举，例如 `PNL_TOP20` = PnL 前 20% 交易员 | `pnl` — 最低 PnL（USD） | 档位 vs 阈值 |
+| `winRateTier` — 阈值枚举，例如 `WR_GE_80` = 胜率 ≥ 80% | `winRatio` — 最低胜率（0.8 = 80%） | |
+| `maxDrawdownTier` — 阈值枚举，例如 `MR_LE_20` = 回撤 ≤ 20% | `maxRetreat` — 最大回撤（0.1 = 10%） | |
+| `aumTier` — 百分位枚举，例如 `AUM_TOP20` = AUM 前 20% 交易员 | `asset` — 最低 AUM（USD） | |
 
-> **AI agent 注意：** signal 和 leaderboard 端点**参数名相同但取值类型不同**。把 `pnl=PNL_TOP50` 传给 `smartmoney_get_traders`，或把 `pnl=10000` 传给 `smartmoney_get_signal`，都不会按预期工作 —— signal/overview 的枚举遇到非法值会**静默回退**到 `*_ANY` 默认。
+> **AI agent 注意：** Signal 端的入参带 `Tier` 后缀（或用行业通用词 `aum` / `maxDrawdown`），与返回字段（`pnl` / `winRatio`）完全错开。上游 API 仍使用 Leaderboard 那一列的字段名，MCP/CLI 层会做映射。
 
 ### 典型工作流
 
@@ -115,6 +144,9 @@ okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d 
 ```bash
 okx smartmoney traders --period 30 --sortType pnl --limit 10 --json
 okx smartmoney trader --authorId <id> --json
+okx smartmoney positions --authorId <id> --json
+okx smartmoney trades --authorId <id> --limit 20 --json
+okx smartmoney position-history --authorId <id> --limit 20 --json
 okx smartmoney overview --ts <ms> --json
 okx smartmoney signal --ts <ms> --instId BTC-USDT-SWAP --json
 okx smartmoney signal-history --instId BTC-USDT-SWAP --ts <ms> --granularity 1d --json

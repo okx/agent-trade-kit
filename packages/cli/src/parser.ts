@@ -134,11 +134,16 @@ export interface CliValues {
   instCcyList?: string;
   topInstruments?: string;
   tradeLimit?: string;
-  // smartmoney pool filters
+  // smartmoney pool filters — leaderboard (numeric thresholds, traders endpoint)
   pnl?: string;
   winRatio?: string;
   maxRetreat?: string;
   asset?: string;
+  // smartmoney pool filters — signal endpoints (enum tiers; sortBy declared elsewhere)
+  pnlTier?: string;
+  winRateTier?: string;
+  maxDrawdownTier?: string;
+  aumTier?: string;
   // upgrade
   beta?: boolean;
   check?: boolean;
@@ -374,11 +379,16 @@ export const CLI_OPTIONS = {
   instCcyList: { type: "string" },
   topInstruments: { type: "string" },
   tradeLimit: { type: "string" },
-  // smartmoney pool filters
+  // smartmoney pool filters — leaderboard (numeric thresholds)
   pnl: { type: "string" },
   winRatio: { type: "string" },
   maxRetreat: { type: "string" },
   asset: { type: "string" },
+  // smartmoney pool filters — signal endpoints (enum tiers)
+  pnlTier: { type: "string" },
+  winRateTier: { type: "string" },
+  maxDrawdownTier: { type: "string" },
+  aumTier: { type: "string" },
   // upgrade
   beta:  { type: "boolean", default: false },
   check: { type: "boolean", default: false },

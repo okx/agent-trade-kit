@@ -882,17 +882,17 @@ export const CLI_REGISTRY: CliRegistry = {
     commands: {
       overview: {
         toolName: "smartmoney_get_overview",
-        usage: "okx smartmoney overview [--ts <ms> | --dataVersion <ver>] [--instType <SWAP|SPOT>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--json]",
+        usage: "okx smartmoney overview [--ts <ms> | --dataVersion <ver>] [--instType <SWAP|SPOT>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--json]",
         description: "Multi-currency smart money overview ranked by tradersWithPosition DESC (requires --ts or --dataVersion; --ts takes precedence)",
       },
       signal: {
         toolName: "smartmoney_get_signal",
-        usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--ts <ms> | --dataVersion <ver>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
+        usage: "okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--ts <ms> | --dataVersion <ver>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]",
         description: "Single-currency aggregated consensus signal (requires --instId or --instCcy, and --ts or --dataVersion; --instId / --ts take precedence)",
       },
       "signal-history": {
         toolName: "smartmoney_get_signal_history",
-        usage: "okx smartmoney signal-history --instId <id> [--ts <ms> | --dataVersion <ver>] [--granularity <1h|1d>] [--limit <n>] [--sortType <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--json]",
+        usage: "okx smartmoney signal-history --instId <id> [--ts <ms> | --dataVersion <ver>] [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--json]",
         description: "Signal history timeline sorted by ts DESC (requires --instId and --ts/--dataVersion)",
       },
       traders: {
@@ -903,7 +903,22 @@ export const CLI_REGISTRY: CliRegistry = {
       trader: {
         toolName: "smartmoney_get_trader_detail",
         usage: "okx smartmoney trader --authorId <id> [--period <3|7|30|90>] [--instCcy <ccy>] [--tradeLimit <n>] [--json]",
-        description: "Trader full portrait (profile + positions + trades)",
+        description: "Trader full portrait (profile + positions + trades, composite)",
+      },
+      positions: {
+        toolName: "smartmoney_get_trader_positions",
+        usage: "okx smartmoney positions --authorId <id> [--instCcy <ccy>] [--json]",
+        description: "Trader's current open positions",
+      },
+      trades: {
+        toolName: "smartmoney_get_trader_trades",
+        usage: "okx smartmoney trades --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]",
+        description: "Trader's recent order/fill records (paginated)",
+      },
+      "position-history": {
+        toolName: "smartmoney_get_trader_position_history",
+        usage: "okx smartmoney position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]",
+        description: "Trader's closed-position history (paginated)",
       },
     },
   },

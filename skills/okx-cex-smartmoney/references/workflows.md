@@ -21,11 +21,26 @@ Highlight:
 
 > User: "看看这个交易员的详情" / "show me trader X"
 
+**Default — full portrait in one call (composite, fires 3 parallel requests):**
+
 ```bash
 okx --profile live smartmoney trader --authorId <id> --json
 ```
 
 Present profile summary, then current positions table, then recent trades table.
+
+**Use atomic tools instead when:**
+- The user only asks about one slice (positions OR trades OR closed history) — saves 2/3 of the rate-limit budget.
+- The user wants to paginate trades or closed positions deeper than the composite's `--tradeLimit` (max 100 in one shot).
+- The user wants closed-position history (the composite does **not** include it).
+
+```bash
+okx --profile live smartmoney positions --authorId <id> --json
+okx --profile live smartmoney trades --authorId <id> --limit 50 --json
+okx --profile live smartmoney position-history --authorId <id> --limit 50 --json
+```
+
+`trades` and `position-history` return top-level `pagination: { hasMore, nextAfter }` — pass `nextAfter` as `--after` for the next page.
 
 ---
 
@@ -133,3 +148,31 @@ okx --profile live smartmoney traders --period 30 --sortType pnl --limit 5 --jso
 # Step 2: Pick best candidate, get full detail
 okx --profile live smartmoney trader --authorId <top_trader_id> --json
 ```
+
+---
+
+## 10. Audit a Trader's Realized PnL Pattern
+
+> User: "这个交易员历史平仓的胜率/盈亏曲线" / "show this trader's closed-position track record"
+
+```bash
+# Page 1: most recent 50 closed positions
+okx --profile live smartmoney position-history --authorId <id> --limit 50 --json
+
+# If pagination.hasMore=true, page 2 uses pagination.nextAfter as --after:
+okx --profile live smartmoney position-history --authorId <id> --limit 50 --after <posId> --json
+```
+
+Aggregate over `realizedPnl` / `pnlRatio` / `closeType` to characterize the trader (e.g. "8/10 winning closes, 1 liquidation, median ratio +12%"). Useful for risk assessment beyond the snapshot stats in `smartmoney traders`.
+
+---
+
+## 11. Trade History for One Symbol
+
+> User: "trader X 的 BTC 成交记录"
+
+```bash
+okx --profile live smartmoney trades --authorId <id> --instCcy BTC --limit 50 --json
+```
+
+Present as time-ordered table: `cTime`, `instId`, `side`, `posSide`, `ordType`, `avgPx`, `sz`, `value`. For deeper history, paginate via `pagination.nextAfter` (last `ordId`).

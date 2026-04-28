@@ -1,6 +1,6 @@
 ---
 name: okx-cex-smartmoney
-description: "Smart Money analytics on OKX: leaderboard traders, position tracking, trade records, aggregated consensus signals, and signal history. Use this skill when the user asks about 聪明钱, smart money, 牛人榜, leaderboard, top traders, 交易员排行, trader ranking, trader positions, trader PnL, 交易员持仓, 交易员收益, smart money signal, 聪明钱信号, long/short ratio, 多空比, capital flow, 资金流向, position conviction, 仓位强度, entry price distribution, smart money overview, 聪明钱总览, signal history, 信号历史, trader search, 搜索交易员, who is trading BTC, 谁在交易BTC, recommend traders, 推荐交易员, best traders, top performers."
+description: "Smart Money analytics on OKX: leaderboard traders, position tracking, trade records, closed-position history, aggregated consensus signals, and signal history. Use this skill when the user asks about 聪明钱, smart money, 牛人榜, leaderboard, top traders, 交易员排行, trader ranking, trader positions, trader PnL, 交易员持仓, 交易员收益, 历史平仓, closed positions, realized PnL track record, trade history, 成交记录, smart money signal, 聪明钱信号, long/short ratio, 多空比, capital flow, 资金流向, position conviction, 仓位强度, entry price distribution, smart money overview, 聪明钱总览, signal history, 信号历史, trader search, 搜索交易员, who is trading BTC, 谁在交易BTC, recommend traders, 推荐交易员, best traders, top performers."
 license: MIT
 metadata:
   author: okx
@@ -79,14 +79,17 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 
 ---
 
-## Command Index (5 commands, all read-only)
+## Command Index (8 commands, all read-only)
 
 ### Trader Data
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `smartmoney traders` | READ | Required | List/filter traders from leaderboard |
-| `smartmoney trader --authorId <id>` | READ | Required | Trader full portrait (profile + positions + trades) |
+| `smartmoney traders` | READ | Required | List/filter traders from leaderboard (paginated) |
+| `smartmoney trader --authorId <id>` | READ | Required | Trader full portrait — composite (profile + positions + trades) |
+| `smartmoney positions --authorId <id>` | READ | Required | Trader's current open positions (atomic) |
+| `smartmoney trades --authorId <id>` | READ | Required | Trader's recent order/fill records (atomic, paginated) |
+| `smartmoney position-history --authorId <id>` | READ | Required | Trader's closed-position history (atomic, paginated) |
 | `smartmoney overview [--ts <ms>\|--dataVersion <ver>]` | READ | Required | Multi-currency smart money overview (prefer --ts) |
 
 ### Signal Data
@@ -112,7 +115,11 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 
 **Trader discovery / ranking:**
 - "推荐交易员" / "top traders" / "牛人榜" → `smartmoney traders` with sorting/filtering. See `{baseDir}/references/trader-commands.md`.
-- "看看某个交易员" / "trader detail" → `smartmoney trader --authorId <id>`. See `{baseDir}/references/trader-commands.md`.
+- "看看某个交易员" / "trader detail" → `smartmoney trader --authorId <id>` (composite). See `{baseDir}/references/trader-commands.md`.
+- "他的当前持仓" / "current positions only" → `smartmoney positions --authorId <id>` (atomic, faster than composite).
+- "他的成交记录" / "trade history" → `smartmoney trades --authorId <id>` (atomic, paginated).
+- "历史平仓" / "closed positions" / "realized PnL track record" → `smartmoney position-history --authorId <id>` (atomic, paginated; **not** included in `trader` composite).
+
 **Signal analysis:**
 - "BTC 聪明钱信号" / "smart money signal for BTC" → `smartmoney signal`. See `{baseDir}/references/signal-commands.md`.
 - "聪明钱总览" / "smart money overview" → `smartmoney overview`. See `{baseDir}/references/signal-commands.md`.

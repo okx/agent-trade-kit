@@ -66,20 +66,21 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
     assert.equal(captured.args["topInstruments"], "5");
   });
 
-  it("overview: pool filter params from v flags", async () => {
+  it("overview: pool filter params from v flags (signal-side new names)", async () => {
     const { spy, captured } = makeSpy();
     await handleSmartmoneyCommand(spy, "overview", [], vals({
       dataVersion: "1712000000000",
-      pnl: "PNL_TOP20",
-      winRatio: "WR_GE_50",
-      maxRetreat: "MR_LE_20",
-      asset: "AUM_TOP50",
+      pnlTier: "PNL_TOP20",
+      winRateTier: "WR_GE_50",
+      maxDrawdownTier: "MR_LE_20",
+      aumTier: "AUM_TOP50",
     }), false);
     assert.equal(captured.tool, "smartmoney_get_overview");
-    assert.equal(captured.args["pnl"], "PNL_TOP20");
-    assert.equal(captured.args["winRatio"], "WR_GE_50");
-    assert.equal(captured.args["maxRetreat"], "MR_LE_20");
-    assert.equal(captured.args["asset"], "AUM_TOP50");
+    // CLI passes the public names through to the tool handler; handler translates to API names.
+    assert.equal(captured.args["pnlTier"], "PNL_TOP20");
+    assert.equal(captured.args["winRateTier"], "WR_GE_50");
+    assert.equal(captured.args["maxDrawdownTier"], "MR_LE_20");
+    assert.equal(captured.args["aumTier"], "AUM_TOP50");
   });
 
   // --- Signal ---
@@ -117,12 +118,12 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
     assert.equal(captured.args["limit"], "48");
   });
 
-  it("signal-history: ts and sortType from v flags", async () => {
+  it("signal-history: ts and sortBy from v flags (signal-side)", async () => {
     const { spy, captured } = makeSpy();
-    await handleSmartmoneyCommand(spy, "signal-history", [], vals({ instId: "BTC-USDT-SWAP", ts: "1712000000000", sortType: "pnlRatio" }), false);
+    await handleSmartmoneyCommand(spy, "signal-history", [], vals({ instId: "BTC-USDT-SWAP", ts: "1712000000000", sortBy: "pnlRatio" }), false);
     assert.equal(captured.tool, "smartmoney_get_signal_history");
     assert.equal(captured.args["ts"], "1712000000000");
-    assert.equal(captured.args["sortType"], "pnlRatio");
+    assert.equal(captured.args["sortBy"], "pnlRatio");
   });
 
   // --- Traders ---
@@ -196,6 +197,73 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
     let errMsg = "";
     setOutput({ out: () => {}, err: (msg: string) => { errMsg += msg; } });
     await handleSmartmoneyCommand(spy, "trader", [], vals({}), false);
+    assert.equal(captured.tool, "", "should not call any tool");
+    assert.match(errMsg, /--authorId/);
+    assert.equal(process.exitCode, 1);
+    process.exitCode = undefined as unknown as number;
+  });
+
+  // --- Atomic trader endpoints (positions / trades / position-history) ---
+  it("positions: authorId and instCcy from v flags", async () => {
+    const { spy, captured } = makeSpy();
+    await handleSmartmoneyCommand(spy, "positions", [], vals({ authorId: "12345", instCcy: "BTC" }), false);
+    assert.equal(captured.tool, "smartmoney_get_trader_positions");
+    assert.equal(captured.args["authorId"], "12345");
+    assert.equal(captured.args["instCcy"], "BTC");
+  });
+
+  it("positions: errors when --authorId is missing", async () => {
+    const { spy, captured } = makeSpy();
+    let errMsg = "";
+    setOutput({ out: () => {}, err: (msg: string) => { errMsg += msg; } });
+    await handleSmartmoneyCommand(spy, "positions", [], vals({}), false);
+    assert.equal(captured.tool, "", "should not call any tool");
+    assert.match(errMsg, /--authorId/);
+    assert.equal(process.exitCode, 1);
+    process.exitCode = undefined as unknown as number;
+  });
+
+  it("trades: authorId, instCcy, pagination flags from v", async () => {
+    const { spy, captured } = makeSpy();
+    await handleSmartmoneyCommand(spy, "trades", [], vals({
+      authorId: "99", instCcy: "ETH",
+      after: "ord100", before: "ord200", limit: "20",
+    }), false);
+    assert.equal(captured.tool, "smartmoney_get_trader_trades");
+    assert.equal(captured.args["authorId"], "99");
+    assert.equal(captured.args["instCcy"], "ETH");
+    assert.equal(captured.args["after"], "ord100");
+    assert.equal(captured.args["before"], "ord200");
+    assert.equal(captured.args["limit"], "20");
+  });
+
+  it("trades: errors when --authorId is missing", async () => {
+    const { spy, captured } = makeSpy();
+    let errMsg = "";
+    setOutput({ out: () => {}, err: (msg: string) => { errMsg += msg; } });
+    await handleSmartmoneyCommand(spy, "trades", [], vals({}), false);
+    assert.equal(captured.tool, "", "should not call any tool");
+    assert.match(errMsg, /--authorId/);
+    assert.equal(process.exitCode, 1);
+    process.exitCode = undefined as unknown as number;
+  });
+
+  it("position-history: authorId and pagination flags from v", async () => {
+    const { spy, captured } = makeSpy();
+    await handleSmartmoneyCommand(spy, "position-history", [], vals({
+      authorId: "88", after: "pos50", limit: "5",
+    }), false);
+    assert.equal(captured.tool, "smartmoney_get_trader_position_history");
+    assert.equal(captured.args["authorId"], "88");
+    assert.equal(captured.args["after"], "pos50");
+    assert.equal(captured.args["limit"], "5");
+  });
+
+  it("position-history: errors when --authorId is missing", async () => {
+    const { spy, captured } = makeSpy();
+    let errMsg = "";
+    setOutput({ out: () => {}, err: (msg: string) => { errMsg += msg; } });
+    await handleSmartmoneyCommand(spy, "position-history", [], vals({}), false);
     assert.equal(captured.tool, "", "should not call any tool");
     assert.match(errMsg, /--authorId/);
     assert.equal(process.exitCode, 1);

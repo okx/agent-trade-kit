@@ -5211,9 +5211,10 @@ describe("smartmoney_get_overview", () => {
     assert.equal(getLastCall()?.params.ts, "1712000000000");
   });
 
-  it("passes pool filter params", async () => {
+  it("passes pool filter params (signal-side public names → upstream API names)", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ts: "1712000000000", pnl: "PNL_TOP20", winRatio: "WR_GE_80" }, makeContext(client));
+    await tool.handler({ ts: "1712000000000", pnlTier: "PNL_TOP20", winRateTier: "WR_GE_80" }, makeContext(client));
+    // Public params remap to upstream API field names: pnlTier→pnl, winRateTier→winRatio
     assert.equal(getLastCall()?.params.pnl, "PNL_TOP20");
     assert.equal(getLastCall()?.params.winRatio, "WR_GE_80");
   });
@@ -5291,7 +5292,118 @@ describe("smartmoney_get_traders", () => {
     await tool.handler({ sortType: "pnl", period: "30", limit: "10" }, makeContext(client));
     assert.equal(getLastCall()?.params.sortType, "pnl");
     assert.equal(getLastCall()?.params.period, "30");
-    assert.equal(getLastCall()?.params.limit, "10");
+    assert.equal(getLastCall()?.params.limit, 10);
+  });
+});
+
+describe("smartmoney_get_trader_positions", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_trader_positions")!;
+
+  it("throws when authorId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(() => tool.handler({}, makeContext(client)));
+  });
+
+  it("calls position-current with authorId and instCcy", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorId: "99", instCcy: "BTC" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/position-current");
+    assert.equal(getLastCall()?.params.authorId, "99");
+    assert.equal(getLastCall()?.params.instCcy, "BTC");
+  });
+
+  it("unwraps data[0].posData[] to flat array", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/orbit/public/position-current": [
+        { posData: [{ posId: "p1", instId: "BTC-USDT-SWAP" }, { posId: "p2", instId: "ETH-USDT-SWAP" }] },
+      ],
+    });
+    const result = await tool.handler({ authorId: "99" }, makeContext(client)) as Record<string, unknown>;
+    const data = result.data as Record<string, unknown>[];
+    assert.equal(data.length, 2);
+    assert.equal(data[0].posId, "p1");
+    assert.equal(data[1].instId, "ETH-USDT-SWAP");
+  });
+});
+
+describe("smartmoney_get_trader_trades", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_trader_trades")!;
+
+  it("throws when authorId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(() => tool.handler({}, makeContext(client)));
+  });
+
+  it("calls trade-records with pagination params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { authorId: "12", instCcy: "ETH", after: "ord1", before: "ord2", limit: "20" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/trade-records");
+    assert.equal(getLastCall()?.params.authorId, "12");
+    assert.equal(getLastCall()?.params.instCcy, "ETH");
+    assert.equal(getLastCall()?.params.after, "ord1");
+    assert.equal(getLastCall()?.params.before, "ord2");
+    assert.equal(getLastCall()?.params.limit, 20);
+  });
+
+  it("returns pagination metadata with hasMore + nextAfter from last ordId", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/orbit/public/trade-records": [
+        { ordId: "o1" }, { ordId: "o2" }, { ordId: "o3" },
+      ],
+    });
+    const result = await tool.handler({ authorId: "1", limit: "3" }, makeContext(client)) as Record<string, unknown>;
+    const pagination = result.pagination as Record<string, unknown>;
+    assert.equal(pagination.hasMore, true);
+    assert.equal(pagination.nextAfter, "o3");
+  });
+
+  it("hasMore=false when data.length < limit", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/orbit/public/trade-records": [{ ordId: "o1" }],
+    });
+    const result = await tool.handler({ authorId: "1", limit: "10" }, makeContext(client)) as Record<string, unknown>;
+    const pagination = result.pagination as Record<string, unknown>;
+    assert.equal(pagination.hasMore, false);
+    assert.equal(pagination.nextAfter, undefined);
+  });
+});
+
+describe("smartmoney_get_trader_position_history", () => {
+  const tools = registerSmartmoneyTools();
+  const tool = tools.find((t) => t.name === "smartmoney_get_trader_position_history")!;
+
+  it("throws when authorId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(() => tool.handler({}, makeContext(client)));
+  });
+
+  it("calls position-history with pagination params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { authorId: "5", after: "p100", limit: "8" },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/position-history");
+    assert.equal(getLastCall()?.params.authorId, "5");
+    assert.equal(getLastCall()?.params.after, "p100");
+    assert.equal(getLastCall()?.params.limit, 8);
+  });
+
+  it("returns pagination metadata with nextAfter from last posId", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/orbit/public/position-history": [
+        { posId: "p1" }, { posId: "p2" },
+      ],
+    });
+    const result = await tool.handler({ authorId: "1", limit: "2" }, makeContext(client)) as Record<string, unknown>;
+    const pagination = result.pagination as Record<string, unknown>;
+    assert.equal(pagination.hasMore, true);
+    assert.equal(pagination.nextAfter, "p2");
   });
 });
 
@@ -5328,6 +5440,6 @@ describe("smartmoney_get_trader_detail", () => {
     assert.equal(positions.params.authorId, "99");
     assert.equal(positions.params.instCcy, "ETH");
     assert.equal(trades.params.authorId, "99");
-    assert.equal(trades.params.limit, "50");
+    assert.equal(trades.params.limit, 50);
   });
 });

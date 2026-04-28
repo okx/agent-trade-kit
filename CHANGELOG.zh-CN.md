@@ -11,8 +11,28 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`smartmoney_*` —— 新增 3 个原子级 trader 端点**，与现有的 `smartmoney_get_trader_detail` 复合接口并存，提供更细粒度的访问（遵循 mcp-builder 的 "comprehensive API coverage" 原则）：
+  - **`smartmoney_get_trader_positions`**（`GET /api/v5/orbit/public/position-current`）—— 单个交易员当前开仓。已展平上游 `data[0].posData[]` 嵌套结构。
+  - **`smartmoney_get_trader_trades`**（`GET /api/v5/orbit/public/trade-records`）—— 单个交易员近期成交记录，按 `ordId` 游标分页（`--after`/`--before`/`--limit`）。
+  - **`smartmoney_get_trader_position_history`**（`GET /api/v5/orbit/public/position-history`）—— 单个交易员历史平仓，按 `posId` 游标分页。此前该上游端点完全未暴露。
+  每个新工具都带 `outputSchema`、（适用时）`pagination: { hasMore, nextAfter }`、以及配套的 CLI 命令（`okx smartmoney positions / trades / position-history`）。`smartmoney_get_trader_detail` description 同步更新，引导 agent 在需要细粒度访问时使用上面 3 个原子工具。
+- **`smartmoney_*` —— 原 5 个工具全部新增 `outputSchema`。** 每个 smart money 工具现在通过 JSON-Schema `outputSchema` 显式声明返回结构，agent 不必试探即可知道字段。覆盖：`smartmoney_get_overview`（每条 11 字段，含 `instId`、`longRatio`、`weightedLongRatio`、`tradersWithPosition`、`netNotionalUsdt`、`vs24h`、`topNUsed`）、`smartmoney_get_signal`（约 21 字段，含 `longTraders`/`shortTraders`、`smartMoneyLongAvgEntry`/`smartMoneyShortAvgEntry`、`vs1h`/`vs24h`/`vs7d`、`timestamp`）、`smartmoney_get_signal_history`（每个时间桶 10 字段）、`smartmoney_get_traders`（leaderboard 字段 + `rates[]`）、`smartmoney_get_trader_detail`（复合结构 `{ profile, positions, trades }`）。MCP server 本就同时输出 `structuredContent` 与 `content`，因此新 schema 是真生效。Token：smartmoney 模块 ~1,624 → ~4,713（5 → 8 个工具，叠加全量 outputSchema）。
+- **`smartmoney_get_traders` —— 游标分页元数据。** 响应顶层增加 `pagination: { hasMore, nextAfter }`。当 `data.length >= limit`（未指定 `limit` 时默认为 100）时 `hasMore=true`，此时 `nextAfter` 为最后一条的 `authorId`，可作为下一次调用的 `--after` 游标传入。已在 `skills/okx-cex-smartmoney/references/trader-commands.md` 文档化。
+
 ### 变更
 
+- **`smartmoney_*` Signal 端入参重命名（对 `overview` / `signal` / `signal-history` 是 BREAKING）。** Signal 端的入参与返回字段名解耦，消除最大 footgun（输入 `pnl` 与返回 `pnl` 同名等）：
+  - `sortType` → `sortBy`
+  - `pnl` → `pnlTier`
+  - `winRatio` → `winRateTier`
+  - `maxRetreat` → `maxDrawdownTier`（`maxDrawdown` 是行业通用词）
+  - `asset` → `aumTier`（AUM = Assets Under Management）
+  影响 MCP 工具 `smartmoney_get_overview` / `smartmoney_get_signal` / `smartmoney_get_signal_history`，以及对应 CLI flag `okx smartmoney {overview,signal,signal-history} --sortBy / --pnlTier / --winRateTier / --maxDrawdownTier / --aumTier`。Leaderboard 端（`smartmoney_get_traders` / `okx smartmoney traders`）**保持不变**，仍使用原数值阈值字段名（`sortType` / `pnl` / `winRatio` / `maxRetreat` / `asset`）。上游 OKX API 字段名不变，由 MCP/CLI 层做映射。
+- **`smartmoney_*` inputSchema —— 类型化与默认值。** 闭集字符串字段改用 `enum + default`：`sortType`（signal 端点 `pnl`/`pnlRatio`，leaderboard 端点 `pnl`/`pnl_ratio`）、`period`（`3`/`7`/`30`/`90`）、`pnl`（`PNL_ANY`/`PNL_TOP50`/`PNL_TOP20`/`PNL_TOP5`）、`winRatio`（`WR_ANY`/`WR_GE_50`/`WR_GE_80`）、`maxRetreat`（`MR_ANY`/`MR_LE_20`/`MR_LE_50`）、`asset`（`AUM_ANY`/`AUM_TOP50`/`AUM_TOP20`/`AUM_TOP5`）、`instType`（SPOT/MARGIN/FUTURES/SWAP/OPTION，默认 SWAP）、`granularity`（`1h`/`1d`）。数值字段改用 `integer +` 上下界：`lmtNum`（1–500，默认 100）、`topInstruments`（1–100，默认 20）、`signal_history` 的 `limit`（1–500，默认 24）、`traders` 的 `limit`（1–100）、`tradeLimit`（1–100）。行为不变：`readNumber` 继续接受 CLI 传入的字符串数字，发送到 OKX 的请求字节级等价（`URLSearchParams` 自动 stringify）。
+- **`smartmoney_*` tool description。** 把内嵌的参数约束（"Requires either ts or dataVersion"、"yyyyMMddHHmm UTC"、"wins when both set" 等）从 tool description 挪到对应的 param description，遵循项目的"面向意图"原则。Tool description 现在只回答"做什么、什么场景用"以及跨工具路由提示。
+- **`skills/okx-cex-smartmoney/references/trader-commands.md`** —— `rates[].statTime` 字段修正。原本误写为 `Unix ms`（如 `"1736784000000"`），实际是 `YYMMDD` 6 位字符串（如 `"240726"`），见 `context-kg/business/06-leaderboard-smartmoney-api.md` Field Drift §2。已与新增的 `outputSchema` 描述对齐。
 - **`skills/okx-cex-smartmoney`**：从 skill 与 workflows 中移除不属于本域的 `带单员` / `lead traders` 触发词；Prerequisites 与 Credential & Profile Check 对齐 `okx-cex-earn`（改用 `okx config init` OAuth 流程、双源校验、401 引导到 `okx-cex-auth` skill）。
 
 ---

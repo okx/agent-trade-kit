@@ -13,8 +13,18 @@ function printDataList(
   printTable(data.map(mapper));
 }
 
-/** Shared pool-filter fields reused across overview / signal / signal-history / traders. */
-export interface PoolFilterOpts {
+/** Pool-filter fields for signal endpoints (overview / signal / signal-history). Enum tiers. */
+export interface SignalPoolFilterOpts {
+  sortBy?: string;
+  period?: string;
+  pnlTier?: string;
+  winRateTier?: string;
+  maxDrawdownTier?: string;
+  aumTier?: string;
+}
+
+/** Pool-filter fields for the leaderboard (`traders`) endpoint. Numeric thresholds. */
+export interface LeaderboardPoolFilterOpts {
   sortType?: string;
   period?: string;
   pnl?: string;
@@ -23,7 +33,18 @@ export interface PoolFilterOpts {
   asset?: string;
 }
 
-function poolFilterArgs(o: PoolFilterOpts): Record<string, unknown> {
+function signalPoolFilterArgs(o: SignalPoolFilterOpts): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  if (o.sortBy) result.sortBy = o.sortBy;
+  if (o.period) result.period = o.period;
+  if (o.pnlTier) result.pnlTier = o.pnlTier;
+  if (o.winRateTier) result.winRateTier = o.winRateTier;
+  if (o.maxDrawdownTier) result.maxDrawdownTier = o.maxDrawdownTier;
+  if (o.aumTier) result.aumTier = o.aumTier;
+  return result;
+}
+
+function leaderboardPoolFilterArgs(o: LeaderboardPoolFilterOpts): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   if (o.sortType) result.sortType = o.sortType;
   if (o.period) result.period = o.period;
@@ -36,7 +57,7 @@ function poolFilterArgs(o: PoolFilterOpts): Record<string, unknown> {
 
 export async function cmdSmartmoneyOverview(
   run: ToolRunner,
-  opts: PoolFilterOpts & {
+  opts: SignalPoolFilterOpts & {
     dataVersion?: string;
     ts?: string;
     instType?: string;
@@ -51,7 +72,7 @@ export async function cmdSmartmoneyOverview(
     dataVersion: opts.dataVersion,
     ts: opts.ts,
     instType: opts.instType,
-    ...poolFilterArgs(opts),
+    ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
     instCcyList: opts.instCcyList,
     instCcy: opts.instCcy,
@@ -70,7 +91,7 @@ export async function cmdSmartmoneyOverview(
 
 export async function cmdSmartmoneySignal(
   run: ToolRunner,
-  opts: PoolFilterOpts & {
+  opts: SignalPoolFilterOpts & {
     instId?: string;
     dataVersion?: string;
     ts?: string;
@@ -85,7 +106,7 @@ export async function cmdSmartmoneySignal(
     instCcy: opts.instCcy,
     dataVersion: opts.dataVersion,
     ts: opts.ts,
-    ...poolFilterArgs(opts),
+    ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
     authorIds: opts.authorIds,
   });
@@ -124,7 +145,7 @@ export async function cmdSmartmoneySignal(
 
 export async function cmdSmartmoneySignalHistory(
   run: ToolRunner,
-  opts: PoolFilterOpts & {
+  opts: SignalPoolFilterOpts & {
     instId: string;
     dataVersion?: string;
     ts?: string;
@@ -139,7 +160,7 @@ export async function cmdSmartmoneySignalHistory(
     ts: opts.ts,
     granularity: opts.granularity,
     limit: opts.limit,
-    ...poolFilterArgs(opts),
+    ...signalPoolFilterArgs(opts),
   });
   const data = extractData(result);
   printDataList(data, opts.json, "No signal history data", (r) => ({
@@ -155,7 +176,7 @@ export async function cmdSmartmoneySignalHistory(
 
 export async function cmdSmartmoneyTraders(
   run: ToolRunner,
-  opts: PoolFilterOpts & {
+  opts: LeaderboardPoolFilterOpts & {
     dataVersion?: string;
     authorIds?: string;
     after?: string;
@@ -166,7 +187,7 @@ export async function cmdSmartmoneyTraders(
 ): Promise<void> {
   const data = extractData(await run("smartmoney_get_traders", {
     dataVersion: opts.dataVersion,
-    ...poolFilterArgs(opts),
+    ...leaderboardPoolFilterArgs(opts),
     authorIds: opts.authorIds,
     after: opts.after,
     before: opts.before,
@@ -179,6 +200,96 @@ export async function cmdSmartmoneyTraders(
     pnlRatio: r["pnlRatio"],
     winRatio: r["winRatio"],
     asset: r["asset"],
+  }));
+}
+
+export async function cmdSmartmoneyTraderPositions(
+  run: ToolRunner,
+  opts: {
+    authorId: string;
+    instCcy?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const data = extractData(await run("smartmoney_get_trader_positions", {
+    authorId: opts.authorId,
+    instCcy: opts.instCcy,
+  }));
+  printDataList(data, opts.json, "No open positions", (r) => ({
+    instId: r["instId"],
+    posSide: r["posSide"],
+    pos: r["pos"],
+    lever: r["lever"],
+    avgPx: r["avgPx"],
+    last: r["last"],
+    notionalUsd: r["notionalUsd"],
+    pnl: r["pnl"],
+    positionIntensity: r["positionIntensity"],
+  }));
+}
+
+export async function cmdSmartmoneyTraderTrades(
+  run: ToolRunner,
+  opts: {
+    authorId: string;
+    instCcy?: string;
+    after?: string;
+    before?: string;
+    limit?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_trader_trades", {
+    authorId: opts.authorId,
+    instCcy: opts.instCcy,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
+  });
+  if (opts.json) { printJson(result); return; }
+  const data = extractData(result);
+  printDataList(data, false, "No trades found", (r) => ({
+    cTime: r["cTime"],
+    instId: r["instId"],
+    side: r["side"],
+    posSide: r["posSide"],
+    ordType: r["ordType"],
+    avgPx: r["avgPx"],
+    sz: r["sz"],
+    value: r["value"],
+  }));
+}
+
+export async function cmdSmartmoneyTraderPositionHistory(
+  run: ToolRunner,
+  opts: {
+    authorId: string;
+    instCcy?: string;
+    after?: string;
+    before?: string;
+    limit?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smartmoney_get_trader_position_history", {
+    authorId: opts.authorId,
+    instCcy: opts.instCcy,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
+  });
+  if (opts.json) { printJson(result); return; }
+  const data = extractData(result);
+  printDataList(data, false, "No closed positions", (r) => ({
+    cTime: r["cTime"],
+    uTime: r["uTime"],
+    instId: r["instId"],
+    posSide: r["posSide"],
+    openAvgPx: r["openAvgPx"],
+    closeAvgPx: r["closeAvgPx"],
+    pnl: r["pnl"],
+    pnlRatio: r["pnlRatio"],
+    closeType: r["closeType"],
   }));
 }
 

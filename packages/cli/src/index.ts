@@ -156,6 +156,9 @@ import {
   cmdSmartmoneySignalHistory,
   cmdSmartmoneyTraders,
   cmdSmartmoneyTraderDetail,
+  cmdSmartmoneyTraderPositions,
+  cmdSmartmoneyTraderTrades,
+  cmdSmartmoneyTraderPositionHistory,
 } from "./commands/smartmoney.js";
 import {
   cmdAutoEarnStatus,
@@ -1275,20 +1278,24 @@ export function handleSmartmoneyCommand(
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
-  const poolFilters = {
+  const signalPoolFilters = {
+    sortBy: v.sortBy, period: v.period, pnlTier: v.pnlTier,
+    winRateTier: v.winRateTier, maxDrawdownTier: v.maxDrawdownTier, aumTier: v.aumTier,
+  };
+  const leaderboardPoolFilters = {
     sortType: v.sortType, period: v.period, pnl: v.pnl,
     winRatio: v.winRatio, maxRetreat: v.maxRetreat, asset: v.asset,
   };
   if (action === "overview")
     return cmdSmartmoneyOverview(run, {
       dataVersion: v.dataVersion, ts: v.ts, instType: v.instType,
-      ...poolFilters, lmtNum: v.lmtNum, instCcyList: v.instCcyList,
+      ...signalPoolFilters, lmtNum: v.lmtNum, instCcyList: v.instCcyList,
       instCcy: v.instCcy, topInstruments: v.topInstruments, json,
     });
   if (action === "signal")
     return cmdSmartmoneySignal(run, {
       instId: v.instId, dataVersion: v.dataVersion, ts: v.ts,
-      ...poolFilters, instCcy: v.instCcy, lmtNum: v.lmtNum,
+      ...signalPoolFilters, instCcy: v.instCcy, lmtNum: v.lmtNum,
       authorIds: v.authorIds, json,
     });
   if (action === "signal-history") {
@@ -1296,12 +1303,12 @@ export function handleSmartmoneyCommand(
     return cmdSmartmoneySignalHistory(run, {
       instId: v.instId, dataVersion: v.dataVersion, ts: v.ts,
       granularity: v.granularity, limit: v.limit,
-      ...poolFilters, json,
+      ...signalPoolFilters, json,
     });
   }
   if (action === "traders")
     return cmdSmartmoneyTraders(run, {
-      dataVersion: v.dataVersion, ...poolFilters,
+      dataVersion: v.dataVersion, ...leaderboardPoolFilters,
       authorIds: v.authorIds, after: v.after, before: v.before,
       limit: v.limit, json,
     });
@@ -1312,8 +1319,28 @@ export function handleSmartmoneyCommand(
       instCcy: v.instCcy, tradeLimit: v.tradeLimit, json,
     });
   }
+  if (action === "positions") {
+    if (!v.authorId) { errorLine("Missing required --authorId: okx smartmoney positions --authorId <id>"); process.exitCode = 1; return; }
+    return cmdSmartmoneyTraderPositions(run, {
+      authorId: v.authorId, instCcy: v.instCcy, json,
+    });
+  }
+  if (action === "trades") {
+    if (!v.authorId) { errorLine("Missing required --authorId: okx smartmoney trades --authorId <id>"); process.exitCode = 1; return; }
+    return cmdSmartmoneyTraderTrades(run, {
+      authorId: v.authorId, instCcy: v.instCcy,
+      after: v.after, before: v.before, limit: v.limit, json,
+    });
+  }
+  if (action === "position-history") {
+    if (!v.authorId) { errorLine("Missing required --authorId: okx smartmoney position-history --authorId <id>"); process.exitCode = 1; return; }
+    return cmdSmartmoneyTraderPositionHistory(run, {
+      authorId: v.authorId, instCcy: v.instCcy,
+      after: v.after, before: v.before, limit: v.limit, json,
+    });
+  }
   errorLine(`Unknown smartmoney command: ${action}`);
-  errorLine("Valid: overview, signal, signal-history, traders, trader");
+  errorLine("Valid: overview, signal, signal-history, traders, trader, positions, trades, position-history");
   process.exitCode = 1;
 }
 

@@ -11,8 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`smartmoney_*` — 3 new atomic trader endpoints** to give agents finer-grained access alongside the existing `smartmoney_get_trader_detail` composite (per mcp-builder "comprehensive API coverage" principle):
+  - **`smartmoney_get_trader_positions`** (`GET /api/v5/orbit/public/position-current`) — single trader's current open positions. Unwraps the upstream `data[0].posData[]` envelope to a flat array.
+  - **`smartmoney_get_trader_trades`** (`GET /api/v5/orbit/public/trade-records`) — single trader's recent order/fill records, paginated by `ordId` cursor (`--after`/`--before`/`--limit`).
+  - **`smartmoney_get_trader_position_history`** (`GET /api/v5/orbit/public/position-history`) — single trader's closed-position history, paginated by `posId` cursor. Previously this upstream endpoint was completely unexposed.
+  Each new tool ships with `outputSchema`, cursor `pagination: { hasMore, nextAfter }` (where applicable), and a paired CLI command (`okx smartmoney positions / trades / position-history`). Existing `smartmoney_get_trader_detail` description updated to point at these atoms for finer control.
+- **`smartmoney_*` — `outputSchema` on all 5 original tools.** Every smart-money tool now publishes its response shape via JSON-Schema `outputSchema`, so agents can introspect fields without an exploratory call. Coverage: `smartmoney_get_overview` (11 fields/item incl. `instId`, `longRatio`, `weightedLongRatio`, `tradersWithPosition`, `netNotionalUsdt`, `vs24h`, `topNUsed`), `smartmoney_get_signal` (~21 fields incl. `longTraders`/`shortTraders`, `smartMoneyLongAvgEntry`/`smartMoneyShortAvgEntry`, `vs1h`/`vs24h`/`vs7d`, `timestamp`), `smartmoney_get_signal_history` (10 fields per bucket), `smartmoney_get_traders` (leaderboard fields + `rates[]`), and `smartmoney_get_trader_detail` (composite shape `{ profile, positions, trades }`). The MCP server already emits `structuredContent` alongside `content`, so the new schemas are wire-effective. Token: smartmoney module ~1,624 → ~4,713 tokens (5 → 8 tools, plus outputSchema across the board).
+- **`smartmoney_get_traders` — cursor pagination metadata.** Response now includes top-level `pagination: { hasMore, nextAfter }`. `hasMore` is `true` when `data.length >= limit` (defaults to `100` when not specified). `nextAfter` carries the last item's `authorId` when `hasMore=true`; pass it as `--after` on the next call. Documented in `skills/okx-cex-smartmoney/references/trader-commands.md`.
+
 ### Changed
 
+- **`smartmoney_*` signal-side pool filters renamed for AI-safety (BREAKING for `overview` / `signal` / `signal-history`).** Public parameter names on the three signal endpoints are now disjoint from response field names, removing the most error-prone collision (input `pnl` vs response `pnl`, input `winRatio` vs response `winRatio`, etc.):
+  - `sortType` → `sortBy`
+  - `pnl` → `pnlTier`
+  - `winRatio` → `winRateTier`
+  - `maxRetreat` → `maxDrawdownTier` (industry-standard term)
+  - `asset` → `aumTier` (AUM = Assets Under Management)
+  Affects MCP tools `smartmoney_get_overview` / `smartmoney_get_signal` / `smartmoney_get_signal_history` and the matching CLI flags `okx smartmoney {overview,signal,signal-history} --sortBy / --pnlTier / --winRateTier / --maxDrawdownTier / --aumTier`. The leaderboard endpoint (`smartmoney_get_traders` / `okx smartmoney traders`) is **unchanged** — it keeps the original numeric-threshold names (`sortType` / `pnl` / `winRatio` / `maxRetreat` / `asset`). Upstream OKX API field names are unchanged; the MCP/CLI layer maps signal-side public names back internally.
+- **`smartmoney_*` inputSchema — typed fields & defaults.** Closed-set string fields now declare `enum` + `default`: `sortType` (`pnl`/`pnlRatio` for signal endpoints, `pnl`/`pnl_ratio` for leaderboard), `period` (`3`/`7`/`30`/`90`), `pnl` (`PNL_ANY`/`PNL_TOP50`/`PNL_TOP20`/`PNL_TOP5`), `winRatio` (`WR_ANY`/`WR_GE_50`/`WR_GE_80`), `maxRetreat` (`MR_ANY`/`MR_LE_20`/`MR_LE_50`), `asset` (`AUM_ANY`/`AUM_TOP50`/`AUM_TOP20`/`AUM_TOP5`), `instType` (SPOT/MARGIN/FUTURES/SWAP/OPTION, default SWAP), `granularity` (`1h`/`1d`). Numeric fields now declare `integer` + bounds: `lmtNum` (1–500, default 100), `topInstruments` (1–100, default 20), `limit` on `signal_history` (1–500, default 24), `limit` on `traders` (1–100), `tradeLimit` (1–100). Behaviour unchanged: `readNumber` continues to coerce CLI string-form numerics, and the wire payload to OKX is byte-equivalent (`URLSearchParams` stringifies numbers).
+- **`smartmoney_*` tool descriptions.** Removed embedded parameter constraints (e.g. "Requires either ts or dataVersion", "yyyyMMddHHmm UTC", "wins when both set") from tool descriptions; that text now lives in the relevant per-parameter description, per the project's "面向意图" rule. Tool descriptions retain only what the tool does and when to use it (with cross-tool routing hints).
+- **`skills/okx-cex-smartmoney/references/trader-commands.md`** — `rates[].statTime` doc fix. Was incorrectly described as `Unix ms` (e.g. `"1736784000000"`). Actual format is `YYMMDD` 6-digit string (e.g. `"240726"`), per upstream Field Drift §2 in `context-kg/business/06-leaderboard-smartmoney-api.md`. Brought in line with the new `outputSchema` definition.
 - **`skills/okx-cex-smartmoney`**: drop off-scope `带单员` / `lead traders` triggers from skill and workflows; align Prerequisites and Credential & Profile Check with `okx-cex-earn` (OAuth-friendly `okx config init`, dual-source auth check, 401 routes to `okx-cex-auth` skill).
 
 ---
