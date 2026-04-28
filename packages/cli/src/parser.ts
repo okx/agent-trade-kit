@@ -39,6 +39,8 @@ export interface CliValues {
   closeFraction?: string;
   banAmend?: boolean;
   pxAmendType?: string;
+  // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+  tpLevel?: string[];
   // Phase 2 algo ordType flags (issue #181)
   orderPx?: string;
   advanceOrdType?: string;
@@ -278,6 +280,8 @@ export const CLI_OPTIONS = {
   closeFraction: { type: "string" },
   banAmend: { type: "boolean", default: false },
   pxAmendType: { type: "string" },
+  // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
+  tpLevel: { type: "string", multiple: true },
   // Phase 2 algo ordType flags (issue #181)
   orderPx: { type: "string" },
   advanceOrdType: { type: "string" },
@@ -473,6 +477,57 @@ export const CLI_OPTIONS = {
   all: { type: "boolean", default: false }, // diagnose --all: run both CLI and MCP checks
   output: { type: "string" },               // diagnose --output only: save report to file
 } as const;
+
+/**
+ * Valid keys in the --tpLevel kv mini-DSL and their OKX field mappings.
+ * Phase 3b (issue #183, CLI-only no MCP/skill exposure).
+ */
+const TP_LEVEL_KEY_MAP: Record<string, string> = {
+  px:              "tpOrdPx",
+  sz:              "sz",
+  kind:            "tpOrdKind",
+  triggerPx:       "tpTriggerPx",
+  triggerPxType:   "tpTriggerPxType",
+  amendPxOnTrigger:"amendPxOnTriggerType",
+  clOrdId:         "attachAlgoClOrdId",
+};
+
+/**
+ * Parse a single --tpLevel kv mini-DSL string into an OKX-field-name object.
+ *
+ * Syntax: "key:value,key:value,..."
+ * Valid keys: px, sz, kind, triggerPx, triggerPxType, amendPxOnTrigger, clOrdId
+ *
+ * @throws Error with helpful message on invalid syntax or unknown key
+ */
+export function parseTpLevel(s: string): Record<string, string> {
+  if (!s || !s.includes(":")) {
+    throw new Error(
+      `Invalid --tpLevel format: "${s}". Expected "key:value,key:value,..." (e.g. "px:78000,sz:0.5,kind:limit")`,
+    );
+  }
+  const result: Record<string, string> = {};
+  const pairs = s.split(",");
+  for (const pair of pairs) {
+    const colonIdx = pair.indexOf(":");
+    if (colonIdx < 1) {
+      throw new Error(
+        `Invalid --tpLevel format: "${pair}". Each entry must be "key:value", not "${pair}". ` +
+        `Valid keys: ${Object.keys(TP_LEVEL_KEY_MAP).join(", ")}`,
+      );
+    }
+    const key = pair.slice(0, colonIdx).trim();
+    const value = pair.slice(colonIdx + 1).trim();
+    const mapped = TP_LEVEL_KEY_MAP[key];
+    if (!mapped) {
+      throw new Error(
+        `Unknown --tpLevel key: "${key}". Valid keys: ${Object.keys(TP_LEVEL_KEY_MAP).join(", ")}`,
+      );
+    }
+    result[mapped] = value;
+  }
+  return result;
+}
 
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
   // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
