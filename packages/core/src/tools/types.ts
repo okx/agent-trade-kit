@@ -20,6 +20,11 @@ export interface ToolSpec {
   inputSchema: JsonSchema;
   outputSchema?: OutputSchema;
   isWrite: boolean;
+  /**
+   * Optional MCP tool-call annotations (mcp-builder G1 hint set).
+   * When omitted, `toMcpTool` derives sensible defaults from `isWrite`.
+   */
+  annotations?: Record<string, boolean>;
   handler: (args: ToolArgs, context: ToolContext) => Promise<unknown>;
 }
 
@@ -29,7 +34,7 @@ export function toMcpTool(tool: ToolSpec): Tool {
     description: tool.description,
     inputSchema: tool.inputSchema,
     ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
-    annotations: {
+    annotations: tool.annotations ?? {
       readOnlyHint: !tool.isWrite,
       destructiveHint: tool.isWrite,
       idempotentHint: !tool.isWrite,
