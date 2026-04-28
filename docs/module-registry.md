@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~37,201 tokens | **Over budget:** ~12,201 tokens | **Tools:** 153 (92 read / 61 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~42,149 tokens | **Over budget:** ~17,149 tokens | **Tools:** 155 (94 read / 61 write)
 
 > Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 92 工具, ~18,977 tokens。
 
@@ -20,7 +20,7 @@ Unregistered modules will be rejected during review.
 | news | ✅ approved | 7 | 7 | 0 | ~2,552 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
 | event | ✅ approved | 9 | 6 | 3 | ~2,332 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
 | earn.savings | ✅ approved | 9 | 4 | 5 | ~2,020 | _(founding module)_ | @Jasmine.Li | — |
-| smartmoney | ✅ approved | 8 | 8 | 0 | ~4,713 | [smartmoney](designs/smartmoney.md) | @Jasmine.Li | 2026-04-22 |
+| smartmoney | ✅ approved | 10 | 10 | 0 | ~9,661 | [smartmoney](designs/smartmoney.md) | @Jasmine.Li | 2026-04-29 |
 | bot.grid | ✅ approved | 5 | 3 | 2 | ~1,376 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,341 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |
@@ -28,7 +28,9 @@ Unregistered modules will be rejected during review.
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
-| **Total** | | **153** | **92** | **61** | **~37,201** | | | |
+| **Total** | | **155** | **94** | **61** | **~42,149** | | | |
+
+> **smartmoney over 5–8 tool budget — approved exception:** the surface is split by entry mode (`_by_coin` / `_by_traders`) so AI agents can disambiguate from the tool name alone. Per-mode atomicity is the minimum granular set; further consolidation re-introduces the multi-mode footgun fixed in 2026-04-29 redesign (see `docs/designs/smartmoney.md` §2). Token budget 9,661 reflects 10 tools with full `outputSchema` declarations.
 
 ## Status Legend
 

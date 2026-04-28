@@ -2,153 +2,192 @@
 
 > Signal endpoints are under `/api/v5/journal/smartmoney/`.
 
-## smartmoney signal — Consensus Signal
+Five atomic commands cover the signal / coin side, split by **entry mode**:
 
-```bash
-okx smartmoney signal [--instId <id>] [--instCcy <ccy>] [--ts <ms> | --dataVersion <ver>] [--sortType <type>] [--period <d>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--authorIds <ids>] [--json]
-```
+- **`top-coin-signals`** — top-N most-watched-by-smart-money instruments (no specific coin/trader).
+- **`signal-by-coin`** — single coin, pool-filter mode (no specific trader list).
+- **`signal-by-traders`** — single coin, restricted to specific `authorIds`.
+- **`signal-history-by-coin`** — single coin time-series, pool filter.
+- **`signal-history-by-traders`** — single coin time-series, restricted to specific `authorIds`.
 
-Aggregates pool traders' positions for a single currency to produce long/short ratio, weighted ratio, avg entry price, capital flow, trend deltas, and market context.
-
-> **At least one of `--instId` (e.g. `BTC-USDT-SWAP`) or `--instCcy` (e.g. `BTC`, SPOT/SWAP only) is required.** `--instId` takes precedence if both are set.
-
-### Parameters
-
-| Param | Required | Default | Description |
-|---|---|---|---|
-| `--instId` | Cond. | - | **Recommended.** Full instrument name (e.g. `BTC-USDT-SWAP`). **At least one of instId / instCcy required**; instId takes precedence. |
-| `--instCcy` | Cond. | - | Currency code (e.g. `BTC`). SPOT and SWAP only. `--instId` takes precedence if both are set. |
-| `--ts` | Cond. | - | **Recommended.** Snapshot timestamp (ms UTC) — use `$(date +%s)000` for latest. **At least one of ts / dataVersion required**; if both sent, `--ts` wins. |
-| `--dataVersion` | Cond. | - | Alternative. Snapshot version (yyyyMMddHHmm UTC) for replaying a prior snapshot. |
-| `--lmtNum` | No | `100` | Candidate trader pool size limit (range 1-500) |
-| `--authorIds` | No | - | Comma-separated user IDs (e.g. `1001,1002,1003`) — **restricts** the trader pool to these IDs only (precise filter, not additive) |
-
-Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) also apply.
-
-### Signal Filter Enum Values
-
-All signal endpoints share these enum-based pool filters:
-
-| Parameter | Enum values | Default | Semantics |
-|---|---|---|---|
-| `sortType` | `pnl`, `pnlRatio` | `pnl` | Trader pool ranking basis: `pnl` = cumulative PnL, `pnlRatio` = cumulative return ratio |
-| `period` | `3`, `7`, `30`, `90` | `90` | Win-rate calculation window in **days** — affects `winRatio`/`avgLongWinRatio`/`avgShortWinRatio` only, **not** the snapshot range |
-| `pnl` | `PNL_ANY`, `PNL_TOP50`, `PNL_TOP20`, `PNL_TOP5` | `PNL_ANY` | PnL percentile filter — keeps **top N%** of traders by PnL (e.g. `PNL_TOP20` = top 20%, not top 20 traders) |
-| `winRatio` | `WR_ANY`, `WR_GE_50`, `WR_GE_80` | `WR_ANY` | Win-rate threshold — keeps traders with win-rate **≥ N%** |
-| `maxRetreat` | `MR_ANY`, `MR_LE_20`, `MR_LE_50` | `MR_ANY` | Max drawdown threshold — keeps traders with drawdown **≤ N%** |
-| `asset` | `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` | `AUM_ANY` | AUM percentile filter — keeps **top N%** of traders by asset size |
-
-All enums are case-insensitive. Invalid values silently fall back to default.
-
-### Response Fields (27 fields, single object in `data[0]`)
-
-| Field | Type | Description |
-|---|---|---|
-| `instId` | String | Instrument name (e.g. `BTC-USDT-SWAP`). When request used `instCcy`, this echoes the **uppercase currency code only** (e.g. `BTC`) |
-| `instType` | String | Instrument type: SPOT / MARGIN / FUTURES / SWAP / OPTION. Empty string `""` when request used `instCcy` path |
-| `longRatio` | String | Long trader ratio, decimal in [0, 1] (e.g. `"0.65"` = 65%) |
-| `weightedLongRatio` | String | Long ratio weighted by **notional USD value** (each trader's vote weighted by position size) |
-| `avgLongWinRatio` | String | Average win ratio of long-side traders over the window set by `period` param |
-| `avgShortWinRatio` | String | Average win ratio of short-side traders over the window set by `period` param |
-| `longNotionalUsdt` | String | Total long notional value in USDT |
-| `shortNotionalUsdt` | String | Total short notional value in USDT |
-| `netNotionalUsdt` | String | Net notional = `longNotionalUsdt − shortNotionalUsdt`, **can be negative** |
-| `tradersWithPosition` | Integer | Traders in the final pool who currently hold a position on this instrument |
-| `longTraders` | Integer | Traders in the pool with an open long position |
-| `shortTraders` | Integer | Traders in the pool with an open short position |
-| `vs1h` | String | **Arithmetic difference** `longRatio(now) − longRatio(1h ago)`, same decimal unit; positive = more long now |
-| `vs24h` | String | Arithmetic difference vs 24 h ago (same semantics as `vs1h`) |
-| `vs7d` | String | Arithmetic difference vs 7 days ago (same semantics as `vs1h`) |
-| `ts` | Long | **Actual** snapshot time hit (UTC ms) — may be earlier than requested `ts` (latest snapshot ≤ input) |
-| `tradersTotal` | Integer | Final candidate pool size after applying filter params (`pnl`/`winRatio`/`maxRetreat`/`asset`/`authorIds`) |
-| `smartMoneyLongAvgEntry` | String | Weighted average entry price across long positions |
-| `smartMoneyShortAvgEntry` | String | Weighted average entry price across short positions |
-| `totalNotionalVs24h` | String | Total notional change **rate** vs 24 h ago, **decimal ratio** (e.g. `"0.08"` = +8%). May be empty string |
-| `currentPrice` | String | Current mark price — **reserved field, currently returns `""`**; do not render |
-| `priceChange24h` | String | 24h price change rate — reserved, currently `""` |
-| `fundingRate` | String | Funding rate — reserved, currently `""` |
-| `openInterest` | String | Open interest — reserved, currently `""` |
-| `longShortAccountRatio` | String | Long/short account ratio — reserved, currently `""` |
-| `timestamp` | String | ISO-8601 string of `ts` (human-readable, redundant with `ts`) |
-| `dataVersion` | String | yyyyMMddHHmm UTC, one-to-one with `ts` |
+The previous overloaded `smartmoney signal` command (which switched on `--authorIds` presence) and `smartmoney overview` (which switched on `--instCcyList`) are removed.
 
 ---
 
-## smartmoney signal-history — Signal Timeline
+## smartmoney top-coin-signals — Top-N Most-Watched Instruments
 
 ```bash
-okx smartmoney signal-history --instId <id> [--ts <ms> | --dataVersion <ver>] [--granularity <1h|1d>] [--limit <n>] [--sortType <type>] [--period <d>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--json]
+okx smartmoney top-coin-signals [--ts <ms>] [--topInstruments <n>] [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]
 ```
 
-Returns historical signal snapshots for a given instrument. Sorted by ts DESC. Useful for trend analysis and backtesting.
+SWAP-only top-N ranking by smart-money attention (`tradersWithPosition` DESC).
 
-### Parameters
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--ts` | No | current hour | Snapshot timestamp (UTC ms). Handler floors to the hour. Use `$(date +%s)000` for now, or a past timestamp for historical replay. |
+| `--topInstruments` | No | `20` | Number of top instruments to return (1–100) |
+| `--lmtNum` | No | `100` | Candidate trader pool size limit (1–500) |
+
+> The old flags `--instCcyList`, `--instCcy`, `--instType`, and `--dataVersion` are removed. Upstream `/overview` is now SWAP-only and only supports the top-N mode.
+
+Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below) apply.
+
+### Response Fields (per item)
+
+| Field | Type | Description |
+|---|---|---|
+| `instId` | String | Full instrument name (e.g. `BTC-USDT-SWAP`) |
+| `longRatio` | String | Long ratio, decimal in [0, 1] |
+| `weightedLongRatio` | String | Long ratio weighted by notional USD |
+| `tradersWithPosition` | Integer | Traders currently holding a position (ranking key) |
+| `netNotionalUsdt` | String | Net notional = long − short, can be negative |
+| `vs24h` | String | Arithmetic difference `longRatio(now) − longRatio(24h ago)` |
+| `tradersTotal` | Integer | Candidate pool size before filters |
+| `tradersQualified` | Integer | Traders passing all filters (≤ `tradersTotal`) |
+| `dataVersion` | String | UTC `yyyyMMddHH00` |
+
+> Removed (no longer returned by upstream): `topNUsed`, `currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`, `ts`.
+
+---
+
+## smartmoney signal-by-coin — Single-Asset Signal (pool filter mode)
+
+```bash
+okx smartmoney signal-by-coin --instId <id> [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]
+```
+
+Aggregates pool traders' positions for a single instrument to produce long/short ratio, weighted ratio, avg entry price, capital flow, and trend deltas.
 
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--instId` | Yes | - | Full instrument name (e.g. `BTC-USDT-SWAP`) |
-| `--ts` | Cond. | - | **Recommended.** Snapshot timestamp (ms UTC) — use `$(date +%s)000` for latest. **At least one of ts / dataVersion required**; if both sent, `--ts` wins. |
-| `--dataVersion` | Cond. | - | Alternative. Snapshot version (yyyyMMddHHmm UTC) for replaying a prior snapshot. |
-| `--granularity` | No | `1h` | Time granularity: `1h`, `1d`. Other values fall back to `1h`. |
-| `--limit` | No | `24` | Number of data points to return (range 1-500) |
-Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum tiers also apply.
+| `--lmtNum` | No | `100` | Candidate trader pool size limit (1–500) |
 
-### Response Fields (10 fields per item, array `data[]`, sorted by ts DESC)
+> **No `--ts` parameter.** The handler always uses the current hour. For historical timeline, use `signal-history-by-coin`.
+
+> The old `--instCcy` and `--dataVersion` flags are removed.
+
+Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below) apply.
+
+### Response Fields (single object in `data[0]`)
 
 | Field | Type | Description |
 |---|---|---|
-| `instId` | String | Instrument name (echoes request `instId`) |
-| `longRatio` | String | Long ratio at this time bucket, decimal in [0, 1] |
-| `weightedLongRatio` | String | Long ratio weighted by notional USD at this time bucket |
-| `tradersWithPosition` | Integer | Traders holding a position on this instrument in this time bucket |
-| `netNotionalUsdt` | String | Net notional = long − short, can be negative |
-| `totalNotionalUsdt` | String | Total notional = long + short (always ≥ 0) |
-| `ts` | Long | Time bucket representative timestamp (UTC ms) |
-| `tradersTotal` | Integer | Candidate pool size **before** filters |
-| `tradersQualified` | Integer | Traders passing all filters in this bucket (≤ `tradersTotal`). Use this as the "effective sample size" |
-| `dataVersion` | String | yyyyMMddHHmm UTC corresponding to this time bucket |
+| `instId` | String | Echoes request `instId` |
+| `instType` | String | SPOT / MARGIN / FUTURES / SWAP / OPTION |
+| `longRatio` | String | Long trader ratio, decimal in [0, 1] |
+| `weightedLongRatio` | String | Long ratio weighted by notional USD |
+| `avgLongWinRate` | String | Average win-rate of long-side traders over `--period` window |
+| `avgShortWinRate` | String | Average win-rate of short-side traders over `--period` window |
+| `longNotionalUsdt` | String | Total long notional (USDT) |
+| `shortNotionalUsdt` | String | Total short notional (USDT) |
+| `netNotionalUsdt` | String | Net = long − short, can be negative |
+| `tradersWithPosition` | Integer | Pool traders currently holding a position |
+| `longTraders` | Integer | Pool traders with an open long |
+| `shortTraders` | Integer | Pool traders with an open short |
+| `vs1h` / `vs24h` / `vs7d` | String | Arithmetic difference `longRatio(now) − longRatio(t)` |
+| `tradersTotal` | Integer | Candidate pool size after filters |
+| `smartMoneyLongAvgEntry` | String | Weighted avg entry across long positions |
+| `smartMoneyShortAvgEntry` | String | Weighted avg entry across short positions |
+| `totalNotionalVs24h` | String | Total notional change rate vs 24h ago |
+| `dataVersion` | String | UTC `yyyyMMddHH00` |
+
+> Renamed: `avgLongWinRatio` → `avgLongWinRate`, `avgShortWinRatio` → `avgShortWinRate`.
+> Removed: `currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`, `ts`, `timestamp`.
 
 ---
 
-## smartmoney overview — Multi-Currency Overview
+## smartmoney signal-by-traders — Single-Asset Signal (authorIds-restricted)
 
 ```bash
-okx smartmoney overview [--ts <ms> | --dataVersion <ver>] [--instType <type>] [--instCcyList <ccys>] [--instCcy <ccy>] [--topInstruments <n>] [--sortType <type>] [--period <d>] [--pnl <tier>] [--winRatio <tier>] [--maxRetreat <tier>] [--asset <tier>] [--lmtNum <n>] [--json]
+okx smartmoney signal-by-traders --instId <id> --authorIds <id1>,<id2> [--lmtNum <n>] [--json]
 ```
 
-Returns aggregated signal snapshots for top currencies, ranked by tradersWithPosition (most-watched first).
-
-### Parameters
+Same shape as `signal-by-coin`, but restricts the pool to a specific list of `authorIds` instead of applying the pool filter. Useful for "what do my watchlist of traders think about BTC?".
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--ts` | Cond. | - | **Recommended.** Snapshot timestamp (ms UTC) — use `$(date +%s)000` for latest. **At least one of ts / dataVersion required**; if both sent, `--ts` wins. |
-| `--dataVersion` | Cond. | - | Alternative. Snapshot version (yyyyMMddHHmm UTC) for replaying a prior snapshot. |
-| `--instType` | No | `SWAP` | Instrument type: SPOT, MARGIN, FUTURES, SWAP, OPTION |
-| `--instCcyList` | No | - | Comma-separated currencies (e.g. `BTC,ETH,SOL`). Only returns prefix-matched instruments. |
-| `--instCcy` | No | - | Single currency filter, alias for instCcyList. instCcyList takes precedence. |
-| `--topInstruments` | No | `20` | Number of top instruments to return (range 1-100) |
-| `--lmtNum` | No | `100` | Candidate trader pool size limit |
+| `--instId` | Yes | - | Full instrument name |
+| `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
+| `--lmtNum` | No | `100` | Pool size limit (1–500) |
 
-Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum tiers also apply.
+> No `--ts` parameter. Handler uses the current hour. No pool filter (`pnlTier` / `winRateTier` / etc.) — the trader list is the filter.
 
-**Filter order:** SQL first limits by `topInstruments` → then filters by `instCcyList` currency prefix → `topNUsed = final result count`. So `topInstruments=3 & instCcyList=BTC` may return < 3 items.
+Response fields: same as `signal-by-coin`.
 
-### Response Fields (11 fields per item, array `data[]`)
+---
+
+## smartmoney signal-history-by-coin — Single-Asset Signal Time-Series (pool filter)
+
+```bash
+okx smartmoney signal-history-by-coin --instId <id> --ts <ms> [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--json]
+```
+
+Historical signal snapshots for one instrument, sorted by time DESC. Useful for trend analysis and backtesting.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--instId` | Yes | - | Full instrument name |
+| `--ts` | Yes | - | Anchor timestamp (UTC ms). Handler floors to the hour. Use `$(date +%s)000` for now. |
+| `--granularity` | No | `1h` | Time granularity: `1h` or `1d`. Other values fall back to `1h`. |
+| `--limit` | No | `24` | Number of data points (1–500) |
+
+Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below) apply.
+
+### Response Fields (per time bucket, array `data[]` sorted by time DESC)
 
 | Field | Type | Description |
 |---|---|---|
-| `instId` | String | Full instrument name (e.g. `BTC-USDT-SWAP`). **To show pure currency, split by `-` and take `[0]`** |
-| `longRatio` | String | Long ratio, decimal in [0, 1] |
-| `weightedLongRatio` | String | Long ratio weighted by notional USD |
-| `tradersWithPosition` | Integer | Traders currently holding a position on this instrument (ranking key; results sorted DESC by this) |
-| `netNotionalUsdt` | String | Net notional = long − short, can be negative |
-| `vs24h` | String | Arithmetic difference `longRatio(now) − longRatio(24h ago)`, same decimal unit; positive = more long now |
-| `ts` | Long | Actual snapshot time hit (UTC ms) — may be earlier than requested |
-| `tradersTotal` | Integer | Candidate pool size **before** filters |
-| `tradersQualified` | Integer | Traders passing all filters (≤ `tradersTotal`) |
-| `topNUsed` | Integer | Actual result count (= `data.length`); may be < `topInstruments` when `instCcyList` narrows the set |
-| `dataVersion` | String | yyyyMMddHHmm UTC |
+| `instId` | String | Echoes request `instId` |
+| `longRatio` | String | Long ratio at this bucket |
+| `weightedLongRatio` | String | Notional-weighted long ratio at this bucket |
+| `tradersWithPosition` | Integer | Traders holding a position in this bucket |
+| `netNotionalUsdt` | String | Net = long − short |
+| `totalNotionalUsdt` | String | Total = long + short |
+| `tradersTotal` | Integer | Candidate pool size before filters |
+| `tradersQualified` | Integer | Traders passing all filters (effective sample size) |
+| `dataVersion` | String | UTC `yyyyMMddHH00` corresponding to this bucket |
+
+---
+
+## smartmoney signal-history-by-traders — Time-Series (authorIds-restricted)
+
+```bash
+okx smartmoney signal-history-by-traders --instId <id> --authorIds <id1>,<id2> --ts <ms> [--granularity <1h|1d>] [--limit <n>] [--lmtNum <n>] [--json]
+```
+
+Same shape as `signal-history-by-coin`, but restricted to specific `authorIds` over time. Useful for tracking how a specific group's consensus on one instrument evolves.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--instId` | Yes | - | Full instrument name |
+| `--authorIds` | Yes | - | Comma-separated trader IDs |
+| `--ts` | Yes | - | Anchor timestamp (UTC ms) |
+| `--granularity` | No | `1h` | `1h` or `1d` |
+| `--limit` | No | `24` | Number of data points (1–500) |
+| `--lmtNum` | No | `100` | Pool size limit (1–500) |
+
+Response fields: same as `signal-history-by-coin`.
+
+---
+
+## Signal Filter Enum Values
+
+The pool-filter family of signal endpoints (`top-coin-signals`, `signal-by-coin`, `signal-history-by-coin`) shares these enum-based filters:
+
+| Param | Enum values | Default | Semantics |
+|---|---|---|---|
+| `--sortBy` | `pnl`, `pnlRatio` | `pnl` | Pool ranking key |
+| `--pnlTier` | `PNL_ANY`, `PNL_TOP50`, `PNL_TOP20`, `PNL_TOP5` | `PNL_ANY` | PnL percentile (top N% of pool) |
+| `--winRateTier` | `WR_ANY`, `WR_GE_50`, `WR_GE_80` | `WR_ANY` | Win-rate threshold (≥ N%) |
+| `--maxDrawdownTier` | `MD_ANY`, `MD_LE_20`, `MD_LE_50` | `MD_ANY` | Drawdown threshold (≤ N%) |
+| `--aumTier` | `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` | `AUM_ANY` | AUM percentile |
+
+> Renamed enum prefix: `MR_*` → `MD_*` (drawdown abbreviation). The old enum prefix is no longer accepted.
+
+> The `_by_traders` variants don't accept these tiers — the trader list itself is the filter.
+
+> All enums are case-insensitive; invalid values silently fall back to default.
 
 ---
 
@@ -156,6 +195,8 @@ Pool filter params (sortType, period, pnl, winRatio, maxRetreat, asset) and enum
 
 | CLI Command | MCP Tool |
 |---|---|
-| `smartmoney overview` | `smartmoney_get_overview` |
-| `smartmoney signal` | `smartmoney_get_signal` |
-| `smartmoney signal-history` | `smartmoney_get_signal_history` |
+| `smartmoney top-coin-signals` | `smartmoney_get_top_coin_signals` |
+| `smartmoney signal-by-coin` | `smartmoney_get_signal_by_coin` |
+| `smartmoney signal-by-traders` | `smartmoney_get_signal_by_traders` |
+| `smartmoney signal-history-by-coin` | `smartmoney_get_signal_history_by_coin` |
+| `smartmoney signal-history-by-traders` | `smartmoney_get_signal_history_by_traders` |

@@ -1,214 +1,140 @@
 # Trader Commands Reference
 
-## smartmoney traders — Leaderboard
+Five atomic commands cover the trader side. The old composite `okx smartmoney trader` has been removed — to get a trader's full picture, fire `trader-performance`, `trader-positions`, and `trader-order-history` in parallel.
+
+## smartmoney top-traders — Leaderboard Ranking
 
 ```bash
-okx smartmoney traders [--sortType <type>] [--period <d>] [--pnl <n>] [--winRatio <r>] [--maxRetreat <r>] [--asset <n>] [--authorIds <ids>] [--after <id>] [--before <id>] [--limit <n>] [--json]
+okx smartmoney top-traders [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <n>] [--winRate <r>] [--maxDrawdown <r>] [--asset <n>] [--after <id>] [--before <id>] [--limit <n>] [--updateTime <ts>] [--json]
 ```
 
-### Pool Filter Parameters (shared across all commands)
+Pool ranking by numeric thresholds. `authorIds` direct-lookup mode has moved out into its own command (`trader-performance`).
+
+### Pool Filter Parameters (numeric thresholds)
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--sortType` | No | `pnl` | Sort: `pnl`, `pnl_ratio` |
-| `--period` | No | `""` (all) | Time window: `3`, `7`, `30`, `90` (days) |
-| `--pnl` | No | `""` | Min PnL (USD). e.g. `10` = PnL >= 10 |
-| `--winRatio` | No | `""` | Min win ratio. e.g. `0.8` = >= 80% |
-| `--maxRetreat` | No | `""` | Max drawdown. e.g. `0.1` = <= 10% |
-| `--asset` | No | `""` | Min total asset (USD). e.g. `100` = AUM >= 100 |
+| `--sortBy` | No | `pnl` | Sort key: `pnl` or `pnlRatio` |
+| `--period` | No | all-time | Time window: `3`, `7`, `30`, `90` (days) |
+| `--pnl` | No | - | Min PnL (USD), e.g. `10` = PnL ≥ 10 |
+| `--winRate` | No | - | Min win-rate (decimal). e.g. `0.8` = ≥ 80% |
+| `--maxDrawdown` | No | - | Max drawdown (decimal). e.g. `0.1` = ≤ 10% |
+| `--asset` | No | - | Min total asset (USD). e.g. `100` = AUM ≥ 100 |
 
-### Leaderboard-Specific Parameters
+> Renamed from previous version: `--sortType` → `--sortBy`, `--winRatio` → `--winRate`, `--maxRetreat` → `--maxDrawdown`. Returned-field names follow the same renames.
+
+### Pagination Parameters
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--dataVersion` | No | latest | Snapshot version (yyyyMMddHHmm), updates every 5 min |
-| `--authorIds` | No | - | Comma-separated author IDs for search |
-| `--after` | No | - | Pagination: return results after this authorId |
-| `--before` | No | - | Pagination: return results before this authorId |
+| `--after` | No | - | Cursor: return results after this `authorId` |
+| `--before` | No | - | Cursor: return results before this `authorId` |
 | `--limit` | No | `100` | Max results (max 100) |
+| `--updateTime` | No | latest | Snapshot time anchor (UTC ms). Optional — handler floors to the hour. |
 
 ### Response Fields
 
 | Field | Type | Description |
 |---|---|---|
-| `dataVersion` | String | Data version (yyyyMMddHHmm) |
+| `dataVersion` | String | Snapshot version (UTC `yyyyMMddHH00`) |
 | `authorId` | String | Trader unique ID |
 | `nickName` | String | Display name |
 | `pnl` | String | Absolute PnL (USD) |
 | `pnlRatio` | String | PnL ratio |
-| `winRatio` | String | Win ratio (0.8 = 80%) |
-| `maxRetreat` | String | Max drawdown |
+| `winRate` | String | Win ratio (0.8 = 80%) |
+| `maxDrawdown` | String | Max drawdown (decimal) |
 | `asset` | String | Total asset (USD) |
 | `onboardDuration` | String | Onboard days |
-| `rates` | Array | Historical return time series. Each item: `value` (String, decimal return rate, e.g. `"-0.06"` = -6%) and `statTime` (String, **YYMMDD** 6-digit, e.g. `"240726"` — NOT Unix ms despite what the upstream spec table says; see `context-kg/business/06-leaderboard-smartmoney-api.md` Field Drift §2). |
+| `rates` | Array | Historical return time series. Each item: `value` (decimal return rate, e.g. `"-0.06"` = -6%) and `statTime` (`YYMMDD` 6-digit, e.g. `"240726"` — NOT Unix ms; see `context-kg/business/06-leaderboard-smartmoney-api.md` Field Drift §2). |
 
-### Pagination Metadata (top-level `pagination` field)
-
-`smartmoney_get_traders` returns a top-level `pagination` object alongside `data`:
-
-| Field | Type | Description |
-|---|---|---|
-| `hasMore` | Boolean | `true` when `data.length >= limit` (more results may follow) |
-| `nextAfter` | String | `authorId` of the last item — pass as `--after` in the next call (only present when `hasMore=true`) |
-
-**Example pagination loop:**
-```bash
-# Page 1
-okx smartmoney traders --period 30 --limit 100 --json
-# → pagination.hasMore=true, pagination.nextAfter="A123"
-
-# Page 2
-okx smartmoney traders --period 30 --limit 100 --after A123 --json
-```
+Top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item's `authorId`. Pass as `--after` for the next page.
 
 ### Trader Eligibility Criteria
 
 Traders on the leaderboard must meet all of:
 - Public performance status
-- Assets >= 10,000 USD
-- PnL >= 1,000 USD (for corresponding period)
+- Assets ≥ 10,000 USD
+- PnL ≥ 1,000 USD (for the chosen `--period`)
 - Last trade within 14 days
 - KYC fully verified
 
 ---
 
-## smartmoney trader — Trader Detail (Composite)
+## smartmoney trader-performance — PnL / Win-Rate Profile (direct lookup)
 
 ```bash
-okx smartmoney trader --authorId <id> [--period <d>] [--instCcy <ccy>] [--tradeLimit <n>] [--json]
+okx smartmoney trader-performance --authorIds <id1>,<id2> [--period <3|7|30|90>] [--json]
 ```
 
-Aggregates three API calls in parallel:
-1. **Profile**: leaderboard stats for this trader
-2. **Current positions**: open positions with leverage, entry price, PnL
-3. **Trade records**: recent order history
+Direct lookup for a known list of `authorIds`. No pool filter — the upstream endpoint returns the requested traders' performance regardless of leaderboard position. Use after `top-traders`, or to verify a specific user-supplied authorId list.
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--authorId` | Yes | - | Trader's unique author ID |
-| `--period` | No | all | Performance period: `3`, `7`, `30`, `90` (days) |
-| `--instCcy` | No | - | Filter positions/trades by currency (e.g. `BTC`) |
-| `--tradeLimit` | No | `10` | Max trade records to return |
+| `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
+| `--period` | No | all-time | Performance period: `3`, `7`, `30`, `90` (days) |
 
-### Composite Response Structure
+Response fields: same shape as the leaderboard rows (`authorId`, `nickName`, `pnl`, `pnlRatio`, `winRate`, `maxDrawdown`, `asset`, `rates[]`, etc.).
 
-The `--json` output wraps three sub-results:
+---
 
-```json
-{
-  "endpoint": "smartmoney_get_trader_detail (composite)",
-  "requestTime": "2026-04-09T12:00:00.000Z",
-  "data": {
-    "profile": [ { ...leaderboard fields... } ],
-    "positions": [ { ...position fields... } ],
-    "trades": [ { ...trade record fields... } ]
-  }
-}
+## smartmoney trader-positions — Current Open Positions
+
+```bash
+okx smartmoney trader-positions --authorId <id> [--instCcy <ccy>] [--json]
 ```
 
-### Current Position Fields
+Single trader, current open positions only.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--authorId` | Yes | - | Trader's unique author ID (from `top-traders` or `trader-performance`) |
+| `--instCcy` | No | - | Filter by **base currency** (e.g. `BTC`, not `BTC-USDT-SWAP`) — upstream filter is base ccy |
+
+> The previous `--instId` flag was renamed to `--instCcy` because the upstream endpoint filters by base currency, not full instrument id.
+
+### Position Fields
 
 | Field | Description |
 |---|---|
 | `posId` | Position unique ID |
-| `instId` | Instrument (e.g. BTC-USDT-SWAP) |
+| `instId` | Instrument (e.g. `BTC-USDT-SWAP`) |
 | `instType` | SWAP, SPOT, etc. |
 | `posSide` | long / short / both |
-| `posCcy` | Position currency (e.g. BSV) |
-| `quoteCcy` | Quote currency (e.g. USDT) |
+| `posCcy` | Position currency |
+| `quoteCcy` | Quote currency |
 | `pos` | Position size |
 | `lever` | Leverage |
 | `avgPx` | Entry avg price |
 | `last` | Latest price |
 | `notionalUsd` | Position value (USD) |
-| `pnl` | Realized PnL (in quote currency) |
-| `cTime` | Position open time (ms timestamp) |
+| `pnl` | Unrealized PnL (in quote currency) |
+| `cTime` | Position open time (Unix ms) |
 | `positionIntensity` | Conviction = notionalUsd / trader AUM |
 
-### Trade Record Fields
-
-| Field | Description |
-|---|---|
-| `ordId` | Order ID |
-| `uniqueName` | System-generated unique identifier |
-| `instId` | Instrument (e.g. BTC-USD-SWAP) |
-| `instType` | SWAP / SPOT |
-| `nickName` | User nickname |
-| `baseName` | Base currency (e.g. BTC) |
-| `quoteName` | Quote currency (e.g. USD) |
-| `side` | buy / sell |
-| `posSide` | long / short |
-| `ordType` | limit / market |
-| `lever` | Leverage |
-| `px` | Order price |
-| `avgPx` | Fill avg price |
-| `sz` | Order size (coins for spot, contracts for futures) |
-| `value` | Position value (in quote currency) |
-| `cTime` | Order time (ms) |
-| `fillTime` | Fill time (ms) |
-| `uTime` | Order update time (ms) |
-
 ---
 
-## smartmoney positions — Trader's Current Open Positions
+## smartmoney trader-position-history — Closed Positions (realized PnL)
 
 ```bash
-okx smartmoney positions --authorId <id> [--instCcy <ccy>] [--json]
+okx smartmoney trader-position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]
 ```
 
-Atomic endpoint backing the `positions` slice of `smartmoney trader`. Use when you only need open positions and want to skip the profile + trades round-trips.
-
-| Param | Required | Default | Description |
-|---|---|---|---|
-| `--authorId` | Yes | - | Trader's unique author ID (from `smartmoney traders`) |
-| `--instCcy` | No | - | Filter by base currency (e.g. `BTC`); SPOT/FUTURES only |
-
-Response fields: same as the **Position Fields** table above (`posId`, `instId`, `posSide`, `pos`, `lever`, `avgPx`, `last`, `notionalUsd`, `pnl`, `cTime`, `positionIntensity`).
-
----
-
-## smartmoney trades — Trader's Recent Order/Fill Records
-
-```bash
-okx smartmoney trades --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]
-```
-
-Atomic endpoint backing the `trades` slice of `smartmoney trader`, with cursor pagination.
+Closed positions with realized PnL, paginated by `posId` cursor.
 
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorId` | Yes | - | Trader's unique author ID |
 | `--instCcy` | No | - | Filter by base currency |
-| `--after` | No | - | Cursor: return trades before this `ordId` |
-| `--before` | No | - | Cursor: return trades after this `ordId` |
-| `--limit` | No | `10` | Max trades per page (1–100) |
-
-Response fields: same as the **Trade Record Fields** table above. The response also includes top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item's `ordId`; pass it as `--after` for the next page.
-
----
-
-## smartmoney position-history — Trader's Closed-Position History
-
-```bash
-okx smartmoney position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]
-```
-
-New endpoint (no equivalent in `smartmoney trader`) — closed positions with realized PnL, paginated.
-
-| Param | Required | Default | Description |
-|---|---|---|---|
-| `--authorId` | Yes | - | Trader's unique author ID |
-| `--instCcy` | No | - | Filter by base currency |
-| `--after` | No | - | Cursor: return positions before this `posId` |
-| `--before` | No | - | Cursor: return positions after this `posId` |
+| `--after` | No | - | Cursor: return positions after this `posId` |
+| `--before` | No | - | Cursor: return positions before this `posId` |
 | `--limit` | No | `10` | Max positions per page (1–100) |
 
-Response fields:
+### Closed-Position Fields
 
 | Field | Description |
 |---|---|
 | `posId` | Position ID |
-| `instId` | Instrument (e.g. BTC-USD-SWAP) |
+| `instId` | Instrument |
 | `ctVal` | Contract value per contract |
 | `posSide` | long / short |
 | `lever` | Leverage |
@@ -224,12 +150,55 @@ Top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item'
 
 ---
 
+## smartmoney trader-order-history — Order / Fill Records
+
+```bash
+okx smartmoney trader-order-history --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]
+```
+
+Order / fill flow. Renamed from the old `smartmoney trades` command to align with the cross-module `*_get_orders` family.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `--authorId` | Yes | - | Trader's unique author ID |
+| `--instCcy` | No | - | Filter by base currency |
+| `--after` | No | - | Cursor: return orders before this `ordId` |
+| `--before` | No | - | Cursor: return orders after this `ordId` |
+| `--limit` | No | `10` | Max orders per page (1–100) |
+
+### Order Fields
+
+| Field | Description |
+|---|---|
+| `ordId` | Order ID |
+| `uniqueName` | System-generated unique identifier |
+| `instId` | Instrument |
+| `instType` | SWAP / SPOT |
+| `nickName` | User nickname |
+| `baseName` | Base currency |
+| `quoteName` | Quote currency |
+| `side` | buy / sell |
+| `posSide` | long / short |
+| `ordType` | limit / market |
+| `lever` | Leverage |
+| `px` | Order price |
+| `avgPx` | Fill avg price |
+| `sz` | Order size |
+| `value` | Position value (in quote currency) |
+| `cTime` | Order time (Unix ms) |
+| `fillTime` | Fill time (Unix ms) |
+| `uTime` | Order update time (Unix ms) |
+
+Top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item's `ordId`.
+
+---
+
 ## MCP Tool Reference
 
 | CLI Command | MCP Tool |
 |---|---|
-| `smartmoney traders` | `smartmoney_get_traders` |
-| `smartmoney trader` | `smartmoney_get_trader_detail` (composite) |
-| `smartmoney positions` | `smartmoney_get_trader_positions` (atomic) |
-| `smartmoney trades` | `smartmoney_get_trader_trades` (atomic, paginated) |
-| `smartmoney position-history` | `smartmoney_get_trader_position_history` (atomic, paginated) |
+| `smartmoney top-traders` | `smartmoney_get_top_traders` |
+| `smartmoney trader-performance` | `smartmoney_get_trader_performance` |
+| `smartmoney trader-positions` | `smartmoney_get_trader_positions` |
+| `smartmoney trader-position-history` | `smartmoney_get_trader_position_history` |
+| `smartmoney trader-order-history` | `smartmoney_get_trader_order_history` |

@@ -230,6 +230,58 @@ okx bot dca stop --algoId <algoId>
 
 ---
 
+## smartmoney — Smart Money Analytics (read-only)
+
+```bash
+# ── Trader family ───────────────────────────────────────────────────────────
+# Leaderboard ranking by pool conditions
+okx smartmoney top-traders --period 30 --sortBy pnl --limit 10
+okx smartmoney top-traders --winRate 0.8 --maxDrawdown 0.1 --period 30 --json
+
+# PnL/win-rate profile for one or more authorIds
+okx smartmoney trader-performance --authorIds <id1>,<id2> --period 30
+
+# Current open positions for one trader
+okx smartmoney trader-positions --authorId <id>
+okx smartmoney trader-positions --authorId <id> --instCcy BTC
+
+# Closed-position history (paginated by posId)
+okx smartmoney trader-position-history --authorId <id> --limit 50
+okx smartmoney trader-position-history --authorId <id> --after <posId> --limit 50
+
+# Order/fill flow (paginated by ordId)
+okx smartmoney trader-order-history --authorId <id> --limit 50
+okx smartmoney trader-order-history --authorId <id> --instCcy BTC --limit 50
+
+# ── Signal / coin family ────────────────────────────────────────────────────
+# Top-N most-watched-by-smart-money instruments (SWAP-only)
+okx smartmoney top-coin-signals --topInstruments 20
+okx smartmoney top-coin-signals --ts $(date +%s)000 --pnlTier PNL_TOP20
+
+# Single-asset signal — pool filter mode (ts auto-filled to current hour)
+okx smartmoney signal-by-coin --instId BTC-USDT-SWAP
+okx smartmoney signal-by-coin --instId BTC-USDT-SWAP --pnlTier PNL_TOP20 --winRateTier WR_GE_80
+
+# Single-asset signal — restricted to specific authorIds (ts auto-filled)
+okx smartmoney signal-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2>
+
+# Single-asset signal time-series — pool filter mode
+okx smartmoney signal-history-by-coin --instId BTC-USDT-SWAP --ts $(date +%s)000 --granularity 1d --limit 30
+
+# Single-asset signal time-series — restricted to authorIds
+okx smartmoney signal-history-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --ts $(date +%s)000
+```
+
+Tier enums (signal family):
+- `pnlTier`: `PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5`
+- `winRateTier`: `WR_ANY` / `WR_GE_50` / `WR_GE_80`
+- `maxDrawdownTier`: `MD_ANY` / `MD_LE_20` / `MD_LE_50`
+- `aumTier`: `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5`
+
+> Need a trader's full picture? Run `trader-performance`, `trader-positions`, and `trader-order-history` in parallel — the old `smartmoney trader` composite command has been removed.
+
+---
+
 ## config
 
 ```bash
@@ -484,6 +536,58 @@ okx bot dca create \
 
 okx bot dca stop --algoId <algoId>
 ```
+
+---
+
+## smartmoney — 聪明钱分析（只读）
+
+```bash
+# ── Trader 家族 ─────────────────────────────────────────────────────────────
+# 排行榜（按池筛选）
+okx smartmoney top-traders --period 30 --sortBy pnl --limit 10
+okx smartmoney top-traders --winRate 0.8 --maxDrawdown 0.1 --period 30 --json
+
+# 指定 authorIds 的 PnL / 胜率画像
+okx smartmoney trader-performance --authorIds <id1>,<id2> --period 30
+
+# 单交易员当前持仓
+okx smartmoney trader-positions --authorId <id>
+okx smartmoney trader-positions --authorId <id> --instCcy BTC
+
+# 历史平仓（按 posId 游标分页）
+okx smartmoney trader-position-history --authorId <id> --limit 50
+okx smartmoney trader-position-history --authorId <id> --after <posId> --limit 50
+
+# 订单 / 成交流水（按 ordId 游标分页）
+okx smartmoney trader-order-history --authorId <id> --limit 50
+okx smartmoney trader-order-history --authorId <id> --instCcy BTC --limit 50
+
+# ── Signal / coin 家族 ─────────────────────────────────────────────────────
+# Top-N 聪明钱关注度最高的标的（仅 SWAP）
+okx smartmoney top-coin-signals --topInstruments 20
+okx smartmoney top-coin-signals --ts $(date +%s)000 --pnlTier PNL_TOP20
+
+# 单币信号 —— 池过滤模式（ts 自动取当前小时）
+okx smartmoney signal-by-coin --instId BTC-USDT-SWAP
+okx smartmoney signal-by-coin --instId BTC-USDT-SWAP --pnlTier PNL_TOP20 --winRateTier WR_GE_80
+
+# 单币信号 —— 限定指定 authorIds（ts 自动）
+okx smartmoney signal-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2>
+
+# 单币信号时间序列 —— 池过滤模式
+okx smartmoney signal-history-by-coin --instId BTC-USDT-SWAP --ts $(date +%s)000 --granularity 1d --limit 30
+
+# 单币信号时间序列 —— 限定 authorIds
+okx smartmoney signal-history-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --ts $(date +%s)000
+```
+
+档位枚举（Signal 家族）：
+- `pnlTier`：`PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5`
+- `winRateTier`：`WR_ANY` / `WR_GE_50` / `WR_GE_80`
+- `maxDrawdownTier`：`MD_ANY` / `MD_LE_20` / `MD_LE_50`
+- `aumTier`：`AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5`
+
+> 需要交易员完整画像？把 `trader-performance` / `trader-positions` / `trader-order-history` 并发调用即可——旧的 `smartmoney trader` 复合命令已删除。
 
 ---
 

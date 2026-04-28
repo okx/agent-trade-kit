@@ -11,29 +11,127 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠ BREAKING — `smartmoney` module redesign (8 → 10 atomic tools)
+
+Smart Money MCP/CLI surface has been fully rewritten for AI-agent disambiguation. Tool names, parameter names, and several response field names have all changed. There is **no compatibility shim** — every old name is removed.
+
+Why: the previous 8-tool surface had multi-mode tools (`get_overview` switched on `instCcyList`; `get_signal` switched on `authorIds`; `get_traders` switched on `authorIds`) that AI agents could not reliably disambiguate from a tool name alone. The new surface splits each multi-mode tool by entry dimension (`_by_coin` vs `_by_traders` vs `_top_*`) so agents pick the right tool from the name.
+
+See [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) for the full design rationale.
+
 ### Added
 
-- **`smartmoney_*` — 3 new atomic trader endpoints** to give agents finer-grained access alongside the existing `smartmoney_get_trader_detail` composite (per mcp-builder "comprehensive API coverage" principle):
-  - **`smartmoney_get_trader_positions`** (`GET /api/v5/orbit/public/position-current`) — single trader's current open positions. Unwraps the upstream `data[0].posData[]` envelope to a flat array.
-  - **`smartmoney_get_trader_trades`** (`GET /api/v5/orbit/public/trade-records`) — single trader's recent order/fill records, paginated by `ordId` cursor (`--after`/`--before`/`--limit`).
-  - **`smartmoney_get_trader_position_history`** (`GET /api/v5/orbit/public/position-history`) — single trader's closed-position history, paginated by `posId` cursor. Previously this upstream endpoint was completely unexposed.
-  Each new tool ships with `outputSchema`, cursor `pagination: { hasMore, nextAfter }` (where applicable), and a paired CLI command (`okx smartmoney positions / trades / position-history`). Existing `smartmoney_get_trader_detail` description updated to point at these atoms for finer control.
-- **`smartmoney_*` — `outputSchema` on all 5 original tools.** Every smart-money tool now publishes its response shape via JSON-Schema `outputSchema`, so agents can introspect fields without an exploratory call. Coverage: `smartmoney_get_overview` (11 fields/item incl. `instId`, `longRatio`, `weightedLongRatio`, `tradersWithPosition`, `netNotionalUsdt`, `vs24h`, `topNUsed`), `smartmoney_get_signal` (~21 fields incl. `longTraders`/`shortTraders`, `smartMoneyLongAvgEntry`/`smartMoneyShortAvgEntry`, `vs1h`/`vs24h`/`vs7d`, `timestamp`), `smartmoney_get_signal_history` (10 fields per bucket), `smartmoney_get_traders` (leaderboard fields + `rates[]`), and `smartmoney_get_trader_detail` (composite shape `{ profile, positions, trades }`). The MCP server already emits `structuredContent` alongside `content`, so the new schemas are wire-effective. Token: smartmoney module ~1,624 → ~4,713 tokens (5 → 8 tools, plus outputSchema across the board).
-- **`smartmoney_get_traders` — cursor pagination metadata.** Response now includes top-level `pagination: { hasMore, nextAfter }`. `hasMore` is `true` when `data.length >= limit` (defaults to `100` when not specified). `nextAfter` carries the last item's `authorId` when `hasMore=true`; pass it as `--after` on the next call. Documented in `skills/okx-cex-smartmoney/references/trader-commands.md`.
+- **`smartmoney_get_signal_history_by_traders` (new tool)** — single-asset signal time-series restricted to a specific list of `authorIds`. Adds the missing dimension to the signal-history family; previously only pool-filter history existed.
+- **MCP tool annotations** on every Smart Money tool: `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: true`. Agents can now reason about safety / idempotency without hard-coding tool lists.
+- **Actionable error messages**: handlers now return human-readable error suggestions (e.g. "ts must be UTC ms; got non-numeric string", "authorIds is required for `_by_traders` variants") instead of opaque server `sCode` strings.
 
 ### Changed
 
-- **`smartmoney_*` signal-side pool filters renamed for AI-safety (BREAKING for `overview` / `signal` / `signal-history`).** Public parameter names on the three signal endpoints are now disjoint from response field names, removing the most error-prone collision (input `pnl` vs response `pnl`, input `winRatio` vs response `winRatio`, etc.):
-  - `sortType` → `sortBy`
-  - `pnl` → `pnlTier`
-  - `winRatio` → `winRateTier`
-  - `maxRetreat` → `maxDrawdownTier` (industry-standard term)
-  - `asset` → `aumTier` (AUM = Assets Under Management)
-  Affects MCP tools `smartmoney_get_overview` / `smartmoney_get_signal` / `smartmoney_get_signal_history` and the matching CLI flags `okx smartmoney {overview,signal,signal-history} --sortBy / --pnlTier / --winRateTier / --maxDrawdownTier / --aumTier`. The leaderboard endpoint (`smartmoney_get_traders` / `okx smartmoney traders`) is **unchanged** — it keeps the original numeric-threshold names (`sortType` / `pnl` / `winRatio` / `maxRetreat` / `asset`). Upstream OKX API field names are unchanged; the MCP/CLI layer maps signal-side public names back internally.
-- **`smartmoney_*` inputSchema — typed fields & defaults.** Closed-set string fields now declare `enum` + `default`: `sortType` (`pnl`/`pnlRatio` for signal endpoints, `pnl`/`pnl_ratio` for leaderboard), `period` (`3`/`7`/`30`/`90`), `pnl` (`PNL_ANY`/`PNL_TOP50`/`PNL_TOP20`/`PNL_TOP5`), `winRatio` (`WR_ANY`/`WR_GE_50`/`WR_GE_80`), `maxRetreat` (`MR_ANY`/`MR_LE_20`/`MR_LE_50`), `asset` (`AUM_ANY`/`AUM_TOP50`/`AUM_TOP20`/`AUM_TOP5`), `instType` (SPOT/MARGIN/FUTURES/SWAP/OPTION, default SWAP), `granularity` (`1h`/`1d`). Numeric fields now declare `integer` + bounds: `lmtNum` (1–500, default 100), `topInstruments` (1–100, default 20), `limit` on `signal_history` (1–500, default 24), `limit` on `traders` (1–100), `tradeLimit` (1–100). Behaviour unchanged: `readNumber` continues to coerce CLI string-form numerics, and the wire payload to OKX is byte-equivalent (`URLSearchParams` stringifies numbers).
-- **`smartmoney_*` tool descriptions.** Removed embedded parameter constraints (e.g. "Requires either ts or dataVersion", "yyyyMMddHHmm UTC", "wins when both set") from tool descriptions; that text now lives in the relevant per-parameter description, per the project's "面向意图" rule. Tool descriptions retain only what the tool does and when to use it (with cross-tool routing hints).
-- **`skills/okx-cex-smartmoney/references/trader-commands.md`** — `rates[].statTime` doc fix. Was incorrectly described as `Unix ms` (e.g. `"1736784000000"`). Actual format is `YYMMDD` 6-digit string (e.g. `"240726"`), per upstream Field Drift §2 in `context-kg/business/06-leaderboard-smartmoney-api.md`. Brought in line with the new `outputSchema` definition.
-- **`skills/okx-cex-smartmoney`**: drop off-scope `带单员` / `lead traders` triggers from skill and workflows; align Prerequisites and Credential & Profile Check with `okx-cex-earn` (OAuth-friendly `okx config init`, dual-source auth check, 401 routes to `okx-cex-auth` skill).
+- **Tool surface split into 10 atomic tools.** Old → New mapping:
+
+  | Old MCP tool | New MCP tool | Notes |
+  |---|---|---|
+  | `smartmoney_get_traders` (pool-filter mode) | `smartmoney_get_top_traders` | Leaderboard-side keeps numeric thresholds |
+  | `smartmoney_get_traders` (authorIds mode) | `smartmoney_get_trader_performance` | Direct lookup, no pool filter |
+  | `smartmoney_get_trader_records` | `smartmoney_get_trader_order_history` | Aligns with `*_get_orders` family across modules |
+  | `smartmoney_get_trader_positions` | `smartmoney_get_trader_positions` | Name unchanged; input `instId` → `instCcy` |
+  | `smartmoney_get_trader_position_history` | `smartmoney_get_trader_position_history` | Name unchanged; input `instId` → `instCcy` |
+  | `smartmoney_get_overview` (top mode) | `smartmoney_get_top_coin_signals` | Sole survivor of overview; SWAP-only |
+  | `smartmoney_get_signal` (pool-filter mode) | `smartmoney_get_signal_by_coin` | Splits the overloaded tool; `ts` no longer accepted (auto-filled to current hour) |
+  | `smartmoney_get_signal` (authorIds mode) | `smartmoney_get_signal_by_traders` | Splits; `ts` auto-filled |
+  | `smartmoney_get_signal_history` | `smartmoney_get_signal_history_by_coin` | Renamed for symmetry with the new `_by_traders` sibling |
+
+- **CLI commands renamed** to match (kebab-case parity):
+
+  | Old CLI | New CLI |
+  |---|---|
+  | `okx smartmoney traders` | `okx smartmoney top-traders` |
+  | `okx smartmoney traders --authorIds …` | `okx smartmoney trader-performance` |
+  | `okx smartmoney trades` | `okx smartmoney trader-order-history` |
+  | `okx smartmoney positions` | `okx smartmoney trader-positions` |
+  | `okx smartmoney position-history` | `okx smartmoney trader-position-history` |
+  | `okx smartmoney overview` | `okx smartmoney top-coin-signals` |
+  | `okx smartmoney signal` (pool flags) | `okx smartmoney signal-by-coin` |
+  | `okx smartmoney signal --authorIds …` | `okx smartmoney signal-by-traders` |
+  | `okx smartmoney signal-history` | `okx smartmoney signal-history-by-coin` |
+  | _(new)_ | `okx smartmoney signal-history-by-traders` |
+
+- **Input parameter renames**:
+  - `_trader_positions` / `_trader_position_history` / `_trader_order_history`: `instId` → **`instCcy`** (the upstream filter is base-currency, e.g. `BTC`, not full instrument id `BTC-USDT-SWAP`).
+  - Signal family pool-filter enums: `MR_*` → **`MD_*`** prefix on `maxDrawdownTier` values (`MR_LE_20` → `MD_LE_20`, `MR_LE_50` → `MD_LE_50`, `MR_ANY` → `MD_ANY`).
+  - Leaderboard family numeric thresholds: `winRatio` → **`winRate`**, `maxRetreat` → **`maxDrawdown`** (input names match the new response field names).
+
+- **Output field renames** (everywhere the field appears):
+  - `winRatio` → **`winRate`** (trader leaderboard items)
+  - `maxRetreat` → **`maxDrawdown`** (trader leaderboard items)
+  - `avgLongWinRatio` → **`avgLongWinRate`** (signal items)
+  - `avgShortWinRatio` → **`avgShortWinRate`** (signal items)
+
+### Removed
+
+- **Tools removed** — no shim; callers must migrate to the replacements above:
+  - `smartmoney_get_overview` (instCcyList multi-coin mode) — backend dropped `instCcyList` from `/overview`. Run several `smartmoney_get_signal_by_coin` calls in parallel for multi-coin scenarios.
+  - `smartmoney_get_trader_detail` — composite of 3 endpoints, violated atomicity. Fire `smartmoney_get_trader_performance` + `smartmoney_get_trader_positions` + `smartmoney_get_trader_order_history` in parallel for the equivalent picture.
+  - CLI: `okx smartmoney trader` (composite) is removed.
+
+- **Input fields removed**:
+  - **`dataVersion`** (everywhere) — input is now `ts` (UTC ms, handler floors to the hour). For signal-by-coin / signal-by-traders, even `ts` is removed — the handler auto-fills the current hour.
+  - **`instCcyList`**, **`instCcy`**, **`instType`** — removed from `top_coin_signals` (upstream `/overview` is now SWAP-only and returns top instruments without these knobs).
+  - **`tradeLimit`** — was only on the deleted `_trader_detail`.
+
+- **Output fields removed** from signal / overview tools (backend no longer returns them):
+  - `topNUsed`, `currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`
+  - `ts` — output is now `dataVersion` only (UTC `yyyyMMddHH00`); `ts` and `dataVersion` were redundant.
+
+### Migration
+
+Before:
+
+```
+smartmoney_get_overview({ dataVersion: "202604281500", instCcyList: "BTC,ETH" })
+```
+
+After:
+
+```
+// instCcyList no longer supported — fan out:
+Promise.all([
+  smartmoney_get_signal_by_coin({ instId: "BTC-USDT-SWAP" }),
+  smartmoney_get_signal_by_coin({ instId: "ETH-USDT-SWAP" }),
+])
+```
+
+Before:
+
+```
+smartmoney_get_signal({ instId: "BTC-USDT-SWAP", dataVersion: "202604281500", pnl: "PNL_TOP5" })
+```
+
+After (no `ts` / `dataVersion` needed — handler fills current hour):
+
+```
+smartmoney_get_signal_by_coin({ instId: "BTC-USDT-SWAP", pnlTier: "PNL_TOP5" })
+```
+
+Before:
+
+```
+smartmoney_get_trader_detail({ authorId: "X", tradeLimit: 50 })
+```
+
+After:
+
+```
+Promise.all([
+  smartmoney_get_trader_performance({ authorIds: "X" }),
+  smartmoney_get_trader_positions({ authorId: "X" }),
+  smartmoney_get_trader_order_history({ authorId: "X", limit: 50 }),
+])
+```
+
+Token budget for the smartmoney module: ~4,713 → ~9,661 tokens (8 tools → 10 atomic tools with full `outputSchema`).
+
+---
 
 ---
 
