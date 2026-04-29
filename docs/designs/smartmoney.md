@@ -1,137 +1,442 @@
 # Smart Money 设计文档
 
-## Business Context
-
-- **目标用户**: 散户、量化团队——希望跟踪和分析聪明钱（牛人榜交易员）动向的用户
-- **业务优先级**: 新模块扩展，无硬性 deadline
-- **预期调用量**: 中频——行情分析类查询，用户分析市场时高频调用，日常低频
-- **依赖模块**: market（可配合 `market_get_ticker` 查当前价格做交叉分析）
-- **风控要求**: 无——全部为只读查询，不涉及资金操作
-- **模拟盘**: 支持——demo 模式下正常查询，返回数据与 live 一致
-- **站点支持**: global（所有端点已正式上线）
-- **API 权限**: 需要 Read-only API key（`privateGet` 鉴权调用）
+> **状态**：已实施（Phase 1 — 代码层已落地，feat/smartmoney-fix 分支 4 commits）
+> **作者**：lewei.li
+> **日期**：2026-04-28 起草，2026-04-29 落地
+> **关联 Lark 文档**：https://okg-block.sg.larksuite.com/docx/ZQu1dvKCdoaalwx4Yh6lKImRg6g
+> **历史**：本文替代了原 5-tool 设计；2026-04-29 在 8→10 tool 重构中成为唯一权威设计
 
 ---
 
-## 模块职责与边界
+## 1. 设计动机
 
-smartmoney 作为**顶层模块**，提供 5 个只读 MCP tool。不进入默认模块列表（`--modules` 需显式指定或用 `all`）。
+当前 smartmoney 模块（`packages/core/src/tools/smartmoney.ts`，8 个 tool）存在以下 AI agent 友好度问题：
 
-职责范围：
-- 查询交易员排行榜（leaderboard）和单个交易员详情（profile + 持仓 + 交易记录）
-- 查询聪明钱聚合共识信号（多币种概览、单币种信号、信号历史时间线）
-- 提供池过滤器参数（sortType/period/pnl/winRatio/maxRetreat/asset），按 PnL、胜率、回撤、资产筛选交易员池
+1. **命名语义模糊**：`get_overview` / `get_traders` / `get_trader_records` 等名字过泛，AI 必须读 description 才能识别意图
+2. **多模式工具掩盖意图**：`get_overview` 同时承担"top 榜单"和"指定币列表"；`get_signal` 同时承担"pool filter"和"authorIds 直查"——AI agent 易传错参数
+3. **参数命名 footgun**：`pnl` 既是入参名（枚举档位）又是返回字段名（数值）；`maxRetreat` 是中式英语不在 LLM 训练语料里
+4. **聚合复合工具**：`get_trader_detail` 把 3 个 API 合成一个工具，违反原子化原则
+5. **跨模块语言不一致**：`trader_records` 与项目其他模块的 `get_orders` / `get_fills` 体系脱节
 
-不在范围内：
-- 行情价格、技术指标（由 market 模块负责）
-- 任何写操作（下单、改单、撤单）
-
----
-
-## Tool 清单
-
-| 名称 | Read/Write | 参数 | 说明 |
-|------|-----------|------|------|
-| `smartmoney_get_overview` | Read | `dataVersion`, `ts`, `instType`, `sortType`, `period`, `pnl`, `winRatio`, `maxRetreat`, `asset`, `lmtNum`, `instCcyList`, `instCcy`, `topInstruments` | 多币种聪明钱概览 |
-| `smartmoney_get_signal` | Read | `instId`, `instCcy`, `dataVersion`, `ts`, `sortType`, `period`, `pnl`, `winRatio`, `maxRetreat`, `asset`, `lmtNum`, `authorIds` | 单币种聚合共识信号 |
-| `smartmoney_get_signal_history` | Read | `instId` (required), `dataVersion`, `ts`, `granularity`, `limit`, `sortType`, `period`, `pnl`, `winRatio`, `maxRetreat`, `asset` | 信号历史时间线 |
-| `smartmoney_get_traders` | Read | `dataVersion`, `sortType`, `period`, `pnl`, `winRatio`, `maxRetreat`, `asset`, `authorIds`, `after`, `before`, `limit` | 交易员排行榜列表/筛选 |
-| `smartmoney_get_trader_detail` | Read | `authorId` (required), `period`, `instCcy`, `tradeLimit` | 交易员详情（复合：profile + 持仓 + 交易记录） |
-
-API 映射：
-
-| Tool | API Path |
-|------|----------|
-| `smartmoney_get_overview` | GET /api/v5/journal/smartmoney/overview |
-| `smartmoney_get_signal` | GET /api/v5/journal/smartmoney/signal |
-| `smartmoney_get_signal_history` | GET /api/v5/journal/smartmoney/signal-history |
-| `smartmoney_get_traders` | GET /api/v5/orbit/public/leaderboard |
-| `smartmoney_get_trader_detail` | GET /api/v5/orbit/public/leaderboard + position-current + trade-records (composite) |
+本设计以**「AI agent 看名字就能选对工具」为第一目标**，重新拆分并命名整个模块；同时整合后端最新接口调整（删 `instCcyList` / `instType` / `dataVersion` 入参、ts 归一化到小时、`/signal` 端点 ts 自动化）。
 
 ---
 
-## Token 预算评估
+## 2. 核心设计原则
 
-> 由 `npx tsx scripts/mcp-token-stats.ts` 实测（JSON schema 字符数 / 3.5）。
-
-| 项目 | 估算 |
-|------|------|
-| smartmoney 模块（5 tool, 5,684 chars） | ~1,624 tokens |
-| 全局（截至 2026-04-23） | 154 tools, ~38,956 tokens |
-| 预算上限 | 25,000 tokens（全量加载时已超标，readOnly 模式 ~19,267 tokens 在预算内） |
-
-5 个只读 tool，无 write 操作。smartmoney 不在 DEFAULT_MODULES 中，按需加载可有效控制实际 token 消耗。全量加载时全局已超预算，后续需按超预算策略（见 mcp-design-guideline §4.3）精简。
+| 原则 | 应用 |
+|---|---|
+| **入口维度显式化** | `_by_coin` / `_by_traders` 后缀标明筛选维度 |
+| **单数 / 复数严格区分** | `signal`（单币）vs `signals`（多币） |
+| **命名空间分层** | `top_*`（排序截断列表）/ `trader_*`（单人维度）/ `coin_*`（币维度） |
+| **跨模块术语统一** | `order_history` 对齐 `spot/swap/futures_get_orders` 系列 |
+| **参数 tier 化** | 枚举档位以 `Tier` 后缀标识，避免与同名返回字段冲突 |
+| **删除聚合复合工具** | 原子化，不做组合 |
+| **入参最小化** | 后端能自动推导的（如 `/signal` 的 ts）handler 自填，不暴露给用户 |
 
 ---
 
-## 与现有模块的交互关系
+## 3. Tool 重命名映射
+
+### 3.1 旧 → 新（共 8 → 10 tool）
+
+| # | 旧 Tool | 新 Tool | 备注 |
+|---|---|---|---|
+| 1 | `smartmoney_get_traders` | **`smartmoney_get_traders_by_filter`** | pool filter + rank 模式 |
+| 2 | `smartmoney_get_traders`（authorIds 模式） | **`smartmoney_get_traders_by_id`** | 拆出 + 合并自原 doc 的 `traders_by_authors` 与 `traders_performance`（端点+入参+输出 schema 完全一致，无重复理由） |
+| 3 | `smartmoney_get_trader_positions` | 不变 | |
+| 4 | `smartmoney_get_trader_positions_history` | 不变 | |
+| 5 | `smartmoney_get_trader_records` | **`smartmoney_get_trader_orders_history`** | 跨模块对齐 `get_orders` 系列；与 `position_history` 形成漂亮对仗 |
+| 6 | `smartmoney_get_overview`（top 模式） | **`smartmoney_get_top_coin_signals`** | 唯一保留模式 |
+| ~~7~~ | ~~`smartmoney_get_overview`（instCcyList 模式）~~ | ~~`smartmoney_get_coin_signals`~~ | **后端调整：`/overview` 接口移除 `instCcyList`，多币批量场景失去后端支持，本工具不实现** |
+| 8 | `smartmoney_get_signal`（pool filter 模式） | **`smartmoney_get_signal_overview_by_filter`** | 拆出；`ts` 入参移除（handler 自动填当前小时） |
+| 9 | `smartmoney_get_signal`（authorIds 模式） | **`smartmoney_get_signal_overview_by_trader`** | 拆出；`ts` 入参移除（同上） |
+| 10 | `smartmoney_get_signal_history`（pool filter 模式） | **`smartmoney_get_signal_trend_by_filter`** | 重命名 |
+| 11 | _（不存在）_ | **`smartmoney_get_signal_trend_by_trader`** | 新增（PM 讨论已确认 leaderboard 接口需支持） |
+| ~~12~~ | `smartmoney_get_trader_detail` | _删除_ | 聚合复合工具违反原子化原则；调用方自行 parallel 调用 3 个原子工具 |
+
+> **不在本期范围**：`smartmoney_search_trader_by_name`（nickname → authorId 解析）— 需 PM 与上游接口对齐，下期单独评估。
+
+### 3.2 命名家族总览
 
 ```
-market_get_ticker (已有, Read)
-  │
-  └─ 配合 smartmoney_get_signal 做交叉分析（聪明钱信号 vs 当前价格）
+Trader 家族（5 tools）
+─────────────────────────────────────────────────
+smartmoney_get_traders_by_filter               ← pool filter + rank
+smartmoney_get_traders_by_id        ← authorIds 直查（单/多）
+smartmoney_get_trader_positions          ← 当前持仓
+smartmoney_get_trader_positions_history   ← 历史平仓
+smartmoney_get_trader_orders_history      ← 订单流水
 
-smartmoney_get_traders (Read)
-  │
-  └─ 获取 authorId 列表
-      │
-      ▼
-smartmoney_get_trader_detail (Read, composite)
-  ├─ leaderboard API → profile & stats
-  ├─ position-current API → 当前持仓
-  └─ trade-records API → 交易记录
-
-smartmoney_get_overview (Read) ← 多币种概览
-  │
-  ▼
-smartmoney_get_signal (Read) ← 单币种详细信号
-  │
-  ▼
-smartmoney_get_signal_history (Read) ← 信号时间线
+Signal/Coin 家族（5 tools）
+─────────────────────────────────────────────────
+smartmoney_get_top_coin_signals          ← top N 最热聚合快照（SWAP-only）
+smartmoney_get_signal_overview_by_filter            ← 单币 pool filter 信号（ts 自动）
+smartmoney_get_signal_overview_by_trader         ← 单币 + 指定 authorIds 信号（ts 自动）
+smartmoney_get_signal_trend_by_filter    ← 单币 pool filter 信号时间线
+smartmoney_get_signal_trend_by_trader ← 单币 + 指定 authorIds 信号时间线
 ```
 
 ---
 
-## 典型 Workflow
+## 4. 参数（Schema）改动
 
-### 场景 1: 查看聪明钱排行榜并深入分析
+### 4.1 Pool Filter 参数 tier 化重命名
+
+仅影响**枚举档位类参数**（不影响 leaderboard 端点的数值阈值参数）：
+
+| 旧名 | 新名 | 类型 | 改动理由 |
+|---|---|---|---|
+| `sortType` | **`sortBy`** | string enum | 与 `instType`（系统级常量）风格冲突；`sortBy` 是排序通用词 |
+| `pnl` | **`pnlTier`** | string enum | **最大 footgun**：与返回字段 `pnl`（数值）同名，AI 极易混淆 |
+| `winRatio` | **`winRateTier`** | string enum | 同名冲突；`winRate` 比 `winRatio` 更标准（返回字段同步改） |
+| `maxRetreat` | **`maxDrawdownTier`** | string enum | `maxRetreat` 是中式英语；`maxDrawdown` 行业通用，AI 一看即懂（返回字段同步改） |
+| `asset` | **`aumTier`** | string enum | `asset` 太泛；`AUM` 是行业标准缩写 |
+
+### 4.2 返回字段连带改名（保持入参 / 返回一致）
+
+| 旧字段 | 新字段 | 影响范围 |
+|---|---|---|
+| `winRatio` | `winRate` | leaderboard、signal 系列、trader_detail 等所有出现处 |
+| `maxRetreat` | `maxDrawdown` | leaderboard 相关返回 |
+| `avgLongWinRatio` / `avgShortWinRatio` | `avgLongWinRate` / `avgShortWinRate` | signal 返回 |
+
+### 4.3 端点参数收敛（来自 PM 讨论 + 后端调整）
+
+| 范围 | 改动 | 理由 |
+|---|---|---|
+| `/overview` | 移除 `instType` 入参 | 当前主要支持 SWAP，无须暴露 |
+| `/overview` | 移除 `instCcy` 入参 | 与 `instCcyList` 重复 |
+| `/overview` | **进一步移除 `instCcyList` 入参**（仅保留 `topInstruments`） | 后端最终方案：只支持 top N 模式；多币批量直接消解 |
+| `/overview` | `topInstruments` 默认仅返回 SWAP 标的 | 后端调整 |
+| **Signal 家族**（top_coin_signals / signal_by_coin / signal_by_traders / signal_history_*） | 统一使用 `instId`，移除 `instCcy` 双轨 | API 端点同时支持 instId 和 instCcy，统一收敛到 instId 避免歧义 |
+| **Trader 家族**（trader_positions / trader_positions_history / trader_orders_history） | **入参改为 `instId`**（公开层），handler `extractBaseCcy` 自动提取 base ccy 转发上游 | 上游确实只接受 base ccy，但 AI agent 拿到的就是 `BTC-USDT-SWAP` 这种完整 instId，暴露 `instCcy` 反而要 agent 主动 split；改为 `instId` 让 agent 直接传完整值，handler 桥接 |
+
+### 4.4 Pool filter 参数集（最终形态）
+
+**Signal 家族**（枚举档位）：
 
 ```
-1. smartmoney_get_traders(period=30, sortType=pnl, limit=10) → 获取 Top 10 交易员
-2. smartmoney_get_trader_detail(authorId=<top_trader_id>) → 查看最佳交易员详情
-3. 结合 profile/positions/trades 做综合分析
+sortBy         ∈ { pnl, pnlRatio }                       default: pnl
+pnlTier        ∈ { PNL_ANY, PNL_TOP50, PNL_TOP20, PNL_TOP5 }   default: PNL_ANY
+winRateTier    ∈ { WR_ANY, WR_GE_50, WR_GE_80 }          default: WR_ANY
+maxDrawdownTier ∈ { MD_ANY, MD_LE_20, MD_LE_50 }         default: MD_ANY
+aumTier        ∈ { AUM_ANY, AUM_TOP50, AUM_TOP20, AUM_TOP5 } default: AUM_ANY
 ```
 
-### 场景 2: 聪明钱信号分析
+> 枚举值前缀同步重命名：`MR_LE_xx` → `MD_LE_xx`（drawdown 缩写）。
+
+**Leaderboard 家族**（数值阈值，保留原有命名习惯）：
 
 ```
-1. smartmoney_get_overview(dataVersion=<ts>) → 多币种概览
-2. smartmoney_get_signal(ts=<ms>, instId=BTC-USDT-SWAP) → 单币种信号（推荐 instId；instCcy 仅 SPOT/SWAP，instId 优先）
-3. market_get_ticker(instId=BTC-USDT-SWAP) → 当前价格（跨模块）
-4. 比较 smart money avg entry vs 当前价格
+sortBy   ∈ { pnl, pnlRatio }   default: pnl
+period   ∈ { 3, 7, 30, 90 }    optional（all-time）
+pnl      string  最低 PnL（USD）
+winRate  string  最低胜率（小数）
+maxDrawdown string 最大回撤（小数）
+asset    string  最低 AUM（USD）
 ```
 
-### 场景 3: 信号趋势回溯
+> Leaderboard 因为是数值阈值（不是档位枚举），保留 `pnl` / `winRate` / `maxDrawdown` / `asset` 朴素名称——这里没有同名冲突 footgun，因为返回字段含义对齐。
+
+### 4.5 时间锚参数：`ts` 与 `dataVersion`（后端最新调整）
+
+**核心原则**：入参用 `ts`，出参用 `dataVersion`，二者均为 UTC，归一化到小时。
+
+| 维度 | 规则 |
+|---|---|
+| **入参** | 仅接受 `ts`（UTC ms 时间戳）；handler 内部强制归一化到小时（floor 到 `:00:00`）；**不再接受 `dataVersion` 入参** |
+| **出参** | 只返回 `dataVersion`（UTC `yyyyMMddHHmm` 字符串，如 `202604282000`，分钟位恒为 `00`）；**不再返回 `ts`** |
+| **时区** | UTC（前端如需本地时间在调用侧转换） |
+| **`/signal` 端点特例** | **完全移除 `ts` 入参**——handler 自动填入当前时刻 floor-to-hour 后的值；用户调用 `get_signal_by_coin` / `get_signal_by_traders` 时不需提供任何时间参数 |
+| **保留 `ts` 入参的 tool** | `get_top_coin_signals`（支持历史快照查询）、`get_signal_history_by_coin`（时间线锚点）、`get_signal_history_by_traders`（同前） |
+
+> 说明：`/signal` 自动填 ts 是后端要求；ts 在历史回溯场景对 overview / signal_history 仍有意义（看一周前的最热币、看某段时间的信号变化），所以这两类 tool 保留 ts 入参。
+
+### 4.6 删除的输出字段（后端调整）
+
+以下字段在所有 signal / overview 类 tool 的 outputSchema 中**移除**：
 
 ```
-1. smartmoney_get_signal_history(instId=BTC-USDT-SWAP, dataVersion=<ts>, granularity=1d) → 历史信号
-2. 分析 longRatio 和价格走势的相关性
+topNUsed
+currentPrice
+fundingRate
+openInterest
+priceChange24h
+longShortAccountRatio
 ```
 
-## 设计决策
+> 这些字段后端不再返回；保留旧字段会让 AI agent 误读不存在的数据。
 
-### 池过滤器参数扁平化
+---
 
-Signal 端点和 Leaderboard 端点的池过滤器（sortType, period, pnl, winRatio, maxRetreat, asset）虽然在后端 API 可能以嵌套方式接收，但在 MCP tool 层面严格遵循扁平化原则，每个过滤字段作为独立的顶层参数暴露。CLI 层和 MCP 层保持一致的扁平参数结构。
+## 5. 各 Tool 关键参数定义（最终）
 
-### Signal vs Leaderboard 过滤值差异
+### 5.1 Trader 家族
 
-两类端点的过滤参数名称相同，但值语义不同：
-- **Signal 端点**: 使用枚举值（PNL_TOP50, WR_GE_80, MR_LE_20, AUM_TOP20）
-- **Leaderboard 端点**: 使用数值阈值（pnl=10, winRatio=0.8, maxRetreat=0.1, asset=100）
+| Tool | 必填 | 可选 |
+|---|---|---|
+| `get_top_traders` | — | sortBy, period, pnl, winRate, maxDrawdown, asset, after, before, limit |
+| `get_trader_performance` | authorIds | period |
+| `get_trader_positions` | authorId | instId |
+| `get_trader_positions_history` | authorId | instId, after, before, limit |
+| `get_trader_orders_history` | authorId | instId, after, before, limit |
 
-这一差异在参数 description 中明确说明。
+### 5.2 Signal 家族
 
-### 不进默认模块列表
+| Tool | 必填 | 可选 | ts 处理 |
+|---|---|---|---|
+| `get_top_coin_signals` | — | ts, topInstruments, sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | 用户传 → handler floor 到小时；不传 → 取当前小时 |
+| `get_signal_by_coin` | instId | sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | **不暴露 ts**；handler 自动填当前小时 |
+| `get_signal_by_traders` | instId, authorIds | lmtNum | **不暴露 ts**；handler 自动填当前小时 |
+| `get_signal_history_by_coin` | ts, instId | granularity, limit, sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier | 用户传 → handler floor 到小时（时间线锚点） |
+| `get_signal_history_by_traders` | ts, instId, authorIds | granularity, limit, lmtNum | 同上 |
 
-smartmoney 为分析增值模块，非核心交易链路，不进入 MCP server 默认模块列表。用户需通过 `--modules smartmoney` 或 `--modules all` 显式加载。
+### 5.3 输出统一形态
+
+所有 signal / overview 类 tool 的输出顶层结构：
+
+```jsonc
+{
+  "endpoint": "smartmoney_xxx",
+  "requestTime": "2026-04-28T15:00:00Z",   // ISO-8601
+  "data": [...],                            // tool 各自的 schema
+  "dataVersion": "202604281500"             // UTC yyyyMMddHHmm（分钟位恒为 `00`），唯一时间锚
+}
+```
+
+不再返回 `ts`（与 `dataVersion` 重复）。
+
+---
+
+## 6. 端点共享映射
+
+| 端点 | 服务的 Tools |
+|---|---|
+| `GET /api/v5/orbit/public/leaderboard` | `get_top_traders`, `get_trader_performance` |
+| `GET /api/v5/orbit/public/position-current` | `get_trader_positions` |
+| `GET /api/v5/orbit/public/position-history` | `get_trader_position_history` |
+| `GET /api/v5/orbit/public/trade-records` | `get_trader_order_history` |
+| `GET /api/v5/journal/smartmoney/overview` | `get_top_coin_signals`（仅一个 tool） |
+| `GET /api/v5/journal/smartmoney/signal` | `get_signal_by_coin`, `get_signal_by_traders` |
+| `GET /api/v5/journal/smartmoney/signal-history` | `get_signal_history_by_coin`, `get_signal_history_by_traders`（后者需 leaderboard 接口先支持 authorIds 路径） |
+
+---
+
+## 7. 兼容性策略
+
+### 7.1 Breaking change 性质
+
+本次改动属于**完整 breaking change**：tool 名、参数名、返回字段名、输入输出 schema 全部变化。
+
+### 7.2 处置方案
+
+- **不保留 alias**——tool 数已超模块上限，alias 会让 token 预算雪上加霜
+- **CHANGELOG 必须高亮 BREAKING**，并附完整 old → new 映射表 + 删除字段列表
+- **版本跳级**：发布 minor 版本（如 1.x.0），不发 patch
+- **CLI 命令同步重命名**——CLI ↔ MCP parity 不破
+
+### 7.3 用户迁移指引
+
+CHANGELOG 附迁移表，例如：
+
+```
+旧调用：smartmoney_get_overview({ dataVersion: "202604281500", instCcyList: "BTC,ETH" })
+新调用：smartmoney_get_top_coin_signals({ ts: 1745844000000, topInstruments: 20 })
+        # 多币批量场景已不支持，需改为多个 get_signal_by_coin 并发调用
+
+旧调用：smartmoney_get_signal({ instId: "BTC-USDT-SWAP", dataVersion: "202604281500", pnl: "PNL_TOP5" })
+新调用：smartmoney_get_signal_overview_by_filter({ instId: "BTC-USDT-SWAP", pnlTier: "PNL_TOP5" })
+        # ts 不再需要传入，handler 自动取当前小时
+```
+
+---
+
+## 8. Token 预算与模块容量
+
+### 8.1 工具数变化
+
+| 维度 | 旧 | 新 | Δ |
+|---|---|---|---|
+| Tool 数 | 8 | 10 | +2 |
+| CLAUDE.md 推荐上限 | 8 | — | **超 2** |
+
+### 8.2 处置方案
+
+- 在 [`docs/module-registry.md`](../module-registry.md) 中显式备案理由："为提升 AI agent 调用准确率，按入口维度（_by_coin / _by_traders）拆分 signal 工具，10 tool 是无法进一步合并的最小集"
+- **重新核算 25k token 上限**：实施后实测 `system_get_capabilities` 输出 + 各 tool inputSchema 的 token 总数，超出则触发后续 token 优化（缩短 description、抽取共享 enum）
+
+### 8.3 后续 token 优化备选
+
+- 共享枚举常量提取到 `$defs`，inputSchema 用 `$ref` 引用
+- 工具 description 压缩到 ≤200 字符（去除"用例提示"，移到 workflow.md）
+
+---
+
+## 9. 同步影响清单（必须在同一 MR 完成）
+
+### 9.1 代码
+
+- [ ] `packages/core/src/tools/smartmoney.ts` —— 重写整个 `registerSmartmoneyTools()`
+- [ ] `packages/core/src/tools/types.ts` —— 如有 type alias 同步
+- [ ] `packages/cli/src/commands/smartmoney.ts` —— CLI 命令 1:1 重命名
+- [ ] `packages/cli/src/cli-registry.ts` —— 命令注册同步
+- [ ] `packages/cli/src/index.ts` —— 入口同步
+
+### 9.2 测试
+
+- [ ] `packages/core/test/tools.test.ts` —— tool 注册测试更新
+- [ ] `packages/cli/test/smartmoney-routing.test.ts` —— CLI 路由 / 参数传递测试全部重写
+- [ ] 新增：`pnlTier` / `winRateTier` 等参数路由专项测试（防止再发生 issue #78 类型 footgun）
+- [ ] 新增：`/signal` 端点 ts 自动填充行为的 handler 单测（验证 floor-to-hour 逻辑）
+
+### 9.3 文档
+
+- [ ] `docs/modules/smartmoney.md` —— 模块文档全量更新
+- [ ] `docs/designs/smartmoney.md` —— 标记为「已陈旧，参见 redesign」
+- [ ] `docs/module-registry.md` —— tool 数 8 → 10，附 token 预算说明
+- [ ] `docs/cli-reference.md` —— CLI 命令重命名同步
+- [ ] `CHANGELOG.md` / `CHANGELOG.zh-CN.md` —— BREAKING + 迁移表 + 删除字段列表
+- [ ] `README.md` / `README.zh-CN.md` —— 模块特性计数 / 卖点同步
+- [ ] `context-kg/business/01-overview.md` —— 业务侧 overview 更新
+
+### 9.4 Skills（agent-skills 仓库）
+
+- [ ] `skills/okx-cex-smartmoney/SKILL.md` —— 工具列表 / 输出说明全量更新
+- [ ] `skills/okx-cex-smartmoney/references/trader-commands.md` —— CLI 命令对照
+- [ ] `skills/okx-cex-smartmoney/references/workflows.md` —— 引导用例改名
+- [ ] 同步覆盖 v2 / v3 副本（`okx-cex-smartmoney-v2`、`okx-cex-smartmoney-v3`）
+
+### 9.5 发布
+
+- [ ] 发布 minor 版本（建议 1.x.0）
+- [ ] 所有 skill 的 `metadata.version` 同步（按 CLAUDE.md「Stable Release: Skill Version Sync」要求）
+- [ ] tag 后调用飞书 release bot 通知
+
+---
+
+## 10. 待确认 / 已确认决策
+
+| # | 项 | 状态 |
+|---|---|---|
+| 1 | 合并 `traders_by_authors` 与 `traders_performance` → `get_trader_performance` | ✅ 已确认 |
+| 2 | `trader_records` → `trader_order_history`（取代 `trade_history`） | ✅ 已确认（跨模块语言一致） |
+| 3 | `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `sortBy` 参数 tier 化重命名 | ✅ 已确认 |
+| 4 | 返回字段连带改名（`winRatio` → `winRate`，`maxRetreat` → `maxDrawdown`） | ✅ 已确认（保持入参/返回对齐） |
+| 5 | 删除 `get_trader_detail` 聚合复合工具 | ✅ 已确认（原子化） |
+| 6 | 不引入 `search_trader_by_name`（本期不做） | ✅ 已确认 |
+| 7 | 移除 `instType` 入参（SWAP-only） | ✅ 已确认（PM 讨论 + 后端） |
+| 8 | Signal 家族 + Trader 家族公开层统一 `instId`；Trader 家族 handler 内部 `extractBaseCcy` 转发上游 base-ccy 过滤 | ✅ 已确认 |
+| 9 | 删除 `get_coin_signals`（多币批量），后端 `/overview` 不再支持 `instCcyList` | ✅ 已确认（后端调整） |
+| 10 | 入参移除 `dataVersion`，仅用 `ts`；ts UTC 归一化到小时 | ✅ 已确认（后端调整） |
+| 11 | 出参移除 `ts`，仅返回 `dataVersion` | ✅ 已确认（后端调整） |
+| 12 | `/signal` 端点 ts 自动填当前小时（不暴露给用户）；`/overview`、`/signal-history` 保留 ts 入参 | ✅ 已确认（解读 A） |
+| 13 | 删除输出字段：`topNUsed` / `currentPrice` / `fundingRate` / `openInterest` / `priceChange24h` / `longShortAccountRatio` | ✅ 已确认（后端调整） |
+| 14 | 不保留旧 tool 名 alias（一刀切 BREAKING） | ⏳ 待最终确认 |
+| 15 | `period` 参数默认值（删除 / 默认 90） | ⏳ 待最终确认（PM 讨论中） |
+
+---
+
+## 11. 不在本期范围
+
+- `smartmoney_search_trader_by_name`（nickname 解析）—— 需上游接口配合，下期评估
+- 共享枚举 `$defs` token 优化 —— 实测超预算后再做
+- 多站点适配（当前仅 global 端点） —— 端点本身未多站点化
+
+---
+
+## 12. 2026-04-30 设计反转：`instCcyList` 回归 + overview 多币模式 + trend 时间窗区间化
+
+> **状态**：⏳ Pending backend coordination — MCP 层已实施，依赖 backend `/overview` 与 `/signal-history` 协同更新
+
+### 12.1 反转项
+
+下表覆盖之前已 ✅ 确认的多条决议：
+
+| § | 旧决议（已被覆盖） | 新决议（2026-04-30） | 理由 |
+|---|---|---|---|
+| §3.1 行 7 | ~~`/overview` 删除 `instCcyList`，多币批量场景不实现~~ | **`/overview` 重新接受 `instCcyList`**；多币能力合并进 `signal_overview_by_filter` / `signal_overview_by_trader`，不再单独引入 `get_coin_signals` 工具 | AI agent 在"指定一组币 + 一组 trader / pool filter 看快照"的需求高频，handler 多次单币循环代价大（rate-limit + 时延）；让 backend 重新支持是更优解 |
+| §4.3 `/overview` 移除 `instCcyList` | ~~进一步移除 `instCcyList` 入参（仅保留 `topInstruments`）~~ | **保留 `topInstruments`，加回 `instCcyList`，新增 `authorIds`**（2选1：`topInstruments` ⊻ `instCcyList`）；`authorIds` 与上述选择正交，启用"按特定 trader 群体聚合多币" | 满足 §12 反转；MCP 层 schema 落地参见 `signal_overview_by_filter` / `signal_overview_by_trader` |
+| §10 表格行 9 | ~~删除 `get_coin_signals`（多币批量），后端 `/overview` 不再支持 `instCcyList`~~ | 多币能力**合并**到 `signal_overview_by_*` 而非引入新工具；后端**已确认**重新支持 `instCcyList`（pending 上线） | 同上 |
+| §10 表格行 10/12 | ~~`/signal-history` 用 `ts` 锚点 + `limit` 倒数 N 桶~~ | **`/signal-history` 改为 `[startTime, endTime]` 区间**；`ts` 锚点入参移除 | AI agent 想表达的是"过去 24h 的信号变化"这种区间语义，锚点+limit 的间接表达需要 agent 自己倒推；区间直观且与其它行情接口（market candles 用 after/before）风格一致 |
+| §10 表格行 11（出参 `dataVersion`） | 不变 | 不变 | 出参侧不影响 |
+| §3.1 行 11 「`get_signal_trend_by_trader` 后端 authorIds 待确认」 | ⏳ TODO | **正式纳入路线 B 确认范围**：backend 同步支持 `authorIds`+`startTime`+`endTime`；`smartmoney.ts` 中的 TODO 注释已删除 | 与时间窗改造同批协调 |
+
+### 12.2 受影响的 MCP tool 终态
+
+#### `smartmoney_get_top_coin_signals`（S1）— 入参精简
+
+```
+required: topInstruments (default 20)
+removed:  ts, sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum
+```
+
+handler 固定走当前小时；不暴露 ts，不接受任何 pool filter（top-N "热度榜"按 backend 默认池）。
+
+#### `smartmoney_get_signal_overview_by_filter`（S2）— 单币 → 多币 + tier-filtered pool
+
+```
+optional (二选一，至少一个):
+  topInstruments  (default 20，top-N 热度自动选)
+  instCcyList     (e.g. "BTC,ETH,SOL")
+optional pool filter:
+  sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum (default 100)
+removed: instId
+```
+
+互斥校验：传入两个返回 `actionableError`；都不传则走 `topInstruments=20` 默认。
+
+#### `smartmoney_get_signal_overview_by_trader`（S3）— 单币 → 多币 + authorIds-restricted
+
+```
+required: authorIds (e.g. "1001,1002")
+optional (二选一，至少一个):
+  topInstruments  (default 20)
+  instCcyList     (e.g. "BTC,ETH")
+removed: instId, lmtNum
+```
+
+互斥校验同 S2；不接受 pool filter（pool 已由 `authorIds` 自身约束）。
+
+#### `smartmoney_get_signal_trend_by_filter`（S4）— `ts` 锚点 → `[startTime, endTime]` 区间
+
+```
+required: instId, startTime (UTC ms), endTime (UTC ms)
+optional: granularity (1h|1d, default 1h), limit (default 24),
+          sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier,
+          lmtNum (default 100)
+removed:  ts (anchor)
+```
+
+handler 校验 `endTime ≥ startTime`；时间窗与 `limit` 协同生效（backend 截断窗口内的 N 桶）。
+
+#### `smartmoney_get_signal_trend_by_trader`（S5）— `ts` 锚点 → 区间，去掉 `lmtNum`
+
+```
+required: instId, authorIds, startTime, endTime
+optional: granularity (1h|1d, default 1h), limit (default 24)
+removed:  ts (anchor), lmtNum
+```
+
+`authorIds` 自身约束聚合池，不再需要 `lmtNum`。
+
+### 12.3 Backend 协调依赖
+
+MCP 层已落地（含 mutex 校验、`PATH_OVERVIEW` / `PATH_SIGNAL_HISTORY` 透传），但运行时正确性依赖以下 backend 同步：
+
+**Overview 端点（S1/S2/S3）**：
+- [ ] `/api/v5/journal/smartmoney/overview` 重新接受 `instCcyList` 入参（曾移除，需加回）
+- [ ] `/api/v5/journal/smartmoney/overview` 接受 `authorIds` 入参（新增）
+
+**Signal-history 端点（S4/S5）**：
+- [ ] `/api/v5/journal/smartmoney/signal-history` 接受 `startTime` + `endTime` 区间入参（替代旧 `ts` 锚点）
+- [ ] `/api/v5/journal/smartmoney/signal-history` 接受 `authorIds` 入参（S5 依赖；2026-04-29 版本中已有 TODO 标注待确认，本次正式纳入路线 B）
+
+这些点未上线前，相关工具会 backend 静默忽略入参 / 返回错误。所有 5 个 signal 工具的 description 已加 `Note: depends on backend ...` 警示。
+
+### 12.4 同步要做的文档修订
+
+- ~~`docs/modules/smartmoney.md`：删除"多币批量已不支持，请改为多次 `signal_overview_by_filter` 并发"的迁移指引~~（实际改为"`signal_overview_by_*` 内置多币模式"）
+- `CHANGELOG.md` / `CHANGELOG.zh-CN.md`：新增 entry 标记本次反转
+- `skills/okx-cex-smartmoney/SKILL.md`：同步多币用法示例
+- `skills/okx-cex-smartmoney/references/signal-commands.md`：补 `--instCcyList` 说明

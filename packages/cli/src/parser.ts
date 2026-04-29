@@ -130,7 +130,10 @@ export interface CliValues {
   granularity?: string;
   lmtNum?: string;
   instCcy?: string;
+  instCcyList?: string;
   topInstruments?: string;
+  startTime?: string;
+  endTime?: string;
   // smartmoney pool filters — leaderboard (numeric thresholds, top-traders endpoint)
   pnl?: string;
   winRate?: string;
@@ -372,7 +375,10 @@ export const CLI_OPTIONS = {
   granularity: { type: "string" },
   lmtNum: { type: "string" },
   instCcy: { type: "string" },
+  instCcyList: { type: "string" },
   topInstruments: { type: "string" },
+  startTime: { type: "string" },
+  endTime: { type: "string" },
   // smartmoney pool filters — leaderboard (numeric thresholds)
   pnl: { type: "string" },
   winRate: { type: "string" },

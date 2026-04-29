@@ -193,7 +193,7 @@ Aggregate over `realizedPnl` / `pnlRatio` / `closeType` to characterize the trad
 > User: "trader X 的 BTC 成交记录"
 
 ```bash
-okx --profile live smartmoney trader-order-history --authorId <id> --instCcy BTC --limit 50 --json
+okx --profile live smartmoney trader-order-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
 ```
 
 Present as time-ordered table: `cTime`, `instId`, `side`, `posSide`, `ordType`, `avgPx`, `sz`, `value`. For deeper history, paginate via `pagination.nextAfter` (last `ordId`).

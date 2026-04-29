@@ -44,7 +44,7 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 | `vs24h` | String | Arithmetic difference `longRatio(now) − longRatio(24h ago)` |
 | `tradersTotal` | Integer | Candidate pool size before filters |
 | `tradersQualified` | Integer | Traders passing all filters (≤ `tradersTotal`) |
-| `dataVersion` | String | UTC `yyyyMMddHH00` |
+| `dataVersion` | String | UTC `yyyyMMddHHmm`（分钟位恒为 `00`，如 `202604282000`） |
 
 > Removed (no longer returned by upstream): `topNUsed`, `currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`, `ts`.
 
@@ -90,7 +90,7 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 | `smartMoneyLongAvgEntry` | String | Weighted avg entry across long positions |
 | `smartMoneyShortAvgEntry` | String | Weighted avg entry across short positions |
 | `totalNotionalVs24h` | String | Total notional change rate vs 24h ago |
-| `dataVersion` | String | UTC `yyyyMMddHH00` |
+| `dataVersion` | String | UTC `yyyyMMddHHmm`（分钟位恒为 `00`，如 `202604282000`） |
 
 > Renamed: `avgLongWinRatio` → `avgLongWinRate`, `avgShortWinRatio` → `avgShortWinRate`.
 > Removed: `currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`, `ts`, `timestamp`.
@@ -146,7 +146,7 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 | `totalNotionalUsdt` | String | Total = long + short |
 | `tradersTotal` | Integer | Candidate pool size before filters |
 | `tradersQualified` | Integer | Traders passing all filters (effective sample size) |
-| `dataVersion` | String | UTC `yyyyMMddHH00` corresponding to this bucket |
+| `dataVersion` | String | UTC `yyyyMMddHHmm` corresponding to this bucket（分钟位恒为 `00`，如 `202604282000`） |
 
 ---
 
@@ -196,7 +196,7 @@ The pool-filter family of signal endpoints (`top-coin-signals`, `signal-by-coin`
 | CLI Command | MCP Tool |
 |---|---|
 | `smartmoney top-coin-signals` | `smartmoney_get_top_coin_signals` |
-| `smartmoney signal-by-coin` | `smartmoney_get_signal_by_coin` |
-| `smartmoney signal-by-traders` | `smartmoney_get_signal_by_traders` |
-| `smartmoney signal-history-by-coin` | `smartmoney_get_signal_history_by_coin` |
-| `smartmoney signal-history-by-traders` | `smartmoney_get_signal_history_by_traders` |
+| `smartmoney signal-by-coin` | `smartmoney_get_signal_overview_by_filter` |
+| `smartmoney signal-by-traders` | `smartmoney_get_signal_overview_by_trader` |
+| `smartmoney signal-history-by-coin` | `smartmoney_get_signal_trend_by_filter` |
+| `smartmoney signal-history-by-traders` | `smartmoney_get_signal_trend_by_trader` |

@@ -36,7 +36,7 @@ Pool ranking by numeric thresholds. `authorIds` direct-lookup mode has moved out
 
 | Field | Type | Description |
 |---|---|---|
-| `dataVersion` | String | Snapshot version (UTC `yyyyMMddHH00`) |
+| `dataVersion` | String | Snapshot version (UTC `yyyyMMddHHmm`，分钟位恒为 `00`，如 `202604282000`) |
 | `authorId` | String | Trader unique ID |
 | `nickName` | String | Display name |
 | `pnl` | String | Absolute PnL (USD) |
@@ -80,7 +80,7 @@ Response fields: same shape as the leaderboard rows (`authorId`, `nickName`, `pn
 ## smartmoney trader-positions — Current Open Positions
 
 ```bash
-okx smartmoney trader-positions --authorId <id> [--instCcy <ccy>] [--json]
+okx smartmoney trader-positions --authorId <id> [--instId <id>] [--json]
 ```
 
 Single trader, current open positions only.
@@ -88,9 +88,9 @@ Single trader, current open positions only.
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorId` | Yes | - | Trader's unique author ID (from `top-traders` or `trader-performance`) |
-| `--instCcy` | No | - | Filter by **base currency** (e.g. `BTC`, not `BTC-USDT-SWAP`) — upstream filter is base ccy |
+| `--instId` | No | - | Filter by instrument. Accepts full instId (e.g. `BTC-USDT-SWAP`) or bare base ccy (e.g. `BTC`) — handler extracts base ccy for the upstream filter. |
 
-> The previous `--instId` flag was renamed to `--instCcy` because the upstream endpoint filters by base currency, not full instrument id.
+> The flag accepts either form; the upstream endpoint filters by base currency only, so the handler extracts it automatically.
 
 ### Position Fields
 
@@ -116,7 +116,7 @@ Single trader, current open positions only.
 ## smartmoney trader-position-history — Closed Positions (realized PnL)
 
 ```bash
-okx smartmoney trader-position-history --authorId <id> [--instCcy <ccy>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]
+okx smartmoney trader-position-history --authorId <id> [--instId <id>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]
 ```
 
 Closed positions with realized PnL, paginated by `posId` cursor.
@@ -124,7 +124,7 @@ Closed positions with realized PnL, paginated by `posId` cursor.
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorId` | Yes | - | Trader's unique author ID |
-| `--instCcy` | No | - | Filter by base currency |
+| `--instId` | No | - | Filter by instrument (full instId like `BTC-USDT-SWAP` or bare base ccy like `BTC`; handler extracts base ccy) |
 | `--after` | No | - | Cursor: return positions after this `posId` |
 | `--before` | No | - | Cursor: return positions before this `posId` |
 | `--limit` | No | `10` | Max positions per page (1–100) |
@@ -153,7 +153,7 @@ Top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item'
 ## smartmoney trader-order-history — Order / Fill Records
 
 ```bash
-okx smartmoney trader-order-history --authorId <id> [--instCcy <ccy>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]
+okx smartmoney trader-order-history --authorId <id> [--instId <id>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]
 ```
 
 Order / fill flow. Renamed from the old `smartmoney trades` command to align with the cross-module `*_get_orders` family.
@@ -161,7 +161,7 @@ Order / fill flow. Renamed from the old `smartmoney trades` command to align wit
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorId` | Yes | - | Trader's unique author ID |
-| `--instCcy` | No | - | Filter by base currency |
+| `--instId` | No | - | Filter by instrument (full instId like `BTC-USDT-SWAP` or bare base ccy like `BTC`; handler extracts base ccy) |
 | `--after` | No | - | Cursor: return orders before this `ordId` |
 | `--before` | No | - | Cursor: return orders after this `ordId` |
 | `--limit` | No | `10` | Max orders per page (1–100) |
@@ -197,8 +197,8 @@ Top-level `pagination: { hasMore, nextAfter }` — `nextAfter` is the last item'
 
 | CLI Command | MCP Tool |
 |---|---|
-| `smartmoney top-traders` | `smartmoney_get_top_traders` |
-| `smartmoney trader-performance` | `smartmoney_get_trader_performance` |
+| `smartmoney top-traders` | `smartmoney_get_traders_by_filter` |
+| `smartmoney trader-performance` | `smartmoney_get_traders_by_id` |
 | `smartmoney trader-positions` | `smartmoney_get_trader_positions` |
-| `smartmoney trader-position-history` | `smartmoney_get_trader_position_history` |
-| `smartmoney trader-order-history` | `smartmoney_get_trader_order_history` |
+| `smartmoney trader-position-history` | `smartmoney_get_trader_positions_history` |
+| `smartmoney trader-order-history` | `smartmoney_get_trader_orders_history` |

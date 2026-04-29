@@ -243,7 +243,7 @@ okx smartmoney trader-performance --authorIds <id1>,<id2> --period 30
 
 # Current open positions for one trader
 okx smartmoney trader-positions --authorId <id>
-okx smartmoney trader-positions --authorId <id> --instCcy BTC
+okx smartmoney trader-positions --authorId <id> --instId BTC-USDT-SWAP
 
 # Closed-position history (paginated by posId)
 okx smartmoney trader-position-history --authorId <id> --limit 50
@@ -251,7 +251,7 @@ okx smartmoney trader-position-history --authorId <id> --after <posId> --limit 5
 
 # Order/fill flow (paginated by ordId)
 okx smartmoney trader-order-history --authorId <id> --limit 50
-okx smartmoney trader-order-history --authorId <id> --instCcy BTC --limit 50
+okx smartmoney trader-order-history --authorId <id> --instId BTC-USDT-SWAP --limit 50
 
 # ── Signal / coin family ────────────────────────────────────────────────────
 # Top-N most-watched-by-smart-money instruments (SWAP-only)
@@ -552,7 +552,7 @@ okx smartmoney trader-performance --authorIds <id1>,<id2> --period 30
 
 # 单交易员当前持仓
 okx smartmoney trader-positions --authorId <id>
-okx smartmoney trader-positions --authorId <id> --instCcy BTC
+okx smartmoney trader-positions --authorId <id> --instId BTC-USDT-SWAP
 
 # 历史平仓（按 posId 游标分页）
 okx smartmoney trader-position-history --authorId <id> --limit 50
@@ -560,7 +560,7 @@ okx smartmoney trader-position-history --authorId <id> --after <posId> --limit 5
 
 # 订单 / 成交流水（按 ordId 游标分页）
 okx smartmoney trader-order-history --authorId <id> --limit 50
-okx smartmoney trader-order-history --authorId <id> --instCcy BTC --limit 50
+okx smartmoney trader-order-history --authorId <id> --instId BTC-USDT-SWAP --limit 50
 
 # ── Signal / coin 家族 ─────────────────────────────────────────────────────
 # Top-N 聪明钱关注度最高的标的（仅 SWAP）

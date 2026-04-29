@@ -87,7 +87,7 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 |---|---|---|---|
 | `smartmoney top-traders` | READ | Required | Leaderboard ranking by pool conditions (period / pnl / winRate / maxDrawdown / asset). Paginated by `authorId`. |
 | `smartmoney trader-performance --authorIds <id1,id2>` | READ | Required | PnL / win-rate profile for one or more authorIds (no pool filter). |
-| `smartmoney trader-positions --authorId <id>` | READ | Required | Current open positions for one trader. Filter by `--instCcy <BTC>`. |
+| `smartmoney trader-positions --authorId <id>` | READ | Required | Current open positions for one trader. Filter by `--instId <BTC-USDT-SWAP>` (or bare base ccy). |
 | `smartmoney trader-position-history --authorId <id>` | READ | Required | Closed-position history with realized PnL. Paginated by `posId`. |
 | `smartmoney trader-order-history --authorId <id>` | READ | Required | Order / fill records. Paginated by `ordId`. |
 
@@ -95,13 +95,15 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `smartmoney top-coin-signals` | READ | Required | Top-N most-watched-by-smart-money instruments (SWAP-only). Optional `--ts` for historical snapshot. |
-| `smartmoney signal-by-coin --instId <id>` | READ | Required | Single-asset signal, pool-filter mode. `ts` auto-filled to current hour. |
-| `smartmoney signal-by-traders --instId <id> --authorIds <id1,id2>` | READ | Required | Single-asset signal, restricted to specific authorIds. `ts` auto-filled. |
-| `smartmoney signal-history-by-coin --instId <id> --ts <ms>` | READ | Required | Single-asset signal time-series, pool filter. `--granularity 1h\|1d`. |
-| `smartmoney signal-history-by-traders --instId <id> --authorIds <id1,id2> --ts <ms>` | READ | Required | Single-asset signal time-series, authorIds-restricted. |
+| `smartmoney top-coin-signals` | READ | Required | Top-N most-watched-by-smart-money instruments (SWAP-only). Always current hour; only takes `--topInstruments`. |
+| `smartmoney signal-overview-by-filter` | READ | Required | Multi-asset signal, tier-filtered pool. Pick coins via `--topInstruments` (top-N hottest) OR `--instCcyList BTC,ETH,SOL` (specific) — exactly one. |
+| `smartmoney signal-overview-by-trader --authorIds <id1,id2>` | READ | Required | Multi-asset signal restricted to specific traders. Pick coins via `--topInstruments` OR `--instCcyList`. |
+| `smartmoney signal-trend-by-filter --instId <id> --startTime <ms> --endTime <ms>` | READ | Required | Single-asset signal time-series within a window, tier-filtered pool. `--granularity 1h\|1d`. |
+| `smartmoney signal-trend-by-trader --instId <id> --authorIds <id1,id2> --startTime <ms> --endTime <ms>` | READ | Required | Single-asset signal time-series within a window, authorIds-restricted. |
 
-> **Time anchor**: input is `--ts` (UTC ms, e.g. `$(date +%s)000`) only. `dataVersion` is no longer accepted as input. The signal-by-coin / signal-by-traders commands do not expose `--ts` at all — handler always uses the current hour.
+> **Time window**: `signal-trend-by-{filter,trader}` take `--startTime <ms>` + `--endTime <ms>` (UTC ms epoch, both inclusive). `dataVersion` is no longer accepted as input. `top-coin-signals` and `signal-overview-by-{filter,trader}` do not expose any time input — handler always uses the current hour.
+
+> **Multi-coin selection**: `signal-overview-by-filter` and `signal-overview-by-trader` accept `--topInstruments` (top-N hottest) **or** `--instCcyList BTC,ETH,SOL` (explicit base ccy list). The two flags are mutually exclusive. Passing neither defaults to `--topInstruments=20`.
 
 > **Need a trader's full picture?** The old `smartmoney trader` composite command is removed. Run `trader-performance`, `trader-positions`, and `trader-order-history` in parallel.
 
@@ -126,10 +128,11 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 - "历史平仓" / "closed positions" / "realized PnL track record" → `smartmoney trader-position-history --authorId <id>` (paginated).
 
 **Signal analysis:**
-- "BTC 聪明钱信号" / "smart money signal for BTC" → `smartmoney signal-by-coin --instId BTC-USDT-SWAP`. See `{baseDir}/references/signal-commands.md`.
-- "这几个交易员对 BTC 怎么看？" / "consensus among these specific traders" → `smartmoney signal-by-traders --instId BTC-USDT-SWAP --authorIds <id1,id2>`.
+- "BTC 聪明钱信号" / "smart money signal for BTC" → `smartmoney signal-overview-by-filter --instCcyList BTC`. See `{baseDir}/references/signal-commands.md`.
+- "BTC ETH SOL 这几个币的信号" / "signals for these specific coins" → `smartmoney signal-overview-by-filter --instCcyList BTC,ETH,SOL`.
+- "这几个交易员看哪些币？" / "consensus among these specific traders" → `smartmoney signal-overview-by-trader --authorIds <id1,id2>` (defaults to top-20 hottest among the group, or pass `--instCcyList`).
 - "聪明钱关注哪些币？" / "what are smart money trading right now?" → `smartmoney top-coin-signals`. See `{baseDir}/references/signal-commands.md`.
-- "信号趋势" / "signal trend over time" → `smartmoney signal-history-by-coin --instId <id> --ts <ms>` (or `signal-history-by-traders` for an authorIds-scoped trend).
+- "信号趋势" / "signal trend over time" → `smartmoney signal-trend-by-filter --instId <id> --startTime <ms> --endTime <ms>` (or `signal-trend-by-trader` for an authorIds-scoped trend).
 
 ### Step 2 — Execute and present
 
@@ -145,6 +148,6 @@ For multi-step workflows (recommend traders then drill down, signal analysis wit
 - **Output:** Always pass `--json` to list/query commands and render results as a Markdown table — never paste raw terminal output.
 - **Network errors:** If commands fail with a connection error, prompt user to check VPN: `curl -I https://www.okx.com`
 - **Language:** Always respond in the user's language.
-- **Time anchors:** input is always `--ts` (UTC ms; use `$(date +%s)000` for current snapshot). `dataVersion` is no longer accepted on input. `signal-by-coin` / `signal-by-traders` do not expose `--ts` at all — the handler auto-uses the current hour. `top-coin-signals` and `signal-history-by-{coin,traders}` accept `--ts` for historical replay / time-series anchoring.
+- **Time inputs:** `signal-trend-by-{filter,trader}` take `--startTime <ms> --endTime <ms>` (UTC ms epoch, inclusive). `dataVersion` is no longer accepted. `top-coin-signals` and `signal-overview-by-{filter,trader}` take no time input — handler always uses the current hour.
 
 For number/time formatting and response structure conventions, read `{baseDir}/references/templates.md`.

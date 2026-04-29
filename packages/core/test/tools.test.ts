@@ -5171,7 +5171,7 @@ describe("smartmoney allows demo mode", () => {
         demo: true,
       },
     };
-    const perf = tools.find((t) => t.name === "smartmoney_get_trader_performance")!;
+    const perf = tools.find((t) => t.name === "smartmoney_get_traders_by_id")!;
     await assert.rejects(
       () => perf.handler({}, demoCtx),
       (err: unknown) => err instanceof ValidationError,
@@ -5194,16 +5194,16 @@ describe("smartmoney tool surface", () => {
   it("registers the expected tool names", () => {
     const names = tools.map((t) => t.name).sort();
     assert.deepEqual(names, [
-      "smartmoney_get_signal_by_coin",
-      "smartmoney_get_signal_by_traders",
-      "smartmoney_get_signal_history_by_coin",
-      "smartmoney_get_signal_history_by_traders",
+      "smartmoney_get_signal_overview_by_filter",
+      "smartmoney_get_signal_overview_by_trader",
+      "smartmoney_get_signal_trend_by_filter",
+      "smartmoney_get_signal_trend_by_trader",
       "smartmoney_get_top_coin_signals",
-      "smartmoney_get_top_traders",
-      "smartmoney_get_trader_order_history",
-      "smartmoney_get_trader_performance",
-      "smartmoney_get_trader_position_history",
+      "smartmoney_get_trader_orders_history",
       "smartmoney_get_trader_positions",
+      "smartmoney_get_trader_positions_history",
+      "smartmoney_get_traders_by_filter",
+      "smartmoney_get_traders_by_id",
     ]);
   });
 
@@ -5220,9 +5220,9 @@ describe("smartmoney tool surface", () => {
 
 /* ---------- Trader family (5) ---------- */
 
-describe("smartmoney_get_top_traders", () => {
+describe("smartmoney_get_traders_by_filter", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_top_traders")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_traders_by_filter")!;
 
   it("calls leaderboard endpoint", async () => {
     const { client, getLastCall } = makeMockClient();
@@ -5280,9 +5280,9 @@ describe("smartmoney_get_top_traders", () => {
   });
 });
 
-describe("smartmoney_get_trader_performance", () => {
+describe("smartmoney_get_traders_by_id", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_trader_performance")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_traders_by_id")!;
 
   it("throws ValidationError when authorIds is missing", async () => {
     const { client } = makeMockClient();
@@ -5313,11 +5313,17 @@ describe("smartmoney_get_trader_positions", () => {
     );
   });
 
-  it("calls position-current with authorId and instCcy", async () => {
+  it("calls position-current with authorId and extracts base ccy from instId", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ authorId: "99", instCcy: "BTC" }, makeContext(client));
+    await tool.handler({ authorId: "99", instId: "BTC-USDT-SWAP" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/position-current");
     assert.equal(getLastCall()?.params.authorId, "99");
+    assert.equal(getLastCall()?.params.instCcy, "BTC", "handler should extract base ccy for upstream filter");
+  });
+
+  it("accepts bare base ccy in instId param", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorId: "99", instId: "BTC" }, makeContext(client));
     assert.equal(getLastCall()?.params.instCcy, "BTC");
   });
 
@@ -5335,9 +5341,9 @@ describe("smartmoney_get_trader_positions", () => {
   });
 });
 
-describe("smartmoney_get_trader_position_history", () => {
+describe("smartmoney_get_trader_positions_history", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_trader_position_history")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_trader_positions_history")!;
 
   it("throws ValidationError when authorId is missing", async () => {
     const { client } = makeMockClient();
@@ -5347,16 +5353,16 @@ describe("smartmoney_get_trader_position_history", () => {
     );
   });
 
-  it("calls position-history with pagination params", async () => {
+  it("calls position-history with pagination params and extracts base ccy from instId", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
-      { authorId: "5", instCcy: "BTC", after: "p100", before: "p50", limit: "8" },
+      { authorId: "5", instId: "BTC-USDT-SWAP", after: "p100", before: "p50", limit: "8" },
       makeContext(client),
     );
     const params = getLastCall()!.params;
     assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/position-history");
     assert.equal(params.authorId, "5");
-    assert.equal(params.instCcy, "BTC");
+    assert.equal(params.instCcy, "BTC", "handler should extract base ccy for upstream filter");
     assert.equal(params.after, "p100");
     assert.equal(params.before, "p50");
     assert.equal(params.limit, 8);
@@ -5375,9 +5381,9 @@ describe("smartmoney_get_trader_position_history", () => {
   });
 });
 
-describe("smartmoney_get_trader_order_history", () => {
+describe("smartmoney_get_trader_orders_history", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_trader_order_history")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_trader_orders_history")!;
 
   it("throws ValidationError when authorId is missing", async () => {
     const { client } = makeMockClient();
@@ -5387,16 +5393,16 @@ describe("smartmoney_get_trader_order_history", () => {
     );
   });
 
-  it("calls trade-records with pagination params", async () => {
+  it("calls trade-records with pagination params and extracts base ccy from instId", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
-      { authorId: "12", instCcy: "ETH", after: "ord1", before: "ord2", limit: "20" },
+      { authorId: "12", instId: "ETH-USDT-SWAP", after: "ord1", before: "ord2", limit: "20" },
       makeContext(client),
     );
     const params = getLastCall()!.params;
     assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/trade-records");
     assert.equal(params.authorId, "12");
-    assert.equal(params.instCcy, "ETH");
+    assert.equal(params.instCcy, "ETH", "handler should extract base ccy for upstream filter");
     assert.equal(params.after, "ord1");
     assert.equal(params.before, "ord2");
     assert.equal(params.limit, 20);
@@ -5431,84 +5437,60 @@ describe("smartmoney_get_top_coin_signals", () => {
   const tools = registerSmartmoneyTools();
   const tool = tools.find((t) => t.name === "smartmoney_get_top_coin_signals")!;
 
-  it("calls overview endpoint and auto-resolves ts to current hour when omitted", async () => {
+  it("calls overview endpoint with no inputs and forwards no extra params", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
-    const ts = getLastCall()!.params.ts as string;
-    // ts should be a numeric ms string aligned to the hour.
-    assert.match(String(ts), /^\d+$/);
-    assert.equal(Number(ts) % 3_600_000, 0);
-  });
-
-  it("floors user-supplied ts to the start of its hour", async () => {
-    const { client, getLastCall } = makeMockClient();
-    // 1712000001234 = 2024-04-01 18:13:21.234 UTC → flooring → 1711999800000 (18:00:00.000 UTC)
-    await tool.handler({ ts: "1712000001234" }, makeContext(client));
-    const ts = getLastCall()!.params.ts as string;
-    assert.equal(Number(ts) % 3_600_000, 0);
-    assert.ok(Number(ts) <= 1712000001234);
-  });
-
-  it("passes signal-side pool filter params (public names → upstream API names)", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler(
-      {
-        ts: "1712000000000",
-        sortBy: "pnl",
-        pnlTier: "PNL_TOP20",
-        winRateTier: "WR_GE_80",
-        maxDrawdownTier: "MD_LE_20",
-        aumTier: "AUM_TOP50",
-        period: "30",
-      },
-      makeContext(client),
-    );
     const params = getLastCall()!.params;
-    // sortBy → sortType, pnlTier → pnl, winRateTier → winRatio, maxDrawdownTier → maxRetreat, aumTier → asset
-    assert.equal(params.sortType, "pnl");
-    assert.equal(params.pnl, "PNL_TOP20");
-    assert.equal(params.winRatio, "WR_GE_80");
-    assert.equal(params.maxRetreat, "MD_LE_20");
-    assert.equal(params.asset, "AUM_TOP50");
-    assert.equal(params.period, "30");
+    // topInstruments is the only forwarded field; ts/poolFilter/lmtNum are no longer plumbed.
+    assert.equal(params.ts, undefined);
+    assert.equal(params.lmtNum, undefined);
+    assert.equal(params.sortType, undefined);
+    assert.equal(params.pnl, undefined);
   });
 
-  it("passes lmtNum and topInstruments", async () => {
+  it("forwards topInstruments when provided", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ ts: "1712000000000", lmtNum: "200", topInstruments: "5" }, makeContext(client));
+    await tool.handler({ topInstruments: "5" }, makeContext(client));
     const params = getLastCall()!.params;
-    assert.equal(params.lmtNum, 200);
     assert.equal(params.topInstruments, 5);
   });
 });
 
-describe("smartmoney_get_signal_by_coin", () => {
+describe("smartmoney_get_signal_overview_by_filter", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_signal_by_coin")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_signal_overview_by_filter")!;
 
-  it("throws ValidationError when instId is missing", async () => {
+  it("calls /overview with default topInstruments=20 when neither selector provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
+    const params = getLastCall()!.params;
+    assert.equal(params.topInstruments, 20);
+    assert.equal(params.instCcyList, undefined);
+  });
+
+  it("forwards instCcyList and skips topInstruments when instCcyList is provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instCcyList: "BTC,ETH" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.instCcyList, "BTC,ETH");
+    assert.equal(params.topInstruments, undefined);
+  });
+
+  it("rejects passing both instCcyList and topInstruments", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({}, makeContext(client)),
-      (err: unknown) => err instanceof ValidationError && /instId/i.test((err as ValidationError).message),
+      () => tool.handler({ instCcyList: "BTC", topInstruments: "5" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /mutually exclusive/i.test((err as ValidationError).message),
     );
   });
 
-  it("calls signal endpoint with instId and auto-resolves ts", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal");
-    assert.equal(getLastCall()?.params.instId, "BTC-USDT-SWAP");
-    const ts = getLastCall()!.params.ts as string;
-    assert.equal(Number(ts) % 3_600_000, 0);
-  });
-
-  it("passes signal-side pool filter params (public names → upstream API names)", async () => {
+  it("passes signal-side pool filter params and lmtNum (public names → upstream API names)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
-        instId: "BTC-USDT-SWAP",
+        topInstruments: "10",
         pnlTier: "PNL_TOP5",
         winRateTier: "WR_GE_50",
         maxDrawdownTier: "MD_LE_50",
@@ -5526,100 +5508,131 @@ describe("smartmoney_get_signal_by_coin", () => {
   });
 });
 
-describe("smartmoney_get_signal_by_traders", () => {
+describe("smartmoney_get_signal_overview_by_trader", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_signal_by_traders")!;
-
-  it("throws ValidationError when instId is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({ authorIds: "1,2" }, makeContext(client)),
-      (err: unknown) => err instanceof ValidationError && /instId/i.test((err as ValidationError).message),
-    );
-  });
+  const tool = tools.find((t) => t.name === "smartmoney_get_signal_overview_by_trader")!;
 
   it("throws ValidationError when authorIds is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client)),
+      () => tool.handler({}, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /authorIds/i.test((err as ValidationError).message),
     );
   });
 
-  it("calls signal endpoint with instId, authorIds, and auto-resolved ts", async () => {
+  it("calls /overview with authorIds + default topInstruments when no selector provided", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler(
-      { instId: "BTC-USDT-SWAP", authorIds: "1001,1002", lmtNum: "50" },
-      makeContext(client),
-    );
+    await tool.handler({ authorIds: "1001,1002" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
     const params = getLastCall()!.params;
-    assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal");
-    assert.equal(params.instId, "BTC-USDT-SWAP");
     assert.equal(params.authorIds, "1001,1002");
-    assert.equal(params.lmtNum, 50);
-    assert.equal(Number(params.ts as string) % 3_600_000, 0);
+    assert.equal(params.topInstruments, 20);
+    assert.equal(params.instCcyList, undefined);
+  });
+
+  it("forwards instCcyList and skips topInstruments when instCcyList is provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorIds: "1,2", instCcyList: "BTC,ETH" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.instCcyList, "BTC,ETH");
+    assert.equal(params.topInstruments, undefined);
+  });
+
+  it("rejects passing both instCcyList and topInstruments", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ authorIds: "1,2", instCcyList: "BTC", topInstruments: "5" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /mutually exclusive/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("does not forward instId or lmtNum (removed from this tool)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorIds: "1,2", topInstruments: "10" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.instId, undefined);
+    assert.equal(params.lmtNum, undefined);
   });
 });
 
-describe("smartmoney_get_signal_history_by_coin", () => {
+describe("smartmoney_get_signal_trend_by_filter", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_signal_history_by_coin")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_signal_trend_by_filter")!;
 
   it("throws ValidationError when instId is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ ts: "1712000000000" }, makeContext(client)),
+      () => tool.handler({ startTime: "1711999800000", endTime: "1712000000000" }, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /instId/i.test((err as ValidationError).message),
     );
   });
 
-  it("throws ValidationError when ts is missing", async () => {
+  it("throws ValidationError when startTime/endTime is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
       () => tool.handler({ instId: "BTC-USDT-SWAP" }, makeContext(client)),
-      (err: unknown) => err instanceof ValidationError && /ts/i.test((err as ValidationError).message),
+      (err: unknown) => err instanceof ValidationError && /startTime.*endTime/i.test((err as ValidationError).message),
     );
   });
 
-  it("calls signal-history endpoint with instId, ts, granularity, limit", async () => {
+  it("throws ValidationError when endTime < startTime", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT-SWAP", startTime: "2000", endTime: "1000" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /endTime.*≥.*startTime/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("calls signal-history endpoint with instId + startTime/endTime window + granularity + limit", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
-      { instId: "BTC-USDT-SWAP", ts: "1712000000000", granularity: "1d", limit: "48" },
+      {
+        instId: "BTC-USDT-SWAP",
+        startTime: "1711999800000",
+        endTime: "1712000000000",
+        granularity: "1d",
+        limit: "48",
+      },
       makeContext(client),
     );
     const params = getLastCall()!.params;
     assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal-history");
     assert.equal(params.instId, "BTC-USDT-SWAP");
+    assert.equal(params.startTime, "1711999800000");
+    assert.equal(params.endTime, "1712000000000");
     assert.equal(params.granularity, "1d");
     assert.equal(params.limit, 48);
-    assert.equal(Number(params.ts as string) % 3_600_000, 0);
+    assert.equal(params.ts, undefined, "ts is no longer plumbed");
   });
 
-  it("passes signal-side pool filter params (public names → upstream API names)", async () => {
+  it("passes signal-side pool filter params + lmtNum (public names → upstream API names)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
         instId: "BTC-USDT-SWAP",
-        ts: "1712000000000",
+        startTime: "1711999800000",
+        endTime: "1712000000000",
         pnlTier: "PNL_TOP20",
         winRateTier: "WR_GE_80",
+        lmtNum: "150",
       },
       makeContext(client),
     );
     const params = getLastCall()!.params;
     assert.equal(params.pnl, "PNL_TOP20");
     assert.equal(params.winRatio, "WR_GE_80");
+    assert.equal(params.lmtNum, 150);
   });
 });
 
-describe("smartmoney_get_signal_history_by_traders", () => {
+describe("smartmoney_get_signal_trend_by_trader", () => {
   const tools = registerSmartmoneyTools();
-  const tool = tools.find((t) => t.name === "smartmoney_get_signal_history_by_traders")!;
+  const tool = tools.find((t) => t.name === "smartmoney_get_signal_trend_by_trader")!;
 
   it("throws ValidationError when instId is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ authorIds: "1,2", ts: "1712000000000" }, makeContext(client)),
+      () => tool.handler({ authorIds: "1,2", startTime: "1711999800000", endTime: "1712000000000" }, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /instId/i.test((err as ValidationError).message),
     );
   });
@@ -5627,29 +5640,29 @@ describe("smartmoney_get_signal_history_by_traders", () => {
   it("throws ValidationError when authorIds is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ instId: "BTC-USDT-SWAP", ts: "1712000000000" }, makeContext(client)),
+      () => tool.handler({ instId: "BTC-USDT-SWAP", startTime: "1711999800000", endTime: "1712000000000" }, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /authorIds/i.test((err as ValidationError).message),
     );
   });
 
-  it("throws ValidationError when ts is missing", async () => {
+  it("throws ValidationError when startTime/endTime is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
       () => tool.handler({ instId: "BTC-USDT-SWAP", authorIds: "1,2" }, makeContext(client)),
-      (err: unknown) => err instanceof ValidationError && /ts/i.test((err as ValidationError).message),
+      (err: unknown) => err instanceof ValidationError && /startTime.*endTime/i.test((err as ValidationError).message),
     );
   });
 
-  it("calls signal-history endpoint with instId, authorIds, ts, granularity, limit, lmtNum", async () => {
+  it("calls signal-history endpoint with instId + authorIds + startTime/endTime + granularity + limit (no lmtNum)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
         instId: "BTC-USDT-SWAP",
         authorIds: "1001,1002",
-        ts: "1712000000000",
+        startTime: "1711999800000",
+        endTime: "1712000000000",
         granularity: "1h",
         limit: "12",
-        lmtNum: "50",
       },
       makeContext(client),
     );
@@ -5657,9 +5670,11 @@ describe("smartmoney_get_signal_history_by_traders", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal-history");
     assert.equal(params.instId, "BTC-USDT-SWAP");
     assert.equal(params.authorIds, "1001,1002");
+    assert.equal(params.startTime, "1711999800000");
+    assert.equal(params.endTime, "1712000000000");
     assert.equal(params.granularity, "1h");
     assert.equal(params.limit, 12);
-    assert.equal(params.lmtNum, 50);
-    assert.equal(Number(params.ts as string) % 3_600_000, 0);
+    assert.equal(params.lmtNum, undefined, "lmtNum is no longer plumbed");
+    assert.equal(params.ts, undefined, "ts is no longer plumbed");
   });
 });
