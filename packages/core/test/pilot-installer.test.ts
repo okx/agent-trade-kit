@@ -78,13 +78,11 @@ describe("getPlatformDir", () => {
   });
 
   it("linux-arm64 is a supported platform (regression guard for issue #166 bug 1)", () => {
-    // linux-arm64 is intentionally aliased to linux-x64 — this matches the
-    // Docker Desktop test environment on Apple Silicon (linux/amd64 emulation).
-    // The original #166 bug was a missing entry (undefined); this test guards
-    // against re-introducing that by asserting the key resolves to a non-empty
-    // directory. A native linux-arm64 CDN directory is future work.
+    // Native arm64 binary now exists on CDN at /upgradeapp/tools/pilot/linux-arm64/
+    // (verified 2026-04-29). PLATFORM_MAP routes linux-arm64 hosts to the
+    // native binary directory, eliminating the prior x64-via-emulation fallback.
     const dir = PLATFORM_MAP["linux-arm64"];
-    assert.equal(dir, "linux-x64", "PLATFORM_MAP linux-arm64 must alias linux-x64");
+    assert.equal(dir, "linux-arm64", "PLATFORM_MAP linux-arm64 must map to native linux-arm64 binary");
   });
 
   it("win32-arm64 is a supported platform", () => {
