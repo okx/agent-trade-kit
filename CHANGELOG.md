@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Layered Architecture diagram** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`): replaced the single-path waterfall diagram that incorrectly labeled `packages/mcp/src/index.ts` as "CLI entry" with a two-binary diagram showing `okx-trade-mcp` and `okx` as independent binaries that both import from `@agent-tradekit/core` (shared SDK). Closes #185.
+- **`docs/faq.md` — API key storage answer**: added a clarifying sentence that the CLI (`okx`) and the MCP server (`okx-trade-mcp`) each read `~/.okx/config.toml` independently with no dependency between them.
+
 ### Changed
 
 - **`linux-arm64` hosts now use native arm64 pilot binary** (`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`). The previous `linux-arm64 → linux-x64` fallback (introduced as a stop-gap when no native binary was on CDN) downloaded the x64 binary and ran it via qemu/binfmt emulation. The native arm64 binary has been published at `/upgradeapp/tools/pilot/linux-arm64/okx-pilot` (verified 2026-04-29); routing to it directly removes the emulation overhead — faster startup, lower CPU.

@@ -11,6 +11,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **分层架构图**（`ARCHITECTURE.md`、`ARCHITECTURE.zh-CN.md`）：将错误的单路径瀑布式架构图（误将 `packages/mcp/src/index.ts` 标记为"CLI 入口"）替换为双 binary 架构图，正确展示 `okx-trade-mcp` 与 `okx` 作为两个独立可执行文件，均从 `@agent-tradekit/core`（共享 SDK）导入。Closes #185。
+- **`docs/faq.md` — API 密钥存储说明**：补充一句说明 CLI（`okx`）与 MCP server（`okx-trade-mcp`）各自独立读取 `~/.okx/config.toml`，互不依赖。
+
 ### 变更
 
 - **`linux-arm64` 主机现使用原生 arm64 pilot 二进制**（`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`）。此前 `linux-arm64 → linux-x64` 的临时回退（当时 CDN 上没有原生 arm64 二进制）会让用户下载 x64 二进制经 qemu/binfmt 模拟运行。现在原生 arm64 二进制已发布在 `/upgradeapp/tools/pilot/linux-arm64/okx-pilot`（2026-04-29 验证），直接路由到该文件，去掉模拟层 —— 启动更快、CPU 占用更低。
