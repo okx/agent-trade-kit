@@ -13,6 +13,8 @@
 
 ### 修复
 
+- **`cmdAuthRemove` 错误处理**（`packages/cli/src/commands/auth.ts`）：`removeAuthBinary()` 外围已有的 try/catch 现已补充测试覆盖。在 `packages/cli/test/auth.test.ts` 中新增两个单元测试，验证当 `removeAuthBinary()` 抛出异常（如权限拒绝 / EACCES）时：(a) 文本模式下 `errorLine` 被调用且包含错误信息，(b) JSON 模式下输出 `{status:"failed", error:<msg>}`，(c) 两种模式下 `process.exitCode` 均置为 `1`，且不向上层重新抛出。Closes #159。
+
 - **分层架构图**（`ARCHITECTURE.md`、`ARCHITECTURE.zh-CN.md`）：将错误的单路径瀑布式架构图（误将 `packages/mcp/src/index.ts` 标记为"CLI 入口"）替换为双 binary 架构图，正确展示 `okx-trade-mcp` 与 `okx` 作为两个独立可执行文件，均从 `@agent-tradekit/core`（共享 SDK）导入。Closes #185。
 - **`docs/faq.md` — API 密钥存储说明**：补充一句说明 CLI（`okx`）与 MCP server（`okx-trade-mcp`）各自独立读取 `~/.okx/config.toml`，互不依赖。
 

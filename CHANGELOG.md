@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`cmdAuthRemove` error handling** (`packages/cli/src/commands/auth.ts`): the existing try/catch around `removeAuthBinary()` now has test coverage. Added two unit tests to `packages/cli/test/auth.test.ts` that verify when `removeAuthBinary()` throws (e.g. permission denied / EACCES): (a) `errorLine` is called with the error message in text mode, (b) JSON output `{status:"failed", error:<msg>}` is produced in json mode, and (c) `process.exitCode` is set to `1` in both cases with no rethrow to the caller. Closes #159.
+
 - **Layered Architecture diagram** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`): replaced the single-path waterfall diagram that incorrectly labeled `packages/mcp/src/index.ts` as "CLI entry" with a two-binary diagram showing `okx-trade-mcp` and `okx` as independent binaries that both import from `@agent-tradekit/core` (shared SDK). Closes #185.
 - **`docs/faq.md` — API key storage answer**: added a clarifying sentence that the CLI (`okx`) and the MCP server (`okx-trade-mcp`) each read `~/.okx/config.toml` independently with no dependency between them.
 
