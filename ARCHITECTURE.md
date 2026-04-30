@@ -44,7 +44,7 @@ okx-trade-mcp/
 │   ├── mcp/                         # okx-trade-mcp
 │   │   └── src/
 │   │       ├── server.ts            # MCP Server: ListTools/CallTool handlers
-│   │       └── index.ts             # CLI entry: parse args → load config → start server
+│   │       └── index.ts             # MCP server entry: parse args → load config → start server
 │   └── cli/                         # okx-trade-cli
 │       └── src/
 │           └── index.ts             # CLI entry point

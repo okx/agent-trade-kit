@@ -44,7 +44,7 @@ okx-trade-mcp/
 │   ├── mcp/                         # okx-trade-mcp
 │   │   └── src/
 │   │       ├── server.ts            # MCP Server：ListTools/CallTool 处理器
-│   │       └── index.ts             # CLI 入口：解析参数 → 加载配置 → 启动服务器
+│   │       └── index.ts             # MCP 入口：解析参数 → 加载配置 → 启动服务器
 │   └── cli/                         # okx-trade-cli
 │       └── src/
 │           └── index.ts             # CLI 入口
