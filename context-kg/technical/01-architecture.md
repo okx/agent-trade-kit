@@ -1,22 +1,33 @@
 <!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, pilot, Pilot, okx-pilot, pilot-cache, PilotManager, PilotNode, list-tools -->
 # System Architecture
 
-## Five-Layer Stack
+## Two-Binary Architecture
+
+CLI and MCP are independent binaries that share `@agent-tradekit/core`. See `ARCHITECTURE.md` Section 3 for the canonical diagram.
 
 ```
-┌─────────────────────────────────────────┐
-│  MCP Host (Claude, agent-hub, etc.)     │  ← JSON-RPC 2.0 over stdio
-├─────────────────────────────────────────┤
-│  Entry Point (packages/mcp/src/index)   │  ← process stdin/stdout
-├─────────────────────────────────────────┤
-│  MCP Server (createServer)              │  ← ListTools / CallTool handlers
-├─────────────────────────────────────────┤
-│  Tool Registry (packages/core/tools/)   │  ← ToolSpec definitions, module filter
-├─────────────────────────────────────────┤
-│  REST Client (packages/core/client/)    │  ← HMAC signing, rate limiting
-├─────────────────────────────────────────┤
-│  OKX API (api.okx.com / regional)      │  ← HTTP/REST
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────┐  ┌─────────────────────────────────────────┐
+│  MCP Host (Claude, agent-hub, etc.)     │  │  User Terminal                          │
+│  JSON-RPC 2.0 over stdio                │  │                                         │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │ stdio JSON-RPC                                │ terminal command
+┌────────────────────▼────────────────────┐  ┌──────────────────────▼──────────────────┐
+│  okx-trade-mcp  (binary)                │  │  okx  (binary)                          │
+│  packages/mcp/src/index.ts              │  │  packages/cli/src/index.ts              │
+│  → MCP Server → ListTools / CallTool    │  │  → parser → ToolRunner                  │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │                                               │
+                     └──────────────────────┬───────────────────────┘
+                                            │
+                      ┌─────────────────────▼─────────────────────┐
+                      │    @agent-tradekit/core  (shared SDK)     │
+                      │ config · tools · rest-client · signature  │
+                      └─────────────────────┬─────────────────────┘
+                                            │ HTTPS + HMAC-SHA256
+                      ┌─────────────────────▼─────────────────────┐
+                      │            OKX REST API v5                 │
+                      │          https://www.okx.com               │
+                      └─────────────────────────────────────────────┘
 ```
 
 ## MCP Server (`packages/mcp/`)

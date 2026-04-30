@@ -44,7 +44,7 @@ okx-trade-mcp/
 │   ├── mcp/                         # okx-trade-mcp
 │   │   └── src/
 │   │       ├── server.ts            # MCP Server：ListTools/CallTool 处理器
-│   │       └── index.ts             # CLI 入口：解析参数 → 加载配置 → 启动服务器
+│   │       └── index.ts             # MCP 入口：解析参数 → 加载配置 → 启动服务器
 │   └── cli/                         # okx-trade-cli
 │       └── src/
 │           └── index.ts             # CLI 入口
@@ -61,38 +61,28 @@ okx-trade-mcp/
 ## 3. 分层架构
 
 ```
-┌─────────────────────────────────────────────────────┐
-│               MCP Host Process                        │
-│      (Claude Desktop / Claude Code / SDK)             │
-└──────────────────────┬──────────────────────────────┘
-                       │ stdio JSON-RPC
-┌──────────────────────▼──────────────────────────────┐
-│               index.ts (CLI 入口)                     │
-│   parseArgs → loadConfig → createServer → connect    │
-└──────────────────────┬──────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────┐
-│               server.ts (MCP Server)                  │
-│   ListToolsHandler  │  CallToolHandler                │
-│   buildCapabilitySnapshot  │  errorResult / successResult │
-└──────────────────────┬──────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────┐
-│           tools/ (工具注册层)                          │
-│   buildTools(config) → ToolSpec[]                     │
-│   market / spot-trade / swap-trade / account          │
-└──────────────────────┬──────────────────────────────┘
-                       │ context.client.*
-┌──────────────────────▼──────────────────────────────┐
-│           client/rest-client.ts (HTTP 层)             │
-│   publicGet / privateGet / privatePost                │
-│   → sign → fetch → parse → error handling            │
-└──────────────────────┬──────────────────────────────┘
-                       │ HTTPS
-┌──────────────────────▼──────────────────────────────┐
-│               OKX REST API v5                         │
-│             https://www.okx.com                       │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐  ┌─────────────────────────────────────────┐
+│  MCP Host                               │  │  用户终端                               │
+│  (Claude Desktop / Claude Code / SDK)   │  │                                         │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │ stdio JSON-RPC                                │ 终端命令
+┌────────────────────▼────────────────────┐  ┌──────────────────────▼──────────────────┐
+│  okx-trade-mcp (binary)                 │  │  okx (binary)                           │
+│  packages/mcp/src/index.ts              │  │  packages/cli/src/index.ts              │
+│  → server.ts → 工具列举 / 工具调用      │  │  → 参数解析 → ToolRunner                │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │                                               │
+                     └──────────────────────┬───────────────────────┘
+                                            │
+                      ┌─────────────────────▼─────────────────────┐
+                      │  @agent-tradekit/core（共享 SDK）          │
+                      │  config · tools · rest-client · 签名       │
+                      └─────────────────────┬─────────────────────┘
+                                            │ HTTPS + HMAC-SHA256
+                      ┌─────────────────────▼─────────────────────┐
+                      │            OKX REST API v5                 │
+                      │          https://www.okx.com               │
+                      └─────────────────────────────────────────────┘
 ```
 
 ---
