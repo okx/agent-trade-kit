@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`event_browse` concurrency cap** (`packages/core/src/tools/event-trade.ts`, `event-helpers.ts`): replaced unbounded `Promise.all` with a semaphore-based `withConcurrency` helper capped at `MAX_CONCURRENT_MARKET_FETCHES = 8` concurrent market-fetch requests (rate limit window is 20 req; 12 requests kept as buffer for retries and other calls in the same window: `20 - 12 = 8`). Also switched from `Promise.all` to `Promise.allSettled` semantics so a single failing series fetch no longer aborts the entire browse — series with no active contracts are silently skipped and all successful series are still returned. Closes #146.
+
 - **`cmdAuthRemove` error handling** (`packages/cli/src/commands/auth.ts`): the existing try/catch around `removeAuthBinary()` now has test coverage. Added two unit tests to `packages/cli/test/auth.test.ts` that verify when `removeAuthBinary()` throws (e.g. permission denied / EACCES): (a) `errorLine` is called with the error message in text mode, (b) JSON output `{status:"failed", error:<msg>}` is produced in json mode, and (c) `process.exitCode` is set to `1` in both cases with no rethrow to the caller. Closes #159.
 
 - **Layered Architecture diagram** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`): replaced the single-path waterfall diagram that incorrectly labeled `packages/mcp/src/index.ts` as "CLI entry" with a two-binary diagram showing `okx-trade-mcp` and `okx` as independent binaries that both import from `@agent-tradekit/core` (shared SDK). Closes #185.
