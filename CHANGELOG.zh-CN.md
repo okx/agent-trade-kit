@@ -22,6 +22,8 @@
 
 - **`linux-arm64` 主机现使用原生 arm64 pilot 二进制**（`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`）。此前 `linux-arm64 → linux-x64` 的临时回退（当时 CDN 上没有原生 arm64 二进制）会让用户下载 x64 二进制经 qemu/binfmt 模拟运行。现在原生 arm64 二进制已发布在 `/upgradeapp/tools/pilot/linux-arm64/okx-pilot`（2026-04-29 验证），直接路由到该文件，去掉模拟层 —— 启动更快、CPU 占用更低。
 
+- **`context-kg/` 06/07/08 Mapping 章节刷新**（`context-kg/business/06-leaderboard-smartmoney-api.md`、`07-dcd-api.md`、`08-dca-api.md`）：三份文档末尾的"Mapping to …"章节已全部重写，改为反映实际已交付的工具清单。`06` 现列出 5 个已发布的 `smartmoney_*` 工具（替换原先 7 个 `market_*` 提案命名），并注明 `feat/smartmoney-fix` 分支正在进行进一步重构。`07` 现列出 6 个扁平 `dcd_*` 工具，并说明将 quote→trade 和 redeem-quote→redeem 合并为单一工具的设计决策。`08` 现列出 5 个统一的 `dca_*` 工具（通过 `algoOrdType: spot_dca | contract_dca` 区分 V1/V2），并新增"待实现（Backlog）"小节，列出 10 个尚未封装的 V2 上游 API 路径。Closes #187。
+
 ---
 
 ## [1.3.2] - 2026-04-27

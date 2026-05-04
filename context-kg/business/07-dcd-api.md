@@ -269,13 +269,17 @@ Notes:
 7. **String vs number timestamps**: global rule says strings, but `/quote` sample shows `interestAccrualTime: 1773241200000` as a raw number.
 8. **State capitalization**: `/trade` returns uppercase state (`"LIVE"`), others lowercase. Client must normalize.
 
-## Mapping to `earn.dcd` Module
+## As-shipped tool surface (`packages/core/src/tools/earn/dcd.ts`)
 
-The existing `earn.dcd` MCP module in this repo wraps this API. When adding or changing tools:
+The `earn.dcd` module uses flat `dcd_*` naming (not dotted `earn.dcd.*`). 6 tools shipped:
 
-- Currency-pair and product discovery → `earn.dcd.get_currency_pairs`, `earn.dcd.list_products`
-- Quote → trade flow → `earn.dcd.request_quote` + `earn.dcd.place_trade` (must be paired; quote is single-use and TTL-bounded)
-- Redeem flow → `earn.dcd.request_redeem_quote` + `earn.dcd.redeem` (two-step, enforce atomicity in docs)
-- Order tracking → `earn.dcd.get_order_status`, `earn.dcd.list_order_history`
+| Tool | Backing API | Params | `isWrite` |
+|---|---|---|---|
+| `dcd_get_currency_pairs` | 1 — `GET /currency-pair` | none | false |
+| `dcd_get_products` | 2 — `GET /products` | `baseCcy`, `quoteCcy`, `optType` (all required) | false |
+| `dcd_get_order_state` | 7 — `GET /order-status` | `ordId` (required) — returns `ordId + state` only | false |
+| `dcd_get_orders` | 8 — `GET /order-history` | `ordId`, `productId`, `uly`, `state`, cursor filters, `limit` | false |
+| `dcd_subscribe` | 3 + 4 — `POST /quote` → `POST /trade` | Bundles the 2-step quote→trade flow atomically | true |
+| `dcd_redeem` | 5 + 6 — `POST /redeem-quote` → `POST /redeem` | Bundles the 2-step redeem-quote→redeem flow atomically | true |
 
-Remember: Writing endpoints (`isWrite: true`) — quote/trade/redeem-quote/redeem. Read endpoints — currency-pair/products/order-status/order-history.
+**Bundling rationale**: `dcd_subscribe` covers both `/quote` and `/trade` in a single tool call to enforce atomicity — a quote is single-use and expires at `validUntil` (TTL from the upstream spec). Exposing them as separate tools would let agents hold a quote between calls and risk expiry. The same logic applies to `dcd_redeem` bundling `/redeem-quote` + `/redeem`.

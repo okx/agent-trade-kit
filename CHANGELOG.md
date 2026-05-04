@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`linux-arm64` hosts now use native arm64 pilot binary** (`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`). The previous `linux-arm64 → linux-x64` fallback (introduced as a stop-gap when no native binary was on CDN) downloaded the x64 binary and ran it via qemu/binfmt emulation. The native arm64 binary has been published at `/upgradeapp/tools/pilot/linux-arm64/okx-pilot` (verified 2026-04-29); routing to it directly removes the emulation overhead — faster startup, lower CPU.
 
+- **`context-kg/` mapping sections refreshed for 06/07/08** (`context-kg/business/06-leaderboard-smartmoney-api.md`, `07-dcd-api.md`, `08-dca-api.md`): The "Mapping to …" sections in all three docs have been rewritten to reflect the as-shipped tool surface. `06` now lists the 5 shipped `smartmoney_*` tools (replacing the pre-implementation 7-tool `market_*` proposal) with a note that `feat/smartmoney-fix` is in flight for a further redesign. `07` now lists the 6 flat `dcd_*` tools with an explanation of the deliberate quote→trade and redeem-quote→redeem bundling decisions. `08` now lists the 5 unified `dca_*` tools that key off `algoOrdType: spot_dca | contract_dca`, plus a new "Backlog (not yet wrapped)" subsection listing the 10 V2-only upstream API paths not yet implemented. Closes #187.
+
 ---
 
 ## [1.3.2] - 2026-04-27
