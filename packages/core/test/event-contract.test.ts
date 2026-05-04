@@ -1179,6 +1179,256 @@ describe("event_get_fills settlement enrichment details", () => {
 // ---------------------------------------------------------------------------
 
 import { formatDisplayTitle } from "../src/utils/event-format.js";
+import { withConcurrency } from "../src/tools/event-helpers.js";
+
+// ---------------------------------------------------------------------------
+// 测试组 16：withConcurrency helper — settled result shape
+// ---------------------------------------------------------------------------
+
+describe("withConcurrency — settled result shape", () => {
+  it("returns fulfilled results for all resolved promises", async () => {
+    const items = [1, 2, 3];
+    const results = await withConcurrency(items, 10, (x) => Promise.resolve(x * 2));
+    assert.equal(results.length, 3);
+    for (const r of results) {
+      assert.equal(r.status, "fulfilled");
+    }
+    const values = results
+      .filter((r): r is PromiseFulfilledResult<number> => r.status === "fulfilled")
+      .map((r) => r.value);
+    assert.deepEqual(values.sort((a, b) => a - b), [2, 4, 6]);
+  });
+
+  it("returns rejected results for failing promises without throwing", async () => {
+    const items = [1, 2, 3];
+    const results = await withConcurrency(items, 10, (x) => {
+      if (x === 2) return Promise.reject(new Error("fail"));
+      return Promise.resolve(x * 10);
+    });
+    assert.equal(results.length, 3);
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    assert.equal(fulfilled.length, 2);
+    assert.equal(rejected.length, 1);
+  });
+
+  it("handles empty items array", async () => {
+    const results = await withConcurrency([], 5, () => Promise.resolve(0));
+    assert.equal(results.length, 0);
+  });
+
+  it("handles maxConcurrency >= items.length correctly", async () => {
+    const items = [1, 2];
+    const results = await withConcurrency(items, 100, (x) => Promise.resolve(x));
+    assert.equal(results.length, 2);
+    for (const r of results) {
+      assert.equal(r.status, "fulfilled");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 17：withConcurrency — concurrency cap enforcement
+// ---------------------------------------------------------------------------
+
+describe("withConcurrency — concurrency cap enforcement", () => {
+  it("never exceeds maxConcurrency in-flight", async () => {
+    const items = Array.from({ length: 18 }, (_, i) => i);
+    let inFlight = 0;
+    let maxObserved = 0;
+
+    const results = await withConcurrency(items, 8, (item) => {
+      inFlight++;
+      if (inFlight > maxObserved) maxObserved = inFlight;
+      return new Promise<number>((resolve) => {
+        setImmediate(() => {
+          inFlight--;
+          resolve(item);
+        });
+      });
+    });
+
+    assert.equal(results.length, 18);
+    assert.ok(
+      maxObserved <= 8,
+      `Expected max in-flight <= 8, got ${maxObserved}`,
+    );
+  });
+
+  it("peak in-flight reaches close to maxConcurrency when items > cap", async () => {
+    // 18 items with cap=8: peak should be ≥ 6 to confirm worker pool is not serial
+    const items = Array.from({ length: 18 }, (_, i) => i);
+    let inFlight = 0;
+    let maxObserved = 0;
+
+    await withConcurrency(items, 8, (item) => {
+      inFlight++;
+      if (inFlight > maxObserved) maxObserved = inFlight;
+      return new Promise<number>((resolve) => {
+        setImmediate(() => {
+          inFlight--;
+          resolve(item);
+        });
+      });
+    });
+
+    assert.ok(
+      maxObserved >= 6,
+      `Expected peak in-flight >= 6 (worker pool parallelism), got ${maxObserved}`,
+    );
+  });
+
+  it("partial rejections do not prevent other tasks from running", async () => {
+    const items = Array.from({ length: 10 }, (_, i) => i);
+    const results = await withConcurrency(items, 4, (x) => {
+      if (x % 3 === 0) return Promise.reject(new Error(`fail-${x}`));
+      return Promise.resolve(x * 2);
+    });
+    assert.equal(results.length, 10);
+    const fulfilled = results.filter((r) => r.status === "fulfilled").length;
+    const rejected = results.filter((r) => r.status === "rejected").length;
+    // items 0,3,6,9 reject → 4 rejected, 6 fulfilled
+    assert.equal(rejected, 4);
+    assert.equal(fulfilled, 6);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 测试组 18：event_browse — concurrency cap via handler
+// ---------------------------------------------------------------------------
+
+describe("event_browse — concurrency cap via handler (MAX=8)", () => {
+  const tools = registerEventContractTools();
+  const tool = tools.find((t) => t.name === "event_browse")!;
+
+  it("never has more than 8 concurrent /markets requests in-flight", async () => {
+    // 18 candidate series: 6 underlyings × 3 methods (but filterBrowseCandidates
+    // picks one per method:underlying, so we supply 18 distinct method:underlying combos)
+    const underlyings = ["BTC-USDT", "ETH-USDT", "TRX-USDT", "SOL-USDT", "EOS-USDT", "IOTA-USDT"];
+    const methods = ["price_above", "price_up_down", "price_once_touch"];
+    const allCandidateSeries = underlyings.flatMap((uly, ui) =>
+      methods.map((method, mi) => ({
+        seriesId: `${uly.split("-")[0]}-${method.toUpperCase().replace(/_/g, "-")}-DAILY-${ui}${mi}`,
+        freq: "daily",
+        settlement: { method, underlying: uly },
+      })),
+    );
+    // Ensure human-readable IDs (filterBrowseCandidates checks known prefixes)
+    const series = allCandidateSeries.map((s) => ({
+      ...s,
+      seriesId: `${s.settlement.underlying.split("-")[0]}-ABOVE-DAILY-${s.seriesId.slice(-2)}`,
+      settlement: s.settlement,
+    }));
+
+    let inFlight = 0;
+    let maxObserved = 0;
+    const futureExpTime = String(Date.now() + 86400000);
+
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string, params?: Record<string, unknown>) => {
+        if (ep.includes("/series")) {
+          return { endpoint: ep, requestTime: "t", data: series };
+        }
+        if (ep.includes("/markets")) {
+          inFlight++;
+          if (inFlight > maxObserved) maxObserved = inFlight;
+          return new Promise<{ endpoint: string; requestTime: string; data: unknown[] }>((resolve) => {
+            setImmediate(() => {
+              inFlight--;
+              const sid = (params as Record<string, unknown> | undefined)?.["seriesId"];
+              resolve({
+                endpoint: ep,
+                requestTime: "t",
+                data: sid
+                  ? [{ instId: `${sid}-260401-1600-50000`, floorStrike: "50000", expTime: futureExpTime, outcome: "0" }]
+                  : [],
+              });
+            });
+          });
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+
+    // All 18 series should have returned results (each has a contract)
+    assert.ok(data.length > 0, "should have returned some series results");
+    assert.ok(
+      maxObserved <= 8,
+      `Expected max in-flight /markets requests <= 8, got ${maxObserved}`,
+    );
+  });
+
+  it("series with no active contracts are excluded from results", async () => {
+    // 4 candidates; 2 will have their markets return data, 2 will return empty (filtered out)
+    const series = [
+      { seriesId: "BTC-ABOVE-DAILY", freq: "daily", settlement: { method: "price_above", underlying: "BTC-USDT" } },
+      { seriesId: "ETH-ABOVE-DAILY", freq: "daily", settlement: { method: "price_above", underlying: "ETH-USDT" } },
+      { seriesId: "TRX-ABOVE-DAILY", freq: "daily", settlement: { method: "price_above", underlying: "TRX-USDT" } },
+      { seriesId: "SOL-ABOVE-DAILY", freq: "daily", settlement: { method: "price_above", underlying: "SOL-USDT" } },
+    ];
+    const futureExpTime = String(Date.now() + 86400000);
+
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string, params?: Record<string, unknown>) => {
+        if (ep.includes("/series")) {
+          return { endpoint: ep, requestTime: "t", data: series };
+        }
+        if (ep.includes("/markets")) {
+          const sid = (params as Record<string, unknown> | undefined)?.["seriesId"];
+          // BTC and ETH succeed; TRX and SOL return empty (no active contracts)
+          if (sid === "BTC-ABOVE-DAILY" || sid === "ETH-ABOVE-DAILY") {
+            return {
+              endpoint: ep, requestTime: "t",
+              data: [{ instId: `${sid}-260401-1600-50000`, floorStrike: "50000", expTime: futureExpTime, outcome: "0" }],
+            };
+          }
+          return { endpoint: ep, requestTime: "t", data: [] };
+        }
+        return { endpoint: ep, requestTime: "t", data: [] };
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    // Only BTC and ETH have active contracts, TRX and SOL are filtered (no floorStrike match)
+    assert.equal(data.length, 2);
+    const seriesIds = data.map((d) => d["seriesId"]);
+    assert.ok(seriesIds.includes("BTC-ABOVE-DAILY"));
+    assert.ok(seriesIds.includes("ETH-ABOVE-DAILY"));
+  });
+
+  it("response never includes a 'failed' field even when market fetches error internally", async () => {
+    // fetchActiveContractsForSeries catches all errors and returns null — withConcurrency
+    // sees only fulfilled(null) results, so r.status === "rejected" never fires.
+    // Verify the response omits 'failed' entirely rather than claiming a count we cannot track.
+    const series = [
+      { seriesId: "BTC-ABOVE-DAILY", freq: "daily", settlement: { method: "price_above", underlying: "BTC-USDT" } },
+    ];
+    const client = {
+      publicGet: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+      privateGet: async (ep: string) => {
+        if (ep.includes("/series")) {
+          return { endpoint: ep, requestTime: "t", data: series };
+        }
+        // Simulate API error — fetchActiveContractsForSeries catches this and returns null
+        throw new Error("simulated network error");
+      },
+      privatePost: async (ep: string) => ({ endpoint: ep, requestTime: "t", data: [] }),
+    };
+
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    assert.equal((result["data"] as unknown[]).length, 0);
+    assert.equal(result["total"], 0);
+    assert.equal(result["failed"], undefined, "'failed' field must not appear in the response");
+  });
+});
 
 describe("formatDisplayTitle", () => {
   it("formats ABOVE instId", () => {

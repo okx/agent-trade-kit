@@ -205,6 +205,38 @@ export function resolveOutcome(value: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Concurrency helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Run `fn` over all `items` with at most `maxConcurrency` promises in-flight
+ * at any given time. Returns a settled result for every item (never throws).
+ */
+export async function withConcurrency<T, R>(
+  items: T[],
+  maxConcurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function runNext(): Promise<void> {
+    while (nextIndex < items.length) {
+      const idx = nextIndex++;
+      try {
+        results[idx] = { status: "fulfilled", value: await fn(items[idx]!) };
+      } catch (err) {
+        results[idx] = { status: "rejected", reason: err };
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(maxConcurrency, items.length) }, runNext);
+  await Promise.all(workers);
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Browse helpers
 // ---------------------------------------------------------------------------
 

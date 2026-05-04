@@ -13,6 +13,8 @@
 
 ### 修复
 
+- **`event_browse` 并发限流修复**（`packages/core/src/tools/event-trade.ts`、`event-helpers.ts`）：将无上限的 `Promise.all` 替换为基于信号量的 `withConcurrency` 工具函数，最大并发市场拉取请求数限制为 `MAX_CONCURRENT_MARKET_FETCHES = 8`（频率限制窗口为 20 req；预留 12 个请求作为重试及同一窗口内其他调用的缓冲：`20 - 12 = 8`）。同时将 `Promise.all` 改为 `Promise.allSettled` 语义，单个 series 拉取失败不再中断整个 browse —— 无活跃合约的 series 静默跳过，成功的 series 正常返回。Closes #146。
+
 - **`cmdAuthRemove` 错误处理**（`packages/cli/src/commands/auth.ts`）：`removeAuthBinary()` 外围已有的 try/catch 现已补充测试覆盖。在 `packages/cli/test/auth.test.ts` 中新增两个单元测试，验证当 `removeAuthBinary()` 抛出异常（如权限拒绝 / EACCES）时：(a) 文本模式下 `errorLine` 被调用且包含错误信息，(b) JSON 模式下输出 `{status:"failed", error:<msg>}`，(c) 两种模式下 `process.exitCode` 均置为 `1`，且不向上层重新抛出。Closes #159。
 
 - **分层架构图**（`ARCHITECTURE.md`、`ARCHITECTURE.zh-CN.md`）：将错误的单路径瀑布式架构图（误将 `packages/mcp/src/index.ts` 标记为"CLI 入口"）替换为双 binary 架构图，正确展示 `okx-trade-mcp` 与 `okx` 作为两个独立可执行文件，均从 `@agent-tradekit/core`（共享 SDK）导入。Closes #185。
