@@ -72,6 +72,7 @@ curl -X POST 'https://open.larksuite.com/open-apis/bot/v2/hook/b9beca3e-ec61-40f
 - Update README feature/module counts (if applicable)
 - Run `pnpm test:unit` — all tests must pass
 - Run `pnpm build && pnpm typecheck` — no errors
+- **新增/修改 MCP tool 时：在 `eval/probes/<module>/` 下补 probe**（见下方 LLM Eval Probe 节）
 
 ## Post-merge Verification
 
@@ -109,6 +110,7 @@ Review MCP 相关 MR 时按以下顺序检查（完整版见 `docs/mcp-design-gu
 7. **Parity**: MCP tool ↔ CLI command 同步
 8. **Workflow**: agent-skills 中有 workflows.md
 9. **Tests**: CLI 参数路由测试存在
+10. **Eval Probe**: `eval/probes/<module>/tier2-<tool_name>.live.test.ts` 存在（新增 tool 必须有；修改 tool 逻辑须确认 probe 仍有效）
 
 ## CLI Parameter Routing Tests
 
@@ -137,6 +139,64 @@ skills/okx-cex-skill-mp/SKILL.md
 每个文件的 frontmatter 中均有 `metadata.version` 字段，在版本 bump commit 中一并更新。所有 skill 统一使用与发布包相同的版本号。
 
 **Beta 版不更新** skill 版本号，仅稳定版发布时同步。
+
+## LLM Eval Probe（跨 repo 规范）
+
+### 为什么
+
+MCP tool 最终由 LLM agent 调用。Unit test 只验证代码逻辑；eval probe 验证 **LLM 能否正确理解 tool 描述、调用工具、返回真实数据**。两者缺一不可。
+
+### 架构
+
+```
+okx-trade-mcp (本 repo)          idea-agent (eval 执行侧)
+  eval/probes/<module>/    ──→   eval runner Docker 容器
+    tier2-<tool>.live.test.ts       clone 本 repo 指定 branch
+                                    将 eval/probes/**/*.live.test.ts
+                                    合并进容器内 vitest 套件运行
+                                    结果聚合 → idea-agent dashboard
+```
+
+probe 文件随工具代码在同一 MR 提交，eval runner 在容器内自动捡起。
+
+### 目录对照
+
+| 模块 | probe 目录 |
+|------|-----------|
+| market | `eval/probes/market/` |
+| spot | `eval/probes/spot/` |
+| swap | `eval/probes/swap/` |
+| futures | `eval/probes/futures/` |
+| option | `eval/probes/option/` |
+| account | `eval/probes/account/` |
+| event | `eval/probes/event/` |
+| news | `eval/probes/news/` |
+| smartmoney | `eval/probes/smartmoney/` |
+| earn.savings / onchain / dcd / autoearn / flash | `eval/probes/earn/<sub>/` |
+| bot.grid / dca | `eval/probes/bot/<sub>/` |
+| skills | `eval/probes/skills/` |
+
+文件命名：`tier2-<tool_name>.live.test.ts`（snake_case，与 tool name 一致）。
+
+### Import（固定写法，无视目录深度）
+
+```typescript
+import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+```
+
+`@eval/shared` 是 idea-agent eval runner 容器内配置的 Vite alias，永远指向 `probes/shared/`，不需要相对路径。
+
+### 强制规则
+
+- **新增 MCP tool → 必须同 MR 提交对应 probe**（CI `eval-probe-check` job 静态拦截）
+- **修改 tool 描述/行为 → 确认现有 probe 仍有效**（或更新 probe）
+- probe 必须使用 `EVAL_NONCE` 模式：把随机字符串嵌入 prompt，断言 LLM 回复中包含它，防止幻觉通过
+
+### 触发 eval 运行
+
+在 idea-agent dashboard（`http://<idea-agent-host>/`）的 Eval 面板，选择对应的 skills branch 和 cli branch，即可触发针对该 MR branch 的完整 eval run。结果可通过 run detail 页面查看每条 probe 的执行日志和 pass/fail。
+
+完整 probe 编写指南见 [`eval/README.md`](eval/README.md)。
 
 ## Code Style
 
