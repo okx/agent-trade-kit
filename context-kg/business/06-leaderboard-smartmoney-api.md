@@ -375,26 +375,19 @@ Cross-instrument scan — returns smart money signal for the top-N most-held ins
 
 ---
 
-## Mapping to Issue #94 Tool Design
+## As-shipped tool surface (`packages/core/src/tools/smartmoney.ts`)
 
-Potential MCP tool split (subject to design review per `docs/mcp-design-guideline.md`):
+Issue #94 is closed (merged via MR !268 on 2026-04-21). The 5 shipped tools use flat `smartmoney_*` naming, not the `market_*` draft names from the pre-implementation proposal.
 
-| Tool candidate | Backing API | Notes |
+| Tool | Backing API | Key params |
 |---|---|---|
-| `market_list_top_traders` | 3.1 | Tier/threshold filters, pagination |
-| `market_get_trader_positions` | 3.2 | By `authorId` |
-| `market_get_trader_position_history` | 3.3 | Pagination by `posId` |
-| `market_get_trader_trades` | 3.4 | Pagination by `ordId` |
-| `market_get_smart_money_signal` | 4.1 | Single instrument aggregate |
-| `market_get_smart_money_history` | 4.2 | Time series |
-| `market_get_smart_money_overview` | 4.3 | Top-N cross-instrument |
+| `smartmoney_get_overview` | 4.3 | `ts` or `dataVersion` (required); `instType`, `instCcyList`, `topInstruments`, pool filters |
+| `smartmoney_get_signal` | 4.1 | `instId` (recommended) or `instCcy`; `ts` or `dataVersion` (required); pool filters, `lmtNum` |
+| `smartmoney_get_signal_history` | 4.2 | `instId` (required); `ts` or `dataVersion` (required); `granularity`, `limit`, pool filters |
+| `smartmoney_get_traders` | 3.1 | Tier/threshold filters, pagination cursors |
+| `smartmoney_get_trader_detail` | 3.2 + 3.3 + 3.4 | `authorId` (required) — positions, history, and trades folded into one tool |
 
-**Design reminders when implementing**:
-- Parameters must be flat (string/number/boolean only) per `docs/mcp-design-guideline.md`. Array params like `authorIds`, `topInstruments`, `instCcyList` should be CSV-joined strings at the MCP boundary and split in the handler.
-- Registry entry required in `docs/module-registry.md`; module token budget ≤ 25k.
-- Every new MCP tool needs a paired CLI command (Triangle Sync: CLI / MCP / Skills).
-- Tier enums (`PNL_TOP20`, `WR_GE_80`, ...) should be validated with zod enums, not free-form strings.
-- URL prefixes are final: `/api/v5/orbit/public/*` for 3.1–3.4, `/api/v5/journal/smartmoney/*` for 4.1–4.3.
+**Note**: The `feat/smartmoney-fix` branch is in flight to redesign this into 10 atomic tools. A second KB-sync issue will update this section after that branch merges.
 
 ## Timeline (from source doc)
 
