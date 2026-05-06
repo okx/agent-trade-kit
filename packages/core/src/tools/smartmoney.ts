@@ -27,18 +27,6 @@ const PATH_OVERVIEW = "/api/v5/journal/smartmoney/overview";
 const PATH_SIGNAL_HISTORY = "/api/v5/journal/smartmoney/signal-history";
 
 /* ------------------------------------------------------------------ */
-/*  Shared annotations                                                 */
-/* ------------------------------------------------------------------ */
-
-/** All smartmoney tools are read-only; share one annotations object. */
-const READ_ONLY_ANNOTATIONS = {
-  readOnlyHint: true,
-  idempotentHint: true,
-  openWorldHint: true,
-  destructiveHint: false,
-} as const;
-
-/* ------------------------------------------------------------------ */
 /*  Shared trader-pool filter properties & reader                      */
 /* ------------------------------------------------------------------ */
 
@@ -527,7 +515,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "See also: `smartmoney_get_performance_by_trader` (lookup by ID), `smartmoney_search_trader` (lookup by nickname). " +
         "Note: `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8, different from signal tools' 10-digit UTC `asOfTime`/`dataVersion` — do not cross-pass.",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         { type: "array", items: { type: "object", properties: TRADER_ITEM_PROPS } },
         {
@@ -603,7 +590,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "See also: `smartmoney_search_trader` (resolve nickname → authorId), `smartmoney_get_traders_by_filter` (criteria-based discovery). " +
         "Note: response `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8 — do not pass to signal-side tools' `asOfTime` (10-digit UTC).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         { type: "array", items: { type: "object", properties: TRADER_ITEM_PROPS } },
         {
@@ -672,7 +658,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use when: inspecting what a top trader is holding RIGHT NOW. " +
         "See also: `smartmoney_get_trader_positions_history` (closed positions), `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         items: {
@@ -771,7 +756,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use when: studying realized PnL pattern, holding duration, win/loss streaks, or how positions ended (closed vs liquidated). " +
         "See also: `smartmoney_get_trader_positions` (currently-open), `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         {
           type: "array",
@@ -926,7 +910,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use when: tracking a top trader's latest trade activity. " +
         "See also: `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
         {
           type: "array",
@@ -1055,7 +1038,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use when: resolving a nickname or partial name to `authorId`(s) before calling other `smartmoney_get_trader_*` tools. " +
         "See also: `smartmoney_get_traders_by_filter` (discover top performers by criteria), `smartmoney_get_performance_by_trader` (lookup by known authorId).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Matched Top Traders (≤10), sorted by `followerCount` DESC. Empty array when no recall intersects the Top Trader set.",
@@ -1115,7 +1097,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use when: latest cross-asset consensus from a criteria-defined pool. " +
         "See also: `smartmoney_get_signal_overview_by_trader` (restrict pool to specific traders), `smartmoney_get_signal_trend_by_filter` (time-series instead of latest snapshot).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Per-instrument snapshot, one element per requested coin.",
@@ -1189,7 +1170,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use when: caller already knows which traders to follow and wants their cross-asset consensus at the latest hour. " +
         "See also: `smartmoney_get_signal_overview_by_filter` (criteria-defined pool), `smartmoney_get_signal_trend_by_trader` (time-series), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds).",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Per-instrument snapshot, one element per requested coin.",
@@ -1267,7 +1247,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "See also: `smartmoney_get_signal_overview_by_filter` (latest snapshot only), `smartmoney_get_signal_trend_by_trader` (restrict to specific traders). " +
         "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Time-bucket series for the requested instrument, sorted by time DESC (newest first).",
@@ -1352,7 +1331,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "See also: `smartmoney_get_signal_trend_by_filter` (criteria-defined pool), `smartmoney_get_signal_overview_by_trader` (latest snapshot only), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds). " +
         "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
       isWrite: false,
-      annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
         type: "array",
         description: "Time-bucket series for the requested instrument, sorted by time DESC (newest first).",

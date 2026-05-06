@@ -1,20 +1,5 @@
 # Smart Money 设计文档
 
-> **状态**：已实施（Phase 1 — 代码层已落地，feat/smartmoney-fix 分支）
-> **作者**：lewei.li
-> **日期**：2026-04-28 起草，2026-04-29 落地
-> **关联 Lark 文档**：https://okg-block.sg.larksuite.com/docx/ZQu1dvKCdoaalwx4Yh6lKImRg6g
-> **历史**：本文替代了原 5-tool 设计；2026-04-29 在 8→10 tool 重构中成为唯一权威设计
->
-> **2026-04-30 增量**：
-> - 新增 `smartmoney_search_trader`（按 nickname 关键词搜索 Top Trader → authorId）
-> - 删除 `smartmoney_get_top_coin_signals`（其 "Top-N 最热"语义已被 `smartmoney_get_signal_overview_by_filter` 用 `topInstruments` 默认值完全覆盖；避免双工具同职责）
-> - 重命名 `smartmoney_get_traders_by_id` → `smartmoney_get_performance_by_trader`（与 `_by_filter` 形成对偶；与 CLI `performance-by-trader` 完全 parity）
->
-> 当前权威工具数：**10 个**（trader 6 + signal 4）。下文中所有 `top_coin_signals` 引用以及"`get_traders_by_id`"提法仅作设计回顾，不再代表实现现状。
-
----
-
 ## 1. 设计动机
 
 当前 smartmoney 模块（`packages/core/src/tools/smartmoney.ts`，8 个 tool）存在以下 AI agent 友好度问题：
@@ -442,7 +427,7 @@ MCP 层（含 mutex 校验、`PATH_OVERVIEW` / `PATH_SIGNAL_HISTORY` 透传）�
 - `packages/cli/src/commands/smartmoney.ts` + `index.ts` + `cli-registry.ts`:S2/S4 CLI 命令删除池参数 flag,usage 字符串收缩。
 - `packages/core/test/tools.test.ts`:S2/S4 单测断言"drops pool filter params and lmtNum"。
 - `packages/cli/test/smartmoney-routing.test.ts`:S2/S4 routing 测试断言池 flag 被 drop。
-- `docs/modules/smartmoney.md` / `smartmoney.tools.md`:S2/S4 入参表与说明同步。
+- `docs/modules/smartmoney.md`:S2/S4 入参表与说明同步。
 - `CHANGELOG.md` / `CHANGELOG.zh-CN.md`:新 entry。
 - `skills/okx-cex-smartmoney*`:用法示例同步。
 
@@ -474,5 +459,5 @@ MCP 层（含 mutex 校验、`PATH_OVERVIEW` / `PATH_SIGNAL_HISTORY` 透传）�
 
 - 代码:`packages/core/src/tools/smartmoney.ts`(三处 schema/handler);`packages/cli/src/commands/smartmoney.ts` + `parser.ts` + `index.ts` + `cli-registry.ts`(flag 重命名 + csvToArray)。
 - 测试:`packages/core/test/tools.test.ts`(数组形态 + leaderboard 映射 + direction 派生三组用例);`packages/cli/test/smartmoney-routing.test.ts`(flag → array 路由)。
-- 文档:`docs/modules/smartmoney.md` + `smartmoney.tools.md`(入参表);`docs/cli-reference.md` + `skills/okx-cex-smartmoney/SKILL.md` + `references/{trader,signal}-commands.md` + `workflows.md`(用法示例)。
+- 文档:`docs/modules/smartmoney.md`(入参表);`docs/cli-reference.md` + `skills/okx-cex-smartmoney/SKILL.md` + `references/{trader,signal}-commands.md` + `workflows.md`(用法示例)。
 - CHANGELOG:新 BREAKING entry。

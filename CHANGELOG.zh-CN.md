@@ -11,222 +11,66 @@
 
 ## [Unreleased]
 
-### ⚠ 破坏性变更 —— Smart Money 入参形态:数组化 + leaderboard 阈值重命名 + 派生 `direction` 字段
+### ⚠ 破坏性变更 —— `smartmoney` 模块重构
 
-mcp-builder 审查后续三项修复:
+Smart Money MCP / CLI 工具面完全重写，目标是让 AI agent 仅凭工具名 / 参数 schema 就能选对工具。**不保留 alias**——旧工具/参数/字段名一律删除。完整设计依据见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md)。
 
-**(1) `authorIds` 与 `instCcyList` 改为字符串数组(原:逗号分隔字符串)。** 按 mcp-builder 最佳实践,优先使用强类型数组而非分隔字符串 — Zod 数组 schema 在 input 阶段就能拦下形状错误,避免运行时 CSV 解析黑盒。
+CLI 同步：每个 CLI 命令名 = MCP 工具名去 `smartmoney_` 前缀和 `get_` 动词，snake → kebab（如 `smartmoney_get_traders_by_filter` ↔ `okx smartmoney traders-by-filter`）。`--authorIds` / `--instCcyList` 仍可传逗号分隔字符串，CLI 在边界拆为数组。
 
-| 工具 | 旧入参 | 新入参 |
-| --- | --- | --- |
-| `smartmoney_get_performance_by_trader` | `authorIds: "1001,1002"` | `authorIds: ["1001", "1002"]` |
-| `smartmoney_get_signal_overview_by_filter` | `instCcyList: "BTC,ETH"` | `instCcyList: ["BTC", "ETH"]` |
-| `smartmoney_get_signal_overview_by_trader` | 两者 | 两者 |
-| `smartmoney_get_signal_trend_by_trader` | `authorIds` | 数组 |
+#### 工具面（8 → 10 个原子工具）
 
-CLI 同步:`--authorIds 1001,1002` / `--instCcyList BTC,ETH` 这种人类友好的 flag 形式保留;`commands/smartmoney.ts` 在调用 MCP tool 前拆数组。Handler 在调上游前再 join 回 CSV(上游 Orbit/Journal 端点仍接受 CSV)。
+| 旧（1.3.2） | 新 | 备注 |
+|---|---|---|
+| `get_traders`（pool-filter） | `get_traders_by_filter` | `limit` 默认 100 → 10 |
+| `get_traders`（authorIds） | `get_performance_by_trader` | 直查，不接池过滤 |
+| `get_trader_records` | `get_trader_orders_history` | 与 `*_get_orders` 家族对齐 |
+| `get_trader_positions` | `get_trader_positions` | 名称不变 |
+| `get_trader_position_history` | `get_trader_positions_history` | 复数化 |
+| `get_signal`（pool-filter） | `get_signal_overview_by_filter` | 删除 `ts`；`topInstruments`（默认 20）承接"top-N 最热" |
+| `get_signal`（authorIds） | `get_signal_overview_by_trader` | 入参收紧，不再接池过滤 |
+| `get_signal_history` | `get_signal_trend_by_filter` | 与 `_by_trader` 对仗 |
+| `get_overview`、`get_top_coin_signals`、`get_trader_detail` | _(删除)_ | 已被替代；`_trader_detail` 违反原子化 |
+| _(新增)_ | `search_trader` | 昵称 → authorId 解析（最多 10 条，按粉丝数倒序） |
+| _(新增)_ | `get_signal_trend_by_trader` | 单币时序，限定 authorIds |
 
-**(2) Leaderboard 池过滤入参重命名,与 signal 家族 `*Tier` 枚举消歧。**
+#### 入参变更
 
-| 旧公开名 | 新公开名 | 上游 API 名(不变) |
-| --- | --- | --- |
-| `pnl` | `minPnl` | `pnl` |
-| `winRate` | `minWinRate` | `winRate` |
-| `asset` | `minAum` | `asset` |
-| `maxDrawdown` | `maxDrawdown` | `maxDrawdown` |
+- **`authorIds` / `instCcyList` 改为字符串数组**（原 CSV 字符串）—— 强类型 schema 在 input 阶段就能拦下形状错误。
+- **Leaderboard 池过滤入参重命名** 与 signal 家族 `*Tier` 枚举消歧：`pnl` → `minPnl`、`winRate` → `minWinRate`、`asset` → `minAum`（`maxDrawdown` 不变）。Signal 家族保留 `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`。
+- **时间锚点按家族拆分**：leaderboard 用 `updateTime`（12 位 `yyyyMMddHHmm` UTC+8）；signal-trend 用可选 `asOfTime`（10 位 `yyyyMMddHH` UTC，缺省=当前整点）；signal-overview 不接受时间入参。`ts` 与 `dataVersion` 作为入参全部删除。
+- **`signal_*_by_trader` 不再接受池过滤入参** —— 池过滤轴仅 `_by_filter` 暴露，详见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) §13。
+- **Trader 端 `instCcy` → `instId`**：`_trader_positions` / `_positions_history` / `_orders_history` 接受完整 `instId` 或裸 base ccy；handler 自动提取 base。
+- **Signal 池过滤新增 `period`**（3/7/30/90，默认 7），覆盖所有 signal 工具（之前仅 leaderboard）。
+- **`lmtNum` 上限 500 → 2000**（signal-overview 工具）。
 
-原因:`pnl`(leaderboard 数值阈值)与 `pnlTier`(signal 百分位枚举)极易混淆 — agent 可能 `traders-by-filter --pnlTier PNL_TOP20`(静默无效)或 `signal-overview-by-filter --pnl 10000`(静默无效)。新的 `min*` / `max*` 命名空间与 `*Tier` 完全分离,两边不会再交叉污染。CLI flag 同步:`--pnl` → `--minPnl`、`--winRate` → `--minWinRate`、`--asset` → `--minAum`。Handler 内部把新公开名映射回上游 API 名,Orbit `/leaderboard` 协议本身没动。
+#### 出参变更
 
-**(3) `smartmoney_get_trader_positions` 输出新增派生字段 `direction`。**
+- **Leaderboard 字段重命名**（所有出现处）：`winRatio` → `winRate`、`maxRetreat` → `maxDrawdown`、`dataVersion` → `updateTime`（仅 leaderboard；signal 条目仍在 bucket 级保留 `dataVersion`）。
+- **Signal-overview 改为嵌套分组** 对齐 OpenAPI `/overview` 规范 —— 外层 `ccy` + `notional` / `longShortRatio` / `winRate` 三个对象。原扁平字段（`vs1h` / `vs24h` / `vs7d`、顶层 `longNotionalUsdt` 等）已移除。
+- **新增字段**：`direction`（由 `posSide` + `pos` 符号派生的 `"long" | "short"`）与 `upl`（未实现盈亏，计价币单位），仅 `_trader_positions`。
+- **删除字段**：`topNUsed` / `currentPrice` / `priceChange24h` / `fundingRate` / `openInterest` / `longShortAccountRatio` / `ts` —— 后端不再返回。
 
-每行附带 `direction: "long" | "short"`(handler 由上游 `posSide` 与 `pos` 数值符号推导)。原始 `posSide`(`"long" | "short" | "both"`)保留;`"both"` 表示净仓模式(方向藏在 `pos` 的正负号),agent 几乎都会忽略这层 — 现在直接派生为一等字段。当 `posSide="both"` 且 `pos=0` 时(退化情况,无方向可判)派生字段省略。
+#### 其他
 
-### ⚠ 破坏性变更 —— `signal_*_by_trader` 入参收紧（按业务场景拆分）
+- 全部工具显式声明 MCP tool annotation：`readOnlyHint` / `idempotentHint` / `openWorldHint`。
+- handler 改返回人类可读的引导信息，替代后端 `sCode`。
 
-`smartmoney_get_signal_overview_by_trader` 与 `smartmoney_get_signal_trend_by_trader` 不再接受池过滤入参(`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`)。池过滤轴现在仅 `_by_filter` 暴露。
+#### 迁移示例
 
-原因:此前两个工具都暴露池过滤器,后端再与 `authorIds` 取交集 — 这让两个工具语义高度重叠,AI agent 必须读 description 中"Do NOT use without authorIds"等 negative space 规则才能消歧。改为按**业务场景**划分 — `_by_filter` 走 tier 探索,`_by_trader` 走 authorIds 直查 — 让两个工具的 inputSchema 完全 disjoint,AI agent 看 schema 即可选对。authorIds 直查场景下后端使用默认池配置。
+```ts
+// 多币 overview —— instCcyList 仍可用，无需时间入参
+smartmoney_get_signal_overview_by_filter({ instCcyList: ["BTC", "ETH"] })
 
-| 工具 | 删除的入参 |
-| --- | --- |
-| `smartmoney_get_signal_overview_by_trader` | `sortBy`, `period`, `pnlTier`, `winRateTier`, `maxDrawdownTier`, `aumTier`, `lmtNum` |
-| `smartmoney_get_signal_trend_by_trader` | 同上 |
+// 单币 signal-history → signal-trend；asOfTime 可选
+smartmoney_get_signal_trend_by_filter({ instCcy: "BTC", granularity: "1h", limit: 24 })
 
-CLI 同步:`okx smartmoney signal-overview-by-trader` 与 `okx smartmoney signal-trend-by-trader` 不再接受对应的 `--sortBy` / `--period` / `--pnlTier` / `--winRateTier` / `--maxDrawdownTier` / `--aumTier` / `--lmtNum` flag。下游若仍传,CLI 静默丢弃,不再透传(与 MCP 行为一致)。
-
-完整设计见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) §13。
-
-### ⚠ 破坏性变更 —— `smartmoney` 模块重构（8 → 10 个原子工具）
-
-Smart Money MCP / CLI 工具面已完整重写，目标是让 AI agent 仅凭工具名就能选对工具。**工具名、参数名、部分返回字段名全部变化**，且**不保留 alias**（旧名一律删除）。
-
-动机：旧的 8 工具面里有多个"多模式工具"（`get_overview` 按 `instCcyList` 切换；`get_signal` 按 `authorIds` 切换；`get_traders` 按 `authorIds` 切换），AI agent 单看工具名无法可靠区分。新工具面按入口维度（`_by_coin` / `_by_traders` / `_top_*`）拆分，agent 看名字即知场景。
-
-完整设计依据见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md)。
-
-### 新增
-
-- **`smartmoney_search_trader`（新工具）** —— 通过昵称关键词搜索 Top Trader（CLI: `okx smartmoney search-trader --keyword <name>`）。后端取 KOL 全文召回 ∩ Top Trader 集合，按 OKX 平台粉丝数倒序返回最多 10 条。补齐"用户只知道昵称、不知道 authorId"的缺口 —— agent 调用其他 `smartmoney_get_trader_*` 之前可先解析昵称为 authorId，无需像 1.3.2 那样直接报错。
-- **`smartmoney_get_signal_trend_by_trader`（新工具）** —— 单币信号时间序列，限定指定 `authorIds`。补齐了 signal-history 家族缺失的维度（此前只有池过滤模式）。
-- **MCP tool annotation** —— Smart Money 全部工具显式声明 `readOnlyHint: true` / `idempotentHint: true` / `openWorldHint: true`，便于 agent 推断安全 / 幂等属性，无需写死工具名清单。
-- **可操作的错误信息** —— handler 改为返回人类可读的引导（如"ts 必须是 UTC ms，收到非数字字符串"、"`_by_traders` 变体必须传 authorIds"），不再透传后端晦涩的 `sCode`。
-
-### 变更
-
-- **工具面拆分为 10 个原子工具**。旧 → 新映射：
-
-  | 旧 MCP 工具（1.3.2） | 新 MCP 工具 | 备注 |
-  |---|---|---|
-  | `smartmoney_get_traders`（pool filter） | `smartmoney_get_traders_by_filter` | 池排序模式；`limit` 默认 100 → 10（与其余 4 个分页 trader tool 对齐） |
-  | `smartmoney_get_traders`（authorIds） | `smartmoney_get_performance_by_trader` | 按 ID 直查，不接池过滤 |
-  | `smartmoney_get_trader_records` | `smartmoney_get_trader_orders_history` | 与跨模块 `*_get_orders` 系列对齐；复数化 |
-  | `smartmoney_get_trader_positions` | `smartmoney_get_trader_positions` | 名称不变；入参 `instCcy` → `instId`（handler 自动从 `BTC-USDT-SWAP` 提取 base ccy 转发上游） |
-  | `smartmoney_get_trader_position_history` | `smartmoney_get_trader_positions_history` | 复数化对齐 `_orders_history`；入参 `instCcy` → `instId` |
-  | `smartmoney_get_signal`（pool filter） | `smartmoney_get_signal_overview_by_filter` | 拆出；不再接受 `ts`（handler 自动取当前小时）。同时承担过去"top-N 最热"场景：传 `--topInstruments`（默认 20）即可。 |
-  | `smartmoney_get_signal`（authorIds） | `smartmoney_get_signal_overview_by_trader` | 拆出；`ts` 自动 |
-  | `smartmoney_get_signal_history` | `smartmoney_get_signal_trend_by_filter` | 重命名以与新增的 `_by_traders` 对仗 |
-
-- **CLI 命令同步重命名**（保持 MCP↔CLI parity —— 去掉 `smartmoney_` 模块前缀和 `get_` 动词，snake → kebab；如 `smartmoney_get_traders_by_filter` ↔ `traders-by-filter`。单复数与 MCP 一致：`trader-positions-history`、`trader-orders-history`）：
-
-  | 旧 CLI | 新 CLI |
-  |---|---|
-  | `okx smartmoney traders` | `okx smartmoney traders-by-filter` |
-  | `okx smartmoney traders --authorIds …` | `okx smartmoney performance-by-trader` |
-  | `okx smartmoney trades` | `okx smartmoney trader-orders-history` |
-  | `okx smartmoney positions` | `okx smartmoney trader-positions` |
-  | `okx smartmoney position-history` | `okx smartmoney trader-positions-history` |
-  | `okx smartmoney overview` | `okx smartmoney signal-overview-by-filter --topInstruments 20` |
-  | `okx smartmoney signal`（池过滤） | `okx smartmoney signal-overview-by-filter` |
-  | `okx smartmoney signal --authorIds …` | `okx smartmoney signal-overview-by-trader` |
-  | `okx smartmoney signal-history` | `okx smartmoney signal-trend-by-filter` |
-  | _（新增）_ | `okx smartmoney signal-trend-by-trader` |
-
-- **入参重命名**：
-  - `smartmoney_get_trader_positions` / `_positions_history` / `_orders_history`（CLI: `--instCcy` → `--instId`）：公开入参接受完整 `instId`（如 `BTC-USDT-SWAP`）或裸 base ccy（如 `BTC`）；handler 内部自动提取 base 转发上游（上游仍按 base ccy 过滤）。
-  - Signal 家族池过滤枚举：`maxDrawdownTier` 取值统一为 `MR_*` 前缀（`MR_ANY` / `MR_LE_20` / `MR_LE_50`）—— 与 OKX SmartMoney OpenAPI 文档完全一致（取消公开 ↔ 上游重命名）。
-  - Signal 家族池过滤入参 key：公开名（`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`）直接透传至 `/signal`、`/overview`、`/signal-history`，不再做重命名（之前把 `pnlTier → pnl`、`winRateTier → winRatio`、`maxDrawdownTier → maxRetreat`、`sortBy → sortType` 的映射已删除，因为后端实际就接受 tier 名）。
-  - Leaderboard 家族：`sortType` → **`sortBy`**（枚举值由下划线 `pnl_ratio` 改驼峰 `pnlRatio`）；`winRatio` → **`winRate`**、`maxRetreat` → **`maxDrawdown`**（与新返回字段名一致）。公开名直接透传至上游 `/leaderboard`，之前 `winRate → winRatio`、`maxDrawdown → maxRetreat` 的重命名层已删除（后端已支持新名）。
-  - **Signal 池过滤新增 `period`**（3 / 7 / 30 / 90，默认 7），覆盖所有 signal 类工具（`signal_overview_*` / `signal_trend_*`）；之前仅 leaderboard 家族有 `period`。
-  - **`signal_overview_by_trader` 接受完整池过滤入参集合**（`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`）；`authorIds` 与池过滤后的池子取交集。先前只接受 `authorIds` + `topInstruments` / `instCcyList`。
-  - **`lmtNum` 上限提升** 500 → 2000（信号 overview 工具）— 与 OpenAPI 文档区间一致。
-  - `smartmoney_get_traders_by_filter`：入参快照键 `dataVersion` → **`updateTime`**（CLI: `--dataVersion` → `--updateTime`）。
-  - `smartmoney_get_traders_by_filter` 的 `limit` 默认值由 100 → 10（统一其余 4 个 paginated trader tool 的默认值）。
-  - **Signal-trend 工具**（`smartmoney_get_signal_trend_by_filter` / `_by_trader`）：单点 `ts` 入参改为 `asOfTime`（10 位 `yyyyMMddHH` UTC，可选 —— 缺省=当前 UTC 整点）+ `limit` 桶数。CLI: `--ts <ms>` → `--asOfTime <yyyyMMddHH>`。新增可选 `--instCcy` 辅助过滤。档位池过滤器（`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`）现在 `_by_filter` 与 `_by_trader` **均**暴露——`authorIds` 与 phase-1 池取交集。`lmtNum` 上限由 500 提升至 2000。
-
-- **返回字段重命名**（所有出现处同步）：
-  - `winRatio` → **`winRate`**（leaderboard 条目）
-  - `maxRetreat` → **`maxDrawdown`**（leaderboard 条目）
-  - `dataVersion` → **`updateTime`**（仅 leaderboard 条目；signal 条目仍保留 bucket 级 `dataVersion`）
-  - `avgLongWinRatio` → **`avgLongWinRate`**（signal 条目）
-  - `avgShortWinRatio` → **`avgShortWinRate`**（signal 条目）
-
-- **Signal-overview 出参 schema 改为嵌套分组（对齐 OpenAPI `/overview` 规范）** —— `signal_overview_by_filter` 与 `signal_overview_by_trader` 的每个币种条目改用外层 `ccy` 标识 + 三个嵌套对象：
-  - `notional`：`longNotionalUsdt` / `shortNotionalUsdt` / `netNotionalUsdt` / `totalNotionalUsdt` / `totalNotionalVs24h` / `smartMoneyLongAvgEntry` / `smartMoneyShortAvgEntry`
-  - `longShortRatio`：`longRatioVs1h` / `longRatioVs24h` / `longRatioVs7d` / `longRatio` / `shortRatio` / `weightedLongRatio` / `weightedShortRatio`
-  - `winRate`：`avgLongWinRate` / `avgShortWinRate`
-
-  外层字段：`ccy` / `dataVersion`（`yyyyMMddHH` UTC，10 位 —— 旧文档误写为 `yyyyMMddHHmm`）/ `tradersWithPosition` / `tradersQualified` / `longTraders` / `shortTraders`。原扁平字段（`vs1h` / `vs24h` / `vs7d`、顶层 `longNotionalUsdt` 等）已移除，请到对应嵌套分组中读取。
-
-- **新增返回字段**：
-  - **`upl`**（浮动 / 未实现盈亏，计价币单位）—— `smartmoney_get_trader_positions` 持仓条目新增。与既有 `pnl`（已实现盈亏）区分。
-
-### 移除
-
-- **删除工具**（无 alias，调用方必须迁移）：
-  - `smartmoney_get_overview`（instCcyList 多币模式）—— 由 `smartmoney_get_signal_overview_by_filter` 接管（2026-04-30 后端回退后已重新支持 `instCcyList`）。
-  - `smartmoney_get_top_coin_signals` —— "top-N 最热"的窄入口；其语义已被 `smartmoney_get_signal_overview_by_filter`（默认 `topInstruments=20`）完全覆盖且字段更丰富。2026-04-30 删除以避免两个工具承担同一职责。
-  - `smartmoney_get_trader_detail` —— 3 接口聚合的复合工具，违反原子化原则。改为并发调用 `smartmoney_get_performance_by_trader` + `smartmoney_get_trader_positions` + `smartmoney_get_trader_orders_history`。
-  - CLI：`okx smartmoney trader`（复合命令）和 `okx smartmoney top-coin-signals` 已删除。
-
-- **删除入参**：
-  - **`dataVersion`** 作为入参 —— 在 trader leaderboard 由 `updateTime` 替代；在 signal-trend 由 `asOfTime`（10 位 `yyyyMMddHH` UTC 锚点）替代。Signal-overview（`signal_overview_by_filter` / `_by_trader`）不再接受任何时间入参，handler 自动取当前小时。
-  - **`ts`**（单点锚） —— 从 signal-trend 移除（改名为可选 `asOfTime`，缺省=当前 UTC 整点）；从 signal-overview 移除（当前小时隐式）。
-  - **`instCcy`** / **`instType`** —— 从 signal 家族移除。`instCcyList` 在 `signal_overview_by_filter` / `_by_trader` 上**保留**（2026-04-30 设计回退后重新引入）；新工具入参为 `topInstruments`（top-N 热门）**或** `instCcyList`（指定币种），二选一。
-  - **`tradeLimit`** —— 仅出现在已删除的 `_trader_detail`。
-
-- **删除返回字段**（signal / overview 类工具）：
-  - `topNUsed` / `currentPrice` / `priceChange24h` / `fundingRate` / `openInterest` / `longShortAccountRatio` —— 后端不再返回。
-  - `ts` —— 出参只保留 `dataVersion`（UTC `yyyyMMddHH00`），二者重复，去掉 `ts`。
-
-### 迁移示例
-
-多币 overview —— 新工具上 `instCcyList` 已恢复支持，仍为单次调用：
-
-迁移前：
-
-```
-smartmoney_get_overview({ dataVersion: "202604281500", instCcyList: "BTC,ETH" })
-```
-
-迁移后（一次调用，无需时间入参）：
-
-```
-smartmoney_get_signal_overview_by_filter({ instCcyList: "BTC,ETH" })
-```
-
-单币 signal —— 池过滤 PnL 档位字段重命名：
-
-迁移前：
-
-```
-smartmoney_get_signal({ instId: "BTC-USDT-SWAP", dataVersion: "202604281500", pnl: "PNL_TOP5" })
-```
-
-迁移后（不需要传 `ts` / `dataVersion`，handler 自动取当前小时；`pnl` 档位重命名为 `pnlTier`）：
-
-```
-smartmoney_get_signal_overview_by_filter({ instCcyList: "BTC", pnlTier: "PNL_TOP5" })
-```
-
-单币 signal history —— `ts` 锚点改名为 `asOfTime`（10 位 `yyyyMMddHH` UTC），且改为可选（缺省=当前 UTC 整点）：
-
-迁移前：
-
-```
-smartmoney_get_signal_history({ instId: "BTC-USDT-SWAP", ts: "1745844000000", limit: 24 })
-```
-
-迁移后（截止当前整点的最近 24 根 1h K，无需任何时间入参）：
-
-```
-smartmoney_get_signal_trend_by_filter({ instCcy: "BTC", granularity: "1h", limit: "24" })
-```
-
-或者锚定指定 UTC 整点：
-
-```
-smartmoney_get_signal_trend_by_filter({
-  instCcy: "BTC",
-  asOfTime: "2026050100",
-  granularity: "1h",
-  limit: "24",
-})
-```
-
-Trader detail 复合工具已删除 —— 改为 3 次原子并发：
-
-迁移前：
-
-```
-smartmoney_get_trader_detail({ authorId: "X", tradeLimit: 50 })
-```
-
-迁移后：
-
-```
+// trader_detail 复合工具已删除 → 3 次原子并发
 Promise.all([
-  smartmoney_get_performance_by_trader({ authorIds: "X" }),
+  smartmoney_get_performance_by_trader({ authorIds: ["X"] }),
   smartmoney_get_trader_positions({ authorId: "X" }),
   smartmoney_get_trader_orders_history({ authorId: "X", limit: 50 }),
 ])
 ```
-
-Trader leaderboard 入参重命名：
-
-迁移前：`--sortType pnl_ratio --winRatio 0.8 --maxRetreat 0.1 --dataVersion 202604281500`
-迁移后：`--sortBy pnlRatio --winRate 0.8 --maxDrawdown 0.1 --updateTime 202604281500`
-
-smartmoney 模块 token 预算：~4,713 → ~9,661 tokens（8 工具 → 10 个原子工具，全量 `outputSchema`）。
 
 ---
 
