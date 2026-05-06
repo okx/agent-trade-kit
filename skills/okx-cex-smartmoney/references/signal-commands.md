@@ -16,7 +16,7 @@ The previous overloaded `smartmoney signal` command (which switched on `--author
 ## smartmoney signal-overview-by-filter — Multi-Asset Signal (pool filter mode)
 
 ```bash
-okx smartmoney signal-overview-by-filter [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]
+okx smartmoney signal-overview-by-filter [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]
 ```
 
 Aggregates pool traders' positions across multiple instruments to produce per-instrument long/short ratio, weighted ratio, avg entry price, capital flow, and trend deltas vs 1h/24h/7d.
@@ -27,7 +27,7 @@ Pick instruments via `--topInstruments` (top-N hottest) **OR** `--instCcyList` (
 |---|---|---|---|
 | `--topInstruments` | No | `20` | Top-N hottest instruments (1–100). Mutually exclusive with `--instCcyList`. |
 | `--instCcyList` | No | - | Comma-separated base ccys, e.g. `BTC,ETH,SOL`. Mutually exclusive with `--topInstruments`. |
-| `--lmtNum` | No | `100` | Candidate trader pool size limit (1–500) |
+| `--lmtNum` | No | `100` | Candidate trader pool size limit (1–2000) |
 
 > **No `--ts` parameter.** The handler always uses the current hour. For historical timeline, use `signal-trend-by-filter`.
 

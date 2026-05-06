@@ -136,7 +136,8 @@ Single trader, current open positions only.
 | `posId` | Position unique ID |
 | `instId` | Instrument (e.g. `BTC-USDT-SWAP`) |
 | `instType` | SWAP, SPOT, etc. |
-| `posSide` | long / short / both |
+| `posSide` | Raw upstream direction: `long` / `short` / `both` (`both` = net/one-way mode; sign of `pos` encodes direction) |
+| `direction` | Derived clean direction: `long` / `short`. Handler computes from `posSide` + sign of `pos`, so agents don't have to branch on `posSide=both`. Prefer this over `posSide` for direction logic. |
 | `posCcy` | Position currency |
 | `quoteCcy` | Quote currency |
 | `pos` | Position size |
@@ -173,9 +174,11 @@ Closed positions with realized PnL, paginated by `posId` cursor.
 |---|---|
 | `posId` | Position ID |
 | `instId` | Instrument |
+| `instType` | Instrument business line: `SWAP` / `FUTURES` / `MARGIN` / `SPOT` |
 | `ctVal` | Contract value per contract |
 | `posSide` | long / short |
 | `lever` | Leverage |
+| `quoteCcy` | Quote currency the position settled in (e.g. `USDT`) |
 | `openAvgPx` / `closeAvgPx` | Open / close avg price |
 | `openMaxAmount` / `closeAmount` | Max held / closed size (contracts) |
 | `realizedPnl` | Realized PnL |

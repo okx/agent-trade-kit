@@ -822,15 +822,15 @@ export function registerSmartmoneyTools(): ToolSpec[] {
                 description:
                   "Cumulative funding fee paid or received over the position's lifetime, denominated in quoteCcy (numeric string; negative = paid, positive = received).",
               },
-              liquidationStatus: {
-                type: "string",
-                description:
-                  "Whether the position was liquidated. `0` = normal close (not liquidated); `1` = liquidated.",
-              },
               closeType: {
                 type: "string",
                 description:
-                  "How the position was closed. `allClose` = entire position closed in one action; `partClose` = partially closed (position reduced but not fully exited).",
+                  "How the position was closed. " +
+                  "`allClose` = entire position closed in one action; " +
+                  "`partClose` = partially closed (position reduced but not fully exited); " +
+                  "`liquidateClose` = forced liquidation; " +
+                  "`liquidateReceive` = received liquidation transfer; " +
+                  "`adl` = auto-deleveraging.",
               },
               cTime: { type: "string", description: "Position open time as Unix milliseconds (numeric string)." },
               uTime: { type: "string", description: "Position close time as Unix milliseconds (numeric string)." },
