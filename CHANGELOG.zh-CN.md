@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.3-beta.1] - 2026-05-06
+
 ### ⚠ 破坏性变更 —— `smartmoney` 模块重构
 
 Smart Money MCP / CLI 工具面完全重写，目标是让 AI agent 仅凭工具名 / 参数 schema 就能选对工具。**不保留 alias**——旧工具/参数/字段名一律删除。完整设计依据见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md)。

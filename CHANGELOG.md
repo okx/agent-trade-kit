@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3-beta.1] - 2026-05-06
+
 ### ⚠ BREAKING — `smartmoney` module redesign
 
 Smart Money MCP/CLI surface is fully rewritten for AI-agent disambiguation. **No compat shim** — old tool/parameter/field names are removed. Full rationale in [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md).
