@@ -536,11 +536,15 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           ...LEADERBOARD_POOL_FILTER_PROPS,
           after: {
             type: "string",
-            description: "Cursor: returns traders with `authorId` smaller than this value (older — paginate backwards). Pass as quoted string (the `authorId` value verbatim, NOT a number).",
+            description:
+              "Cursor for paginating backwards (older page). Pass the `authorId` of the last item from the previous page verbatim as a quoted string (NOT a number). " +
+              "Cursor anchors on `authorId` while preserving the current `sortBy` order.",
           },
           before: {
             type: "string",
-            description: "Cursor: returns traders with `authorId` greater than this value (newer — paginate forwards). Pass as quoted string.",
+            description:
+              "Cursor for paginating forwards (newer page). Pass the `authorId` of the first item from the previous page verbatim as a quoted string. " +
+              "Cursor anchors on `authorId` while preserving the current `sortBy` order.",
           },
           limit: {
             type: "integer",
