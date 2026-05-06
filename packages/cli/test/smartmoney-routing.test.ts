@@ -54,22 +54,22 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.equal(captured.tool, "smartmoney_get_traders_by_filter");
     });
 
-    it("flows numeric-threshold pool filters (no `Tier` suffix) + sortBy + period", async () => {
+    it("flows numeric-threshold pool filters (min* names; distinct from signal-side tiers) + sortBy + period", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "traders-by-filter", [], vals({
         sortBy: "pnl",
         period: "30",
-        pnl: "10000",
-        winRate: "0.8",
+        minPnl: "10000",
+        minWinRate: "0.8",
         maxDrawdown: "0.2",
-        asset: "1000",
+        minAum: "1000",
       }), false);
       assert.equal(captured.args["sortBy"], "pnl");
       assert.equal(captured.args["period"], "30");
-      assert.equal(captured.args["pnl"], "10000");
-      assert.equal(captured.args["winRate"], "0.8");
+      assert.equal(captured.args["minPnl"], "10000");
+      assert.equal(captured.args["minWinRate"], "0.8");
       assert.equal(captured.args["maxDrawdown"], "0.2");
-      assert.equal(captured.args["asset"], "1000");
+      assert.equal(captured.args["minAum"], "1000");
     });
 
     it("flows updateTime + after/before/limit pagination + does NOT pass tier flags", async () => {
@@ -100,13 +100,14 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
   });
 
   describe("performance-by-trader", () => {
-    it("dispatches to smartmoney_get_performance_by_trader with authorIds + period", async () => {
+    it("dispatches to smartmoney_get_performance_by_trader with authorIds (array) + period", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "performance-by-trader", [], vals({
         authorIds: "1001,1002", period: "30",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_performance_by_trader");
-      assert.equal(captured.args["authorIds"], "1001,1002");
+      // CLI flag is comma-separated; commands.ts splits it before calling MCP tool.
+      assert.deepEqual(captured.args["authorIds"], ["1001", "1002"]);
       assert.equal(captured.args["period"], "30");
     });
 
@@ -266,14 +267,14 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.equal(captured.args["lmtNum"], "150");
     });
 
-    it("dispatches with instCcyList instead of topInstruments", async () => {
+    it("dispatches with instCcyList (array) instead of topInstruments", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "signal-overview-by-filter", [], vals({
         instCcyList: "BTC,ETH,SOL",
         pnlTier: "PNL_TOP20",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_signal_overview_by_filter");
-      assert.equal(captured.args["instCcyList"], "BTC,ETH,SOL");
+      assert.deepEqual(captured.args["instCcyList"], ["BTC", "ETH", "SOL"]);
       assert.equal(captured.args["topInstruments"], undefined);
       assert.equal(captured.args["pnlTier"], "PNL_TOP20");
     });
@@ -311,7 +312,7 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
         instId: "BTC-USDT-SWAP",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_signal_overview_by_trader");
-      assert.equal(captured.args["authorIds"], "1001,1002");
+      assert.deepEqual(captured.args["authorIds"], ["1001", "1002"]);
       assert.equal(captured.args["topInstruments"], "8");
       assert.equal(captured.args["instCcyList"], undefined);
       // Pool filters / pool sizing must NOT leak into the by-trader tool.
@@ -325,15 +326,15 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.equal(captured.args["instId"], undefined, "instId dropped");
     });
 
-    it("dispatches with authorIds + instCcyList instead of topInstruments", async () => {
+    it("dispatches with authorIds + instCcyList (both arrays) instead of topInstruments", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "signal-overview-by-trader", [], vals({
         authorIds: "1001,1002",
         instCcyList: "BTC,ETH",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_signal_overview_by_trader");
-      assert.equal(captured.args["authorIds"], "1001,1002");
-      assert.equal(captured.args["instCcyList"], "BTC,ETH");
+      assert.deepEqual(captured.args["authorIds"], ["1001", "1002"]);
+      assert.deepEqual(captured.args["instCcyList"], ["BTC", "ETH"]);
       assert.equal(captured.args["topInstruments"], undefined);
     });
 
@@ -424,7 +425,7 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
         lmtNum: "50",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_signal_trend_by_trader");
-      assert.equal(captured.args["authorIds"], "1001,1002");
+      assert.deepEqual(captured.args["authorIds"], ["1001", "1002"]);
       assert.equal(captured.args["instCcy"], "BTC");
       assert.equal(captured.args["asOfTime"], "2026050100");
       assert.equal(captured.args["granularity"], "1h");

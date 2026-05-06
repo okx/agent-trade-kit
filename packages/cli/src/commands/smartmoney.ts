@@ -14,6 +14,15 @@ function printDataTable(
   printTable(data.map(mapper));
 }
 
+// Split a comma-separated CLI flag value into a non-empty array of trimmed strings.
+// MCP tool inputSchema expects arrays for authorIds / instCcyList — CLI keeps the
+// ergonomic `--authorIds 1001,1002` flag form and converts at the boundary.
+function csvToArray(value: string | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const arr = value.split(",").map((s) => s.trim()).filter((s) => s.length > 0);
+  return arr.length > 0 ? arr : undefined;
+}
+
 // Surface cursor-pagination hint in table mode so interactive users know there
 // are more pages. Goes to stderr to keep stdout pipes clean for downstream tools.
 function printPaginationHint(result: unknown): void {
@@ -40,10 +49,10 @@ export interface SignalPoolFilterOpts {
 export interface LeaderboardPoolFilterOpts {
   sortBy?: string;
   period?: string;
-  pnl?: string;
-  winRate?: string;
+  minPnl?: string;
+  minWinRate?: string;
   maxDrawdown?: string;
-  asset?: string;
+  minAum?: string;
 }
 
 function signalPoolFilterArgs(o: SignalPoolFilterOpts): Record<string, unknown> {
@@ -61,10 +70,10 @@ function leaderboardPoolFilterArgs(o: LeaderboardPoolFilterOpts): Record<string,
   const result: Record<string, unknown> = {};
   if (o.sortBy) result.sortBy = o.sortBy;
   if (o.period) result.period = o.period;
-  if (o.pnl) result.pnl = o.pnl;
-  if (o.winRate) result.winRate = o.winRate;
+  if (o.minPnl) result.minPnl = o.minPnl;
+  if (o.minWinRate) result.minWinRate = o.minWinRate;
   if (o.maxDrawdown) result.maxDrawdown = o.maxDrawdown;
-  if (o.asset) result.asset = o.asset;
+  if (o.minAum) result.minAum = o.minAum;
   return result;
 }
 
@@ -112,7 +121,7 @@ export async function cmdSmartmoneyPerformanceByTrader(
   },
 ): Promise<void> {
   const result = await run("smartmoney_get_performance_by_trader", {
-    authorIds: opts.authorIds,
+    authorIds: csvToArray(opts.authorIds),
     period: opts.period,
   });
   if (opts.json) { printJson(result); return; }
@@ -144,7 +153,7 @@ export async function cmdSmartmoneyTraderPositions(
   const data = extractData(result);
   printDataTable(data, "No open positions", (r) => ({
     instId: r["instId"],
-    posSide: r["posSide"],
+    direction: r["direction"] ?? r["posSide"],
     pos: r["pos"],
     lever: r["lever"],
     avgPx: r["avgPx"],
@@ -278,7 +287,7 @@ export async function cmdSmartmoneySignalOverviewByFilter(
 ): Promise<void> {
   const result = await run("smartmoney_get_signal_overview_by_filter", {
     topInstruments: opts.topInstruments,
-    instCcyList: opts.instCcyList,
+    instCcyList: csvToArray(opts.instCcyList),
     ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
   });
@@ -297,9 +306,9 @@ export async function cmdSmartmoneySignalOverviewByTrader(
   },
 ): Promise<void> {
   const result = await run("smartmoney_get_signal_overview_by_trader", {
-    authorIds: opts.authorIds,
+    authorIds: csvToArray(opts.authorIds),
     topInstruments: opts.topInstruments,
-    instCcyList: opts.instCcyList,
+    instCcyList: csvToArray(opts.instCcyList),
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
@@ -359,7 +368,7 @@ export async function cmdSmartmoneySignalTrendByTrader(
   },
 ): Promise<void> {
   const result = await run("smartmoney_get_signal_trend_by_trader", {
-    authorIds: opts.authorIds,
+    authorIds: csvToArray(opts.authorIds),
     instCcy: opts.instCcy,
     asOfTime: opts.asOfTime,
     granularity: opts.granularity,

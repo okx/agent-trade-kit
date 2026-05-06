@@ -14,7 +14,7 @@ The 10-tool surface is split by **entry mode** so AI agents can pick the right t
 
 | Name | R/W | Description |
 |---|---|---|
-| smartmoney_get_traders_by_filter | R | Leaderboard ranking by pool conditions (period / pnl / winRate / maxDrawdown / asset / sortBy). Paginated by `authorId` cursor. |
+| smartmoney_get_traders_by_filter | R | Leaderboard ranking by pool conditions (period / minPnl / minWinRate / maxDrawdown / minAum / sortBy). Paginated by `authorId` cursor. |
 | smartmoney_get_performance_by_trader | R | PnL / win-rate profile for one or more `authorIds` (no pool filter). |
 | smartmoney_search_trader | R | Search Top Traders by nickname keyword (≤10 results, ranked by OKX-platform follower count). Used to resolve a name to `authorId`. |
 | smartmoney_get_trader_positions | R | A trader's current open positions. Filter by `instId` (full instId like `BTC-USDT-SWAP` or bare base ccy like `BTC`; handler extracts base ccy for upstream). |
@@ -78,12 +78,13 @@ Two **disjoint** parameter conventions, separated by endpoint family:
 |---|---|---|
 | `sortBy` | enum (`pnl` / `pnlRatio`) | Sort key |
 | `period` | `3` / `7` / `30` / `90` | Day window (default `90`, matches leaderboard UI) |
-| `pnl` | string (USD) | Min absolute PnL |
-| `winRate` | string (decimal, `0.8` = 80%) | Min win-rate |
+| `minPnl` | string (USD) | Min absolute PnL |
+| `minWinRate` | string (decimal, `0.8` = 80%) | Min win-rate |
 | `maxDrawdown` | string (decimal) | Max drawdown |
-| `asset` | string (USD) | Min AUM |
+| `minAum` | string (USD) | Min AUM |
 
-> **Renamed from previous version**: returned-field `winRatio` → `winRate`, `maxRetreat` → `maxDrawdown`. See CHANGELOG `## [Unreleased]` for the full migration table.
+> **Param namespace**: leaderboard pool filters use `min*` / `max*` prefixes — disjoint from signal-side `*Tier` enum names (`pnlTier` / `winRateTier` / etc.) so AI agents cannot accidentally cross-pollinate values. Handler renames `minPnl` → upstream `pnl`, `minWinRate` → `winRate`, `minAum` → `asset` (`maxDrawdown` is identity).
+> **Renamed from previous version**: input `pnl` → `minPnl`, `winRate` → `minWinRate`, `asset` → `minAum`. Returned-field `winRatio` → `winRate`, `maxRetreat` → `maxDrawdown`. See CHANGELOG `## [Unreleased]` for the full migration table.
 
 ### Time anchors
 
@@ -142,7 +143,7 @@ okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC [--a
 
 | 名称 | 读/写 | 说明 |
 |---|---|---|
-| smartmoney_get_traders_by_filter | 读 | 按池筛选条件（period / pnl / winRate / maxDrawdown / asset / sortBy）排行榜。`authorId` 游标分页。 |
+| smartmoney_get_traders_by_filter | 读 | 按池筛选条件（period / minPnl / minWinRate / maxDrawdown / minAum / sortBy）排行榜。`authorId` 游标分页。 |
 | smartmoney_get_performance_by_trader | 读 | 一个或多个 `authorIds` 的 PnL / 胜率画像（不接池过滤器）。 |
 | smartmoney_search_trader | 读 | 按昵称关键词搜索 Top Trader（≤10 条，按 OKX 平台粉丝数倒序）。用于将昵称解析成 `authorId`。 |
 | smartmoney_get_trader_positions | 读 | 单个交易员的当前持仓。可按 `instId` 过滤（接受完整 instId 如 `BTC-USDT-SWAP` 或 base ccy 如 `BTC`，handler 内部提取 base 转发上游）。 |
@@ -206,12 +207,13 @@ smartmoney_get_signal_trend_by_trader    ← 单币时间序列、authorIds
 |---|---|---|
 | `sortBy` | 枚举（`pnl` / `pnlRatio`） | 排序键 |
 | `period` | `3` / `7` / `30` / `90` | 天数窗口（默认 `90`，与 leaderboard UI 对齐） |
-| `pnl` | string (USD) | 最低 PnL |
-| `winRate` | string（小数，`0.8` = 80%） | 最低胜率 |
+| `minPnl` | string (USD) | 最低 PnL |
+| `minWinRate` | string（小数，`0.8` = 80%） | 最低胜率 |
 | `maxDrawdown` | string（小数） | 最大回撤 |
-| `asset` | string (USD) | 最低 AUM |
+| `minAum` | string (USD) | 最低 AUM |
 
-> **本次重命名**：返回字段 `winRatio` → `winRate`、`maxRetreat` → `maxDrawdown`。完整迁移见 CHANGELOG `## [Unreleased]`。
+> **参数命名**:leaderboard 池过滤器统一用 `min*` / `max*` 前缀,与 signal 家族 `*Tier` 枚举命名空间互斥,避免 AI 跨工具误传。Handler 内部映射 `minPnl` → 上游 `pnl`,`minWinRate` → `winRate`,`minAum` → `asset`(`maxDrawdown` 同名)。
+> **本次重命名**:入参 `pnl` → `minPnl`、`winRate` → `minWinRate`、`asset` → `minAum`。返回字段 `winRatio` → `winRate`、`maxRetreat` → `maxDrawdown`。完整迁移见 CHANGELOG `## [Unreleased]`。
 
 ### 时间锚
 

@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠ BREAKING — Smart Money input shape: arrays + leaderboard threshold rename + `direction` derived field
+
+Three follow-up fixes from the mcp-builder review pass:
+
+**(1) `authorIds` and `instCcyList` are now string arrays (was: comma-separated strings).** Per mcp-builder best-practice, prefer typed arrays over delimited strings — Zod-style array schemas catch shape mistakes earlier than runtime CSV parsing.
+
+| Tool | Public input shape (before) | Public input shape (after) |
+| --- | --- | --- |
+| `smartmoney_get_performance_by_trader` | `authorIds: "1001,1002"` | `authorIds: ["1001", "1002"]` |
+| `smartmoney_get_signal_overview_by_filter` | `instCcyList: "BTC,ETH"` | `instCcyList: ["BTC", "ETH"]` |
+| `smartmoney_get_signal_overview_by_trader` | both | both |
+| `smartmoney_get_signal_trend_by_trader` | `authorIds` | array |
+
+CLI parity: the ergonomic `--authorIds 1001,1002` / `--instCcyList BTC,ETH` flag form is preserved; `commands/smartmoney.ts` now splits at the boundary before calling the MCP tool. Handler joins arrays back to CSV for upstream Orbit/Journal endpoints (which still take CSV in query strings).
+
+**(2) Leaderboard pool-filter parameters renamed to disambiguate from signal-side `*Tier` enums.**
+
+| Old public name | New public name | Upstream API name (unchanged) |
+| --- | --- | --- |
+| `pnl` | `minPnl` | `pnl` |
+| `winRate` | `minWinRate` | `winRate` |
+| `asset` | `minAum` | `asset` |
+| `maxDrawdown` | `maxDrawdown` | `maxDrawdown` |
+
+Why: `pnl` (numeric leaderboard threshold) and `pnlTier` (signal-side percentile enum) were too easy to confuse — agents could call `traders-by-filter --pnlTier PNL_TOP20` (silently no-op) or `signal-overview-by-filter --pnl 10000` (silently no-op). The new `min*` / `max*` namespace is fully disjoint from the `*Tier` namespace, so the two surfaces cannot accidentally cross. CLI flag parity: `--pnl` → `--minPnl`, `--winRate` → `--minWinRate`, `--asset` → `--minAum`. Handler maps the new public names back to the upstream API names so the Orbit `/leaderboard` contract is unchanged.
+
+**(3) New derived `direction` field on `smartmoney_get_trader_positions` output.**
+
+Each row now carries a clean `direction: "long" | "short"` (derived from upstream `posSide` and the sign of `pos`). Raw `posSide` (`"long" | "short" | "both"`) is preserved unchanged; `"both"` means net/one-way mode where the sign of `pos` encodes direction — agents almost always missed this case, so the derived field is now first-class. Field is omitted when `posSide="both"` and `pos=0` (degenerate, no derivable direction).
+
 ### ⚠ BREAKING — `signal_*_by_trader` input surface tightened (business-scenario split)
 
 `smartmoney_get_signal_overview_by_trader` and `smartmoney_get_signal_trend_by_trader` no longer accept pool-filter parameters (`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`). The pool-filter axis is now exclusive to the `_by_filter` siblings.

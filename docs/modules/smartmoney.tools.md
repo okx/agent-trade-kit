@@ -59,12 +59,12 @@
 |---|---|---|---|
 | `sortBy` | `"pnl"` / `"pnlRatio"` | `"pnl"` | 牛人榜排序键。`pnl`=USD 绝对收益；`pnlRatio`=百分比收益。 |
 | `period` | `"3"` / `"7"` / `"30"` / `"90"` | `"90"` | 业绩回看窗口（天）。`90` 与 leaderboard UI 对齐。同时影响过滤与排序。 |
-| `pnl` | string | — | 最低绝对 PnL（USD），数字字符串，如 `"10000"` 表示 PnL ≥ $10,000。 |
-| `winRate` | string | — | 最低胜率（小数 0~1），如 `"0.8"` 表示 ≥80%。 |
+| `minPnl` | string | — | 最低绝对 PnL（USD），数字字符串，如 `"10000"` 表示 PnL ≥ $10,000。 |
+| `minWinRate` | string | — | 最低胜率（小数 0~1），如 `"0.8"` 表示 ≥80%。 |
 | `maxDrawdown` | string | — | 最大回撤上限（小数），如 `"0.1"` 表示回撤 ≤10%。越小风险越低。 |
-| `asset` | string | — | 最低 AUM（USD），数字字符串，如 `"1000"`。 |
+| `minAum` | string | — | 最低 AUM（USD），数字字符串,如 `"1000"`。 |
 
-> 公开名 == 上游 API key（identity 映射，不再做重命名）。
+> 公开名采用 `min*` / `max*` 前缀,与 signal 家族 `*Tier` 枚举命名空间互斥(防止跨工具误传)。Handler 内部映射:`minPnl` → 上游 `pnl`,`minWinRate` → `winRate`,`minAum` → `asset`,`maxDrawdown` 同名透传。
 
 ### Signal Pool Filter（S1/S2/S3/S4 共用）
 
@@ -112,10 +112,10 @@
 | `updateTime` | string | ❌ | — | 快照版本 `yyyyMMddHHmm`（UTC+8）。省略=最新快照（约 5 分钟刷新）。 |
 | `sortBy` | string | ❌ | 默认 `pnl` | 见 Leaderboard Pool Filter。 |
 | `period` | string | ❌ | 默认 `90` | 见 Leaderboard Pool Filter。 |
-| `pnl` | string | ❌ | — | 最低 PnL（USD）。 |
-| `winRate` | string | ❌ | — | 最低胜率（小数）。 |
+| `minPnl` | string | ❌ | — | 最低 PnL（USD）。 |
+| `minWinRate` | string | ❌ | — | 最低胜率（小数）。 |
 | `maxDrawdown` | string | ❌ | — | 最大回撤上限（小数）。 |
-| `asset` | string | ❌ | — | 最低 AUM（USD）。 |
+| `minAum` | string | ❌ | — | 最低 AUM（USD）。 |
 | `after` | string | ❌ | — | 游标：返回 `authorId` 小于该值的（向旧分页）。 |
 | `before` | string | ❌ | — | 游标：返回 `authorId` 大于该值的（向新分页）。 |
 | `limit` | integer | ❌ | 1-100，默认 10 | 单页上限。 |

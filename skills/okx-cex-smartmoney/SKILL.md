@@ -85,7 +85,7 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `smartmoney traders-by-filter` | READ | Required | Leaderboard ranking by pool conditions (period / pnl / winRate / maxDrawdown / asset). Paginated by `authorId`. |
+| `smartmoney traders-by-filter` | READ | Required | Leaderboard ranking by pool conditions (period / minPnl / minWinRate / maxDrawdown / minAum). Paginated by `authorId`. Names use `min*` / `max*` prefix — disjoint from signal-side `*Tier` namespace. |
 | `smartmoney performance-by-trader --authorIds <id1,id2>` | READ | Required | PnL / win-rate profile for one or more authorIds (no pool filter). |
 | `smartmoney search-trader --keyword <name>` | READ | Required | Search Top Traders by nickname keyword (≤10 results, ranked by follower count). |
 | `smartmoney trader-positions --authorId <id>` | READ | Required | Current open positions for one trader. Filter by `--instId <BTC-USDT-SWAP>` (or bare base ccy). |

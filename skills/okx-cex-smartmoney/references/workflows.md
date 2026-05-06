@@ -69,7 +69,7 @@ okx --profile live smartmoney performance-by-trader --authorIds <authorId> --jso
 > User: "找胜率80%以上的交易员" / "traders with > 80% win rate"
 
 ```bash
-okx --profile live smartmoney traders-by-filter --winRate 0.8 --period 30 --sortBy pnl --limit 10 --json
+okx --profile live smartmoney traders-by-filter --minWinRate 0.8 --period 30 --sortBy pnl --limit 10 --json
 ```
 
 > User: "回撤低于10%的" / "max drawdown under 10%"
@@ -78,7 +78,7 @@ okx --profile live smartmoney traders-by-filter --winRate 0.8 --period 30 --sort
 okx --profile live smartmoney traders-by-filter --maxDrawdown 0.1 --period 30 --limit 10 --json
 ```
 
-> Note: leaderboard uses **numeric thresholds** (`--winRate 0.8`, `--maxDrawdown 0.1`). Signal-side endpoints use **enum tiers** (`--winRateTier WR_GE_80`, `--maxDrawdownTier MR_LE_20`). Don't mix them.
+> Note: leaderboard uses **numeric thresholds** with `min*` / `max*` prefix (`--minPnl 10000`, `--minWinRate 0.8`, `--maxDrawdown 0.1`, `--minAum 1000`). Signal-side endpoints use **enum tiers** with `*Tier` suffix (`--pnlTier PNL_TOP20`, `--winRateTier WR_GE_80`, `--maxDrawdownTier MR_LE_20`, `--aumTier AUM_TOP20`). The two surfaces have disjoint flag names by design — passing leaderboard names to signal endpoints (or vice versa) silently no-ops.
 
 ---
 

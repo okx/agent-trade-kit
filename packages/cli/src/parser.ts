@@ -142,10 +142,11 @@ export interface CliValues {
   topInstruments?: string;
   asOfTime?: string;
   // smartmoney pool filters — leaderboard (numeric thresholds, traders-by-filter endpoint)
-  pnl?: string;
-  winRate?: string;
+  // Names deliberately distinct from signal-side `*Tier` enums to avoid cross-tool footguns.
+  minPnl?: string;
+  minWinRate?: string;
   maxDrawdown?: string;
-  asset?: string;
+  minAum?: string;
   // smartmoney pool filters — signal endpoints (enum tiers; sortBy declared elsewhere)
   pnlTier?: string;
   winRateTier?: string;
@@ -394,10 +395,10 @@ export const CLI_OPTIONS = {
   topInstruments: { type: "string" },
   asOfTime: { type: "string" },
   // smartmoney pool filters — leaderboard (numeric thresholds)
-  pnl: { type: "string" },
-  winRate: { type: "string" },
+  minPnl: { type: "string" },
+  minWinRate: { type: "string" },
   maxDrawdown: { type: "string" },
-  asset: { type: "string" },
+  minAum: { type: "string" },
   // smartmoney pool filters — signal endpoints (enum tiers)
   pnlTier: { type: "string" },
   winRateTier: { type: "string" },

@@ -5,6 +5,7 @@ import {
   normalizeResponse,
   readNumber,
   readString,
+  readStringArray,
 } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
 import { ValidationError } from "../utils/errors.js";
@@ -101,7 +102,17 @@ const SIGNAL_POOL_FILTER_PROPS = {
   },
 };
 
-/** Leaderboard endpoint uses numeric thresholds (free-form) for pool filters. */
+/**
+ * Leaderboard endpoint uses numeric thresholds (free-form) for pool filters.
+ *
+ * Public param names (`minPnl` / `minWinRate` / `minAum` / `maxDrawdown`) are deliberately
+ * different from the signal-side enum tier names (`pnlTier` / `winRateTier` / `aumTier` /
+ * `maxDrawdownTier`) to prevent AI agents from cross-pollinating values between the two
+ * families (e.g. passing `pnl: "10000"` when they meant `pnlTier: "PNL_TOP20"`, or vice versa).
+ *
+ * Handler maps public names to the upstream `/leaderboard` API names via
+ * LEADERBOARD_FILTER_UPSTREAM_NAMES below.
+ */
 const LEADERBOARD_POOL_FILTER_PROPS = {
   sortBy: {
     type: "string" as const,
@@ -118,34 +129,48 @@ const LEADERBOARD_POOL_FILTER_PROPS = {
       "Performance lookback window in days (3/7/30/90). Default 90 (matches leaderboard UI). " +
       "Filters AND ranks traders by their PnL over that window.",
   },
-  pnl: {
+  minPnl: {
     type: "string" as const,
     description:
-      "Minimum absolute PnL in USD (numeric string, e.g. \"10000\" → traders with PnL ≥ $10,000).",
+      "Minimum absolute PnL in USD (numeric string, e.g. \"10000\" → traders with PnL ≥ $10,000). " +
+      "Numeric threshold — distinct from the signal-side `pnlTier` percentile enum.",
   },
-  winRate: {
+  minWinRate: {
     type: "string" as const,
     description:
-      "Minimum win-rate as decimal (e.g. \"0.8\" → traders with win-rate ≥ 80%). Range 0~1.",
+      "Minimum win-rate as decimal (e.g. \"0.8\" → traders with win-rate ≥ 80%). Range 0~1. " +
+      "Numeric threshold — distinct from the signal-side `winRateTier` enum.",
   },
   maxDrawdown: {
     type: "string" as const,
     description:
-      "Maximum drawdown as decimal (e.g. \"0.1\" → traders with drawdown ≤ 10%). Lower = lower risk.",
+      "Maximum drawdown as decimal (e.g. \"0.1\" → traders with drawdown ≤ 10%). Lower = lower risk. " +
+      "Numeric threshold — distinct from the signal-side `maxDrawdownTier` enum.",
   },
-  asset: {
+  minAum: {
     type: "string" as const,
     description:
-      "Minimum AUM (Assets Under Management) in USD (numeric string, e.g. \"1000\" → traders with AUM ≥ $1,000).",
+      "Minimum AUM (Assets Under Management) in USD (numeric string, e.g. \"1000\" → traders with AUM ≥ $1,000). " +
+      "Numeric threshold — distinct from the signal-side `aumTier` percentile enum.",
   },
 };
 
-/** Leaderboard pool filters: public names == upstream API names; pass through directly. */
+/** Public param name → upstream `/leaderboard` query-string param name. */
+const LEADERBOARD_FILTER_UPSTREAM_NAMES: Record<string, string> = {
+  sortBy: "sortBy",
+  period: "period",
+  minPnl: "pnl",
+  minWinRate: "winRate",
+  maxDrawdown: "maxDrawdown",
+  minAum: "asset",
+};
+
+/** Leaderboard pool filters: public name → upstream API name (handler does the rename). */
 function readPoolFilters(args: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  for (const key of Object.keys(LEADERBOARD_POOL_FILTER_PROPS)) {
-    const val = readString(args, key);
-    if (val !== undefined && val !== "") result[key] = val;
+  for (const [publicKey, upstreamKey] of Object.entries(LEADERBOARD_FILTER_UPSTREAM_NAMES)) {
+    const val = readString(args, publicKey);
+    if (val !== undefined && val !== "") result[upstreamKey] = val;
   }
   return result;
 }
@@ -179,13 +204,41 @@ function extractLeaderboardEnvelope(data: unknown): { items: unknown[]; updateTi
   return { items: [] };
 }
 
-/** Position-current API returns `data: [{ posData: [...] }]` — flatten to posData array. */
+/**
+ * Derive a clean `direction` field from upstream `posSide` + `pos` size.
+ *
+ * Why: upstream `posSide` is `"long" | "short" | "both"` where `"both"` means net/one-way mode
+ * with the sign of `pos` (numeric string) encoding the actual direction. AI agents almost
+ * always miss the sign-encoded case; surfacing a derived flat `direction: "long" | "short"`
+ * lets agents act on direction without the extra branching.
+ */
+function deriveDirection(posSide: unknown, pos: unknown): "long" | "short" | undefined {
+  if (posSide === "long") return "long";
+  if (posSide === "short") return "short";
+  if (posSide === "both" && typeof pos === "string" && pos !== "") {
+    const n = Number(pos);
+    if (Number.isFinite(n) && n !== 0) return n > 0 ? "long" : "short";
+  }
+  return undefined;
+}
+
+/**
+ * Position-current API returns `data: [{ posData: [...] }]` — flatten to posData array
+ * and decorate each row with the derived `direction` field (see deriveDirection).
+ */
 function extractPositionData(data: unknown): unknown[] {
   if (!Array.isArray(data) || data.length === 0) return [];
   const first = data[0];
   if (first && typeof first === "object") {
     const posData = (first as Record<string, unknown>).posData;
-    if (Array.isArray(posData)) return posData;
+    if (Array.isArray(posData)) {
+      return posData.map((row) => {
+        if (!row || typeof row !== "object") return row;
+        const r = row as Record<string, unknown>;
+        const direction = deriveDirection(r.posSide, r.pos);
+        return direction ? { ...r, direction } : r;
+      });
+    }
   }
   return [];
 }
@@ -235,6 +288,18 @@ function extractBaseCcy(instId: string | undefined): string | undefined {
 /** ValidationError with a "next-step" hint, per mcp-builder actionable-error guideline. */
 function actionableError(message: string, hint: string): ValidationError {
   return new ValidationError(`${message} ${hint}`);
+}
+
+/**
+ * Read a string-array param and serialize to upstream CSV form.
+ * Public API uses arrays (mcp-builder best-practice — Zod arrays > comma-joined strings),
+ * but the upstream Orbit/Journal endpoints accept CSV in their query string.
+ * Returns undefined for empty/missing input so `compactObject` drops the key.
+ */
+function readArrayAsCsv(args: Record<string, unknown>, key: string): string | undefined {
+  const arr = readStringArray(args, key);
+  if (!arr || arr.length === 0) return undefined;
+  return arr.join(",");
 }
 
 /* ------------------------------------------------------------------ */
@@ -534,8 +599,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_performance_by_trader",
       module: "smartmoney",
       description:
-        "PnL / win-rate / drawdown profile for one or more traders looked up by `authorIds` " +
-        "(comma-separated for batch). " +
+        "PnL / win-rate / drawdown profile for one or more traders looked up by `authorIds`. " +
         "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
         "for criteria-based discovery use `smartmoney_get_traders_by_filter`.",
       isWrite: false,
@@ -555,9 +619,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         type: "object",
         properties: {
           authorIds: {
-            type: "string",
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
             description:
-              "Comma-separated trader IDs (e.g. \"1001,1002\"). Required.",
+              "Trader IDs to look up, e.g. `[\"1001\", \"1002\"]`. Required.",
           },
           period: {
             type: "string",
@@ -571,12 +637,12 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const authorIds = readString(args, "authorIds");
+        const authorIds = readArrayAsCsv(args, "authorIds");
         if (!authorIds) {
           throw actionableError(
-            '"authorIds" is required.',
+            '"authorIds" is required and must be a non-empty array.',
             "Discover trader IDs via `smartmoney_get_traders_by_filter`, " +
-              "then pass them comma-separated (e.g. \"1001,1002\").",
+              "then pass them as an array (e.g. [\"1001\", \"1002\"]).",
           );
         }
         const response = await context.client.privateGet(
@@ -624,10 +690,18 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             posSide: {
               type: "string",
               description:
-                "Position direction. " +
+                "Raw upstream position direction. " +
                 "`long` = long-side position (buy-to-open); " +
                 "`short` = short-side position (sell-to-open); " +
-                "`both` = net/one-way position mode where the sign of `pos` encodes direction.",
+                "`both` = net/one-way position mode where the sign of `pos` encodes direction. " +
+                "Prefer the derived `direction` field below for agent logic.",
+            },
+            direction: {
+              type: "string",
+              enum: ["long", "short"],
+              description:
+                "Derived clean direction (`long` | `short`) — handler computes this from `posSide` + sign of `pos` " +
+                "so agents do not have to branch on the `posSide=\"both\"` net-mode case.",
             },
             posCcy: { type: "string", description: "Position currency — the asset being held, e.g. \"BTC\"." },
             quoteCcy: { type: "string", description: "Quote currency the position is priced/settled in, e.g. \"USDT\"." },
@@ -1068,9 +1142,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               "Mutually exclusive with `instCcyList`; one of the two is required (default 20 if neither provided).",
           },
           instCcyList: {
-            type: "string",
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
             description:
-              "Comma-separated list of base currencies (e.g. \"BTC,ETH,SOL\") to aggregate. " +
+              "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
               "Mutually exclusive with `topInstruments`.",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
@@ -1087,7 +1163,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const instCcyList = readString(args, "instCcyList");
+        const instCcyList = readArrayAsCsv(args, "instCcyList");
         const topInstrumentsRaw = readNumber(args, "topInstruments");
         if (instCcyList && topInstrumentsRaw !== undefined) {
           throw actionableError(
@@ -1131,9 +1207,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         type: "object",
         properties: {
           authorIds: {
-            type: "string",
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
             description:
-              "Comma-separated trader IDs (e.g. \"1001,1002\") to aggregate over. Required.",
+              "Trader IDs to aggregate over, e.g. `[\"1001\", \"1002\"]`. Required.",
           },
           topInstruments: {
             type: "integer",
@@ -1145,9 +1223,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               "Mutually exclusive with `instCcyList`; one of the two is required (default 20 if neither provided).",
           },
           instCcyList: {
-            type: "string",
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
             description:
-              "Comma-separated list of base currencies (e.g. \"BTC,ETH,SOL\") to aggregate. " +
+              "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
               "Mutually exclusive with `topInstruments`.",
           },
         },
@@ -1155,14 +1235,14 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const authorIds = readString(args, "authorIds");
+        const authorIds = readArrayAsCsv(args, "authorIds");
         if (!authorIds) {
           throw actionableError(
-            '"authorIds" is required.',
-            "Comma-separated IDs from `smartmoney_get_traders_by_filter` (e.g. \"1001,1002\").",
+            '"authorIds" is required and must be a non-empty array.',
+            "Pass IDs from `smartmoney_get_traders_by_filter` as an array (e.g. [\"1001\", \"1002\"]).",
           );
         }
-        const instCcyList = readString(args, "instCcyList");
+        const instCcyList = readArrayAsCsv(args, "instCcyList");
         const topInstrumentsRaw = readNumber(args, "topInstruments");
         if (instCcyList && topInstrumentsRaw !== undefined) {
           throw actionableError(
@@ -1295,9 +1375,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         type: "object",
         properties: {
           authorIds: {
-            type: "string",
+            type: "array",
+            items: { type: "string" },
+            minItems: 1,
             description:
-              "Comma-separated trader IDs (e.g. \"1001,1002\") to aggregate over. Required.",
+              "Trader IDs to aggregate over, e.g. `[\"1001\", \"1002\"]`. Required.",
           },
           instCcy: {
             type: "string",
@@ -1331,12 +1413,12 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const authorIds = readString(args, "authorIds");
+        const authorIds = readArrayAsCsv(args, "authorIds");
         const instCcy = readString(args, "instCcy");
         if (!authorIds) {
           throw actionableError(
-            '"authorIds" is required.',
-            "Comma-separated IDs from `smartmoney_get_traders_by_filter` (e.g. \"1001,1002\").",
+            '"authorIds" is required and must be a non-empty array.',
+            "Pass IDs from `smartmoney_get_traders_by_filter` as an array (e.g. [\"1001\", \"1002\"]).",
           );
         }
         if (!instCcy) {

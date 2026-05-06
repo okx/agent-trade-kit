@@ -1363,8 +1363,8 @@ export function handleSmartmoneyCommand(
     winRateTier: v.winRateTier, maxDrawdownTier: v.maxDrawdownTier, aumTier: v.aumTier,
   };
   const leaderboardPoolFilters = {
-    sortBy: v.sortBy, period: v.period, pnl: v.pnl,
-    winRate: v.winRate, maxDrawdown: v.maxDrawdown, asset: v.asset,
+    sortBy: v.sortBy, period: v.period, minPnl: v.minPnl,
+    minWinRate: v.minWinRate, maxDrawdown: v.maxDrawdown, minAum: v.minAum,
   };
 
   /* ---------- Trader family (5) ---------- */

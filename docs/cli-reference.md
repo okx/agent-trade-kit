@@ -236,7 +236,7 @@ okx bot dca stop --algoId <algoId>
 # ── Trader family ───────────────────────────────────────────────────────────
 # Leaderboard ranking by pool conditions
 okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10
-okx smartmoney traders-by-filter --winRate 0.8 --maxDrawdown 0.1 --period 30 --json
+okx smartmoney traders-by-filter --minWinRate 0.8 --maxDrawdown 0.1 --period 30 --json
 
 # PnL/win-rate profile for one or more authorIds
 okx smartmoney performance-by-trader --authorIds <id1>,<id2> --period 30
@@ -548,7 +548,7 @@ okx bot dca stop --algoId <algoId>
 # ── Trader 家族 ─────────────────────────────────────────────────────────────
 # 排行榜（按池筛选）
 okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10
-okx smartmoney traders-by-filter --winRate 0.8 --maxDrawdown 0.1 --period 30 --json
+okx smartmoney traders-by-filter --minWinRate 0.8 --maxDrawdown 0.1 --period 30 --json
 
 # 指定 authorIds 的 PnL / 胜率画像
 okx smartmoney performance-by-trader --authorIds <id1>,<id2> --period 30

@@ -5230,16 +5230,16 @@ describe("smartmoney_get_traders_by_filter", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/leaderboard");
   });
 
-  it("passes leaderboard pool-filter params (numeric thresholds, no `Tier` suffix)", async () => {
+  it("passes leaderboard pool-filter params with public→upstream rename (minPnl→pnl, minWinRate→winRate, minAum→asset)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
         sortBy: "pnl",
         period: "30",
-        pnl: "10000",
-        winRate: "0.8",
+        minPnl: "10000",
+        minWinRate: "0.8",
         maxDrawdown: "0.2",
-        asset: "1000",
+        minAum: "1000",
         limit: "10",
       },
       makeContext(client),
@@ -5247,12 +5247,16 @@ describe("smartmoney_get_traders_by_filter", () => {
     const params = getLastCall()!.params;
     assert.equal(params.sortBy, "pnl");
     assert.equal(params.period, "30");
+    // Public `min*` names map to upstream `pnl` / `winRate` / `asset` (handler renames).
     assert.equal(params.pnl, "10000");
-    // Public names == upstream API names (identity mapping)
     assert.equal(params.winRate, "0.8");
     assert.equal(params.maxDrawdown, "0.2");
     assert.equal(params.asset, "1000");
     assert.equal(params.limit, 10);
+    // Old public names must NOT leak through (caller is using min* surface).
+    assert.equal(params.minPnl, undefined);
+    assert.equal(params.minWinRate, undefined);
+    assert.equal(params.minAum, undefined);
   });
 
   it("passes updateTime, after, before pagination params", async () => {
@@ -5319,12 +5323,21 @@ describe("smartmoney_get_performance_by_trader", () => {
     );
   });
 
-  it("calls leaderboard endpoint with authorIds and period", async () => {
+  it("calls leaderboard endpoint with authorIds (array) and period", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ authorIds: "1001,1002", period: "30" }, makeContext(client));
+    await tool.handler({ authorIds: ["1001", "1002"], period: "30" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/leaderboard");
+    // Public API takes string[]; handler joins to CSV for upstream.
     assert.equal(getLastCall()?.params.authorIds, "1001,1002");
     assert.equal(getLastCall()?.params.period, "30");
+  });
+
+  it("rejects authorIds as a comma-separated string (must be array)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ authorIds: "1001,1002" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /array of strings/i.test((err as ValidationError).message),
+    );
   });
 
   it("lifts wrapper `updateTime` to response top level (not per-item)", async () => {
@@ -5334,7 +5347,7 @@ describe("smartmoney_get_performance_by_trader", () => {
         data: [{ authorId: "1001", nickName: "trader1001" }],
       },
     });
-    const result = await tool.handler({ authorIds: "1001" }, makeContext(client)) as Record<string, unknown>;
+    const result = await tool.handler({ authorIds: ["1001"] }, makeContext(client)) as Record<string, unknown>;
     assert.equal(result.updateTime, "202604301815");
     const data = result.data as Record<string, unknown>[];
     assert.equal((data[0] as Record<string, unknown>).updateTime, undefined);
@@ -5378,6 +5391,33 @@ describe("smartmoney_get_trader_positions", () => {
     assert.equal(data.length, 2);
     assert.equal(data[0].posId, "p1");
     assert.equal(data[1].instId, "ETH-USDT-SWAP");
+  });
+
+  it("derives `direction` from posSide=long/short and from posSide=both via sign of pos", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/orbit/public/position-current": [
+        {
+          posData: [
+            { posId: "p_long", posSide: "long", pos: "5" },
+            { posId: "p_short", posSide: "short", pos: "3" },
+            { posId: "p_both_pos", posSide: "both", pos: "10" },
+            { posId: "p_both_neg", posSide: "both", pos: "-10" },
+            { posId: "p_both_zero", posSide: "both", pos: "0" },
+          ],
+        },
+      ],
+    });
+    const result = await tool.handler({ authorId: "99" }, makeContext(client)) as Record<string, unknown>;
+    const data = result.data as Record<string, unknown>[];
+    assert.equal(data[0].direction, "long");
+    assert.equal(data[1].direction, "short");
+    assert.equal(data[2].direction, "long");
+    assert.equal(data[3].direction, "short");
+    // posSide=both with pos=0 is degenerate — skip the derived field rather than guess.
+    assert.equal(data[4].direction, undefined);
+    // Original posSide is preserved.
+    assert.equal(data[0].posSide, "long");
+    assert.equal(data[2].posSide, "both");
   });
 });
 
@@ -5486,10 +5526,11 @@ describe("smartmoney_get_signal_overview_by_filter", () => {
     assert.equal(params.instCcyList, undefined);
   });
 
-  it("forwards instCcyList and skips topInstruments when instCcyList is provided", async () => {
+  it("forwards instCcyList (array) and skips topInstruments when instCcyList is provided", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ instCcyList: "BTC,ETH" }, makeContext(client));
+    await tool.handler({ instCcyList: ["BTC", "ETH"] }, makeContext(client));
     const params = getLastCall()!.params;
+    // Public API takes string[]; handler joins to CSV for upstream.
     assert.equal(params.instCcyList, "BTC,ETH");
     assert.equal(params.topInstruments, undefined);
   });
@@ -5497,7 +5538,7 @@ describe("smartmoney_get_signal_overview_by_filter", () => {
   it("rejects passing both instCcyList and topInstruments", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ instCcyList: "BTC", topInstruments: "5" }, makeContext(client)),
+      () => tool.handler({ instCcyList: ["BTC"], topInstruments: "5" }, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /mutually exclusive/i.test((err as ValidationError).message),
     );
   });
@@ -5540,9 +5581,9 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     );
   });
 
-  it("calls /overview with authorIds + default topInstruments when no selector provided", async () => {
+  it("calls /overview with authorIds (array) + default topInstruments when no selector provided", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ authorIds: "1001,1002" }, makeContext(client));
+    await tool.handler({ authorIds: ["1001", "1002"] }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/overview");
     const params = getLastCall()!.params;
     assert.equal(params.authorIds, "1001,1002");
@@ -5550,9 +5591,9 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     assert.equal(params.instCcyList, undefined);
   });
 
-  it("forwards instCcyList and skips topInstruments when instCcyList is provided", async () => {
+  it("forwards instCcyList (array) and skips topInstruments when instCcyList is provided", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ authorIds: "1,2", instCcyList: "BTC,ETH" }, makeContext(client));
+    await tool.handler({ authorIds: ["1", "2"], instCcyList: ["BTC", "ETH"] }, makeContext(client));
     const params = getLastCall()!.params;
     assert.equal(params.instCcyList, "BTC,ETH");
     assert.equal(params.topInstruments, undefined);
@@ -5561,14 +5602,14 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
   it("rejects passing both instCcyList and topInstruments", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ authorIds: "1,2", instCcyList: "BTC", topInstruments: "5" }, makeContext(client)),
+      () => tool.handler({ authorIds: ["1", "2"], instCcyList: ["BTC"], topInstruments: "5" }, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /mutually exclusive/i.test((err as ValidationError).message),
     );
   });
 
   it("does not forward instId (single-asset filter not applicable to overview)", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ authorIds: "1,2", topInstruments: "10" }, makeContext(client));
+    await tool.handler({ authorIds: ["1", "2"], topInstruments: "10" }, makeContext(client));
     const params = getLastCall()!.params;
     assert.equal(params.instId, undefined);
   });
@@ -5577,7 +5618,7 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
-        authorIds: "1001,1002",
+        authorIds: ["1001", "1002"],
         topInstruments: "10",
         sortBy: "pnlRatio",
         period: "30",
@@ -5675,16 +5716,16 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
   it("throws ValidationError when instCcy is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ authorIds: "1,2" }, makeContext(client)),
+      () => tool.handler({ authorIds: ["1", "2"] }, makeContext(client)),
       (err: unknown) => err instanceof ValidationError && /instCcy/i.test((err as ValidationError).message),
     );
   });
 
-  it("calls signal-history endpoint with authorIds + instCcy + asOfTime + granularity + limit", async () => {
+  it("calls signal-history endpoint with authorIds (array) + instCcy + asOfTime + granularity + limit", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
-        authorIds: "1001,1002",
+        authorIds: ["1001", "1002"],
         instCcy: "BTC",
         asOfTime: "2026050100",
         granularity: "1h",
@@ -5694,6 +5735,7 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
     );
     const params = getLastCall()!.params;
     assert.equal(getLastCall()?.endpoint, "/api/v5/journal/smartmoney/signal-history");
+    // Public API takes string[]; handler joins to CSV for upstream.
     assert.equal(params.authorIds, "1001,1002");
     assert.equal(params.instCcy, "BTC");
     assert.equal(params.asOfTime, "2026050100");
@@ -5706,7 +5748,7 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
-        authorIds: "1001",
+        authorIds: ["1001"],
         instCcy: "BTC",
         pnlTier: "PNL_TOP5",
         winRateTier: "WR_GE_50",

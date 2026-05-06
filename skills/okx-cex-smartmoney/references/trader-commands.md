@@ -5,23 +5,25 @@ Six atomic commands cover the trader side. The old composite `okx smartmoney tra
 ## smartmoney traders-by-filter — Leaderboard Ranking
 
 ```bash
-okx smartmoney traders-by-filter [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <n>] [--winRate <r>] [--maxDrawdown <r>] [--asset <n>] [--after <id>] [--before <id>] [--limit <n>] [--updateTime <ts>] [--json]
+okx smartmoney traders-by-filter [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--minPnl <n>] [--minWinRate <r>] [--maxDrawdown <r>] [--minAum <n>] [--after <id>] [--before <id>] [--limit <n>] [--updateTime <ts>] [--json]
 ```
 
 Pool ranking by numeric thresholds. `authorIds` direct-lookup mode has moved out into its own command (`performance-by-trader`).
 
 ### Pool Filter Parameters (numeric thresholds)
 
+Names use `min*` / `max*` prefixes — distinct from the signal-side `*Tier` enum names (e.g. `--pnlTier PNL_TOP20`) so the two surfaces have disjoint flag namespaces. Don't try to pass `--pnlTier` here, and don't try to pass `--minPnl` to a signal command.
+
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--sortBy` | No | `pnl` | Sort key: `pnl` or `pnlRatio` |
 | `--period` | No | `90` | Time window: `3`, `7`, `30`, `90` (days). Default `90` matches the leaderboard UI. |
-| `--pnl` | No | - | Min PnL (USD), e.g. `10` = PnL ≥ 10 |
-| `--winRate` | No | - | Min win-rate (decimal). e.g. `0.8` = ≥ 80% |
+| `--minPnl` | No | - | Min PnL (USD), e.g. `10000` = PnL ≥ 10,000 |
+| `--minWinRate` | No | - | Min win-rate (decimal). e.g. `0.8` = ≥ 80% |
 | `--maxDrawdown` | No | - | Max drawdown (decimal). e.g. `0.1` = ≤ 10% |
-| `--asset` | No | - | Min total asset (USD). e.g. `100` = AUM ≥ 100 |
+| `--minAum` | No | - | Min AUM (USD). e.g. `1000` = AUM ≥ 1,000 |
 
-> Renamed from previous version: `--sortType` → `--sortBy`, `--winRatio` → `--winRate`, `--maxRetreat` → `--maxDrawdown`. Returned-field names follow the same renames.
+> Renamed from previous version: `--pnl` → `--minPnl`, `--winRate` → `--minWinRate`, `--asset` → `--minAum`. The new names disambiguate from signal-side `*Tier` enums (since `--pnl` could be confused with `--pnlTier`).
 
 ### Pagination Parameters
 

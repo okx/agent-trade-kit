@@ -445,3 +445,34 @@ MCP 层（含 mutex 校验、`PATH_OVERVIEW` / `PATH_SIGNAL_HISTORY` 透传）�
 - `docs/modules/smartmoney.md` / `smartmoney.tools.md`:S2/S4 入参表与说明同步。
 - `CHANGELOG.md` / `CHANGELOG.zh-CN.md`:新 entry。
 - `skills/okx-cex-smartmoney*`:用法示例同步。
+
+---
+
+## 14. 2026-05-06 mcp-builder 审查后续:数组化 + leaderboard 重命名 + posSide 派生
+
+### 14.1 数组化 `authorIds` / `instCcyList`(P1 #4)
+
+- **决议**:public input shape 从 `string`(逗号分隔)改为 `string[]`,handler 内部 `.join(",")` 转上游。
+- **理由**:mcp-builder best-practice 推荐 Zod-style array;字符串拆分让 LLM 容易传错形状,数组 schema 在 input 阶段就能拦下。
+- **影响范围**:`smartmoney_get_performance_by_trader`(authorIds);`smartmoney_get_signal_overview_by_filter`(instCcyList);`smartmoney_get_signal_overview_by_trader`(authorIds + instCcyList);`smartmoney_get_signal_trend_by_trader`(authorIds)。
+- **CLI parity**:`--authorIds 1001,1002` 与 `--instCcyList BTC,ETH` 的 flag 形式保留(人类友好),`commands/smartmoney.ts` 在调 MCP tool 前 `csvToArray()` 拆分。
+- 抽出 `readArrayAsCsv` 共用 helper(在 smartmoney.ts 内,使用 `helpers.readStringArray`)。
+
+### 14.2 Leaderboard 数值阈值重命名(P1 #5)
+
+- **决议**:`pnl` → `minPnl`、`winRate` → `minWinRate`、`asset` → `minAum`(`maxDrawdown` 保留)。Handler 通过 `LEADERBOARD_FILTER_UPSTREAM_NAMES` 映射回上游名(`pnl` / `winRate` / `asset` 上游不变)。
+- **理由**:旧名 `pnl`(数值阈值)与 signal 家族 `pnlTier`(枚举)命名空间重叠,AI agent 极易交叉误传 — 而误传都是**静默 no-op**(agent 拿不到错误信号)。新的 `min*` / `max*` 前缀与 `*Tier` 后缀语义性互斥,从命名层面消除歧义。
+- **§4.4 旧设计推翻**:原设计明确"leaderboard 因为是数值阈值,保留朴素名称",理由是"intra-tool 入参/返回字段对齐"。但本次发现的 footgun 是 **inter-tool**(leaderboard ↔ signal)而非 intra-tool,旧理由失效。新设计中 input 命名是阈值语义(`minPnl`),output 是值语义(`pnl`),**入参与返回名不一致正是正确做法** — 它们指代不同事物(threshold vs actual value)。
+
+### 14.3 派生 `direction` 字段(P1 #10)
+
+- **决议**:`smartmoney_get_trader_positions` 输出每条 posData 增加 `direction: "long" | "short"`(handler 计算);保留原 `posSide`。
+- **理由**:上游 `posSide=both` 表示净仓/单向模式,方向藏在 `pos` 数值符号里。AI agent 几乎不会处理这个 case,导致基于 posSide 的下游决策对净仓模式 trader 失效。派生字段把语义直接平铺给 agent,代价仅是 outputSchema 一个 enum 字段。
+- **退化处理**:`posSide=both` 且 `pos=0` 时不派生 direction(无方向可判),保持 outputSchema 的 enum 严格性。
+
+### 14.4 已同步落地
+
+- 代码:`packages/core/src/tools/smartmoney.ts`(三处 schema/handler);`packages/cli/src/commands/smartmoney.ts` + `parser.ts` + `index.ts` + `cli-registry.ts`(flag 重命名 + csvToArray)。
+- 测试:`packages/core/test/tools.test.ts`(数组形态 + leaderboard 映射 + direction 派生三组用例);`packages/cli/test/smartmoney-routing.test.ts`(flag → array 路由)。
+- 文档:`docs/modules/smartmoney.md` + `smartmoney.tools.md`(入参表);`docs/cli-reference.md` + `skills/okx-cex-smartmoney/SKILL.md` + `references/{trader,signal}-commands.md` + `workflows.md`(用法示例)。
+- CHANGELOG:新 BREAKING entry。

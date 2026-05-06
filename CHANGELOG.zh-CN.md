@@ -11,6 +11,36 @@
 
 ## [Unreleased]
 
+### ⚠ 破坏性变更 —— Smart Money 入参形态:数组化 + leaderboard 阈值重命名 + 派生 `direction` 字段
+
+mcp-builder 审查后续三项修复:
+
+**(1) `authorIds` 与 `instCcyList` 改为字符串数组(原:逗号分隔字符串)。** 按 mcp-builder 最佳实践,优先使用强类型数组而非分隔字符串 — Zod 数组 schema 在 input 阶段就能拦下形状错误,避免运行时 CSV 解析黑盒。
+
+| 工具 | 旧入参 | 新入参 |
+| --- | --- | --- |
+| `smartmoney_get_performance_by_trader` | `authorIds: "1001,1002"` | `authorIds: ["1001", "1002"]` |
+| `smartmoney_get_signal_overview_by_filter` | `instCcyList: "BTC,ETH"` | `instCcyList: ["BTC", "ETH"]` |
+| `smartmoney_get_signal_overview_by_trader` | 两者 | 两者 |
+| `smartmoney_get_signal_trend_by_trader` | `authorIds` | 数组 |
+
+CLI 同步:`--authorIds 1001,1002` / `--instCcyList BTC,ETH` 这种人类友好的 flag 形式保留;`commands/smartmoney.ts` 在调用 MCP tool 前拆数组。Handler 在调上游前再 join 回 CSV(上游 Orbit/Journal 端点仍接受 CSV)。
+
+**(2) Leaderboard 池过滤入参重命名,与 signal 家族 `*Tier` 枚举消歧。**
+
+| 旧公开名 | 新公开名 | 上游 API 名(不变) |
+| --- | --- | --- |
+| `pnl` | `minPnl` | `pnl` |
+| `winRate` | `minWinRate` | `winRate` |
+| `asset` | `minAum` | `asset` |
+| `maxDrawdown` | `maxDrawdown` | `maxDrawdown` |
+
+原因:`pnl`(leaderboard 数值阈值)与 `pnlTier`(signal 百分位枚举)极易混淆 — agent 可能 `traders-by-filter --pnlTier PNL_TOP20`(静默无效)或 `signal-overview-by-filter --pnl 10000`(静默无效)。新的 `min*` / `max*` 命名空间与 `*Tier` 完全分离,两边不会再交叉污染。CLI flag 同步:`--pnl` → `--minPnl`、`--winRate` → `--minWinRate`、`--asset` → `--minAum`。Handler 内部把新公开名映射回上游 API 名,Orbit `/leaderboard` 协议本身没动。
+
+**(3) `smartmoney_get_trader_positions` 输出新增派生字段 `direction`。**
+
+每行附带 `direction: "long" | "short"`(handler 由上游 `posSide` 与 `pos` 数值符号推导)。原始 `posSide`(`"long" | "short" | "both"`)保留;`"both"` 表示净仓模式(方向藏在 `pos` 的正负号),agent 几乎都会忽略这层 — 现在直接派生为一等字段。当 `posSide="both"` 且 `pos=0` 时(退化情况,无方向可判)派生字段省略。
+
 ### ⚠ 破坏性变更 —— `signal_*_by_trader` 入参收紧（按业务场景拆分）
 
 `smartmoney_get_signal_overview_by_trader` 与 `smartmoney_get_signal_trend_by_trader` 不再接受池过滤入参(`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`)。池过滤轴现在仅 `_by_filter` 暴露。

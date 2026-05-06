@@ -882,7 +882,7 @@ export const CLI_REGISTRY: CliRegistry = {
     commands: {
       "traders-by-filter": {
         toolName: "smartmoney_get_traders_by_filter",
-        usage: "okx smartmoney traders-by-filter [--updateTime <ts>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnl <n>] [--winRate <r>] [--maxDrawdown <r>] [--asset <n>] [--after <id>] [--before <id>] [--limit <n>] [--json]",
+        usage: "okx smartmoney traders-by-filter [--updateTime <ts>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--minPnl <n>] [--minWinRate <r>] [--maxDrawdown <r>] [--minAum <n>] [--after <id>] [--before <id>] [--limit <n>] [--json]",
         description: "Leaderboard of top smart-money traders, ranked and filtered by pool conditions",
       },
       "performance-by-trader": {
