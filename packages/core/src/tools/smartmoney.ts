@@ -63,8 +63,9 @@ const SIGNAL_POOL_FILTER_PROPS = {
     enum: PERIOD_DAYS,
     default: "7",
     description:
-      "Lookback window in days for capability metrics (avgLongWinRate / avgShortWinRate) " +
-      "and the `winRateTier` filter. Does NOT affect signal fields (which always use the latest snapshot).",
+      "Lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer 7). " +
+      "Drives capability metrics (avgLongWinRate / avgShortWinRate) and the `winRateTier` filter. " +
+      "Does NOT affect signal fields (which always use the latest snapshot).",
   },
   pnlTier: {
     type: "string" as const,
@@ -126,31 +127,31 @@ const LEADERBOARD_POOL_FILTER_PROPS = {
     enum: PERIOD_DAYS,
     default: "90",
     description:
-      "Performance lookback window in days (3/7/30/90). Default 90 (matches leaderboard UI). " +
-      "Filters AND ranks traders by their PnL over that window.",
+      "Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer 90). " +
+      "Default `\"90\"` (matches leaderboard UI). Filters AND ranks traders by their PnL over that window.",
   },
   minPnl: {
     type: "string" as const,
     description:
-      "Minimum absolute PnL in USD (numeric string, e.g. \"10000\" → traders with PnL ≥ $10,000). " +
+      "Minimum absolute PnL in USD. Pass as a quoted numeric string, e.g. `\"10000\"` (NOT integer 10000) → traders with PnL ≥ $10,000. " +
       "Numeric threshold — distinct from the signal-side `pnlTier` percentile enum.",
   },
   minWinRate: {
     type: "string" as const,
     description:
-      "Minimum win-rate as decimal (e.g. \"0.8\" → traders with win-rate ≥ 80%). Range 0~1. " +
+      "Minimum win-rate as decimal in 0~1 range. Pass as a quoted numeric string, e.g. `\"0.8\"` (NOT number 0.8) → traders with win-rate ≥ 80%. " +
       "Numeric threshold — distinct from the signal-side `winRateTier` enum.",
   },
   maxDrawdown: {
     type: "string" as const,
     description:
-      "Maximum drawdown as decimal (e.g. \"0.1\" → traders with drawdown ≤ 10%). Lower = lower risk. " +
+      "Maximum drawdown as decimal. Pass as a quoted numeric string, e.g. `\"0.1\"` (NOT number 0.1) → traders with drawdown ≤ 10%. Lower = lower risk. " +
       "Numeric threshold — distinct from the signal-side `maxDrawdownTier` enum.",
   },
   minAum: {
     type: "string" as const,
     description:
-      "Minimum AUM (Assets Under Management) in USD (numeric string, e.g. \"1000\" → traders with AUM ≥ $1,000). " +
+      "Minimum AUM (Assets Under Management) in USD. Pass as a quoted numeric string, e.g. `\"1000\"` (NOT integer 1000) → traders with AUM ≥ $1,000. " +
       "Numeric threshold — distinct from the signal-side `aumTier` percentile enum.",
   },
 };
@@ -521,12 +522,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_traders_by_filter",
       module: "smartmoney",
       description:
-        "Leaderboard ranking of OKX smart-money traders, filtered by pool conditions " +
-        "(PnL / win-rate / drawdown / AUM thresholds) and ranked by `sortBy`. " +
-        "Use to discover top performers. " +
-        "For a specific trader's profile by ID use `smartmoney_get_performance_by_trader`. " +
-        "TIME ANCHOR: `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8 — DIFFERENT from signal tools' " +
-        "10-digit UTC `asOfTime` / `dataVersion`. Do NOT cross-pass between leaderboard and signal tools.",
+        "Leaderboard ranking of OKX smart-money traders, filtered by pool conditions and ranked by `sortBy`. " +
+        "Use when: discovering top performers by criteria (PnL / win-rate / drawdown / AUM). " +
+        "See also: `smartmoney_get_performance_by_trader` (lookup by ID), `smartmoney_search_trader` (lookup by nickname). " +
+        "Note: `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8, different from signal tools' 10-digit UTC `asOfTime`/`dataVersion` — do not cross-pass.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -548,17 +547,17 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           updateTime: {
             type: "string",
             description:
-              "Snapshot version key in `yyyyMMddHHmm` (UTC+8). " +
+              "Snapshot version key. Pass as a quoted 12-digit string `yyyyMMddHHmm` (UTC+8), e.g. `\"202604301815\"` (NOT integer). " +
               "Omit to query the latest snapshot (refreshed every ~5 min).",
           },
           ...LEADERBOARD_POOL_FILTER_PROPS,
           after: {
             type: "string",
-            description: "Cursor: returns traders with `authorId` smaller than this value (older — paginate backwards).",
+            description: "Cursor: returns traders with `authorId` smaller than this value (older — paginate backwards). Pass as quoted string (the `authorId` value verbatim, NOT a number).",
           },
           before: {
             type: "string",
-            description: "Cursor: returns traders with `authorId` greater than this value (newer — paginate forwards).",
+            description: "Cursor: returns traders with `authorId` greater than this value (newer — paginate forwards). Pass as quoted string.",
           },
           limit: {
             type: "integer",
@@ -600,8 +599,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       module: "smartmoney",
       description:
         "PnL / win-rate / drawdown profile for one or more traders looked up by `authorIds`. " +
-        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
-        "for criteria-based discovery use `smartmoney_get_traders_by_filter`.",
+        "Use when: caller already has trader IDs and needs their performance metrics. " +
+        "See also: `smartmoney_search_trader` (resolve nickname → authorId), `smartmoney_get_traders_by_filter` (criteria-based discovery). " +
+        "Note: response `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8 — do not pass to signal-side tools' `asOfTime` (10-digit UTC).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -630,7 +630,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             enum: PERIOD_DAYS,
             default: "90",
             description:
-              "Performance lookback window in days (3/7/30/90). Default 90.",
+              "Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer). Default `\"90\"`.",
           },
         },
         required: ["authorIds"],
@@ -668,11 +668,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_trader_positions",
       module: "smartmoney",
       description:
-        "Currently-open positions held by a single trader. Use to see what a top trader is holding RIGHT NOW " +
-        "(direction, size, leverage, entry, conviction). " +
-        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
-        "for criteria-based discovery use `smartmoney_get_traders_by_filter`. " +
-        "For closed-position history use `smartmoney_get_trader_positions_history`.",
+        "Currently-open positions held by a single trader (direction, size, leverage, entry, conviction). " +
+        "Use when: inspecting what a top trader is holding RIGHT NOW. " +
+        "See also: `smartmoney_get_trader_positions_history` (closed positions), `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -769,11 +767,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_trader_positions_history",
       module: "smartmoney",
       description:
-        "Closed-position history of a single trader (paginated by `posId` cursor). " +
-        "Use to study realized PnL pattern, holding duration, win/loss streaks, and how positions ended (closed vs liquidated). " +
-        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
-        "for criteria-based discovery use `smartmoney_get_traders_by_filter`. " +
-        "For currently-open positions use `smartmoney_get_trader_positions`.",
+        "Closed-position history of a single trader, paginated by `posId` cursor. " +
+        "Use when: studying realized PnL pattern, holding duration, win/loss streaks, or how positions ended (closed vs liquidated). " +
+        "See also: `smartmoney_get_trader_positions` (currently-open), `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -873,11 +869,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Cursor: returns positions with `posId` smaller than this value (older — paginate backwards).",
+            description: "Cursor: returns positions with `posId` smaller than this value (older — paginate backwards). Pass as quoted string (the `posId` value verbatim, NOT a number — `posId` is a 19-digit ID and number coercion can lose precision).",
           },
           before: {
             type: "string",
-            description: "Cursor: returns positions with `posId` greater than this value (newer — paginate forwards).",
+            description: "Cursor: returns positions with `posId` greater than this value (newer — paginate forwards). Pass as quoted string.",
           },
           limit: {
             type: "integer",
@@ -925,11 +921,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_trader_orders_history",
       module: "smartmoney",
       description:
-        "Recent orders/fills placed by a single trader (latest activity log), paginated by `ordId` cursor. " +
+        "Recent orders/fills placed by a single trader (direction, size, price, leverage), paginated by `ordId` cursor. " +
         "Aligned with the cross-module `*_get_orders` family. " +
-        "Use to see what trades a top trader has been making lately — direction, size, price, leverage. " +
-        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
-        "for criteria-based discovery use `smartmoney_get_traders_by_filter`.",
+        "Use when: tracking a top trader's latest trade activity. " +
+        "See also: `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -1003,11 +998,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Cursor: returns trades with `ordId` smaller than this value (older — paginate backwards).",
+            description: "Cursor: returns trades with `ordId` smaller than this value (older — paginate backwards). Pass as quoted string (the `ordId` value verbatim, NOT a number — `ordId` is a 19-digit ID and number coercion can lose precision).",
           },
           before: {
             type: "string",
-            description: "Cursor: returns trades with `ordId` greater than this value (newer — paginate forwards).",
+            description: "Cursor: returns trades with `ordId` greater than this value (newer — paginate forwards). Pass as quoted string.",
           },
           limit: {
             type: "integer",
@@ -1055,11 +1050,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_search_trader",
       module: "smartmoney",
       description:
-        "Search Top Traders (profitable leaderboard traders) by nickname keyword, ranked by OKX-platform follower count DESC. " +
-        "Returns up to 10 matches; intersects the KOL full-text recall set with the Top Trader set. " +
-        "Use when the user supplies a nickname or partial name and you need to resolve it to one or more `authorId`s before calling other `smartmoney_get_trader_*` tools. " +
-        "Do NOT use to discover top performers by performance — use `smartmoney_get_traders_by_filter` instead. " +
-        "Do NOT use to look up known authorIds — use `smartmoney_get_performance_by_trader` instead.",
+        "Search Top Traders by nickname keyword, ranked by OKX-platform follower count DESC. " +
+        "Returns up to 10 matches; intersects KOL full-text recall with the Top Trader set. " +
+        "Use when: resolving a nickname or partial name to `authorId`(s) before calling other `smartmoney_get_trader_*` tools. " +
+        "See also: `smartmoney_get_traders_by_filter` (discover top performers by criteria), `smartmoney_get_performance_by_trader` (lookup by known authorId).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1115,13 +1109,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_signal_overview_by_filter",
       module: "smartmoney",
       description:
-        "Multi-asset smart-money consensus signals, aggregated over a pool of traders matching the given tier filters " +
-        "(PnL / win-rate / drawdown / AUM). " +
-        "Returns per-instrument long/short ratio, weighted entry prices, capital flow, and trend deltas vs 1h/24h/7d. " +
-        "Pick instruments via `topInstruments` (top-N hottest) OR `instCcyList` (specific coins) — exactly one is required. " +
-        "Do NOT use to restrict aggregation to specific traders — use `smartmoney_get_signal_overview_by_trader` instead. " +
-        "Do NOT use for time-series — use `smartmoney_get_signal_trend_by_filter` instead. " +
-        "Snapshot time is auto-resolved to the current hour.",
+        "Multi-asset smart-money consensus signals (long/short ratio, weighted entry, capital flow, deltas vs 1h/24h/7d), " +
+        "aggregated over a tier-filtered trader pool (PnL / win-rate / drawdown / AUM). " +
+        "Pick instruments via `topInstruments` OR `instCcyList` — exactly one. Snapshot time auto-resolved to current hour. " +
+        "Use when: latest cross-asset consensus from a criteria-defined pool. " +
+        "See also: `smartmoney_get_signal_overview_by_trader` (restrict pool to specific traders), `smartmoney_get_signal_trend_by_filter` (time-series instead of latest snapshot).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1192,10 +1184,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       module: "smartmoney",
       description:
         "Multi-asset smart-money signals aggregated over a hand-picked set of traders (`authorIds`). " +
-        "Use when the caller already knows which traders to follow and wants their consensus on multiple coins at the latest hour. " +
-        "Pick instruments via `topInstruments` (top-N hottest among the group) OR `instCcyList` (specific coins). " +
-        "Pool sizing / ranking / capability filters are not exposed — backend uses sensible defaults for the authorIds-direct-lookup scenario. " +
-        "Discover authorIds first via `smartmoney_get_traders_by_filter` or `smartmoney_search_trader`.",
+        "Pick instruments via `topInstruments` OR `instCcyList`. " +
+        "Pool sizing / ranking / capability filters not exposed — backend uses defaults for direct-lookup scenarios. " +
+        "Use when: caller already knows which traders to follow and wants their cross-asset consensus at the latest hour. " +
+        "See also: `smartmoney_get_signal_overview_by_filter` (criteria-defined pool), `smartmoney_get_signal_trend_by_trader` (time-series), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds).",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1269,15 +1261,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_signal_trend_by_filter",
       module: "smartmoney",
       description:
-        "Time-series of single-asset smart-money signal across hourly/daily buckets, " +
-        "aggregated over a pool of traders matching the given tier filters. " +
+        "Time-series of single-asset smart-money signal across hourly/daily buckets, aggregated over a tier-filtered trader pool. " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
-        "Use to track how long/short conviction and capital evolve over time " +
-        "(is smart money adding exposure or pulling out?). " +
-        "Do NOT use for the latest single snapshot — use `smartmoney_get_signal_overview_by_filter` instead. " +
-        "Do NOT use to restrict aggregation to specific traders — use `smartmoney_get_signal_trend_by_trader` instead. " +
-        "TIME ANCHOR: `asOfTime` is 10-digit `yyyyMMddHH` UTC — DIFFERENT from leaderboard tools' " +
-        "12-digit UTC+8 `updateTime`. Do NOT pass `updateTime` from `smartmoney_get_traders_by_filter` here.",
+        "Use when: tracking how long/short conviction and capital evolve over time (smart money adding exposure or retreating). " +
+        "See also: `smartmoney_get_signal_overview_by_filter` (latest snapshot only), `smartmoney_get_signal_trend_by_trader` (restrict to specific traders). " +
+        "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1296,7 +1284,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           asOfTime: {
             type: "string",
             description:
-              "Anchor snapshot time, 10-digit `yyyyMMddHH` UTC (e.g. `2026050100`). " +
+              "Anchor snapshot time. Pass as a quoted 10-digit string `yyyyMMddHH` UTC, e.g. `\"2026050100\"` (NOT integer 2026050100). " +
               "Returns the latest `limit` buckets ending at this anchor. " +
               "Omit to use the current UTC hour.",
           },
@@ -1359,11 +1347,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Time-series of single-asset smart-money signal aggregated over a hand-picked set of traders (`authorIds`). " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
-        "Use to track how a specific group of traders has evolved their long/short consensus over time on one coin. " +
-        "Pool sizing / ranking / capability filters are not exposed — backend uses sensible defaults for the authorIds-direct-lookup scenario. " +
-        "Discover authorIds first via `smartmoney_get_traders_by_filter` or `smartmoney_search_trader`. " +
-        "TIME ANCHOR: `asOfTime` is 10-digit `yyyyMMddHH` UTC — DIFFERENT from leaderboard tools' " +
-        "12-digit UTC+8 `updateTime`. Do NOT pass `updateTime` from `smartmoney_get_traders_by_filter` here.",
+        "Pool sizing / ranking / capability filters not exposed — backend uses defaults for direct-lookup scenarios. " +
+        "Use when: tracking how a specific group of traders has evolved their long/short consensus over time on one coin. " +
+        "See also: `smartmoney_get_signal_trend_by_filter` (criteria-defined pool), `smartmoney_get_signal_overview_by_trader` (latest snapshot only), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds). " +
+        "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1389,7 +1376,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           asOfTime: {
             type: "string",
             description:
-              "Anchor snapshot time, 10-digit `yyyyMMddHH` UTC (e.g. `2026050100`). " +
+              "Anchor snapshot time. Pass as a quoted 10-digit string `yyyyMMddHH` UTC, e.g. `\"2026050100\"` (NOT integer 2026050100). " +
               "Returns the latest `limit` buckets ending at this anchor. " +
               "Omit to use the current UTC hour.",
           },
