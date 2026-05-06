@@ -822,6 +822,12 @@ export function registerSmartmoneyTools(): ToolSpec[] {
                 description:
                   "Cumulative funding fee paid or received over the position's lifetime, denominated in quoteCcy (numeric string; negative = paid, positive = received).",
               },
+              liquidationStatus: {
+                type: "string",
+                description:
+                  "Whether the position was liquidated. `\"0\"` = normal close (not liquidated); `\"1\"` = liquidated. " +
+                  "Use this dedicated field for liquidation checks; `closeType` may also encode liquidation via the `liquidateClose` / `liquidateReceive` / `adl` values.",
+              },
               closeType: {
                 type: "string",
                 description:
