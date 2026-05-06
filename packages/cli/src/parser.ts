@@ -140,8 +140,6 @@ export interface CliValues {
   instCcy?: string;
   instCcyList?: string;
   topInstruments?: string;
-  startTime?: string;
-  endTime?: string;
   asOfTime?: string;
   // smartmoney pool filters — leaderboard (numeric thresholds, traders-by-filter endpoint)
   pnl?: string;
@@ -394,8 +392,6 @@ export const CLI_OPTIONS = {
   instCcy: { type: "string" },
   instCcyList: { type: "string" },
   topInstruments: { type: "string" },
-  startTime: { type: "string" },
-  endTime: { type: "string" },
   asOfTime: { type: "string" },
   // smartmoney pool filters — leaderboard (numeric thresholds)
   pnl: { type: "string" },

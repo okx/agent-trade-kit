@@ -2,13 +2,14 @@ import type { ToolRunner } from "@agent-tradekit/core";
 import { extractData, outputLine, printJson, printTable } from "../formatter.js";
 
 
-function printDataList(
+// Table-mode renderer. --json is handled at each command site (envelope passthrough)
+// so AI agents see the same shape as MCP tools/call (endpoint / requestTime /
+// updateTime / pagination preserved).
+function printDataTable(
   data: Record<string, unknown>[],
-  json: boolean,
   emptyMsg: string,
   mapper: (r: Record<string, unknown>) => Record<string, unknown>,
 ): void {
-  if (json) { printJson(data); return; }
   if (!data.length) { outputLine(emptyMsg); return; }
   printTable(data.map(mapper));
 }
@@ -76,12 +77,9 @@ export async function cmdSmartmoneyTradersByFilter(
     before: opts.before,
     limit: opts.limit,
   });
-  // JSON mode: print the full envelope so AI agents see top-level `updateTime`
-  // (snapshot version) and `pagination` (cursor metadata). printDataList only
-  // emits the inner data array, dropping these fields.
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, false, "No traders found", (r) => ({
+  printDataTable(data, "No traders found", (r) => ({
     authorId: r["authorId"],
     nickName: r["nickName"],
     pnl: r["pnl"],
@@ -104,11 +102,9 @@ export async function cmdSmartmoneyPerformanceByTrader(
     authorIds: opts.authorIds,
     period: opts.period,
   });
-  // JSON mode: full envelope so the top-level `updateTime` (snapshot version)
-  // is preserved. Without this, agents lose snapshot freshness signal.
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, false, "No traders found", (r) => ({
+  printDataTable(data, "No traders found", (r) => ({
     authorId: r["authorId"],
     nickName: r["nickName"],
     pnl: r["pnl"],
@@ -127,11 +123,13 @@ export async function cmdSmartmoneyTraderPositions(
     json: boolean;
   },
 ): Promise<void> {
-  const data = extractData(await run("smartmoney_get_trader_positions", {
+  const result = await run("smartmoney_get_trader_positions", {
     authorId: opts.authorId,
     instId: opts.instId,
-  }));
-  printDataList(data, opts.json, "No open positions", (r) => ({
+  });
+  if (opts.json) { printJson(result); return; }
+  const data = extractData(result);
+  printDataTable(data, "No open positions", (r) => ({
     instId: r["instId"],
     posSide: r["posSide"],
     pos: r["pos"],
@@ -165,7 +163,7 @@ export async function cmdSmartmoneyTraderPositionsHistory(
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, false, "No closed positions", (r) => ({
+  printDataTable(data, "No closed positions", (r) => ({
     cTime: r["cTime"],
     uTime: r["uTime"],
     instId: r["instId"],
@@ -198,7 +196,7 @@ export async function cmdSmartmoneyTraderOrdersHistory(
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, false, "No order history", (r) => ({
+  printDataTable(data, "No order history", (r) => ({
     cTime: r["cTime"],
     instId: r["instId"],
     side: r["side"],
@@ -217,10 +215,12 @@ export async function cmdSmartmoneySearchTrader(
     json: boolean;
   },
 ): Promise<void> {
-  const data = extractData(await run("smartmoney_search_trader", {
+  const result = await run("smartmoney_search_trader", {
     keyword: opts.keyword,
-  }));
-  printDataList(data, opts.json, "No matching top traders", (r) => ({
+  });
+  if (opts.json) { printJson(result); return; }
+  const data = extractData(result);
+  printDataTable(data, "No matching top traders", (r) => ({
     authorId: r["authorId"],
     nickName: r["nickName"],
     followerCount: r["followerCount"],
@@ -263,8 +263,9 @@ export async function cmdSmartmoneySignalOverviewByFilter(
     ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
   });
+  if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, opts.json, "No signal data", signalRowMapper);
+  printDataTable(data, "No signal data", signalRowMapper);
 }
 
 export async function cmdSmartmoneySignalOverviewByTrader(
@@ -284,8 +285,9 @@ export async function cmdSmartmoneySignalOverviewByTrader(
     ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
   });
+  if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, opts.json, "No signal data", signalRowMapper);
+  printDataTable(data, "No signal data", signalRowMapper);
 }
 
 const trendRowMapper = (r: Record<string, unknown>): Record<string, unknown> => ({
@@ -322,8 +324,9 @@ export async function cmdSmartmoneySignalTrendByFilter(
     ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
   });
+  if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, opts.json, "No signal trend data", trendRowMapper);
+  printDataTable(data, "No signal trend data", trendRowMapper);
 }
 
 export async function cmdSmartmoneySignalTrendByTrader(
@@ -347,6 +350,7 @@ export async function cmdSmartmoneySignalTrendByTrader(
     ...signalPoolFilterArgs(opts),
     lmtNum: opts.lmtNum,
   });
+  if (opts.json) { printJson(result); return; }
   const data = extractData(result);
-  printDataList(data, opts.json, "No signal trend data", trendRowMapper);
+  printDataTable(data, "No signal trend data", trendRowMapper);
 }

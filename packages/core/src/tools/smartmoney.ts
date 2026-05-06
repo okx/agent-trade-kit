@@ -457,7 +457,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Leaderboard ranking of OKX smart-money traders, filtered by pool conditions " +
         "(PnL / win-rate / drawdown / AUM thresholds) and ranked by `sortBy`. " +
         "Use to discover top performers. " +
-        "For a specific trader's profile by ID use `smartmoney_get_performance_by_trader`.",
+        "For a specific trader's profile by ID use `smartmoney_get_performance_by_trader`. " +
+        "TIME ANCHOR: `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8 — DIFFERENT from signal tools' " +
+        "10-digit UTC `asOfTime` / `dataVersion`. Do NOT cross-pass between leaderboard and signal tools.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -1203,7 +1205,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use to track how long/short conviction and capital evolve over time " +
         "(is smart money adding exposure or pulling out?). " +
         "Do NOT use for the latest single snapshot — use `smartmoney_get_signal_overview_by_filter` instead. " +
-        "Do NOT use to restrict aggregation to specific traders — use `smartmoney_get_signal_trend_by_trader` instead.",
+        "Do NOT use to restrict aggregation to specific traders — use `smartmoney_get_signal_trend_by_trader` instead. " +
+        "TIME ANCHOR: `asOfTime` is 10-digit `yyyyMMddHH` UTC — DIFFERENT from leaderboard tools' " +
+        "12-digit UTC+8 `updateTime`. Do NOT pass `updateTime` from `smartmoney_get_traders_by_filter` here.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1289,7 +1293,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Use to track how a specific group of traders has evolved their long/short consensus over time. " +
         "Do NOT use without `authorIds` — use `smartmoney_get_signal_trend_by_filter` for a tier-filtered pool view instead. " +
         "Do NOT use for the latest single snapshot — use `smartmoney_get_signal_overview_by_trader` instead. " +
-        "Discover authorIds first via `smartmoney_get_traders_by_filter`.",
+        "Discover authorIds first via `smartmoney_get_traders_by_filter`. " +
+        "TIME ANCHOR: `asOfTime` is 10-digit `yyyyMMddHH` UTC — DIFFERENT from leaderboard tools' " +
+        "12-digit UTC+8 `updateTime`. Do NOT pass `updateTime` from `smartmoney_get_traders_by_filter` here.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
