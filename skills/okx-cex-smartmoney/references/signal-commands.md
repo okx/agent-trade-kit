@@ -4,10 +4,10 @@
 
 Four atomic commands cover the signal / coin side, split by **entry mode**:
 
-- **`signal-overview-by-filter`** — multi-asset, pool-filter mode (no specific trader list). Use this for "most-watched-by-smart-money instruments" by passing `--topInstruments`.
-- **`signal-overview-by-trader`** — multi-asset, restricted to specific `authorIds`.
-- **`signal-trend-by-filter`** — single coin time-series anchored at `asOfTime` (default = current UTC hour), pool filter.
-- **`signal-trend-by-trader`** — single coin time-series anchored at `asOfTime`, restricted to `authorIds` intersected with the tier-filtered pool.
+- **`signal-overview-by-filter`** — multi-asset, **tier-discovery scenario**: full pool-filter knobs exposed (sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier / lmtNum). Use this for "most-watched-by-smart-money instruments" by passing `--topInstruments`.
+- **`signal-overview-by-trader`** — multi-asset, **authorIds-direct-lookup scenario**: only `--authorIds` + coin selection; pool filters not exposed (backend uses defaults).
+- **`signal-trend-by-filter`** — single coin time-series anchored at `asOfTime` (default = current UTC hour), tier-discovery scenario (full pool filters exposed).
+- **`signal-trend-by-trader`** — single coin time-series anchored at `asOfTime`, authorIds-direct-lookup scenario (no pool filters).
 
 The previous overloaded `smartmoney signal` command (which switched on `--authorIds` presence), `smartmoney overview` (which switched on `--instCcyList`), and the narrow `top-coin-signals` shortcut are all removed. To get the top-N most-watched coins, call `signal-overview-by-filter` (defaults to `--topInstruments=20`).
 
@@ -85,20 +85,21 @@ Each item has an outer ID + 3 nested groups (`notional`, `longShortRatio`, `winR
 
 ---
 
-## smartmoney signal-overview-by-trader — Multi-Asset Signal (authorIds-restricted)
+## smartmoney signal-overview-by-trader — Multi-Asset Signal (authorIds-direct-lookup)
 
 ```bash
-okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--json]
 ```
 
-Same shape as `signal-overview-by-filter`, but restricts the pool to a specific list of `authorIds` — intersected with the tier-filtered pool. Useful for "what do my watchlist of traders think across coins?".
+Aggregates signals over a hand-picked set of traders. Use this when the caller already has a list of authorIds (e.g. discovered via `traders-by-filter` or `search-trader`) and wants their consensus on multiple coins. Useful for "what do my watchlist of traders think across coins?".
 
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
 | `--topInstruments` | No | `20` | Top-N hottest instruments held by the group. Mutually exclusive with `--instCcyList`. |
 | `--instCcyList` | No | - | Comma-separated base ccys. Mutually exclusive with `--topInstruments`. |
-| `--sortBy` / `--period` / `--pnlTier` / `--winRateTier` / `--maxDrawdownTier` / `--aumTier` / `--lmtNum` | No | see [Signal Filter Enums](#signal-filter-enum-values) | Tier-pool filters; `authorIds` is intersected with this pool. |
+
+> **Pool filters not exposed** — `_by_trader` is the authorIds-direct-lookup scenario; backend uses sensible defaults. If you need tier-driven filtering instead, use `signal-overview-by-filter`.
 
 > No `--ts` parameter. Handler uses the current hour.
 
@@ -143,24 +144,23 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 
 ---
 
-## smartmoney signal-trend-by-trader — Single-Asset Time-Series (authorIds intersected with tier pool)
+## smartmoney signal-trend-by-trader — Single-Asset Time-Series (authorIds-direct-lookup)
 
 ```bash
-okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>] [--json]
 ```
 
-Same shape as `signal-trend-by-filter`, but restricted to specific `authorIds` intersected with the tier-filtered pool. Useful for tracking how a specific group's consensus on one coin evolves.
+Time-series of a single coin's smart-money signal aggregated over a hand-picked set of traders. Useful for tracking how a specific group's consensus on one coin evolves over time.
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--authorIds` | Yes | - | Comma-separated trader IDs (intersected with the phase-1 pool) |
+| `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
 | `--instCcy` | Yes | - | Base currency to scope the time-series, e.g. `BTC` |
 | `--asOfTime` | No | (current UTC hour) | 10-digit UTC anchor `yyyyMMddHH` |
 | `--granularity` | No | `1h` | `1h` or `1d` |
 | `--limit` | No | `24` | Bucket count (1–500) |
-| `--lmtNum` | No | `100` | Phase-1 pool size limit (1–2000) |
 
-Pool filter params (see below) also apply — `authorIds` is intersected with the resulting pool.
+> **Pool filters not exposed** — `_by_trader` is the authorIds-direct-lookup scenario; backend uses sensible defaults. If you need tier-driven filtering instead, use `signal-trend-by-filter`.
 
 Response fields: same as `signal-trend-by-filter`.
 
@@ -168,7 +168,7 @@ Response fields: same as `signal-trend-by-filter`.
 
 ## Signal Filter Enum Values
 
-All four signal endpoints (`signal-overview-by-{filter,trader}`, `signal-trend-by-{filter,trader}`) accept the same pool-filter enums. For the `_by_trader` variants the filters define the phase-1 pool that `authorIds` is intersected with.
+Only the `_by_filter` siblings (`signal-overview-by-filter` / `signal-trend-by-filter`) accept these pool-filter enums. The `_by_trader` siblings are authorIds-direct-lookup and do not expose these flags — backend uses defaults.
 
 | Param | Enum values | Default | Semantics |
 |---|---|---|---|

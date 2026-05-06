@@ -80,7 +80,7 @@
 | `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | 最大回撤门槛（越小风险越低）。 |
 | `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM 分位门槛。 |
 
-> S2 / S4（`*_by_trader`）也接受这组池过滤器；`authorIds` 与池过滤后的池子取交集。
+> 仅 S1 / S3（`*_by_filter`）暴露这组池过滤器。S2 / S4（`*_by_trader`）按业务场景区分,池过滤参数不暴露,后端使用默认池配置(authorIds 直查场景)。
 
 ### `TRADER_ITEM_PROPS`（T1/T2 共用 item）
 
@@ -361,7 +361,7 @@
 
 ## S2. `smartmoney_get_signal_overview_by_trader`
 
-**用途：** 多资产聪明钱信号，**池限定为 `authorIds` 指定的交易员组**。用于"看 X 群体当前的共识"，而非 tier 过滤池。
+**用途：** 多资产聪明钱信号,**池由 `authorIds` 直接限定**。用于"看 X 群体当前的共识"。按业务场景与 S1 区分:`_by_filter` 走 tier 探索,`_by_trader` 走 authorIds 直查。
 
 **关键约束：**
 - `authorIds` 必填
@@ -375,12 +375,11 @@
 
 | 参数 | 类型 | 必填 | 范围/默认 | 说明 |
 |---|---|---|---|---|
-| `authorIds` | string | ✅ | — | 逗号分隔 trader ID，如 `"1001,1002"`。来源：T1。 |
+| `authorIds` | string | ✅ | — | 逗号分隔 trader ID，如 `"1001,1002"`。来源：T1 / T6。 |
 | `topInstruments` | integer | 二选一 | 1-100，默认 20 | 该组中最热 Top-N 合约。 |
 | `instCcyList` | string | 二选一 | — | 逗号分隔基础币种。 |
 
-> 注：依赖后端 `/overview` 接受 `authorIds` 与 `instCcyList`（2026-04-30 设计回滚再次引入）。
-> S2 **不暴露** Pool Filter 参数（池由 `authorIds` 唯一确定）。
+> S2 **不暴露**任何 Pool Filter / `lmtNum` 参数 — 后端在 authorIds 直查场景使用默认池配置。如需 tier 过滤池视角,请使用 S1。
 
 ### 出参 `data[]`
 
@@ -430,7 +429,7 @@
 
 ## S4. `smartmoney_get_signal_trend_by_trader`
 
-**用途：** 单资产聪明钱信号的**时间序列**，**`authorIds` 与 tier 过滤池取交集**。返回截止 `asOfTime` 的最新 `limit` 个桶。用于追踪某群体多空共识随时间演化。
+**用途：** 单资产聪明钱信号的**时间序列**,**池由 `authorIds` 直接限定**。返回截止 `asOfTime` 的最新 `limit` 个桶。用于追踪某群体多空共识随时间演化。按业务场景与 S3 区分:`_by_filter` 走 tier 探索,`_by_trader` 走 authorIds 直查。
 
 **禁用场景：**
 - tier 过滤池时间序列 → 用 S3
@@ -440,13 +439,13 @@
 
 | 参数 | 类型 | 必填 | 范围/默认 | 说明 |
 |---|---|---|---|---|
-| `authorIds` | string | ✅ | — | 逗号分隔 trader ID（与档位池取交集）。 |
+| `authorIds` | string | ✅ | — | 逗号分隔 trader ID。来源：T1 / T6。 |
 | `instCcy` | string | ✅ | — | 单币 base ccy。 |
 | `asOfTime` | string | ❌ | 当前 UTC 整点 | 10 位 `yyyyMMddHH` 锚点。 |
 | `granularity` | string | ❌ | `1h`/`1d`，默认 `1h` | 时间粒度。 |
 | `limit` | integer | ❌ | 1-500，默认 24 | 返回桶数。 |
-| `sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` | string | ❌ | 见 Signal Pool Filter | 定义 phase-1 池，与 `authorIds` 取交集。 |
-| `lmtNum` | integer | ❌ | 1-2000，默认 100 | phase-1 池上限。 |
+
+> S4 **不暴露**任何 Pool Filter / `lmtNum` 参数 — 后端在 authorIds 直查场景使用默认池配置。如需 tier 过滤池时间序列,请使用 S3。
 
 ### 出参 `data[]`
 

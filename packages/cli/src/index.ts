@@ -1356,6 +1356,7 @@ export function handleSmartmoneyCommand(
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
+  // Explicitly drop positional args — every smartmoney param comes from named flags (see issue #78).
   void rest;
   const signalPoolFilters = {
     sortBy: v.sortBy, period: v.period, pnlTier: v.pnlTier,
@@ -1443,7 +1444,10 @@ export function handleSmartmoneyCommand(
 
   if (action === "signal-overview-by-filter") {
     if (v.topInstruments && v.instCcyList) {
-      errorLine("--topInstruments and --instCcyList are mutually exclusive: pass exactly one.");
+      errorLine(
+        "--topInstruments and --instCcyList are mutually exclusive. " +
+        "Pass exactly one — `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
+      );
       process.exitCode = 1;
       return;
     }
@@ -1463,7 +1467,10 @@ export function handleSmartmoneyCommand(
       return;
     }
     if (v.topInstruments && v.instCcyList) {
-      errorLine("--topInstruments and --instCcyList are mutually exclusive: pass exactly one.");
+      errorLine(
+        "--topInstruments and --instCcyList are mutually exclusive. " +
+        "Pass exactly one — `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
+      );
       process.exitCode = 1;
       return;
     }
@@ -1471,8 +1478,6 @@ export function handleSmartmoneyCommand(
       authorIds: v.authorIds,
       topInstruments: v.topInstruments,
       instCcyList: v.instCcyList,
-      ...signalPoolFilters,
-      lmtNum: v.lmtNum,
       json,
     });
   }
@@ -1511,8 +1516,6 @@ export function handleSmartmoneyCommand(
       asOfTime: v.asOfTime,
       granularity: v.granularity,
       limit: v.limit,
-      ...signalPoolFilters,
-      lmtNum: v.lmtNum,
       json,
     });
   }

@@ -271,7 +271,7 @@ okx smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30
 # Anchor at a specific hour: 10-digit yyyyMMddHH UTC
 okx smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 2026050100 --granularity 1d --limit 30
 
-# Restricted to authorIds (intersected with the tier-filtered pool)
+# Restricted to authorIds (authorIds-direct-lookup; pool filters not exposed — backend uses defaults)
 okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --limit 7
 ```
 
@@ -583,7 +583,7 @@ okx smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30
 # 锚定指定整点（10 位 yyyyMMddHH UTC）
 okx smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 2026050100 --granularity 1d --limit 30
 
-# 限定 authorIds（与档位池取交集）
+# 限定 authorIds（authorIds 直查;不暴露池过滤器,后端使用默认池配置）
 okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --limit 7
 ```
 

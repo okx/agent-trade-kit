@@ -11,6 +11,21 @@
 
 ## [Unreleased]
 
+### ⚠ 破坏性变更 —— `signal_*_by_trader` 入参收紧（按业务场景拆分）
+
+`smartmoney_get_signal_overview_by_trader` 与 `smartmoney_get_signal_trend_by_trader` 不再接受池过滤入参(`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`)。池过滤轴现在仅 `_by_filter` 暴露。
+
+原因:此前两个工具都暴露池过滤器,后端再与 `authorIds` 取交集 — 这让两个工具语义高度重叠,AI agent 必须读 description 中"Do NOT use without authorIds"等 negative space 规则才能消歧。改为按**业务场景**划分 — `_by_filter` 走 tier 探索,`_by_trader` 走 authorIds 直查 — 让两个工具的 inputSchema 完全 disjoint,AI agent 看 schema 即可选对。authorIds 直查场景下后端使用默认池配置。
+
+| 工具 | 删除的入参 |
+| --- | --- |
+| `smartmoney_get_signal_overview_by_trader` | `sortBy`, `period`, `pnlTier`, `winRateTier`, `maxDrawdownTier`, `aumTier`, `lmtNum` |
+| `smartmoney_get_signal_trend_by_trader` | 同上 |
+
+CLI 同步:`okx smartmoney signal-overview-by-trader` 与 `okx smartmoney signal-trend-by-trader` 不再接受对应的 `--sortBy` / `--period` / `--pnlTier` / `--winRateTier` / `--maxDrawdownTier` / `--aumTier` / `--lmtNum` flag。下游若仍传,CLI 静默丢弃,不再透传(与 MCP 行为一致)。
+
+完整设计见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) §13。
+
 ### ⚠ 破坏性变更 —— `smartmoney` 模块重构（8 → 10 个原子工具）
 
 Smart Money MCP / CLI 工具面已完整重写，目标是让 AI agent 仅凭工具名就能选对工具。**工具名、参数名、部分返回字段名全部变化**，且**不保留 alias**（旧名一律删除）。

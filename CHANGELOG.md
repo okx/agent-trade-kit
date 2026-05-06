@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### ⚠ BREAKING — `signal_*_by_trader` input surface tightened (business-scenario split)
+
+`smartmoney_get_signal_overview_by_trader` and `smartmoney_get_signal_trend_by_trader` no longer accept pool-filter parameters (`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`). The pool-filter axis is now exclusive to the `_by_filter` siblings.
+
+Why: the prior shape exposed pool filters on both `_by_filter` and `_by_trader` and let backend take the intersection with `authorIds`. That made the two siblings semantically overlapping and forced agents to read negative-space description rules ("Do NOT use without authorIds — use the other one") to disambiguate. Splitting the axis by **business scenario** — `_by_filter` for tier-driven discovery, `_by_trader` for direct authorIds lookup — makes the input schemas disjoint, so agents pick the right tool from the schema alone. Backend uses sensible defaults for the authorIds-direct-lookup pool.
+
+| Tool | Removed parameters |
+| --- | --- |
+| `smartmoney_get_signal_overview_by_trader` | `sortBy`, `period`, `pnlTier`, `winRateTier`, `maxDrawdownTier`, `aumTier`, `lmtNum` |
+| `smartmoney_get_signal_trend_by_trader` | same as above |
+
+CLI parity: `okx smartmoney signal-overview-by-trader` and `okx smartmoney signal-trend-by-trader` no longer accept the matching `--sortBy` / `--period` / `--pnlTier` / `--winRateTier` / `--maxDrawdownTier` / `--aumTier` / `--lmtNum` flags. If a downstream caller still passes them, the CLI silently drops them rather than forwarding (matches MCP behaviour).
+
+See [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) §13 for the full rationale.
+
 ### ⚠ BREAKING — `smartmoney` module redesign (8 → 10 atomic tools)
 
 Smart Money MCP/CLI surface has been fully rewritten for AI-agent disambiguation. Tool names, parameter names, and several response field names have all changed. There is **no compatibility shim** — every old name is removed.

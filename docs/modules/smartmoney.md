@@ -23,7 +23,7 @@ The 10-tool surface is split by **entry mode** so AI agents can pick the right t
 | smartmoney_get_signal_overview_by_filter | R | Multi-asset consensus signal restricted by **pool filter** (sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier). Pick coins via `topInstruments` (top-N hottest) **or** `instCcyList` (specific coins). Snapshot is current hour. Subsumes the former "top-N most-watched" use case. |
 | smartmoney_get_signal_overview_by_trader | R | Multi-asset consensus signal restricted to a **specific list of `authorIds`** (no pool filter). Pick coins via `topInstruments` **or** `instCcyList`. Snapshot is current hour. |
 | smartmoney_get_signal_trend_by_filter | R | Single-coin signal time-series — required `instCcy`, anchored at `asOfTime` (10-digit `yyyyMMddHH` UTC; defaults to current hour), filtered by pool conditions. Granularity `1h` / `1d`. |
-| smartmoney_get_signal_trend_by_trader | R | Single-coin signal time-series — required `instCcy` + `authorIds`, anchored at `asOfTime`. `authorIds` intersected with the tier-filtered pool. |
+| smartmoney_get_signal_trend_by_trader | R | Single-coin signal time-series — required `instCcy` + `authorIds`, anchored at `asOfTime`. **No pool filter input** (authorIds-direct-lookup; backend uses default pool config). |
 
 10 tools, all read-only.
 
@@ -151,7 +151,7 @@ okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC [--a
 | smartmoney_get_signal_overview_by_filter | 读 | 多币聚合共识信号，按**池过滤器**（sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier）筛选。币种选择 `topInstruments`（最热 N 个）或 `instCcyList`（指定币种）。快照取当前小时。覆盖原"Top-N 最热"场景。 |
 | smartmoney_get_signal_overview_by_trader | 读 | 多币聚合共识信号，限定到指定 **`authorIds`**（不接池过滤器）。币种选择 `topInstruments` 或 `instCcyList`。快照取当前小时。 |
 | smartmoney_get_signal_trend_by_filter | 读 | 单币信号时间序列，**必传 `instCcy`**，锚定 `asOfTime`（10 位 `yyyyMMddHH` UTC，默认当前整点）按池过滤器聚合。`granularity` 支持 `1h` / `1d`。 |
-| smartmoney_get_signal_trend_by_trader | 读 | 单币信号时间序列，**必传 `instCcy` + `authorIds`**，锚定 `asOfTime`，`authorIds` 与档位池取交集。 |
+| smartmoney_get_signal_trend_by_trader | 读 | 单币信号时间序列，**必传 `instCcy` + `authorIds`**，锚定 `asOfTime`。**不暴露池过滤器入参**（authorIds 直查场景,后端使用默认池配置）。 |
 
 共 10 个工具（全部只读）。
 

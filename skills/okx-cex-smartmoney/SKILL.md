@@ -97,9 +97,9 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 | Command | Type | Auth | Description |
 |---|---|---|---|
 | `smartmoney signal-overview-by-filter` | READ | Required | Multi-asset signal, tier-filtered pool. Pick coins via `--topInstruments` (top-N hottest) OR `--instCcyList BTC,ETH,SOL` (specific) — exactly one. Use this to discover the hottest coins among smart money. |
-| `smartmoney signal-overview-by-trader --authorIds <id1,id2>` | READ | Required | Multi-asset signal restricted to specific traders. Pick coins via `--topInstruments` OR `--instCcyList`. |
+| `smartmoney signal-overview-by-trader --authorIds <id1,id2>` | READ | Required | Multi-asset signal aggregated over a hand-picked set of traders (authorIds-direct-lookup). Pick coins via `--topInstruments` OR `--instCcyList`. **Pool filters not exposed** — backend uses defaults. |
 | `smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series anchored at `asOfTime` (defaults to current UTC hour), tier-filtered pool. `--granularity 1h\|1d`, `--limit` controls bucket count. |
-| `smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series anchored at `asOfTime`, authorIds intersected with the tier-filtered pool. |
+| `smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series aggregated over a hand-picked set of traders (authorIds-direct-lookup). **Pool filters not exposed** — backend uses defaults. |
 
 > **Time anchor**: `signal-trend-by-{filter,trader}` take an optional `--asOfTime <yyyyMMddHH>` (10-digit UTC hour, e.g. `2026050100`). Returns the latest `--limit` buckets ending at that anchor. Omit `--asOfTime` to use the current UTC hour. `signal-overview-by-{filter,trader}` does not expose any time input — handler always uses the current hour.
 

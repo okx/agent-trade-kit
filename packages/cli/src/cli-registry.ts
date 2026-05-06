@@ -917,8 +917,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "signal-overview-by-trader": {
         toolName: "smartmoney_get_signal_overview_by_trader",
-        usage: "okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]",
-        description: "Multi-asset smart-money signal restricted to a hand-picked set of traders (intersected with the tier-filtered pool)",
+        usage: "okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--json]",
+        description: "Multi-asset smart-money signal aggregated over a hand-picked set of traders (authorIds-direct-lookup; pool filters not exposed)",
       },
       "signal-trend-by-filter": {
         toolName: "smartmoney_get_signal_trend_by_filter",
@@ -927,8 +927,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "signal-trend-by-trader": {
         toolName: "smartmoney_get_signal_trend_by_trader",
-        usage: "okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n>] [--json]",
-        description: "Single-coin smart-money signal time-series restricted to authorIds intersected with the tier-filtered pool, anchored at asOfTime",
+        usage: "okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>] [--json]",
+        description: "Single-coin smart-money signal time-series aggregated over a hand-picked set of traders (authorIds-direct-lookup; pool filters not exposed)",
       },
     },
   },

@@ -5573,7 +5573,7 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     assert.equal(params.instId, undefined);
   });
 
-  it("forwards pool filter params and lmtNum (intersected with authorIds)", async () => {
+  it("drops pool filter params and lmtNum (authorIds-direct-lookup; backend uses defaults)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
@@ -5591,13 +5591,15 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     );
     const params = getLastCall()!.params;
     assert.equal(params.authorIds, "1001,1002");
-    assert.equal(params.sortBy, "pnlRatio");
-    assert.equal(params.period, "30");
-    assert.equal(params.pnlTier, "PNL_TOP20");
-    assert.equal(params.winRateTier, "WR_GE_50");
-    assert.equal(params.maxDrawdownTier, "MR_LE_20");
-    assert.equal(params.aumTier, "AUM_TOP50");
-    assert.equal(params.lmtNum, 200);
+    assert.equal(params.topInstruments, 10);
+    // Pool filters / pool sizing are not part of the by-trader surface.
+    assert.equal(params.sortBy, undefined);
+    assert.equal(params.period, undefined);
+    assert.equal(params.pnlTier, undefined);
+    assert.equal(params.winRateTier, undefined);
+    assert.equal(params.maxDrawdownTier, undefined);
+    assert.equal(params.aumTier, undefined);
+    assert.equal(params.lmtNum, undefined);
   });
 });
 
@@ -5700,7 +5702,7 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
     assert.equal(params.instId, undefined);
   });
 
-  it("forwards pool filters and lmtNum (intersected with the phase-1 pool)", async () => {
+  it("drops pool filters and lmtNum (authorIds-direct-lookup; backend uses defaults)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
@@ -5710,18 +5712,23 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
         winRateTier: "WR_GE_50",
         maxDrawdownTier: "MR_LE_50",
         aumTier: "AUM_TOP20",
+        sortBy: "pnlRatio",
         period: "7",
         lmtNum: "200",
       },
       makeContext(client),
     );
     const params = getLastCall()!.params;
-    assert.equal(params.pnlTier, "PNL_TOP5");
-    assert.equal(params.winRateTier, "WR_GE_50");
-    assert.equal(params.maxDrawdownTier, "MR_LE_50");
-    assert.equal(params.aumTier, "AUM_TOP20");
-    assert.equal(params.period, "7");
-    assert.equal(params.lmtNum, 200);
+    assert.equal(params.authorIds, "1001");
+    assert.equal(params.instCcy, "BTC");
+    // Pool filters / pool sizing are not part of the by-trader surface.
+    assert.equal(params.pnlTier, undefined);
+    assert.equal(params.winRateTier, undefined);
+    assert.equal(params.maxDrawdownTier, undefined);
+    assert.equal(params.aumTier, undefined);
+    assert.equal(params.sortBy, undefined);
+    assert.equal(params.period, undefined);
+    assert.equal(params.lmtNum, undefined);
   });
 });
 

@@ -294,11 +294,12 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
   });
 
   describe("signal-overview-by-trader", () => {
-    it("dispatches with authorIds + topInstruments + tier filters + lmtNum (drops instId)", async () => {
+    it("dispatches with authorIds + topInstruments only (drops pool filters / lmtNum / instId)", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "signal-overview-by-trader", [], vals({
         authorIds: "1001,1002",
         topInstruments: "8",
+        // Pool filters are not part of the by-trader surface — backend uses defaults; these flags must be dropped.
         pnlTier: "PNL_TOP20",
         winRateTier: "WR_GE_50",
         maxDrawdownTier: "MR_LE_20",
@@ -313,13 +314,14 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.equal(captured.args["authorIds"], "1001,1002");
       assert.equal(captured.args["topInstruments"], "8");
       assert.equal(captured.args["instCcyList"], undefined);
-      assert.equal(captured.args["pnlTier"], "PNL_TOP20");
-      assert.equal(captured.args["winRateTier"], "WR_GE_50");
-      assert.equal(captured.args["maxDrawdownTier"], "MR_LE_20");
-      assert.equal(captured.args["aumTier"], "AUM_TOP50");
-      assert.equal(captured.args["sortBy"], "pnlRatio");
-      assert.equal(captured.args["period"], "30");
-      assert.equal(captured.args["lmtNum"], "50");
+      // Pool filters / pool sizing must NOT leak into the by-trader tool.
+      assert.equal(captured.args["pnlTier"], undefined, "pnlTier dropped");
+      assert.equal(captured.args["winRateTier"], undefined, "winRateTier dropped");
+      assert.equal(captured.args["maxDrawdownTier"], undefined, "maxDrawdownTier dropped");
+      assert.equal(captured.args["aumTier"], undefined, "aumTier dropped");
+      assert.equal(captured.args["sortBy"], undefined, "sortBy dropped");
+      assert.equal(captured.args["period"], undefined, "period dropped");
+      assert.equal(captured.args["lmtNum"], undefined, "lmtNum dropped");
       assert.equal(captured.args["instId"], undefined, "instId dropped");
     });
 
@@ -406,7 +408,7 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
   });
 
   describe("signal-trend-by-trader", () => {
-    it("dispatches with authorIds + instCcy + asOfTime + granularity + limit + tier filters + lmtNum", async () => {
+    it("dispatches with authorIds + instCcy + asOfTime + granularity + limit (drops pool filters / lmtNum)", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "signal-trend-by-trader", [], vals({
         authorIds: "1001,1002",
@@ -414,8 +416,11 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
         asOfTime: "2026050100",
         granularity: "1h",
         limit: "12",
+        // Pool filters are not part of the by-trader surface — backend uses defaults; these flags must be dropped.
         pnlTier: "PNL_TOP5",
         winRateTier: "WR_GE_50",
+        sortBy: "pnlRatio",
+        period: "30",
         lmtNum: "50",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_signal_trend_by_trader");
@@ -424,9 +429,12 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.equal(captured.args["asOfTime"], "2026050100");
       assert.equal(captured.args["granularity"], "1h");
       assert.equal(captured.args["limit"], "12");
-      assert.equal(captured.args["pnlTier"], "PNL_TOP5");
-      assert.equal(captured.args["winRateTier"], "WR_GE_50");
-      assert.equal(captured.args["lmtNum"], "50");
+      // Pool filters / pool sizing must NOT leak into the by-trader tool.
+      assert.equal(captured.args["pnlTier"], undefined, "pnlTier dropped");
+      assert.equal(captured.args["winRateTier"], undefined, "winRateTier dropped");
+      assert.equal(captured.args["sortBy"], undefined, "sortBy dropped");
+      assert.equal(captured.args["period"], undefined, "period dropped");
+      assert.equal(captured.args["lmtNum"], undefined, "lmtNum dropped");
       assert.equal(captured.args["instId"], undefined, "instId is no longer accepted");
       assert.equal(captured.args["startTime"], undefined);
       assert.equal(captured.args["endTime"], undefined);

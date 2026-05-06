@@ -199,9 +199,9 @@ longShortAccountRatio
 | Tool | 必填 | 可选 | 时间锚处理 |
 |---|---|---|---|
 | `smartmoney_get_signal_overview_by_filter` | — | topInstruments / instCcyList（二选一，默认 topInstruments=20）, sortBy, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | **不暴露任何时间入参**，handler 自动填当前小时 |
-| `smartmoney_get_signal_overview_by_trader` | authorIds | topInstruments / instCcyList（二选一，默认 topInstruments=20） | **不暴露任何时间入参**，handler 自动填当前小时 |
+| `smartmoney_get_signal_overview_by_trader` | authorIds | topInstruments / instCcyList（二选一，默认 topInstruments=20） | **业务场景拆分**:`_by_trader` 走 authorIds 直查,**不暴露**池过滤器入参;后端使用默认池配置。**不暴露任何时间入参**,handler 自动填当前小时。 |
 | `smartmoney_get_signal_trend_by_filter` | instCcy | asOfTime, granularity (1h/1d), limit, sortBy, period, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | `asOfTime` = 10 位 `yyyyMMddHH` UTC 锚点（缺省=当前小时），`limit` 控制截止该锚点向前的桶数 |
-| `smartmoney_get_signal_trend_by_trader` | authorIds, instCcy | asOfTime, granularity (1h/1d), limit, sortBy, period, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | `authorIds` 与档位池取交集；其余同 `_by_filter` |
+| `smartmoney_get_signal_trend_by_trader` | authorIds, instCcy | asOfTime, granularity (1h/1d), limit | **业务场景拆分**:`_by_trader` 走 authorIds 直查,**不暴露**池过滤器入参;后端使用默认池配置。 |
 
 ### 5.3 输出统一形态
 
@@ -380,9 +380,9 @@ CHANGELOG 附迁移表，例如：
 | Tool | 必填 | 可选 | 备注 |
 |---|---|---|---|
 | `smartmoney_get_signal_overview_by_filter` | — | topInstruments / instCcyList（二选一，默认 topInstruments=20）, sortBy, period, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum (default 100, max 2000) | 不暴露任何 `ts` 入参；handler 固定取当前小时 |
-| `smartmoney_get_signal_overview_by_trader` | authorIds | topInstruments / instCcyList（二选一）, sortBy, period, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | `authorIds` 与档位池取交集 |
+| `smartmoney_get_signal_overview_by_trader` | authorIds | topInstruments / instCcyList（二选一） | **业务场景拆分**:`_by_trader` 走 authorIds 直查,**不暴露**池过滤器入参;后端使用默认池配置 |
 | `smartmoney_get_signal_trend_by_filter` | instCcy | asOfTime, granularity (1h/1d), limit (default 24, max 500), sortBy, period, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum (default 100, max 2000) | `asOfTime` 缺省=当前 UTC 整点；返回截止该锚点向前 `limit` 个桶 |
-| `smartmoney_get_signal_trend_by_trader` | authorIds, instCcy | asOfTime, granularity (1h/1d), limit (default 24), sortBy, period, pnlTier, winRateTier, maxDrawdownTier, aumTier, lmtNum | `authorIds` 与档位池取交集；其余同 `_by_filter` |
+| `smartmoney_get_signal_trend_by_trader` | authorIds, instCcy | asOfTime, granularity (1h/1d), limit (default 24) | **业务场景拆分**:`_by_trader` 走 authorIds 直查,**不暴露**池过滤器入参;后端使用默认池配置 |
 
 互斥校验：`topInstruments` 与 `instCcyList` 同时传入时返回 `actionableError`；两者皆不传时走 `topInstruments=20` 默认。
 
@@ -408,3 +408,40 @@ MCP 层（含 mutex 校验、`PATH_OVERVIEW` / `PATH_SIGNAL_HISTORY` 透传）�
 - `CHANGELOG.md` / `CHANGELOG.zh-CN.md`：新增 entry 标记本次反转
 - `skills/okx-cex-smartmoney/SKILL.md`：同步多币用法示例
 - `skills/okx-cex-smartmoney/references/signal-commands.md`：补 `--instCcyList` 说明
+
+---
+
+## 13. 2026-05-06 业务场景驱动:`_by_trader` 收紧入参
+
+### 13.1 反转项
+
+§12.1 中 "`authorIds` 与档位池取交集（phase-1 池）" 的暴露策略被覆盖。新决议:
+
+| 项 | 旧 | 新 |
+|---|---|---|
+| `signal_overview_by_trader` 入参 | `authorIds` + `topInstruments`/`instCcyList` + sortBy/period/pnlTier/winRateTier/maxDrawdownTier/aumTier/lmtNum | **仅** `authorIds` + `topInstruments`/`instCcyList` |
+| `signal_trend_by_trader` 入参 | `authorIds` + `instCcy` + asOfTime/granularity/limit + sortBy/period/pnlTier/winRateTier/maxDrawdownTier/aumTier/lmtNum | **仅** `authorIds` + `instCcy` + asOfTime/granularity/limit |
+| 池过滤行为 | MCP 透传给后端,与 authorIds 取交集 | MCP 不透传,**后端使用默认池配置** |
+
+### 13.2 拆分轴
+
+`_by_filter` vs `_by_trader` 的语义不再是"是否提供 authorIds",而是**业务场景**:
+
+- **`_by_filter`(tier 探索场景)**:用户不知道具体 trader,通过 PnL/win-rate/drawdown/AUM 档位筛池子。完整暴露 pool filter 套件。
+- **`_by_trader`(authorIds 直查场景)**:用户已通过 `_get_traders_by_filter` / `_search_trader` 锁定 trader 列表,只想看这群人的共识。MCP 不暴露池参数,后端兜底默认池。
+
+### 13.3 设计动机
+
+1. inputSchema 在两个轴上 disjoint(只有 `_by_filter` 有 tier 参数,只有 `_by_trader` 有 authorIds),AI agent 看 schema 即可消歧,不依赖 description 中的 negative space("Do NOT use without authorIds")。
+2. 收回 §12 的"两边都暴露 + 取交集"模型 — 该模型让两个工具语义高度重叠,违反 mcp-builder 的 atomic-and-narrow 原则。
+3. CHANGELOG / Skill / CLI 的 `_by_trader` usage 全面收缩。
+
+### 13.4 同步要做的修订(已落地)
+
+- `packages/core/src/tools/smartmoney.ts`:S2/S4 inputSchema 与 handler 不再 spread `SIGNAL_POOL_FILTER_PROPS` 与 `lmtNum`;description 中删除"intersected with the tier-filtered pool"等表述。
+- `packages/cli/src/commands/smartmoney.ts` + `index.ts` + `cli-registry.ts`:S2/S4 CLI 命令删除池参数 flag,usage 字符串收缩。
+- `packages/core/test/tools.test.ts`:S2/S4 单测断言"drops pool filter params and lmtNum"。
+- `packages/cli/test/smartmoney-routing.test.ts`:S2/S4 routing 测试断言池 flag 被 drop。
+- `docs/modules/smartmoney.md` / `smartmoney.tools.md`:S2/S4 入参表与说明同步。
+- `CHANGELOG.md` / `CHANGELOG.zh-CN.md`:新 entry。
+- `skills/okx-cex-smartmoney*`:用法示例同步。

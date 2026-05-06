@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { extractData, outputLine, printJson, printTable } from "../formatter.js";
+import { errorLine, extractData, outputLine, printJson, printTable } from "../formatter.js";
 
 
 // Table-mode renderer. --json is handled at each command site (envelope passthrough)
@@ -12,6 +12,18 @@ function printDataTable(
 ): void {
   if (!data.length) { outputLine(emptyMsg); return; }
   printTable(data.map(mapper));
+}
+
+// Surface cursor-pagination hint in table mode so interactive users know there
+// are more pages. Goes to stderr to keep stdout pipes clean for downstream tools.
+function printPaginationHint(result: unknown): void {
+  if (!result || typeof result !== "object") return;
+  const pagination = (result as Record<string, unknown>).pagination;
+  if (!pagination || typeof pagination !== "object") return;
+  const { hasMore, nextAfter } = pagination as Record<string, unknown>;
+  if (hasMore !== true) return;
+  const cursor = typeof nextAfter === "string" || typeof nextAfter === "number" ? String(nextAfter) : "";
+  errorLine(cursor ? `more results — pass --after ${cursor} for next page` : "more results — pass --after <cursor> for next page");
 }
 
 /** Pool-filter fields for signal endpoints (overview / signal-history). Enum tiers. */
@@ -88,6 +100,7 @@ export async function cmdSmartmoneyTradersByFilter(
     maxDrawdown: r["maxDrawdown"],
     asset: r["asset"],
   }));
+  printPaginationHint(result);
 }
 
 export async function cmdSmartmoneyPerformanceByTrader(
@@ -174,6 +187,7 @@ export async function cmdSmartmoneyTraderPositionsHistory(
     pnlRatio: r["pnlRatio"],
     closeType: r["closeType"],
   }));
+  printPaginationHint(result);
 }
 
 export async function cmdSmartmoneyTraderOrdersHistory(
@@ -206,6 +220,7 @@ export async function cmdSmartmoneyTraderOrdersHistory(
     sz: r["sz"],
     value: r["value"],
   }));
+  printPaginationHint(result);
 }
 
 export async function cmdSmartmoneySearchTrader(
@@ -231,6 +246,10 @@ export async function cmdSmartmoneySearchTrader(
 /*  Signal/Coin family (4)                                             */
 /* ------------------------------------------------------------------ */
 
+// Table columns are the "essence" subset for terminal width: pool size, headcount
+// long/short, weighted long ratio, net notional, plus 1h/24h/7d trend deltas.
+// Capability fields (avgLong/ShortWinRate) and weighted entry prices live only
+// in --json output to keep the table readable.
 const signalRowMapper = (r: Record<string, unknown>): Record<string, unknown> => {
   const lsr = (r["longShortRatio"] ?? {}) as Record<string, unknown>;
   const notional = (r["notional"] ?? {}) as Record<string, unknown>;
@@ -270,11 +289,10 @@ export async function cmdSmartmoneySignalOverviewByFilter(
 
 export async function cmdSmartmoneySignalOverviewByTrader(
   run: ToolRunner,
-  opts: SignalPoolFilterOpts & {
+  opts: {
     authorIds: string;
     topInstruments?: string;
     instCcyList?: string;
-    lmtNum?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -282,14 +300,14 @@ export async function cmdSmartmoneySignalOverviewByTrader(
     authorIds: opts.authorIds,
     topInstruments: opts.topInstruments,
     instCcyList: opts.instCcyList,
-    ...signalPoolFilterArgs(opts),
-    lmtNum: opts.lmtNum,
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
   printDataTable(data, "No signal data", signalRowMapper);
 }
 
+// Time-bucket essence: dataVersion (anchor), headcount + weighted ratios, pool size,
+// and gross/net notional. No trend deltas — the time series itself is the trend.
 const trendRowMapper = (r: Record<string, unknown>): Record<string, unknown> => ({
   dataVersion: r["dataVersion"],
   ccy: r["ccy"],
@@ -331,13 +349,12 @@ export async function cmdSmartmoneySignalTrendByFilter(
 
 export async function cmdSmartmoneySignalTrendByTrader(
   run: ToolRunner,
-  opts: SignalPoolFilterOpts & {
+  opts: {
     authorIds: string;
     instCcy: string;
     asOfTime?: string;
     granularity?: string;
     limit?: string;
-    lmtNum?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -347,8 +364,6 @@ export async function cmdSmartmoneySignalTrendByTrader(
     asOfTime: opts.asOfTime,
     granularity: opts.granularity,
     limit: opts.limit,
-    ...signalPoolFilterArgs(opts),
-    lmtNum: opts.lmtNum,
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);

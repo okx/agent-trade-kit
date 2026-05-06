@@ -135,7 +135,7 @@ okx --profile live smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 20
 
 Present as time-series table: dataVersion, ccy, longRatio, shortRatio, weightedLongRatio, weightedShortRatio, longTraders, shortTraders, tradersWithPosition, tradersQualified, netNotionalUsdt, totalNotionalUsdt.
 
-For an authorIds-scoped trend (those traders' consensus, intersected with the tier-filtered pool):
+For an authorIds-scoped trend (consensus of a hand-picked set of traders; pool filters not exposed — `_by_trader` is direct-lookup, backend uses defaults):
 
 ```bash
 okx --profile live smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --granularity 1d --limit 30 --json

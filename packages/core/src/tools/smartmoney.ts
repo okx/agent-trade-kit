@@ -223,7 +223,9 @@ function buildPagination(
 function extractBaseCcy(instId: string | undefined): string | undefined {
   if (!instId) return undefined;
   const idx = instId.indexOf("-");
-  return idx === -1 ? instId : instId.slice(0, idx);
+  const base = idx === -1 ? instId : instId.slice(0, idx);
+  // Defensive: malformed input like "-USDT-SWAP" yields "" — drop instead of forwarding empty filter.
+  return base || undefined;
 }
 
 /* ------------------------------------------------------------------ */
@@ -534,7 +536,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "PnL / win-rate / drawdown profile for one or more traders looked up by `authorIds` " +
         "(comma-separated for batch). " +
-        "Use `smartmoney_get_traders_by_filter` to discover authorIds first.",
+        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
+        "for criteria-based discovery use `smartmoney_get_traders_by_filter`.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -601,7 +604,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Currently-open positions held by a single trader. Use to see what a top trader is holding RIGHT NOW " +
         "(direction, size, leverage, entry, conviction). " +
-        "Get `authorId` from `smartmoney_get_traders_by_filter` first. " +
+        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
+        "for criteria-based discovery use `smartmoney_get_traders_by_filter`. " +
         "For closed-position history use `smartmoney_get_trader_positions_history`.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
@@ -693,6 +697,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Closed-position history of a single trader (paginated by `posId` cursor). " +
         "Use to study realized PnL pattern, holding duration, win/loss streaks, and how positions ended (closed vs liquidated). " +
+        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
+        "for criteria-based discovery use `smartmoney_get_traders_by_filter`. " +
         "For currently-open positions use `smartmoney_get_trader_positions`.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
@@ -848,7 +854,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Recent orders/fills placed by a single trader (latest activity log), paginated by `ordId` cursor. " +
         "Aligned with the cross-module `*_get_orders` family. " +
         "Use to see what trades a top trader has been making lately — direction, size, price, leverage. " +
-        "Get `authorId` from `smartmoney_get_traders_by_filter`.",
+        "If the user supplies a nickname, resolve it to `authorId` via `smartmoney_search_trader` first; " +
+        "for criteria-based discovery use `smartmoney_get_traders_by_filter`.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope(
@@ -1000,7 +1007,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             type: "string",
             description:
               "Nickname search keyword. Required, must be non-empty / non-whitespace. " +
-              "Backend performs full-text recall on the keyword, then intersects with the Top Trader set.",
+              "Matched candidates are intersected with the Top Trader set.",
           },
         },
         required: ["keyword"],
@@ -1040,8 +1047,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Pick instruments via `topInstruments` (top-N hottest) OR `instCcyList` (specific coins) — exactly one is required. " +
         "Do NOT use to restrict aggregation to specific traders — use `smartmoney_get_signal_overview_by_trader` instead. " +
         "Do NOT use for time-series — use `smartmoney_get_signal_trend_by_filter` instead. " +
-        "Snapshot time is auto-resolved to the current hour. " +
-        "Note: `instCcyList` mode depends on backend `/overview` re-accepting `instCcyList` (re-introduced 2026-04-30 per design reversal).",
+        "Snapshot time is auto-resolved to the current hour.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1109,14 +1115,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       name: "smartmoney_get_signal_overview_by_trader",
       module: "smartmoney",
       description:
-        "Multi-asset smart-money signals restricted to a hand-picked set of traders (`authorIds`). " +
-        "Use to compute consensus signals from a specific group rather than a tier-filtered pool. " +
-        "Pick instruments via `topInstruments` (top-N hottest among the group) OR `instCcyList` (specific coins) — exactly one is required. " +
-        "Do NOT use without `authorIds` — use `smartmoney_get_signal_overview_by_filter` for a tier-filtered pool view instead. " +
-        "Do NOT use for time-series — use `smartmoney_get_signal_trend_by_trader` instead. " +
-        "Discover authorIds first via `smartmoney_get_traders_by_filter`. " +
-        "Snapshot time is auto-resolved to the current hour. " +
-        "Note: depends on backend `/overview` accepting `authorIds` and `instCcyList` (re-introduced 2026-04-30 per design reversal).",
+        "Multi-asset smart-money signals aggregated over a hand-picked set of traders (`authorIds`). " +
+        "Use when the caller already knows which traders to follow and wants their consensus on multiple coins at the latest hour. " +
+        "Pick instruments via `topInstruments` (top-N hottest among the group) OR `instCcyList` (specific coins). " +
+        "Pool sizing / ranking / capability filters are not exposed — backend uses sensible defaults for the authorIds-direct-lookup scenario. " +
+        "Discover authorIds first via `smartmoney_get_traders_by_filter` or `smartmoney_search_trader`.",
       isWrite: false,
       annotations: READ_ONLY_ANNOTATIONS,
       outputSchema: envelope({
@@ -1130,8 +1133,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           authorIds: {
             type: "string",
             description:
-              "Comma-separated trader IDs (e.g. \"1001,1002\") to restrict the aggregation. Required. " +
-              "Intersected with the pool selected by the tier filters.",
+              "Comma-separated trader IDs (e.g. \"1001,1002\") to aggregate over. Required.",
           },
           topInstruments: {
             type: "integer",
@@ -1147,16 +1149,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description:
               "Comma-separated list of base currencies (e.g. \"BTC,ETH,SOL\") to aggregate. " +
               "Mutually exclusive with `topInstruments`.",
-          },
-          ...SIGNAL_POOL_FILTER_PROPS,
-          lmtNum: {
-            type: "integer",
-            minimum: 1,
-            maximum: 2000,
-            default: 100,
-            description:
-              "Top-N traders to pull into the aggregation pool, ranked by `sortBy` (DESC); " +
-              "`authorIds` is intersected with this pool. Larger pool = stronger signal but slower. Default 100.",
           },
         },
         required: ["authorIds"],
@@ -1185,8 +1177,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             ...(instCcyList
               ? { instCcyList }
               : { topInstruments: topInstrumentsRaw ?? 20 }),
-            ...readSignalPoolFilters(args),
-            lmtNum: readNumber(args, "lmtNum"),
           }),
           publicRateLimit("smartmoney_get_signal_overview_by_trader", SMARTMONEY_RPS),
         );
@@ -1282,18 +1272,16 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
     },
 
-    /* ---------- S4. Signal trend by trader (single-asset, authorIds intersected with tier pool) ---------- */
+    /* ---------- S4. Signal trend by trader (single-asset, authorIds-restricted) ---------- */
     {
       name: "smartmoney_get_signal_trend_by_trader",
       module: "smartmoney",
       description:
-        "Time-series of single-asset smart-money signal restricted to a hand-picked set of traders (`authorIds`), " +
-        "intersected with the tier-filtered pool (phase-1 pool). " +
+        "Time-series of single-asset smart-money signal aggregated over a hand-picked set of traders (`authorIds`). " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
-        "Use to track how a specific group of traders has evolved their long/short consensus over time. " +
-        "Do NOT use without `authorIds` — use `smartmoney_get_signal_trend_by_filter` for a tier-filtered pool view instead. " +
-        "Do NOT use for the latest single snapshot — use `smartmoney_get_signal_overview_by_trader` instead. " +
-        "Discover authorIds first via `smartmoney_get_traders_by_filter`. " +
+        "Use to track how a specific group of traders has evolved their long/short consensus over time on one coin. " +
+        "Pool sizing / ranking / capability filters are not exposed — backend uses sensible defaults for the authorIds-direct-lookup scenario. " +
+        "Discover authorIds first via `smartmoney_get_traders_by_filter` or `smartmoney_search_trader`. " +
         "TIME ANCHOR: `asOfTime` is 10-digit `yyyyMMddHH` UTC — DIFFERENT from leaderboard tools' " +
         "12-digit UTC+8 `updateTime`. Do NOT pass `updateTime` from `smartmoney_get_traders_by_filter` here.",
       isWrite: false,
@@ -1309,7 +1297,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           authorIds: {
             type: "string",
             description:
-              "Comma-separated trader IDs (e.g. \"1001,1002\") to intersect with the tier-filtered pool. Required.",
+              "Comma-separated trader IDs (e.g. \"1001,1002\") to aggregate over. Required.",
           },
           instCcy: {
             type: "string",
@@ -1338,16 +1326,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description:
               "Number of buckets to return (newest first), ending at `asOfTime`. Default 24, max 500.",
           },
-          ...SIGNAL_POOL_FILTER_PROPS,
-          lmtNum: {
-            type: "integer",
-            minimum: 1,
-            maximum: 2000,
-            default: 100,
-            description:
-              "Top-N traders to pull into the phase-1 pool, ranked by `sortBy` (DESC); " +
-              "`authorIds` is intersected with this pool. Default 100, max 2000.",
-          },
         },
         required: ["authorIds", "instCcy"],
       },
@@ -1375,8 +1353,6 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             asOfTime: readString(args, "asOfTime"),
             granularity: readString(args, "granularity"),
             limit: readNumber(args, "limit"),
-            ...readSignalPoolFilters(args),
-            lmtNum: readNumber(args, "lmtNum"),
           }),
           publicRateLimit("smartmoney_get_signal_trend_by_trader", SMARTMONEY_RPS),
         );
