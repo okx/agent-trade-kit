@@ -25,7 +25,7 @@
     "test:unit": "node --experimental-test-module-mocks --import tsx/esm --test test/*.test.ts"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.3.0"
   },
   "keywords": [
     "okx",
