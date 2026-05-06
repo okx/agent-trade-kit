@@ -5,7 +5,7 @@
 > User: "推荐聪明钱" / "top performers this month"
 
 ```bash
-okx --profile live smartmoney top-traders --period 30 --sortBy pnl --limit 10 --json
+okx --profile live smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10 --json
 ```
 
 Present as Markdown table with: rank, nickName, pnl, pnlRatio, winRate, asset.
@@ -25,32 +25,42 @@ The old `smartmoney trader` composite command was removed. Run all three atomic 
 
 ```bash
 # Run in parallel — three independent endpoints
-okx --profile live smartmoney trader-performance --authorIds <id> --json
+okx --profile live smartmoney performance-by-trader --authorIds <id> --json
 okx --profile live smartmoney trader-positions --authorId <id> --json
-okx --profile live smartmoney trader-order-history --authorId <id> --limit 50 --json
+okx --profile live smartmoney trader-orders-history --authorId <id> --limit 50 --json
 ```
 
-Present in three sections: profile summary (from `trader-performance`), then current positions table (from `trader-positions`), then recent orders table (from `trader-order-history`).
+Present in three sections: profile summary (from `performance-by-trader`), then current positions table (from `trader-positions`), then recent orders table (from `trader-orders-history`).
 
 For closed-position history (realized PnL trail), add a fourth call:
 
 ```bash
-okx --profile live smartmoney trader-position-history --authorId <id> --limit 50 --json
+okx --profile live smartmoney trader-positions-history --authorId <id> --limit 50 --json
 ```
 
-`trader-order-history` and `trader-position-history` return top-level `pagination: { hasMore, nextAfter }` — pass `nextAfter` as `--after` for the next page.
+`trader-orders-history` and `trader-positions-history` return top-level `pagination: { hasMore, nextAfter }` — pass `nextAfter` as `--after` for the next page.
 
 ---
 
 ## 3. Verify / Look Up Specific Traders
 
-> User: "搜索交易员 XXX" / "show me stats for these authorIds"
+> User: "show me stats for these authorIds" / "verify trader 1001,1002"
 
 ```bash
-okx --profile live smartmoney trader-performance --authorIds <id1>,<id2>,<id3> --json
+okx --profile live smartmoney performance-by-trader --authorIds <id1>,<id2>,<id3> --json
 ```
 
-If the user provides a nickName instead of an authorId, search-by-name is not supported by the API — inform the user they need the authorId (typically obtained from `top-traders`).
+If the user provides a **nickName** (e.g. "alice", "小明") instead of an authorId, resolve it first via `search-trader` and then feed the resulting authorId(s) into the other tools:
+
+```bash
+# Step 1: resolve nickname → up to 10 candidate Top Traders
+okx --profile live smartmoney search-trader --keyword alice --json
+
+# Step 2: take the chosen authorId from the result and look up performance / positions etc.
+okx --profile live smartmoney performance-by-trader --authorIds <authorId> --json
+```
+
+> `search-trader` returns at most 10 matches sorted by OKX-platform follower count DESC, restricted to the Top Trader set. An empty array means no profitable leaderboard trader matched the keyword.
 
 ---
 
@@ -59,16 +69,16 @@ If the user provides a nickName instead of an authorId, search-by-name is not su
 > User: "找胜率80%以上的交易员" / "traders with > 80% win rate"
 
 ```bash
-okx --profile live smartmoney top-traders --winRate 0.8 --period 30 --sortBy pnl --limit 10 --json
+okx --profile live smartmoney traders-by-filter --winRate 0.8 --period 30 --sortBy pnl --limit 10 --json
 ```
 
 > User: "回撤低于10%的" / "max drawdown under 10%"
 
 ```bash
-okx --profile live smartmoney top-traders --maxDrawdown 0.1 --period 30 --limit 10 --json
+okx --profile live smartmoney traders-by-filter --maxDrawdown 0.1 --period 30 --limit 10 --json
 ```
 
-> Note: leaderboard uses **numeric thresholds** (`--winRate 0.8`, `--maxDrawdown 0.1`). Signal-side endpoints use **enum tiers** (`--winRateTier WR_GE_80`, `--maxDrawdownTier MD_LE_20`). Don't mix them.
+> Note: leaderboard uses **numeric thresholds** (`--winRate 0.8`, `--maxDrawdown 0.1`). Signal-side endpoints use **enum tiers** (`--winRateTier WR_GE_80`, `--maxDrawdownTier MR_LE_20`). Don't mix them.
 
 ---
 
@@ -78,44 +88,36 @@ okx --profile live smartmoney top-traders --maxDrawdown 0.1 --period 30 --limit 
 
 ```bash
 # No --ts needed — handler auto-uses current hour
-okx --profile live smartmoney signal-by-coin --instId BTC-USDT-SWAP --json
+okx --profile live smartmoney signal-overview-by-filter --instCcyList BTC --json
 ```
 
-Present signal summary (all fields are flat in `data[0]`):
-- Long/short ratio: `longRatio`, `weightedLongRatio`, `longTraders`, `shortTraders`
-- Win rates: `avgLongWinRate`, `avgShortWinRate`
-- Trend deltas: `vs1h`, `vs24h`, `vs7d`
-- Entry prices: `smartMoneyLongAvgEntry`, `smartMoneyShortAvgEntry`
-- Capital: `longNotionalUsdt`, `shortNotionalUsdt`, `netNotionalUsdt`, `totalNotionalVs24h`
+Present signal summary (each `data[]` item has outer fields + 3 nested groups: `notional`, `longShortRatio`, `winRate`):
+- Outer: `ccy`, `dataVersion`, `tradersWithPosition`, `tradersQualified`, `longTraders`, `shortTraders`
+- Long/short ratio (under `longShortRatio`): `longRatio`, `shortRatio`, `weightedLongRatio`, `weightedShortRatio`
+- Trend deltas (under `longShortRatio`): `longRatioVs1h`, `longRatioVs24h`, `longRatioVs7d`
+- Capital (under `notional`): `longNotionalUsdt`, `shortNotionalUsdt`, `netNotionalUsdt`, `totalNotionalUsdt`, `totalNotionalVs24h`
+- Entry prices (under `notional`): `smartMoneyLongAvgEntry`, `smartMoneyShortAvgEntry`
+- Win rates (under `winRate`): `avgLongWinRate`, `avgShortWinRate`
 
 > Older fields `currentPrice` / `priceChange24h` / `fundingRate` / `openInterest` / `longShortAccountRatio` are no longer returned. For real-time market context, fan out to `okx market ticker` in parallel.
 
 ---
 
-## 6. Top Coin Signals (most-watched-by-smart-money instruments)
+## 6. Top-N Most-Watched Coins (and multi-coin consensus)
 
-> User: "聪明钱关注哪些币？" / "what are smart money trading right now?"
-
-```bash
-okx --profile live smartmoney top-coin-signals --topInstruments 20 --json
-```
-
-Returns SWAP-only top-N instruments ranked by smart-money attention. Table columns: instId, tradersWithPosition, longRatio, weightedLongRatio, netNotionalUsdt, vs24h.
-
-For a historical snapshot:
+> User: "聪明钱关注哪些币？" / "what are smart money trading right now?" / "BTC ETH SOL 这几个币的共识"
 
 ```bash
-okx --profile live smartmoney top-coin-signals --ts 1745844000000 --json
+# Top-N hottest among smart money (default 20)
+okx --profile live smartmoney signal-overview-by-filter --topInstruments 20 --json
+
+# Or: specific coin list
+okx --profile live smartmoney signal-overview-by-filter --instCcyList BTC,ETH,SOL --json
 ```
 
-For multi-coin scenarios (the old `--instCcyList` mode is gone), fan out individual `signal-by-coin` calls instead:
+`signal-overview-by-filter` accepts `--topInstruments` OR `--instCcyList` (mutually exclusive). Default is `--topInstruments=20` when neither is given. Snapshot is always the **current hour** — no `--ts` / `--dataVersion`. For a historical comparison call `signal-trend-by-filter` per instrument with the desired `--asOfTime` anchor and `--limit` bucket count.
 
-```bash
-# Parallel
-okx --profile live smartmoney signal-by-coin --instId BTC-USDT-SWAP --json
-okx --profile live smartmoney signal-by-coin --instId ETH-USDT-SWAP --json
-okx --profile live smartmoney signal-by-coin --instId SOL-USDT-SWAP --json
-```
+Table columns to surface: `ccy`, `tradersWithPosition`, `longShortRatio.longRatio`, `longShortRatio.weightedLongRatio`, `notional.netNotionalUsdt`, `longShortRatio.longRatioVs1h` / `longRatioVs24h` / `longRatioVs7d`, `notional.smartMoneyLongAvgEntry`, `notional.smartMoneyShortAvgEntry`, `notional.totalNotionalVs24h`.
 
 ---
 
@@ -124,16 +126,19 @@ okx --profile live smartmoney signal-by-coin --instId SOL-USDT-SWAP --json
 > User: "BTC 信号趋势" / "how has the BTC signal changed?"
 
 ```bash
-ts=$(date +%s)000
-okx --profile live smartmoney signal-history-by-coin --instId BTC-USDT-SWAP --ts $ts --granularity 1d --limit 30 --json
+# 30 daily buckets ending at the current UTC hour, scoped to BTC
+okx --profile live smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30 --json
+
+# Or anchor at a specific UTC hour (10-digit yyyyMMddHH)
+okx --profile live smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 2026050100 --granularity 1d --limit 30 --json
 ```
 
-Present as time-series table: ts, longRatio, weightedLongRatio, tradersWithPosition, netNotionalUsdt, totalNotionalUsdt, tradersQualified.
+Present as time-series table: dataVersion, ccy, longRatio, shortRatio, weightedLongRatio, weightedShortRatio, longTraders, shortTraders, tradersWithPosition, tradersQualified, netNotionalUsdt, totalNotionalUsdt.
 
-For an authorIds-scoped trend (only those traders' consensus over time):
+For an authorIds-scoped trend (those traders' consensus, intersected with the tier-filtered pool):
 
 ```bash
-okx --profile live smartmoney signal-history-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --ts $ts --granularity 1d --json
+okx --profile live smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --granularity 1d --limit 30 --json
 ```
 
 ---
@@ -146,13 +151,13 @@ okx --profile live smartmoney signal-history-by-traders --instId BTC-USDT-SWAP -
 # Run in parallel:
 
 # 1. Smart money signal (current hour, auto-filled)
-okx --profile live smartmoney signal-by-coin --instId BTC-USDT-SWAP --json
+okx --profile live smartmoney signal-overview-by-filter --instCcyList BTC --json
 
 # 2. Current market price (via okx-cex-market skill)
 okx --profile live market ticker BTC-USDT-SWAP --json
 ```
 
-Combine: compare `smartMoneyLongAvgEntry` / `smartMoneyShortAvgEntry` vs current price; interpret `longRatio` + `vs24h` / `vs7d` deltas.
+Combine: compare `notional.smartMoneyLongAvgEntry` / `notional.smartMoneyShortAvgEntry` vs current price; interpret `longShortRatio.longRatio` + `longShortRatio.longRatioVs24h` / `longRatioVs7d` deltas.
 
 ---
 
@@ -162,12 +167,12 @@ Combine: compare `smartMoneyLongAvgEntry` / `smartMoneyShortAvgEntry` vs current
 
 ```bash
 # Step 1: Get top traders
-okx --profile live smartmoney top-traders --period 30 --sortBy pnl --limit 5 --json
+okx --profile live smartmoney traders-by-filter --period 30 --sortBy pnl --limit 5 --json
 
 # Step 2: Pick best candidate, fan out the three atomic commands in parallel
-okx --profile live smartmoney trader-performance --authorIds <top_trader_id> --json
+okx --profile live smartmoney performance-by-trader --authorIds <top_trader_id> --json
 okx --profile live smartmoney trader-positions --authorId <top_trader_id> --json
-okx --profile live smartmoney trader-order-history --authorId <top_trader_id> --limit 50 --json
+okx --profile live smartmoney trader-orders-history --authorId <top_trader_id> --limit 50 --json
 ```
 
 ---
@@ -178,13 +183,13 @@ okx --profile live smartmoney trader-order-history --authorId <top_trader_id> --
 
 ```bash
 # Page 1: most recent 50 closed positions
-okx --profile live smartmoney trader-position-history --authorId <id> --limit 50 --json
+okx --profile live smartmoney trader-positions-history --authorId <id> --limit 50 --json
 
 # If pagination.hasMore=true, page 2 uses pagination.nextAfter as --after:
-okx --profile live smartmoney trader-position-history --authorId <id> --limit 50 --after <posId> --json
+okx --profile live smartmoney trader-positions-history --authorId <id> --limit 50 --after <posId> --json
 ```
 
-Aggregate over `realizedPnl` / `pnlRatio` / `closeType` to characterize the trader (e.g. "8/10 winning closes, 1 liquidation, median ratio +12%"). Useful for risk assessment beyond the snapshot stats in `top-traders`.
+Aggregate over `realizedPnl` / `pnlRatio` / `closeType` to characterize the trader (e.g. "8/10 winning closes, 1 liquidation, median ratio +12%"). Useful for risk assessment beyond the snapshot stats in `traders-by-filter`.
 
 ---
 
@@ -193,7 +198,7 @@ Aggregate over `realizedPnl` / `pnlRatio` / `closeType` to characterize the trad
 > User: "trader X 的 BTC 成交记录"
 
 ```bash
-okx --profile live smartmoney trader-order-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
+okx --profile live smartmoney trader-orders-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
 ```
 
 Present as time-ordered table: `cTime`, `instId`, `side`, `posSide`, `ordType`, `avgPx`, `sz`, `value`. For deeper history, paginate via `pagination.nextAfter` (last `ordId`).

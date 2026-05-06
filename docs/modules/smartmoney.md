@@ -6,45 +6,45 @@
 
 ## English
 
-Smart money analytics module — leaderboard ranking, single-trader analytics (performance / current positions / closed-position history / order flow), and aggregated consensus signals (top-of-pool, single-asset, single-asset time-series). All tools are read-only.
+Smart money analytics module — leaderboard ranking, single-trader analytics (performance / current positions / closed-position history / order flow), and aggregated consensus signals (top-of-pool, multi-asset snapshot, single-asset time-series). All tools are read-only.
 
-The 10-tool surface is split by **entry mode** so AI agents can pick the right tool from the name alone (`_by_coin` vs `_by_traders` vs `_top_*`), without inspecting parameters.
+The 10-tool surface is split by **entry mode** so AI agents can pick the right tool from the name alone (`_by_filter` vs `_by_trader` vs `_top_*`), without inspecting parameters.
 
 ### Tools
 
 | Name | R/W | Description |
 |---|---|---|
 | smartmoney_get_traders_by_filter | R | Leaderboard ranking by pool conditions (period / pnl / winRate / maxDrawdown / asset / sortBy). Paginated by `authorId` cursor. |
-| smartmoney_get_traders_by_id | R | PnL / win-rate profile for one or more `authorIds` (no pool filter). |
+| smartmoney_get_performance_by_trader | R | PnL / win-rate profile for one or more `authorIds` (no pool filter). |
+| smartmoney_search_trader | R | Search Top Traders by nickname keyword (≤10 results, ranked by OKX-platform follower count). Used to resolve a name to `authorId`. |
 | smartmoney_get_trader_positions | R | A trader's current open positions. Filter by `instId` (full instId like `BTC-USDT-SWAP` or bare base ccy like `BTC`; handler extracts base ccy for upstream). |
 | smartmoney_get_trader_positions_history | R | A trader's closed-position history with realized PnL. Paginated by `posId` cursor. |
 | smartmoney_get_trader_orders_history | R | A trader's order / fill records. Paginated by `ordId` cursor. |
-| smartmoney_get_top_coin_signals | R | Top-N most-watched-by-smart-money instruments (SWAP-only) at a given snapshot. Single ranked snapshot of the busiest tickers. |
-| smartmoney_get_signal_overview_by_filter | R | Single-asset consensus signal restricted by **pool filter** (sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier). `ts` is auto-filled to the current hour. |
-| smartmoney_get_signal_overview_by_trader | R | Single-asset consensus signal restricted to a **specific list of `authorIds`** (no pool filter). `ts` is auto-filled to the current hour. |
-| smartmoney_get_signal_trend_by_filter | R | Single-asset signal time-series filtered by pool conditions. Anchored by `ts`; granularity `1h` / `1d`. |
-| smartmoney_get_signal_trend_by_trader | R | Single-asset signal time-series restricted to specific `authorIds`. Anchored by `ts`. |
+| smartmoney_get_signal_overview_by_filter | R | Multi-asset consensus signal restricted by **pool filter** (sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier). Pick coins via `topInstruments` (top-N hottest) **or** `instCcyList` (specific coins). Snapshot is current hour. Subsumes the former "top-N most-watched" use case. |
+| smartmoney_get_signal_overview_by_trader | R | Multi-asset consensus signal restricted to a **specific list of `authorIds`** (no pool filter). Pick coins via `topInstruments` **or** `instCcyList`. Snapshot is current hour. |
+| smartmoney_get_signal_trend_by_filter | R | Single-coin signal time-series — required `instCcy`, anchored at `asOfTime` (10-digit `yyyyMMddHH` UTC; defaults to current hour), filtered by pool conditions. Granularity `1h` / `1d`. |
+| smartmoney_get_signal_trend_by_trader | R | Single-coin signal time-series — required `instCcy` + `authorIds`, anchored at `asOfTime`. `authorIds` intersected with the tier-filtered pool. |
 
 10 tools, all read-only.
 
 ### Naming family
 
 ```
-Trader family (5)
+Trader family (6)
 ─────────────────────────────────────────────────
-smartmoney_get_traders_by_filter               ← pool filter + rank
-smartmoney_get_traders_by_id        ← authorIds direct lookup
+smartmoney_get_traders_by_filter         ← pool filter + rank
+smartmoney_get_performance_by_trader     ← authorIds direct lookup
+smartmoney_search_trader                 ← nickname → authorId resolver
 smartmoney_get_trader_positions          ← current positions
-smartmoney_get_trader_positions_history   ← closed-position history
-smartmoney_get_trader_orders_history      ← order flow
+smartmoney_get_trader_positions_history  ← closed-position history
+smartmoney_get_trader_orders_history     ← order flow
 
-Signal / Coin family (5)
+Signal / Coin family (4)
 ─────────────────────────────────────────────────
-smartmoney_get_top_coin_signals          ← top-N most-watched (SWAP-only)
-smartmoney_get_signal_overview_by_filter            ← single-asset, pool filter
-smartmoney_get_signal_overview_by_trader         ← single-asset, authorIds
+smartmoney_get_signal_overview_by_filter ← multi-asset, pool filter (top-N or instCcyList)
+smartmoney_get_signal_overview_by_trader ← multi-asset, authorIds
 smartmoney_get_signal_trend_by_filter    ← single-asset time-series, pool filter
-smartmoney_get_signal_trend_by_trader ← single-asset time-series, authorIds
+smartmoney_get_signal_trend_by_trader    ← single-asset time-series, authorIds
 ```
 
 ### Pagination
@@ -61,14 +61,15 @@ Cursor pagination is exposed on three list tools as a top-level `pagination: { h
 
 Two **disjoint** parameter conventions, separated by endpoint family:
 
-**Signal family** (top_coin_signals / signal_by_coin / signal_history_by_coin) — enum tier filters:
+**Signal family** (signal_overview_by_filter / signal_trend_by_filter) — enum tier filters:
 
 | Param | Enum values | Default | Meaning |
 |---|---|---|---|
 | `sortBy` | `pnl` / `pnlRatio` | `pnl` | Pool ranking key |
 | `pnlTier` | `PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5` | `PNL_ANY` | PnL percentile (top N% of pool) |
 | `winRateTier` | `WR_ANY` / `WR_GE_50` / `WR_GE_80` | `WR_ANY` | Win-rate threshold (≥ N%) |
-| `maxDrawdownTier` | `MD_ANY` / `MD_LE_20` / `MD_LE_50` | `MD_ANY` | Drawdown threshold (≤ N%) |
+| `period` | `3` / `7` / `30` / `90` | `7` | Lookback window (days) for capability metrics |
+| `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | Drawdown threshold (≤ N%) |
 | `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM percentile |
 
 **Leaderboard family** (top_traders) — numeric thresholds in raw units:
@@ -76,7 +77,7 @@ Two **disjoint** parameter conventions, separated by endpoint family:
 | Param | Type | Meaning |
 |---|---|---|
 | `sortBy` | enum (`pnl` / `pnlRatio`) | Sort key |
-| `period` | `3` / `7` / `30` / `90` | Day window (optional, all-time when omitted) |
+| `period` | `3` / `7` / `30` / `90` | Day window (default `90`, matches leaderboard UI) |
 | `pnl` | string (USD) | Min absolute PnL |
 | `winRate` | string (decimal, `0.8` = 80%) | Min win-rate |
 | `maxDrawdown` | string (decimal) | Max drawdown |
@@ -84,20 +85,20 @@ Two **disjoint** parameter conventions, separated by endpoint family:
 
 > **Renamed from previous version**: returned-field `winRatio` → `winRate`, `maxRetreat` → `maxDrawdown`. See CHANGELOG `## [Unreleased]` for the full migration table.
 
-### Time anchors (`ts` and `dataVersion`)
+### Time anchors
 
-- **Input**: only `ts` (UTC ms). Handler floors to the hour. `dataVersion` is no longer accepted as input.
-- **Output**: only `dataVersion` (UTC `yyyyMMddHH00`). `ts` is no longer returned.
-- **Auto-filled `ts`**: `signal_by_coin` and `signal_by_traders` do not expose `ts` — handler always uses the current hour.
-- **Manual `ts`**: `top_coin_signals`, `signal_history_by_coin`, `signal_history_by_traders` accept `ts` for historical replay / time-series anchoring.
+- **Input on overview tools** (`signal_overview_by_filter`, `signal_overview_by_trader`): no time input — handler always uses the current hour.
+- **Input on trend tools** (`signal_trend_by_filter`, `signal_trend_by_trader`): optional `asOfTime` anchor (10-digit `yyyyMMddHH` UTC, e.g. `2026050100`); omit to use the current UTC hour. `limit` controls how many buckets are returned ending at the anchor.
+- **Trader leaderboard input**: `updateTime` (snapshot key in `yyyyMMddHHmm` UTC+8). Omit for the latest snapshot.
+- **Output**: response envelope carries `dataVersion` — for trend tools (signal-history), this is `yyyyMMddHH` (10 digits); for overview/leaderboard it remains `yyyyMMddHHmm`.
 
 ### Composite tool removed
 
-The legacy `smartmoney_get_trader_detail` (3-API composite) is removed. To get a trader's full picture, fire `_trader_performance`, `_trader_positions`, and `_trader_order_history` in parallel — finer rate-limit control and explicit per-slice pagination.
+The legacy `smartmoney_get_trader_detail` (3-API composite) is removed. To get a trader's full picture, fire `performance-by-trader`, `trader-positions`, and `trader-orders-history` in parallel — finer rate-limit control and explicit per-slice pagination.
 
-### Multi-coin overview removed
+### Multi-coin selection on overview tools
 
-The previous `smartmoney_get_overview` `instCcyList` mode is removed (upstream `/overview` no longer accepts `instCcyList`). For multi-coin scenarios, run several `smartmoney_get_signal_overview_by_filter` calls in parallel.
+`signal_overview_by_filter` and `signal_overview_by_trader` accept `topInstruments` (top-N hottest) **or** `instCcyList` (e.g. `BTC,ETH,SOL`) — exactly one (default `topInstruments=20`). Backed by upstream `/overview` accepting `instCcyList` (re-introduced 2026-04-30 per design reversal).
 
 ### Typical workflow
 
@@ -115,63 +116,63 @@ Find traders → drill into one (parallel: performance + positions + order histo
 
 ```bash
 # Trader family
-okx smartmoney top-traders --period 30 --sortBy pnl --limit 10 --json
-okx smartmoney trader-performance --authorIds <id1>,<id2> --period 30 --json
+okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10 --json
+okx smartmoney performance-by-trader --authorIds <id1>,<id2> --period 30 --json
 okx smartmoney trader-positions --authorId <id> --json
-okx smartmoney trader-position-history --authorId <id> --limit 50 --json
-okx smartmoney trader-order-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
+okx smartmoney trader-positions-history --authorId <id> --limit 50 --json
+okx smartmoney trader-orders-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
 
 # Signal / coin family
-okx smartmoney top-coin-signals --topInstruments 20 --json
-okx smartmoney signal-by-coin --instId BTC-USDT-SWAP --pnlTier PNL_TOP20 --json
-okx smartmoney signal-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --json
-okx smartmoney signal-history-by-coin --instId BTC-USDT-SWAP --ts $(date +%s)000 --granularity 1d --json
-okx smartmoney signal-history-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --ts $(date +%s)000 --json
+okx smartmoney signal-overview-by-filter --topInstruments 20 --json     # top-N hottest
+okx smartmoney signal-overview-by-filter --instCcyList BTC --pnlTier PNL_TOP20 --json
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> --instCcyList BTC,ETH --json
+okx smartmoney signal-trend-by-filter --instCcy BTC [--asOfTime 2026050100] --granularity 1d --limit 30 --json
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC [--asOfTime 2026050100] --json
 ```
 
 ---
 
 ## 中文
 
-聪明钱分析模块 —— 排行榜筛选、单交易员分析（业绩 / 当前持仓 / 历史平仓 / 订单流）、聚合共识信号（热门币种、单币、单币时间序列）。所有工具均为只读。
+聪明钱分析模块 —— 排行榜筛选、单交易员分析（业绩 / 当前持仓 / 历史平仓 / 订单流）、聚合共识信号（热门币种、多币当前快照、单币时间序列）。所有工具均为只读。
 
-10 个工具按**入口维度**拆分（`_by_coin` / `_by_traders` / `_top_*`），让 AI agent 不必看参数就能从工具名选对。
+10 个工具按**入口维度**拆分（`_by_filter` / `_by_trader`），让 AI agent 不必看参数就能从工具名选对。
 
 ### 工具列表
 
 | 名称 | 读/写 | 说明 |
 |---|---|---|
 | smartmoney_get_traders_by_filter | 读 | 按池筛选条件（period / pnl / winRate / maxDrawdown / asset / sortBy）排行榜。`authorId` 游标分页。 |
-| smartmoney_get_traders_by_id | 读 | 一个或多个 `authorIds` 的 PnL / 胜率画像（不接池过滤器）。 |
+| smartmoney_get_performance_by_trader | 读 | 一个或多个 `authorIds` 的 PnL / 胜率画像（不接池过滤器）。 |
+| smartmoney_search_trader | 读 | 按昵称关键词搜索 Top Trader（≤10 条，按 OKX 平台粉丝数倒序）。用于将昵称解析成 `authorId`。 |
 | smartmoney_get_trader_positions | 读 | 单个交易员的当前持仓。可按 `instId` 过滤（接受完整 instId 如 `BTC-USDT-SWAP` 或 base ccy 如 `BTC`，handler 内部提取 base 转发上游）。 |
 | smartmoney_get_trader_positions_history | 读 | 单个交易员的历史平仓（含已实现盈亏）。`posId` 游标分页。 |
 | smartmoney_get_trader_orders_history | 读 | 单个交易员的订单 / 成交流水。`ordId` 游标分页。 |
-| smartmoney_get_top_coin_signals | 读 | 在某个时间快照上聪明钱关注度 Top-N 标的（仅 SWAP）。 |
-| smartmoney_get_signal_overview_by_filter | 读 | 单币聚合共识信号，按**池过滤器**（sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier）筛选。`ts` 由 handler 自动取当前小时。 |
-| smartmoney_get_signal_overview_by_trader | 读 | 单币聚合共识信号，限定到指定 **`authorIds`**（不接池过滤器）。`ts` 自动当前小时。 |
-| smartmoney_get_signal_trend_by_filter | 读 | 单币信号时间序列（池过滤器）。以 `ts` 为锚，`granularity` 支持 `1h` / `1d`。 |
-| smartmoney_get_signal_trend_by_trader | 读 | 单币信号时间序列，限定指定 `authorIds`。以 `ts` 为锚。 |
+| smartmoney_get_signal_overview_by_filter | 读 | 多币聚合共识信号，按**池过滤器**（sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier）筛选。币种选择 `topInstruments`（最热 N 个）或 `instCcyList`（指定币种）。快照取当前小时。覆盖原"Top-N 最热"场景。 |
+| smartmoney_get_signal_overview_by_trader | 读 | 多币聚合共识信号，限定到指定 **`authorIds`**（不接池过滤器）。币种选择 `topInstruments` 或 `instCcyList`。快照取当前小时。 |
+| smartmoney_get_signal_trend_by_filter | 读 | 单币信号时间序列，**必传 `instCcy`**，锚定 `asOfTime`（10 位 `yyyyMMddHH` UTC，默认当前整点）按池过滤器聚合。`granularity` 支持 `1h` / `1d`。 |
+| smartmoney_get_signal_trend_by_trader | 读 | 单币信号时间序列，**必传 `instCcy` + `authorIds`**，锚定 `asOfTime`，`authorIds` 与档位池取交集。 |
 
 共 10 个工具（全部只读）。
 
 ### 命名家族
 
 ```
-Trader 家族（5 个）
+Trader 家族（6 个）
 ─────────────────────────────────────────────────
-smartmoney_get_traders_by_filter               ← 池过滤 + 排序
-smartmoney_get_traders_by_id        ← authorIds 直查
+smartmoney_get_traders_by_filter         ← 池过滤 + 排序
+smartmoney_get_performance_by_trader     ← authorIds 直查
+smartmoney_search_trader                 ← 昵称 → authorId 解析
 smartmoney_get_trader_positions          ← 当前持仓
-smartmoney_get_trader_positions_history   ← 历史平仓
-smartmoney_get_trader_orders_history      ← 订单流水
+smartmoney_get_trader_positions_history  ← 历史平仓
+smartmoney_get_trader_orders_history     ← 订单流水
 
-Signal / Coin 家族（5 个）
+Signal / Coin 家族（4 个）
 ─────────────────────────────────────────────────
-smartmoney_get_top_coin_signals          ← Top-N 最热标的（仅 SWAP）
-smartmoney_get_signal_overview_by_filter            ← 单币、池过滤
-smartmoney_get_signal_overview_by_trader         ← 单币、authorIds 限定
+smartmoney_get_signal_overview_by_filter ← 多币当前快照、池过滤（top-N 或 instCcyList）
+smartmoney_get_signal_overview_by_trader ← 多币当前快照、authorIds 限定
 smartmoney_get_signal_trend_by_filter    ← 单币时间序列、池过滤
-smartmoney_get_signal_trend_by_trader ← 单币时间序列、authorIds
+smartmoney_get_signal_trend_by_trader    ← 单币时间序列、authorIds
 ```
 
 ### 分页
@@ -188,14 +189,15 @@ smartmoney_get_signal_trend_by_trader ← 单币时间序列、authorIds
 
 两套**互不重叠**的命名约定，按家族区分：
 
-**Signal 家族**（top_coin_signals / signal_by_coin / signal_history_by_coin）—— 枚举档位：
+**Signal 家族**（signal_overview_by_filter / signal_trend_by_filter）—— 枚举档位：
 
 | 参数 | 枚举值 | 默认 | 含义 |
 |---|---|---|---|
 | `sortBy` | `pnl` / `pnlRatio` | `pnl` | 池排序键 |
 | `pnlTier` | `PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5` | `PNL_ANY` | PnL 百分位（池前 N%） |
 | `winRateTier` | `WR_ANY` / `WR_GE_50` / `WR_GE_80` | `WR_ANY` | 胜率阈值（≥ N%） |
-| `maxDrawdownTier` | `MD_ANY` / `MD_LE_20` / `MD_LE_50` | `MD_ANY` | 回撤阈值（≤ N%） |
+| `period` | `3` / `7` / `30` / `90` | `7` | 能力指标回望窗口（天） |
+| `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | 回撤阈值（≤ N%） |
 | `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM 百分位 |
 
 **Leaderboard 家族**（top_traders）—— 数值阈值：
@@ -203,7 +205,7 @@ smartmoney_get_signal_trend_by_trader ← 单币时间序列、authorIds
 | 参数 | 类型 | 含义 |
 |---|---|---|
 | `sortBy` | 枚举（`pnl` / `pnlRatio`） | 排序键 |
-| `period` | `3` / `7` / `30` / `90` | 天数窗口（可选，省略 = all-time） |
+| `period` | `3` / `7` / `30` / `90` | 天数窗口（默认 `90`，与 leaderboard UI 对齐） |
 | `pnl` | string (USD) | 最低 PnL |
 | `winRate` | string（小数，`0.8` = 80%） | 最低胜率 |
 | `maxDrawdown` | string（小数） | 最大回撤 |
@@ -211,20 +213,20 @@ smartmoney_get_signal_trend_by_trader ← 单币时间序列、authorIds
 
 > **本次重命名**：返回字段 `winRatio` → `winRate`、`maxRetreat` → `maxDrawdown`。完整迁移见 CHANGELOG `## [Unreleased]`。
 
-### 时间锚（`ts` 与 `dataVersion`）
+### 时间锚
 
-- **入参**：只接受 `ts`（UTC ms），handler 自动 floor 到小时；不再接受 `dataVersion`。
-- **出参**：只返回 `dataVersion`（UTC `yyyyMMddHH00`），不再返回 `ts`。
-- **`ts` 自动填充**：`signal_by_coin` / `signal_by_traders` 不暴露 `ts`，handler 始终用当前小时。
-- **手动传 `ts`**：`top_coin_signals` / `signal_history_by_coin` / `signal_history_by_traders` 支持历史回溯 / 时间序列锚点。
+- **Overview 工具入参**（`signal_overview_by_filter` / `signal_overview_by_trader`）：不暴露任何时间入参——handler 始终取当前小时。
+- **Trend 工具入参**（`signal_trend_by_filter` / `signal_trend_by_trader`）：可选 `asOfTime`（10 位 `yyyyMMddHH` UTC 锚点，缺省 = 当前整点）。`limit` 控制返回多少根 K（截止该锚点向前）。
+- **Trader 排行榜入参**：`updateTime`（`yyyyMMddHHmm` UTC+8 快照键）。省略 = 最新快照。
+- **出参**：trend 工具（signal-history）返回 `dataVersion` 为 `yyyyMMddHH`（10 位）；overview / 排行榜仍为 `yyyyMMddHHmm`。
 
 ### 复合工具已删除
 
-旧的 `smartmoney_get_trader_detail`（3 接口聚合）已删除。要看交易员全貌，把 `_trader_performance` / `_trader_positions` / `_trader_order_history` 并发调用即可——速率限制控制更细，每个分片可独立分页。
+旧的 `smartmoney_get_trader_detail`（3 接口聚合）已删除。要看交易员全貌，把 `performance-by-trader` / `trader-positions` / `trader-orders-history` 并发调用即可——速率限制控制更细，每个分片可独立分页。
 
-### 多币种 overview 已删除
+### 多币种 overview 选择
 
-原 `smartmoney_get_overview` 的 `instCcyList` 模式已删除（上游 `/overview` 不再接受 `instCcyList`）。多币场景请并发调用多个 `smartmoney_get_signal_overview_by_filter`。
+`signal_overview_by_filter` / `signal_overview_by_trader` 接受 `topInstruments`（最热 N 个）或 `instCcyList`（如 `BTC,ETH,SOL`），二者**互斥且二选一**（默认 `topInstruments=20`）。依赖上游 `/overview` 接受 `instCcyList`（2026-04-30 设计回滚再次引入）。
 
 ### 典型工作流
 
@@ -242,16 +244,16 @@ smartmoney_get_signal_trend_by_trader ← 单币时间序列、authorIds
 
 ```bash
 # Trader 家族
-okx smartmoney top-traders --period 30 --sortBy pnl --limit 10 --json
-okx smartmoney trader-performance --authorIds <id1>,<id2> --period 30 --json
+okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10 --json
+okx smartmoney performance-by-trader --authorIds <id1>,<id2> --period 30 --json
 okx smartmoney trader-positions --authorId <id> --json
-okx smartmoney trader-position-history --authorId <id> --limit 50 --json
-okx smartmoney trader-order-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
+okx smartmoney trader-positions-history --authorId <id> --limit 50 --json
+okx smartmoney trader-orders-history --authorId <id> --instId BTC-USDT-SWAP --limit 50 --json
 
 # Signal / coin 家族
-okx smartmoney top-coin-signals --topInstruments 20 --json
-okx smartmoney signal-by-coin --instId BTC-USDT-SWAP --pnlTier PNL_TOP20 --json
-okx smartmoney signal-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --json
-okx smartmoney signal-history-by-coin --instId BTC-USDT-SWAP --ts $(date +%s)000 --granularity 1d --json
-okx smartmoney signal-history-by-traders --instId BTC-USDT-SWAP --authorIds <id1>,<id2> --ts $(date +%s)000 --json
+okx smartmoney signal-overview-by-filter --topInstruments 20 --json     # Top-N 最热（覆盖原 top-coin-signals）
+okx smartmoney signal-overview-by-filter --instCcyList BTC --pnlTier PNL_TOP20 --json
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> --instCcyList BTC,ETH --json
+okx smartmoney signal-trend-by-filter --instCcy BTC [--asOfTime 2026050100] --granularity 1d --limit 30 --json
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC [--asOfTime 2026050100] --json
 ```

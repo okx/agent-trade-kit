@@ -21,6 +21,7 @@ See [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) for the full desi
 
 ### Added
 
+- **`smartmoney_search_trader` (new tool)** — search Top Traders by nickname keyword (CLI: `okx smartmoney search-trader --keyword <name>`). Backend intersects KOL full-text recall with the Top Trader (profitable leaderboard) set and returns up to 10 matches, sorted by OKX-platform follower count DESC. Closes the "user knows the nickname but not the authorId" gap — agents now resolve a name to an authorId before calling other `smartmoney_get_trader_*` tools, instead of erroring out as in 1.3.2.
 - **`smartmoney_get_signal_trend_by_trader` (new tool)** — single-asset signal time-series restricted to a specific list of `authorIds`. Adds the missing dimension to the signal-history family; previously only pool-filter history existed.
 - **MCP tool annotations** on every Smart Money tool: `readOnlyHint: true`, `idempotentHint: true`, `openWorldHint: true`. Agents can now reason about safety / idempotency without hard-coding tool lists.
 - **Actionable error messages**: handlers now return human-readable error suggestions (e.g. "ts must be UTC ms; got non-numeric string", "authorIds is required for `_by_traders` variants") instead of opaque server `sCode` strings.
@@ -32,52 +33,70 @@ See [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) for the full desi
   | Old MCP tool (1.3.2) | New MCP tool | Notes |
   |---|---|---|
   | `smartmoney_get_traders` (pool-filter mode) | `smartmoney_get_traders_by_filter` | Pool ranking; `limit` default changed from 100 → 10 (matches the rest of the trader family) |
-  | `smartmoney_get_traders` (authorIds mode) | `smartmoney_get_traders_by_id` | Direct lookup by IDs, no pool filter |
+  | `smartmoney_get_traders` (authorIds mode) | `smartmoney_get_performance_by_trader` | Direct lookup by IDs, no pool filter |
   | `smartmoney_get_trader_records` | `smartmoney_get_trader_orders_history` | Aligns with `*_get_orders` family; pluralized |
   | `smartmoney_get_trader_positions` | `smartmoney_get_trader_positions` | Name unchanged; input `instCcy` → `instId` (handler extracts base ccy upstream) |
   | `smartmoney_get_trader_position_history` | `smartmoney_get_trader_positions_history` | Pluralized for symmetry with `_orders_history`; input `instCcy` → `instId` |
-  | `smartmoney_get_overview` (top mode) | `smartmoney_get_top_coin_signals` | Sole survivor of overview; SWAP-only |
-  | `smartmoney_get_signal` (pool-filter mode) | `smartmoney_get_signal_overview_by_filter` | Splits the overloaded tool; `ts` no longer accepted (auto-filled to current hour) |
+  | `smartmoney_get_signal` (pool-filter mode) | `smartmoney_get_signal_overview_by_filter` | Splits the overloaded tool; `ts` no longer accepted (auto-filled to current hour). Subsumes the former "top-coin overview" use case via `--topInstruments` (default 20). |
   | `smartmoney_get_signal` (authorIds mode) | `smartmoney_get_signal_overview_by_trader` | Splits; `ts` auto-filled |
   | `smartmoney_get_signal_history` | `smartmoney_get_signal_trend_by_filter` | Renamed for symmetry with the new `_by_traders` sibling |
 
-- **CLI commands** (kebab-case parity with MCP tool names; old → new where applicable):
+- **CLI commands** (kebab-case parity with MCP tool names — strip `smartmoney_` module prefix and the `get_` verb, then snake → kebab; e.g. `smartmoney_get_traders_by_filter` ↔ `traders-by-filter`. Plurals match MCP: `trader-positions-history`, `trader-orders-history`. Old → new where applicable):
 
   | Old CLI (1.3.2) | New CLI |
   |---|---|
-  | `okx smartmoney traders` | `okx smartmoney top-traders` |
-  | `okx smartmoney traders --authorIds …` | `okx smartmoney trader-performance` |
-  | `okx smartmoney trades` / `records` | `okx smartmoney trader-order-history` |
+  | `okx smartmoney traders` | `okx smartmoney traders-by-filter` |
+  | `okx smartmoney traders --authorIds …` | `okx smartmoney performance-by-trader` |
+  | `okx smartmoney trades` / `records` | `okx smartmoney trader-orders-history` |
   | `okx smartmoney positions` | `okx smartmoney trader-positions` |
-  | `okx smartmoney position-history` | `okx smartmoney trader-position-history` |
-  | `okx smartmoney overview` | `okx smartmoney top-coin-signals` |
-  | `okx smartmoney signal` (pool flags) | `okx smartmoney signal-by-coin` |
-  | `okx smartmoney signal --authorIds …` | `okx smartmoney signal-by-traders` |
-  | `okx smartmoney signal-history` | `okx smartmoney signal-history-by-coin` |
-  | _(new)_ | `okx smartmoney signal-history-by-traders` |
+  | `okx smartmoney position-history` | `okx smartmoney trader-positions-history` |
+  | `okx smartmoney overview` | `okx smartmoney signal-overview-by-filter --topInstruments 20` |
+  | `okx smartmoney signal` (pool flags) | `okx smartmoney signal-overview-by-filter` |
+  | `okx smartmoney signal --authorIds …` | `okx smartmoney signal-overview-by-trader` |
+  | `okx smartmoney signal-history` | `okx smartmoney signal-trend-by-filter` |
+  | _(new)_ | `okx smartmoney signal-trend-by-trader` |
 
 - **Input parameter renames**:
   - `smartmoney_get_trader_positions` / `_positions_history` / `_orders_history` (CLI: `--instCcy` → `--instId`): public param accepts either full `instId` (e.g. `BTC-USDT-SWAP`) or bare base ccy (e.g. `BTC`); handler extracts the base currency before forwarding to upstream (which still filters by base ccy only).
-  - Signal family pool-filter enums: `MR_*` → **`MD_*`** prefix on `maxDrawdownTier` values (`MR_LE_20` → `MD_LE_20`, `MR_LE_50` → `MD_LE_50`, `MR_ANY` → `MD_ANY`).
-  - Leaderboard family numeric thresholds: `winRatio` → **`winRate`**, `maxRetreat` → **`maxDrawdown`** (input names match the new response field names).
+  - Signal family pool-filter enums: `maxDrawdownTier` values use the `MR_*` prefix (`MR_ANY` / `MR_LE_20` / `MR_LE_50`) — matches the OKX SmartMoney OpenAPI spec exactly (no public ↔ upstream rename).
+  - Signal family pool-filter API keys: public param names (`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`) are now passed verbatim to `/signal`, `/overview`, and `/signal-history` — the prior rename layer (e.g. `pnlTier → pnl`, `winRateTier → winRatio`, `maxDrawdownTier → maxRetreat`, `sortBy → sortType`) has been removed because the backend accepts the tier names directly.
+  - Leaderboard family: `sortType` → **`sortBy`** (enum values now camelCase: `pnl_ratio` → `pnlRatio`); `winRatio` → **`winRate`**; `maxRetreat` → **`maxDrawdown`** (input names match the new response field names). Public names are now passed verbatim to upstream `/leaderboard` — the prior rename layer (`winRate → winRatio`, `maxDrawdown → maxRetreat`) has been removed since the backend accepts the new names directly.
+  - **Signal pool filters now expose `period`** (3 / 7 / 30 / 90, default 7) on every signal-side tool (`signal_overview_*` / `signal_trend_*`); previously only the leaderboard family had `period`.
+  - **`signal_overview_by_trader` now accepts the full pool-filter set** (`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`); `authorIds` is intersected with this pool. Earlier shipping shape only accepted `authorIds` + `topInstruments` / `instCcyList`.
+  - **`lmtNum` max raised** from 500 → 2000 on signal-overview tools (matches OpenAPI spec range).
+  - `smartmoney_get_traders_by_filter`: input snapshot key `dataVersion` → **`updateTime`** (CLI: `--dataVersion` → `--updateTime`).
   - `smartmoney_get_traders_by_filter` `limit` default changed from `100` → `10` (consistent with the other 4 paginated trader tools, which all default to 10).
+  - **Signal-trend tools** (`smartmoney_get_signal_trend_by_filter` / `_by_trader`): single-anchor `ts` input replaced by `asOfTime` (10-digit `yyyyMMddHH` UTC, optional — defaults to the current UTC hour) plus `limit` buckets ending at the anchor. CLI: `--ts <ms>` → `--asOfTime <yyyyMMddHH>`. Adds optional `--instCcy` aux filter. Tier-pool filters (`sortBy` / `period` / `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier` / `lmtNum`) are now exposed on **both** `_by_filter` and `_by_trader` — `authorIds` is intersected with the resulting phase-1 pool. `lmtNum` max raised 500 → 2000.
 
 - **Output field renames** (everywhere the field appears):
   - `winRatio` → **`winRate`** (trader leaderboard items)
   - `maxRetreat` → **`maxDrawdown`** (trader leaderboard items)
+  - `dataVersion` → **`updateTime`** (trader leaderboard items only — signal items still emit `dataVersion` at the bucket level)
   - `avgLongWinRatio` → **`avgLongWinRate`** (signal items)
   - `avgShortWinRatio` → **`avgShortWinRate`** (signal items)
+
+- **Signal-overview output schema reshaped to nested groups (per OpenAPI `/overview` spec)** — `signal_overview_by_filter` and `signal_overview_by_trader` now return per-instrument items with the outer identifier `ccy` plus three nested objects:
+  - `notional`: `longNotionalUsdt`, `shortNotionalUsdt`, `netNotionalUsdt`, `totalNotionalUsdt`, `totalNotionalVs24h`, `smartMoneyLongAvgEntry`, `smartMoneyShortAvgEntry`
+  - `longShortRatio`: `longRatioVs1h`, `longRatioVs24h`, `longRatioVs7d`, `longRatio`, `shortRatio`, `weightedLongRatio`, `weightedShortRatio`
+  - `winRate`: `avgLongWinRate`, `avgShortWinRate`
+
+  Top-level fields: `ccy`, `dataVersion` (`yyyyMMddHH` UTC, 10 digits — was previously documented as `yyyyMMddHHmm`), `tradersWithPosition`, `tradersQualified`, `longTraders`, `shortTraders`. Earlier flat-shape fields (`vs1h` / `vs24h` / `vs7d`, top-level `longNotionalUsdt`, etc.) are gone — read from the appropriate nested group instead.
+
+- **Output field additions**:
+  - **`upl`** (unrealized / floating PnL, in quote ccy) on `smartmoney_get_trader_positions` items. Disambiguates from the existing `pnl` (realized PnL accrued so far on the position).
 
 ### Removed
 
 - **Tools removed** — no shim; callers must migrate to the replacements above:
-  - `smartmoney_get_overview` (instCcyList multi-coin mode) — backend dropped `instCcyList` from `/overview`. Run several `smartmoney_get_signal_overview_by_filter` calls in parallel for multi-coin scenarios.
-  - `smartmoney_get_trader_detail` — composite of 3 endpoints, violated atomicity. Fire `smartmoney_get_traders_by_id` + `smartmoney_get_trader_positions` + `smartmoney_get_trader_orders_history` in parallel for the equivalent picture.
-  - CLI: `okx smartmoney trader` (composite) is removed.
+  - `smartmoney_get_overview` (instCcyList multi-coin mode) — superseded by `smartmoney_get_signal_overview_by_filter` which accepts `instCcyList` natively after the 2026-04-30 backend reversal.
+  - `smartmoney_get_top_coin_signals` — narrow shortcut for "top-N most-watched"; subsumed by `smartmoney_get_signal_overview_by_filter` (default `topInstruments=20` produces the same result with richer fields). Removed 2026-04-30 to avoid two tools sharing one purpose.
+  - `smartmoney_get_trader_detail` — composite of 3 endpoints, violated atomicity. Fire `smartmoney_get_performance_by_trader` + `smartmoney_get_trader_positions` + `smartmoney_get_trader_orders_history` in parallel for the equivalent picture.
+  - CLI: `okx smartmoney trader` (composite) and `okx smartmoney top-coin-signals` are removed.
 
 - **Input fields removed**:
-  - **`dataVersion`** (everywhere) — input is now `ts` (UTC ms, handler floors to the hour). For signal-by-coin / signal-by-traders, even `ts` is removed — the handler auto-fills the current hour.
-  - **`instCcyList`**, **`instCcy`**, **`instType`** — removed from `top_coin_signals` (upstream `/overview` is now SWAP-only and returns top instruments without these knobs).
+  - **`dataVersion`** as input — replaced by `updateTime` on the trader leaderboard, and replaced by `asOfTime` (10-digit `yyyyMMddHH` UTC anchor) on signal-trend tools. Signal-overview tools (`signal_overview_by_filter` / `_by_trader`) accept no time input at all — handlers auto-fill the current hour.
+  - **`ts`** as a single-anchor input — removed from signal-trend tools (replaced by the optional `asOfTime` anchor — defaults to current UTC hour) and from signal-overview tools (current hour is always implicit).
+  - **`instCcy`**, **`instType`** — removed from the signal family. `instCcyList` is **kept** on `signal_overview_by_filter` / `_by_trader` (re-introduced 2026-04-30 per design reversal); the new tools accept either `topInstruments` (top-N hottest) **or** `instCcyList` (specific coins) — exactly one.
   - **`tradeLimit`** — was only on the deleted `_trader_detail`.
 
 - **Output fields removed** from signal / overview tools (backend no longer returns them):
@@ -86,21 +105,21 @@ See [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) for the full desi
 
 ### Migration
 
+Multi-coin overview — `instCcyList` is supported again on the new overview tool, so this is now a 1-call migration:
+
 Before:
 
 ```
 smartmoney_get_overview({ dataVersion: "202604281500", instCcyList: "BTC,ETH" })
 ```
 
-After:
+After (one call, no time input):
 
 ```
-// instCcyList no longer supported — fan out:
-Promise.all([
-  smartmoney_get_signal_overview_by_filter({ instId: "BTC-USDT-SWAP" }),
-  smartmoney_get_signal_overview_by_filter({ instId: "ETH-USDT-SWAP" }),
-])
+smartmoney_get_signal_overview_by_filter({ instCcyList: "BTC,ETH" })
 ```
+
+Single-coin signal — pool filter pnl-tier name was renamed:
 
 Before:
 
@@ -108,11 +127,38 @@ Before:
 smartmoney_get_signal({ instId: "BTC-USDT-SWAP", dataVersion: "202604281500", pnl: "PNL_TOP5" })
 ```
 
-After (no `ts` / `dataVersion` needed — handler fills current hour):
+After (no `ts` / `dataVersion` — handler fills current hour; `pnl` enum tier renamed to `pnlTier`):
 
 ```
-smartmoney_get_signal_overview_by_filter({ instId: "BTC-USDT-SWAP", pnlTier: "PNL_TOP5" })
+smartmoney_get_signal_overview_by_filter({ instCcyList: "BTC", pnlTier: "PNL_TOP5" })
 ```
+
+Single-coin signal history — `ts` anchor renamed to `asOfTime` (10-digit `yyyyMMddHH` UTC), and is now optional (defaults to current UTC hour):
+
+Before:
+
+```
+smartmoney_get_signal_history({ instId: "BTC-USDT-SWAP", ts: "1745844000000", limit: 24 })
+```
+
+After (latest 24 hourly buckets ending at the current hour — no time input needed):
+
+```
+smartmoney_get_signal_trend_by_filter({ instCcy: "BTC", granularity: "1h", limit: "24" })
+```
+
+Or anchor at a specific UTC hour:
+
+```
+smartmoney_get_signal_trend_by_filter({
+  instCcy: "BTC",
+  asOfTime: "2026050100",
+  granularity: "1h",
+  limit: "24",
+})
+```
+
+Trader detail composite removed — fan out three atomic calls:
 
 Before:
 
@@ -124,11 +170,16 @@ After:
 
 ```
 Promise.all([
-  smartmoney_get_traders_by_id({ authorIds: "X" }),
+  smartmoney_get_performance_by_trader({ authorIds: "X" }),
   smartmoney_get_trader_positions({ authorId: "X" }),
   smartmoney_get_trader_orders_history({ authorId: "X", limit: 50 }),
 ])
 ```
+
+Trader leaderboard filters — input flag renames:
+
+Before: `--sortType pnl_ratio --winRatio 0.8 --maxRetreat 0.1 --dataVersion 202604281500`
+After:  `--sortBy pnlRatio --winRate 0.8 --maxDrawdown 0.1 --updateTime 202604281500`
 
 Token budget for the smartmoney module: ~4,713 → ~9,661 tokens (8 tools → 10 atomic tools with full `outputSchema`).
 

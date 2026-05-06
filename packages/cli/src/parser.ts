@@ -134,7 +134,8 @@ export interface CliValues {
   topInstruments?: string;
   startTime?: string;
   endTime?: string;
-  // smartmoney pool filters — leaderboard (numeric thresholds, top-traders endpoint)
+  asOfTime?: string;
+  // smartmoney pool filters — leaderboard (numeric thresholds, traders-by-filter endpoint)
   pnl?: string;
   winRate?: string;
   maxDrawdown?: string;
@@ -379,6 +380,7 @@ export const CLI_OPTIONS = {
   topInstruments: { type: "string" },
   startTime: { type: "string" },
   endTime: { type: "string" },
+  asOfTime: { type: "string" },
   // smartmoney pool filters — leaderboard (numeric thresholds)
   pnl: { type: "string" },
   winRate: { type: "string" },

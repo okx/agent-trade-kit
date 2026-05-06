@@ -36,7 +36,7 @@ Use `metadata.version` from this file's frontmatter as the reference for Step 2.
    ```bash
    okx config init   # select site -> follow browser OAuth flow
    ```
-3. Verify: `okx smartmoney top-traders --limit 5`
+3. Verify: `okx smartmoney traders-by-filter --limit 5`
 
 > **Security**: NEVER accept credentials in chat. Guide users to `okx config init` for setup.
 
@@ -81,31 +81,31 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 
 ## Command Index (10 commands, all read-only)
 
-### Trader family (5)
+### Trader family (6)
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `smartmoney top-traders` | READ | Required | Leaderboard ranking by pool conditions (period / pnl / winRate / maxDrawdown / asset). Paginated by `authorId`. |
-| `smartmoney trader-performance --authorIds <id1,id2>` | READ | Required | PnL / win-rate profile for one or more authorIds (no pool filter). |
+| `smartmoney traders-by-filter` | READ | Required | Leaderboard ranking by pool conditions (period / pnl / winRate / maxDrawdown / asset). Paginated by `authorId`. |
+| `smartmoney performance-by-trader --authorIds <id1,id2>` | READ | Required | PnL / win-rate profile for one or more authorIds (no pool filter). |
+| `smartmoney search-trader --keyword <name>` | READ | Required | Search Top Traders by nickname keyword (≤10 results, ranked by follower count). |
 | `smartmoney trader-positions --authorId <id>` | READ | Required | Current open positions for one trader. Filter by `--instId <BTC-USDT-SWAP>` (or bare base ccy). |
-| `smartmoney trader-position-history --authorId <id>` | READ | Required | Closed-position history with realized PnL. Paginated by `posId`. |
-| `smartmoney trader-order-history --authorId <id>` | READ | Required | Order / fill records. Paginated by `ordId`. |
+| `smartmoney trader-positions-history --authorId <id>` | READ | Required | Closed-position history with realized PnL. Paginated by `posId`. |
+| `smartmoney trader-orders-history --authorId <id>` | READ | Required | Order / fill records. Paginated by `ordId`. |
 
-### Signal / coin family (5)
+### Signal / coin family (4)
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
-| `smartmoney top-coin-signals` | READ | Required | Top-N most-watched-by-smart-money instruments (SWAP-only). Always current hour; only takes `--topInstruments`. |
-| `smartmoney signal-overview-by-filter` | READ | Required | Multi-asset signal, tier-filtered pool. Pick coins via `--topInstruments` (top-N hottest) OR `--instCcyList BTC,ETH,SOL` (specific) — exactly one. |
+| `smartmoney signal-overview-by-filter` | READ | Required | Multi-asset signal, tier-filtered pool. Pick coins via `--topInstruments` (top-N hottest) OR `--instCcyList BTC,ETH,SOL` (specific) — exactly one. Use this to discover the hottest coins among smart money. |
 | `smartmoney signal-overview-by-trader --authorIds <id1,id2>` | READ | Required | Multi-asset signal restricted to specific traders. Pick coins via `--topInstruments` OR `--instCcyList`. |
-| `smartmoney signal-trend-by-filter --instId <id> --startTime <ms> --endTime <ms>` | READ | Required | Single-asset signal time-series within a window, tier-filtered pool. `--granularity 1h\|1d`. |
-| `smartmoney signal-trend-by-trader --instId <id> --authorIds <id1,id2> --startTime <ms> --endTime <ms>` | READ | Required | Single-asset signal time-series within a window, authorIds-restricted. |
+| `smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series anchored at `asOfTime` (defaults to current UTC hour), tier-filtered pool. `--granularity 1h\|1d`, `--limit` controls bucket count. |
+| `smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series anchored at `asOfTime`, authorIds intersected with the tier-filtered pool. |
 
-> **Time window**: `signal-trend-by-{filter,trader}` take `--startTime <ms>` + `--endTime <ms>` (UTC ms epoch, both inclusive). `dataVersion` is no longer accepted as input. `top-coin-signals` and `signal-overview-by-{filter,trader}` do not expose any time input — handler always uses the current hour.
+> **Time anchor**: `signal-trend-by-{filter,trader}` take an optional `--asOfTime <yyyyMMddHH>` (10-digit UTC hour, e.g. `2026050100`). Returns the latest `--limit` buckets ending at that anchor. Omit `--asOfTime` to use the current UTC hour. `signal-overview-by-{filter,trader}` does not expose any time input — handler always uses the current hour.
 
 > **Multi-coin selection**: `signal-overview-by-filter` and `signal-overview-by-trader` accept `--topInstruments` (top-N hottest) **or** `--instCcyList BTC,ETH,SOL` (explicit base ccy list). The two flags are mutually exclusive. Passing neither defaults to `--topInstruments=20`.
 
-> **Need a trader's full picture?** The old `smartmoney trader` composite command is removed. Run `trader-performance`, `trader-positions`, and `trader-order-history` in parallel.
+> **Need a trader's full picture?** The old `smartmoney trader` composite command is removed. Run `performance-by-trader`, `trader-positions`, and `trader-orders-history` in parallel.
 
 For full command syntax and parameters, read `{baseDir}/references/trader-commands.md` and `{baseDir}/references/signal-commands.md`.
 
@@ -120,19 +120,20 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 ### Step 1 — Identify intent
 
 **Trader discovery / ranking:**
-- "推荐交易员" / "top traders" / "牛人榜" → `smartmoney top-traders` with sorting/filtering. See `{baseDir}/references/trader-commands.md`.
-- "看看某个交易员" / "trader detail" → run `trader-performance`, `trader-positions`, `trader-order-history` **in parallel** (the old composite `smartmoney trader` is removed).
-- "搜索交易员 X" / "verify these authorIds" → `smartmoney trader-performance --authorIds <id1,id2>` (direct lookup, no pool filter).
+- "推荐交易员" / "top traders" / "牛人榜" → `smartmoney traders-by-filter` with sorting/filtering. See `{baseDir}/references/trader-commands.md`.
+- "看看某个交易员" / "trader detail" → run `performance-by-trader`, `trader-positions`, `trader-orders-history` **in parallel** (the old composite `smartmoney trader` is removed).
+- "搜索 alice / 小明" / "find trader by nickname" → `smartmoney search-trader --keyword <name>` (returns ≤10 matches with `authorId` to feed into other tools).
+- "verify these authorIds" / 已知 authorId → `smartmoney performance-by-trader --authorIds <id1,id2>` (direct lookup, no pool filter).
 - "他的当前持仓" / "current positions only" → `smartmoney trader-positions --authorId <id>`.
-- "他的成交记录" / "trade history" → `smartmoney trader-order-history --authorId <id>` (paginated).
-- "历史平仓" / "closed positions" / "realized PnL track record" → `smartmoney trader-position-history --authorId <id>` (paginated).
+- "他的成交记录" / "trade history" → `smartmoney trader-orders-history --authorId <id>` (paginated).
+- "历史平仓" / "closed positions" / "realized PnL track record" → `smartmoney trader-positions-history --authorId <id>` (paginated).
 
 **Signal analysis:**
 - "BTC 聪明钱信号" / "smart money signal for BTC" → `smartmoney signal-overview-by-filter --instCcyList BTC`. See `{baseDir}/references/signal-commands.md`.
 - "BTC ETH SOL 这几个币的信号" / "signals for these specific coins" → `smartmoney signal-overview-by-filter --instCcyList BTC,ETH,SOL`.
 - "这几个交易员看哪些币？" / "consensus among these specific traders" → `smartmoney signal-overview-by-trader --authorIds <id1,id2>` (defaults to top-20 hottest among the group, or pass `--instCcyList`).
-- "聪明钱关注哪些币？" / "what are smart money trading right now?" → `smartmoney top-coin-signals`. See `{baseDir}/references/signal-commands.md`.
-- "信号趋势" / "signal trend over time" → `smartmoney signal-trend-by-filter --instId <id> --startTime <ms> --endTime <ms>` (or `signal-trend-by-trader` for an authorIds-scoped trend).
+- "聪明钱关注哪些币？" / "what are smart money trading right now?" → `smartmoney signal-overview-by-filter` (defaults to `--topInstruments=20`). See `{baseDir}/references/signal-commands.md`.
+- "信号趋势" / "signal trend over time" → `smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--limit 24]` (or `signal-trend-by-trader --authorIds <ids> --instCcy <ccy>` for an authorIds-scoped trend).
 
 ### Step 2 — Execute and present
 
@@ -148,6 +149,6 @@ For multi-step workflows (recommend traders then drill down, signal analysis wit
 - **Output:** Always pass `--json` to list/query commands and render results as a Markdown table — never paste raw terminal output.
 - **Network errors:** If commands fail with a connection error, prompt user to check VPN: `curl -I https://www.okx.com`
 - **Language:** Always respond in the user's language.
-- **Time inputs:** `signal-trend-by-{filter,trader}` take `--startTime <ms> --endTime <ms>` (UTC ms epoch, inclusive). `dataVersion` is no longer accepted. `top-coin-signals` and `signal-overview-by-{filter,trader}` take no time input — handler always uses the current hour.
+- **Time inputs:** `signal-trend-by-{filter,trader}` take an optional `--asOfTime <yyyyMMddHH>` anchor (10-digit UTC hour); omit to use the current UTC hour. `--limit` controls how many buckets are returned ending at that anchor. `signal-overview-by-{filter,trader}` takes no time input — handler always uses the current hour.
 
 For number/time formatting and response structure conventions, read `{baseDir}/references/templates.md`.
