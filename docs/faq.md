@@ -32,7 +32,7 @@ Enable **Read** and **Trade** permissions. Withdraw permission is not needed and
 
 ### Where are my API keys stored?
 
-Only in `~/.okx/config.toml` on your local machine. The MCP server is a local stdio process — keys are never sent to any cloud service.
+Only in `~/.okx/config.toml` on your local machine. The MCP server is a local stdio process — keys are never sent to any cloud service. Both the CLI (`okx`) and the MCP server (`okx-trade-mcp`) read this file independently — they are separate binaries with no dependency on each other.
 
 ### Can I use the `market` module without an API key?
 

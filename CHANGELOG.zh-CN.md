@@ -185,6 +185,21 @@ smartmoney 模块 token 预算：~4,713 → ~9,661 tokens（8 工具 → 10 个�
 
 ---
 
+### 修复
+
+- **`event_browse` 并发限流修复**（`packages/core/src/tools/event-trade.ts`、`event-helpers.ts`）：将无上限的 `Promise.all` 替换为基于信号量的 `withConcurrency` 工具函数，最大并发市场拉取请求数限制为 `MAX_CONCURRENT_MARKET_FETCHES = 8`（频率限制窗口为 20 req；预留 12 个请求作为重试及同一窗口内其他调用的缓冲：`20 - 12 = 8`）。同时将 `Promise.all` 改为 `Promise.allSettled` 语义，单个 series 拉取失败不再中断整个 browse —— 无活跃合约的 series 静默跳过，成功的 series 正常返回。Closes #146。
+
+- **`cmdAuthRemove` 错误处理**（`packages/cli/src/commands/auth.ts`）：`removeAuthBinary()` 外围已有的 try/catch 现已补充测试覆盖。在 `packages/cli/test/auth.test.ts` 中新增两个单元测试，验证当 `removeAuthBinary()` 抛出异常（如权限拒绝 / EACCES）时：(a) 文本模式下 `errorLine` 被调用且包含错误信息，(b) JSON 模式下输出 `{status:"failed", error:<msg>}`，(c) 两种模式下 `process.exitCode` 均置为 `1`，且不向上层重新抛出。Closes #159。
+
+- **分层架构图**（`ARCHITECTURE.md`、`ARCHITECTURE.zh-CN.md`）：将错误的单路径瀑布式架构图（误将 `packages/mcp/src/index.ts` 标记为"CLI 入口"）替换为双 binary 架构图，正确展示 `okx-trade-mcp` 与 `okx` 作为两个独立可执行文件，均从 `@agent-tradekit/core`（共享 SDK）导入。Closes #185。
+- **`docs/faq.md` — API 密钥存储说明**：补充一句说明 CLI（`okx`）与 MCP server（`okx-trade-mcp`）各自独立读取 `~/.okx/config.toml`，互不依赖。
+
+### 变更（其他）
+
+- **`linux-arm64` 主机现使用原生 arm64 pilot 二进制**（`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`）。此前 `linux-arm64 → linux-x64` 的临时回退（当时 CDN 上没有原生 arm64 二进制）会让用户下载 x64 二进制经 qemu/binfmt 模拟运行。现在原生 arm64 二进制已发布在 `/upgradeapp/tools/pilot/linux-arm64/okx-pilot`（2026-04-29 验证），直接路由到该文件，去掉模拟层 —— 启动更快、CPU 占用更低。
+
+- **`context-kg/` 06/07/08 Mapping 章节刷新**（`context-kg/business/06-leaderboard-smartmoney-api.md`、`07-dcd-api.md`、`08-dca-api.md`）：三份文档末尾的"Mapping to …"章节已全部重写，改为反映实际已交付的工具清单。`06` 现列出 5 个已发布的 `smartmoney_*` 工具（替换原先 7 个 `market_*` 提案命名），并注明 `feat/smartmoney-fix` 分支正在进行进一步重构。`07` 现列出 6 个扁平 `dcd_*` 工具，并说明将 quote→trade 和 redeem-quote→redeem 合并为单一工具的设计决策。`08` 现列出 5 个统一的 `dca_*` 工具（通过 `algoOrdType: spot_dca | contract_dca` 区分 V1/V2），并新增"待实现（Backlog）"小节，列出 10 个尚未封装的 V2 上游 API 路径。Closes #187。
+
 ---
 
 ## [1.3.2] - 2026-04-27
@@ -199,6 +214,8 @@ smartmoney 模块 token 预算：~4,713 → ~9,661 tokens（8 工具 → 10 个�
 
 ### 新增
 
+- **Phase 3b CLI 高级用户参数 — `--tpLevel`（多值可重复）**（issue #183，CLI 高级参数 — 不暴露至 MCP / skill）。支持在单笔订单上附加多层次止盈，替代此前需在建仓后手动挂第二笔算法单的变通方式，实现真正的多级止盈一单下达。使用方式：多次传 `--tpLevel`，每次值为逗号分隔的 `key:value` mini-DSL 字符串（例如 `--tpLevel "px:78000,sz:0.5,kind:limit" --tpLevel "px:81000,sz:0.5,kind:limit"`）。有效 key：`px`（tpOrdPx）、`sz`、`kind`（tpOrdKind）、`triggerPx`（tpTriggerPx）、`triggerPxType`、`amendPxOnTrigger`、`clOrdId`。适用于 `okx {swap,spot,futures} place` 和 `okx {swap,spot,futures} algo place`。冲突检测：同时传 `--tpLevel` 与 `--tpTriggerPx`/`--tpOrdPx` 将在 CLI 层报错。向后兼容：不传 `--tpLevel` 时与 Phase 3a+c 产生完全相同的报文。MCP 工具 `inputSchema.properties` 不变——该参数不可通过 MCP 工具描述或 skill 工作流发现，有意限制 AI agent 自主调用。
+- **Phase 3a+c CLI 高级用户参数 — `--tpTriggerRatio`、`--slTriggerRatio`、`--closeFraction`、`--tradeQuoteCcy`、`--banAmend`、`--pxAmendType`**（issue #182，CLI 高级参数 — 不暴露至 MCP / skill）。新增六个可选 CLI 参数，面向量化高级用户。`--tpTriggerRatio`/`--slTriggerRatio`：基于比例的止盈/止损触发（相对入场价的百分比），适用于 swap/spot/futures algo place 命令。`--closeFraction`：条件/OCO 算法订单的部分平仓比例（与 `--sz` 互斥，由 OKX 服务端强制校验，冲突返回错误码 51000，CLI 侧不做验证）。`--tradeQuoteCcy`：SPOT 下单时指定计价货币（如 USDT|USDC|BTC）。`--banAmend`：禁止 OKX 对 SPOT 市价单自动修正数量。`--pxAmendType`：禁止 OKX 对超出范围的价格自动纠正（"0"=允许自动纠正，"1"=拒绝下单）。所有参数均为可选且无默认值，不传时与 Phase 2 产生完全相同的报文，向后兼容。MCP 工具 `inputSchema.properties` 不变——这些参数不可通过 MCP 工具描述或 skill 工作流发现，有意限制 AI agent 自主调用。
 - **Phase 2 算法订单类型 — `trigger`（挂单）、`chase`（追单）、`iceberg`（冰山）、`twap`**（issue #181）。在 `okx {swap,spot,futures} algo place` 上新增四个 `ordType` 值，补齐 OKX OpenAPI v5 枚举缺口。`trigger`（挂单）：市场价触达 `--triggerPx` 时自动挂出限价/市价单（需传 `--triggerPx` + `--orderPx`）。`chase`（追单）：智能追踪最优买卖价，在可配置距离/比例范围内跟单（`--chaseType`、`--chaseVal`、`--maxChaseType`、`--maxChaseVal`）。`iceberg`（冰山）：将大单拆分为固定间隔的子单以减少市场冲击（`--szLimit`、`--pxLimit`、`--timeInterval`、`--pxVar`/`--pxSpread`）。`twap`（时间加权均价）：与冰山共用同一组参数，按时间均匀拆单。向后兼容：现有 `conditional`/`oco`/`move_order_stop` 调用产生完全相同的报文。Token 预算增量：约 +600 tokens（3 个工具 × 4 个新 ordType × 约 5 个新参数）。
 - **Phase 1 算法订单参数 — `--tpOrdKind`、`--tpTriggerPxType`、`--slTriggerPxType`、`--stpMode`、`--cxlOnClosePos`**（issue #178）。新增五个可选参数，补齐 CLI/MCP 与 OKX OpenAPI 的高优先级参数差距。`--tpOrdKind limit` 立即以限价挂单形式下止盈（无触发阶段）。`--tpTriggerPxType`/`--slTriggerPxType` 控制止盈/止损触发价来源（`last`/`index`/`mark`）。`--stpMode` 启用自成交保护（`cancel_maker`/`cancel_taker`/`cancel_both`）。`--cxlOnClosePos` 在对应仓位平仓时自动撤销算法订单。所有参数均为可选；不传则与旧版行为完全一致，向后兼容。适用于：`okx {swap,spot,futures,option} place`、`okx {swap,futures} algo place`、`okx spot algo place`。
 

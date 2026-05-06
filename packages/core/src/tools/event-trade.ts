@@ -48,7 +48,14 @@ import {
   translateAndSortMarkets,
   enrichFill,
   handlePlaceOrderError,
+  withConcurrency,
+  type BrowseSeriesResult,
 } from "./event-helpers.js";
+
+// privateRateLimit("event_browse", 20) = 20 req/window.
+// Keep 12 requests of buffer for other calls in the same window + retries.
+// Max concurrent market fetches = 20 - 12 = 8.
+const MAX_CONCURRENT_MARKET_FETCHES = 8;
 
 const OUTCOME_SCHEMA = {
   type: "string" as const,
@@ -95,11 +102,17 @@ export function registerEventContractTools(): ToolSpec[] {
 
         const candidates = filterBrowseCandidates(allSeries, underlyingFilter);
 
-        const marketResults = await Promise.all(
-          candidates.map((s) => fetchActiveContractsForSeries(context.client, s)),
+        const settled = await withConcurrency(
+          candidates,
+          MAX_CONCURRENT_MARKET_FETCHES,
+          (s) => fetchActiveContractsForSeries(context.client, s),
         );
 
-        const results = marketResults.filter(Boolean);
+        const fulfilled = settled.filter(
+          (r): r is PromiseFulfilledResult<BrowseSeriesResult> =>
+            r.status === "fulfilled" && r.value !== null,
+        );
+        const results = fulfilled.map((r) => r.value);
         return {
           data: results,
           total: results.reduce((n, r) => n + (r?.contracts?.length ?? 0), 0),

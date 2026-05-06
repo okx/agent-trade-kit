@@ -1,22 +1,33 @@
 <!-- triggers: architecture, layer, rest-client, server, MCP, stdio, JSON-RPC, transport, buildTools, ToolSpec, module filter, readOnly, ListTools, CallTool, createToolRunner, pilot, Pilot, okx-pilot, pilot-cache, PilotManager, PilotNode, list-tools -->
 # System Architecture
 
-## Five-Layer Stack
+## Two-Binary Architecture
+
+CLI and MCP are independent binaries that share `@agent-tradekit/core`. See `ARCHITECTURE.md` Section 3 for the canonical diagram.
 
 ```
-┌─────────────────────────────────────────┐
-│  MCP Host (Claude, agent-hub, etc.)     │  ← JSON-RPC 2.0 over stdio
-├─────────────────────────────────────────┤
-│  Entry Point (packages/mcp/src/index)   │  ← process stdin/stdout
-├─────────────────────────────────────────┤
-│  MCP Server (createServer)              │  ← ListTools / CallTool handlers
-├─────────────────────────────────────────┤
-│  Tool Registry (packages/core/tools/)   │  ← ToolSpec definitions, module filter
-├─────────────────────────────────────────┤
-│  REST Client (packages/core/client/)    │  ← HMAC signing, rate limiting
-├─────────────────────────────────────────┤
-│  OKX API (api.okx.com / regional)      │  ← HTTP/REST
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────┐  ┌─────────────────────────────────────────┐
+│  MCP Host (Claude, agent-hub, etc.)     │  │  User Terminal                          │
+│  JSON-RPC 2.0 over stdio                │  │                                         │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │ stdio JSON-RPC                                │ terminal command
+┌────────────────────▼────────────────────┐  ┌──────────────────────▼──────────────────┐
+│  okx-trade-mcp  (binary)                │  │  okx  (binary)                          │
+│  packages/mcp/src/index.ts              │  │  packages/cli/src/index.ts              │
+│  → MCP Server → ListTools / CallTool    │  │  → parser → ToolRunner                  │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │                                               │
+                     └──────────────────────┬───────────────────────┘
+                                            │
+                      ┌─────────────────────▼─────────────────────┐
+                      │    @agent-tradekit/core  (shared SDK)     │
+                      │ config · tools · rest-client · signature  │
+                      └─────────────────────┬─────────────────────┘
+                                            │ HTTPS + HMAC-SHA256
+                      ┌─────────────────────▼─────────────────────┐
+                      │            OKX REST API v5                 │
+                      │          https://www.okx.com               │
+                      └─────────────────────────────────────────────┘
 ```
 
 ## MCP Server (`packages/mcp/`)
@@ -67,7 +78,7 @@ The CLI does NOT call OKX API directly — it calls the same tool handlers as th
 ## Test Structure
 
 - `packages/core/test/` — unit tests for individual tool handler logic (26 files)
-- `packages/cli/test/` — CLI parameter routing and integration tests (46 files), including bidirectional drift test (`drift.test.ts`) that verifies CLI registry ↔ ToolSpec alignment, context-kg accuracy test (`context-kg-accuracy.test.ts`) that verifies documentation numbers stay in sync with code, and skill description length test (`skill-description-length.test.ts`) that enforces the Codex 1024-char limit on SKILL.md frontmatter
+- `packages/cli/test/` — CLI parameter routing and integration tests (47 files), including bidirectional drift test (`drift.test.ts`) that verifies CLI registry ↔ ToolSpec alignment, context-kg accuracy test (`context-kg-accuracy.test.ts`) that verifies documentation numbers stay in sync with code, and skill description length test (`skill-description-length.test.ts`) that enforces the Codex 1024-char limit on SKILL.md frontmatter
 - `packages/mcp/test/` — MCP server-level tests (2 files: bundle and server)
 
 Test command: `pnpm test:unit` (runs node:test across all packages).

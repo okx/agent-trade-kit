@@ -563,11 +563,31 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 5. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
 6. **Cursor direction** — `after` = newer, `before` = older. Same convention as OKX core API.
 
-## Mapping to `bot.dca` Module
+## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
 
-Existing `bot.dca` MCP module wraps this API. When adding or changing tools:
+The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 5 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
 
-- V1 spot (`spot_dca`): `bot.dca.create_spot`, `bot.dca.stop_spot`, `bot.dca.list_active_spot`, `bot.dca.list_history_spot`, `bot.dca.get_detail_spot`, `bot.dca.list_sub_orders_spot`, `bot.dca.get_ai_params`
-- V2 contract (`contract_dca`): `bot.dca.create_contract`, `bot.dca.stop_contract`, `bot.dca.add_margin`, `bot.dca.reduce_margin`, `bot.dca.update_take_profit`, `bot.dca.set_reinvestment`, `bot.dca.manual_buy`, `bot.dca.get_position_details`, `bot.dca.list_cycles`, `bot.dca.list_ongoing`, `bot.dca.list_history_contract`, `bot.dca.list_orders_by_cycle`
+| Tool | Key params | `isWrite` |
+|---|---|---|
+| `dca_create_order` | `instId`, `algoOrdType: spot_dca\|contract_dca`, `direction`, `initOrdAmt`, `maxSafetyOrds`, `tpPct` (required); `lever` required for `contract_dca` | true |
+| `dca_stop_order` | `algoId`, `algoOrdType`; `stopType` required for `spot_dca` (1=sell, 2=keep) | true |
+| `dca_get_orders` | `algoOrdType`, optional `algoId`, pagination cursors | false |
+| `dca_get_order_details` | `algoId` (required) | false |
+| `dca_get_sub_orders` | `algoId`, `type: filled\|live` (required) | false |
 
-Write endpoints (`isWrite: true`): all POSTs. Read endpoints: all GETs.
+### Backlog (not yet wrapped)
+
+The following V2 Contract DCA upstream endpoints exist but are not yet exposed as MCP tools. When implementing, note that Appendix A sync-copy-follower restrictions apply (see above).
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /margin/add` | Add margin to a running contract DCA strategy |
+| `POST /margin/reduce` | Reduce margin from a running contract DCA strategy |
+| `POST /settings/take-profit` | Update take-profit price (blocked for sync copy followers) |
+| `POST /settings/reinvestment` | Toggle profit reinvestment |
+| `POST /orders/manual-buy` | Manually add position (blocked for sync copy followers) |
+| `GET /position-details` | Current cycle position details |
+| `GET /cycle-list` | Paginated cycle history |
+| `GET /ongoing-list` | Active bot list |
+| `GET /history-list` | Historical bot list |
+| `GET /orders` | Order list by cycle (blocked for sync copy followers) |

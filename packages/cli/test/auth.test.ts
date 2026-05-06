@@ -10,6 +10,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -340,6 +341,61 @@ describe("cmdAuthRemove", () => {
     }
     assert.equal(process.exitCode, 1);
     assert.ok(cap.stderr().includes("TTY") || cap.stderr().includes("--force"));
+  });
+
+  it("catches removeAuthBinary throw and calls errorLine in text mode", async () => {
+    // Root can always delete files regardless of directory permissions — skip.
+    if (process.getuid?.() === 0) return;
+
+    const subDir = join(tempDir, "auth-bin");
+    mkdirSync(subDir);
+    const binPath = join(subDir, "okx-auth");
+    writeFileSync(binPath, Buffer.from("fake-binary"));
+    process.env.OKX_AUTH_BIN = binPath;
+
+    // Remove write permission from parent dir so unlinkSync throws EACCES.
+    chmodSync(subDir, 0o555);
+    const cap = createCapture();
+    cap.install();
+    try {
+      await cmdAuthRemove(true, false);
+    } finally {
+      cap.restore();
+      chmodSync(subDir, 0o755);
+    }
+
+    assert.equal(process.exitCode, 1);
+    assert.ok(
+      cap.stderr().length > 0,
+      `expected error message in stderr, got empty string`,
+    );
+  });
+
+  it("catches removeAuthBinary throw and outputs JSON with status=failed in json mode", async () => {
+    // Root can always delete files regardless of directory permissions — skip.
+    if (process.getuid?.() === 0) return;
+
+    const subDir = join(tempDir, "auth-bin-json");
+    mkdirSync(subDir);
+    const binPath = join(subDir, "okx-auth");
+    writeFileSync(binPath, Buffer.from("fake-binary"));
+    process.env.OKX_AUTH_BIN = binPath;
+
+    // Remove write permission from parent dir so unlinkSync throws EACCES.
+    chmodSync(subDir, 0o555);
+    const cap = createCapture();
+    cap.install();
+    try {
+      await cmdAuthRemove(true, true);
+    } finally {
+      cap.restore();
+      chmodSync(subDir, 0o755);
+    }
+
+    assert.equal(process.exitCode, 1);
+    const data = JSON.parse(cap.stdout().trim());
+    assert.equal(data.status, "failed");
+    assert.ok(typeof data.error === "string" && data.error.length > 0);
   });
 });
 

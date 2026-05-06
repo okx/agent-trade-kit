@@ -44,7 +44,7 @@ okx-trade-mcp/
 │   ├── mcp/                         # okx-trade-mcp
 │   │   └── src/
 │   │       ├── server.ts            # MCP Server: ListTools/CallTool handlers
-│   │       └── index.ts             # CLI entry: parse args → load config → start server
+│   │       └── index.ts             # MCP server entry: parse args → load config → start server
 │   └── cli/                         # okx-trade-cli
 │       └── src/
 │           └── index.ts             # CLI entry point
@@ -61,38 +61,28 @@ okx-trade-mcp/
 ## 3. Layered Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│               MCP Host Process                        │
-│      (Claude Desktop / Claude Code / SDK)             │
-└──────────────────────┬──────────────────────────────┘
-                       │ stdio JSON-RPC
-┌──────────────────────▼──────────────────────────────┐
-│               index.ts (CLI entry)                    │
-│   parseArgs → loadConfig → createServer → connect    │
-└──────────────────────┬──────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────┐
-│               server.ts (MCP Server)                  │
-│   ListToolsHandler  │  CallToolHandler                │
-│   buildCapabilitySnapshot  │  errorResult / successResult │
-└──────────────────────┬──────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────┐
-│           tools/ (Tool Registration Layer)            │
-│   buildTools(config) → ToolSpec[]                     │
-│   market / spot-trade / swap-trade / account          │
-└──────────────────────┬──────────────────────────────┘
-                       │ context.client.*
-┌──────────────────────▼──────────────────────────────┐
-│           client/rest-client.ts (HTTP Layer)          │
-│   publicGet / privateGet / privatePost                │
-│   → sign → fetch → parse → error handling            │
-└──────────────────────┬──────────────────────────────┘
-                       │ HTTPS
-┌──────────────────────▼──────────────────────────────┐
-│               OKX REST API v5                         │
-│             https://www.okx.com                       │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐  ┌─────────────────────────────────────────┐
+│  MCP Host                               │  │  User Terminal                          │
+│  (Claude Desktop / Claude Code / SDK)   │  │                                         │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │ stdio JSON-RPC                                │ terminal command
+┌────────────────────▼────────────────────┐  ┌──────────────────────▼──────────────────┐
+│  okx-trade-mcp  (binary)                │  │  okx  (binary)                          │
+│  packages/mcp/src/index.ts              │  │  packages/cli/src/index.ts              │
+│  → server.ts → ListTools / CallTool     │  │  → parser → ToolRunner                  │
+└────────────────────┬────────────────────┘  └──────────────────────┬──────────────────┘
+                     │                                               │
+                     └──────────────────────┬───────────────────────┘
+                                            │
+                      ┌─────────────────────▼─────────────────────┐
+                      │    @agent-tradekit/core  (shared SDK)     │
+                      │ config · tools · rest-client · signature  │
+                      └─────────────────────┬─────────────────────┘
+                                            │ HTTPS + HMAC-SHA256
+                      ┌─────────────────────▼─────────────────────┐
+                      │            OKX REST API v5                 │
+                      │          https://www.okx.com               │
+                      └─────────────────────────────────────────────┘
 ```
 
 ---
