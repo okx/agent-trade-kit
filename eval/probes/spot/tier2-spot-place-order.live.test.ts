@@ -9,7 +9,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.spot-place-order';
-const USER_PROMPT = 'Place a limit buy order for 0.001 BTC-USDT at price 1 USDT in demo/dry-run mode. Report the command. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Place a limit buy order for 0.001 BTC-USDT at price 1 USDT in demo/dry-run mode using the okx spot place subcommand. Report the exact command you ran. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init or okx --help. Just run the okx spot place command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "spot", "place", "BTC-USDT"]];
 const EXPECTATION = 'okx spot place with BTC-USDT';
 

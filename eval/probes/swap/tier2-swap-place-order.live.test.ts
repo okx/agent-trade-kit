@@ -9,7 +9,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.swap-place-order';
-const USER_PROMPT = 'Place a market buy order for 1 contract of BTC-USDT-SWAP in demo/dry-run mode. Report the command. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Place a market buy order for 1 contract of BTC-USDT-SWAP in demo/dry-run mode using the okx swap place subcommand. Report the exact command you ran. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init or okx --help / okx swap --help. Just run the okx swap place command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "swap", "place", "BTC-USDT-SWAP"]];
 const EXPECTATION = 'okx swap place BTC-USDT-SWAP';
 

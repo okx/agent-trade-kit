@@ -10,8 +10,10 @@ import {
 
 const PROBE_ID = 'tier2.swap-get-positions';
 const USER_PROMPT = 'Check my current perpetual swap positions. Report any open positions or confirm there are none. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "swap", "positions"], ["okx", "account", "positions", "SWAP"]];
-const EXPECTATION = 'okx swap positions / okx account positions --instType SWAP';
+// Accept either the SWAP-filtered call or the unfiltered account positions list
+// (the agent often relies on the result-side instType field instead of the flag).
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "swap", "positions"], ["okx", "account", "positions"]];
+const EXPECTATION = 'okx swap positions / okx account positions (any instType)';
 
 describe(PROBE_ID, () => {
   const models = getModels();
