@@ -111,6 +111,53 @@ class TestCompare(unittest.TestCase):
         self.assertEqual(len(delta["remove"]), 1)
         self.assertEqual(delta["remove"][0]["name"], "stale_tool")
 
+    def test_iswrite_diff_via_annotations_goes_to_modify(self):
+        local = self._local_doc({
+            "spot": [{
+                "name": "spot_place_order",
+                "description": "x",
+                "params": {"instId": {"type": "string", "required": True}},
+                "isWrite": True,
+                "source": ["cli", "mcp"],
+            }],
+        })
+        remote = [{
+            "name": "spot_place_order",
+            "description": "x",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"instId": {"type": "string"}},
+                "required": ["instId"],
+            },
+            "annotations": {"readOnlyHint": True},
+        }]
+        delta = compare(local, remote)
+        self.assertEqual(len(delta["modify"]), 1)
+        self.assertIn("isWrite", delta["modify"][0]["fields"])
+
+    def test_iswrite_skipped_when_remote_annotations_absent(self):
+        local = self._local_doc({
+            "spot": [{
+                "name": "spot_place_order",
+                "description": "x",
+                "params": {"instId": {"type": "string", "required": True}},
+                "isWrite": True,
+                "source": ["cli", "mcp"],
+            }],
+        })
+        remote = [{
+            "name": "spot_place_order",
+            "description": "x",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"instId": {"type": "string"}},
+                "required": ["instId"],
+            },
+        }]
+        delta = compare(local, remote)
+        # No annotations on Remote → don't fabricate an isWrite diff.
+        self.assertEqual(delta["modify"], [])
+
     def test_description_diff_goes_to_modify(self):
         local = self._local_doc({
             "spot": [{

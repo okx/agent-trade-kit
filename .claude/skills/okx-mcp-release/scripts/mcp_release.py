@@ -1,10 +1,16 @@
 """mcp_release.py — Remote MCP tools/list fetcher and three-way comparator.
 
 Usage:
-    python3 mcp_release.py fetch <env>   # env = pre | prod
+    python3 mcp_release.py fetch <env>              # env = pre | prod
     python3 mcp_release.py diff <tools.json> <env>
 
 Reads MCP_PRE_URL / MCP_PROD_URL from env. Fails fast if missing.
+
+Exit codes (diff command):
+    0  no delta (Remote already matches Local snapshot)
+    1  delta exists (caller should proceed to Phase 5)
+    2  required env var missing (MCP_PRE_URL / MCP_PROD_URL)
+    4  Remote unreachable after one retry
 """
 
 from __future__ import annotations
@@ -19,6 +25,18 @@ from typing import Any
 
 class RemoteFetchError(Exception):
     """Raised when MCP tools/list fetch fails after retry."""
+
+
+def _extract_is_write(tool: dict[str, Any]) -> bool | None:
+    # MCP tool annotations (readOnlyHint / destructiveHint) are optional.
+    # Map them to our isWrite concept; return None if Remote does not expose them
+    # so _diff_fields can skip a comparison rather than report a false-positive.
+    annotations = tool.get("annotations") or {}
+    if "readOnlyHint" in annotations:
+        return not bool(annotations["readOnlyHint"])
+    if "destructiveHint" in annotations:
+        return bool(annotations["destructiveHint"])
+    return None
 
 
 def normalize_remote_tool(tool: dict[str, Any]) -> dict[str, Any]:
@@ -45,6 +63,7 @@ def normalize_remote_tool(tool: dict[str, Any]) -> dict[str, Any]:
         "name": tool["name"],
         "description": tool.get("description", ""),
         "params": params,
+        "isWrite": _extract_is_write(tool),
     }
 
 
@@ -58,12 +77,19 @@ def _flatten_local(local: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def _diff_fields(local_tool: dict[str, Any], remote_norm: dict[str, Any]) -> list[str]:
-    """Return list of field names that differ between local and normalized remote."""
+    """Return list of field names that differ between local and normalized remote.
+
+    isWrite is compared only when Remote exposes it (via tool annotations); when
+    Remote returns None, we trust Local rather than report a false-positive diff.
+    """
     diffs: list[str] = []
     if local_tool.get("description", "") != remote_norm.get("description", ""):
         diffs.append("description")
     if local_tool.get("params", {}) != remote_norm.get("params", {}):
         diffs.append("params")
+    remote_is_write = remote_norm.get("isWrite")
+    if remote_is_write is not None and local_tool.get("isWrite") != remote_is_write:
+        diffs.append("isWrite")
     return diffs
 
 
@@ -72,7 +98,7 @@ def compare(local: dict[str, Any], remote_tools: list[dict[str, Any]]) -> dict[s
 
     add:    in local, not in remote
     remove: in remote, not in local
-    modify: in both, but description/params differ
+    modify: in both, but description/params/isWrite differ
     """
     local_map = _flatten_local(local)
     remote_norm_map = {t["name"]: normalize_remote_tool(t) for t in remote_tools}
