@@ -61,6 +61,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "PNL_ANY",
     description:
       "PnL percentile gate applied on top of `sortBy`. " +
+      "Naming: `TOP{N}` = top N% percentile (NOT an absolute PnL value). " +
       "PNL_ANY = no filter; PNL_TOP50 = PnL ≥ P50 (median); PNL_TOP20 = ≥ P80; PNL_TOP5 = ≥ P95. " +
       "PnL distribution is long-tailed — use percentile, not absolute thresholds.",
   },
@@ -69,7 +70,8 @@ const SIGNAL_POOL_FILTER_PROPS = {
     enum: ["WR_ANY", "WR_GE_50", "WR_GE_80"],
     default: "WR_ANY",
     description:
-      "Minimum win-rate gate (fixed thresholds). " +
+      "Minimum win-rate gate (absolute thresholds, NOT percentile). " +
+      "Naming: `GE_{N}` = career win-rate ≥ N% — distinct from `pnlTier`/`aumTier` `TOP{N}` which are percentiles. " +
       "WR_ANY = no filter; WR_GE_50 = ≥ 50%; WR_GE_80 = ≥ 80%.",
   },
   maxDrawdownTier: {
@@ -77,7 +79,8 @@ const SIGNAL_POOL_FILTER_PROPS = {
     enum: ["MR_ANY", "MR_LE_20", "MR_LE_50"],
     default: "MR_ANY",
     description:
-      "Maximum-drawdown gate (fixed thresholds; smaller drawdown = lower risk). " +
+      "Maximum-drawdown gate (absolute thresholds, NOT percentile; smaller drawdown = lower risk). " +
+      "Naming: `LE_{N}` = drawdown ≤ N% — distinct from `pnlTier`/`aumTier` `TOP{N}` which are percentiles. " +
       "MR_ANY = no filter; MR_LE_20 = drawdown ≤ 20%; MR_LE_50 = ≤ 50%.",
   },
   aumTier: {
@@ -86,6 +89,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "AUM_ANY",
     description:
       "AUM (Assets Under Management) percentile gate. " +
+      "Naming: `TOP{N}` = top N% percentile (NOT an absolute USD amount). " +
       "AUM_ANY = no filter; AUM_TOP50 = AUM ≥ P50; AUM_TOP20 = ≥ P80; AUM_TOP5 = ≥ P95. " +
       "AUM is long-tailed — use percentile, not absolute USD.",
   },
@@ -206,15 +210,18 @@ function extractLeaderboardEnvelope(data: unknown): { items: unknown[]; updateTi
 /**
  * Derive a clean `direction` field from upstream `posSide` + `pos` size.
  *
- * Why: upstream `posSide` is `"long" | "short" | "both"` where `"both"` means net/one-way mode
- * with the sign of `pos` (numeric string) encoding the actual direction. AI agents almost
- * always miss the sign-encoded case; surfacing a derived flat `direction: "long" | "short"`
- * lets agents act on direction without the extra branching.
+ * Why: upstream `posSide` is `"long" | "short" | "net"` (and historically `"both"`) where
+ * `"net"`/`"both"` mean net/one-way position mode with the sign of `pos` (numeric string)
+ * encoding the actual direction. AI agents almost always miss the sign-encoded case;
+ * surfacing a derived flat `direction: "long" | "short"` lets agents act on direction
+ * without the extra branching.
+ *
+ * Live SWAP responses use `"net"`; `"both"` is kept for defensive forward-compat.
  */
 function deriveDirection(posSide: unknown, pos: unknown): "long" | "short" | undefined {
   if (posSide === "long") return "long";
   if (posSide === "short") return "short";
-  if (posSide === "both" && typeof pos === "string" && pos !== "") {
+  if ((posSide === "net" || posSide === "both") && typeof pos === "string" && pos !== "") {
     const n = Number(pos);
     if (Number.isFinite(n) && n !== 0) return n > 0 ? "long" : "short";
   }
@@ -770,7 +777,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
                 "Raw upstream position direction. " +
                 "`long` = long-side position (buy-to-open); " +
                 "`short` = short-side position (sell-to-open); " +
-                "`both` = net/one-way position mode where the sign of `pos` encodes direction. " +
+                "`net` (or legacy `both`) = net/one-way position mode where the sign of `pos` encodes direction. " +
                 "Prefer the derived `direction` field below for agent logic.",
             },
             direction: {
@@ -778,7 +785,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               enum: ["long", "short"],
               description:
                 "Derived clean direction (`long` | `short`) — handler computes this from `posSide` + sign of `pos` " +
-                "so agents do not have to branch on the `posSide=\"both\"` net-mode case.",
+                "so agents do not have to branch on the `posSide=\"net\"` net-mode case.",
             },
             posCcy: { type: "string", description: "Position currency — the asset being held, e.g. \"BTC\"." },
             quoteCcy: { type: "string", description: "Quote currency the position is priced/settled in, e.g. \"USDT\"." },

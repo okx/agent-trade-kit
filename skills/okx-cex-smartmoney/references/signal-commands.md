@@ -185,9 +185,11 @@ Response fields: same as `signal-trend-by-filter`.
 | `--sortBy` | `pnl`, `pnlRatio` | `pnl` | Pool ranking key |
 | `--period` | `3`, `7`, `30`, `90` | `7` | Lookback window in days for capability metrics |
 | `--pnlTier` | `PNL_ANY`, `PNL_TOP50`, `PNL_TOP20`, `PNL_TOP5` | `PNL_ANY` | PnL percentile (top N% of pool) |
-| `--winRateTier` | `WR_ANY`, `WR_GE_50`, `WR_GE_80` | `WR_ANY` | Win-rate threshold (≥ N%) |
-| `--maxDrawdownTier` | `MR_ANY`, `MR_LE_20`, `MR_LE_50` | `MR_ANY` | Max-drawdown threshold (≤ N%) |
-| `--aumTier` | `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` | `AUM_ANY` | AUM percentile |
+| `--winRateTier` | `WR_ANY`, `WR_GE_50`, `WR_GE_80` | `WR_ANY` | Career win-rate threshold (≥ N%, absolute) |
+| `--maxDrawdownTier` | `MR_ANY`, `MR_LE_20`, `MR_LE_50` | `MR_ANY` | Max-drawdown threshold (≤ N%, absolute) |
+| `--aumTier` | `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` | `AUM_ANY` | AUM percentile (top N% of pool) |
+
+> **Naming convention**: `TOP{N}` = percentile (top N% of pool — used by `pnlTier` / `aumTier` because their distributions are long-tailed); `GE_{N}` = absolute threshold ≥ N% (`winRateTier`); `LE_{N}` = absolute threshold ≤ N% (`maxDrawdownTier`). Don't read `WR_GE_80` as "top 80%" — it means win-rate ≥ 80%.
 
 > All enums are case-insensitive; invalid values silently fall back to default.
 

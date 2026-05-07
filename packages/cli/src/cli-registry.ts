@@ -882,12 +882,12 @@ export const CLI_REGISTRY: CliRegistry = {
     commands: {
       "traders-by-filter": {
         toolName: "smartmoney_get_traders_by_filter",
-        usage: "okx smartmoney traders-by-filter [--updateTime <yyyyMMddHHmmss UTC+8>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 90>] [--minPnl <n>] [--minWinRate <r>] [--maxDrawdown <r>] [--minAum <n>] [--after <authorId>] [--before <authorId>] [--limit <n>] [--json]",
+        usage: "okx smartmoney traders-by-filter [--updateTime <yyyyMMddHHmmss UTC+8>] [--sortBy <pnl|pnlRatio, default pnl>] [--period <3|7|30|90, default 90>] [--minPnl <n>] [--minWinRate <r>] [--maxDrawdown <r>] [--minAum <n>] [--after <authorId>] [--before <authorId>] [--limit <n, default 10>] [--json]",
         description: "Leaderboard of top smart-money traders, ranked and filtered by pool conditions",
       },
       "performance-by-trader": {
         toolName: "smartmoney_get_performance_by_trader",
-        usage: "okx smartmoney performance-by-trader --authorIds <id1,id2> [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 90>] [--json]",
+        usage: "okx smartmoney performance-by-trader --authorIds <id1,id2> [--sortBy <pnl|pnlRatio, default pnl>] [--period <3|7|30|90, default 90>] [--json]",
         description: "PnL / win-rate / drawdown profile for one or more traders by authorIds",
       },
       "trader-positions": {
@@ -897,12 +897,12 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "trader-positions-history": {
         toolName: "smartmoney_get_trader_positions_history",
-        usage: "okx smartmoney trader-positions-history --authorId <id> [--instId <id>] [--after <posId>] [--before <posId>] [--limit <n>] [--json]",
+        usage: "okx smartmoney trader-positions-history --authorId <id> [--instId <id>] [--after <posId>] [--before <posId>] [--limit <n, default 10>] [--json]",
         description: "Closed-position history of a single trader (paginated)",
       },
       "trader-orders-history": {
         toolName: "smartmoney_get_trader_orders_history",
-        usage: "okx smartmoney trader-orders-history --authorId <id> [--instId <id>] [--after <ordId>] [--before <ordId>] [--limit <n>] [--json]",
+        usage: "okx smartmoney trader-orders-history --authorId <id> [--instId <id>] [--after <ordId>] [--before <ordId>] [--limit <n, default 10>] [--json]",
         description: "Recent orders/fills placed by a single trader (paginated)",
       },
       "search-trader": {
@@ -912,22 +912,22 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "signal-overview-by-filter": {
         toolName: "smartmoney_get_signal_overview_by_filter",
-        usage: "okx smartmoney signal-overview-by-filter [--topInstruments <n, default 20> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 7>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n, default 100>] [--json]",
+        usage: "okx smartmoney signal-overview-by-filter [--topInstruments <n, default 20> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio, default pnl>] [--period <3|7|30|90, default 7>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n, default 100>] [--json]",
         description: "Multi-asset smart-money consensus signal aggregated over a tier-filtered pool",
       },
       "signal-overview-by-trader": {
         toolName: "smartmoney_get_signal_overview_by_trader",
-        usage: "okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n, default 20> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 7>] [--json]",
+        usage: "okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n, default 20> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio, default pnl>] [--period <3|7|30|90, default 7>] [--json]",
         description: "Multi-asset smart-money signal aggregated over a hand-picked set of traders (authorIds-direct-lookup; pool filters not exposed)",
       },
       "signal-trend-by-filter": {
         toolName: "smartmoney_get_signal_trend_by_filter",
-        usage: "okx smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH UTC>] [--granularity <1h|1d, default 1h>] [--limit <n, default 24>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 7>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n, default 100>] [--json]",
+        usage: "okx smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH UTC>] [--granularity <1h|1d, default 1h>] [--limit <n, default 24>] [--sortBy <pnl|pnlRatio, default pnl>] [--period <3|7|30|90, default 7>] [--pnlTier <tier>] [--winRateTier <tier>] [--maxDrawdownTier <tier>] [--aumTier <tier>] [--lmtNum <n, default 100>] [--json]",
         description: "Single-coin smart-money signal time-series aggregated over a tier-filtered pool, anchored at asOfTime",
       },
       "signal-trend-by-trader": {
         toolName: "smartmoney_get_signal_trend_by_trader",
-        usage: "okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH UTC>] [--granularity <1h|1d, default 1h>] [--limit <n, default 24>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 7>] [--json]",
+        usage: "okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH UTC>] [--granularity <1h|1d, default 1h>] [--limit <n, default 24>] [--sortBy <pnl|pnlRatio, default pnl>] [--period <3|7|30|90, default 7>] [--json]",
         description: "Single-coin smart-money signal time-series aggregated over a hand-picked set of traders (authorIds-direct-lookup; pool filters not exposed)",
       },
     },

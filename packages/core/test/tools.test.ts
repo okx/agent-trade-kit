@@ -5563,16 +5563,19 @@ describe("smartmoney_get_trader_positions", () => {
     assert.equal(data[1].instId, "ETH-USDT-SWAP");
   });
 
-  it("derives `direction` from posSide=long/short and from posSide=both via sign of pos", async () => {
+  it("derives `direction` from posSide=long/short and from net-mode (posSide=net|both) via sign of pos", async () => {
     const { client } = makeMockClientWithData({
       "/api/v5/orbit/public/position-current": [
         {
           posData: [
             { posId: "p_long", posSide: "long", pos: "5" },
             { posId: "p_short", posSide: "short", pos: "3" },
-            { posId: "p_both_pos", posSide: "both", pos: "10" },
-            { posId: "p_both_neg", posSide: "both", pos: "-10" },
-            { posId: "p_both_zero", posSide: "both", pos: "0" },
+            // Live SWAP uses posSide="net" for one-way mode.
+            { posId: "p_net_pos", posSide: "net", pos: "10" },
+            { posId: "p_net_neg", posSide: "net", pos: "-10" },
+            { posId: "p_net_zero", posSide: "net", pos: "0" },
+            // Legacy "both" kept for defensive forward-compat.
+            { posId: "p_both_pos", posSide: "both", pos: "7" },
           ],
         },
       ],
@@ -5583,11 +5586,13 @@ describe("smartmoney_get_trader_positions", () => {
     assert.equal(data[1].direction, "short");
     assert.equal(data[2].direction, "long");
     assert.equal(data[3].direction, "short");
-    // posSide=both with pos=0 is degenerate — skip the derived field rather than guess.
+    // net mode with pos=0 is degenerate — skip the derived field rather than guess.
     assert.equal(data[4].direction, undefined);
+    assert.equal(data[5].direction, "long");
     // Original posSide is preserved.
     assert.equal(data[0].posSide, "long");
-    assert.equal(data[2].posSide, "both");
+    assert.equal(data[2].posSide, "net");
+    assert.equal(data[5].posSide, "both");
   });
 });
 

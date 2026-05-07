@@ -67,10 +67,12 @@ Two **disjoint** parameter conventions, separated by endpoint family:
 |---|---|---|---|
 | `sortBy` | `pnl` / `pnlRatio` | `pnl` | Pool ranking key |
 | `pnlTier` | `PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5` | `PNL_ANY` | PnL percentile (top N% of pool) |
-| `winRateTier` | `WR_ANY` / `WR_GE_50` / `WR_GE_80` | `WR_ANY` | Win-rate threshold (≥ N%) |
+| `winRateTier` | `WR_ANY` / `WR_GE_50` / `WR_GE_80` | `WR_ANY` | Career win-rate threshold (≥ N%, absolute) |
 | `period` | `3` / `7` / `30` / `90` | `7` | Lookback window (days) for capability metrics |
-| `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | Drawdown threshold (≤ N%) |
-| `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM percentile |
+| `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | Drawdown threshold (≤ N%, absolute) |
+| `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM percentile (top N% of pool) |
+
+> **Tier naming convention**: `TOP{N}` = percentile (top N% of pool — used by `pnlTier` / `aumTier`, since both distributions are long-tailed); `GE_{N}` = absolute threshold ≥ N% (`winRateTier`); `LE_{N}` = absolute threshold ≤ N% (`maxDrawdownTier`). Empirically verified at `lmtNum=100`: `WR_GE_50` keeps ~95 traders (career win-rate ≥ 50%), `MR_LE_20` keeps ~9 (drawdown ≤ 20%), `PNL_TOP20` keeps exactly 20.
 
 **Leaderboard family** (top_traders) — numeric thresholds in raw units:
 
@@ -206,10 +208,12 @@ smartmoney_get_signal_trend_by_trader    ← 单币时间序列、authorIds
 |---|---|---|---|
 | `sortBy` | `pnl` / `pnlRatio` | `pnl` | 池排序键 |
 | `pnlTier` | `PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5` | `PNL_ANY` | PnL 百分位（池前 N%） |
-| `winRateTier` | `WR_ANY` / `WR_GE_50` / `WR_GE_80` | `WR_ANY` | 胜率阈值（≥ N%） |
+| `winRateTier` | `WR_ANY` / `WR_GE_50` / `WR_GE_80` | `WR_ANY` | 职业生涯胜率阈值（≥ N%，绝对值） |
 | `period` | `3` / `7` / `30` / `90` | `7` | 能力指标回望窗口（天） |
-| `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | 回撤阈值（≤ N%） |
-| `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM 百分位 |
+| `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | 回撤阈值（≤ N%，绝对值） |
+| `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM 百分位（池前 N%） |
+
+> **Tier 命名约定**：`TOP{N}` = 百分位（池前 N%，用于 `pnlTier` / `aumTier`，因为这两个分布都是长尾的）；`GE_{N}` = 绝对阈值 ≥ N%（`winRateTier`）；`LE_{N}` = 绝对阈值 ≤ N%（`maxDrawdownTier`）。`lmtNum=100` 实测：`WR_GE_50` 入池 ~95 人（生涯胜率 ≥ 50%），`MR_LE_20` 入池 ~9 人（回撤 ≤ 20%），`PNL_TOP20` 恰好 20 人。
 
 **Leaderboard 家族**（top_traders）—— 数值阈值：
 

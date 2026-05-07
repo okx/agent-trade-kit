@@ -137,8 +137,8 @@ Single trader, current open positions only.
 | `posId` | Position unique ID |
 | `instId` | Instrument (e.g. `BTC-USDT-SWAP`) |
 | `instType` | SWAP, SPOT, etc. |
-| `posSide` | Raw upstream direction: `long` / `short` / `both` (`both` = net/one-way mode; sign of `pos` encodes direction) |
-| `direction` | Derived clean direction: `long` / `short`. Handler computes from `posSide` + sign of `pos`, so agents don't have to branch on `posSide=both`. Prefer this over `posSide` for direction logic. |
+| `posSide` | Raw upstream direction: `long` / `short` / `net` (and legacy `both`). `net`/`both` = net/one-way mode; sign of `pos` encodes direction. |
+| `direction` | Derived clean direction: `long` / `short`. Handler computes from `posSide` + sign of `pos`, so agents don't have to branch on the `posSide="net"` net-mode case. Prefer this over `posSide` for direction logic. |
 | `posCcy` | Position currency |
 | `quoteCcy` | Quote currency |
 | `pos` | Position size |
