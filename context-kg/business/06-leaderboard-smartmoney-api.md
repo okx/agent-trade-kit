@@ -332,6 +332,8 @@ Time-series of aggregated long/short signal across hourly/daily buckets for one 
 | `netNotionalUsdt` | String | Net directional notional = long − short |
 | `totalNotionalUsdt` | String | Gross notional = long + short. Tracks total capital deployed. |
 
+> **Notional pricing**: `weightedLongRatio` / `weightedShortRatio` / `netNotionalUsdt` / `totalNotionalUsdt` are weighted by each trader's **entry price (`price_avg`)**, NOT mark price. Backend `notionalFactor = ABS(pos_qty) * COALESCE(contract_val, 1) * COALESCE(price_avg, 0)` (SelectDB doesn't store mark price). Values move only when positions are scaled (open / close / add) — they stay constant across hourly buckets when traders hold positions unchanged.
+
 ---
 
 ## 4.3 Multi-Instrument Overview — `GET /api/v5/journal/smartmoney/overview`
@@ -401,6 +403,8 @@ Outer item carries identity + headcount; aggregate metrics live in three nested 
 | `longRatioVs1h` | String | `longRatio − hist_1h.longRatio`. NULL when no hist |
 | `longRatioVs24h` | String | `longRatio − hist_24h.longRatio`. NULL when no hist |
 | `longRatioVs7d` | String | `longRatio − hist_7d.longRatio`. NULL when no hist |
+
+> **Notional pricing**: All `notional.*` fields and `longShortRatio.weightedLongRatio` / `weightedShortRatio` are weighted by each trader's **entry price (`price_avg`)**, NOT mark price. Backend `notionalFactor = ABS(pos_qty) * COALESCE(contract_val, 1) * COALESCE(price_avg, 0)` (SelectDB doesn't store mark price). Values move only when positions are scaled — they stay constant when traders hold positions unchanged.
 
 #### `winRate` group — capability (driven by `period` window)
 

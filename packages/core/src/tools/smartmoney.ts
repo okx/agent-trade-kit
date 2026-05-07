@@ -424,10 +424,31 @@ const SIGNAL_ITEM_PROPS = {
     type: "object",
     description: "Notional / capital-flow group.",
     properties: {
-      longNotionalUsdt: { type: "string", description: "Sum of long-side notional in USDT." },
-      shortNotionalUsdt: { type: "string", description: "Sum of short-side notional in USDT." },
-      netNotionalUsdt: { type: "string", description: "Net directional notional in USDT = long − short." },
-      totalNotionalUsdt: { type: "string", description: "Gross notional in USDT = long + short." },
+      longNotionalUsdt: {
+        type: "string",
+        description:
+          "Sum of long-side notional in USDT, weighted by each trader's ENTRY PRICE (price_avg), not mark price. " +
+          "Moves only when positions are opened / closed / scaled — stays constant when positions are unchanged.",
+      },
+      shortNotionalUsdt: {
+        type: "string",
+        description:
+          "Sum of short-side notional in USDT, weighted by each trader's ENTRY PRICE (price_avg), not mark price. " +
+          "Moves only when positions are opened / closed / scaled — stays constant when positions are unchanged.",
+      },
+      netNotionalUsdt: {
+        type: "string",
+        description:
+          "Net directional notional in USDT = long − short. Weighted by each trader's ENTRY PRICE (price_avg), " +
+          "not mark price — reflects position scaling, not underlying price movement.",
+      },
+      totalNotionalUsdt: {
+        type: "string",
+        description:
+          "Gross notional in USDT = long + short. Weighted by each trader's ENTRY PRICE (price_avg), not mark price — " +
+          "reflects position scaling (open / close / add), not underlying price movement. " +
+          "Stays constant across buckets when traders hold positions unchanged.",
+      },
       totalNotionalVs24h: {
         type: "string",
         description:
@@ -460,11 +481,17 @@ const SIGNAL_ITEM_PROPS = {
       },
       weightedLongRatio: {
         type: "string",
-        description: "Notional-weighted long ratio = Σ(long_notional) / Σ(notional). NULL when no notional.",
+        description:
+          "Notional-weighted long ratio = Σ(long_notional) / Σ(notional). " +
+          "Notional uses each trader's ENTRY PRICE (price_avg), not mark price — ratio shifts only when positions are scaled. " +
+          "NULL when no notional.",
       },
       weightedShortRatio: {
         type: "string",
-        description: "Notional-weighted short ratio = Σ(short_notional) / Σ(notional). NULL when no notional.",
+        description:
+          "Notional-weighted short ratio = Σ(short_notional) / Σ(notional). " +
+          "Notional uses each trader's ENTRY PRICE (price_avg), not mark price. " +
+          "NULL when no notional.",
       },
     },
   },
@@ -499,14 +526,15 @@ const SIGNAL_HISTORY_ITEM_PROPS = {
   },
   weightedLongRatio: {
     type: "string",
-    description: "Notional-weighted long ratio at this bucket = Σ(long_notional) / Σ(notional). Decimal 0~1.",
+    description:
+      "Notional-weighted long ratio at this bucket = Σ(long_notional) / Σ(notional). Decimal 0~1. " +
+      "Notional uses each trader's ENTRY PRICE (price_avg), not mark price — ratio shifts only when positions are scaled.",
   },
   weightedShortRatio: {
     type: "string",
     description:
-      "Notional-weighted short ratio at this bucket = Σ(short_notional) / Σ(notional). " +
-      "Unlike `shortRatio` (headcount), this IS exclusive — a single position is either long " +
-      "or short, so weightedLongRatio + weightedShortRatio = 1 always.",
+      "Notional-weighted short ratio at this bucket = Σ(short_notional) / Σ(notional). Decimal 0~1. " +
+      "Notional uses each trader's ENTRY PRICE (price_avg), not mark price.",
   },
   longTraders: {
     type: "integer",
@@ -522,13 +550,17 @@ const SIGNAL_HISTORY_ITEM_PROPS = {
   },
   netNotionalUsdt: {
     type: "string",
-    description: "Net directional notional in USDT at this bucket = long notional − short notional.",
+    description:
+      "Net directional notional in USDT at this bucket = long notional − short notional. " +
+      "Weighted by each trader's ENTRY PRICE (price_avg), not mark price — reflects position scaling, not underlying price movement.",
   },
   totalNotionalUsdt: {
     type: "string",
     description:
       "Gross notional in USDT at this bucket = long notional + short notional. " +
-      "Tracks total capital deployed (rising = adding, falling = retreating).",
+      "Weighted by each trader's ENTRY PRICE (price_avg), not mark price — " +
+      "tracks capital deployed (rising = adding, falling = retreating). " +
+      "Stays constant across buckets when traders hold positions unchanged.",
   },
   tradersQualified: { type: "integer", description: "Pool size after applying tier filters (includes traders without a position)." },
   dataVersion: { type: "string", description: "Snapshot version key in `yyyyMMddHH` UTC (10-digit, e.g. `2026042820`)." },

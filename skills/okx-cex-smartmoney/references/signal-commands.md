@@ -81,6 +81,8 @@ Each item has an outer ID + 3 nested groups (`notional`, `longShortRatio`, `winR
 | `avgLongWinRate` | String | Mean closed-position win-rate over `period` days for users currently long; NULL when sample below threshold |
 | `avgShortWinRate` | String | Same for users currently short; NULL when sample below threshold |
 
+> **Notional pricing**: `longNotionalUsdt` / `shortNotionalUsdt` / `netNotionalUsdt` / `totalNotionalUsdt` and `weightedLongRatio` / `weightedShortRatio` are weighted by each trader's **entry price (`price_avg`)**, NOT mark price. Values move only when positions are scaled (open / close / add) — they stay constant across buckets when traders hold positions unchanged.
+
 > **Note**: `signal-history` (used by `signal-trend-*`) still returns `dataVersion` in `yyyyMMddHH` format (10 digits) — same as overview.
 
 ---
@@ -141,6 +143,8 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 | `tradersQualified` | Integer | Pool size after tier filters (incl. those without a position) |
 | `netNotionalUsdt` | String | Net = long − short (USDT) |
 | `totalNotionalUsdt` | String | Total = long + short (USDT) |
+
+> **Notional pricing**: `weightedLongRatio` / `weightedShortRatio` / `netNotionalUsdt` / `totalNotionalUsdt` are weighted by each trader's **entry price (`price_avg`)**, NOT mark price. Values move only when positions are scaled (open / close / add) — they stay constant across buckets when traders hold positions unchanged.
 
 ---
 
