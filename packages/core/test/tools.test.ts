@@ -5215,6 +5215,157 @@ describe("smartmoney tool surface", () => {
 });
 
 // ---------------------------------------------------------------------------
+// smartmoney: client-side enum validation
+// ---------------------------------------------------------------------------
+
+describe("smartmoney enum validation", () => {
+  const tools = registerSmartmoneyTools();
+  const findTool = (name: string) => tools.find((t) => t.name === name)!;
+
+  /** Assert that a handler rejects an invalid enum value with ValidationError. */
+  async function expectEnumReject(
+    toolName: string,
+    args: Record<string, unknown>,
+    field: string,
+    badValue: string,
+  ) {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => findTool(toolName).handler(args, makeContext(client)),
+      (err: unknown) => {
+        if (!(err instanceof ValidationError)) return false;
+        const msg = (err as Error).message;
+        return msg.includes(field) && msg.includes(JSON.stringify(badValue));
+      },
+      `${toolName}: ${field}="${badValue}" must be rejected with ValidationError`,
+    );
+  }
+
+  it("rejects bare-name pnlTier (TOP20 instead of PNL_TOP20)", async () => {
+    await expectEnumReject(
+      "smartmoney_get_signal_overview_by_filter",
+      { instCcy: "BTC", pnlTier: "TOP20" },
+      "pnlTier",
+      "TOP20",
+    );
+  });
+
+  it("rejects invalid winRateTier", async () => {
+    await expectEnumReject(
+      "smartmoney_get_signal_overview_by_filter",
+      { instCcy: "BTC", winRateTier: "WR_GE_70" },
+      "winRateTier",
+      "WR_GE_70",
+    );
+  });
+
+  it("rejects invalid maxDrawdownTier", async () => {
+    await expectEnumReject(
+      "smartmoney_get_signal_trend_by_filter",
+      { instCcy: "BTC", maxDrawdownTier: "MR_LE_30" },
+      "maxDrawdownTier",
+      "MR_LE_30",
+    );
+  });
+
+  it("rejects invalid aumTier", async () => {
+    await expectEnumReject(
+      "smartmoney_get_signal_overview_by_filter",
+      { instCcy: "BTC", aumTier: "AUM_TOP10" },
+      "aumTier",
+      "AUM_TOP10",
+    );
+  });
+
+  it("rejects invalid leaderboard sortBy", async () => {
+    await expectEnumReject(
+      "smartmoney_get_traders_by_filter",
+      { sortBy: "winrate" },
+      "sortBy",
+      "winrate",
+    );
+  });
+
+  it("rejects invalid period (PERIOD_DAYS) on leaderboard", async () => {
+    await expectEnumReject(
+      "smartmoney_get_traders_by_filter",
+      { period: "14" },
+      "period",
+      "14",
+    );
+  });
+
+  it("rejects invalid period on trader-performance", async () => {
+    await expectEnumReject(
+      "smartmoney_get_performance_by_trader",
+      { authorIds: ["1001"], period: "60" },
+      "period",
+      "60",
+    );
+  });
+
+  it("rejects invalid granularity on signal_trend_by_filter", async () => {
+    await expectEnumReject(
+      "smartmoney_get_signal_trend_by_filter",
+      { instCcy: "BTC", granularity: "5m" },
+      "granularity",
+      "5m",
+    );
+  });
+
+  it("rejects invalid granularity on signal_trend_by_trader", async () => {
+    await expectEnumReject(
+      "smartmoney_get_signal_trend_by_trader",
+      { authorIds: ["1001"], instCcy: "BTC", granularity: "4h" },
+      "granularity",
+      "4h",
+    );
+  });
+
+  it("error message lists the allowed values", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () =>
+        findTool("smartmoney_get_signal_overview_by_filter").handler(
+          { instCcy: "BTC", pnlTier: "TOP20" },
+          makeContext(client),
+        ),
+      (err: unknown) => {
+        const msg = (err as Error).message;
+        return (
+          msg.includes("PNL_ANY") &&
+          msg.includes("PNL_TOP50") &&
+          msg.includes("PNL_TOP20") &&
+          msg.includes("PNL_TOP5")
+        );
+      },
+    );
+  });
+
+  it("accepts valid enum values without throwing", async () => {
+    const { client } = makeMockClient();
+    await findTool("smartmoney_get_signal_overview_by_filter").handler(
+      {
+        instCcy: "BTC",
+        sortBy: "pnl",
+        period: "7",
+        pnlTier: "PNL_TOP20",
+        winRateTier: "WR_GE_50",
+        maxDrawdownTier: "MR_LE_20",
+        aumTier: "AUM_TOP50",
+      },
+      makeContext(client),
+    );
+  });
+
+  it("treats omitted enum fields as no-op (server-side default applies)", async () => {
+    const { client } = makeMockClient();
+    // No enum fields at all — handler must not throw.
+    await findTool("smartmoney_get_traders_by_filter").handler({}, makeContext(client));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // smartmoney handler validation & routing (smartmoney.ts)
 // ---------------------------------------------------------------------------
 
@@ -5810,3 +5961,4 @@ describe("smartmoney_search_trader", () => {
     assert.equal(data[1].nickName, "alice_eth");
   });
 });
+

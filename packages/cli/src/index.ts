@@ -1909,6 +1909,7 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   const payload = toToolErrorPayload(error);
   errorLine(`Error: ${payload.message}`);
+  if (payload.code) errorLine(`Code: ${payload.code}`);
   if (payload.traceId) errorLine(`TraceId: ${payload.traceId}`);
   if (payload.suggestion) errorLine(`Hint: ${payload.suggestion}`);
   errorLine(`Version: @okx_ai/okx-trade-cli@${CLI_VERSION}`);

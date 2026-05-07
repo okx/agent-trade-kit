@@ -61,7 +61,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "PNL_ANY",
     description:
       "PnL percentile gate applied on top of `sortBy`. " +
-      "ANY = no filter; TOP50 = PnL ≥ P50 (median); TOP20 = ≥ P80; TOP5 = ≥ P95. " +
+      "PNL_ANY = no filter; PNL_TOP50 = PnL ≥ P50 (median); PNL_TOP20 = ≥ P80; PNL_TOP5 = ≥ P95. " +
       "PnL distribution is long-tailed — use percentile, not absolute thresholds.",
   },
   winRateTier: {
@@ -70,7 +70,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "WR_ANY",
     description:
       "Minimum win-rate gate (fixed thresholds). " +
-      "ANY = no filter; WR_GE_50 = ≥ 50%; WR_GE_80 = ≥ 80%.",
+      "WR_ANY = no filter; WR_GE_50 = ≥ 50%; WR_GE_80 = ≥ 80%.",
   },
   maxDrawdownTier: {
     type: "string" as const,
@@ -78,7 +78,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "MR_ANY",
     description:
       "Maximum-drawdown gate (fixed thresholds; smaller drawdown = lower risk). " +
-      "ANY = no filter; MR_LE_20 = drawdown ≤ 20%; MR_LE_50 = ≤ 50%.",
+      "MR_ANY = no filter; MR_LE_20 = drawdown ≤ 20%; MR_LE_50 = ≤ 50%.",
   },
   aumTier: {
     type: "string" as const,
@@ -86,7 +86,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "AUM_ANY",
     description:
       "AUM (Assets Under Management) percentile gate. " +
-      "ANY = no filter; TOP50 = AUM ≥ P50; TOP20 = ≥ P80; TOP5 = ≥ P95. " +
+      "AUM_ANY = no filter; AUM_TOP50 = AUM ≥ P50; AUM_TOP20 = ≥ P80; AUM_TOP5 = ≥ P95. " +
       "AUM is long-tailed — use percentile, not absolute USD.",
   },
 };
@@ -156,6 +156,7 @@ const LEADERBOARD_FILTER_UPSTREAM_NAMES: Record<string, string> = {
 
 /** Leaderboard pool filters: public name → upstream API name (handler does the rename). */
 function readPoolFilters(args: Record<string, unknown>): Record<string, unknown> {
+  assertPoolFilterEnums(args, LEADERBOARD_POOL_FILTER_PROPS);
   const result: Record<string, unknown> = {};
   for (const [publicKey, upstreamKey] of Object.entries(LEADERBOARD_FILTER_UPSTREAM_NAMES)) {
     const val = readString(args, publicKey);
@@ -166,6 +167,7 @@ function readPoolFilters(args: Record<string, unknown>): Record<string, unknown>
 
 /** Signal pool filters: public names == upstream API names; pass through directly. */
 function readSignalPoolFilters(args: Record<string, unknown>): Record<string, unknown> {
+  assertPoolFilterEnums(args, SIGNAL_POOL_FILTER_PROPS);
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(SIGNAL_POOL_FILTER_PROPS)) {
     const val = readString(args, key);
@@ -277,6 +279,39 @@ function extractBaseCcy(instId: string | undefined): string | undefined {
 /** ValidationError with a "next-step" hint, per mcp-builder actionable-error guideline. */
 function actionableError(message: string, hint: string): ValidationError {
   return new ValidationError(`${message} ${hint}`);
+}
+
+/**
+ * Reject an arg whose value is not in the schema's `enum` list before it reaches
+ * the upstream API. Without this, agents that ignore the schema (e.g. pass a bare
+ * `TOP20` instead of `PNL_TOP20`) only see a truncated upstream "Invalid parameter"
+ * message — making misuse hard to diagnose. No-op when the field is absent/empty,
+ * since enum fields are all optional with server-side defaults.
+ */
+function assertEnum(
+  args: Record<string, unknown>,
+  key: string,
+  allowed: readonly string[],
+): void {
+  const val = readString(args, key);
+  if (val === undefined || val === "") return;
+  if (!allowed.includes(val)) {
+    throw actionableError(
+      `Invalid value for "${key}": ${JSON.stringify(val)}.`,
+      `Allowed values: ${allowed.map((v) => JSON.stringify(v)).join(", ")}.`,
+    );
+  }
+}
+
+/** Validate every enum-bearing field in a *_POOL_FILTER_PROPS map against args. */
+function assertPoolFilterEnums(
+  args: Record<string, unknown>,
+  props: Record<string, Record<string, unknown>>,
+): void {
+  for (const [key, spec] of Object.entries(props)) {
+    const enumList = spec.enum;
+    if (Array.isArray(enumList)) assertEnum(args, key, enumList as readonly string[]);
+  }
 }
 
 /**
@@ -623,6 +658,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        assertEnum(args, "period", PERIOD_DAYS);
         const authorIds = readArrayAsCsv(args, "authorIds");
         if (!authorIds) {
           throw actionableError(
@@ -1302,6 +1338,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        assertEnum(args, "granularity", ["1h", "1d"]);
         const instCcy = readString(args, "instCcy");
         if (!instCcy) {
           throw actionableError(
@@ -1384,6 +1421,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        assertEnum(args, "granularity", ["1h", "1d"]);
         const authorIds = readArrayAsCsv(args, "authorIds");
         const instCcy = readString(args, "instCcy");
         if (!authorIds) {

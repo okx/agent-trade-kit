@@ -291,7 +291,13 @@ export class OkxRestClient {
   private throwOkxError(
     code: string, msg: string | undefined, reqConfig: RequestConfig, traceId: string | undefined,
   ): never {
-    const message = msg || "OKX API request failed.";
+    // Some upstream endpoints (e.g. /orbit/public/*) return code != 0 with an empty `msg`.
+    // The previous fallback "OKX API request failed." dropped the upstream code from the
+    // human-readable message, leaving callers with no way to diagnose what was rejected.
+    // Always include the code in the fallback so the error remains actionable.
+    const message = msg && msg.trim() !== ""
+      ? msg
+      : `OKX API rejected request (code ${code}).`;
     const endpoint = `${reqConfig.method} ${reqConfig.path}`;
 
     if (code === "50111" || code === "50112" || code === "50113") {
