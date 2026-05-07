@@ -26,10 +26,12 @@ Pick instruments via `--topInstruments` (top-N hottest) **OR** `--instCcyList` (
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--topInstruments` | No | `20` | Top-N hottest instruments (1–100). Mutually exclusive with `--instCcyList`. |
-| `--instCcyList` | No | - | Comma-separated base ccys, e.g. `BTC,ETH,SOL`. Mutually exclusive with `--topInstruments`. |
+| `--instCcyList` | No | - | Comma-separated base ccys, e.g. `BTC,ETH,SOL`. Mutually exclusive with `--topInstruments`. **Linear-only**: matches USDT-margined and USDS-margined instruments only (e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`). Coin-margined `BTC-USD-SWAP` / `BTC-USD-DELIVERY` positions are excluded by upstream. |
 | `--lmtNum` | No | `100` | Candidate trader pool size limit (1–2000) |
 
 > **No `--ts` parameter.** The handler always uses the current hour. For historical timeline, use `signal-trend-by-filter`.
+
+> **⚠ Coin-margined excluded.** A trader's coin-margined positions on the requested base ccy are silently dropped from `longNotional` / `shortNotional` / `tradersWithPosition`. If a trader holds only coin-margined exposure on a coin, they will not appear in the signal. Use `smartmoney trader-positions --authorId <id>` to inspect the full book.
 
 > The old `--instId`, `--instCcy`, and `--dataVersion` flags are removed.
 
@@ -99,7 +101,7 @@ Aggregates signals over a hand-picked set of traders. Use this when the caller a
 |---|---|---|---|
 | `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
 | `--topInstruments` | No | `20` | Top-N hottest instruments held by the group. Mutually exclusive with `--instCcyList`. |
-| `--instCcyList` | No | - | Comma-separated base ccys. Mutually exclusive with `--topInstruments`. |
+| `--instCcyList` | No | - | Comma-separated base ccys. Mutually exclusive with `--topInstruments`. **Linear-only** — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions held by the trader set are NOT included; cross-check with `trader-positions` if a trader's known coin-margined exposure is missing. |
 | `--sortBy` | Yes | `pnl` | Ranking key for the trader set: `pnl` or `pnlRatio` |
 | `--period` | Yes | `7` | Lookback window in days for capability metrics (`winRate.avgLongWinRate` / `avgShortWinRate`). Pass `3` / `7` / `30` / `90`. |
 
@@ -121,7 +123,7 @@ Historical single-coin signal snapshots across hourly/daily buckets, anchored at
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--instCcy` | Yes | - | Base currency to scope the time-series, e.g. `BTC` |
+| `--instCcy` | Yes | - | Base currency to scope the time-series, e.g. `BTC`. **Linear-only** (USDT/USDS-margined); coin-margined contracts excluded. |
 | `--asOfTime` | No | (current UTC hour) | 10-digit UTC anchor `yyyyMMddHH` (e.g. `2026050100`) |
 | `--granularity` | No | `1h` | Bucket size: `1h` or `1d` |
 | `--limit` | No | `24` | Number of buckets (1–500) ending at `asOfTime` |
@@ -161,7 +163,7 @@ Time-series of a single coin's smart-money signal aggregated over a hand-picked 
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
-| `--instCcy` | Yes | - | Base currency to scope the time-series, e.g. `BTC` |
+| `--instCcy` | Yes | - | Base currency to scope the time-series, e.g. `BTC`. **Linear-only** (USDT/USDS-margined); a trader's coin-margined positions on this base ccy are silently excluded. |
 | `--asOfTime` | No | (current UTC hour) | 10-digit UTC anchor `yyyyMMddHH` |
 | `--granularity` | Yes | `1h` | `1h` or `1d` |
 | `--limit` | No | `24` | Bucket count (1–500) |

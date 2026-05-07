@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 文档 —— `smartmoney` 信号工具：明确仅覆盖 USDT/USDS 本位（SIG-01）
+
+`signal-*` 工具及 skill 文档明确 `instCcyList` / `instCcy` **只聚合 USDT/USDS 本位合约**——币本位（`-USD-SWAP` / `-USD-DELIVERY`）仓位被上游静默剔除。无行为变更。
+
 ### Changed —— `smartmoney` schema：`sortBy` / `period` / `granularity` 改为必填
 
 - 所有 leaderboard 和 signal 系列工具将 `sortBy` 和 `period` 标为 `required`；`signal-trend-*` 额外要求 `granularity`。修复原本依赖后端兜底导致的不一致（例如文档写 `period=90`，实际后端返回累计至今）。

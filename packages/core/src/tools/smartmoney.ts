@@ -464,12 +464,12 @@ const SIGNAL_ITEM_PROPS = {
       smartMoneyLongAvgEntry: {
         type: "string",
         description:
-          "Long-side notional-weighted average entry price (USDT). NULL when no long. " +
+          "Long-side notional-weighted average entry price (USDT). Empty string `\"\"` when no long. " +
           "Compare to current price to judge whether following the longs is cheap/expensive now.",
       },
       smartMoneyShortAvgEntry: {
         type: "string",
-        description: "Short-side notional-weighted average entry price (USDT). NULL when no short.",
+        description: "Short-side notional-weighted average entry price (USDT). Empty string `\"\"` when no short.",
       },
     },
   },
@@ -1194,6 +1194,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Multi-asset smart-money consensus signals (long/short ratio, weighted entry, capital flow, deltas vs 1h/24h/7d), " +
         "aggregated over a tier-filtered trader pool (PnL / win-rate / drawdown / AUM). " +
         "Pick instruments via `topInstruments` OR `instCcyList` — exactly one. Snapshot time auto-resolved to current hour. " +
+        "**Linear (USDT/USDS-margined) contracts only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are excluded by upstream and silently omitted from the aggregation.** " +
         "Use when: latest cross-asset consensus from a criteria-defined pool. " +
         "See also: `smartmoney_get_signal_overview_by_trader` (restrict pool to specific traders), `smartmoney_get_signal_trend_by_filter` (time-series instead of latest snapshot).",
       isWrite: false,
@@ -1220,7 +1221,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             minItems: 1,
             description:
               "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
-              "Mutually exclusive with `topInstruments`.",
+              "Mutually exclusive with `topInstruments`. " +
+              "Scope: only USDT-margined and USDS-margined (linear) instruments — e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`. " +
+              "Coin-margined contracts (`BTC-USD-SWAP`, `BTC-USD-DELIVERY`) are NOT included; positions a trader holds in those instruments are silently dropped from the aggregation.",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
           lmtNum: {
@@ -1268,6 +1271,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Multi-asset smart-money signals aggregated over a hand-picked set of traders (`authorIds`). " +
         "Pick instruments via `topInstruments` OR `instCcyList`. " +
         "Capability tier filters (pnlTier / winRateTier / etc.) not exposed — backend uses defaults for direct-lookup scenarios. " +
+        "**Linear (USDT/USDS-margined) contracts only — a trader's coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are silently excluded from the aggregation, even when those positions are large.** Use `smartmoney_get_trader_positions` if the full position book is needed. " +
         "Use when: caller already knows which traders to follow and wants their cross-asset consensus at the latest hour. " +
         "See also: `smartmoney_get_signal_overview_by_filter` (criteria-defined pool), `smartmoney_get_signal_trend_by_trader` (time-series), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds).",
       isWrite: false,
@@ -1301,7 +1305,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             minItems: 1,
             description:
               "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
-              "Mutually exclusive with `topInstruments`.",
+              "Mutually exclusive with `topInstruments`. " +
+              "Scope: only USDT-margined and USDS-margined (linear) instruments — e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`. " +
+              "Coin-margined contracts (`BTC-USD-SWAP`, `BTC-USD-DELIVERY`) are NOT included; the trader's positions in those instruments are silently dropped.",
           },
           sortBy: {
             type: "string",
@@ -1365,6 +1371,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Time-series of single-asset smart-money signal across hourly/daily buckets, aggregated over a tier-filtered trader pool. " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
+        "**Linear (USDT/USDS-margined) contracts only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are excluded by upstream and silently omitted.** " +
         "Use when: tracking how long/short conviction and capital evolve over time (smart money adding exposure or retreating). " +
         "See also: `smartmoney_get_signal_overview_by_filter` (latest snapshot only), `smartmoney_get_signal_trend_by_trader` (restrict to specific traders). " +
         "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
@@ -1380,7 +1387,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           instCcy: {
             type: "string",
             description:
-              "Base currency to scope the time-series, e.g. \"BTC\". Required.",
+              "Base currency to scope the time-series, e.g. \"BTC\". Required. " +
+              "Scope: USDT-margined and USDS-margined (linear) instruments only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are NOT included.",
           },
           asOfTime: {
             type: "string",
@@ -1451,6 +1459,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Time-series of single-asset smart-money signal aggregated over a hand-picked set of traders (`authorIds`). " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
         "Capability tier filters (pnlTier / winRateTier / etc.) not exposed — backend uses defaults for direct-lookup scenarios. " +
+        "**Linear (USDT/USDS-margined) contracts only — a trader's coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions on the requested base ccy are silently excluded from each bucket.** Use `smartmoney_get_trader_positions` to inspect the full position book. " +
         "Use when: tracking how a specific group of traders has evolved their long/short consensus over time on one coin. " +
         "See also: `smartmoney_get_signal_trend_by_filter` (criteria-defined pool), `smartmoney_get_signal_overview_by_trader` (latest snapshot only), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds). " +
         "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
@@ -1473,7 +1482,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           instCcy: {
             type: "string",
             description:
-              "Base currency to scope the time-series, e.g. \"BTC\". Required.",
+              "Base currency to scope the time-series, e.g. \"BTC\". Required. " +
+              "Scope: USDT-margined and USDS-margined (linear) instruments only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions held by the trader set are NOT included.",
           },
           asOfTime: {
             type: "string",

@@ -119,6 +119,8 @@ okx --profile live smartmoney signal-overview-by-filter --instCcyList BTC,ETH,SO
 
 `signal-overview-by-filter` accepts `--topInstruments` OR `--instCcyList` (mutually exclusive). Default is `--topInstruments=20` when neither is given. Snapshot is always the **current hour** — no `--ts` / `--dataVersion`. For a historical comparison call `signal-trend-by-filter` per instrument with the desired `--asOfTime` anchor and `--limit` bucket count.
 
+> **⚠ Linear-only scope**: Aggregations include USDT-margined and USDS-margined instruments only (e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`). Coin-margined contracts (`BTC-USD-SWAP`, `BTC-USD-DELIVERY`, …) are excluded — a trader's coin-margined exposure is silently dropped from the signal, which can materially understate institutional / coin-margined whales on majors like BTC and ETH. If the user asks why a trader with a known large BTC position does not show up under `--instCcyList BTC`, suspect coin-margined and verify with `trader-positions`.
+
 Table columns to surface: `ccy`, `tradersWithPosition`, `longShortRatio.longRatio`, `longShortRatio.weightedLongRatio`, `notional.netNotionalUsdt`, `longShortRatio.longRatioVs1h` / `longRatioVs24h` / `longRatioVs7d`, `notional.smartMoneyLongAvgEntry`, `notional.smartMoneyShortAvgEntry`, `notional.totalNotionalVs24h`.
 
 ---

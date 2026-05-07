@@ -105,6 +105,8 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 
 > **Multi-coin selection**: `signal-overview-by-filter` and `signal-overview-by-trader` accept `--topInstruments` (top-N hottest) **or** `--instCcyList BTC,ETH,SOL` (explicit base ccy list). The two flags are mutually exclusive. Passing neither defaults to `--topInstruments=20`.
 
+> **⚠ Linear-only scope**: All four `signal-*` commands aggregate **USDT-margined and USDS-margined contracts only**. Coin-margined contracts (`BTC-USD-SWAP`, `BTC-USD-DELIVERY`, `ETH-USD-SWAP`, …) are excluded by upstream — a trader's coin-margined positions are silently dropped from `longNotional` / `shortNotional` / `tradersWithPosition`. If a trader holds large coin-margined exposure but no linear position on that coin, they will not appear in the signal at all. To see a trader's full position book including coin-margined, run `smartmoney trader-positions --authorId <id>`.
+
 > **Need a trader's full picture?** The old `smartmoney trader` composite command is removed. Run `performance-by-trader`, `trader-positions`, and `trader-orders-history` in parallel.
 
 For full command syntax and parameters, read `{baseDir}/references/trader-commands.md` and `{baseDir}/references/signal-commands.md`.

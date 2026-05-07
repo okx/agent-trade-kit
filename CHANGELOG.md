@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs — `smartmoney` signal tools: clarify linear-only scope (SIG-01)
+
+`signal-*` tools and skill docs now state that `instCcyList` / `instCcy` aggregate **USDT/USDS-margined contracts only** — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are silently excluded by upstream. No behavior change.
+
 ### Changed — `smartmoney` schema: `sortBy` / `period` / `granularity` now required
 
 - All leaderboard + signal tools mark `sortBy` and `period` as `required`; `signal-trend-*` also requires `granularity`. Fixes silent reliance on backend defaults (e.g. `period` documented as `90` but actually returning lifetime cumulative).
