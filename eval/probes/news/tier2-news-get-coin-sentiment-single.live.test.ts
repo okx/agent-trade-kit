@@ -4,7 +4,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_NEWS_002';
-const USER_PROMPT = `Use the OKX CLI news_get_coin_sentiment tool to get the current bullish/bearish sentiment for BTC over the last 24 hours. Report the sentiment label (bullish/bearish/neutral/mixed), bullish ratio, and total mention count. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI news_get_coin_sentiment tool to get the current bullish/bearish sentiment for BTC over the last 24 hours. Report the sentiment label (bullish/bearish/neutral/mixed), bullish ratio, and total mention count. Constraints: do NOT start an OAuth login flow, do NOT prompt the user with auth menus, do NOT ask for credentials. If the tool fails or auth is unavailable, briefly note the failure in one short paragraph and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.news-get-coin-sentiment-single', () => {
   const models = getModels();
