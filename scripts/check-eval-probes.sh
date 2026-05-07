@@ -2,6 +2,34 @@
 # scripts/check-eval-probes.sh
 # Static check: every new/modified MCP tool file must have a corresponding probe.
 # Run in CI on merge_request_event. Exits non-zero if any probes are missing.
+#
+# Tool-file → probe-dir mapping (case statement below) assumes the existing
+# packages/core/src/tools/ naming convention:
+#   packages/core/src/tools/<basename>.ts   → eval/probes/<probe_path>/
+#
+# Convention table (kept in sync with the case statement):
+#   market.ts, market-filter.ts             → market/
+#   spot-trade.ts                           → spot/
+#   swap-trade.ts                           → swap/
+#   futures-trade.ts, algo-trade.ts         → futures/
+#   option-trade.ts, option-algo-trade.ts   → option/
+#   account.ts, account-*.ts                → account/
+#   event-trade.ts, event-helpers.ts        → event/
+#   news*.ts, sentiment*.ts                 → news/
+#   smartmoney*.ts                          → smartmoney/
+#   skills*.ts, skill-mp*.ts                → skills/
+#   bot-grid*.ts, grid-trade*.ts            → bot/grid/
+#   bot-dca*.ts, dca-trade*.ts              → bot/dca/
+#   earn-savings*.ts, savings*.ts           → earn/savings/
+#   earn-onchain*.ts, onchain-earn*.ts      → earn/onchain/
+#   earn-dcd*.ts, dcd*.ts, dual-currency*.ts → earn/dcd/
+#   earn-flash*.ts, flash-earn*.ts          → earn/flash/
+#   earn-autoearn*.ts, autoearn*.ts         → earn/autoearn/
+#   indicator*.ts, audit*.ts                → (no probe required)
+#
+# If a new tool file lands with an unmapped basename, the script falls into
+# the `UNMAPPED` branch and fails CI with the file path so the maintainer
+# adds a case here. Don't silently route to "" — that hides probe gaps.
 set -euo pipefail
 
 BASE="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-origin/master}"

@@ -8,10 +8,21 @@ import {
   findToolCall, summarizeToolCalls,
 } from '@eval/shared/eval-helpers.js';
 
+// NOTE: instrument id BTC-USD-YYMMDD is a quarterly delivery contract that
+// expires every ~3 months. We let the agent pick any active BTC-USD-YYMMDD
+// contract (regex `BTC-USD-\d{6}`); pattern matches the prefix so the probe
+// stays valid across roll-forwards. If you need to test a specific expiry,
+// override EXPECTED_COMMAND_PATTERNS in your run.
 const PROBE_ID = 'tier2.futures-place-order';
-const USER_PROMPT = 'Place a limit buy order for 1 contract of BTC-USD-250926 quarterly futures at price 1 in demo/dry-run mode. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "futures", "place", "BTC-USD-250926", "buy"]];
-const EXPECTATION = 'okx futures place BTC-USD-250926 buy';
+const USER_PROMPT =
+  'Place a limit buy order for 1 contract of a near-month BTC-USD quarterly futures contract ' +
+  '(BTC-USD-YYMMDD format) at price 1 in demo/dry-run mode. ' +
+  'Skip any auth check — assume credentials are configured. ' +
+  'Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [
+  ["okx", "futures", "place", "BTC-USD-", "buy"],
+];
+const EXPECTATION = 'okx futures place BTC-USD-<expiry> buy';
 
 describe(PROBE_ID, () => {
   const models = getModels();

@@ -14,6 +14,10 @@ const PROBE_ID = 'tier2.news-get-coin-sentiment-single';
 const USER_PROMPT =
   'Get the current bullish/bearish sentiment for BTC over the last 24 hours. ' +
   'Report the sentiment label, bullish ratio, and total mention count.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [
+  ['okx', 'news', 'coin-sentiment', 'BTC'],
+];
+const EXPECTATION = 'okx news coin-sentiment with --coins BTC';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -32,19 +36,14 @@ describe(PROBE_ID, () => {
           // Show every tool call the agent made — primary debugging surface.
           evidence.tool_calls = summarizeToolCalls(trace);
           evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
 
-          // Assert: agent invoked `okx news coin-sentiment` with --coins BTC.
-          // The 24h period is the CLI's default but we accept either omitted
-          // or explicitly set as "24h"/"1d".
-          const call = findToolCall(trace, {
-            commandIncludesAll: ['okx news', 'coin-sentiment', 'BTC'],
-          });
+          // Use commandPatterns (OR-of-AND) like all other probes.
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
 
           if (!call) {
             status = 'fail';
-            failure_reason =
-              `agent never invoked 'okx news coin-sentiment' for BTC. ` +
-              `tool_calls=${JSON.stringify(evidence.tool_calls)}`;
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
             evidence.matched_call = { name: call.name, command: call.input.command };
             status = 'pass';

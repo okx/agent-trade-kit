@@ -31,6 +31,20 @@ eval/probes/
 
 **Rule**: one probe file per MCP tool. Filename = `tier2-<tool_name>.live.test.ts`.
 
+### Module coverage status
+
+The 17 modules in [`docs/module-registry.md`](../docs/module-registry.md) are
+not all probed yet. Current state on `feat/eval-probes-comprehensive`:
+
+| Status | Modules |
+|--------|---------|
+| ✅ Probed | market, spot, swap, futures, option, account, event, news, smartmoney, skills, bot.grid, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.flash |
+| ⏳ Deferred | `earn.autoearn` (placeholder dir only — no probes yet), `earn.fixed` (no dir yet) |
+
+When adding a probe for a deferred module, drop the `.gitkeep` placeholder
+and write `tier2-<tool_name>.live.test.ts`. CI gate `eval-probe-check` will
+start enforcing the new module once tools under it land.
+
 ## How It Works
 
 When the eval runner builds a container for a branch:

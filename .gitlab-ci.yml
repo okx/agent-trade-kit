@@ -5,6 +5,11 @@ stages:
   - test
   - integration
   - quality
+  # `eval` is reserved for the idea-agent eval runner that invokes vitest live
+  # tests against an LLM gateway. Currently no jobs run in this stage from
+  # this repo — eval is triggered externally via the idea-agent dashboard,
+  # which clones the MR branch and runs eval/probes/**/*.live.test.ts in a
+  # Docker container. The static `eval-probe-check` job lives in `test` stage.
   - eval
 
 # ── shared setup ──────────────────────────────────────────────────────────────
