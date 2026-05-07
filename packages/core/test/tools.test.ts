@@ -5422,6 +5422,12 @@ describe("smartmoney_get_traders_by_filter", () => {
     assert.equal(params.before, "200");
   });
 
+  it("applies schema default (period=90) explicitly upstream when caller omits it", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()!.params.period, "90", "period must default to 90, not depend on backend");
+  });
+
   it("returns pagination metadata", async () => {
     const { client } = makeMockClientWithData({
       "/api/v5/orbit/public/leaderboard": [
@@ -5481,6 +5487,12 @@ describe("smartmoney_get_performance_by_trader", () => {
     // Public API takes string[]; handler joins to CSV for upstream.
     assert.equal(getLastCall()?.params.authorIds, "1001,1002");
     assert.equal(getLastCall()?.params.period, "30");
+  });
+
+  it("applies schema default (period=90) explicitly upstream when caller omits it", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorIds: ["1001"] }, makeContext(client));
+    assert.equal(getLastCall()?.params.period, "90", "period must default to 90, not depend on backend");
   });
 
   it("rejects authorIds as a comma-separated string (must be array)", async () => {

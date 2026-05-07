@@ -162,6 +162,8 @@ function readPoolFilters(args: Record<string, unknown>): Record<string, unknown>
     const val = readString(args, publicKey);
     if (val !== undefined && val !== "") result[upstreamKey] = val;
   }
+  // Apply schema default for `period` explicitly so MCP behavior does not depend on upstream defaults.
+  if (result.period === undefined) result.period = "90";
   return result;
 }
 
@@ -671,7 +673,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           PATH_LEADERBOARD,
           compactObject({
             authorIds,
-            period: readString(args, "period"),
+            // Apply schema default explicitly so MCP behavior does not depend on upstream defaults.
+            period: readString(args, "period") ?? "90",
           }),
           publicRateLimit("smartmoney_get_performance_by_trader", SMARTMONEY_RPS),
         );
