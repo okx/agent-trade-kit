@@ -618,13 +618,13 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           after: {
             type: "string",
             description:
-              "Cursor for paginating backwards (older page). Pass the `authorId` of the last item from the previous page verbatim as a quoted string (NOT a number). " +
+              "Pagination cursor (older page) — pass the `authorId` of the last item from the previous page as a string, e.g. `\"872913470357110787\"`. " +
               "Cursor anchors on `authorId` while preserving the current `sortBy` order.",
           },
           before: {
             type: "string",
             description:
-              "Cursor for paginating forwards (newer page). Pass the `authorId` of the first item from the previous page verbatim as a quoted string. " +
+              "Pagination cursor (newer page) — pass the `authorId` of the first item from the previous page as a string, e.g. `\"872913470357110787\"`. " +
               "Cursor anchors on `authorId` while preserving the current `sortBy` order.",
           },
           limit: {
@@ -953,11 +953,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Cursor: returns positions with `posId` smaller than this value (older — paginate backwards). Pass as quoted string (the `posId` value verbatim, NOT a number — `posId` is a 19-digit ID and number coercion can lose precision).",
+            description: "Pagination cursor (older) — returns positions with `posId` smaller than this value. Pass the `posId` as a string, e.g. `\"872913470357110787\"`.",
           },
           before: {
             type: "string",
-            description: "Cursor: returns positions with `posId` greater than this value (newer — paginate forwards). Pass as quoted string.",
+            description: "Pagination cursor (newer) — returns positions with `posId` greater than this value. Pass the `posId` as a string, e.g. `\"872913470357110787\"`.",
           },
           limit: {
             type: "integer",
@@ -1081,11 +1081,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           },
           after: {
             type: "string",
-            description: "Cursor: returns trades with `ordId` smaller than this value (older — paginate backwards). Pass as quoted string (the `ordId` value verbatim, NOT a number — `ordId` is a 19-digit ID and number coercion can lose precision).",
+            description: "Pagination cursor (older) — returns trades with `ordId` smaller than this value. Pass the `ordId` as a string, e.g. `\"872913470357110787\"`.",
           },
           before: {
             type: "string",
-            description: "Cursor: returns trades with `ordId` greater than this value (newer — paginate forwards). Pass as quoted string.",
+            description: "Pagination cursor (newer) — returns trades with `ordId` greater than this value. Pass the `ordId` as a string, e.g. `\"872913470357110787\"`.",
           },
           limit: {
             type: "integer",

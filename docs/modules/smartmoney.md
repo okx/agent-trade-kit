@@ -93,6 +93,16 @@ Two **disjoint** parameter conventions, separated by endpoint family:
 - **Trader leaderboard input**: `updateTime` (snapshot key in `yyyyMMddHHmm` UTC+8). Omit for the latest snapshot.
 - **Output**: response envelope carries `dataVersion` — for trend tools (signal-history), this is `yyyyMMddHH` (10 digits); for overview/leaderboard it remains `yyyyMMddHHmm`.
 
+### Notional pricing
+
+All `notional.*` fields (`longNotionalUsdt` / `shortNotionalUsdt` / `netNotionalUsdt` / `totalNotionalUsdt`) and `weightedLongRatio` / `weightedShortRatio` are weighted by each trader's **entry price (`price_avg`)**, NOT mark price. Backend formula: `notionalFactor = ABS(pos_qty) * COALESCE(contract_val, 1) * COALESCE(price_avg, 0)` — SelectDB does not store mark price.
+
+Implications for AI agents:
+
+- These values move only when positions are scaled (open / close / add) — they stay constant across hourly buckets when traders hold positions unchanged.
+- A flat trend across buckets means smart money held steady; it does NOT mean underlying price was flat.
+- For real-time price comparison, fetch market price (`okx market ticker` / `okx market candles`) in parallel and compare against `notional.smartMoneyLongAvgEntry` / `smartMoneyShortAvgEntry`.
+
 ### Composite tool removed
 
 The legacy `smartmoney_get_trader_detail` (3-API composite) is removed. To get a trader's full picture, fire `performance-by-trader`, `trader-positions`, and `trader-orders-history` in parallel — finer rate-limit control and explicit per-slice pagination.
@@ -221,6 +231,16 @@ smartmoney_get_signal_trend_by_trader    ← 单币时间序列、authorIds
 - **Trend 工具入参**（`signal_trend_by_filter` / `signal_trend_by_trader`）：可选 `asOfTime`（10 位 `yyyyMMddHH` UTC 锚点，缺省 = 当前整点）。`limit` 控制返回多少根 K（截止该锚点向前）。
 - **Trader 排行榜入参**：`updateTime`（`yyyyMMddHHmm` UTC+8 快照键）。省略 = 最新快照。
 - **出参**：trend 工具（signal-history）返回 `dataVersion` 为 `yyyyMMddHH`（10 位）；overview / 排行榜仍为 `yyyyMMddHHmm`。
+
+### Notional 加权口径
+
+所有 `notional.*` 字段（`longNotionalUsdt` / `shortNotionalUsdt` / `netNotionalUsdt` / `totalNotionalUsdt`）和 `weightedLongRatio` / `weightedShortRatio` 均**按交易员入场均价（`price_avg`）加权**，不使用标记价格。后端公式：`notionalFactor = ABS(pos_qty) * COALESCE(contract_val, 1) * COALESCE(price_avg, 0)`——SelectDB 库内不存储 mark price。
+
+对 AI agent 的影响：
+
+- 仅在加仓 / 减仓 / 平仓时变化，与标的实时价格无关——交易员持仓不动则该值在小时桶间恒定。
+- 跨桶平稳 = 聪明钱按兵不动，**不代表标的价格平稳**。
+- 需要实时价格对比时，并发拉取 `okx market ticker` / `okx market candles`，与 `notional.smartMoneyLongAvgEntry` / `smartMoneyShortAvgEntry` 比对。
 
 ### 复合工具已删除
 

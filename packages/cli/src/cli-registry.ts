@@ -887,7 +887,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "performance-by-trader": {
         toolName: "smartmoney_get_performance_by_trader",
-        usage: "okx smartmoney performance-by-trader --authorIds <id1,id2> [--period <3|7|30|90, default 7>] [--json]",
+        usage: "okx smartmoney performance-by-trader --authorIds <id1,id2> [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 90>] [--json]",
         description: "PnL / win-rate / drawdown profile for one or more traders by authorIds",
       },
       "trader-positions": {
@@ -917,7 +917,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "signal-overview-by-trader": {
         toolName: "smartmoney_get_signal_overview_by_trader",
-        usage: "okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n, default 20> | --instCcyList <BTC,ETH,...>] [--json]",
+        usage: "okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n, default 20> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 7>] [--json]",
         description: "Multi-asset smart-money signal aggregated over a hand-picked set of traders (authorIds-direct-lookup; pool filters not exposed)",
       },
       "signal-trend-by-filter": {
@@ -927,7 +927,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "signal-trend-by-trader": {
         toolName: "smartmoney_get_signal_trend_by_trader",
-        usage: "okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH UTC>] [--granularity <1h|1d, default 1h>] [--limit <n, default 24>] [--json]",
+        usage: "okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH UTC>] [--granularity <1h|1d, default 1h>] [--limit <n, default 24>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90, default 7>] [--json]",
         description: "Single-coin smart-money signal time-series aggregated over a hand-picked set of traders (authorIds-direct-lookup; pool filters not exposed)",
       },
     },
