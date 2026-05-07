@@ -1,6 +1,6 @@
 ---
 name: okx-mcp-release
-description: 构建 CLI / Local MCP / Remote MCP 三方工具集对齐与 ai-mcp-server 发布闭环。当用户运行 `/okx_mcp_release pre` 或 `/okx_mcp_release prod`，或说"同步 mcp 到 pre/prod"、"发布 mcp 工具"时触发。
+description: 构建 CLI / Local MCP / Remote MCP 三方工具集对齐与 ai-mcp-server 发布闭环。当用户运行 `/okx-mcp-release pre` 或 `/okx-mcp-release prod`，或说"同步 mcp 到 pre/prod"、"发布 mcp 工具"时触发。
 ---
 
 # okx-mcp-release Skill
@@ -8,8 +8,7 @@ description: 构建 CLI / Local MCP / Remote MCP 三方工具集对齐与 ai-mcp
 Orchestrates a six-phase release pipeline that aligns the OKX trade-kit CLI, Local MCP,
 and Remote MCP tool surfaces, then opens a draft MR on `ai-mcp-server` if Remote drifts.
 
-**Trigger:** `/okx_mcp_release pre` or `/okx_mcp_release prod`. The slash command is a
-thin shell that hands off here.
+**Trigger:** `/okx-mcp-release pre` or `/okx-mcp-release prod`.
 
 **Spec:** `docs/superpowers/specs/2026-05-07-okx-mcp-release-design.md`
 
