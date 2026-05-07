@@ -5,6 +5,12 @@ stages:
   - test
   - integration
   - quality
+  # `eval` is reserved for the idea-agent eval runner that invokes vitest live
+  # tests against an LLM gateway. Currently no jobs run in this stage from
+  # this repo — eval is triggered externally via the idea-agent dashboard,
+  # which clones the MR branch and runs eval/probes/**/*.live.test.ts in a
+  # Docker container. The static `eval-probe-check` job lives in `test` stage.
+  - eval
 
 # ── shared setup ──────────────────────────────────────────────────────────────
 
@@ -51,6 +57,18 @@ sonar:
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ── eval probe presence check (MR only, no LLM needed) ──────────────────────
+
+eval-probe-check:
+  stage: test
+  image: alpine/git:latest
+  script:
+    - apk add --no-cache bash
+    - bash scripts/check-eval-probes.sh
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  allow_failure: false
 
 # ── smoke test (demo API, master only) ───────────────────────────────────────
 
