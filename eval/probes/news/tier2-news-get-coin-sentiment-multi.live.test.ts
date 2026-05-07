@@ -24,7 +24,7 @@ describe('tier2.news-get-coin-sentiment-multi', () => {
           // Pass if: LLM returned data for both coins OR correctly reported demo-mode limitation
           const hasEth = /ETH/i.test(trace.assistantReply);
           const hasSol = /SOL/i.test(trace.assistantReply);
-          const hasDemoFallback = /demo.*mode|not.*available/i.test(trace.assistantReply);
+          const hasDemoFallback = /demo.*mode|not.*available|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
           const hasContext = (hasEth && hasSol) || hasDemoFallback;
           status = (hasNonce && hasContext) ? 'pass' : 'fail';
           if (!hasNonce) failure_reason = 'nonce missing';

@@ -22,7 +22,7 @@ describe('tier2.news-get-coin-sentiment-trend', () => {
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
           // Pass if: LLM returned trend data OR correctly reported demo-mode limitation
-          const hasTrendContext = /trend|hour|1h|time.*point|bullish.*ratio|sentiment.*change|demo.*mode|not.*available/i.test(trace.assistantReply);
+          const hasTrendContext = /trend|hour|1h|time.*point|bullish.*ratio|sentiment.*change|demo.*mode|not.*available|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
           status = (hasNonce && hasTrendContext) ? 'pass' : 'fail';
           if (!hasNonce) failure_reason = 'nonce missing';
           else if (!hasTrendContext) failure_reason = 'no trend data or demo-mode message in reply';

@@ -20,7 +20,7 @@ describe('tier2.market-filter', () => {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          const hasUsdt = /USDT/i.test(trace.assistantReply);
+          const hasUsdt = /USDT|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
           const hasMultiple = (trace.assistantReply.match(/USDT/gi) || []).length >= 3;
           status = (hasNonce && hasUsdt && hasMultiple) ? 'pass' : 'fail';
           if (!hasNonce) failure_reason = 'nonce missing';

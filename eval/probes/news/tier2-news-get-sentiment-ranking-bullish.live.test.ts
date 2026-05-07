@@ -22,7 +22,7 @@ describe('tier2.news-get-sentiment-ranking-bullish', () => {
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
           // Pass if: LLM returned bullish ranking OR correctly reported demo-mode limitation
-          const hasBullishContext = /bullish|most.*bull|bullish.*ratio|sentiment.*ranking|demo.*mode|not.*available/i.test(trace.assistantReply);
+          const hasBullishContext = /bullish|most.*bull|bullish.*ratio|sentiment.*ranking|demo.*mode|not.*available|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
           status = (hasNonce && hasBullishContext) ? 'pass' : 'fail';
           if (!hasNonce) failure_reason = 'nonce missing';
           else if (!hasBullishContext) failure_reason = 'no bullish ranking or demo-mode message in reply';

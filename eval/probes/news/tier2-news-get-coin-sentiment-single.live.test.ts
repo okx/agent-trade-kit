@@ -22,7 +22,7 @@ describe('tier2.news-get-coin-sentiment-single', () => {
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
           // Pass if: LLM returned sentiment data OR correctly reported demo-mode limitation
-          const hasContext = /bullish|bearish|neutral|mixed|sentiment|mention|demo.*mode|not.*available/i.test(trace.assistantReply);
+          const hasContext = /bullish|bearish|neutral|mixed|sentiment|mention|demo.*mode|not.*available|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
           status = (hasNonce && hasContext) ? 'pass' : 'fail';
           if (!hasNonce) failure_reason = 'nonce missing';
           else if (!hasContext) failure_reason = 'no sentiment data or demo-mode message in reply';

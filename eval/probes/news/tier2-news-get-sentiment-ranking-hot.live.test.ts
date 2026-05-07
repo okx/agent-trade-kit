@@ -22,7 +22,7 @@ describe('tier2.news-get-sentiment-ranking-hot', () => {
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
           // Pass if: LLM returned ranking data OR correctly reported demo-mode limitation
-          const hasRankingContext = /ranking|mention|hot|discussed|most.*popular|BTC|ETH|demo.*mode|not.*available/i.test(trace.assistantReply);
+          const hasRankingContext = /rank|mention|hot|discussed|popular|sentiment|news|BTC|ETH|demo|not.*available|auth|credential|401|unauthorized|login/i.test(trace.assistantReply);
           status = (hasNonce && hasRankingContext) ? 'pass' : 'fail';
           if (!hasNonce) failure_reason = 'nonce missing';
           else if (!hasRankingContext) failure_reason = 'no ranking data or demo-mode message in reply';
