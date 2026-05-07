@@ -1,4 +1,4 @@
-<!-- triggers: error, rate-limit, OkxMcpError, ConfigError, ValidationError, NetworkError, OkxApiError, AuthenticationError, RateLimitError, retry, code, token bucket, error handling -->
+<!-- triggers: error, rate-limit, OkxMcpError, ConfigError, ValidationError, NetworkError, OkxApiError, AuthenticationError, RateLimitError, retry, code, token bucket, error handling, REMEDIATION_WARNING, WRITE_ACTION_PATTERN, write-action, remediation, applyRemediationWarning -->
 # Error Handling & Rate Limiting
 
 ## Error Type Hierarchy
@@ -50,6 +50,29 @@ When a tool handler throws, the MCP server catches the error and serializes it v
 ```
 
 This ensures the AI model receives structured error info rather than a raw exception stack trace. The model can use `type` to categorize the error and `suggestion` to decide next steps.
+
+## Write-Action Remediation Warning (MR !229)
+
+When an `OkxApiError` message matches `WRITE_ACTION_PATTERN` (defined in `packages/mcp/src/server.ts`), the MCP server appends `REMEDIATION_WARNING` to the `suggestion` field before sending the error response.
+
+```typescript
+// WRITE_ACTION_PATTERN — matches messages suggesting write operations as remediation
+const WRITE_ACTION_PATTERN = /\b(cancel|close|stop|transfer|withdraw|redeem)\b.*\b(orders?|positions?|bots?|strateg|before|first)\b/i;
+
+// REMEDIATION_WARNING — injected into suggestion when pattern matches
+const REMEDIATION_WARNING =
+  "⚠ The error message suggests a remediation that involves write operations " +
+  "(cancel/close/stop). Do NOT execute those automatically. " +
+  "Use read-only tools to diagnose first, then ask the user for confirmation.";
+```
+
+**Why**: OKX API errors for leverage/mode changes include messages like "Cancel cross-margin TP/SL orders before adjusting leverage" as their suggested action. Without the warning, an agent following the suggestion verbatim would automatically cancel orders — a destructive write operation — without user confirmation.
+
+**Injection path**: `tool.handler throws OkxApiError` → `errorResult()` → `toToolErrorPayload()` → `applyRemediationWarning(payload.suggestion, payload.message)` → `suggestion` field in MCP response.
+
+**Integration test**: `packages/mcp/test/errorresult-integration.test.ts` — `describe("errorResult integration")` — uses `node:test mock.module()` to stub `buildTools` from `@agent-tradekit/core`, then drives a real tool call and asserts that `result.isError === true`, `payload.suggestion` contains `REMEDIATION_WARNING`, and `payload.message` contains the original error text. This test guards against regressions in `toToolErrorPayload`'s return shape — a rename of the `message` field would break injection silently, but this test catches it.
+
+**Shape-change guard**: The unit tests in `describe("applyRemediationWarning")` verify the helper in isolation. Only the integration test verifies the full pipeline including `toToolErrorPayload`.
 
 ## Local Rate Limiter (Token Bucket)
 

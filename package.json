@@ -13,7 +13,7 @@
     "test:unit": "pnpm --filter @agent-tradekit/core test:unit && pnpm --filter @okx_ai/okx-trade-cli test:unit && pnpm --filter @okx_ai/okx-trade-mcp test:unit",
     "test:coverage": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
     "test": "c8 --reporter=lcov --reporter=text --src=packages/core/src --src=packages/cli/src node_modules/.bin/tsx --test packages/core/test/*.test.ts packages/cli/test/*.test.ts packages/mcp/test/*.test.ts",
-    "pretest": "npm run build -w packages/core"
+    "pretest": "npm run build -w packages/core && npm run build -w packages/cli"
   },
   "engines": {
     "node": ">=18",
