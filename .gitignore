@@ -24,3 +24,5 @@ aTempFiles/
 memory/
 .claude/worktrees/
 .tmp/
+__pycache__/
+*.pyc
