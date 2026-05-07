@@ -161,7 +161,7 @@ pnpm test:unit  # must pass
 
 If you added or modified an MCP tool, also verify:
 - `eval/probes/<module>/tier2-<tool_name>.live.test.ts` exists
-- Probe uses `@eval/shared/eval-helpers.js` import and `EVAL_NONCE` pattern
+- Probe uses `@eval/shared/eval-helpers.js` import and the **trace-based** assertion pattern (`findToolCall(trace, { commandPatterns })`)
 - See [`eval/README.md`](eval/README.md) for full requirements
 
 ### PR Description

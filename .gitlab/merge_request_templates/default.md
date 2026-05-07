@@ -28,7 +28,7 @@
 
 ### Eval Probe (required for every new/modified MCP tool)
 - [ ] Added probe file at `eval/probes/<module>/tier2-<tool-name>.live.test.ts`
-- [ ] Probe uses `EVAL_NONCE` pattern to prevent hallucinated responses
+- [ ] Probe uses trace-based assertion: `findToolCall(trace, { commandPatterns })` to verify the agent invoked the expected `okx <module> <subcommand>` with the right parameters
 - [ ] Probe imports from `@eval/shared/eval-helpers.js`
 - [ ] Probe runs safely with `OKX_ENV=demo` / `OKX_DRY_RUN=1`
 
