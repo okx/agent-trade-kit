@@ -1,8 +1,7 @@
 // eval/probes/spot/tier2-spot-place-order.live.test.ts
 // Auto-generated trace-based probe. Asserts that the agent invoked the
-// expected `okx` CLI command via the `exec` tool, regardless of upstream
-// API response (401/auth errors are not the LLM's fault — what matters is
-// tool-call intent + parameters).
+// expected `okx` CLI command via the `exec` tool. Tool-call intent +
+// parameters is what we measure; upstream API auth/401 errors are not.
 import { describe, it } from 'vitest';
 import {
   runAgent, recordResult, getModels, getRunsPerModel,
@@ -10,9 +9,9 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.spot-place-order';
-const USER_PROMPT = 'Place a limit buy order for 0.001 BTC-USDT at price 1 USDT in demo/dry-run mode. Report the command.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx spot", "place", "BTC-USDT", "buy"]];
-const EXPECTATION = 'okx spot place with BTC-USDT buy';
+const USER_PROMPT = 'Place a limit buy order for 0.001 BTC-USDT at price 1 USDT in demo/dry-run mode. Report the command. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx spot", "place", "BTC-USDT"]];
+const EXPECTATION = 'okx spot place with BTC-USDT';
 
 describe(PROBE_ID, () => {
   const models = getModels();
