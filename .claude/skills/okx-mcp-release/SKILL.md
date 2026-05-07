@@ -20,6 +20,8 @@ thin shell that hands off here.
 - `$ARGUMENTS`: must contain `pre` or `prod`. If neither, ask the user before proceeding.
 - env vars `MCP_PRE_URL` / `MCP_PROD_URL` for Remote endpoints.
 - Sibling repo `../ai-mcp-server` checked out (used in Phase 5).
+- `OKX_MCP_RELEASE_DRY_RUN=1` (optional): Phase 5 stops just before `git push` and
+  `glab mr create`, printing what would have been done. Phases 0-4 still run as normal.
 
 ---
 
@@ -38,10 +40,11 @@ Re-parse the table at runtime in case the list changes.
 
 Steps:
 1. Verify CWD is the okx-trade-mcp repo root (`pwd` ends in `/okx-trade-mcp`; `package.json` has `name: "okx-trade-kit"` workspace marker, or `git config remote.origin.url` matches).
-2. `git fetch origin master`.
-3. Compute `RUN_ID = $(date -u +%Y%m%dT%H%M%SZ)` and create `.tmp/okx-mcp-release/$RUN_ID/{cli,mcp}/`.
-4. Capture `git rev-parse origin/master` into a variable for later snapshot metadata.
-5. Parse the approved module list from `docs/module-registry.md` (use `grep -E '^\| [a-z][a-z0-9.]+ +\| ✅' docs/module-registry.md | awk '{print $2}'`).
+2. **Validate the Remote endpoint env var is set** for the requested env (`MCP_PRE_URL` for `pre`, `MCP_PROD_URL` for `prod`). If unset, abort immediately — fail fast before dispatching ~17 expensive subagents in Phase 1.
+3. `git fetch origin master`.
+4. Compute `RUN_ID = $(date -u +%Y%m%dT%H%M%SZ)` and create `.tmp/okx-mcp-release/$RUN_ID/{cli,mcp}/`.
+5. Capture `git rev-parse origin/master` into a variable for later snapshot metadata.
+6. Parse the approved module list from `docs/module-registry.md` (use `grep -E '^\| [a-z][a-z0-9.]+ +\| ✅' docs/module-registry.md | awk '{print $2}'`).
 
 If any step fails, abort with a clear error. Do not proceed.
 
@@ -52,8 +55,9 @@ If any step fails, abort with a clear error. Do not proceed.
 For every approved module ID, dispatch one subagent with the **CLI scan template** from
 `subagent-prompt.md`, substituting `{{MODULE_ID}}`, `{{RUN_ID}}`, `{{REPO_ROOT}}`.
 
-Use `Agent` tool with `subagent_type: general-purpose`. **Send all 17 dispatches in a
-single message** (parallel execution).
+Use the platform's subagent dispatch tool (Claude Code: `Agent`; superpowers
+ecosystem: `Task`) with `subagent_type: general-purpose`. **Send all 17 dispatches in
+a single message** (parallel execution).
 
 After all return:
 - Verify each `.tmp/okx-mcp-release/$RUN_ID/cli/<module>.json` exists and parses as JSON.
@@ -132,6 +136,12 @@ If delta exists:
 ⚠️ This phase modifies a sibling repo. Always work on a fresh branch off master, never
 on master itself.
 
+**Dry-run kill-switch:** if `OKX_MCP_RELEASE_DRY_RUN=1`, complete every local edit
+(branch creation, file mutations, mvn build, mvn test) but **stop before** `git push`
+and `glab mr create`. Print the diff and a "DRY-RUN: would push branch <name> and
+create draft MR" message, then exit. The branch stays in `../ai-mcp-server` for human
+inspection.
+
 ```bash
 cd ../ai-mcp-server
 git checkout master && git pull
@@ -175,6 +185,17 @@ If all green:
 ```bash
 git add -A
 git commit -m "sync: align Remote MCP with okx-trade-mcp tools.json (RUN_ID=$RUN_ID)"
+```
+
+**Kill-switch check** — if `OKX_MCP_RELEASE_DRY_RUN=1`:
+```
+echo "DRY-RUN: would push branch $BRANCH and create draft MR. Stopping."
+cd -
+exit 0
+```
+
+Otherwise:
+```bash
 git push -u origin "$BRANCH"
 ```
 
