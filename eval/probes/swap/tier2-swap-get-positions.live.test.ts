@@ -22,7 +22,7 @@ describe(PROBE_ID, () => {
     for (let attempt = 1; attempt <= runsPerModel; attempt++) {
       it(`${model} attempt ${attempt}`, async () => {
         const t0 = Date.now();
-        let trace: any = null;
+        let trace: Awaited<ReturnType<typeof runAgent>> | null = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
         const evidence: Record<string, unknown> = {};
@@ -40,9 +40,11 @@ describe(PROBE_ID, () => {
             evidence.matched_call = { name: call.name, command: call.input.command };
             status = 'pass';
           }
-        } catch (e: any) {
-          failure_reason = e.message;
-          evidence.error = e.message;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+
+          failure_reason = msg;
+          evidence.error = msg;
         }
         recordResult({
           probe_id: PROBE_ID,

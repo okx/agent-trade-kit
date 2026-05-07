@@ -50,51 +50,78 @@ All probes import from the `@eval/shared` alias regardless of directory depth:
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 ```
 
-### Required: EVAL_NONCE pattern
+### Required: trace-based assertion pattern
 
-Embed a unique nonce in the prompt and assert the LLM echoed it back. This proves the LLM actually called the tool and used real data — not a cached or hallucinated response.
+Each probe sends an intent-only prompt to the agent, then inspects the
+**tool_use blocks the agent emitted** (parsed from
+`anthropic-payload.jsonl`, captured by the idea-agent runner) to assert
+that the agent invoked the right `okx <module> <subcommand>` with the
+right parameters. Tool-call intent + parameters is what we measure;
+upstream API auth/401 errors are not the LLM's fault and are not a test
+signal.
 
 ```typescript
-const EVAL_NONCE = 'EVAL_<MODULE>_<N>_<RANDOM>';
-const USER_PROMPT = `Do X using the OKX CLI. Include "${EVAL_NONCE}" verbatim in your reply.`;
-// ...
-const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-status = hasNonce ? 'pass' : 'fail';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [
+  ['okx', 'market', 'ticker', 'BTC-USDT'],
+];
+const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+status = call ? 'pass' : 'fail';
 ```
+
+`findToolCall({ commandPatterns })` does **OR-of-AND** substring matching on
+each tool's `input.command`: a probe passes if any one pattern's substrings all
+appear in any one tool call. Patterns split words to tolerate `--demo` or
+`--profile demo` flags inserted between them by the agent.
 
 ### Probe skeleton
 
 ```typescript
 import { describe, it } from 'vitest';
-import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+import {
+  runAgent, recordResult, getModels, getRunsPerModel,
+  findToolCall, summarizeToolCalls,
+} from '@eval/shared/eval-helpers.js';
 
-const EVAL_NONCE = 'EVAL_MKT_001_A7B2';
-const USER_PROMPT = `Get the current BTC-USDT price using the OKX CLI. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const PROBE_ID = 'tier2.market-get-ticker';
+const USER_PROMPT = 'Get the current price of BTC-USDT.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [
+  ['okx', 'market', 'ticker', 'BTC-USDT'],
+  ['okx', 'market', 'tickers'],
+];
+const EXPECTATION = 'okx market ticker BTC-USDT';
 
-describe('tier2.market-get-ticker', () => {
+describe(PROBE_ID, () => {
   const models = getModels();
   const runsPerModel = getRunsPerModel();
   for (const model of models) {
     for (let attempt = 1; attempt <= runsPerModel; attempt++) {
       it(`${model} attempt ${attempt}`, async () => {
         const t0 = Date.now();
-        let trace: any = null;
+        let trace: Awaited<ReturnType<typeof runAgent>> | null = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
-        const evidence: any = {};
+        const evidence: Record<string, unknown> = {};
         try {
-          trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 180_000 });
-          evidence.reply_tail = trace.assistantReply.slice(-600);
-          const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          // add tool-specific assertions here
-          status = hasNonce ? 'pass' : 'fail';
-          if (!hasNonce) failure_reason = 'nonce not found in reply';
-        } catch (e: any) {
-          failure_reason = e.message;
-          evidence.error = e.message;
+          trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
+          evidence.tool_calls = summarizeToolCalls(trace);
+          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
+
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+          if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+          } else {
+            evidence.matched_call = { name: call.name, command: call.input.command };
+            status = 'pass';
+          }
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          failure_reason = msg;
+          evidence.error = msg;
         }
         recordResult({
-          probe_id: 'tier2.market-get-ticker',
+          probe_id: PROBE_ID,
           tier: 2,
           llm_model: model,
           attempt,
@@ -105,33 +132,34 @@ describe('tier2.market-get-ticker', () => {
           llm_tokens_in: trace?.tokensIn,
           llm_tokens_out: trace?.tokensOut,
         });
-      }, 200_000);
+      }, 320_000);
     }
   }
 });
 ```
 
-## NONCE Naming Convention
+### Pattern recipes
 
-| Module | Prefix |
-|--------|--------|
-| market | `MKT_` |
-| spot | `SPOT_` |
-| swap | `SWAP_` |
-| futures | `FUT_` |
-| option | `OPT_` |
-| account | `ACC_` |
-| event | `EVT_` |
-| news | `NEWS_` |
-| smartmoney | `SM_` |
-| earn.savings | `EARN_SAV_` |
-| earn.onchain | `EARN_OC_` |
-| earn.dcd | `EARN_DCD_` |
-| earn.autoearn | `EARN_AE_` |
-| earn.flash | `EARN_FL_` |
-| bot.grid | `GRID_` |
-| bot.dca | `DCA_` |
-| skills | `SMP_` |
+| Module | Pattern shape | Example |
+|--------|---------------|---------|
+| market | `['okx', 'market', '<verb>', '<instId>']` | `['okx', 'market', 'ticker', 'BTC-USDT']` |
+| spot / swap / futures / option | `['okx', '<module>', '<verb>', '<instId>']` | `['okx', 'spot', 'place', 'BTC-USDT']` |
+| account | `['okx', 'account', '<verb>']` | `['okx', 'account', 'positions']` |
+| news | `['okx', 'news', '<verb>', ...]` | `['okx', 'news', 'coin-sentiment', 'BTC']` |
+| smartmoney | `['okx', 'smartmoney', '<verb>']` | `['okx', 'smartmoney', 'traders']` |
+| event | `['okx', 'event', '<verb>']` | `['okx', 'event', 'browse']` |
+| earn.* | `['okx', 'earn', '<sub>', '<verb>']` | `['okx', 'earn', 'savings', 'balance']` |
+| bot.* | `['okx', 'bot', '<sub>', '<verb>']` | `['okx', 'bot', 'grid', 'orders']` |
+| skills | `['okx', 'skill', '<verb>']` | `['okx', 'skill', 'search']` |
+
+For write probes (`*-place-order`), include side / size / instId in
+the patterns to catch agents that pick the right tool but wrong direction:
+
+```typescript
+const EXPECTED_COMMAND_PATTERNS: string[][] = [
+  ['okx', 'spot', 'place', 'BTC-USDT', '--side buy', '--sz 0.001'],
+];
+```
 
 ## Safety
 

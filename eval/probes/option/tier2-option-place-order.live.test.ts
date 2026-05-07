@@ -10,8 +10,8 @@ import {
 
 const PROBE_ID = 'tier2.option-place-order';
 const USER_PROMPT = 'Place a limit buy order for 1 BTC call option contract in demo/dry-run mode at a low premium. First find a valid instrument ID. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "option", "place"], ["okx", "market", "instruments", "OPTION"]];
-const EXPECTATION = 'okx option place / list option instruments first';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "option", "place", "buy"]];
+const EXPECTATION = 'okx option place BTC <call> buy';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -20,7 +20,7 @@ describe(PROBE_ID, () => {
     for (let attempt = 1; attempt <= runsPerModel; attempt++) {
       it(`${model} attempt ${attempt}`, async () => {
         const t0 = Date.now();
-        let trace: any = null;
+        let trace: Awaited<ReturnType<typeof runAgent>> | null = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
         const evidence: Record<string, unknown> = {};
@@ -38,9 +38,11 @@ describe(PROBE_ID, () => {
             evidence.matched_call = { name: call.name, command: call.input.command };
             status = 'pass';
           }
-        } catch (e: any) {
-          failure_reason = e.message;
-          evidence.error = e.message;
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+
+          failure_reason = msg;
+          evidence.error = msg;
         }
         recordResult({
           probe_id: PROBE_ID,

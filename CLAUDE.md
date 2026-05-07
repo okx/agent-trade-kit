@@ -190,7 +190,7 @@ import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared
 
 - **新增 MCP tool → 必须同 MR 提交对应 probe**（CI `eval-probe-check` job 静态拦截）
 - **修改 tool 描述/行为 → 确认现有 probe 仍有效**（或更新 probe）
-- probe 必须使用 `EVAL_NONCE` 模式：把随机字符串嵌入 prompt，断言 LLM 回复中包含它，防止幻觉通过
+- probe 用 **trace-based 断言**：通过 `findToolCall(trace, { commandPatterns })` 验证 agent 是否调用了正确的 `okx <module> <subcommand>` 工具及关键参数；不再做 reply 文本匹配，因为上游 401/auth 错误不是 LLM 的判断信号
 
 ### 触发 eval 运行
 
