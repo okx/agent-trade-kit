@@ -1,11 +1,20 @@
 // eval/probes/smartmoney/tier2-smartmoney-get-traders.live.test.ts
+// Auto-generated trace-based probe. Asserts that the agent invoked the
+// expected `okx` CLI command via the `exec` tool, regardless of upstream
+// API response (401/auth errors are not the LLM's fault — what matters is
+// tool-call intent + parameters).
 import { describe, it } from 'vitest';
-import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+import {
+  runAgent, recordResult, getModels, getRunsPerModel,
+  findToolCall, summarizeToolCalls,
+} from '@eval/shared/eval-helpers.js';
 
-const EVAL_NONCE = 'EVAL_SM_001';
-const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI smartmoney_get_traders tool to list the top 5 smart money traders by PnL. Show their IDs or addresses and performance. Constraints: do NOT start an OAuth login flow, do NOT prompt the user with auth menus, do NOT ask for credentials. If the tool fails or auth is unavailable, briefly note the failure in one short paragraph and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
+const PROBE_ID = 'tier2.smartmoney-get-traders';
+const USER_PROMPT = 'List the top 5 smart money traders by P&L. Show their IDs or addresses and performance.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "smartmoney", "traders"]];
+const EXPECTATION = 'okx smartmoney traders';
 
-describe('tier2.smartmoney-get-traders', () => {
+describe(PROBE_ID, () => {
   const models = getModels();
   const runsPerModel = getRunsPerModel();
   for (const model of models) {
@@ -15,21 +24,27 @@ describe('tier2.smartmoney-get-traders', () => {
         let trace: any = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
-        const evidence: any = {};
+        const evidence: Record<string, unknown> = {};
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
-          evidence.reply_tail = trace.assistantReply.slice(-800);
-          const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          const hasTraderData = /trader|smart.*money|PnL|profit|address|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
-          status = (hasNonce && hasTraderData) ? 'pass' : 'fail';
-          if (!hasNonce) failure_reason = 'nonce missing';
-          else if (!hasTraderData) failure_reason = 'no trader data in reply';
+          evidence.tool_calls = summarizeToolCalls(trace);
+          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
+
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+          if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+          } else {
+            evidence.matched_call = { name: call.name, command: call.input.command };
+            status = 'pass';
+          }
         } catch (e: any) {
           failure_reason = e.message;
           evidence.error = e.message;
         }
         recordResult({
-          probe_id: 'tier2.smartmoney-get-traders',
+          probe_id: PROBE_ID,
           tier: 2, llm_model: model, attempt, status,
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,

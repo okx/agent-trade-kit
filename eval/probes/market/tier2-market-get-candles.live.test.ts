@@ -1,11 +1,20 @@
 // eval/probes/market/tier2-market-get-candles.live.test.ts
+// Auto-generated trace-based probe. Asserts that the agent invoked the
+// expected `okx` CLI command via the `exec` tool, regardless of upstream
+// API response (401/auth errors are not the LLM's fault — what matters is
+// tool-call intent + parameters).
 import { describe, it } from 'vitest';
-import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+import {
+  runAgent, recordResult, getModels, getRunsPerModel,
+  findToolCall, summarizeToolCalls,
+} from '@eval/shared/eval-helpers.js';
 
-const EVAL_NONCE = 'EVAL_MKT_002';
-const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI to get the last 5 one-hour candlestick bars for ETH-USDT. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
+const PROBE_ID = 'tier2.market-get-candles';
+const USER_PROMPT = 'Get the last 5 one-hour candlestick bars for ETH-USDT.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx market", "candles", "ETH-USDT"]];
+const EXPECTATION = 'okx market candles ETH-USDT';
 
-describe('tier2.market-get-candles', () => {
+describe(PROBE_ID, () => {
   const models = getModels();
   const runsPerModel = getRunsPerModel();
   for (const model of models) {
@@ -15,24 +24,27 @@ describe('tier2.market-get-candles', () => {
         let trace: any = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
-        const evidence: any = {};
+        const evidence: Record<string, unknown> = {};
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
-          evidence.reply_tail = trace.assistantReply.slice(-800);
-          const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          const hasEth = /ETH/i.test(trace.assistantReply);
-          const hasCandle = /candle|open|close|high|low|bar/i.test(trace.assistantReply);
-          const hasAuthFallback = /auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
-          const hasContext = (hasEth && hasCandle) || hasAuthFallback;
-          status = (hasNonce && hasContext) ? 'pass' : 'fail';
-          if (!hasNonce) failure_reason = 'nonce missing';
-          else if (!hasContext) failure_reason = 'no candle data nor auth-fallback message';
+          evidence.tool_calls = summarizeToolCalls(trace);
+          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
+
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+          if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+          } else {
+            evidence.matched_call = { name: call.name, command: call.input.command };
+            status = 'pass';
+          }
         } catch (e: any) {
           failure_reason = e.message;
           evidence.error = e.message;
         }
         recordResult({
-          probe_id: 'tier2.market-get-candles',
+          probe_id: PROBE_ID,
           tier: 2, llm_model: model, attempt, status,
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,

@@ -1,11 +1,20 @@
 // eval/probes/news/tier2-news-get-latest.live.test.ts
+// Auto-generated trace-based probe. Asserts that the agent invoked the
+// expected `okx` CLI command via the `exec` tool, regardless of upstream
+// API response (401/auth errors are not the LLM's fault — what matters is
+// tool-call intent + parameters).
 import { describe, it } from 'vitest';
-import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+import {
+  runAgent, recordResult, getModels, getRunsPerModel,
+  findToolCall, summarizeToolCalls,
+} from '@eval/shared/eval-helpers.js';
 
-const EVAL_NONCE = 'EVAL_NEWS_001';
-const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI news_get_latest tool to fetch the 3 most recent crypto news headlines. List the titles. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
+const PROBE_ID = 'tier2.news-get-latest';
+const USER_PROMPT = 'Fetch the 3 most recent crypto news headlines from OKX. List the titles.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx news", "latest"], ["okx news", "important"], ["okx news", "search"]];
+const EXPECTATION = 'okx news latest|important|search';
 
-describe('tier2.news-get-latest', () => {
+describe(PROBE_ID, () => {
   const models = getModels();
   const runsPerModel = getRunsPerModel();
   for (const model of models) {
@@ -15,21 +24,27 @@ describe('tier2.news-get-latest', () => {
         let trace: any = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
-        const evidence: any = {};
+        const evidence: Record<string, unknown> = {};
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
-          evidence.reply_tail = trace.assistantReply.slice(-800);
-          const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          const hasNewsContent = /news|headline|article|crypto|bitcoin|market|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
-          status = (hasNonce && hasNewsContent) ? 'pass' : 'fail';
-          if (!hasNonce) failure_reason = 'nonce missing';
-          else if (!hasNewsContent) failure_reason = 'no news content in reply';
+          evidence.tool_calls = summarizeToolCalls(trace);
+          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
+
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+          if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+          } else {
+            evidence.matched_call = { name: call.name, command: call.input.command };
+            status = 'pass';
+          }
         } catch (e: any) {
           failure_reason = e.message;
           evidence.error = e.message;
         }
         recordResult({
-          probe_id: 'tier2.news-get-latest',
+          probe_id: PROBE_ID,
           tier: 2, llm_model: model, attempt, status,
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,

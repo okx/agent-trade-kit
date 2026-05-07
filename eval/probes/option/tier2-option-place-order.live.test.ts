@@ -1,11 +1,20 @@
 // eval/probes/option/tier2-option-place-order.live.test.ts
+// Auto-generated trace-based probe. Asserts that the agent invoked the
+// expected `okx` CLI command via the `exec` tool, regardless of upstream
+// API response (401/auth errors are not the LLM's fault — what matters is
+// tool-call intent + parameters).
 import { describe, it } from 'vitest';
-import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+import {
+  runAgent, recordResult, getModels, getRunsPerModel,
+  findToolCall, summarizeToolCalls,
+} from '@eval/shared/eval-helpers.js';
 
-const EVAL_NONCE = 'EVAL_OPT_002';
-const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI option_place_order tool to place a limit buy order for 1 contract of a BTC call option. First use option_get_instruments to find a valid instrument ID, then place the order at a low premium. The system is in demo/dry-run mode. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
+const PROBE_ID = 'tier2.option-place-order';
+const USER_PROMPT = 'Place a limit buy order for 1 BTC call option contract in demo/dry-run mode at a low premium. First find a valid instrument ID.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx option", "place"], ["okx option", "instruments"]];
+const EXPECTATION = 'okx option place / option instruments';
 
-describe('tier2.option-place-order', () => {
+describe(PROBE_ID, () => {
   const models = getModels();
   const runsPerModel = getRunsPerModel();
   for (const model of models) {
@@ -15,21 +24,27 @@ describe('tier2.option-place-order', () => {
         let trace: any = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
-        const evidence: any = {};
+        const evidence: Record<string, unknown> = {};
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
-          evidence.reply_tail = trace.assistantReply.slice(-800);
-          const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          const attemptedOption = /option.*order|call.*order|option.*buy|place.*option|auth|credential|401|unauthorized|login|API.?key|not.*configured|requires.*authentication/i.test(trace.assistantReply);
-          status = (hasNonce && attemptedOption) ? 'pass' : 'fail';
-          if (!hasNonce) failure_reason = 'nonce missing';
-          else if (!attemptedOption) failure_reason = 'LLM did not attempt option place-order';
+          evidence.tool_calls = summarizeToolCalls(trace);
+          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
+
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+          if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+          } else {
+            evidence.matched_call = { name: call.name, command: call.input.command };
+            status = 'pass';
+          }
         } catch (e: any) {
           failure_reason = e.message;
           evidence.error = e.message;
         }
         recordResult({
-          probe_id: 'tier2.option-place-order',
+          probe_id: PROBE_ID,
           tier: 2, llm_model: model, attempt, status,
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,

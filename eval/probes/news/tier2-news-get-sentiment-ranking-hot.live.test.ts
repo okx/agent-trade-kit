@@ -1,12 +1,20 @@
 // eval/probes/news/tier2-news-get-sentiment-ranking-hot.live.test.ts
-// PRD T3: 热度排行 — 「最近 24 小时哪些币被讨论最多」
+// Auto-generated trace-based probe. Asserts that the agent invoked the
+// expected `okx` CLI command via the `exec` tool, regardless of upstream
+// API response (401/auth errors are not the LLM's fault — what matters is
+// tool-call intent + parameters).
 import { describe, it } from 'vitest';
-import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
+import {
+  runAgent, recordResult, getModels, getRunsPerModel,
+  findToolCall, summarizeToolCalls,
+} from '@eval/shared/eval-helpers.js';
 
-const EVAL_NONCE = 'EVAL_NEWS_005';
-const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI news_get_sentiment_ranking tool to find the top 10 most discussed cryptocurrencies in the last 24 hours. Pass period="24h", sortBy="hot", limit=10. List the coins by mention count. Constraints: do NOT start an OAuth login flow, do NOT prompt the user with auth menus, do NOT ask for credentials. If the tool fails or auth is unavailable, briefly note the failure in one short paragraph and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
+const PROBE_ID = 'tier2.news-get-sentiment-ranking-hot';
+const USER_PROMPT = 'Find the top 10 most discussed cryptocurrencies in the last 24 hours.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx news", "sentiment-rank", "hot"]];
+const EXPECTATION = 'okx news sentiment-rank with hot sort';
 
-describe('tier2.news-get-sentiment-ranking-hot', () => {
+describe(PROBE_ID, () => {
   const models = getModels();
   const runsPerModel = getRunsPerModel();
   for (const model of models) {
@@ -16,22 +24,27 @@ describe('tier2.news-get-sentiment-ranking-hot', () => {
         let trace: any = null;
         let status: 'pass' | 'fail' | 'error' = 'error';
         let failure_reason: string | undefined;
-        const evidence: any = {};
+        const evidence: Record<string, unknown> = {};
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
-          evidence.reply_tail = trace.assistantReply.slice(-800);
-          const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
-          // Pass if: LLM returned ranking data OR correctly reported demo-mode limitation
-          const hasRankingContext = /rank|mention|hot|discussed|popular|sentiment|news|BTC|ETH|demo|not.*available|auth|credential|401|unauthorized|login/i.test(trace.assistantReply);
-          status = (hasNonce && hasRankingContext) ? 'pass' : 'fail';
-          if (!hasNonce) failure_reason = 'nonce missing';
-          else if (!hasRankingContext) failure_reason = 'no ranking data or demo-mode message in reply';
+          evidence.tool_calls = summarizeToolCalls(trace);
+          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.expected = EXPECTATION;
+
+          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
+          if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+          } else {
+            evidence.matched_call = { name: call.name, command: call.input.command };
+            status = 'pass';
+          }
         } catch (e: any) {
           failure_reason = e.message;
           evidence.error = e.message;
         }
         recordResult({
-          probe_id: 'tier2.news-get-sentiment-ranking-hot',
+          probe_id: PROBE_ID,
           tier: 2, llm_model: model, attempt, status,
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,
