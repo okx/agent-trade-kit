@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.earn-onchain-get-offers';
 const USER_PROMPT = 'List available on-chain earn products. Show at least 2 offers with their APY or yield rates. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx earn", "onchain", "offers"], ["okx earn", "onchain"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "earn", "onchain", "offers"], ["okx", "earn", "onchain"]];
 const EXPECTATION = 'okx earn onchain offers';
 
 describe(PROBE_ID, () => {

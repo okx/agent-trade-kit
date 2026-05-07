@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.option-place-order';
 const USER_PROMPT = 'Place a limit buy order for 1 BTC call option contract in demo/dry-run mode at a low premium. First find a valid instrument ID. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx option", "place"], ["okx market", "instruments", "OPTION"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "option", "place"], ["okx", "market", "instruments", "OPTION"]];
 const EXPECTATION = 'okx option place / list option instruments first';
 
 describe(PROBE_ID, () => {

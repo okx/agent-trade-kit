@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.news-get-coin-sentiment-multi';
 const USER_PROMPT = 'Compare the sentiment for ETH and SOL over the last 24 hours. Report the sentiment label and bullish ratio for each. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx news", "coin-sentiment", "ETH", "SOL"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "news", "coin-sentiment", "ETH", "SOL"]];
 const EXPECTATION = 'okx news coin-sentiment with ETH and SOL';
 
 describe(PROBE_ID, () => {

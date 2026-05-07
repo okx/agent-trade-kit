@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.bot-dca-get-orders';
 const USER_PROMPT = 'List my current DCA bot orders. Report their status and instruments, or confirm there are none. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx bot", "dca", "orders"], ["okx dca", "orders"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "dca", "orders"], ["okx", "dca", "orders"]];
 const EXPECTATION = 'okx bot dca orders';
 
 describe(PROBE_ID, () => {

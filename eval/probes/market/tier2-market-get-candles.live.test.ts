@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.market-get-candles';
 const USER_PROMPT = 'Get the last 5 one-hour candlestick bars for ETH-USDT. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx market", "candles", "ETH-USDT"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "market", "candles", "ETH-USDT"]];
 const EXPECTATION = 'okx market candles ETH-USDT';
 
 describe(PROBE_ID, () => {

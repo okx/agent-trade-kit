@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.earn-dcd-get-products';
 const USER_PROMPT = 'List available Dual Currency Deposit (DCD) products for BTC-USDT. Show available strike prices or yields. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx earn", "dcd", "products"], ["okx earn", "dcd", "pairs"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "earn", "dcd", "products"], ["okx", "earn", "dcd", "pairs"]];
 const EXPECTATION = 'okx earn dcd products / pairs';
 
 describe(PROBE_ID, () => {

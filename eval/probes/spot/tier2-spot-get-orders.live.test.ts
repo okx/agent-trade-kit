@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.spot-get-orders';
 const USER_PROMPT = 'Get my recent spot orders for BTC-USDT (last 5). Show the order status and side for each. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx spot", "orders"], ["okx trade", "orders"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "spot", "orders"], ["okx", "trade", "orders"]];
 const EXPECTATION = 'okx spot orders / trade orders';
 
 describe(PROBE_ID, () => {

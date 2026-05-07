@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.news-get-latest';
 const USER_PROMPT = 'Fetch the 3 most recent crypto news headlines from OKX. List the titles. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx news", "latest"], ["okx news", "important"], ["okx news", "search"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "news", "latest"], ["okx", "news", "important"], ["okx", "news", "search"]];
 const EXPECTATION = 'okx news latest|important|search';
 
 describe(PROBE_ID, () => {

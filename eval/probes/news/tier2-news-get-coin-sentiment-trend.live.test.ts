@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.news-get-coin-sentiment-trend';
 const USER_PROMPT = 'Get BTC sentiment trend for the last 24 hours with hourly granularity. Report how the bullish ratio changed. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx news", "coin-sentiment", "BTC"], ["okx news", "coin-trend", "BTC"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "news", "coin-sentiment", "BTC"], ["okx", "news", "coin-trend", "BTC"]];
 const EXPECTATION = 'okx news coin-sentiment OR coin-trend with BTC';
 
 describe(PROBE_ID, () => {

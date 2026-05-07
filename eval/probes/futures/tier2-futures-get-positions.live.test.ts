@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.futures-get-positions';
 const USER_PROMPT = 'Check my current futures positions. Report any open positions or confirm there are none. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx futures", "positions"], ["okx account", "positions", "FUTURES"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "futures", "positions"], ["okx", "account", "positions", "FUTURES"]];
 const EXPECTATION = 'okx futures positions / okx account positions --instType FUTURES';
 
 describe(PROBE_ID, () => {

@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.bot-grid-get-orders';
 const USER_PROMPT = 'List my current grid trading bot orders. Report active bots and their status, or confirm there are none. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx bot", "grid", "orders"], ["okx grid", "orders"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "orders"], ["okx", "grid", "orders"]];
 const EXPECTATION = 'okx bot grid orders';
 
 describe(PROBE_ID, () => {

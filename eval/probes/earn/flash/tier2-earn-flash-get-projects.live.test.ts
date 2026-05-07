@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.earn-flash-get-projects';
 const USER_PROMPT = 'List available Flash Earn projects. Show their names and APY rates. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx earn", "flash", "projects"], ["okx earn", "flash"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "earn", "flash", "projects"], ["okx", "earn", "flash"]];
 const EXPECTATION = 'okx earn flash projects';
 
 describe(PROBE_ID, () => {

@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.news-get-sentiment-ranking-bullish';
 const USER_PROMPT = 'Find the most bullish cryptocurrencies right now. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx news", "sentiment-rank", "bullish"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "news", "sentiment-rank", "bullish"]];
 const EXPECTATION = 'okx news sentiment-rank with bullish sort';
 
 describe(PROBE_ID, () => {

@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.market-get-ticker';
 const USER_PROMPT = 'Get the current price of BTC-USDT. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx market", "ticker", "BTC-USDT"], ["okx market", "tickers"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "market", "ticker", "BTC-USDT"], ["okx", "market", "tickers"]];
 const EXPECTATION = 'okx market ticker BTC-USDT / tickers';
 
 describe(PROBE_ID, () => {

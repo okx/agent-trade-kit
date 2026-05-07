@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.futures-place-order';
 const USER_PROMPT = 'Place a limit buy order for 1 contract of BTC-USD-250926 quarterly futures at price 1 in demo/dry-run mode. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx futures", "place", "BTC-USD-250926"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "futures", "place", "BTC-USD-250926"]];
 const EXPECTATION = 'okx futures place BTC-USD-250926';
 
 describe(PROBE_ID, () => {

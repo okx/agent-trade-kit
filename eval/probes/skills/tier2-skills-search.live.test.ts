@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.skills-search';
 const USER_PROMPT = 'Use the OKX CLI skills marketplace to search for skills related to "market analysis". List at least 2 results. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx skill", "search"], ["okx skill", "list"], ["okx skill", "categories"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "skill", "search"], ["okx", "skill", "list"], ["okx", "skill", "categories"]];
 const EXPECTATION = 'okx skill search / list / categories';
 
 describe(PROBE_ID, () => {

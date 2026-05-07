@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.option-get-instruments';
 const USER_PROMPT = 'List available BTC option contracts. Show at least 3 instrument IDs. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx market", "instruments", "OPTION"], ["okx option", "instruments"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "market", "instruments", "OPTION"], ["okx", "option", "instruments"]];
 const EXPECTATION = 'okx market instruments --instType OPTION / okx option instruments';
 
 describe(PROBE_ID, () => {

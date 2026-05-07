@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.account-get-positions';
 const USER_PROMPT = 'List all my current open positions across all instrument types using OKX CLI. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx account", "positions"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "account", "positions"]];
 const EXPECTATION = 'okx account positions';
 
 describe(PROBE_ID, () => {

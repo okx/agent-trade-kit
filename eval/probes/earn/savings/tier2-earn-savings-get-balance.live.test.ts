@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.earn-savings-get-balance';
 const USER_PROMPT = 'Check my Simple Earn savings balance. Report the currencies and amounts held. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx earn", "savings", "balance"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "earn", "savings", "balance"]];
 const EXPECTATION = 'okx earn savings balance';
 
 describe(PROBE_ID, () => {

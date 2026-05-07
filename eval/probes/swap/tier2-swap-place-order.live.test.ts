@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.swap-place-order';
 const USER_PROMPT = 'Place a market buy order for 1 contract of BTC-USDT-SWAP in demo/dry-run mode. Report the command. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx swap", "place", "BTC-USDT-SWAP"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "swap", "place", "BTC-USDT-SWAP"]];
 const EXPECTATION = 'okx swap place BTC-USDT-SWAP';
 
 describe(PROBE_ID, () => {

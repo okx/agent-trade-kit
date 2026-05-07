@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.event-browse';
 const USER_PROMPT = 'Use the OKX CLI event tools (okx event browse / okx event events) to list active prediction market events. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx event", "browse"], ["okx event", "events"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "event", "browse"], ["okx", "event", "events"]];
 const EXPECTATION = 'okx event browse / events';
 
 describe(PROBE_ID, () => {

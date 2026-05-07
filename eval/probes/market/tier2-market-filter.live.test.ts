@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.market-filter';
 const USER_PROMPT = 'Find the top 5 USDT spot instruments by 24h volume. List them with their volumes. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx market", "filter"], ["okx market", "tickers"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "market", "filter"], ["okx", "market", "tickers"]];
 const EXPECTATION = 'okx market filter / tickers';
 
 describe(PROBE_ID, () => {
