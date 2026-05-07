@@ -139,10 +139,10 @@ Present as time-series table: dataVersion, ccy, longRatio, shortRatio, weightedL
 
 > **Reading the trend**: `weightedLongRatio` / `weightedShortRatio` / `netNotionalUsdt` / `totalNotionalUsdt` are entry-price-weighted (`price_avg`), not mark-price-weighted. A flat trend across buckets means traders held positions unchanged — it does NOT mean underlying price was flat. To detect actual scaling, watch for changes in these values; to gauge price movement, fetch `okx market candles` separately.
 
-For an authorIds-scoped trend (consensus of a hand-picked set of traders; pool filters not exposed — `_by_trader` is direct-lookup, backend uses defaults):
+For an authorIds-scoped trend (consensus of a hand-picked set of traders; capability tier filters not exposed — `_by_trader` is direct-lookup, backend uses tier defaults; `--sortBy` and `--period` are accepted):
 
 ```bash
-okx --profile live smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --granularity 1d --limit 30 --json
+okx --profile live smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --granularity 1d --limit 30 --sortBy pnl --period 7 --json
 ```
 
 ---

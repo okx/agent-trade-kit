@@ -15,15 +15,15 @@ The 10-tool surface is split by **entry mode** so AI agents can pick the right t
 | Name | R/W | Description |
 |---|---|---|
 | smartmoney_get_traders_by_filter | R | Leaderboard ranking by pool conditions (period / minPnl / minWinRate / maxDrawdown / minAum / sortBy). Paginated by `authorId` cursor. |
-| smartmoney_get_performance_by_trader | R | PnL / win-rate profile for one or more `authorIds` (no pool filter). |
+| smartmoney_get_performance_by_trader | R | PnL / win-rate profile for one or more `authorIds`. Required `sortBy` (`pnl` / `pnlRatio`) and `period` (`3` / `7` / `30` / `90`). Capability tier filters not exposed. |
 | smartmoney_search_trader | R | Search Top Traders by nickname keyword (≤10 results, ranked by OKX-platform follower count). Used to resolve a name to `authorId`. |
 | smartmoney_get_trader_positions | R | A trader's current open positions. Filter by `instId` (full instId like `BTC-USDT-SWAP` or bare base ccy like `BTC`; handler extracts base ccy for upstream). |
 | smartmoney_get_trader_positions_history | R | A trader's closed-position history with realized PnL. Paginated by `posId` cursor. |
 | smartmoney_get_trader_orders_history | R | A trader's order / fill records. Paginated by `ordId` cursor. |
 | smartmoney_get_signal_overview_by_filter | R | Multi-asset consensus signal restricted by **pool filter** (sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier). Pick coins via `topInstruments` (top-N hottest) **or** `instCcyList` (specific coins). Snapshot is current hour. Subsumes the former "top-N most-watched" use case. |
-| smartmoney_get_signal_overview_by_trader | R | Multi-asset consensus signal restricted to a **specific list of `authorIds`** (no pool filter). Pick coins via `topInstruments` **or** `instCcyList`. Snapshot is current hour. |
+| smartmoney_get_signal_overview_by_trader | R | Multi-asset consensus signal restricted to a **specific list of `authorIds`**. Pick coins via `topInstruments` **or** `instCcyList`. Required `sortBy` + `period` (drive capability metrics). Capability tier filters not exposed. Snapshot is current hour. |
 | smartmoney_get_signal_trend_by_filter | R | Single-coin signal time-series — required `instCcy`, anchored at `asOfTime` (10-digit `yyyyMMddHH` UTC; defaults to current hour), filtered by pool conditions. Granularity `1h` / `1d`. |
-| smartmoney_get_signal_trend_by_trader | R | Single-coin signal time-series — required `instCcy` + `authorIds`, anchored at `asOfTime`. **No pool filter input** (authorIds-direct-lookup; backend uses default pool config). |
+| smartmoney_get_signal_trend_by_trader | R | Single-coin signal time-series — required `instCcy` + `authorIds` + `granularity` + `sortBy` + `period`, anchored at `asOfTime`. Capability tier filters not exposed (authorIds-direct-lookup; backend tier defaults apply). |
 
 10 tools, all read-only.
 

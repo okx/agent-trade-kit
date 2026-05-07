@@ -176,7 +176,7 @@ Response fields: same as `signal-trend-by-filter`.
 
 ## Signal Filter Enum Values
 
-Only the `_by_filter` siblings (`signal-overview-by-filter` / `signal-trend-by-filter`) accept these pool-filter enums. The `_by_trader` siblings are authorIds-direct-lookup and do not expose these flags — backend uses defaults.
+`--sortBy` and `--period` are accepted by **all four signal commands** (`_by_filter` and `_by_trader`). The capability tier flags below (`--pnlTier` / `--winRateTier` / `--maxDrawdownTier` / `--aumTier` / `--lmtNum`) are accepted **only by `_by_filter` siblings** — `_by_trader` siblings are authorIds-direct-lookup and these tier filters use backend defaults there.
 
 | Param | Enum values | Default | Semantics |
 |---|---|---|---|
