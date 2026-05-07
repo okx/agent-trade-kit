@@ -238,8 +238,8 @@ okx bot dca stop --algoId <algoId>
 okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10
 okx smartmoney traders-by-filter --minWinRate 0.8 --maxDrawdown 0.1 --period 30 --json
 
-# PnL/win-rate profile for one or more authorIds
-okx smartmoney performance-by-trader --authorIds <id1>,<id2> --period 30
+# PnL/win-rate profile for one or more authorIds (--sortBy + --period required; defaults pnl + 90)
+okx smartmoney performance-by-trader --authorIds <id1>,<id2> --sortBy pnl --period 30
 
 # Current open positions for one trader
 okx smartmoney trader-positions --authorId <id>
@@ -262,8 +262,8 @@ okx smartmoney signal-overview-by-filter --topInstruments 20 --pnlTier PNL_TOP20
 okx smartmoney signal-overview-by-filter --instCcyList BTC
 okx smartmoney signal-overview-by-filter --instCcyList BTC --pnlTier PNL_TOP20 --winRateTier WR_GE_80
 
-# Multi-asset signal — restricted to specific authorIds (current hour)
-okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> --instCcyList BTC,ETH
+# Multi-asset signal — restricted to specific authorIds (current hour); --sortBy / --period drive capability metrics (defaults pnl / 7)
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> --instCcyList BTC,ETH --sortBy pnl --period 7
 
 # Single-asset signal time-series — pool filter, last 30 daily buckets ending at the current UTC hour
 okx smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30
@@ -271,8 +271,8 @@ okx smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30
 # Anchor at a specific hour: 10-digit yyyyMMddHH UTC
 okx smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 2026050100 --granularity 1d --limit 30
 
-# Restricted to authorIds (authorIds-direct-lookup; pool filters not exposed — backend uses defaults)
-okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --limit 7
+# Restricted to authorIds (authorIds-direct-lookup); --sortBy / --period exposed; capability tier filters not exposed
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --granularity 1h --limit 7 --sortBy pnl --period 7
 ```
 
 Tier enums (signal family):

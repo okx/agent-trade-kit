@@ -3,18 +3,18 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~44,974 tokens | **Over budget:** ~19,974 tokens | **Tools:** 159 (97 read / 62 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~46,004 tokens | **Over budget:** ~21,004 tokens | **Tools:** 159 (97 read / 62 write)
 
-> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 97 工具, ~22,523 tokens (under budget)。
+> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 97 工具, ~23,554 tokens (under budget)。
 
 ## Registered Modules
 
 | Module ID | Status | Tools | Read | Write | Token Est. | Design Doc | Approved By | Date |
 |-----------|--------|-------|------|-------|------------|------------|-------------|------|
+| smartmoney | ✅ approved | 10 | 10 | 0 | ~5,759 | [smartmoney](designs/smartmoney.md) | @Jasmine.Li | 2026-04-30 |
 | futures | ✅ approved | 18 | 6 | 12 | ~5,453 | _(founding module)_ | @Jasmine.Li | — |
 | swap | ✅ approved | 17 | 6 | 11 | ~5,387 | _(founding module)_ | @Jasmine.Li | — |
 | market | ✅ approved | 19 | 19 | 0 | ~5,336 | _(founding module)_ | @Jasmine.Li | — |
-| smartmoney | ✅ approved | 10 | 10 | 0 | ~4,729 | [smartmoney](designs/smartmoney.md) | @Jasmine.Li | 2026-04-30 |
 | spot | ✅ approved | 14 | 4 | 10 | ~4,127 | _(founding module)_ | @Jasmine.Li | — |
 | option | ✅ approved | 14 | 7 | 7 | ~3,284 | _(founding module)_ | @Jasmine.Li | — |
 | account | ✅ approved | 14 | 12 | 2 | ~2,759 | _(founding module)_ | @Jasmine.Li | — |
@@ -28,7 +28,7 @@ Unregistered modules will be rejected during review.
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
-| **Total** | | **159** | **97** | **62** | **~44,974** | | | |
+| **Total** | | **159** | **97** | **62** | **~46,004** | | | |
 
 ## Status Legend
 

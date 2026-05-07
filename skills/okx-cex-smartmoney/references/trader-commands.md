@@ -72,15 +72,16 @@ Traders on the leaderboard must meet all of:
 ## smartmoney performance-by-trader — PnL / Win-Rate Profile (direct lookup)
 
 ```bash
-okx smartmoney performance-by-trader --authorIds <id1>,<id2> [--period <3|7|30|90>] [--json]
+okx smartmoney performance-by-trader --authorIds <id1>,<id2> [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--json]
 ```
 
-Direct lookup for a known list of `authorIds`. No pool filter — the upstream endpoint returns the requested traders' performance regardless of leaderboard position. Use after `traders-by-filter`, or to verify a specific user-supplied authorId list.
+Direct lookup for a known list of `authorIds`. The upstream endpoint returns the requested traders' performance regardless of leaderboard position. Use after `traders-by-filter`, or to verify a specific user-supplied authorId list.
 
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
-| `--period` | No | `90` | Performance period: `3`, `7`, `30`, `90` (days). |
+| `--sortBy` | Yes | `pnl` | Result sort key: `pnl` (absolute USD profit) or `pnlRatio` (percentage return) |
+| `--period` | Yes | `90` | Performance period: `3`, `7`, `30`, `90` (days). |
 
 Response fields: same shape as the leaderboard rows (`authorId`, `nickName`, `pnl`, `pnlRatio`, `winRate`, `maxDrawdown`, `asset`, `rates[]`, etc.).
 

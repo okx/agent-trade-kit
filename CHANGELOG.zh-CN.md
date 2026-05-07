@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+### Changed —— `smartmoney` schema：`sortBy` / `period` / `granularity` 改为必填
+
+- 所有 leaderboard 和 signal 系列工具将 `sortBy` 和 `period` 标为 `required`；`signal-trend-*` 额外要求 `granularity`。修复原本依赖后端兜底导致的不一致（例如文档写 `period=90`，实际后端返回累计至今）。
+- `performance-by-trader`、`signal-overview-by-trader`、`signal-trend-by-trader` 新增接受 `sortBy` + `period`（T2 原本只有 period）。
+- handler 显式注入默认值（`sortBy=pnl`；leaderboard `period=90` / signal `period=7`；trend `granularity=1h`），MCP 和 CLI 两条路径行为一致。
+
+兼容性：已显式传参或依赖文档默认值的调用方不受影响。
+
 ## [1.3.3-beta.1] - 2026-05-06
 
 ### ⚠ 破坏性变更 —— `smartmoney` 模块重构

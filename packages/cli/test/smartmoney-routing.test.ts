@@ -100,14 +100,15 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
   });
 
   describe("performance-by-trader", () => {
-    it("dispatches to smartmoney_get_performance_by_trader with authorIds (array) + period", async () => {
+    it("dispatches to smartmoney_get_performance_by_trader with authorIds (array) + sortBy + period", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "performance-by-trader", [], vals({
-        authorIds: "1001,1002", period: "30",
+        authorIds: "1001,1002", sortBy: "pnlRatio", period: "30",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_performance_by_trader");
       // CLI flag is comma-separated; commands.ts splits it before calling MCP tool.
       assert.deepEqual(captured.args["authorIds"], ["1001", "1002"]);
+      assert.equal(captured.args["sortBy"], "pnlRatio");
       assert.equal(captured.args["period"], "30");
     });
 
@@ -295,18 +296,18 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
   });
 
   describe("signal-overview-by-trader", () => {
-    it("dispatches with authorIds + topInstruments only (drops pool filters / lmtNum / instId)", async () => {
+    it("dispatches with authorIds + topInstruments + sortBy + period; drops capability tier filters / lmtNum / instId", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "signal-overview-by-trader", [], vals({
         authorIds: "1001,1002",
         topInstruments: "8",
-        // Pool filters are not part of the by-trader surface — backend uses defaults; these flags must be dropped.
+        sortBy: "pnlRatio",
+        period: "30",
+        // Capability tier filters are not part of the by-trader surface — these flags must be dropped.
         pnlTier: "PNL_TOP20",
         winRateTier: "WR_GE_50",
         maxDrawdownTier: "MR_LE_20",
         aumTier: "AUM_TOP50",
-        sortBy: "pnlRatio",
-        period: "30",
         lmtNum: "50",
         // instId is not part of this tool's surface — dropped.
         instId: "BTC-USDT-SWAP",
@@ -315,13 +316,14 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.deepEqual(captured.args["authorIds"], ["1001", "1002"]);
       assert.equal(captured.args["topInstruments"], "8");
       assert.equal(captured.args["instCcyList"], undefined);
-      // Pool filters / pool sizing must NOT leak into the by-trader tool.
+      // sortBy + period now flow through to the by-trader tool.
+      assert.equal(captured.args["sortBy"], "pnlRatio");
+      assert.equal(captured.args["period"], "30");
+      // Capability tier filters / pool sizing must NOT leak into the by-trader tool.
       assert.equal(captured.args["pnlTier"], undefined, "pnlTier dropped");
       assert.equal(captured.args["winRateTier"], undefined, "winRateTier dropped");
       assert.equal(captured.args["maxDrawdownTier"], undefined, "maxDrawdownTier dropped");
       assert.equal(captured.args["aumTier"], undefined, "aumTier dropped");
-      assert.equal(captured.args["sortBy"], undefined, "sortBy dropped");
-      assert.equal(captured.args["period"], undefined, "period dropped");
       assert.equal(captured.args["lmtNum"], undefined, "lmtNum dropped");
       assert.equal(captured.args["instId"], undefined, "instId dropped");
     });
@@ -409,7 +411,7 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
   });
 
   describe("signal-trend-by-trader", () => {
-    it("dispatches with authorIds + instCcy + asOfTime + granularity + limit (drops pool filters / lmtNum)", async () => {
+    it("dispatches with authorIds + instCcy + asOfTime + granularity + limit + sortBy + period; drops capability tier filters / lmtNum", async () => {
       const { spy, captured } = makeSpy();
       await handleSmartmoneyCommand(spy, "signal-trend-by-trader", [], vals({
         authorIds: "1001,1002",
@@ -417,11 +419,11 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
         asOfTime: "2026050100",
         granularity: "1h",
         limit: "12",
-        // Pool filters are not part of the by-trader surface — backend uses defaults; these flags must be dropped.
-        pnlTier: "PNL_TOP5",
-        winRateTier: "WR_GE_50",
         sortBy: "pnlRatio",
         period: "30",
+        // Capability tier filters are not part of the by-trader surface — these flags must be dropped.
+        pnlTier: "PNL_TOP5",
+        winRateTier: "WR_GE_50",
         lmtNum: "50",
       }), false);
       assert.equal(captured.tool, "smartmoney_get_signal_trend_by_trader");
@@ -430,11 +432,12 @@ describe("handleSmartmoneyCommand — parameter routing", () => {
       assert.equal(captured.args["asOfTime"], "2026050100");
       assert.equal(captured.args["granularity"], "1h");
       assert.equal(captured.args["limit"], "12");
-      // Pool filters / pool sizing must NOT leak into the by-trader tool.
+      // sortBy + period now flow through to the by-trader tool.
+      assert.equal(captured.args["sortBy"], "pnlRatio");
+      assert.equal(captured.args["period"], "30");
+      // Capability tier filters / pool sizing must NOT leak into the by-trader tool.
       assert.equal(captured.args["pnlTier"], undefined, "pnlTier dropped");
       assert.equal(captured.args["winRateTier"], undefined, "winRateTier dropped");
-      assert.equal(captured.args["sortBy"], undefined, "sortBy dropped");
-      assert.equal(captured.args["period"], undefined, "period dropped");
       assert.equal(captured.args["lmtNum"], undefined, "lmtNum dropped");
       assert.equal(captured.args["instId"], undefined, "instId is no longer accepted");
       assert.equal(captured.args["startTime"], undefined);

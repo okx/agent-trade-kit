@@ -116,12 +116,14 @@ export async function cmdSmartmoneyPerformanceByTrader(
   run: ToolRunner,
   opts: {
     authorIds: string;
+    sortBy?: string;
     period?: string;
     json: boolean;
   },
 ): Promise<void> {
   const result = await run("smartmoney_get_performance_by_trader", {
     authorIds: csvToArray(opts.authorIds),
+    sortBy: opts.sortBy,
     period: opts.period,
   });
   if (opts.json) { printJson(result); return; }
@@ -302,6 +304,8 @@ export async function cmdSmartmoneySignalOverviewByTrader(
     authorIds: string;
     topInstruments?: string;
     instCcyList?: string;
+    sortBy?: string;
+    period?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -309,6 +313,8 @@ export async function cmdSmartmoneySignalOverviewByTrader(
     authorIds: csvToArray(opts.authorIds),
     topInstruments: opts.topInstruments,
     instCcyList: csvToArray(opts.instCcyList),
+    sortBy: opts.sortBy,
+    period: opts.period,
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);
@@ -364,6 +370,8 @@ export async function cmdSmartmoneySignalTrendByTrader(
     asOfTime?: string;
     granularity?: string;
     limit?: string;
+    sortBy?: string;
+    period?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -373,6 +381,8 @@ export async function cmdSmartmoneySignalTrendByTrader(
     asOfTime: opts.asOfTime,
     granularity: opts.granularity,
     limit: opts.limit,
+    sortBy: opts.sortBy,
+    period: opts.period,
   });
   if (opts.json) { printJson(result); return; }
   const data = extractData(result);

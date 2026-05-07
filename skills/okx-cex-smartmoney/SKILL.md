@@ -86,7 +86,7 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 | Command | Type | Auth | Description |
 |---|---|---|---|
 | `smartmoney traders-by-filter` | READ | Required | Leaderboard ranking by pool conditions (period / minPnl / minWinRate / maxDrawdown / minAum). Paginated by `authorId`. Names use `min*` / `max*` prefix — disjoint from signal-side `*Tier` namespace. |
-| `smartmoney performance-by-trader --authorIds <id1,id2>` | READ | Required | PnL / win-rate profile for one or more authorIds (no pool filter). |
+| `smartmoney performance-by-trader --authorIds <id1,id2>` | READ | Required | PnL / win-rate profile for one or more authorIds. `--sortBy <pnl\|pnlRatio>` (default `pnl`) and `--period <3\|7\|30\|90>` (default `90`) drive ranking and lookback window. |
 | `smartmoney search-trader --keyword <name>` | READ | Required | Search Top Traders by nickname keyword (≤10 results, ranked by follower count). |
 | `smartmoney trader-positions --authorId <id>` | READ | Required | Current open positions for one trader. Filter by `--instId <BTC-USDT-SWAP>` (or bare base ccy). |
 | `smartmoney trader-positions-history --authorId <id>` | READ | Required | Closed-position history with realized PnL. Paginated by `posId`. |
@@ -97,9 +97,9 @@ Smart Money does not support demo mode (leaderboard data is live-only). Always u
 | Command | Type | Auth | Description |
 |---|---|---|---|
 | `smartmoney signal-overview-by-filter` | READ | Required | Multi-asset signal, tier-filtered pool. Pick coins via `--topInstruments` (top-N hottest) OR `--instCcyList BTC,ETH,SOL` (specific) — exactly one. Use this to discover the hottest coins among smart money. |
-| `smartmoney signal-overview-by-trader --authorIds <id1,id2>` | READ | Required | Multi-asset signal aggregated over a hand-picked set of traders (authorIds-direct-lookup). Pick coins via `--topInstruments` OR `--instCcyList`. **Pool filters not exposed** — backend uses defaults. |
+| `smartmoney signal-overview-by-trader --authorIds <id1,id2>` | READ | Required | Multi-asset signal aggregated over a hand-picked set of traders (authorIds-direct-lookup). Pick coins via `--topInstruments` OR `--instCcyList`. `--sortBy` (default `pnl`) and `--period` (default `7`) drive capability metrics. Capability tier filters (pnlTier / winRateTier / etc.) not exposed. |
 | `smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series anchored at `asOfTime` (defaults to current UTC hour), tier-filtered pool. `--granularity 1h\|1d`, `--limit` controls bucket count. |
-| `smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series aggregated over a hand-picked set of traders (authorIds-direct-lookup). **Pool filters not exposed** — backend uses defaults. |
+| `smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]` | READ | Required | Single-coin smart-money signal time-series aggregated over a hand-picked set of traders (authorIds-direct-lookup). `--granularity 1h\|1d` (default `1h`), `--sortBy` (default `pnl`), `--period` (default `7`). Capability tier filters not exposed. |
 
 > **Time anchor**: `signal-trend-by-{filter,trader}` take an optional `--asOfTime <yyyyMMddHH>` (10-digit UTC hour, e.g. `2026050100`). Returns the latest `--limit` buckets ending at that anchor. Omit `--asOfTime` to use the current UTC hour. `signal-overview-by-{filter,trader}` does not expose any time input — handler always uses the current hour.
 
@@ -123,7 +123,7 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 - "推荐交易员" / "top traders" / "牛人榜" → `smartmoney traders-by-filter` with sorting/filtering. See `{baseDir}/references/trader-commands.md`.
 - "看看某个交易员" / "trader detail" → run `performance-by-trader`, `trader-positions`, `trader-orders-history` **in parallel** (the old composite `smartmoney trader` is removed).
 - "搜索 alice / 小明" / "find trader by nickname" → `smartmoney search-trader --keyword <name>` (returns ≤10 matches with `authorId` to feed into other tools).
-- "verify these authorIds" / 已知 authorId → `smartmoney performance-by-trader --authorIds <id1,id2>` (direct lookup, no pool filter).
+- "verify these authorIds" / 已知 authorId → `smartmoney performance-by-trader --authorIds <id1,id2>` (direct lookup; `--sortBy` / `--period` honored, defaults `pnl` / `90`).
 - "他的当前持仓" / "current positions only" → `smartmoney trader-positions --authorId <id>`.
 - "他的成交记录" / "trade history" → `smartmoney trader-orders-history --authorId <id>` (paginated).
 - "历史平仓" / "closed positions" / "realized PnL track record" → `smartmoney trader-positions-history --authorId <id>` (paginated).

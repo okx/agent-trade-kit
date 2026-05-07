@@ -1384,6 +1384,7 @@ export function handleSmartmoneyCommand(
     }
     return cmdSmartmoneyPerformanceByTrader(run, {
       authorIds: v.authorIds,
+      sortBy: v.sortBy,
       period: v.period,
       json,
     });
@@ -1478,6 +1479,8 @@ export function handleSmartmoneyCommand(
       authorIds: v.authorIds,
       topInstruments: v.topInstruments,
       instCcyList: v.instCcyList,
+      sortBy: v.sortBy,
+      period: v.period,
       json,
     });
   }
@@ -1516,6 +1519,8 @@ export function handleSmartmoneyCommand(
       asOfTime: v.asOfTime,
       granularity: v.granularity,
       limit: v.limit,
+      sortBy: v.sortBy,
+      period: v.period,
       json,
     });
   }

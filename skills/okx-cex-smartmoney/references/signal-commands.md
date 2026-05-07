@@ -5,9 +5,9 @@
 Four atomic commands cover the signal / coin side, split by **entry mode**:
 
 - **`signal-overview-by-filter`** — multi-asset, **tier-discovery scenario**: full pool-filter knobs exposed (sortBy / pnlTier / winRateTier / maxDrawdownTier / aumTier / lmtNum). Use this for "most-watched-by-smart-money instruments" by passing `--topInstruments`.
-- **`signal-overview-by-trader`** — multi-asset, **authorIds-direct-lookup scenario**: only `--authorIds` + coin selection; pool filters not exposed (backend uses defaults).
+- **`signal-overview-by-trader`** — multi-asset, **authorIds-direct-lookup scenario**: `--authorIds` + coin selection + `--sortBy` / `--period` (drive capability metrics). Capability tier filters (pnlTier / winRateTier / etc.) not exposed.
 - **`signal-trend-by-filter`** — single coin time-series anchored at `asOfTime` (default = current UTC hour), tier-discovery scenario (full pool filters exposed).
-- **`signal-trend-by-trader`** — single coin time-series anchored at `asOfTime`, authorIds-direct-lookup scenario (no pool filters).
+- **`signal-trend-by-trader`** — single coin time-series anchored at `asOfTime`, authorIds-direct-lookup scenario. `--sortBy` / `--period` exposed; capability tier filters not exposed.
 
 The previous overloaded `smartmoney signal` command (which switched on `--authorIds` presence), `smartmoney overview` (which switched on `--instCcyList`), and the narrow `top-coin-signals` shortcut are all removed. To get the top-N most-watched coins, call `signal-overview-by-filter` (defaults to `--topInstruments=20`).
 
@@ -90,7 +90,7 @@ Each item has an outer ID + 3 nested groups (`notional`, `longShortRatio`, `winR
 ## smartmoney signal-overview-by-trader — Multi-Asset Signal (authorIds-direct-lookup)
 
 ```bash
-okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--json]
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> [--topInstruments <n> | --instCcyList <BTC,ETH,...>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--json]
 ```
 
 Aggregates signals over a hand-picked set of traders. Use this when the caller already has a list of authorIds (e.g. discovered via `traders-by-filter` or `search-trader`) and wants their consensus on multiple coins. Useful for "what do my watchlist of traders think across coins?".
@@ -100,8 +100,10 @@ Aggregates signals over a hand-picked set of traders. Use this when the caller a
 | `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
 | `--topInstruments` | No | `20` | Top-N hottest instruments held by the group. Mutually exclusive with `--instCcyList`. |
 | `--instCcyList` | No | - | Comma-separated base ccys. Mutually exclusive with `--topInstruments`. |
+| `--sortBy` | Yes | `pnl` | Ranking key for the trader set: `pnl` or `pnlRatio` |
+| `--period` | Yes | `7` | Lookback window in days for capability metrics (`winRate.avgLongWinRate` / `avgShortWinRate`). Pass `3` / `7` / `30` / `90`. |
 
-> **Pool filters not exposed** — `_by_trader` is the authorIds-direct-lookup scenario; backend uses sensible defaults. If you need tier-driven filtering instead, use `signal-overview-by-filter`.
+> **Capability tier filters not exposed** — `_by_trader` is the authorIds-direct-lookup scenario; tier filters (`pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`) and `lmtNum` use backend defaults. If you need tier-driven filtering instead, use `signal-overview-by-filter`.
 
 > No `--ts` parameter. Handler uses the current hour.
 
@@ -151,7 +153,7 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 ## smartmoney signal-trend-by-trader — Single-Asset Time-Series (authorIds-direct-lookup)
 
 ```bash
-okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>] [--json]
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>] [--sortBy <pnl|pnlRatio>] [--period <3|7|30|90>] [--json]
 ```
 
 Time-series of a single coin's smart-money signal aggregated over a hand-picked set of traders. Useful for tracking how a specific group's consensus on one coin evolves over time.
@@ -161,10 +163,12 @@ Time-series of a single coin's smart-money signal aggregated over a hand-picked 
 | `--authorIds` | Yes | - | Comma-separated trader IDs (e.g. `1001,1002,1003`) |
 | `--instCcy` | Yes | - | Base currency to scope the time-series, e.g. `BTC` |
 | `--asOfTime` | No | (current UTC hour) | 10-digit UTC anchor `yyyyMMddHH` |
-| `--granularity` | No | `1h` | `1h` or `1d` |
+| `--granularity` | Yes | `1h` | `1h` or `1d` |
 | `--limit` | No | `24` | Bucket count (1–500) |
+| `--sortBy` | Yes | `pnl` | Ranking key for the trader set: `pnl` or `pnlRatio` |
+| `--period` | Yes | `7` | Lookback window in days. Pass `3` / `7` / `30` / `90`. Does NOT affect signal fields (always latest snapshot per bucket). |
 
-> **Pool filters not exposed** — `_by_trader` is the authorIds-direct-lookup scenario; backend uses sensible defaults. If you need tier-driven filtering instead, use `signal-trend-by-filter`.
+> **Capability tier filters not exposed** — `_by_trader` is the authorIds-direct-lookup scenario; tier filters (`pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`) and `lmtNum` use backend defaults. If you need tier-driven filtering instead, use `signal-trend-by-filter`.
 
 Response fields: same as `signal-trend-by-filter`.
 

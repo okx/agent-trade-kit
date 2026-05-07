@@ -5428,6 +5428,12 @@ describe("smartmoney_get_traders_by_filter", () => {
     assert.equal(getLastCall()!.params.period, "90", "period must default to 90, not depend on backend");
   });
 
+  it("applies schema default (sortBy=pnl) explicitly upstream when caller omits it", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()!.params.sortBy, "pnl", "sortBy must default to pnl, not depend on backend");
+  });
+
   it("returns pagination metadata", async () => {
     const { client } = makeMockClientWithData({
       "/api/v5/orbit/public/leaderboard": [
@@ -5489,9 +5495,10 @@ describe("smartmoney_get_performance_by_trader", () => {
     assert.equal(getLastCall()?.params.period, "30");
   });
 
-  it("applies schema default (period=90) explicitly upstream when caller omits it", async () => {
+  it("applies schema defaults (sortBy=pnl, period=90) explicitly upstream when caller omits them", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ authorIds: ["1001"] }, makeContext(client));
+    assert.equal(getLastCall()?.params.sortBy, "pnl", "sortBy must default to pnl, not depend on backend");
     assert.equal(getLastCall()?.params.period, "90", "period must default to 90, not depend on backend");
   });
 
@@ -5777,7 +5784,7 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     assert.equal(params.instId, undefined);
   });
 
-  it("drops pool filter params and lmtNum (authorIds-direct-lookup; backend uses defaults)", async () => {
+  it("forwards sortBy + period; drops capability tier filters and lmtNum (authorIds-direct-lookup)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
@@ -5796,14 +5803,22 @@ describe("smartmoney_get_signal_overview_by_trader", () => {
     const params = getLastCall()!.params;
     assert.equal(params.authorIds, "1001,1002");
     assert.equal(params.topInstruments, 10);
-    // Pool filters / pool sizing are not part of the by-trader surface.
-    assert.equal(params.sortBy, undefined);
-    assert.equal(params.period, undefined);
+    assert.equal(params.sortBy, "pnlRatio");
+    assert.equal(params.period, "30");
+    // Capability tier filters and pool sizing are not part of the by-trader surface.
     assert.equal(params.pnlTier, undefined);
     assert.equal(params.winRateTier, undefined);
     assert.equal(params.maxDrawdownTier, undefined);
     assert.equal(params.aumTier, undefined);
     assert.equal(params.lmtNum, undefined);
+  });
+
+  it("applies schema defaults (sortBy=pnl, period=7) when caller omits them", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorIds: ["1001"] }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.sortBy, "pnl", "sortBy must default to pnl, not depend on backend");
+    assert.equal(params.period, "7", "period must default to 7, not depend on backend");
   });
 });
 
@@ -5907,7 +5922,7 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
     assert.equal(params.instId, undefined);
   });
 
-  it("drops pool filters and lmtNum (authorIds-direct-lookup; backend uses defaults)", async () => {
+  it("forwards sortBy + period; drops capability tier filters and lmtNum (authorIds-direct-lookup)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
@@ -5918,7 +5933,7 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
         maxDrawdownTier: "MR_LE_50",
         aumTier: "AUM_TOP20",
         sortBy: "pnlRatio",
-        period: "7",
+        period: "30",
         lmtNum: "200",
       },
       makeContext(client),
@@ -5926,14 +5941,23 @@ describe("smartmoney_get_signal_trend_by_trader", () => {
     const params = getLastCall()!.params;
     assert.equal(params.authorIds, "1001");
     assert.equal(params.instCcy, "BTC");
-    // Pool filters / pool sizing are not part of the by-trader surface.
+    assert.equal(params.sortBy, "pnlRatio");
+    assert.equal(params.period, "30");
+    // Capability tier filters and pool sizing are not part of the by-trader surface.
     assert.equal(params.pnlTier, undefined);
     assert.equal(params.winRateTier, undefined);
     assert.equal(params.maxDrawdownTier, undefined);
     assert.equal(params.aumTier, undefined);
-    assert.equal(params.sortBy, undefined);
-    assert.equal(params.period, undefined);
     assert.equal(params.lmtNum, undefined);
+  });
+
+  it("applies schema defaults (granularity=1h, sortBy=pnl, period=7) when caller omits them", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ authorIds: ["1001"], instCcy: "BTC" }, makeContext(client));
+    const params = getLastCall()!.params;
+    assert.equal(params.granularity, "1h", "granularity must default to 1h");
+    assert.equal(params.sortBy, "pnl", "sortBy must default to pnl");
+    assert.equal(params.period, "7", "period must default to 7");
   });
 });
 

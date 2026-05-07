@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — `smartmoney` schema: `sortBy` / `period` / `granularity` now required
+
+- All leaderboard + signal tools mark `sortBy` and `period` as `required`; `signal-trend-*` also requires `granularity`. Fixes silent reliance on backend defaults (e.g. `period` documented as `90` but actually returning lifetime cumulative).
+- `performance-by-trader`, `signal-overview-by-trader`, `signal-trend-by-trader` newly accept `sortBy` + `period` (T2 was period-only).
+- Handlers inject defaults explicitly (`sortBy=pnl`; leaderboard `period=90` / signal `period=7`; trend `granularity=1h`) so MCP and CLI paths are deterministic.
+
+Compat: callers that already passed these params or relied on documented defaults are unaffected.
+
 ## [1.3.3-beta.1] - 2026-05-06
 
 ### ⚠ BREAKING — `smartmoney` module redesign

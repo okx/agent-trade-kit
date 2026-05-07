@@ -108,14 +108,14 @@ const LEADERBOARD_POOL_FILTER_PROPS = {
     enum: ["pnl", "pnlRatio"],
     default: "pnl",
     description:
-      "Leaderboard sort key. `pnl` = absolute USD profit; `pnlRatio` = percentage return.",
+      "Required. Leaderboard sort key. `pnl` = absolute USD profit; `pnlRatio` = percentage return. Default `\"pnl\"`.",
   },
   period: {
     type: "string" as const,
     enum: PERIOD_DAYS,
     default: "90",
     description:
-      "Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer 90). " +
+      "Required. Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer 90). " +
       "Default `\"90\"` (matches leaderboard UI). Filters AND ranks traders by their PnL over that window.",
   },
   minPnl: {
@@ -162,7 +162,9 @@ function readPoolFilters(args: Record<string, unknown>): Record<string, unknown>
     const val = readString(args, publicKey);
     if (val !== undefined && val !== "") result[upstreamKey] = val;
   }
-  // Apply schema default for `period` explicitly so MCP behavior does not depend on upstream defaults.
+  // Apply schema defaults explicitly so behavior does not depend on upstream defaults
+  // (CLI bypasses MCP `required` validation, so handler is the only deterministic layer).
+  if (result.sortBy === undefined) result.sortBy = "pnl";
   if (result.period === undefined) result.period = "90";
   return result;
 }
@@ -175,6 +177,10 @@ function readSignalPoolFilters(args: Record<string, unknown>): Record<string, un
     const val = readString(args, key);
     if (val) result[key] = val;
   }
+  // Apply schema defaults explicitly so behavior does not depend on backend defaults
+  // (CLI bypasses MCP `required` validation, so handler is the only deterministic layer).
+  if (result.sortBy === undefined) result.sortBy = "pnl";
+  if (result.period === undefined) result.period = "7";
   return result;
 }
 
@@ -629,6 +635,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description: "Max results per page (default 10, max 100).",
           },
         },
+        required: ["sortBy", "period"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -686,18 +693,26 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description:
               "Trader IDs to look up, e.g. `[\"1001\", \"1002\"]`. Required.",
           },
+          sortBy: {
+            type: "string",
+            enum: ["pnl", "pnlRatio"],
+            default: "pnl",
+            description:
+              "Required. Result sort key. `pnl` = absolute USD profit; `pnlRatio` = percentage return. Default `\"pnl\"`.",
+          },
           period: {
             type: "string",
             enum: PERIOD_DAYS,
             default: "90",
             description:
-              "Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer). Default `\"90\"`.",
+              "Required. Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer). Default `\"90\"`.",
           },
         },
-        required: ["authorIds"],
+        required: ["authorIds", "sortBy", "period"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        assertEnum(args, "sortBy", ["pnl", "pnlRatio"]);
         assertEnum(args, "period", PERIOD_DAYS);
         const authorIds = readArrayAsCsv(args, "authorIds");
         if (!authorIds) {
@@ -711,7 +726,9 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           PATH_LEADERBOARD,
           compactObject({
             authorIds,
-            // Apply schema default explicitly so MCP behavior does not depend on upstream defaults.
+            // Apply schema defaults explicitly so behavior does not depend on backend defaults
+            // (CLI bypasses MCP `required` validation, so handler is the only deterministic layer).
+            sortBy: readString(args, "sortBy") ?? "pnl",
             period: readString(args, "period") ?? "90",
           }),
           publicRateLimit("smartmoney_get_performance_by_trader", SMARTMONEY_RPS),
@@ -1216,6 +1233,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               "Larger pool = stronger signal but slower. Default 100 is fine for most cases.",
           },
         },
+        required: ["sortBy", "period"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -1249,7 +1267,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Multi-asset smart-money signals aggregated over a hand-picked set of traders (`authorIds`). " +
         "Pick instruments via `topInstruments` OR `instCcyList`. " +
-        "Pool sizing / ranking / capability filters not exposed — backend uses defaults for direct-lookup scenarios. " +
+        "Capability tier filters (pnlTier / winRateTier / etc.) not exposed — backend uses defaults for direct-lookup scenarios. " +
         "Use when: caller already knows which traders to follow and wants their cross-asset consensus at the latest hour. " +
         "See also: `smartmoney_get_signal_overview_by_filter` (criteria-defined pool), `smartmoney_get_signal_trend_by_trader` (time-series), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds).",
       isWrite: false,
@@ -1285,11 +1303,28 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
               "Mutually exclusive with `topInstruments`.",
           },
+          sortBy: {
+            type: "string",
+            enum: ["pnl", "pnlRatio"],
+            default: "pnl",
+            description:
+              "Required. Ranking key for the trader set. `pnl` = absolute USD profit; `pnlRatio` = percentage return. Default `\"pnl\"`.",
+          },
+          period: {
+            type: "string",
+            enum: PERIOD_DAYS,
+            default: "7",
+            description:
+              "Required. Lookback window in days for capability metrics (`winRate.avgLongWinRate` / `avgShortWinRate`). " +
+              "Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"7\"`. Does NOT affect signal fields.",
+          },
         },
-        required: ["authorIds"],
+        required: ["authorIds", "sortBy", "period"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        assertEnum(args, "sortBy", ["pnl", "pnlRatio"]);
+        assertEnum(args, "period", PERIOD_DAYS);
         const authorIds = readArrayAsCsv(args, "authorIds");
         if (!authorIds) {
           throw actionableError(
@@ -1312,6 +1347,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             ...(instCcyList
               ? { instCcyList }
               : { topInstruments: topInstrumentsRaw ?? 20 }),
+            // Apply schema defaults explicitly so behavior does not depend on backend defaults
+            // (CLI bypasses MCP `required` validation, so handler is the only deterministic layer).
+            sortBy: readString(args, "sortBy") ?? "pnl",
+            period: readString(args, "period") ?? "7",
           }),
           publicRateLimit("smartmoney_get_signal_overview_by_trader", SMARTMONEY_RPS),
         );
@@ -1375,7 +1414,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               "Top-N traders to pull into the aggregation pool, ranked by `sortBy` (DESC). Default 100, max 2000.",
           },
         },
-        required: ["instCcy"],
+        required: ["instCcy", "granularity", "sortBy", "period"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -1392,7 +1431,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           compactObject({
             instCcy,
             asOfTime: readString(args, "asOfTime"),
-            granularity: readString(args, "granularity"),
+            // Apply schema default explicitly (CLI bypasses MCP `required` validation).
+            granularity: readString(args, "granularity") ?? "1h",
             limit: readNumber(args, "limit"),
             ...readSignalPoolFilters(args),
             lmtNum: readNumber(args, "lmtNum"),
@@ -1410,7 +1450,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Time-series of single-asset smart-money signal aggregated over a hand-picked set of traders (`authorIds`). " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
-        "Pool sizing / ranking / capability filters not exposed — backend uses defaults for direct-lookup scenarios. " +
+        "Capability tier filters (pnlTier / winRateTier / etc.) not exposed — backend uses defaults for direct-lookup scenarios. " +
         "Use when: tracking how a specific group of traders has evolved their long/short consensus over time on one coin. " +
         "See also: `smartmoney_get_signal_trend_by_filter` (criteria-defined pool), `smartmoney_get_signal_overview_by_trader` (latest snapshot only), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds). " +
         "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
@@ -1457,12 +1497,29 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description:
               "Number of buckets to return (newest first), ending at `asOfTime`. Default 24, max 500.",
           },
+          sortBy: {
+            type: "string",
+            enum: ["pnl", "pnlRatio"],
+            default: "pnl",
+            description:
+              "Required. Ranking key for the trader set. `pnl` = absolute USD profit; `pnlRatio` = percentage return. Default `\"pnl\"`.",
+          },
+          period: {
+            type: "string",
+            enum: PERIOD_DAYS,
+            default: "7",
+            description:
+              "Required. Lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"7\"`. " +
+              "Does NOT affect signal fields (which always use the latest snapshot).",
+          },
         },
-        required: ["authorIds", "instCcy"],
+        required: ["authorIds", "instCcy", "granularity", "sortBy", "period"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         assertEnum(args, "granularity", ["1h", "1d"]);
+        assertEnum(args, "sortBy", ["pnl", "pnlRatio"]);
+        assertEnum(args, "period", PERIOD_DAYS);
         const authorIds = readArrayAsCsv(args, "authorIds");
         const instCcy = readString(args, "instCcy");
         if (!authorIds) {
@@ -1483,8 +1540,12 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             authorIds,
             instCcy,
             asOfTime: readString(args, "asOfTime"),
-            granularity: readString(args, "granularity"),
+            // Apply schema defaults explicitly so behavior does not depend on backend defaults
+            // (CLI bypasses MCP `required` validation, so handler is the only deterministic layer).
+            granularity: readString(args, "granularity") ?? "1h",
             limit: readNumber(args, "limit"),
+            sortBy: readString(args, "sortBy") ?? "pnl",
+            period: readString(args, "period") ?? "7",
           }),
           publicRateLimit("smartmoney_get_signal_trend_by_trader", SMARTMONEY_RPS),
         );

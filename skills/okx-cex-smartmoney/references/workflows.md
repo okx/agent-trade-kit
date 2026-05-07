@@ -99,6 +99,8 @@ Present signal summary (each `data[]` item has outer fields + 3 nested groups: `
 - Entry prices (under `notional`): `smartMoneyLongAvgEntry`, `smartMoneyShortAvgEntry`
 - Win rates (under `winRate`): `avgLongWinRate`, `avgShortWinRate`
 
+> **Notional pricing**: All `notional.*` fields and `weightedLongRatio` / `weightedShortRatio` are weighted by each trader's **entry price (`price_avg`)**, NOT mark price. They move only when positions are scaled (open / close / add) and stay constant across hourly buckets when traders hold positions unchanged. For real-time price comparison, compare `notional.smartMoneyLongAvgEntry` / `smartMoneyShortAvgEntry` against `okx market ticker` in parallel.
+
 > Older fields `currentPrice` / `priceChange24h` / `fundingRate` / `openInterest` / `longShortAccountRatio` are no longer returned. For real-time market context, fan out to `okx market ticker` in parallel.
 
 ---
@@ -134,6 +136,8 @@ okx --profile live smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 20
 ```
 
 Present as time-series table: dataVersion, ccy, longRatio, shortRatio, weightedLongRatio, weightedShortRatio, longTraders, shortTraders, tradersWithPosition, tradersQualified, netNotionalUsdt, totalNotionalUsdt.
+
+> **Reading the trend**: `weightedLongRatio` / `weightedShortRatio` / `netNotionalUsdt` / `totalNotionalUsdt` are entry-price-weighted (`price_avg`), not mark-price-weighted. A flat trend across buckets means traders held positions unchanged — it does NOT mean underlying price was flat. To detect actual scaling, watch for changes in these values; to gauge price movement, fetch `okx market candles` separately.
 
 For an authorIds-scoped trend (consensus of a hand-picked set of traders; pool filters not exposed — `_by_trader` is direct-lookup, backend uses defaults):
 
