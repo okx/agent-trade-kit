@@ -3,7 +3,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_OPT_002';
-const USER_PROMPT = `Use the OKX CLI option_place_order tool to place a limit buy order for 1 contract of a BTC call option. First use option_get_instruments to find a valid instrument ID, then place the order at a low premium. The system is in demo/dry-run mode. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI option_place_order tool to place a limit buy order for 1 contract of a BTC call option. First use option_get_instruments to find a valid instrument ID, then place the order at a low premium. The system is in demo/dry-run mode. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.option-place-order', () => {
   const models = getModels();

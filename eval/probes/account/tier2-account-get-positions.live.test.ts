@@ -3,7 +3,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_ACC_002';
-const USER_PROMPT = `Use the OKX CLI account_get_positions tool to list all my current open positions across all instrument types. Summarize the count and any key positions. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI account_get_positions tool to list all my current open positions across all instrument types. Summarize the count and any key positions. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.account-get-positions', () => {
   const models = getModels();

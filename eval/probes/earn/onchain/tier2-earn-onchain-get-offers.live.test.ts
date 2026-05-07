@@ -3,7 +3,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_EARN_OC_001';
-const USER_PROMPT = `Use the OKX CLI onchain_earn_get_offers tool to list available on-chain earn products. Show at least 2 offers with their APY or yield rates. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI onchain_earn_get_offers tool to list available on-chain earn products. Show at least 2 offers with their APY or yield rates. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.earn-onchain-get-offers', () => {
   const models = getModels();

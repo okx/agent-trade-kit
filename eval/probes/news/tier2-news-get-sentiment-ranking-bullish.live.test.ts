@@ -4,7 +4,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_NEWS_006';
-const USER_PROMPT = `Use the OKX CLI news_get_sentiment_ranking tool to find the most bullish cryptocurrencies right now. Pass period="24h", sortBy="bullish". List the top coins with the highest bullish ratio. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI news_get_sentiment_ranking tool to find the most bullish cryptocurrencies right now. Pass period="24h", sortBy="bullish". List the top coins with the highest bullish ratio. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.news-get-sentiment-ranking-bullish', () => {
   const models = getModels();

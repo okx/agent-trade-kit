@@ -3,7 +3,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_SWAP_001';
-const USER_PROMPT = `Use the OKX CLI swap_get_positions tool to check my current perpetual swap positions. Report any open positions or confirm there are none. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI swap_get_positions tool to check my current perpetual swap positions. Report any open positions or confirm there are none. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.swap-get-positions', () => {
   const models = getModels();

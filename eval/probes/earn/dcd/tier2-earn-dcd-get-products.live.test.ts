@@ -3,7 +3,7 @@ import { describe, it } from 'vitest';
 import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared/eval-helpers.js';
 
 const EVAL_NONCE = 'EVAL_EARN_DCD_001';
-const USER_PROMPT = `Use the OKX CLI dcd_get_products tool to list available Dual Currency Deposit products for BTC-USDT. Show the available strike prices or yields. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI dcd_get_products tool to list available Dual Currency Deposit products for BTC-USDT. Show the available strike prices or yields. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.earn-dcd-get-products', () => {
   const models = getModels();

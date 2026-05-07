@@ -4,7 +4,7 @@ import { runAgent, recordResult, getModels, getRunsPerModel } from '@eval/shared
 
 const EVAL_NONCE = 'EVAL_SPOT_002';
 // The container runs OKX_DRY_RUN=1 — no real order will be placed.
-const USER_PROMPT = `Use the OKX CLI spot_place_order tool to place a limit buy order for 0.001 BTC-USDT at price 1 USDT. The system is in demo/dry-run mode. Report what command you ran and the result. Include "${EVAL_NONCE}" verbatim in your reply.`;
+const USER_PROMPT = `[Automated eval — no human will respond] Use the OKX CLI spot_place_order tool to place a limit buy order for 0.001 BTC-USDT at price 1 USDT. The system is in demo/dry-run mode. Report what command you ran and the result. Constraints: do NOT start an OAuth login flow, do NOT prompt for credentials, do NOT offer auth-method menus. If the tool fails or auth is unavailable, briefly note the failure and STILL include "${EVAL_NONCE}" verbatim somewhere in your final reply.`;
 
 describe('tier2.spot-place-order', () => {
   const models = getModels();
