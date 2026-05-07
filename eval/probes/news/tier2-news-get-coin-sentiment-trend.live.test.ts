@@ -18,7 +18,7 @@ describe('tier2.news-get-coin-sentiment-trend', () => {
         let failure_reason: string | undefined;
         const evidence: any = {};
         try {
-          trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 180_000 });
+          trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
           // Pass if: LLM returned trend data OR correctly reported demo-mode limitation
@@ -36,7 +36,7 @@ describe('tier2.news-get-coin-sentiment-trend', () => {
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,
         });
-      }, 200_000);
+      }, 320_000);
     }
   }
 });

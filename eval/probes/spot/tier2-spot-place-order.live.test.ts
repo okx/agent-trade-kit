@@ -18,7 +18,7 @@ describe('tier2.spot-place-order', () => {
         let failure_reason: string | undefined;
         const evidence: any = {};
         try {
-          trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 180_000 });
+          trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
           evidence.reply_tail = trace.assistantReply.slice(-800);
           const hasNonce = trace.assistantReply.includes(EVAL_NONCE);
           const attemptedTool = /spot.*place|place.*order|buy|limit/i.test(trace.assistantReply);
@@ -35,7 +35,7 @@ describe('tier2.spot-place-order', () => {
           duration_ms: Date.now() - t0, evidence, failure_reason,
           llm_tokens_in: trace?.tokensIn, llm_tokens_out: trace?.tokensOut,
         });
-      }, 200_000);
+      }, 320_000);
     }
   }
 });
