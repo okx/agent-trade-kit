@@ -6,7 +6,6 @@
  */
 
 import {
-  createWriteStream,
   mkdirSync,
   chmodSync,
   existsSync,
@@ -15,8 +14,7 @@ import {
 } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join, dirname } from "node:path";
-import { get as httpsGet } from "node:https";
-import { get as httpGet } from "node:http";
+import { download, downloadText } from "../utils/http.js";
 
 import type { AuthLocalStatus } from "./installer-types.js";
 import type { CdnChecksum, CdnSource, InstallResult, RemoveResult } from "../pilot/installer-types.js";
@@ -250,97 +248,4 @@ export function removeAuthBinary(binaryPath?: string): RemoveResult {
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to remove ${resolvedPath}: ${msg}`);
   }
-}
-
-// ---------------------------------------------------------------------------
-// HTTP utilities (duplicated from pilot/installer.ts — same pattern)
-// ---------------------------------------------------------------------------
-
-function isRedirect(statusCode: number | undefined): boolean {
-  return statusCode !== undefined && statusCode >= 300 && statusCode < 400;
-}
-
-function validateRedirect(
-  res: import("node:http").IncomingMessage,
-  requestUrl: string,
-  redirectCount: number,
-  maxRedirects: number,
-): string {
-  if (redirectCount > maxRedirects) {
-    throw new Error(`Too many redirects (${maxRedirects})`);
-  }
-  const location = res.headers.location!;
-  if (requestUrl.startsWith("https") && !location.startsWith("https")) {
-    throw new Error("Refused HTTPS → HTTP redirect downgrade");
-  }
-  return location;
-}
-
-function fetchResponse(
-  url: string,
-  timeoutMs: number,
-): Promise<import("node:http").IncomingMessage> {
-  return new Promise((resolve, reject) => {
-    let redirects = 0;
-    const maxRedirects = 5;
-
-    function doRequest(requestUrl: string): void {
-      const reqFn = requestUrl.startsWith("https") ? httpsGet : httpGet;
-      const req = reqFn(requestUrl, { timeout: timeoutMs }, (res) => {
-        if (isRedirect(res.statusCode) && res.headers.location) {
-          redirects++;
-          try {
-            const location = validateRedirect(res, requestUrl, redirects, maxRedirects);
-            res.resume();
-            doRequest(location);
-          } catch (err) {
-            reject(err);
-          }
-          return;
-        }
-
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode ?? "unknown"}`));
-          return;
-        }
-
-        resolve(res);
-      });
-
-      req.on("error", reject);
-      req.on("timeout", () => {
-        req.destroy();
-        reject(new Error("Download timed out"));
-      });
-    }
-
-    doRequest(url);
-  });
-}
-
-function download(url: string, destPath: string, timeoutMs: number): Promise<void> {
-  return fetchResponse(url, timeoutMs).then(
-    (res) =>
-      new Promise<void>((resolve, reject) => {
-        const file = createWriteStream(destPath);
-        res.pipe(file);
-        file.on("finish", () => file.close(() => resolve()));
-        file.on("error", (err) => {
-          try { unlinkSync(destPath); } catch { /* ignore */ }
-          reject(err);
-        });
-      }),
-  );
-}
-
-function downloadText(url: string, timeoutMs: number): Promise<string> {
-  return fetchResponse(url, timeoutMs).then(
-    (res) =>
-      new Promise<string>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
-        res.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-        res.on("error", reject);
-      }),
-  );
 }
