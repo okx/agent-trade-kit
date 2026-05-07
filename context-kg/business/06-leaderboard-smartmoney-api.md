@@ -322,9 +322,9 @@ Time-series of aggregated long/short signal across hourly/daily buckets for one 
 | `ccy` | String | Base currency / instrument key for this bucket |
 | `dataVersion` | String | Snapshot version `yyyyMMddHH` UTC (10-digit) |
 | `longRatio` | String | Headcount long ratio = longTraders / tradersWithPosition (0~1, NULL when no traders) |
-| `shortRatio` | String | `1 − longRatio` |
+| `shortRatio` | String | Headcount short ratio = shortTraders / tradersWithPosition |
 | `weightedLongRatio` | String | Notional-weighted long ratio = Σ(long_notional) / Σ(notional) |
-| `weightedShortRatio` | String | Notional-weighted short ratio |
+| `weightedShortRatio` | String | Notional-weighted short ratio = Σ(short_notional) / Σ(notional) |
 | `longTraders` | Integer | Count of pool traders currently long (incl. dual-side) |
 | `shortTraders` | Integer | Count of pool traders currently short |
 | `tradersWithPosition` | Integer | Pool traders holding this asset at this bucket. Few = unreliable signal. |
@@ -395,9 +395,9 @@ Outer item carries identity + headcount; aggregate metrics live in three nested 
 | Field | Type | Notes |
 |---|---|---|
 | `longRatio` | String | Headcount long ratio = longTraders / tradersWithPosition. NULL when no traders |
-| `shortRatio` | String | `1 − longRatio` |
+| `shortRatio` | String | Headcount short ratio = shortTraders / tradersWithPosition |
 | `weightedLongRatio` | String | Notional-weighted long ratio. NULL when no notional |
-| `weightedShortRatio` | String | Notional-weighted short ratio |
+| `weightedShortRatio` | String | Notional-weighted short ratio = Σ(short_notional) / Σ(notional) |
 | `longRatioVs1h` | String | `longRatio − hist_1h.longRatio`. NULL when no hist |
 | `longRatioVs24h` | String | `longRatio − hist_24h.longRatio`. NULL when no hist |
 | `longRatioVs7d` | String | `longRatio − hist_7d.longRatio`. NULL when no hist |

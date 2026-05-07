@@ -454,7 +454,10 @@ const SIGNAL_ITEM_PROPS = {
       longRatioVs24h: { type: "string", description: "longRatio − hist_24h.longRatio. NULL when no hist." },
       longRatioVs7d: { type: "string", description: "longRatio − hist_7d.longRatio. NULL when no hist." },
       longRatio: { type: "string", description: "Headcount long ratio = longTraders / tradersWithPosition. NULL when no traders." },
-      shortRatio: { type: "string", description: "1 − longRatio. NULL when no traders." },
+      shortRatio: {
+        type: "string",
+        description: "Headcount short ratio = shortTraders / tradersWithPosition. NULL when no traders.",
+      },
       weightedLongRatio: {
         type: "string",
         description: "Notional-weighted long ratio = Σ(long_notional) / Σ(notional). NULL when no notional.",
@@ -492,15 +495,18 @@ const SIGNAL_HISTORY_ITEM_PROPS = {
   },
   shortRatio: {
     type: "string",
-    description: "Headcount short ratio at this bucket = 1 − longRatio. Decimal 0~1.",
+    description: "Headcount short ratio at this bucket = shortTraders / tradersWithPosition. Decimal 0~1.",
   },
   weightedLongRatio: {
     type: "string",
-    description: "Notional-weighted long ratio at this bucket. Decimal 0~1.",
+    description: "Notional-weighted long ratio at this bucket = Σ(long_notional) / Σ(notional). Decimal 0~1.",
   },
   weightedShortRatio: {
     type: "string",
-    description: "Notional-weighted short ratio at this bucket. Decimal 0~1.",
+    description:
+      "Notional-weighted short ratio at this bucket = Σ(short_notional) / Σ(notional). " +
+      "Unlike `shortRatio` (headcount), this IS exclusive — a single position is either long " +
+      "or short, so weightedLongRatio + weightedShortRatio = 1 always.",
   },
   longTraders: {
     type: "integer",

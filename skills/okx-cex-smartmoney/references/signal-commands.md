@@ -67,7 +67,7 @@ Each item has an outer ID + 3 nested groups (`notional`, `longShortRatio`, `winR
 | Field | Type | Description |
 |---|---|---|
 | `longRatio` | String | `longTraders / tradersWithPosition`, decimal [0, 1] |
-| `shortRatio` | String | `1 − longRatio` |
+| `shortRatio` | String | `shortTraders / tradersWithPosition` |
 | `weightedLongRatio` | String | `Σ(long_notional) / Σ(notional)` |
 | `weightedShortRatio` | String | `Σ(short_notional) / Σ(notional)` |
 | `longRatioVs1h` | String | `longRatio − hist_1h.longRatio`; NULL when no hist |
@@ -131,10 +131,10 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 |---|---|---|
 | `ccy` | String | Base currency / instrument key |
 | `dataVersion` | String | UTC `yyyyMMddHH` (10 digits, e.g. `2026042820`) |
-| `longRatio` | String | Long ratio at this bucket |
-| `shortRatio` | String | Short ratio = `1 − longRatio` |
-| `weightedLongRatio` | String | Notional-weighted long ratio |
-| `weightedShortRatio` | String | Notional-weighted short ratio |
+| `longRatio` | String | Long ratio at this bucket = `longTraders / tradersWithPosition` |
+| `shortRatio` | String | Short ratio at this bucket = `shortTraders / tradersWithPosition` |
+| `weightedLongRatio` | String | Notional-weighted long ratio = `Σ(long_notional) / Σ(notional)` |
+| `weightedShortRatio` | String | Notional-weighted short ratio = `Σ(short_notional) / Σ(notional)` |
 | `longTraders` | Integer | Traders with long exposure (includes dual-side) |
 | `shortTraders` | Integer | Traders with short exposure (includes dual-side) |
 | `tradersWithPosition` | Integer | Traders holding a position in this bucket |
