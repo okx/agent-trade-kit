@@ -629,8 +629,26 @@ describe("loadConfig — demo/live with toml profile", () => {
 
 describe("loadConfig — partial API credentials", () => {
   let saved: SavedEnv;
-  beforeEach(() => { saved = saveEnv(); });
-  afterEach(() => { restoreEnv(saved); });
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
 
   it("throws ConfigError when only OKX_API_KEY is set", async () => {
     process.env.OKX_API_KEY = "some-key";
@@ -676,8 +694,26 @@ describe("loadConfig — partial API credentials", () => {
 
 describe("loadConfig — OAuth fallback", () => {
   let saved: SavedEnv;
-  beforeEach(() => { saved = saveEnv(); });
-  afterEach(() => { restoreEnv(saved); });
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
 
   it("hasAuth=true when OAuth binary reports logged_in (no API key)", async () => {
     const mockBin = join(fileURLToPath(new URL(".", import.meta.url)), "fixtures", "mock-auth-binary.mjs");
