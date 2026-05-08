@@ -11,6 +11,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.3.3-beta.3] - 2026-05-08
+
+### Added
+
+- **Windows named-pipe token retrieval for `okx auth`** (`packages/core/src/auth/`): On Windows hosts, OAuth bearer tokens are now fetched via a named pipe instead of fd3 forwarding, removing the requirement for WSL or elevated privileges. (!310)
+
+- **`--tpLevel` multi-tier take-profit flag (Phase 3b)**: Pass `--tpLevel` multiple times on `okx {swap,spot,futures} place` and `algo place` to set independent TP tiers (e.g. `--tpLevel "px:78000,sz:0.5,kind:limit" --tpLevel "px:81000,sz:0.5,kind:market"`). Valid keys: `px`, `sz`, `kind`, `triggerPx`, `triggerPxType`, `amendPxOnTrigger`, `clOrdId`. Combining `--tpLevel` with legacy `--tpOrdPx`/`--tpTriggerPx` is rejected at the CLI layer. Not exposed in MCP tool descriptions or skill workflows (intentional). (!292, #183)
+
+- **Phase 3a+c CLI power-user flags**: Six new optional flags — `--tpTriggerRatio`/`--slTriggerRatio` (ratio-based TP/SL triggers), `--closeFraction` (partial-position close, mutually exclusive with `--sz`), `--tradeQuoteCcy` (SPOT quote currency selection), `--banAmend` (disable OKX auto-amend on SPOT market orders), `--pxAmendType` (price out-of-range correction control). Applies to `okx {swap,spot,futures} place` and `okx {swap,futures} algo place`. No MCP or skill exposure (intentional). (!291, #182)
+
+- **LLM eval probe coverage completed to 17/17 MCP modules** (`eval/probes/`): All remaining modules now have probe files at `eval/probes/<module>/tier2-<tool_name>.live.test.ts` using trace-based assertions (`findToolCall`). Full-suite 17/17 module coverage is now enforced by the CI `eval-probe-check` gate. (!303)
+
+### Fixed
+
+- **Log disk usage bounded with retention sweep** (`packages/core/src/logger.ts`): A startup sweep now prunes log files in `~/.okx/logs/` beyond the configured retention window, preventing unbounded disk growth on long-running installations. Previously, log files accumulated indefinitely. (!312)
+
+- **`event_browse` concurrent fetch cap** (`packages/core/src/tools/event-trade.ts`, `event-helpers.ts`): Replaced unbounded `Promise.all` with a semaphore capped at 8 concurrent market-fetch requests (OKX window is 20 req; 12 reserved as buffer for retries). Switched to `Promise.allSettled` so a single failing series no longer aborts the entire browse — series with no active contracts are silently skipped. (!300, #146)
+
+- **`cmdAuthRemove` permission-denied error handling** (`packages/cli/src/commands/auth.ts`): The existing error path when `removeAuthBinary()` throws (e.g. EACCES) now has integration test coverage: `errorLine` is emitted in text mode, `{status:"failed",error:<msg>}` in JSON mode, and `process.exitCode` is set to `1` in both cases with no rethrow. (!299, #159)
+
+- **Layered Architecture diagram** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`): Replaced the single-path waterfall diagram — which incorrectly labeled `packages/mcp/src/index.ts` as "CLI entry" — with a two-binary diagram showing `okx-trade-mcp` and `okx` as independent binaries that both import from the shared `@agent-tradekit/core` SDK. (!296, #185)
+
+### Changed
+
+- **`linux-arm64` pilot binary now routes to native arm64** (`packages/core/src/pilot/installer.ts`): The previous `linux-arm64 → linux-x64` stop-gap fallback is removed. The platform now routes directly to the native arm64 binary published at `/upgradeapp/tools/pilot/linux-arm64/okx-pilot`, eliminating qemu/binfmt emulation overhead on ARM64 Linux hosts. (!295)
+
+- **Smart money skill refreshed** (`skills/`): Updated trigger phrases, workflow guidance, and tool surface descriptions to reflect the current `smartmoney_*` tool set and signal semantics. (!294)
+
+- **`context-kg/` mapping sections updated** (`context-kg/business/06-leaderboard-smartmoney-api.md`, `07-dcd-api.md`, `08-dca-api.md`): Rewrote the "Mapping to…" sections in all three docs to match the shipped tool surface: `06` now lists the 5 shipped `smartmoney_*` tools; `07` lists the 6 flat `dcd_*` tools with bundling-decision notes; `08` lists the 5 unified `dca_*` tools plus a new "Backlog (not yet wrapped)" subsection for the 10 V2-only upstream paths. (!302, #187)
+
+---
+
 ## [1.3.3-beta.2] - 2026-05-08
 
 ### Docs — `smartmoney` signal tools: clarify linear-only scope (SIG-01)
