@@ -84,7 +84,7 @@ Paginated list of qualifying traders with filter and sort. Backed by priAPI `/pr
 |---|---|---|---|---|
 | `updateTime` | `updateTime` | String | — | Snapshot version `yyyyMMddHHmm` (UTC+8). Updated every ~5 min. Omit for latest. **NOT** the same as signal-side `asOfTime` (10-digit UTC). |
 | `sortBy` | `sortBy` | String | `pnl` | Enum: `pnl`, `pnlRatio` |
-| `period` | `period` | String | `90` | Enum: `3` / `7` / `30` / `90` (days) — pass quoted (`"90"`, NOT integer) |
+| `period` | `period` | String | `90` | Enum: `3` / `7` / `30` / `90` (days) |
 | `pnl` | `minPnl` | String | — | Numeric threshold (PnL ≥ value) — handler renames public `minPnl` → upstream `pnl` |
 | `winRate` | `minWinRate` | String | — | Decimal (e.g. `"0.8"` = ≥80%) — handler renames public `minWinRate` → upstream `winRate` |
 | `maxDrawdown` | `maxDrawdown` | String | — | Decimal (drawdown ≤ value) — same name on both sides |

@@ -51,7 +51,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     enum: PERIOD_DAYS,
     default: "7",
     description:
-      "Lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer 7). " +
+      "Lookback window in days. One of `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. " +
       "Drives capability metrics (avgLongWinRate / avgShortWinRate) and the `winRateTier` filter. " +
       "Does NOT affect signal fields (which always use the latest snapshot).",
   },
@@ -119,31 +119,31 @@ const LEADERBOARD_POOL_FILTER_PROPS = {
     enum: PERIOD_DAYS,
     default: "90",
     description:
-      "Required. Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer 90). " +
+      "Required. Performance lookback window in days. One of `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. " +
       "Default `\"90\"` (matches leaderboard UI). Filters AND ranks traders by their PnL over that window.",
   },
   minPnl: {
     type: "string" as const,
     description:
-      "Minimum absolute PnL in USD. Pass as a quoted numeric string, e.g. `\"10000\"` (NOT integer 10000) → traders with PnL ≥ $10,000. " +
+      "Minimum absolute PnL in USD as a string, e.g. `\"10000\"` → traders with PnL ≥ $10,000. " +
       "Numeric threshold — distinct from the signal-side `pnlTier` percentile enum.",
   },
   minWinRate: {
     type: "string" as const,
     description:
-      "Minimum win-rate as decimal in 0~1 range. Pass as a quoted numeric string, e.g. `\"0.8\"` (NOT number 0.8) → traders with win-rate ≥ 80%. " +
+      "Minimum win-rate as a decimal in 0~1 range, passed as a string, e.g. `\"0.8\"` → traders with win-rate ≥ 80%. " +
       "Numeric threshold — distinct from the signal-side `winRateTier` enum.",
   },
   maxDrawdown: {
     type: "string" as const,
     description:
-      "Maximum drawdown as decimal. Pass as a quoted numeric string, e.g. `\"0.1\"` (NOT number 0.1) → traders with drawdown ≤ 10%. Lower = lower risk. " +
+      "Maximum drawdown as a decimal, passed as a string, e.g. `\"0.1\"` → traders with drawdown ≤ 10%. Lower = lower risk. " +
       "Numeric threshold — distinct from the signal-side `maxDrawdownTier` enum.",
   },
   minAum: {
     type: "string" as const,
     description:
-      "Minimum AUM (Assets Under Management) in USD. Pass as a quoted numeric string, e.g. `\"1000\"` (NOT integer 1000) → traders with AUM ≥ $1,000. " +
+      "Minimum AUM (Assets Under Management) in USD as a string, e.g. `\"1000\"` → traders with AUM ≥ $1,000. " +
       "Numeric threshold — distinct from the signal-side `aumTier` percentile enum.",
   },
 };
@@ -618,7 +618,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           updateTime: {
             type: "string",
             description:
-              "Snapshot version key. Pass as a quoted 12-digit string `yyyyMMddHHmm` (UTC+8), e.g. `\"202604301815\"` (NOT integer). " +
+              "Snapshot version key — 12-digit `yyyyMMddHHmm` (UTC+8) as a string, e.g. `\"202604301815\"`. " +
               "Omit to query the latest snapshot (refreshed every ~5 min).",
           },
           ...LEADERBOARD_POOL_FILTER_PROPS,
@@ -712,7 +712,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             enum: PERIOD_DAYS,
             default: "90",
             description:
-              "Required. Performance lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"` (NOT integer). Default `\"90\"`.",
+              "Required. Performance lookback window in days. One of `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"90\"`.",
           },
         },
         required: ["authorIds", "sortBy", "period"],
@@ -1329,7 +1329,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             default: "7",
             description:
               "Required. Lookback window in days for capability metrics (`winRate.avgLongWinRate` / `avgShortWinRate`). " +
-              "Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"7\"`. Does NOT affect signal fields.",
+              "One of `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"7\"`. Does NOT affect signal fields.",
           },
         },
         required: ["authorIds", "sortBy", "period"],
@@ -1400,7 +1400,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           asOfTime: {
             type: "string",
             description:
-              "Anchor snapshot time. Pass as a quoted 10-digit string `yyyyMMddHH` UTC, e.g. `\"2026050100\"` (NOT integer 2026050100). " +
+              "Anchor snapshot time — 10-digit `yyyyMMddHH` UTC as a string, e.g. `\"2026050100\"`. " +
               "Returns the latest `limit` buckets ending at this anchor. " +
               "Omit to use the current UTC hour.",
           },
@@ -1495,7 +1495,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           asOfTime: {
             type: "string",
             description:
-              "Anchor snapshot time. Pass as a quoted 10-digit string `yyyyMMddHH` UTC, e.g. `\"2026050100\"` (NOT integer 2026050100). " +
+              "Anchor snapshot time — 10-digit `yyyyMMddHH` UTC as a string, e.g. `\"2026050100\"`. " +
               "Returns the latest `limit` buckets ending at this anchor. " +
               "Omit to use the current UTC hour.",
           },
@@ -1526,7 +1526,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             enum: PERIOD_DAYS,
             default: "7",
             description:
-              "Required. Lookback window in days. Pass as a quoted string: `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"7\"`. " +
+              "Required. Lookback window in days. One of `\"3\"` / `\"7\"` / `\"30\"` / `\"90\"`. Default `\"7\"`. " +
               "Does NOT affect signal fields (which always use the latest snapshot).",
           },
         },
