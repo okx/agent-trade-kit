@@ -4,7 +4,7 @@
 
 | # | Trader | 30d PnL | Return | Win Rate | Max DD | Asset |
 |---|--------|---------|--------|----------|--------|-------|
-| 1 | {nickName} | ${pnl} | {pnlRatio}% | {winRatio}% | {maxRetreat}% | ${asset} |
+| 1 | {nickName} | ${pnl} | {pnlRatio}% | {winRate}% | {maxDrawdown}% | ${asset} |
 
 ## Trader Profile Template
 
@@ -12,8 +12,8 @@
 === {nickName} ===
 Author ID:    {authorId}
 PnL:          ${pnl} ({pnlRatio}%)
-Win Rate:     {winRatio}%
-Max Drawdown: {maxRetreat}%
+Win Rate:     {winRate}%
+Max Drawdown: {maxDrawdown}%
 Total Asset:  ${asset}
 Onboard Days: {onboardDuration}
 ```

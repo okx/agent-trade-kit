@@ -11,6 +11,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3-beta.2] - 2026-05-08
+
+### Docs — `smartmoney` signal tools: clarify linear-only scope (SIG-01)
+
+`signal-*` tools and skill docs now state that `instCcyList` / `instCcy` aggregate **USDT/USDS-margined contracts only** — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are silently excluded by upstream. No behavior change.
+
+### Changed — `smartmoney` schema: `sortBy` / `period` / `granularity` now required
+
+- All leaderboard + signal tools mark `sortBy` and `period` as `required`; `signal-trend-*` also requires `granularity`. Fixes silent reliance on backend defaults (e.g. `period` documented as `90` but actually returning lifetime cumulative).
+- `performance-by-trader`, `signal-overview-by-trader`, `signal-trend-by-trader` newly accept `sortBy` + `period` (T2 was period-only).
+- Handlers inject defaults explicitly (`sortBy=pnl`; leaderboard `period=90` / signal `period=7`; trend `granularity=1h`) so MCP and CLI paths are deterministic.
+
+Compat: callers that already passed these params or relied on documented defaults are unaffected.
+
+## [1.3.3-beta.1] - 2026-05-06
+
+### ⚠ BREAKING — `smartmoney` module redesign
+
+Smart Money MCP/CLI surface is fully rewritten for AI-agent disambiguation. **No compat shim** — old tool/parameter/field names are removed. Full rationale in [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md).
+
+CLI parity: each CLI command is the MCP tool name minus `smartmoney_` and `get_`, snake → kebab (e.g. `smartmoney_get_traders_by_filter` ↔ `okx smartmoney traders-by-filter`). The `--authorIds` / `--instCcyList` flags accept comma-separated input (CLI splits to array at the boundary).
+
+#### Tool surface (8 → 10 atomic tools)
+
+| Old (1.3.2) | New | Notes |
+|---|---|---|
+| `get_traders` (pool-filter mode) | `get_traders_by_filter` | `limit` default 100 → 10 |
+| `get_traders` (authorIds mode) | `get_performance_by_trader` | direct lookup, no pool filter |
+| `get_trader_records` | `get_trader_orders_history` | aligns with `*_get_orders` family |
+| `get_trader_positions` | `get_trader_positions` | name unchanged |
+| `get_trader_position_history` | `get_trader_positions_history` | pluralized |
+| `get_signal` (pool-filter mode) | `get_signal_overview_by_filter` | `ts` removed; `topInstruments` (default 20) subsumes "top-coin overview" |
+| `get_signal` (authorIds mode) | `get_signal_overview_by_trader` | tighter input — pool filters removed (use `_by_filter` for tier discovery) |
+| `get_signal_history` | `get_signal_trend_by_filter` | renamed for symmetry with `_by_trader` sibling |
+| `get_overview`, `get_top_coin_signals`, `get_trader_detail` | _(removed)_ | superseded; `_trader_detail` was non-atomic |
+| _(new)_ | `search_trader` | nickname → authorId resolution (≤10 matches, follower-count DESC) |
+| _(new)_ | `get_signal_trend_by_trader` | single-asset time-series restricted to authorIds |
+
+#### Input changes
+
+- **Arrays replace CSV strings** for `authorIds` and `instCcyList` (typed arrays catch shape mistakes earlier than runtime CSV parsing).
+- **Leaderboard pool-filter rename** to disambiguate from signal-side `*Tier` enums: `pnl` → `minPnl`, `winRate` → `minWinRate`, `asset` → `minAum` (`maxDrawdown` unchanged). Signal-side keeps `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`.
+- **Time anchors split by family**: leaderboard uses `updateTime` (12-digit `yyyyMMddHHmm` UTC+8); signal-trend uses optional `asOfTime` (10-digit `yyyyMMddHH` UTC, defaults to current hour); signal-overview takes no time input. `ts` and `dataVersion` removed as inputs everywhere.
+- **`signal_*_by_trader` no longer takes pool filters** — pool-filter axis is exclusive to `_by_filter` siblings, see [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) §13.
+- **Trader-side `instCcy` → `instId`** on `_trader_positions` / `_positions_history` / `_orders_history`: accepts full `instId` or bare base ccy; handler extracts base.
+- **Signal pool-filter `period`** (3/7/30/90, default 7) now exposed on every signal-side tool (previously leaderboard only).
+- **`lmtNum` max 500 → 2000** on signal-overview tools.
+
+#### Output changes
+
+- **Leaderboard fields renamed** (everywhere): `winRatio` → `winRate`, `maxRetreat` → `maxDrawdown`, `dataVersion` → `updateTime` (leaderboard-only; signal items keep `dataVersion` at bucket level).
+- **Signal-overview reshaped to nested groups** per OpenAPI `/overview` spec — outer `ccy` plus `notional` / `longShortRatio` / `winRate` objects. Old flat fields (`vs1h` / `vs24h` / `vs7d`, top-level `longNotionalUsdt`, etc.) removed.
+- **Added** `direction` (derived `"long" | "short"` from `posSide` + sign of `pos`) and `upl` (unrealized PnL, quote ccy) on `_trader_positions`.
+- **Removed** `topNUsed`, `currentPrice`, `priceChange24h`, `fundingRate`, `openInterest`, `longShortAccountRatio`, `ts` from signal/overview output.
+
+#### Other
+
+- MCP tool annotations (`readOnlyHint` / `idempotentHint` / `openWorldHint`) on every tool.
+- Actionable error messages replace opaque `sCode` strings.
+
+#### Migration
+
+```ts
+// Multi-coin overview — instCcyList still works; no time input
+smartmoney_get_signal_overview_by_filter({ instCcyList: ["BTC", "ETH"] })
+
+// Single-coin signal-history → signal-trend; asOfTime is optional
+smartmoney_get_signal_trend_by_filter({ instCcy: "BTC", granularity: "1h", limit: 24 })
+
+// trader_detail composite removed → fan out 3 atomic calls in parallel
+Promise.all([
+  smartmoney_get_performance_by_trader({ authorIds: ["X"] }),
+  smartmoney_get_trader_positions({ authorId: "X" }),
+  smartmoney_get_trader_orders_history({ authorId: "X", limit: 50 }),
+])
+```
+
+---
+
 ### Added
 
 - **Windows support for OAuth token retrieval** (`packages/core/src/auth/binary.ts`). `execAuthToken()` now dispatches on `process.platform`: Unix keeps the existing fd-3 channel, while Windows creates a per-invocation named pipe `\\.\pipe\okx-auth-<256-bit-random>`, listens on it, and passes the name to the child via the `OKX_AUTH_TOKEN_PIPE` environment variable. The `okx-auth` Rust binary opens that pipe with `CreateFileW(FILE_GENERIC_WRITE, OPEN_EXISTING)`, writes the access token, and closes — signalling EOF to the parent. The pipe name is enforced to start with `\\.\pipe\okx-auth-` (the binary rejects arbitrary targets), and `OKX_AUTH_TOKEN_PIPE` is scrubbed by the child after read so it never leaks to grandchildren. Both platforms share the same exit-code → typed-error mapping (`finalizeToken` helper), so error messages are identical regardless of OS. Windows users can now complete the full `okx auth login` → token-backed REST flow end-to-end; previously the binary spawned successfully but the consumer's fd-3 read found nothing because Windows doesn't inherit POSIX file descriptors. The new code path is covered on POSIX hosts via UNIX-domain-socket substitution (`net.createServer` abstracts the transport), so CI does not require a Windows runner.
@@ -24,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Layered Architecture diagram** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`): replaced the single-path waterfall diagram that incorrectly labeled `packages/mcp/src/index.ts` as "CLI entry" with a two-binary diagram showing `okx-trade-mcp` and `okx` as independent binaries that both import from `@agent-tradekit/core` (shared SDK). Closes #185.
 - **`docs/faq.md` — API key storage answer**: added a clarifying sentence that the CLI (`okx`) and the MCP server (`okx-trade-mcp`) each read `~/.okx/config.toml` independently with no dependency between them.
 
-### Changed
+### Changed (other)
 
 - **`linux-arm64` hosts now use native arm64 pilot binary** (`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`). The previous `linux-arm64 → linux-x64` fallback (introduced as a stop-gap when no native binary was on CDN) downloaded the x64 binary and ran it via qemu/binfmt emulation. The native arm64 binary has been published at `/upgradeapp/tools/pilot/linux-arm64/okx-pilot` (verified 2026-04-29); routing to it directly removes the emulation overhead — faster startup, lower CPU.
 

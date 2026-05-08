@@ -11,6 +11,85 @@
 
 ## [Unreleased]
 
+## [1.3.3-beta.2] - 2026-05-08
+
+### 文档 —— `smartmoney` 信号工具：明确仅覆盖 USDT/USDS 本位（SIG-01）
+
+`signal-*` 工具及 skill 文档明确 `instCcyList` / `instCcy` **只聚合 USDT/USDS 本位合约**——币本位（`-USD-SWAP` / `-USD-DELIVERY`）仓位被上游静默剔除。无行为变更。
+
+### Changed —— `smartmoney` schema：`sortBy` / `period` / `granularity` 改为必填
+
+- 所有 leaderboard 和 signal 系列工具将 `sortBy` 和 `period` 标为 `required`；`signal-trend-*` 额外要求 `granularity`。修复原本依赖后端兜底导致的不一致（例如文档写 `period=90`，实际后端返回累计至今）。
+- `performance-by-trader`、`signal-overview-by-trader`、`signal-trend-by-trader` 新增接受 `sortBy` + `period`（T2 原本只有 period）。
+- handler 显式注入默认值（`sortBy=pnl`；leaderboard `period=90` / signal `period=7`；trend `granularity=1h`），MCP 和 CLI 两条路径行为一致。
+
+兼容性：已显式传参或依赖文档默认值的调用方不受影响。
+
+## [1.3.3-beta.1] - 2026-05-06
+
+### ⚠ 破坏性变更 —— `smartmoney` 模块重构
+
+Smart Money MCP / CLI 工具面完全重写，目标是让 AI agent 仅凭工具名 / 参数 schema 就能选对工具。**不保留 alias**——旧工具/参数/字段名一律删除。完整设计依据见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md)。
+
+CLI 同步：每个 CLI 命令名 = MCP 工具名去 `smartmoney_` 前缀和 `get_` 动词，snake → kebab（如 `smartmoney_get_traders_by_filter` ↔ `okx smartmoney traders-by-filter`）。`--authorIds` / `--instCcyList` 仍可传逗号分隔字符串，CLI 在边界拆为数组。
+
+#### 工具面（8 → 10 个原子工具）
+
+| 旧（1.3.2） | 新 | 备注 |
+|---|---|---|
+| `get_traders`（pool-filter） | `get_traders_by_filter` | `limit` 默认 100 → 10 |
+| `get_traders`（authorIds） | `get_performance_by_trader` | 直查，不接池过滤 |
+| `get_trader_records` | `get_trader_orders_history` | 与 `*_get_orders` 家族对齐 |
+| `get_trader_positions` | `get_trader_positions` | 名称不变 |
+| `get_trader_position_history` | `get_trader_positions_history` | 复数化 |
+| `get_signal`（pool-filter） | `get_signal_overview_by_filter` | 删除 `ts`；`topInstruments`（默认 20）承接"top-N 最热" |
+| `get_signal`（authorIds） | `get_signal_overview_by_trader` | 入参收紧，不再接池过滤 |
+| `get_signal_history` | `get_signal_trend_by_filter` | 与 `_by_trader` 对仗 |
+| `get_overview`、`get_top_coin_signals`、`get_trader_detail` | _(删除)_ | 已被替代；`_trader_detail` 违反原子化 |
+| _(新增)_ | `search_trader` | 昵称 → authorId 解析（最多 10 条，按粉丝数倒序） |
+| _(新增)_ | `get_signal_trend_by_trader` | 单币时序，限定 authorIds |
+
+#### 入参变更
+
+- **`authorIds` / `instCcyList` 改为字符串数组**（原 CSV 字符串）—— 强类型 schema 在 input 阶段就能拦下形状错误。
+- **Leaderboard 池过滤入参重命名** 与 signal 家族 `*Tier` 枚举消歧：`pnl` → `minPnl`、`winRate` → `minWinRate`、`asset` → `minAum`（`maxDrawdown` 不变）。Signal 家族保留 `pnlTier` / `winRateTier` / `maxDrawdownTier` / `aumTier`。
+- **时间锚点按家族拆分**：leaderboard 用 `updateTime`（12 位 `yyyyMMddHHmm` UTC+8）；signal-trend 用可选 `asOfTime`（10 位 `yyyyMMddHH` UTC，缺省=当前整点）；signal-overview 不接受时间入参。`ts` 与 `dataVersion` 作为入参全部删除。
+- **`signal_*_by_trader` 不再接受池过滤入参** —— 池过滤轴仅 `_by_filter` 暴露，详见 [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md) §13。
+- **Trader 端 `instCcy` → `instId`**：`_trader_positions` / `_positions_history` / `_orders_history` 接受完整 `instId` 或裸 base ccy；handler 自动提取 base。
+- **Signal 池过滤新增 `period`**（3/7/30/90，默认 7），覆盖所有 signal 工具（之前仅 leaderboard）。
+- **`lmtNum` 上限 500 → 2000**（signal-overview 工具）。
+
+#### 出参变更
+
+- **Leaderboard 字段重命名**（所有出现处）：`winRatio` → `winRate`、`maxRetreat` → `maxDrawdown`、`dataVersion` → `updateTime`（仅 leaderboard；signal 条目仍在 bucket 级保留 `dataVersion`）。
+- **Signal-overview 改为嵌套分组** 对齐 OpenAPI `/overview` 规范 —— 外层 `ccy` + `notional` / `longShortRatio` / `winRate` 三个对象。原扁平字段（`vs1h` / `vs24h` / `vs7d`、顶层 `longNotionalUsdt` 等）已移除。
+- **新增字段**：`direction`（由 `posSide` + `pos` 符号派生的 `"long" | "short"`）与 `upl`（未实现盈亏，计价币单位），仅 `_trader_positions`。
+- **删除字段**：`topNUsed` / `currentPrice` / `priceChange24h` / `fundingRate` / `openInterest` / `longShortAccountRatio` / `ts` —— 后端不再返回。
+
+#### 其他
+
+- 全部工具显式声明 MCP tool annotation：`readOnlyHint` / `idempotentHint` / `openWorldHint`。
+- handler 改返回人类可读的引导信息，替代后端 `sCode`。
+
+#### 迁移示例
+
+```ts
+// 多币 overview —— instCcyList 仍可用，无需时间入参
+smartmoney_get_signal_overview_by_filter({ instCcyList: ["BTC", "ETH"] })
+
+// 单币 signal-history → signal-trend；asOfTime 可选
+smartmoney_get_signal_trend_by_filter({ instCcy: "BTC", granularity: "1h", limit: 24 })
+
+// trader_detail 复合工具已删除 → 3 次原子并发
+Promise.all([
+  smartmoney_get_performance_by_trader({ authorIds: ["X"] }),
+  smartmoney_get_trader_positions({ authorId: "X" }),
+  smartmoney_get_trader_orders_history({ authorId: "X", limit: 50 }),
+])
+```
+
+---
+
 ### 新增
 
 - **OAuth token 取回支持 Windows**（`packages/core/src/auth/binary.ts`）。`execAuthToken()` 现根据 `process.platform` 分发：Unix 沿用现有 fd 3 通道；Windows 每次调用生成一条命名管道 `\\.\pipe\okx-auth-<256-bit-random>`，监听后通过 `OKX_AUTH_TOKEN_PIPE` 环境变量将管道名传给子进程。`okx-auth` Rust 二进制以 `CreateFileW(FILE_GENERIC_WRITE, OPEN_EXISTING)` 打开该管道，写入 access token，然后关闭句柄向父进程发送 EOF。管道名强制以 `\\.\pipe\okx-auth-` 开头（二进制拒绝任意目标），且子进程读取后立即抹除 `OKX_AUTH_TOKEN_PIPE`，避免泄漏到孙进程。两端共用同一套 exit code → typed error 映射（`finalizeToken` 辅助函数），跨平台错误信息一致。Windows 用户首次可完成完整的 `okx auth login` → token-backed REST 流程；此前二进制能成功 spawn，但消费方读取 fd 3 时取不到任何字节，因为 Windows 不继承 POSIX 文件描述符。新增分支在 POSIX 主机上通过 UNIX domain socket 等价替代（`net.createServer` 抽象了底层传输）来覆盖测试，CI 不需要 Windows runner。
@@ -24,7 +103,7 @@
 - **分层架构图**（`ARCHITECTURE.md`、`ARCHITECTURE.zh-CN.md`）：将错误的单路径瀑布式架构图（误将 `packages/mcp/src/index.ts` 标记为"CLI 入口"）替换为双 binary 架构图，正确展示 `okx-trade-mcp` 与 `okx` 作为两个独立可执行文件，均从 `@agent-tradekit/core`（共享 SDK）导入。Closes #185。
 - **`docs/faq.md` — API 密钥存储说明**：补充一句说明 CLI（`okx`）与 MCP server（`okx-trade-mcp`）各自独立读取 `~/.okx/config.toml`，互不依赖。
 
-### 变更
+### 变更（其他）
 
 - **`linux-arm64` 主机现使用原生 arm64 pilot 二进制**（`packages/core/src/pilot/installer.ts` `PLATFORM_MAP` + `scripts/postinstall-notice.js`）。此前 `linux-arm64 → linux-x64` 的临时回退（当时 CDN 上没有原生 arm64 二进制）会让用户下载 x64 二进制经 qemu/binfmt 模拟运行。现在原生 arm64 二进制已发布在 `/upgradeapp/tools/pilot/linux-arm64/okx-pilot`（2026-04-29 验证），直接路由到该文件，去掉模拟层 —— 启动更快、CPU 占用更低。
 
