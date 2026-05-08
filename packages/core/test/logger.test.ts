@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { TradeLogger } from "../src/utils/logger.js";
+import { TradeLogger, pruneOldLogs } from "../src/utils/logger.js";
 
 describe("TradeLogger.sanitize", () => {
   it("removes apiKey from flat object", () => {
@@ -162,5 +162,107 @@ describe("TradeLogger.log writes correct NDJSON", () => {
     assert.doesNotThrow(() => {
       logger.log("info", "some_tool", {}, {}, 10);
     });
+  });
+});
+
+describe("pruneOldLogs", () => {
+  let tmpDir: string;
+  const NOW = 1746700800000; // fixed synthetic timestamp (2025-05-08T16:00:00Z)
+
+  function makeLogFile(name: string, mtimeMs: number): string {
+    const filePath = path.join(tmpDir, name);
+    fs.writeFileSync(filePath, "log content", "utf8");
+    const mtime = new Date(mtimeMs);
+    fs.utimesSync(filePath, mtime, mtime);
+    return filePath;
+  }
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "okx-prune-test-"));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("sweep runs and writes marker when no marker file exists", () => {
+    const oldFile = makeLogFile("trade-2026-01-01.log", NOW - 31 * 86400000 - 1);
+    pruneOldLogs(tmpDir, 30, NOW);
+    assert.equal(fs.existsSync(oldFile), false, "old file should be deleted");
+    const markerPath = path.join(tmpDir, ".last-prune.json");
+    assert.ok(fs.existsSync(markerPath), "marker should be written");
+    const marker = JSON.parse(fs.readFileSync(markerPath, "utf8")) as { checkedAt: number };
+    assert.equal(marker.checkedAt, NOW);
+  });
+
+  it("no sweep when marker checkedAt is within 24h", () => {
+    const markerPath = path.join(tmpDir, ".last-prune.json");
+    fs.writeFileSync(markerPath, JSON.stringify({ checkedAt: NOW - 3600000 }), "utf8");
+    const oldFile = makeLogFile("trade-recent-marker.log", NOW - 31 * 86400000 - 1);
+    pruneOldLogs(tmpDir, 30, NOW);
+    assert.ok(fs.existsSync(oldFile), "file should NOT be deleted when sweep is throttled");
+  });
+
+  it("sweep runs and updates marker when marker is older than 24h", () => {
+    const markerPath = path.join(tmpDir, ".last-prune.json");
+    fs.writeFileSync(markerPath, JSON.stringify({ checkedAt: NOW - 25 * 3600000 }), "utf8");
+    const oldFile = makeLogFile("trade-stale-marker.log", NOW - 31 * 86400000 - 1);
+    pruneOldLogs(tmpDir, 30, NOW);
+    assert.equal(fs.existsSync(oldFile), false, "old file should be deleted");
+    const marker = JSON.parse(fs.readFileSync(markerPath, "utf8")) as { checkedAt: number };
+    assert.equal(marker.checkedAt, NOW, "marker should be updated to NOW");
+  });
+
+  it("keeps file at exactly retention boundary, deletes file 1ms past boundary", () => {
+    const keepFile = makeLogFile("trade-boundary-keep.log", NOW - 30 * 86400000);
+    const deleteFile = makeLogFile("trade-boundary-delete.log", NOW - 30 * 86400000 - 1);
+    pruneOldLogs(tmpDir, 30, NOW);
+    assert.ok(fs.existsSync(keepFile), "file at exact boundary should be kept");
+    assert.equal(fs.existsSync(deleteFile), false, "file 1ms past boundary should be deleted");
+  });
+
+  it("respects retentionDays=7 override", () => {
+    const keepFile = makeLogFile("trade-within-7d.log", NOW - 6 * 86400000);
+    const deleteFile = makeLogFile("trade-older-7d.log", NOW - 8 * 86400000);
+    pruneOldLogs(tmpDir, 7, NOW);
+    assert.ok(fs.existsSync(keepFile), "file within 7 days should be kept");
+    assert.equal(fs.existsSync(deleteFile), false, "file older than 7 days should be deleted");
+  });
+
+  it("retentionDays=0 skips sweep entirely and does not write marker", () => {
+    const oldFile = makeLogFile("trade-retention-zero.log", NOW - 31 * 86400000 - 1);
+    pruneOldLogs(tmpDir, 0, NOW);
+    assert.ok(fs.existsSync(oldFile), "file should NOT be deleted when retentionDays=0");
+    const markerPath = path.join(tmpDir, ".last-prune.json");
+    assert.equal(fs.existsSync(markerPath), false, "marker should NOT be written when retentionDays=0");
+  });
+
+  it("corrupt marker JSON causes sweep to run as if absent", () => {
+    const markerPath = path.join(tmpDir, ".last-prune.json");
+    fs.writeFileSync(markerPath, "not valid json {{", "utf8");
+    const oldFile = makeLogFile("trade-corrupt-marker.log", NOW - 31 * 86400000 - 1);
+    pruneOldLogs(tmpDir, 30, NOW);
+    assert.equal(fs.existsSync(oldFile), false, "old file should be deleted despite corrupt marker");
+    const marker = JSON.parse(fs.readFileSync(markerPath, "utf8")) as { checkedAt: number };
+    assert.equal(marker.checkedAt, NOW, "marker should be updated after sweep");
+  });
+
+  it("swallows per-file unlinkSync error and still writes marker", () => {
+    const originalUnlink = fs.unlinkSync;
+    const file1 = makeLogFile("trade-unlink-fail.log", NOW - 31 * 86400000 - 1);
+    const file2 = makeLogFile("trade-unlink-ok.log", NOW - 31 * 86400000 - 1);
+    // @ts-expect-error - mock override
+    fs.unlinkSync = (p: fs.PathLike) => {
+      if (String(p).endsWith("trade-unlink-fail.log")) throw new Error("permission denied");
+      originalUnlink(p);
+    };
+    try {
+      assert.doesNotThrow(() => pruneOldLogs(tmpDir, 30, NOW));
+      assert.equal(fs.existsSync(file2), false, "second file should be deleted");
+      const markerPath = path.join(tmpDir, ".last-prune.json");
+      assert.ok(fs.existsSync(markerPath), "marker should be written despite partial failure");
+    } finally {
+      fs.unlinkSync = originalUnlink;
+    }
   });
 });
