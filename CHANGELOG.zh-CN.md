@@ -11,6 +11,35 @@
 
 ## [Unreleased]
 
+
+### 新增
+
+- **Windows 命名管道认证令牌获取** (`packages/core/src/auth/`): `okx auth` 在 Windows 上现通过命名管道获取 OAuth Bearer Token，无需 WSL 或提权操作，替代原有 fd3 文件描述符方案。(!310)
+
+- **`--tpLevel` 多档止盈标志（Phase 3b）**: 在 `okx {swap,spot,futures} place` 及 `algo place` 中可多次传入 `--tpLevel`，设置独立止盈层级（例：`--tpLevel "px:78000,sz:0.5,kind:limit" --tpLevel "px:81000,sz:0.5,kind:market"`）。支持键：`px`、`sz`、`kind`、`triggerPx`、`triggerPxType`、`amendPxOnTrigger`、`clOrdId`。`--tpLevel` 与旧版 `--tpOrdPx`/`--tpTriggerPx` 同时使用时 CLI 层报错拦截。该标志不在 MCP 工具描述及 Skill 工作流中暴露（有意为之）。(!292, #183)
+
+- **Phase 3a+c 高级 CLI 标志**: 六个新可选标志 — `--tpTriggerRatio`/`--slTriggerRatio`（基于比例的止盈止损触发）、`--closeFraction`（部分平仓比例，与 `--sz` 互斥）、`--tradeQuoteCcy`（现货订单计价币种）、`--banAmend`（禁用 OKX 对现货市价单的自动修改）、`--pxAmendType`（超出范围价格的自动修正控制）。适用于 `okx {swap,spot,futures} place` 及 `okx {swap,futures} algo place`。不在 MCP 及 Skill 中暴露（有意为之）。(!291, #182)
+
+- **LLM Eval Probe 覆盖率达成 17/17 模块** (`eval/probes/`): 所有剩余模块均已补充 probe 文件（`eval/probes/<module>/tier2-<tool_name>.live.test.ts`），采用 trace-based 断言（`findToolCall`）。CI `eval-probe-check` 门禁现强制执行全 17 模块覆盖。(!303)
+
+### 修复
+
+- **日志磁盘占用限制** (`packages/core/src/logger.ts`): 启动时执行保留期清扫，自动删除 `~/.okx/logs/` 中超出配置保留窗口的旧日志文件，防止长期运行导致磁盘无限增长。(!312)
+
+- **`event_browse` 并发请求上限** (`packages/core/src/tools/event-trade.ts`, `event-helpers.ts`): 使用信号量将并发市场数据请求限制为 8 个（OKX 速率窗口为 20 req，预留 12 作重试及其他调用缓冲），替换原有无限制的 `Promise.all`。改用 `Promise.allSettled` 语义，单个系列失败不再中断整体浏览，无活跃合约的系列将被静默跳过。(!300, #146)
+
+- **`cmdAuthRemove` 权限拒绝错误处理** (`packages/cli/src/commands/auth.ts`): `removeAuthBinary()` 抛出异常时（如 EACCES）的错误路径现已覆盖集成测试：文本模式输出 `errorLine`，JSON 模式返回 `{status:"failed",error:<msg>}`，两种模式均设置 `process.exitCode = 1` 且不向上层抛出异常。(!299, #159)
+
+- **分层架构图修正** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`): 将错误地将 `packages/mcp/src/index.ts` 标注为"CLI 入口"的单路径瀑布图，替换为双二进制图，正确展示 `okx-trade-mcp` 与 `okx` 作为独立二进制文件、共同依赖 `@agent-tradekit/core` 共享 SDK 的架构。(!296, #185)
+
+### 变更
+
+- **`linux-arm64` Pilot 二进制路由改为原生 arm64** (`packages/core/src/pilot/installer.ts`): 移除原有的 `linux-arm64 → linux-x64` 临时回退策略，直接路由至 `/upgradeapp/tools/pilot/linux-arm64/okx-pilot` 发布的原生 arm64 二进制文件，消除 ARM64 Linux 主机上的 qemu/binfmt 模拟开销。(!295)
+
+- **Smart Money Skill 内容刷新** (`skills/`): 更新触发词、工作流指引及工具描述，以反映当前 `smartmoney_*` 工具集和信号语义。(!294)
+
+- **`context-kg/` 映射章节更新** (`context-kg/business/06-leaderboard-smartmoney-api.md`, `07-dcd-api.md`, `08-dca-api.md`): 重写三份文档的"Mapping to…"章节以匹配已上线工具：`06` 列出已上线的 5 个 `smartmoney_*` 工具；`07` 列出 6 个扁平化 `dcd_*` 工具并说明打包设计决策；`08` 列出 5 个统一的 `dca_*` 工具，并新增"Backlog（未包装）"子节列出 10 个尚未实现的 V2 上游 API 路径。(!302, #187)
+
 ## [1.3.3-beta.2] - 2026-05-08
 
 ### 文档 —— `smartmoney` 信号工具：明确仅覆盖 USDT/USDS 本位（SIG-01）
