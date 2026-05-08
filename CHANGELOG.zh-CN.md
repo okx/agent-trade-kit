@@ -12,6 +12,8 @@
 ## [Unreleased]
 
 
+## [1.3.3-beta.3] - 2026-05-08
+
 ### 新增
 
 - **Windows 命名管道认证令牌获取** (`packages/core/src/auth/`): `okx auth` 在 Windows 上现通过命名管道获取 OAuth Bearer Token，无需 WSL 或提权操作，替代原有 fd3 文件描述符方案。(!310)

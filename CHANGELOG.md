@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.3.3-beta.3] - 2026-05-08
+
 ### Added
 
 - **Windows named-pipe token retrieval for `okx auth`** (`packages/core/src/auth/`): On Windows hosts, OAuth bearer tokens are now fetched via a named pipe instead of fd3 forwarding, removing the requirement for WSL or elevated privileges. (!310)
