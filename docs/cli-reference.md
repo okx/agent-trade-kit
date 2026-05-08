@@ -230,6 +230,61 @@ okx bot dca stop --algoId <algoId>
 
 ---
 
+## smartmoney — Smart Money Analytics (read-only)
+
+```bash
+# ── Trader family ───────────────────────────────────────────────────────────
+# Leaderboard ranking by pool conditions
+okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10
+okx smartmoney traders-by-filter --minWinRate 0.8 --maxDrawdown 0.1 --period 30 --json
+
+# PnL/win-rate profile for one or more authorIds (--sortBy + --period required; defaults pnl + 90)
+okx smartmoney performance-by-trader --authorIds <id1>,<id2> --sortBy pnl --period 30
+
+# Current open positions for one trader
+okx smartmoney trader-positions --authorId <id>
+okx smartmoney trader-positions --authorId <id> --instId BTC-USDT-SWAP
+
+# Closed-position history (paginated by posId)
+okx smartmoney trader-positions-history --authorId <id> --limit 50
+okx smartmoney trader-positions-history --authorId <id> --after <posId> --limit 50
+
+# Order/fill flow (paginated by ordId)
+okx smartmoney trader-orders-history --authorId <id> --limit 50
+okx smartmoney trader-orders-history --authorId <id> --instId BTC-USDT-SWAP --limit 50
+
+# ── Signal / coin family ────────────────────────────────────────────────────
+# Top-N most-watched-by-smart-money instruments — pool filter mode (current hour)
+okx smartmoney signal-overview-by-filter --topInstruments 20
+okx smartmoney signal-overview-by-filter --topInstruments 20 --pnlTier PNL_TOP20
+
+# Single-asset signal — pool filter mode (current hour)
+okx smartmoney signal-overview-by-filter --instCcyList BTC
+okx smartmoney signal-overview-by-filter --instCcyList BTC --pnlTier PNL_TOP20 --winRateTier WR_GE_80
+
+# Multi-asset signal — restricted to specific authorIds (current hour); --sortBy / --period drive capability metrics (defaults pnl / 7)
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> --instCcyList BTC,ETH --sortBy pnl --period 7
+
+# Single-asset signal time-series — pool filter, last 30 daily buckets ending at the current UTC hour
+okx smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30
+
+# Anchor at a specific hour: 10-digit yyyyMMddHH UTC
+okx smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 2026050100 --granularity 1d --limit 30
+
+# Restricted to authorIds (authorIds-direct-lookup); --sortBy / --period exposed; capability tier filters not exposed
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --granularity 1h --limit 7 --sortBy pnl --period 7
+```
+
+Tier enums (signal family):
+- `pnlTier`: `PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5`
+- `winRateTier`: `WR_ANY` / `WR_GE_50` / `WR_GE_80`
+- `maxDrawdownTier`: `MR_ANY` / `MR_LE_20` / `MR_LE_50`
+- `aumTier`: `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5`
+
+> Need a trader's full picture? Run `performance-by-trader`, `trader-positions`, and `trader-orders-history` in parallel — the old `smartmoney trader` composite command has been removed.
+
+---
+
 ## config
 
 ```bash
@@ -484,6 +539,61 @@ okx bot dca create \
 
 okx bot dca stop --algoId <algoId>
 ```
+
+---
+
+## smartmoney — 聪明钱分析（只读）
+
+```bash
+# ── Trader 家族 ─────────────────────────────────────────────────────────────
+# 排行榜（按池筛选）
+okx smartmoney traders-by-filter --period 30 --sortBy pnl --limit 10
+okx smartmoney traders-by-filter --minWinRate 0.8 --maxDrawdown 0.1 --period 30 --json
+
+# 指定 authorIds 的 PnL / 胜率画像
+okx smartmoney performance-by-trader --authorIds <id1>,<id2> --period 30
+
+# 单交易员当前持仓
+okx smartmoney trader-positions --authorId <id>
+okx smartmoney trader-positions --authorId <id> --instId BTC-USDT-SWAP
+
+# 历史平仓（按 posId 游标分页）
+okx smartmoney trader-positions-history --authorId <id> --limit 50
+okx smartmoney trader-positions-history --authorId <id> --after <posId> --limit 50
+
+# 订单 / 成交流水（按 ordId 游标分页）
+okx smartmoney trader-orders-history --authorId <id> --limit 50
+okx smartmoney trader-orders-history --authorId <id> --instId BTC-USDT-SWAP --limit 50
+
+# ── Signal / coin 家族 ─────────────────────────────────────────────────────
+# Top-N 聪明钱关注度最高的标的 —— 池过滤模式（当前小时）
+okx smartmoney signal-overview-by-filter --topInstruments 20
+okx smartmoney signal-overview-by-filter --topInstruments 20 --pnlTier PNL_TOP20
+
+# 多币信号 —— 池过滤模式（当前小时）
+okx smartmoney signal-overview-by-filter --instCcyList BTC
+okx smartmoney signal-overview-by-filter --instCcyList BTC --pnlTier PNL_TOP20 --winRateTier WR_GE_80
+
+# 多币信号 —— 限定指定 authorIds（当前小时）
+okx smartmoney signal-overview-by-trader --authorIds <id1>,<id2> --instCcyList BTC,ETH
+
+# 单币信号时间序列 —— 池过滤，最近 30 个日 K，锚定当前 UTC 整点
+okx smartmoney signal-trend-by-filter --instCcy BTC --granularity 1d --limit 30
+
+# 锚定指定整点（10 位 yyyyMMddHH UTC）
+okx smartmoney signal-trend-by-filter --instCcy BTC --asOfTime 2026050100 --granularity 1d --limit 30
+
+# 限定 authorIds（authorIds 直查;不暴露池过滤器,后端使用默认池配置）
+okx smartmoney signal-trend-by-trader --authorIds <id1>,<id2> --instCcy BTC --limit 7
+```
+
+档位枚举（Signal 家族）：
+- `pnlTier`：`PNL_ANY` / `PNL_TOP50` / `PNL_TOP20` / `PNL_TOP5`
+- `winRateTier`：`WR_ANY` / `WR_GE_50` / `WR_GE_80`
+- `maxDrawdownTier`：`MR_ANY` / `MR_LE_20` / `MR_LE_50`
+- `aumTier`：`AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5`
+
+> 需要交易员完整画像？把 `performance-by-trader` / `trader-positions` / `trader-orders-history` 并发调用即可——旧的 `smartmoney trader` 复合命令已删除。
 
 ---
 

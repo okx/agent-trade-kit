@@ -151,11 +151,16 @@ import {
   cmdEarnLendingRateHistory,
 } from "./commands/earn.js";
 import {
-  cmdSmartmoneyOverview,
-  cmdSmartmoneySignal,
-  cmdSmartmoneySignalHistory,
-  cmdSmartmoneyTraders,
-  cmdSmartmoneyTraderDetail,
+  cmdSmartmoneyTradersByFilter,
+  cmdSmartmoneyPerformanceByTrader,
+  cmdSmartmoneyTraderPositions,
+  cmdSmartmoneyTraderPositionsHistory,
+  cmdSmartmoneyTraderOrdersHistory,
+  cmdSmartmoneySearchTrader,
+  cmdSmartmoneySignalOverviewByFilter,
+  cmdSmartmoneySignalOverviewByTrader,
+  cmdSmartmoneySignalTrendByFilter,
+  cmdSmartmoneySignalTrendByTrader,
 } from "./commands/smartmoney.js";
 import {
   cmdAutoEarnStatus,
@@ -1351,45 +1356,177 @@ export function handleSmartmoneyCommand(
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
-  const poolFilters = {
-    sortType: v.sortType, period: v.period, pnl: v.pnl,
-    winRatio: v.winRatio, maxRetreat: v.maxRetreat, asset: v.asset,
+  // Explicitly drop positional args — every smartmoney param comes from named flags (see issue #78).
+  void rest;
+  const signalPoolFilters = {
+    sortBy: v.sortBy, period: v.period, pnlTier: v.pnlTier,
+    winRateTier: v.winRateTier, maxDrawdownTier: v.maxDrawdownTier, aumTier: v.aumTier,
   };
-  if (action === "overview")
-    return cmdSmartmoneyOverview(run, {
-      dataVersion: v.dataVersion, ts: v.ts, instType: v.instType,
-      ...poolFilters, lmtNum: v.lmtNum, instCcyList: v.instCcyList,
-      instCcy: v.instCcy, topInstruments: v.topInstruments, json,
+  const leaderboardPoolFilters = {
+    sortBy: v.sortBy, period: v.period, minPnl: v.minPnl,
+    minWinRate: v.minWinRate, maxDrawdown: v.maxDrawdown, minAum: v.minAum,
+  };
+
+  /* ---------- Trader family (5) ---------- */
+
+  if (action === "traders-by-filter")
+    return cmdSmartmoneyTradersByFilter(run, {
+      updateTime: v.updateTime,
+      ...leaderboardPoolFilters,
+      after: v.after, before: v.before, limit: v.limit, json,
     });
-  if (action === "signal")
-    return cmdSmartmoneySignal(run, {
-      instId: v.instId, dataVersion: v.dataVersion, ts: v.ts,
-      ...poolFilters, instCcy: v.instCcy, lmtNum: v.lmtNum,
-      authorIds: v.authorIds, json,
-    });
-  if (action === "signal-history") {
-    if (!v.instId) { errorLine("Missing required --instId: okx smartmoney signal-history --instId <id>"); process.exitCode = 1; return; }
-    return cmdSmartmoneySignalHistory(run, {
-      instId: v.instId, dataVersion: v.dataVersion, ts: v.ts,
-      granularity: v.granularity, limit: v.limit,
-      ...poolFilters, json,
-    });
-  }
-  if (action === "traders")
-    return cmdSmartmoneyTraders(run, {
-      dataVersion: v.dataVersion, ...poolFilters,
-      authorIds: v.authorIds, after: v.after, before: v.before,
-      limit: v.limit, json,
-    });
-  if (action === "trader") {
-    if (!v.authorId) { errorLine("Missing required --authorId: okx smartmoney trader --authorId <id>"); process.exitCode = 1; return; }
-    return cmdSmartmoneyTraderDetail(run, {
-      authorId: v.authorId, period: v.period,
-      instCcy: v.instCcy, tradeLimit: v.tradeLimit, json,
+
+  if (action === "performance-by-trader") {
+    if (!v.authorIds) {
+      errorLine("Missing required --authorIds: okx smartmoney performance-by-trader --authorIds <id1,id2> [--period <3|7|30|90>]");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneyPerformanceByTrader(run, {
+      authorIds: v.authorIds,
+      sortBy: v.sortBy,
+      period: v.period,
+      json,
     });
   }
+
+  if (action === "trader-positions") {
+    if (!v.authorId) {
+      errorLine("Missing required --authorId: okx smartmoney trader-positions --authorId <id> [--instId <id>]");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneyTraderPositions(run, {
+      authorId: v.authorId,
+      instId: v.instId,
+      json,
+    });
+  }
+
+  if (action === "trader-positions-history") {
+    if (!v.authorId) {
+      errorLine("Missing required --authorId: okx smartmoney trader-positions-history --authorId <id> [--instId <id>] [--limit <n>]");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneyTraderPositionsHistory(run, {
+      authorId: v.authorId,
+      instId: v.instId,
+      after: v.after, before: v.before, limit: v.limit, json,
+    });
+  }
+
+  if (action === "trader-orders-history") {
+    if (!v.authorId) {
+      errorLine("Missing required --authorId: okx smartmoney trader-orders-history --authorId <id> [--instId <id>] [--limit <n>]");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneyTraderOrdersHistory(run, {
+      authorId: v.authorId,
+      instId: v.instId,
+      after: v.after, before: v.before, limit: v.limit, json,
+    });
+  }
+
+  if (action === "search-trader") {
+    if (!v.keyword || v.keyword.trim() === "") {
+      errorLine("Missing required --keyword: okx smartmoney search-trader --keyword <name>");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneySearchTrader(run, {
+      keyword: v.keyword,
+      json,
+    });
+  }
+
+  /* ---------- Signal/Coin family (4) ---------- */
+
+  if (action === "signal-overview-by-filter") {
+    if (v.topInstruments && v.instCcyList) {
+      errorLine(
+        "--topInstruments and --instCcyList are mutually exclusive. " +
+        "Pass exactly one — `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneySignalOverviewByFilter(run, {
+      topInstruments: v.topInstruments,
+      instCcyList: v.instCcyList,
+      ...signalPoolFilters,
+      lmtNum: v.lmtNum,
+      json,
+    });
+  }
+
+  if (action === "signal-overview-by-trader") {
+    if (!v.authorIds) {
+      errorLine("Missing required --authorIds: okx smartmoney signal-overview-by-trader --authorIds <id1,id2> [--topInstruments <n> | --instCcyList <BTC,ETH>]");
+      process.exitCode = 1;
+      return;
+    }
+    if (v.topInstruments && v.instCcyList) {
+      errorLine(
+        "--topInstruments and --instCcyList are mutually exclusive. " +
+        "Pass exactly one — `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
+      );
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneySignalOverviewByTrader(run, {
+      authorIds: v.authorIds,
+      topInstruments: v.topInstruments,
+      instCcyList: v.instCcyList,
+      sortBy: v.sortBy,
+      period: v.period,
+      json,
+    });
+  }
+
+  if (action === "signal-trend-by-filter") {
+    if (!v.instCcy) {
+      errorLine("Missing required --instCcy: okx smartmoney signal-trend-by-filter --instCcy <ccy> [--asOfTime <yyyyMMddHH>] [--granularity <1h|1d>] [--limit <n>]");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneySignalTrendByFilter(run, {
+      instCcy: v.instCcy,
+      asOfTime: v.asOfTime,
+      granularity: v.granularity,
+      limit: v.limit,
+      ...signalPoolFilters,
+      lmtNum: v.lmtNum,
+      json,
+    });
+  }
+
+  if (action === "signal-trend-by-trader") {
+    if (!v.authorIds) {
+      errorLine("Missing required --authorIds: okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]");
+      process.exitCode = 1;
+      return;
+    }
+    if (!v.instCcy) {
+      errorLine("Missing required --instCcy: okx smartmoney signal-trend-by-trader --authorIds <id1,id2> --instCcy <ccy> [--asOfTime <yyyyMMddHH>]");
+      process.exitCode = 1;
+      return;
+    }
+    return cmdSmartmoneySignalTrendByTrader(run, {
+      authorIds: v.authorIds,
+      instCcy: v.instCcy,
+      asOfTime: v.asOfTime,
+      granularity: v.granularity,
+      limit: v.limit,
+      sortBy: v.sortBy,
+      period: v.period,
+      json,
+    });
+  }
+
   errorLine(`Unknown smartmoney command: ${action}`);
-  errorLine("Valid: overview, signal, signal-history, traders, trader");
+  errorLine("Valid: traders-by-filter, performance-by-trader, trader-positions, trader-positions-history, trader-orders-history, search-trader, signal-overview-by-filter, signal-overview-by-trader, signal-trend-by-filter, signal-trend-by-trader");
   process.exitCode = 1;
 }
 
@@ -1777,6 +1914,7 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   const payload = toToolErrorPayload(error);
   errorLine(`Error: ${payload.message}`);
+  if (payload.code) errorLine(`Code: ${payload.code}`);
   if (payload.traceId) errorLine(`TraceId: ${payload.traceId}`);
   if (payload.suggestion) errorLine(`Hint: ${payload.suggestion}`);
   errorLine(`Version: @okx_ai/okx-trade-cli@${CLI_VERSION}`);

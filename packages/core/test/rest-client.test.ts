@@ -350,6 +350,41 @@ describe("OkxRestClient: OKX error code behaviors", () => {
       },
     );
   });
+
+  // Some upstream endpoints (e.g. /orbit/public/*) return code != 0 with empty
+  // msg. The generic "OKX API request failed." fallback hides the code from the
+  // user. The fallback must include the code so the error remains diagnosable.
+  it("OkxApiError fallback message includes code when msg is empty", async () => {
+    await withFetch(
+      jsonFetch({ code: "51000", msg: "", data: [] }),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/orbit/public/position-current"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "51000" &&
+            err.message.includes("51000"),
+        );
+      },
+    );
+  });
+
+  it("OkxApiError fallback message includes code when msg is missing", async () => {
+    await withFetch(
+      jsonFetch({ code: "51000", data: [] }),
+      async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/orbit/public/position-current"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "51000" &&
+            err.message.includes("51000"),
+        );
+      },
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
