@@ -58,7 +58,7 @@ export function execAuthTokenWindows(
     const tryFinalize = (): void => {
       if (!pipeClosed || exitCode === undefined) return;
       const token = Buffer.concat(chunks).toString("utf-8").trim();
-      settle(() => finalizeToken(exitCode!, token, resolve, reject));
+      settle(() => finalizeToken(exitCode, token, resolve, reject));
     };
 
     server.on("connection", (socket) => {
