@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **OAuth token 取回支持 Windows**（`packages/core/src/auth/binary.ts`）。`execAuthToken()` 现根据 `process.platform` 分发：Unix 沿用现有 fd 3 通道；Windows 每次调用生成一条命名管道 `\\.\pipe\okx-auth-<256-bit-random>`，监听后通过 `OKX_AUTH_TOKEN_PIPE` 环境变量将管道名传给子进程。`okx-auth` Rust 二进制以 `CreateFileW(FILE_GENERIC_WRITE, OPEN_EXISTING)` 打开该管道，写入 access token，然后关闭句柄向父进程发送 EOF。管道名强制以 `\\.\pipe\okx-auth-` 开头（二进制拒绝任意目标），且子进程读取后立即抹除 `OKX_AUTH_TOKEN_PIPE`，避免泄漏到孙进程。两端共用同一套 exit code → typed error 映射（`finalizeToken` 辅助函数），跨平台错误信息一致。Windows 用户首次可完成完整的 `okx auth login` → token-backed REST 流程；此前二进制能成功 spawn，但消费方读取 fd 3 时取不到任何字节，因为 Windows 不继承 POSIX 文件描述符。新增分支在 POSIX 主机上通过 UNIX domain socket 等价替代（`net.createServer` 抽象了底层传输）来覆盖测试，CI 不需要 Windows runner。
+
 ### 修复
 
 - **`event_browse` 并发限流修复**（`packages/core/src/tools/event-trade.ts`、`event-helpers.ts`）：将无上限的 `Promise.all` 替换为基于信号量的 `withConcurrency` 工具函数，最大并发市场拉取请求数限制为 `MAX_CONCURRENT_MARKET_FETCHES = 8`（频率限制窗口为 20 req；预留 12 个请求作为重试及同一窗口内其他调用的缓冲：`20 - 12 = 8`）。同时将 `Promise.all` 改为 `Promise.allSettled` 语义，单个 series 拉取失败不再中断整个 browse —— 无活跃合约的 series 静默跳过，成功的 series 正常返回。Closes #146。

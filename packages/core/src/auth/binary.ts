@@ -1,8 +1,8 @@
 import { spawn, execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { AuthenticationError, ConfigError, NotLoggedInError } from "../utils/errors.js";
-import { EXIT_CODES } from "./types.js";
+import { execAuthTokenWindows } from "./binary-windows.js";
+import { finalizeToken, spawnFailedError } from "./binary-shared.js";
 import type { AuthStatusResult } from "./types.js";
 
 /** Default timeout for status/token commands (ms). */
@@ -24,17 +24,26 @@ export function getAuthBinaryPath(): string {
 }
 
 /**
- * Spawn `okx-auth token` and read the access token from fd 3.
+ * Spawn `okx-auth token` and read the access token from the platform-specific
+ * delivery channel.
  *
- * The binary writes the token to fd 3 and closes it (EOF).
- * Node.js `spawn` with `stdio[3] = 'pipe'` creates the pipe automatically.
+ * - Unix: child writes the token to fd 3 and closes (EOF). Node's
+ *   `stdio[3] = 'pipe'` creates the pipe automatically.
+ * - Windows: parent creates a named pipe `\\.\pipe\okx-auth-<random>` and
+ *   passes the name via `OKX_AUTH_TOKEN_PIPE` (see `binary-windows.ts`).
  *
- * Unlike the pilot binary (which returns null on failure), this function throws typed errors
- * because callers need to distinguish "not logged in" from "binary missing".
+ * Throws typed errors so callers can distinguish "not logged in" from
+ * "binary missing".
  */
 export function execAuthToken(): Promise<string> {
   const binPath = getAuthBinaryPath();
+  return process.platform === "win32"
+    ? execAuthTokenWindows(binPath)
+    : execAuthTokenUnix(binPath);
+}
 
+/** Unix token delivery via fd 3. */
+function execAuthTokenUnix(binPath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(binPath, ["token"], {
       stdio: ["ignore", "ignore", "inherit", "pipe"],
@@ -47,51 +56,12 @@ export function execAuthToken(): Promise<string> {
     fd3.on("data", (chunk: Buffer) => chunks.push(chunk));
 
     child.on("error", (err) => {
-      reject(new ConfigError(
-        `Failed to spawn okx-auth: ${err.message}`,
-        "Ensure the okx-auth binary exists and is executable.",
-      ));
+      reject(spawnFailedError(err));
     });
 
     child.on("close", (code) => {
-      if (code === EXIT_CODES.SUCCESS) {
-        const token = Buffer.concat(chunks).toString("utf-8").trim();
-        if (!token) {
-          reject(new AuthenticationError(
-            "okx-auth returned empty token.",
-            "Run `okx auth login` to re-authenticate.",
-          ));
-          return;
-        }
-        resolve(token);
-        return;
-      }
-
-      if (code === EXIT_CODES.NOT_LOGGED_IN) {
-        reject(new NotLoggedInError());
-        return;
-      }
-
-      if (code === EXIT_CODES.UNAUTHORIZED_CALLER) {
-        reject(new AuthenticationError(
-          "okx-auth rejected the caller (unauthorized).",
-          "Ensure you are running from a trusted OKX tool.",
-        ));
-        return;
-      }
-
-      if (code === EXIT_CODES.REFRESH_FAILED) {
-        reject(new AuthenticationError(
-          "Token refresh failed.",
-          "Run `okx auth login` to re-authenticate.",
-        ));
-        return;
-      }
-
-      reject(new AuthenticationError(
-        `okx-auth token exited with code ${code}.`,
-        "Run `okx auth login` to re-authenticate.",
-      ));
+      const token = Buffer.concat(chunks).toString("utf-8").trim();
+      finalizeToken(code, token, resolve, reject);
     });
   });
 }

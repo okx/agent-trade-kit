@@ -8,11 +8,14 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import {
   getAuthBinaryPath,
   execAuthToken,
   execAuthStatus,
 } from "../src/auth/binary.js";
+import { execAuthTokenWindows } from "../src/auth/binary-windows.js";
 import { AuthenticationError, ConfigError, NotLoggedInError } from "../src/utils/errors.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -170,6 +173,118 @@ describe("execAuthToken", () => {
 // ---------------------------------------------------------------------------
 // execAuthStatus
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// execAuthTokenWindows (named-pipe / UNIX-socket transport)
+//
+// We cover the Windows code path on every host: real Windows uses a named
+// pipe, POSIX hosts substitute a UNIX domain socket. Node's net.createServer
+// / createConnection handle both transparently, so the only thing we vary is
+// the path the consumer hands the child via OKX_AUTH_TOKEN_PIPE.
+// ---------------------------------------------------------------------------
+
+describe("execAuthTokenWindows (pipe transport)", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    saveMockEnv();
+    tmpDir = mkdtempSync(join(tmpdir(), "okx-auth-pipe-"));
+  });
+  afterEach(() => {
+    restoreMockEnv();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  /** Build a fresh socket path the mock binary can connect to. */
+  function makePipePathFactory(): () => string {
+    let counter = 0;
+    return () => join(tmpDir, `sock-${++counter}`);
+  }
+
+  it("resolves with token written to the pipe", async () => {
+    setMockBinary(0, "windows-token-abc");
+    const token = await execAuthTokenWindows(
+      MOCK_BINARY,
+      makePipePathFactory(),
+    );
+    assert.equal(token, "windows-token-abc");
+  });
+
+  it("rejects with AuthenticationError when token is empty (exit 0)", async () => {
+    setMockBinary(0, "");
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        assert.ok(err.message.includes("empty token"));
+        return true;
+      },
+    );
+  });
+
+  it("rejects with NotLoggedInError for NOT_LOGGED_IN (exit 2)", async () => {
+    setMockBinary(2);
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof NotLoggedInError);
+        return true;
+      },
+    );
+  });
+
+  it("rejects with AuthenticationError for UNAUTHORIZED_CALLER (exit 1)", async () => {
+    setMockBinary(1);
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        assert.ok(err.message.includes("unauthorized") || err.message.includes("rejected"));
+        return true;
+      },
+    );
+  });
+
+  it("rejects with AuthenticationError for REFRESH_FAILED (exit 3)", async () => {
+    setMockBinary(3);
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        assert.ok(err.message.includes("refresh failed") || err.message.includes("Token refresh"));
+        return true;
+      },
+    );
+  });
+
+  it("rejects with AuthenticationError for unknown exit code", async () => {
+    setMockBinary(99);
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        assert.ok(err.message.includes("99"));
+        return true;
+      },
+    );
+  });
+
+  it("rejects with ConfigError when binary does not exist", async () => {
+    delete process.env.MOCK_AUTH_EXIT;
+    await assert.rejects(
+      () =>
+        execAuthTokenWindows(
+          "/nonexistent/path/okx-auth",
+          makePipePathFactory(),
+        ),
+      (err: Error) => {
+        assert.ok(err instanceof ConfigError);
+        assert.ok(err.message.includes("Failed to spawn"));
+        return true;
+      },
+    );
+  });
+});
 
 describe("execAuthStatus", () => {
   beforeEach(() => saveMockEnv());

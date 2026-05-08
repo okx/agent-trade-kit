@@ -16,6 +16,7 @@
  */
 
 import { writeSync, writeFileSync } from "node:fs";
+import { createConnection } from "node:net";
 
 const args = process.argv.slice(2);
 const subcommand = args[0] ?? "";
@@ -26,9 +27,41 @@ if (process.env.MOCK_AUTH_ARGS_FILE) {
   writeFileSync(process.env.MOCK_AUTH_ARGS_FILE, JSON.stringify(args));
 }
 
+/**
+ * Write the token to OKX_AUTH_TOKEN_PIPE (Windows named pipe), mirroring what
+ * the real okx-auth binary does. Returns a Promise that resolves once the pipe
+ * is fully closed so the parent observes a clean EOF.
+ */
+function writeTokenToPipe(pipeName, token) {
+  return new Promise((resolve) => {
+    const sock = createConnection(pipeName);
+    sock.on("error", (err) => {
+      // Surface to test logs — silently swallowing makes failed-pipe debugging
+      // miserable. The test parent has already failed by this point anyway.
+      process.stderr.write(`mock-auth-binary: pipe connect failed: ${err.message}\n`);
+      resolve();
+    });
+    sock.on("connect", () => {
+      sock.end(token, () => resolve());
+    });
+  });
+}
+
 switch (subcommand) {
   case "token": {
     const token = process.env.MOCK_AUTH_TOKEN ?? "";
+    const pipe = process.env.OKX_AUTH_TOKEN_PIPE;
+
+    const done = () => process.exit(exitCode);
+
+    if (pipe) {
+      // Pipe-delivery path: real Windows binary writes here, and tests on
+      // POSIX point this at a UNIX domain socket so the same code path is
+      // covered without a Windows machine. Skip the fd-3 write either way.
+      writeTokenToPipe(pipe, token).then(done, done);
+      break;
+    }
+
     if (token) {
       try {
         writeSync(3, token);

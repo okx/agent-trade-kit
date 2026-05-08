@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Windows support for OAuth token retrieval** (`packages/core/src/auth/binary.ts`). `execAuthToken()` now dispatches on `process.platform`: Unix keeps the existing fd-3 channel, while Windows creates a per-invocation named pipe `\\.\pipe\okx-auth-<256-bit-random>`, listens on it, and passes the name to the child via the `OKX_AUTH_TOKEN_PIPE` environment variable. The `okx-auth` Rust binary opens that pipe with `CreateFileW(FILE_GENERIC_WRITE, OPEN_EXISTING)`, writes the access token, and closes — signalling EOF to the parent. The pipe name is enforced to start with `\\.\pipe\okx-auth-` (the binary rejects arbitrary targets), and `OKX_AUTH_TOKEN_PIPE` is scrubbed by the child after read so it never leaks to grandchildren. Both platforms share the same exit-code → typed-error mapping (`finalizeToken` helper), so error messages are identical regardless of OS. Windows users can now complete the full `okx auth login` → token-backed REST flow end-to-end; previously the binary spawned successfully but the consumer's fd-3 read found nothing because Windows doesn't inherit POSIX file descriptors. The new code path is covered on POSIX hosts via UNIX-domain-socket substitution (`net.createServer` abstracts the transport), so CI does not require a Windows runner.
+
 ### Fixed
 
 - **`event_browse` concurrency cap** (`packages/core/src/tools/event-trade.ts`, `event-helpers.ts`): replaced unbounded `Promise.all` with a semaphore-based `withConcurrency` helper capped at `MAX_CONCURRENT_MARKET_FETCHES = 8` concurrent market-fetch requests (rate limit window is 20 req; 12 requests kept as buffer for retries and other calls in the same window: `20 - 12 = 8`). Also switched from `Promise.all` to `Promise.allSettled` semantics so a single failing series fetch no longer aborts the entire browse — series with no active contracts are silently skipped and all successful series are still returned. Closes #146.
