@@ -12,6 +12,38 @@
 ## [Unreleased]
 
 
+## [1.3.3] - 2026-05-08
+
+`1.3.3-beta.1` → `1.3.3-beta.3` 三个 beta 版本的稳定版整合发布。完整实现细节请见下方对应 beta 段。
+
+### ⚠ 破坏性变更
+
+- **`smartmoney` 模块全面重构 — 无兼容垫片** (1.3.3-beta.1, !304)。MCP/CLI 工具面为 AI agent 消歧重写：8 → 10 个原子工具（`get_traders_by_filter`、`get_performance_by_trader`、`get_trader_orders_history`、`get_trader_positions`、`get_trader_positions_history`、`get_signal_overview_by_filter`、`get_signal_overview_by_trader`、`get_signal_trend_by_filter`、`get_signal_trend_by_trader`、`search_trader`）。旧工具/参数/字段名移除。`authorIds` / `instCcyList` 由 CSV 字符串改为数组；池过滤字段重命名（`pnl` / `winRate` / `asset` → `minPnl` / `minWinRate` / `minAum`）；输出字段重命名（`winRatio` → `winRate`、`maxRetreat` → `maxDrawdown`）。完整迁移指引：[`docs/designs/smartmoney.md`](docs/designs/smartmoney.md)。
+
+### 新增
+
+- **Windows 命名管道 OAuth Token 获取** (`packages/core/src/auth/`, !310)。Windows 上无需 WSL 或提权——通过单次命名管道（`\\.\pipe\okx-auth-<256-bit-random>`）获取 token，替代 fd3 文件描述符方案。
+- **`--tpLevel` 多档止盈标志（Phase 3b）** (!292, #183)。在 `okx {swap,spot,futures} place` 及 `algo place` 中可重复传入，设置独立止盈层级。CLI 专用，未在 MCP / Skill 中暴露。
+- **Phase 3a+c 高级 CLI 标志** (!291, #182)。六个新可选标志：`--tpTriggerRatio` / `--slTriggerRatio`（基于比例的止盈止损触发）、`--closeFraction`（部分平仓比例）、`--tradeQuoteCcy`（现货计价币种）、`--banAmend`（禁用 OKX 自动修改）、`--pxAmendType`（价格越界自动修正控制）。CLI 专用。
+- **LLM Eval Probe 全 17 个 MCP 模块覆盖** (`eval/probes/`, !303)。所有模块均补 trace-based probe（`findToolCall`），CI 门禁 `eval-probe-check` 强制执行。
+
+### 修复
+
+- **日志磁盘占用限制** (`packages/core/src/logger.ts`, !312)。启动时按保留期清扫 `~/.okx/logs/`，防止长期运行磁盘无限增长。
+- **`event_browse` 并发请求上限** (`packages/core/src/tools/event-trade.ts`, !300, #146)。信号量限制并发市场请求为 8（OKX 20 req 窗口预留 12 作重试）；改用 `Promise.allSettled`，单系列失败不再中断整体浏览。
+- **`cmdAuthRemove` 权限拒绝错误处理** (`packages/cli/src/commands/auth.ts`, !299, #159)。补 EACCES 路径集成测试覆盖（文本模式 `errorLine`、JSON 模式 `{status:"failed",error:<msg>}`、`process.exitCode = 1`）。
+- **分层架构图修正** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`, !296, #185)。将错误标注 `packages/mcp/src/index.ts` 为「CLI 入口」的单路径瀑布图，改为双二进制图，正确展示 `okx-trade-mcp` 与 `okx` 共依 `@agent-tradekit/core`。
+
+### 变更
+
+- **`smartmoney` schema：`sortBy` / `period` / `granularity` 改为 required** (1.3.3-beta.2)。所有 leaderboard + signal 工具的 `sortBy` 与 `period` 标记为 `required`；`signal-trend-*` 同步要求 `granularity`。Handler 显式注入默认值，MCP / CLI 路径行为确定。兼容性：已传这些参数的调用方不受影响。
+- **`smartmoney` signal-* 工具：明确仅覆盖 linear 合约范围** (1.3.3-beta.2, SIG-01)。`signal-*` 工具与 skill 文档说明 `instCcyList` / `instCcy` 仅聚合 USDT/USDS 保证金合约；币本位（`-USD-SWAP` / `-USD-DELIVERY`）仓位被上游静默剔除。仅文档变更。
+- **`linux-arm64` Pilot 二进制改为原生 arm64 路由** (`packages/core/src/pilot/installer.ts`, !295)。移除原有的 `linux-arm64 → linux-x64` qemu/binfmt 模拟 fallback。
+- **Smart Money Skill 内容刷新** (`skills/`, !294)。触发词、工作流指引及工具描述同步至新 `smartmoney_*` 工具集。
+- **`context-kg/` 业务文档 06/07/08 mapping 段重写** (`context-kg/business/06-leaderboard-smartmoney-api.md`, `07-dcd-api.md`, `08-dca-api.md`, !302, #187)。「Mapping to …」段更新至已发布工具面，新增 V2-only 上游路径的 Backlog 子段。
+
+---
+
 ## [1.3.3-beta.3] - 2026-05-08
 
 ### 新增

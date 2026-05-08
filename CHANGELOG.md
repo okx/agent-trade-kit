@@ -12,6 +12,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.3.3] - 2026-05-08
+
+Stable rollup of `1.3.3-beta.1` → `1.3.3-beta.3`. See per-beta sections below for full implementation detail.
+
+### ⚠ BREAKING
+
+- **`smartmoney` module redesign — no compat shim** (1.3.3-beta.1, !304). MCP/CLI surface fully rewritten for AI-agent disambiguation: 8 → 10 atomic tools (`get_traders_by_filter`, `get_performance_by_trader`, `get_trader_orders_history`, `get_trader_positions`, `get_trader_positions_history`, `get_signal_overview_by_filter`, `get_signal_overview_by_trader`, `get_signal_trend_by_filter`, `get_signal_trend_by_trader`, `search_trader`). Old tool/parameter/field names removed. Arrays replace CSV strings for `authorIds` / `instCcyList`. Pool-filter rename (`pnl`/`winRate`/`asset` → `minPnl`/`minWinRate`/`minAum`). Output field renames (`winRatio` → `winRate`, `maxRetreat` → `maxDrawdown`). Full migration guide: [`docs/designs/smartmoney.md`](docs/designs/smartmoney.md).
+
+### Added
+
+- **Windows named-pipe OAuth token retrieval for `okx auth`** (`packages/core/src/auth/`, !310). Eliminates the WSL/elevated-privilege requirement on Windows; tokens are fetched via a per-invocation named pipe (`\\.\pipe\okx-auth-<256-bit-random>`) instead of fd-3 forwarding.
+- **`--tpLevel` multi-tier take-profit flag (Phase 3b)** (!292, #183). Repeatable on `okx {swap,spot,futures} place` and `algo place` for independent TP tiers. CLI-only (not exposed in MCP / skill workflows).
+- **Phase 3a+c CLI power-user flags** (!291, #182). Six new optional flags: `--tpTriggerRatio` / `--slTriggerRatio` (ratio-based TP/SL triggers), `--closeFraction` (partial-position close), `--tradeQuoteCcy` (SPOT quote currency), `--banAmend` (disable OKX auto-amend), `--pxAmendType` (price out-of-range correction). CLI-only.
+- **LLM eval probe coverage 17/17 MCP modules** (`eval/probes/`, !303). All modules now have trace-based probes (`findToolCall`); CI gate `eval-probe-check` enforces full coverage.
+
+### Fixed
+
+- **Log disk usage bounded with retention sweep** (`packages/core/src/logger.ts`, !312). Startup sweep prunes `~/.okx/logs/` files beyond the configured retention window — prevents unbounded disk growth on long-running installations.
+- **`event_browse` concurrent fetch cap** (`packages/core/src/tools/event-trade.ts`, !300, #146). Semaphore caps concurrent market-fetches at 8 (OKX 20-req window minus 12 retry buffer). Switched to `Promise.allSettled` so a single failing series no longer aborts the browse.
+- **`cmdAuthRemove` permission-denied error handling** (`packages/cli/src/commands/auth.ts`, !299, #159). Added integration test coverage for the EACCES path (`errorLine` in text mode, `{status:"failed",error:<msg>}` in JSON mode, `process.exitCode = 1`).
+- **Layered Architecture diagram corrected** (`ARCHITECTURE.md`, `ARCHITECTURE.zh-CN.md`, !296, #185). Replaced the single-path waterfall (which mislabeled `packages/mcp/src/index.ts` as "CLI entry") with a two-binary diagram showing `okx-trade-mcp` and `okx` as independent binaries on top of `@agent-tradekit/core`.
+
+### Changed
+
+- **`smartmoney` schema: `sortBy` / `period` / `granularity` now required** (1.3.3-beta.2). All leaderboard + signal tools mark `sortBy` and `period` as `required`; `signal-trend-*` also requires `granularity`. Handlers inject defaults explicitly so MCP and CLI paths are deterministic. Compat: callers that already passed these params are unaffected.
+- **`smartmoney` signal-* tools: clarify linear-only scope** (1.3.3-beta.2, SIG-01). `signal-*` tools and skill docs now state that `instCcyList` / `instCcy` aggregate USDT/USDS-margined contracts only — coin-margined positions are silently excluded by upstream. Docs only.
+- **`linux-arm64` pilot binary routes to native arm64** (`packages/core/src/pilot/installer.ts`, !295). Removes the previous `linux-arm64 → linux-x64` qemu/binfmt emulation fallback.
+- **Smart Money skill refreshed** (`skills/`, !294). Trigger phrases, workflow guidance, and tool surface descriptions updated for the new `smartmoney_*` tool set.
+- **`context-kg/` mapping sections updated** (`context-kg/business/06-leaderboard-smartmoney-api.md`, `07-dcd-api.md`, `08-dca-api.md`, !302, #187). Rewrote "Mapping to…" sections to match the shipped tool surface; added "Backlog (not yet wrapped)" for V2-only upstream paths.
+
+---
+
 ## [1.3.3-beta.3] - 2026-05-08
 
 ### Added
