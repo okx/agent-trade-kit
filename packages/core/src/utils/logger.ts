@@ -34,6 +34,43 @@ function sanitize(value: unknown): unknown {
   return value;
 }
 
+const PRUNE_MARKER = ".last-prune.json";
+const PRUNE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_RETENTION_DAYS = 30;
+const MS_PER_DAY = 86400000;
+const LOG_FILE_PATTERN = /^trade-.+\.log$/;
+
+export function pruneOldLogs(logDir: string, retentionDays: number, now: number): void {
+  if (retentionDays === 0) return;
+  try {
+    const markerPath = path.join(logDir, PRUNE_MARKER);
+    let checkedAt = 0;
+    try {
+      const raw = fs.readFileSync(markerPath, "utf8");
+      const data = JSON.parse(raw) as { checkedAt?: unknown };
+      if (typeof data.checkedAt === "number") {
+        checkedAt = data.checkedAt;
+      }
+    } catch {
+      // absent or corrupt — sweep unconditionally
+    }
+    if (checkedAt > 0 && now - checkedAt <= PRUNE_INTERVAL_MS) return;
+    const cutoff = now - retentionDays * MS_PER_DAY;
+    for (const name of fs.readdirSync(logDir).filter((f) => LOG_FILE_PATTERN.test(f))) {
+      try {
+        if (fs.statSync(path.join(logDir, name)).mtimeMs < cutoff) {
+          fs.unlinkSync(path.join(logDir, name));
+        }
+      } catch {
+        // per-file error swallowed
+      }
+    }
+    fs.writeFileSync(markerPath, JSON.stringify({ checkedAt: now }), "utf8");
+  } catch {
+    // entire sweep is best-effort
+  }
+}
+
 export interface LogEntry {
   timestamp: string;
   level: Uppercase<LogLevel>;
@@ -50,6 +87,9 @@ export class TradeLogger {
   constructor(logLevel: LogLevel = "info", logDir?: string) {
     this.logLevel = logLevel;
     this.logDir = logDir ?? path.join(os.homedir(), ".okx", "logs");
+    const parsed = parseInt(process.env.OKX_LOG_RETENTION_DAYS ?? "", 10);
+    const retentionDays = isNaN(parsed) || parsed < 0 ? DEFAULT_RETENTION_DAYS : parsed;
+    pruneOldLogs(this.logDir, retentionDays, Date.now());
   }
 
   getLogPath(date?: Date): string {
