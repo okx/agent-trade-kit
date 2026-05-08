@@ -35,7 +35,12 @@ if (process.env.MOCK_AUTH_ARGS_FILE) {
 function writeTokenToPipe(pipeName, token) {
   return new Promise((resolve) => {
     const sock = createConnection(pipeName);
-    sock.on("error", () => resolve());
+    sock.on("error", (err) => {
+      // Surface to test logs — silently swallowing makes failed-pipe debugging
+      // miserable. The test parent has already failed by this point anyway.
+      process.stderr.write(`mock-auth-binary: pipe connect failed: ${err.message}\n`);
+      resolve();
+    });
     sock.on("connect", () => {
       sock.end(token, () => resolve());
     });

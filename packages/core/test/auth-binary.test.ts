@@ -14,8 +14,8 @@ import {
   getAuthBinaryPath,
   execAuthToken,
   execAuthStatus,
-  __test__,
 } from "../src/auth/binary.js";
+import { execAuthTokenWindows } from "../src/auth/binary-windows.js";
 import { AuthenticationError, ConfigError, NotLoggedInError } from "../src/utils/errors.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -203,7 +203,7 @@ describe("execAuthTokenWindows (pipe transport)", () => {
 
   it("resolves with token written to the pipe", async () => {
     setMockBinary(0, "windows-token-abc");
-    const token = await __test__.execAuthTokenWindows(
+    const token = await execAuthTokenWindows(
       MOCK_BINARY,
       makePipePathFactory(),
     );
@@ -213,7 +213,7 @@ describe("execAuthTokenWindows (pipe transport)", () => {
   it("rejects with AuthenticationError when token is empty (exit 0)", async () => {
     setMockBinary(0, "");
     await assert.rejects(
-      () => __test__.execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
       (err: Error) => {
         assert.ok(err instanceof AuthenticationError);
         assert.ok(err.message.includes("empty token"));
@@ -225,7 +225,7 @@ describe("execAuthTokenWindows (pipe transport)", () => {
   it("rejects with NotLoggedInError for NOT_LOGGED_IN (exit 2)", async () => {
     setMockBinary(2);
     await assert.rejects(
-      () => __test__.execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
       (err: Error) => {
         assert.ok(err instanceof NotLoggedInError);
         return true;
@@ -236,10 +236,34 @@ describe("execAuthTokenWindows (pipe transport)", () => {
   it("rejects with AuthenticationError for UNAUTHORIZED_CALLER (exit 1)", async () => {
     setMockBinary(1);
     await assert.rejects(
-      () => __test__.execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
       (err: Error) => {
         assert.ok(err instanceof AuthenticationError);
         assert.ok(err.message.includes("unauthorized") || err.message.includes("rejected"));
+        return true;
+      },
+    );
+  });
+
+  it("rejects with AuthenticationError for REFRESH_FAILED (exit 3)", async () => {
+    setMockBinary(3);
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        assert.ok(err.message.includes("refresh failed") || err.message.includes("Token refresh"));
+        return true;
+      },
+    );
+  });
+
+  it("rejects with AuthenticationError for unknown exit code", async () => {
+    setMockBinary(99);
+    await assert.rejects(
+      () => execAuthTokenWindows(MOCK_BINARY, makePipePathFactory()),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        assert.ok(err.message.includes("99"));
         return true;
       },
     );
@@ -249,7 +273,7 @@ describe("execAuthTokenWindows (pipe transport)", () => {
     delete process.env.MOCK_AUTH_EXIT;
     await assert.rejects(
       () =>
-        __test__.execAuthTokenWindows(
+        execAuthTokenWindows(
           "/nonexistent/path/okx-auth",
           makePipePathFactory(),
         ),

@@ -1,4 +1,4 @@
-<!-- triggers: oauth, auth, authentication, bearer, token, okx-auth, binary, login, logout, fd3, device-flow, refresh, credentials, applyAuth, resolveAccessToken, execAuthToken, execAuthStatus, install, remove -->
+<!-- triggers: oauth, auth, authentication, bearer, token, okx-auth, binary, login, logout, fd3, named-pipe, OKX_AUTH_TOKEN_PIPE, windows, device-flow, refresh, credentials, applyAuth, resolveAccessToken, execAuthToken, execAuthTokenWindows, execAuthStatus, install, remove -->
 # OAuth Authentication Subsystem
 
 The OAuth subsystem provides browser-based authentication as an alternative to manual API key configuration. A locally-installed `okx-auth` Rust binary manages the full OAuth 2.1 Device Flow lifecycle — login, token storage, refresh, and revocation — while the Node.js SDK communicates with it via subprocess pipes.
@@ -17,7 +17,8 @@ OkxRestClient (packages/core/src/client/rest-client.ts)
         │         ├── cache hit (< 60 s) → return cached token
         │         └── cache miss → execAuthToken()
         │                            └── spawn("okx-auth", ["token"])
-        │                                  └── fd3 pipe → read token
+        │                                  ├── Unix     → fd 3 → read token
+        │                                  └── Windows  → \\.\pipe\okx-auth-<rand> → read token
         └── [3] neither           → throw ConfigError
 
 loadConfig() (packages/core/src/config.ts)
@@ -31,32 +32,64 @@ loadConfig() (packages/core/src/config.ts)
 The SDK selects an auth method **per request** in `applyAuth()`:
 
 1. **API key HMAC** — If `apiKey`, `secretKey`, and `passphrase` are all present in config, use OKX HMAC signature headers (`OK-ACCESS-KEY`, `OK-ACCESS-SIGN`, `OK-ACCESS-PASSPHRASE`, `OK-ACCESS-TIMESTAMP`). No OAuth fallback.
-2. **OAuth Bearer token** — Call `resolveAccessToken()` which spawns the `okx-auth` binary to obtain a fresh access token via fd3. Set `Authorization: Bearer <token>` header.
+2. **OAuth Bearer token** — Call `resolveAccessToken()` which spawns the `okx-auth` binary to obtain a fresh access token via the platform-specific delivery channel (fd 3 on Unix, named pipe on Windows). Set `Authorization: Bearer <token>` header.
 3. **No credentials** — Throw `ConfigError` with suggestion to run `okx auth login` or configure API keys.
 
 This priority is intentional: API key credentials are explicit and deterministic, so they always win when present.
 
-## Token Retrieval via fd3 Pipe
+## Token Retrieval — Platform-Specific Channel
 
-The `execAuthToken()` function in `packages/core/src/auth/binary.ts` spawns the `okx-auth` binary:
+The token is **never** written to stdout. Stdout/stderr remain free for human-readable diagnostics, and the access token is delivered out-of-band over a per-invocation channel that the OS process tree cannot snoop. `execAuthToken()` in `packages/core/src/auth/binary.ts` dispatches on `process.platform`:
+
+### Unix — file descriptor 3
 
 ```typescript
+// packages/core/src/auth/binary.ts (execAuthTokenUnix)
 spawn(binPath, ["token"], {
   stdio: ["ignore", "ignore", "inherit", "pipe"],
   //       stdin    stdout    stderr     fd3 (pipe)
 });
 ```
 
-- **fd3** is used instead of stdout to avoid mixing token data with diagnostic output.
-- The binary writes the access token to fd3 and closes it (EOF).
+- **fd 3** is used instead of stdout to avoid mixing token data with diagnostic output.
+- The binary writes the access token to fd 3 and closes it (EOF).
 - Node.js reads all chunks from `child.stdio[3]`, concatenates, trims, and returns the token string.
-- The binary handles refresh internally — if the access token is expired, it uses the refresh token to obtain a new one before writing to fd3.
+
+### Windows — named pipe via `OKX_AUTH_TOKEN_PIPE`
+
+Windows has no fd inheritance like POSIX, so the parent (consumer) sets up the channel and hands the child a pipe name through an environment variable:
+
+```typescript
+// packages/core/src/auth/binary-windows.ts (execAuthTokenWindows)
+const pipeName = `\\\\.\\pipe\\okx-auth-${randomBytes(32).toString("hex")}`;
+const server = createServer(); // Windows named pipe with current-user DACL
+server.listen(pipeName, () => {
+  spawn(binPath, ["token"], {
+    stdio: ["ignore", "ignore", "inherit"],
+    env: { ...process.env, OKX_AUTH_TOKEN_PIPE: pipeName },
+    windowsHide: true,
+  });
+});
+```
+
+- **Pipe name** is `\\.\pipe\okx-auth-<256-bit hex>` — random per invocation.
+- The Rust binary **rejects any pipe name not starting with `\\.\pipe\okx-auth-`** to make caller-supplied targets impossible.
+- The binary opens the pipe with `CreateFileW(FILE_GENERIC_WRITE, OPEN_EXISTING)`, writes the token, and closes — signalling EOF.
+- The binary **scrubs `OKX_AUTH_TOKEN_PIPE`** from its own environment immediately after read so the value never leaks to grandchildren.
+- `windowsHide: true` suppresses the brief console window that would otherwise flash for the spawned child.
+- The promise resolves only after **both** the child has exited AND the pipe socket has ended cleanly — resolving on either alone races on slow Windows CI.
+
+### Common to both paths
+
+- The binary handles refresh internally — if the access token is expired, it uses the refresh token to obtain a new one before writing to the channel.
+- Exit-code → typed-error mapping is shared via `binary-shared.ts:finalizeToken`, so error messages are identical regardless of OS.
+- Tests cover the Windows path on POSIX hosts via UNIX-domain-socket substitution (`net.createServer` abstracts the transport), so CI does not need a Windows runner.
 
 ### Exit Codes
 
 | Code | Constant | Meaning |
 |------|----------|---------|
-| `0` | `SUCCESS` | Token written to fd3 |
+| `0` | `SUCCESS` | Token written to delivery channel (fd 3 or named pipe) |
 | `1` | `UNAUTHORIZED_CALLER` | Caller identity check failed |
 | `2` | `NOT_LOGGED_IN` | No stored tokens — user must run `okx auth login` |
 | `3` | `REFRESH_FAILED` | Refresh token expired or revoked — re-login required |
@@ -149,7 +182,9 @@ Returned by `okx-auth status --json`. The `status` field determines `hasAuth` at
 
 | File | Role |
 |------|------|
-| `packages/core/src/auth/binary.ts` | Spawn `okx-auth` binary for `token` (fd3) and `status` (stdout JSON) |
+| `packages/core/src/auth/binary.ts` | Platform dispatch + Unix fd-3 token reader + `execAuthStatus` (stdout JSON) |
+| `packages/core/src/auth/binary-windows.ts` | Windows named-pipe token reader (`\\.\pipe\okx-auth-<rand>` + `OKX_AUTH_TOKEN_PIPE`) |
+| `packages/core/src/auth/binary-shared.ts` | `finalizeToken` (shared exit-code → typed-error mapping) and `spawnFailedError` |
 | `packages/core/src/auth/types.ts` | Exit codes and `AuthStatusResult` type |
 | `packages/core/src/auth/installer.ts` | CDN download, checksum verify, atomic install/remove |
 | `packages/core/src/auth/installer-types.ts` | `AuthLocalStatus` type |
