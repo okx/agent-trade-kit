@@ -44,6 +44,13 @@ export function execAuthTokenWindows(
     const server: Server = createServer();
     const chunks: Buffer[] = [];
 
+    // The dual-wait invariant: resolve only when we know there will be no
+    // more pipe data — i.e. either (a) a connection happened and ended
+    // cleanly, or (b) the child exited without ever connecting. On Windows
+    // IOCP completions for the named pipe and process-exit notifications
+    // ride different libuv paths, so we cannot assume socket data has been
+    // dispatched by the time `child close` fires.
+    let connectionMade = false;
     let pipeClosed = false;
     let exitCode: number | null | undefined;
     let settled = false;
@@ -62,6 +69,7 @@ export function execAuthTokenWindows(
     };
 
     server.on("connection", (socket) => {
+      connectionMade = true;
       socket.on("data", (c: Buffer) => chunks.push(c));
       socket.on("end", () => { pipeClosed = true; tryFinalize(); });
       socket.on("error", (err) => settle(() => reject(spawnFailedError(err))));
@@ -84,8 +92,13 @@ export function execAuthTokenWindows(
 
       child.on("error", (err) => settle(() => reject(spawnFailedError(err))));
       child.on("close", (code) => {
-        if (!pipeClosed) pipeClosed = true;
         exitCode = code;
+        // If no connection was ever made (e.g. exit 2 NOT_LOGGED_IN before
+        // opening the pipe), unblock tryFinalize ourselves — socket.end will
+        // never fire. If a connection WAS made, do NOT touch pipeClosed:
+        // socket data may still be queued in libuv, and only socket.end can
+        // tell us it has been drained.
+        if (!connectionMade) pipeClosed = true;
         tryFinalize();
       });
     });
