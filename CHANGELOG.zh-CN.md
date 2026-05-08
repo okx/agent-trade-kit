@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.3.3-beta.2] - 2026-05-08
+
 ### 文档 —— `smartmoney` 信号工具：明确仅覆盖 USDT/USDS 本位（SIG-01）
 
 `signal-*` 工具及 skill 文档明确 `instCcyList` / `instCcy` **只聚合 USDT/USDS 本位合约**——币本位（`-USD-SWAP` / `-USD-DELIVERY`）仓位被上游静默剔除。无行为变更。

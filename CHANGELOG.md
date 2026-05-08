@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3-beta.2] - 2026-05-08
+
 ### Docs — `smartmoney` signal tools: clarify linear-only scope (SIG-01)
 
 `signal-*` tools and skill docs now state that `instCcyList` / `instCcy` aggregate **USDT/USDS-margined contracts only** — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are silently excluded by upstream. No behavior change.
