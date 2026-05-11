@@ -3,9 +3,9 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~46,004 tokens | **Over budget:** ~21,004 tokens | **Tools:** 159 (97 read / 62 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~46,804 tokens | **Over budget:** ~21,804 tokens | **Tools:** 161 (99 read / 62 write)
 
-> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 97 工具, ~23,554 tokens (under budget)。
+> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 99 工具, ~24,354 tokens (under budget)。
 
 ## Registered Modules
 
@@ -19,7 +19,7 @@ Unregistered modules will be rejected during review.
 | option | ✅ approved | 14 | 7 | 7 | ~3,284 | _(founding module)_ | @Jasmine.Li | — |
 | account | ✅ approved | 14 | 12 | 2 | ~2,759 | _(founding module)_ | @Jasmine.Li | — |
 | event | ✅ approved | 9 | 6 | 3 | ~2,607 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
-| news | ✅ approved | 7 | 7 | 0 | ~2,552 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
+| news | ✅ approved | 9 | 9 | 0 | ~3,352 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
 | bot.grid | ✅ approved | 6 | 3 | 3 | ~2,218 | _(founding module)_ | @Jasmine.Li | — |
 | earn.savings | ✅ approved | 9 | 4 | 5 | ~2,020 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,341 | _(founding module)_ | @Jasmine.Li | — |
@@ -28,7 +28,7 @@ Unregistered modules will be rejected during review.
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
-| **Total** | | **159** | **97** | **62** | **~46,004** | | | |
+| **Total** | | **161** | **99** | **62** | **~46,804** | | | |
 
 ## Status Legend
 

@@ -297,6 +297,97 @@ Present the cross-referenced results first, then mention any additional context 
 
 ---
 
+### Economic Calendar — Daily Scan
+
+> ⚠️ **OKX counterintuitive time semantics**: `--before <ts>` returns events **NEWER** than ts (future), `--after <ts>` returns events **OLDER** than ts (past). The opposite of English intuition.
+
+Combine with market data for a complete macro + price picture:
+
+```
+# Economic events — today's events (this skill)
+# ⚠️ ALWAYS use both --before AND --after to form a window
+okx news economic-calendar --before <today_0am_ms> --after <tomorrow_0am_ms> --importance 3 --limit 100
+
+# Market Data (okx-cex-market skill)
+okx market ticker BTC-USDT
+okx market ticker ETH-USDT
+```
+
+Present as:
+| Time | Region | Event | Importance | Forecast | Previous | Actual |
+
+Highlight events where actual deviates significantly from forecast.
+
+---
+
+### Economic Calendar — Global Weekly High-Importance Scan
+
+For "this week's important global events", split into key regions to ensure coverage (omitting `--region` may return sparse results for high-importance events):
+
+```
+# Strategy: query top-5 economic regions separately, then merge & dedup
+# ⚠️ ALWAYS use both --before AND --after to form a window
+okx news economic-calendar --region united_states --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100
+okx news economic-calendar --region euro_area --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100
+okx news economic-calendar --region china --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100
+okx news economic-calendar --region japan --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100
+okx news economic-calendar --region united_kingdom --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100
+```
+
+Merge results, dedup by event name + date, and sort chronologically. If a region returns empty, it simply means no high-importance events scheduled — do not retry.
+
+---
+
+### Economic Data Release — Position Impact Analysis
+
+When user asks about impact of released data on positions:
+
+```
+# Step 1: Get the event (this skill, ⚠️ 5s rate limit)
+okx news economic-calendar --region united_states --importance 3 --limit 5
+
+# Step 2: Check user positions (okx-cex-portfolio skill)
+okx account positions
+okx account balance
+
+# Step 3: Current market price (okx-cex-market skill)
+okx market ticker BTC-USDT
+
+# Step 4: AI synthesis
+# - Compare actual vs forecast → bullish/bearish signal
+# - Map macro logic chain (e.g. CPI↑ → hawkish Fed → strong USD → BTC↓)
+# - Assess impact on user's specific positions (leverage, direction, P&L)
+# - Provide actionable suggestion (TP/SL, reduce leverage, hold)
+```
+
+⚠️ Do NOT suggest placing orders without explicit user confirmation.
+
+---
+
+### BTC Macro Impact Analysis
+
+When user asks "BTC 受哪些宏观数据冲击" / "macro impact on BTC", run economic-calendar and BTC sentiment/news **in parallel** (they are independent):
+
+```
+# ── Run these in PARALLEL (no dependency) ──
+
+# Group A: Economic calendar (this skill)
+# ⚠️ ALWAYS use both --before AND --after to form a window
+okx news economic-calendar --region united_states --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100
+
+# Group B: BTC sentiment + news (this skill)
+okx news coin-sentiment --coins BTC
+okx news by-coin --coins BTC --limit 5
+
+# Group C: BTC price context (okx-cex-market skill)
+okx market ticker BTC-USDT
+okx market funding-rate BTC-USDT-SWAP
+```
+
+Then synthesize: for each high-importance macro event, explain the causal chain to BTC (e.g. NFP miss → Fed cuts → USD weakens → BTC up). Cross-reference with current BTC sentiment and funding rate for a complete picture. Do NOT run these groups sequentially — they have no data dependency.
+
+---
+
 ## MCP Tool Reference
 
 | CLI subcommand | MCP tool name | Notes |
@@ -310,3 +401,5 @@ Present the cross-referenced results first, then mention any additional context 
 | `news coin-sentiment` | `news_get_coin_sentiment` | Snapshot mode (no `trendPoints`) |
 | `news coin-trend` | `news_get_coin_sentiment` | CLI passes `trendPoints`; same MCP tool, trend mode |
 | `news sentiment-rank` | `news_get_sentiment_ranking` | |
+| `news economic-calendar` | `news_get_economic_calendar` | Rate limit 1/5s; privateGet with demo guard |
+| `news list-regions` | `news_list_calendar_regions` | Returns supported region values for economic-calendar `--region` param |

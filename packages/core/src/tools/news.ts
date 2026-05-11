@@ -8,6 +8,42 @@ const NEWS_DETAIL = "/api/v5/orbit/news-detail";
 const NEWS_DOMAINS = "/api/v5/orbit/news-platform";
 const SENTIMENT_QUERY = "/api/v5/orbit/currency-sentiment-query";
 const SENTIMENT_RANKING = "/api/v5/orbit/currency-sentiment-ranking";
+const ECONOMIC_CALENDAR = "/api/v5/public/economic-calendar";
+
+const CALENDAR_REGIONS = [
+  "afghanistan", "albania", "algeria", "andorra", "angola", "antigua_and_barbuda",
+  "argentina", "armenia", "aruba", "australia", "austria", "azerbaijan", "bahamas",
+  "bahrain", "bangladesh", "barbados", "belarus", "belgium", "belize", "benin",
+  "bermuda", "bhutan", "bolivia", "bosnia_and_herzegovina", "botswana", "brazil",
+  "brunei", "bulgaria", "burkina_faso", "burundi", "cambodia", "cameroon", "canada",
+  "cape_verde", "cayman_islands", "central_african_republic", "chad", "chile", "china",
+  "colombia", "comoros", "congo", "costa_rica", "croatia", "cuba", "cyprus",
+  "czech_republic", "denmark", "djibouti", "dominica", "dominican_republic",
+  "east_timor", "ecuador", "egypt", "el_salvador", "equatorial_guinea", "eritrea",
+  "estonia", "ethiopia", "euro_area", "european_union", "faroe_islands", "fiji",
+  "finland", "france", "g20", "g7", "gabon", "gambia", "georgia", "germany", "ghana",
+  "greece", "greenland", "grenada", "guatemala", "guinea", "guinea_bissau", "guyana",
+  "haiti", "honduras", "hong_kong", "hungary", "iceland", "imf", "india", "indonesia",
+  "iran", "iraq", "ireland", "isle_of_man", "israel", "italy", "ivory_coast", "jamaica",
+  "japan", "jordan", "kazakhstan", "kenya", "kiribati", "kosovo", "kuwait", "kyrgyzstan",
+  "laos", "latvia", "lebanon", "lesotho", "liberia", "libya", "liechtenstein",
+  "lithuania", "luxembourg", "macau", "macedonia", "madagascar", "malawi", "malaysia",
+  "maldives", "mali", "malta", "mauritania", "mauritius", "mexico", "micronesia",
+  "moldova", "monaco", "mongolia", "montenegro", "morocco", "mozambique", "myanmar",
+  "namibia", "nepal", "netherlands", "new_caledonia", "new_zealand", "nicaragua", "niger",
+  "nigeria", "north_korea", "northern_mariana_islands", "norway", "oman", "opec",
+  "pakistan", "palau", "palestine", "panama", "papua_new_guinea", "paraguay", "peru",
+  "philippines", "poland", "portugal", "puerto_rico", "qatar", "republic_of_the_congo",
+  "romania", "russia", "rwanda", "samoa", "san_marino", "sao_tome_and_principe",
+  "saudi_arabia", "senegal", "serbia", "seychelles", "sierra_leone", "singapore",
+  "slovakia", "slovenia", "solomon_islands", "somalia", "south_africa", "south_korea",
+  "south_sudan", "spain", "sri_lanka", "st_kitts_and_nevis", "st_lucia", "sudan",
+  "suriname", "swaziland", "sweden", "switzerland", "syria", "taiwan", "tajikistan",
+  "tanzania", "thailand", "togo", "tonga", "trinidad_and_tobago", "tunisia", "turkey",
+  "turkmenistan", "uganda", "ukraine", "united_arab_emirates", "united_kingdom",
+  "united_states", "uruguay", "uzbekistan", "vanuatu", "venezuela", "vietnam", "world",
+  "yemen", "zambia", "zimbabwe",
+] as const;
 
 const NEWS_LANGUAGE = ["en-US", "zh-CN"] as const;
 
@@ -321,13 +357,65 @@ export function registerNewsTools(): ToolSpec[] {
         return normalizeResponse(response);
       },
     },
+
+    // -----------------------------------------------------------------------
+    // Economic calendar
+    // -----------------------------------------------------------------------
+
+    {
+      name: "news_list_calendar_regions",
+      module: "news",
+      description: "List all valid region values for the economic calendar. Returns a string array of snake_case region codes. Call this when economic-calendar returns empty results to verify the region value, or to help the user pick a valid region. Do NOT use to list news source platforms — use news_get_domains instead.",
+      isWrite: false,
+      inputSchema: { type: "object", properties: {}, required: [] },
+      handler: async () => ({ data: CALENDAR_REGIONS }),
+    },
+
+    {
+      name: "news_get_economic_calendar",
+      module: "news",
+      description: "Get macro-economic calendar data (GDP, CPI, NFP, interest rate decisions, PMI, etc.). Returns scheduled and released economic events with forecast, previous, and actual values. Use when user asks about economic calendar, macro data, or specific indicators like NFP/CPI/GDP/FOMC. Do NOT use for news articles or sentiment — use news_get_latest or news_search instead.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          region: { type: "string", description: "Country/region filter in snake_case (e.g. united_states, euro_area, japan). Invalid values return empty results silently. If empty results, call news_list_calendar_regions to verify the value." },
+          importance: { type: "string", enum: ["1", "2", "3"], description: "Importance level: 1=low, 2=medium, 3=high. Omit for all levels." },
+          before: { type: "string", description: "Lower time bound — returns events NEWER than this timestamp (reversed semantics). Pair with 'after' for future-event windows. Unix ms." },
+          after: { type: "string", description: "Upper time bound — returns events OLDER than this timestamp (reversed semantics). Default=now (returns past events). Pair with 'before' for a bounded window. Unix ms." },
+          limit: { type: "number", minimum: 1, maximum: 100, description: "Number of results (default 100, max 100)." },
+        },
+        required: [],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const rawLimit = readNumber(args, "limit");
+        const limit = rawLimit !== undefined ? Math.min(rawLimit, 100) : undefined;
+        const response = await context.client.privateGet(
+          ECONOMIC_CALENDAR,
+          compactObject({
+            region: readString(args, "region"),
+            importance: readString(args, "importance"),
+            before: readString(args, "before"),
+            after: readString(args, "after"),
+            limit,
+          }),
+          publicRateLimit("news_get_economic_calendar", 0.2),
+        );
+        return normalizeResponse(response);
+      },
+    },
   ];
 
-  // news_get_domains is a pure info query (no user data) — exclude from demo guard
-  const domainsIdx = tools.findIndex((t) => t.name === "news_get_domains");
-  if (domainsIdx === -1) throw new Error("news_get_domains not found in tools list");
-  const [domainsTool] = tools.splice(domainsIdx, 1);
-  return [...tools.map(withNewsDemoGuard), domainsTool];
+  // Pure info tools (no API call / no user data) — exclude from demo guard
+  const exempt = new Set(["news_get_domains", "news_list_calendar_regions"]);
+  const exempted: ToolSpec[] = [];
+  const guarded: ToolSpec[] = [];
+  for (const t of tools) {
+    if (exempt.has(t.name)) exempted.push(t);
+    else guarded.push(t);
+  }
+  return [...guarded.map(withNewsDemoGuard), ...exempted];
 }
 
 const NEWS_DEMO_MESSAGE = "News features are not available in demo/simulated trading mode.";

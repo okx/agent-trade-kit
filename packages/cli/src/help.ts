@@ -133,6 +133,12 @@ function printSubgroupHelp(moduleName: string, subgroupName: string): void {
   }
   const subgroup = group.subgroups?.[subgroupName];
   if (!subgroup) {
+    const cmd = group.commands?.[subgroupName];
+    if (cmd) {
+      const lines = ["", `  ${cmd.description}`, `  Usage: ${cmd.usage}`, ""];
+      output(lines.join(EOL));
+      return;
+    }
     errorLine(`Unknown subgroup: ${moduleName} ${subgroupName}`);
     process.exitCode = 1;
     return;

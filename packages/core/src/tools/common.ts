@@ -15,7 +15,7 @@ export const OKX_INST_TYPES = [
 export function publicRateLimit(key: string, rps = 20): RateLimitConfig {
   return {
     key: `public:${key}`,
-    capacity: rps,
+    capacity: Math.max(1, rps), // capacity >= 1 so the token bucket can fire at least once before refilling
     refillPerSecond: rps,
   };
 }
@@ -23,7 +23,7 @@ export function publicRateLimit(key: string, rps = 20): RateLimitConfig {
 export function privateRateLimit(key: string, rps = 10): RateLimitConfig {
   return {
     key: `private:${key}`,
-    capacity: rps,
+    capacity: Math.max(1, rps), // capacity >= 1 so the token bucket can fire at least once before refilling
     refillPerSecond: rps,
   };
 }

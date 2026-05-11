@@ -197,6 +197,7 @@ export interface CliValues {
   period?: string;
   points?: string;
   "sort-by"?: string;
+  region?: string;
   // skill marketplace
   categories?: string;
   dir?: string;
@@ -446,6 +447,7 @@ export const CLI_OPTIONS = {
   period: { type: "string" },
   points: { type: "string" },
   "sort-by": { type: "string" },
+  region: { type: "string" },
   // skill marketplace
   categories: { type: "string" },
   dir: { type: "string" },
