@@ -10,14 +10,14 @@ The project is a pnpm workspace monorepo containing three packages:
 | Package | Path | Purpose |
 |---------|------|---------|
 | `@okx-trade/core` | `packages/core` | Shared SDK: REST client, tool definitions, config parsing, error types |
-| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~159 tools over stdio (JSON-RPC 2.0) |
+| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~161 tools over stdio (JSON-RPC 2.0) |
 | `@okx-trade/cli` | `packages/cli` | CLI binary (`okx`) for direct terminal use |
 
 **Bundling**: tsup (ESM output). **Testing**: node:test. **Validation**: zod. **Config**: TOML via smol-toml.
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **159 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **161 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
 
 - **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)

@@ -1,6 +1,6 @@
 ---
 name: okx-sentiment-tracker
-description: "Use this skill when the user asks about: 'any crypto news', 'latest news', 'market update', 'daily briefing', 'BTC news', 'ETH news', 'news on SOL', 'search SEC ETF', 'regulation news', 'Bitcoin halving', 'is BTC bullish or bearish', 'coin sentiment', 'sentiment trend', 'trending coins', 'top bullish coins', 'bearish sentiment', 'social buzz', 'market mood', 'fear and greed', 'full article', 'read more', or any request for crypto news, market intelligence, sentiment analysis, or social trend data. Requires API credentials. Do NOT use for market prices/candles (okx-cex-market), placing orders (okx-cex-trade), or account info (okx-cex-portfolio)."
+description: "Use this skill when the user asks about: 'any crypto news', 'latest news', 'market update', 'daily briefing', 'BTC news', 'ETH news', 'news on SOL', 'search SEC ETF', 'regulation news', 'Bitcoin halving', 'is BTC bullish or bearish', 'coin sentiment', 'sentiment trend', 'trending coins', 'top bullish coins', 'bearish sentiment', 'social buzz', 'market mood', 'fear and greed', 'full article', 'read more', 'economic calendar', '经济日历', 'macro data', '宏观数据', 'NFP', 'nonfarm', '非农', 'CPI', 'GDP', 'FOMC', '利率决议', 'interest rate decision', 'PMI', 'unemployment rate', '失业率', 'economic events', '经济事件', or any request for crypto news, market intelligence, sentiment analysis, social trend data, or macro-economic calendar. Requires API credentials. Do NOT use for market prices/candles (okx-cex-market), placing orders (okx-cex-trade), or account info (okx-cex-portfolio)."
 license: MIT
 metadata:
   author: okx
@@ -19,7 +19,7 @@ metadata:
 
 # OKX News & Sentiment
 
-Crypto news aggregation and coin sentiment analysis for OKX. All commands are **read-only** and require **API credentials** (OAuth2.1).
+Crypto news aggregation, coin sentiment analysis, and macro-economic calendar for OKX. All commands are **read-only** and require **API credentials** (OAuth2.1).
 
 ## Capabilities
 
@@ -34,6 +34,8 @@ Crypto news aggregation and coin sentiment analysis for OKX. All commands are **
 | Sentiment trend | `okx news coin-trend` |
 | Sentiment ranking | `okx news sentiment-rank` |
 | News source list | `okx news platforms` |
+| Economic calendar query | `okx news economic-calendar` |
+| Valid calendar regions | `okx news list-regions` |
 
 ## Prerequisites
 
@@ -75,6 +77,9 @@ okx news coin-sentiment --coins BTC
 
 # Trending coins (hottest right now)
 okx news sentiment-rank
+
+# Upcoming economic events (today only)
+okx news economic-calendar --before $(date -v0H -v0M -v0S +%s000) --after $(date -v+1d -v0H -v0M -v0S +%s000) --limit 100
 ```
 
 ## Intent → Command Mapping
@@ -110,6 +115,50 @@ okx news sentiment-rank
 | "what's hot in crypto right now" / "which coins are getting the most attention" | `okx news sentiment-rank` |
 | "which coins are people most excited about" / "top bullish coins" | `okx news sentiment-rank --sort-by bullish` |
 | "which coins have the most negative sentiment" | `okx news sentiment-rank --sort-by bearish` |
+
+### Economic Calendar
+
+> **CRITICAL — always use BOTH `--before` AND `--after` to form a time window.** Using `--before` alone returns events all the way to 2028 in reverse order — `--limit` then clips the FARTHEST events, not the nearest. Always pair them.
+>
+> Semantics (counterintuitive): `--before <ts>` = events NEWER than ts (lower bound), `--after <ts>` = events OLDER than ts (upper bound, default=now).
+
+| User says | Command |
+|-----------|---------|
+| "今天有什么经济数据" / "economic events today" | `okx news economic-calendar --before <today_0am_ms> --after <tomorrow_0am_ms> --limit 100` |
+| "这周美国有什么重要经济事件" | `okx news economic-calendar --region united_states --importance 3 --before <week_start_ms> --after <week_end_ms> --limit 100` |
+| "非农什么时候出" / "when is NFP" | `okx news economic-calendar --region united_states --importance 3 --before <now_ms> --after <now_plus_60d_ms> --limit 100` then filter `event` field for "Non Farm" client-side |
+| "CPI 出来了吗" / "latest CPI data" | `okx news economic-calendar --region united_states --importance 3 --limit 20` (default after=now fetches past high-importance events; check `actual` field) |
+| "欧洲央行利率决议" / "ECB rate decision" | `okx news economic-calendar --region euro_area --importance 3 --before <now_ms> --after <now_plus_90d_ms> --limit 100` then filter for "Interest Rate Decision" |
+
+**How to choose before / after:**
+
+| Intent | Parameter | Explanation |
+|--------|-----------|-------------|
+| Today's events | `--before <today_0am> --after <tomorrow_0am>` | Window = today 0:00 → tomorrow 0:00 |
+| This week's events | `--before <week_start> --after <week_end>` | Window = Mon 0:00 → Sun 24:00 |
+| Next N days | `--before <now> --after <now_plus_Nd>` | Window = now → N days ahead |
+| Past events (default) | omit both, or `--after <upper_bound>` | Default after=now, returns recent past |
+| Historical window | `--before <window_start> --after <window_end>` | Both bounds explicit |
+
+Notes:
+- ⚠️ **ALWAYS use both `--before` AND `--after`** for future-event queries. `--before` alone returns to 2028 and limit clips the wrong end. The only exception is past-event queries where default after=now is correct.
+- Rate limit: 1 request per 5 seconds (IP-based). Do NOT call repeatedly.
+- No keyword/event filter — scan response `event` field client-side. Use a **single** API call with `--limit 100` and broad window, then filter results locally (do NOT loop calls trying different keywords).
+- When user asks for a specific importance level (e.g. "重要的", "high importance"), pass `--importance 3` AND only include importance=3 events in output. Do NOT pad the response with lower-importance events.
+- When searching for a specific event (NFP, CPI, ECB decision), always add `--importance 3` to reduce noise — these are all high-importance events. Use `--limit 100` and a wide window to ensure the target event is captured.
+- `actual=""` = not yet released; non-empty = released.
+- Historical data >3 months requires VIP1+.
+- Demo mode not supported — use `--profile live` silently.
+- `--region` values are snake_case (e.g. `united_states`, `euro_area`). **Invalid values silently return empty results** (no error). If you get empty results and suspect a region typo, run `okx news list-regions` to get the full list of 210 valid values, then fuzzy-match the user's input and retry. If unsure of the exact value, **omit `--region`** and filter results client-side by the `region` field in the response.
+
+### BTC Macro Impact (cross-skill)
+
+| User says | Workflow |
+|-----------|---------|
+| "BTC 受哪些宏观数据冲击" / "macro impact on BTC this week" | → [BTC Macro Impact workflow](references/workflows.md#btc-macro-impact-analysis) |
+| "这周宏观对加密有什么影响" / "how will macro data affect crypto" | → [BTC Macro Impact workflow](references/workflows.md#btc-macro-impact-analysis) |
+
+These queries require **parallel** execution of economic-calendar + BTC sentiment/news + market data. Do NOT run them sequentially.
 
 ### Sentiment Anomaly Detection (multi-coin)
 
@@ -270,6 +319,34 @@ okx news sentiment-rank [--period 1h|4h|24h]
 
 ---
 
+### `okx news economic-calendar`
+Get macro-economic calendar data. Historical data beyond 3 months requires VIP1+.
+
+```bash
+okx news economic-calendar [--region <country>] [--importance <1|2|3>]
+                           [--before <ms>] [--after <ms>]
+                           [--limit 100] [--json]
+```
+
+Rate limit: 1 request per 5 seconds (IP). Much stricter than other news commands.
+
+**before/after are inverted**: `--before <ts>` = newer than ts (future), `--after <ts>` = older than ts (past). See [Economic Calendar intent mapping](#economic-calendar) for examples.
+
+Common regions: united_states, china, euro_area, united_kingdom, japan, germany, canada, australia
+
+Importance: 1=low, 2=medium, 3=high
+
+---
+
+### `okx news list-regions`
+List all valid `--region` values for `economic-calendar`. Use when a region query returns empty to verify the value.
+
+```bash
+okx news list-regions [--json]
+```
+
+---
+
 ## MCP Tool Reference
 
 | Tool | Description |
@@ -281,6 +358,8 @@ okx news sentiment-rank [--period 1h|4h|24h]
 | `news_get_domains` | List available news source domains |
 | `news_get_coin_sentiment` | Sentiment snapshot (no `trendPoints`) or time-series trend (pass `trendPoints`) |
 | `news_get_sentiment_ranking` | Coin ranking by hotness or sentiment direction |
+| `news_get_economic_calendar` | Macro-economic calendar data; rate limit 1/5s |
+| `news_list_calendar_regions` | List all 210 valid region values for economic-calendar |
 
 ## Coin Symbol Normalization
 

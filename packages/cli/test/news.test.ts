@@ -66,6 +66,11 @@ const fakeDomains = {
   requestTime: new Date().toISOString(),
   data: [{ platform: ["coindesk", "cointelegraph"] }],
 };
+const fakeEconomicCalendar = {
+  endpoint: "GET /api/v5/public/economic-calendar",
+  requestTime: new Date().toISOString(),
+  data: [{ calendarId: "1", date: "1711843200000", region: "united_states", event: "Nonfarm Payrolls", importance: "3", forecast: "200K", previous: "180K", actual: "215K" }],
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -106,6 +111,8 @@ function makeSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<st
     if (t === "news_get_sentiment_ranking") return fakeRanking;
     if (t === "news_get_domains") return fakeDomains;
     if (t === "news_get_detail") return fakeDetail;
+    if (t === "news_get_economic_calendar") return fakeEconomicCalendar;
+    if (t === "news_list_calendar_regions") return { data: ["united_states", "china", "japan"] };
     return fakeNewsPage;
   };
   return { spy, captured };
@@ -492,5 +499,68 @@ describe("news formatter — sparse data fallbacks", () => {
   it("coin-trend --json: outputs raw json", async () => {
     const { spy } = makeSpy();
     await handleNewsCommand(spy, "coin-trend", ["BTC"], vals({ points: "24" }), true);
+  });
+});
+
+// ===========================================================================
+// news economic-calendar
+// ===========================================================================
+
+describe("handleNewsCommand economic-calendar — parameter routing", () => {
+  it("--region routes via v.region", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "economic-calendar", [], vals({ region: "united_states" }), false);
+    assert.equal(captured.tool, "news_get_economic_calendar");
+    assert.equal(captured.args["region"], "united_states");
+  });
+
+  it("--importance routes via v.importance", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "economic-calendar", [], vals({ importance: "3" }), false);
+    assert.equal(captured.args["importance"], "3");
+  });
+
+  it("--limit routes via v.limit", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "economic-calendar", [], vals({ limit: "50" }), false);
+    assert.equal(captured.args["limit"], 50);
+  });
+
+  it("--before and --after route via v.before and v.after", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "economic-calendar", [], vals({ before: "1711843200000", after: "1711756800000" }), false);
+    assert.equal(captured.args["before"], "1711843200000");
+    assert.equal(captured.args["after"], "1711756800000");
+  });
+
+  it("formats table output", async () => {
+    const { spy } = makeSpy();
+    await handleNewsCommand(spy, "economic-calendar", [], vals({}), false);
+  });
+
+  it("--json outputs raw json", async () => {
+    const { spy } = makeSpy();
+    await handleNewsCommand(spy, "economic-calendar", [], vals({}), true);
+  });
+});
+
+// ===========================================================================
+// news list-regions
+// ===========================================================================
+
+describe("cmdNewsListCalendarRegions — parameter routing", () => {
+  it("dispatches to news_list_calendar_regions tool", async () => {
+    const { spy, captured } = makeSpy();
+    await handleNewsCommand(spy, "list-regions", [], vals({}), false);
+    assert.equal(captured.tool, "news_list_calendar_regions");
+  });
+
+  it("--json outputs the regions array", async () => {
+    const lines: string[] = [];
+    setOutput({ out: (s: string) => lines.push(s), err: () => {} });
+    const { spy } = makeSpy();
+    await handleNewsCommand(spy, "list-regions", [], vals({}), true);
+    const parsed = JSON.parse(lines.join(""));
+    assert.deepEqual(parsed, ["united_states", "china", "japan"]);
   });
 });

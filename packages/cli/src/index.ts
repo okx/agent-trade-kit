@@ -22,6 +22,8 @@ import {
   cmdNewsCoinSentiment,
   cmdNewsCoinTrend,
   cmdNewsSentimentRank,
+  cmdNewsEconomicCalendar,
+  cmdNewsListCalendarRegions,
 } from "./commands/news.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
@@ -1665,6 +1667,8 @@ export function handleNewsCommand(
       return cmdNewsSearch(run, "", opts);
     },
     "sentiment-rank": () => cmdNewsSentimentRank(run, { period, sortBy, limit, json }),
+    "economic-calendar": () => cmdNewsEconomicCalendar(run, { region: v.region, importance: v.importance, before: v.before, after, limit, json }),
+    "list-regions": () => cmdNewsListCalendarRegions(run, { json }),
   };
 
   const handler = dispatch[action];

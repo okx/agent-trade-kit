@@ -19,13 +19,16 @@ Target users: retail traders and AI agents (unified underlying API; field design
 | news_get_domains | R | List available news source domains |
 | news_get_coin_sentiment | R | Sentiment snapshot or time-series trend (pass `trendPoints` for trend mode) |
 | news_get_sentiment_ranking | R | Coin ranking by hotness or sentiment direction |
+| news_get_economic_calendar | R | Macro-economic calendar data (GDP, CPI, NFP, FOMC, etc.). Rate limit: 1 req/5s. |
+| news_list_calendar_regions | R | List all valid `region` values accepted by `news_get_economic_calendar` (snake_case region codes). |
 
 ## Token 预算评估
 
-预估 ~1400 tokens (7 tools × ~200)
+预估 ~1600 tokens (8 tools × ~200)
 
 ## 典型 Workflow
 
 1. Scenario A — Agent generates daily market report: call news_get_latest (importance=high) to get today's top stories, call news_get_sentiment_ranking to summarize market mood, call news_get_coin_sentiment for major coin snapshots, compose report.
 2. Scenario B — User searches for a specific event (e.g. 'SEC ETF ruling'): call news_search with relevant keywords and optional coin/sentiment filters, present results list, call news_get_detail on selected article for full content.
 3. Scenario C — User asks about a specific coin: call news_get_by_coin (coins=BTC) to retrieve recent news, call news_get_coin_sentiment (coins=BTC) for bullish/bearish snapshot.
+4. Scenario D — User asks about macro events: call news_get_economic_calendar with optional region/importance filters to get upcoming or recently released economic data (e.g. NFP, CPI, GDP, FOMC). Combine with market data for impact analysis.

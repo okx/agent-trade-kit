@@ -1035,6 +1035,16 @@ export const CLI_REGISTRY: CliRegistry = {
         toolName: "news_get_sentiment_ranking",
         usage: "okx news sentiment-rank [--period 24h] [--sort-by 0] [--limit 20]",
       },
+      "economic-calendar": {
+        toolName: "news_get_economic_calendar",
+        usage: "okx news economic-calendar [--region <country>] [--importance <1|2|3>] [--before <ms>] [--after <ms>] [--limit <n>]",
+        description: "Get macro-economic calendar data (GDP, CPI, NFP, FOMC, etc.)",
+      },
+      "list-regions": {
+        toolName: "news_list_calendar_regions",
+        usage: "okx news list-regions",
+        description: "List all valid --region values for economic-calendar",
+      },
     },
   },
 

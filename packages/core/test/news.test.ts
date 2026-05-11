@@ -73,9 +73,9 @@ function makeContext(client: ReturnType<typeof makeMockClient>["client"]): ToolC
 // ---------------------------------------------------------------------------
 
 describe("news tools registration", () => {
-  it("should register exactly 7 news tools", () => {
+  it("should register exactly 9 news tools", () => {
     const tools = registerNewsTools();
-    assert.equal(tools.length, 7);
+    assert.equal(tools.length, 9);
   });
 
   it("should have expected tool names", () => {
@@ -88,6 +88,8 @@ describe("news tools registration", () => {
     assert.ok(names.includes("news_get_domains"));
     assert.ok(names.includes("news_get_coin_sentiment"));
     assert.ok(names.includes("news_get_sentiment_ranking"));
+    assert.ok(names.includes("news_get_economic_calendar"));
+    assert.ok(names.includes("news_list_calendar_regions"));
     // merged/removed tools
     assert.ok(!names.includes("news_get_important"));
     assert.ok(!names.includes("news_list_domains"));
@@ -126,8 +128,9 @@ describe("news tools registration", () => {
       },
     };
     const tools = registerNewsTools();
-    // news_get_domains is a pure info query and should NOT be demo-guarded
-    const guardedTools = tools.filter((t) => t.name !== "news_get_domains");
+    // Pure info tools should NOT be demo-guarded
+    const exempt = new Set(["news_get_domains", "news_list_calendar_regions"]);
+    const guardedTools = tools.filter((t) => !exempt.has(t.name));
     for (const tool of guardedTools) {
       await assert.rejects(
         () => tool.handler({}, demoCtx),
@@ -431,5 +434,78 @@ describe("news_get_sentiment_ranking", () => {
     const call = getLastCall()!;
     assert.equal(call.params["sortBy"], "bullish");
     assert.equal(call.params["limit"], 20);
+  });
+});
+
+describe("news_get_economic_calendar", () => {
+  it("should call economic-calendar endpoint with no params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_economic_calendar")!;
+
+    await tool.handler({}, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.endpoint, "/api/v5/public/economic-calendar");
+  });
+
+  it("should pass region parameter", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_economic_calendar")!;
+
+    await tool.handler({ region: "united_states" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.params["region"], "united_states");
+  });
+
+  it("should pass importance parameter", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_economic_calendar")!;
+
+    await tool.handler({ importance: "3" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.params["importance"], "3");
+  });
+
+  it("should pass pagination parameters", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_economic_calendar")!;
+
+    await tool.handler({ before: "1711843200000", after: "1711756800000", limit: 50 }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.params["before"], "1711843200000");
+    assert.equal(call.params["after"], "1711756800000");
+    assert.equal(call.params["limit"], 50);
+  });
+
+  it("should reject in demo mode", async () => {
+    const { client } = makeMockClient();
+    const demoCtx: ToolContext = {
+      client: client as unknown as ToolContext["client"],
+      config: {
+        apiKey: "test-key",
+        secretKey: "test-secret",
+        passphrase: "test-passphrase",
+        hasAuth: true,
+        modules: ["news"],
+        readOnly: false,
+        demo: true,
+        site: "global",
+        baseUrl: "https://www.okx.com",
+        sourceTag: "MCP",
+      },
+    };
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_economic_calendar")!;
+    await assert.rejects(
+      () => tool.handler({}, demoCtx),
+      (err: Error) => err.message.includes("not available in demo"),
+    );
   });
 });

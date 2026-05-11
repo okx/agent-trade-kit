@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { printJson, printTable, printKv, outputLine } from "../formatter.js";
+import { printJson, printTable, printKv, outputLine, errorLine } from "../formatter.js";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -297,4 +297,62 @@ export async function cmdNewsSentimentRank(
       };
     }),
   );
+}
+
+export async function cmdNewsEconomicCalendar(
+  run: ToolRunner,
+  opts: {
+    region?: string;
+    importance?: string;
+    before?: string;
+    after?: string;
+    limit?: number;
+    json: boolean;
+  },
+): Promise<void> {
+  if (!opts.json && opts.limit !== undefined && opts.limit > 100) {
+    errorLine(`Warning: --limit ${opts.limit} exceeds API max 100, capped to 100`);
+  }
+  const result = await run("news_get_economic_calendar", {
+    region: opts.region,
+    importance: opts.importance,
+    before: opts.before,
+    after: opts.after,
+    limit: opts.limit !== undefined ? Math.min(opts.limit, 100) : undefined,
+  });
+  const items = (getData(result) ?? []) as Record<string, unknown>[];
+  if (opts.json) return printJson(items);
+  printTable(
+    items.map((e) => {
+      const unit = String(e["unit"] ?? "").trim();
+      const appendUnit = (v: unknown) => {
+        const s = String(v ?? "");
+        if (!s || s === "-") return s || "-";
+        if (unit && !s.includes(unit)) return `${s} ${unit}`;
+        return s;
+      };
+      return {
+        time: formatTime(e["date"]),
+        region: e["region"],
+        category: e["category"] || "-",
+        event: String(e["event"] ?? "").slice(0, 50),
+        importance: e["importance"] === "3" ? "HIGH" : e["importance"] === "2" ? "MED" : "LOW",
+        refDate: formatTime(e["refDate"]),
+        forecast: appendUnit(e["forecast"] ?? "-"),
+        previous: appendUnit(e["previous"] ?? "-"),
+        actual: e["actual"] ? appendUnit(e["actual"]) : "(pending)",
+      };
+    }),
+  );
+}
+
+export async function cmdNewsListCalendarRegions(
+  run: ToolRunner,
+  opts: { json: boolean },
+): Promise<void> {
+  const result = await run("news_list_calendar_regions", {});
+  const regions = (result as unknown as Record<string, unknown>).data as string[];
+  if (opts.json) return printJson(regions);
+  outputLine(`Valid economic-calendar regions (${regions.length}):`);
+  outputLine(regions.join(", "));
 }
