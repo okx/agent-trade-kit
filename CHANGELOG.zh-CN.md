@@ -11,6 +11,9 @@
 
 ## [Unreleased]
 
+### Added
+
+- **配对价差工具** (`market_get_pair_spread`)。计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率）。支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
 
 ## [1.3.4-beta.1] - 2026-05-12
 

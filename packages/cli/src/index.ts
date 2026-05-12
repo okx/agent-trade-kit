@@ -49,6 +49,7 @@ import {
   cmdMarketFilter,
   cmdMarketOiHistory,
   cmdMarketOiChangeFilter,
+  cmdMarketPairSpread,
 } from "./commands/market.js";
 import {
   cmdAccountBalance,
@@ -356,6 +357,15 @@ function handleMarketFilterCommand(
       limit,
       json,
     });
+  if (action === "pair-spread") {
+    const backtestTime = v["backtest-time"] !== undefined ? Number(v["backtest-time"]) : undefined;
+    return cmdMarketPairSpread(run, rest[0], rest[1], {
+      bar: v.bar,
+      window: v.window,
+      backtestTime,
+      json,
+    });
+  }
 }
 
 function handleIndicatorAction(
@@ -412,7 +422,7 @@ export function handleMarketCommand(
     "ticker", "tickers", "orderbook", "candles", "trades", "instruments",
     "mark-price", "funding-rate", "open-interest", "index-ticker", "price-limit",
     "stock-tokens", "instruments-by-category", "indicator", "filter",
-    "oi-history", "oi-change", "index-candles",
+    "oi-history", "oi-change", "index-candles", "pair-spread",
   ]);
 }
 

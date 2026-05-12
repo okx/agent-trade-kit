@@ -295,5 +295,65 @@ export function registerMarketFilterTools(): ToolSpec[] {
         return normalizeResponse(response);
       },
     },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // market_get_pair_spread — /api/v5/aigc/mcp/pair-spread
+    // ─────────────────────────────────────────────────────────────────────────
+    {
+      name: "market_get_pair_spread",
+      module: "market",
+      description:
+        "Compute spread statistics between two instruments over a lookback window. " +
+        "Returns absolute and ratio spread (mean / stdDev / median / min / max) plus an " +
+        "optional realtime spread snapshot. Use to size pairs trades, detect mean-reversion " +
+        "setups, or compare cross-listed contracts. Results are cached ~60s per (pair, bar, window) tuple. " +
+        "Read-only, no credentials required.\n" +
+        "Do NOT use to fetch raw candles (use market_get_candles) or single-instrument " +
+        "OI/funding (use market_get_oi_history / market_filter_oi_change).",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instIdA: {
+            type: "string",
+            description: "First instrument ID, e.g. BTC-USDT-SWAP",
+          },
+          instIdB: {
+            type: "string",
+            description: "Second instrument ID; must differ from instIdA",
+          },
+          bar: {
+            type: "string",
+            enum: ["5m", "15m"],
+            description: "Bar size for the spread series. Default 15m. 1m is not supported.",
+          },
+          window: {
+            type: "string",
+            description: "Lookback window. Format <n><unit>, units m/H/D/W (case-sensitive), max 1W. Default 1W.",
+          },
+          backtestTime: {
+            type: "number",
+            description: "Anchor timestamp (ms epoch) for backtest mode. When provided, realtime is omitted.",
+          },
+        },
+        required: ["instIdA", "instIdB"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const body = compactObject({
+          instIdA:      requireString(args, "instIdA"),
+          instIdB:      requireString(args, "instIdB"),
+          bar:          readString(args, "bar"),
+          window:       readString(args, "window"),
+          backtestTime: readNumber(args, "backtestTime"),
+        });
+        const response = await context.client.publicPost(
+          "/api/v5/aigc/mcp/pair-spread",
+          body,
+          publicRateLimit("market_get_pair_spread", 5),
+        );
+        return normalizeResponse(response);
+      },
+    },
   ];
 }

@@ -18,6 +18,7 @@ Market data tools. **No API key required.**
 | `market_get_mark_price` | Mark price for derivatives |
 | `market_get_open_interest` | Open interest across instruments |
 | `market_get_trades` | Recent trade history |
+| `market_get_pair_spread` | Pair spread statistics (abs + ratio: mean/stdDev/median/min/max) between two instruments over a lookback window |
 
 ## Example prompts
 
@@ -26,6 +27,7 @@ Market data tools. **No API key required.**
 - "Get hourly candles for ETH-USDT for the last 24 hours"
 - "What is the funding rate for BTC-USDT-SWAP?"
 - "Show open interest for all SWAP instruments"
+- "Get the spread statistics between BTC-USDT-SWAP and ETH-USDT-SWAP over the last week"
 
 ## Startup (no key needed)
 

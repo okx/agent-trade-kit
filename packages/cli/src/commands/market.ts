@@ -521,3 +521,48 @@ export async function cmdMarketOiChangeFilter(
     })),
   );
 }
+
+export async function cmdMarketPairSpread(
+  run: ToolRunner,
+  instIdA: string,
+  instIdB: string,
+  opts: { bar?: string; window?: string; backtestTime?: number; json: boolean },
+): Promise<void> {
+  const result = await run("market_get_pair_spread", {
+    instIdA,
+    instIdB,
+    bar: opts.bar,
+    window: opts.window,
+    backtestTime: opts.backtestTime,
+  });
+  const data = getData(result) as Record<string, unknown> | undefined;
+  if (opts.json) return printJson(data);
+
+  const bar = (data?.["bar"] ?? "15m") as string;
+  const win = (data?.["window"] ?? "1W") as string;
+  const mode = (data?.["mode"] ?? "live") as string;
+  outputLine(`${instIdA} / ${instIdB}  bar=${bar} window=${win}  mode=${mode}`);
+
+  const rt = data?.["realtime"] as Record<string, unknown> | null;
+  if (rt) {
+    outputLine(`realtime  lastA=${rt["lastPriceA"]}  lastB=${rt["lastPriceB"]}  abs=${rt["spreadAbs"]}  ratio=${rt["spreadRatio"]}`);
+  }
+
+  const stats = data?.["statistics"] as Record<string, unknown> | undefined;
+  if (stats) {
+    const abs = stats["absolute"] as Record<string, unknown>;
+    const ratio = stats["ratio"] as Record<string, unknown>;
+    const meta = data?.["meta"] as Record<string, unknown>;
+    outputLine(`samples  count=${meta?.["alignedBars"] ?? "?"}  start=${stats?.["windowStartTs"] ?? "?"}  end=${stats?.["windowEndTs"] ?? "?"}`);
+    printTable([
+      { stat: "mean", absolute: abs?.["mean"], ratio: ratio?.["mean"] },
+      { stat: "stdDev", absolute: abs?.["stdDev"], ratio: ratio?.["stdDev"] },
+      { stat: "median", absolute: abs?.["median"], ratio: ratio?.["median"] },
+      { stat: "min", absolute: abs?.["min"], ratio: ratio?.["min"] },
+      { stat: "max", absolute: abs?.["max"], ratio: ratio?.["max"] },
+    ]);
+    if (meta) {
+      outputLine(`meta  requested=${meta["requestedBars"]}  aligned=${meta["alignedBars"]}  dropped=${meta["droppedBars"]}  truncated=${meta["truncated"]}`);
+    }
+  }
+}
