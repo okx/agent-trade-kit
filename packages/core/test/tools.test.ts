@@ -3608,8 +3608,8 @@ import { registerDcdTools } from "../src/tools/earn/dcd.js";
 describe("earn tools registration", () => {
   const tools = registerEarnTools();
 
-  it("registers exactly 9 earn tools", () => {
-    assert.equal(tools.length, 9);
+  it("registers exactly 10 earn tools", () => {
+    assert.equal(tools.length, 10);
   });
 
   it("all earn tools have module earn.savings", () => {
@@ -4288,7 +4288,7 @@ describe("earn tools isWrite classification", () => {
   });
 
   it("read tools have isWrite=false", () => {
-    const readNames = ["earn_get_savings_balance", "earn_get_fixed_order_list", "earn_get_lending_history", "earn_get_lending_rate_history"];
+    const readNames = ["earn_get_savings_balance", "earn_get_fixed_order_list", "earn_get_lending_history", "earn_get_lending_rate_history", "earn_get_fixed_earn_products"];
     for (const name of readNames) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);

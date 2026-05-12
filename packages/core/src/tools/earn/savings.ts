@@ -438,5 +438,40 @@ export function registerEarnTools(): ToolSpec[] {
         };
       },
     },
+    {
+      name: "earn_get_fixed_earn_products",
+      module: "earn.savings",
+      description:
+        "Query available Simple Earn Fixed (定期赚币) products. " +
+        "Returns all fixed-term offers with APR, term, min investment amount, and remaining quota. " +
+        "Use to check which fixed-term products are available and whether they still have quota before purchasing. " +
+        "Fields: lendQuota = remaining quota, soldOut = true when product is fully subscribed (lendQuota is 0). " +
+        "For flexible earn rates, use earn_get_lending_rate_history instead.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          ccy: {
+            type: "string",
+            description: "e.g. USDT. Omit for all currencies.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/finance/simple-earn-fixed/offers",
+          compactObject({ ccy: readString(args, "ccy") }),
+          privateRateLimit("earn_get_fixed_earn_products", 2),
+        );
+        const result = normalizeResponse(response);
+        const allOffers = (Array.isArray(result["data"]) ? result["data"] : []) as Array<Record<string, unknown>>;
+        result["data"] = allOffers.map(({ borrowingOrderQuota: _, ...rest }) => ({
+          ...rest,
+          soldOut: rest["lendQuota"] === "0",
+        }));
+        return result;
+      },
+    },
   ];
 }

@@ -172,6 +172,19 @@ export async function cmdEarnLendingRateHistory(
   }
 }
 
+export async function cmdEarnFixedProducts(
+  run: ToolRunner,
+  opts: { ccy?: string; json: boolean },
+): Promise<void> {
+  const data = extractData(await run("earn_get_fixed_earn_products", { ccy: opts.ccy }));
+  printDataList(data, opts.json, "No fixed earn products available", (r) => ({
+    ccy: r["ccy"], term: r["term"], rate: r["rate"],
+    minLend: r["minLend"],
+    remainingQuota: r["lendQuota"],
+    soldOut: r["soldOut"] ? "Yes" : "No",
+  }));
+}
+
 function extractFixedOffers(result: unknown): Record<string, unknown>[] {
   if (result && typeof result === "object") {
     const offers = (result as Record<string, unknown>)["fixedOffers"];
