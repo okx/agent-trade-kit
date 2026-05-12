@@ -239,8 +239,8 @@ export function registerEarnTools(): ToolSpec[] {
       description:
         "Purchase Simple Earn Fixed (定期) product, two-step flow. " +
         "First call (confirm omitted or false): returns purchase preview with product details and risk warning. " +
-        "Preview offer fields: lendQuota = remaining quota (剩余额度), soldOut = whether product is sold out (lendQuota is 0). " +
-        "YOU MUST display the 'warning' field from the preview response to the user VERBATIM before asking for confirmation - do NOT omit or summarize it. " +
+        "Preview offer fields: lendQuota = remaining quota, soldOut = whether product is sold out (lendQuota is 0). " +
+        "YOU MUST display the 'warning' field from the preview response to the user VERBATIM before asking for confirmation — do NOT omit or summarize it. " +
         "Second call (confirm=true): executes the purchase. Only proceed after the user explicitly confirms. " +
         "IMPORTANT: Orders in 'pending' (匹配中) state can still be cancelled via earn_fixed_redeem; once the status changes to 'earning' (赚币中), funds are LOCKED until maturity - no early redemption allowed.",
       isWrite: true,
@@ -369,8 +369,9 @@ export function registerEarnTools(): ToolSpec[] {
         "Use this tool when the user asks about Simple Earn products, current or historical lending rates, " +
         "or when displaying savings balance with market rate context (市场均利率). " +
         "Returns lending rate history (lendingRate field, newest-first) AND available fixed-term (定期) offers " +
-        "with APR, term, min amount, and quota - one call gives a complete view of both flexible and fixed options. " +
-        "In fixedOffers: lendQuota = remaining quota (剩余额度), soldOut = whether product is sold out (lendQuota is 0). " +
+        "with APR, term, min amount, and quota — one call gives a complete view of both flexible and fixed options. " +
+        "In fixedOffers: lendQuota = remaining quota, soldOut = whether product is sold out (lendQuota is 0). " +
+        "For dedicated fixed-term product queries, use earn_get_fixed_earn_products. " +
         "To get current flexible APY: use limit=1 and read lendingRate.",
       isWrite: false,
       inputSchema: {
@@ -443,9 +444,8 @@ export function registerEarnTools(): ToolSpec[] {
       module: "earn.savings",
       description:
         "Query available Simple Earn Fixed-term products. " +
-        "Returns all fixed-term offers with APR, term, min investment amount, and remaining quota. " +
-        "Use to check which fixed-term products are available and whether they still have quota before purchasing. " +
-        "Fields: lendQuota = remaining quota, soldOut = true when product is fully subscribed (lendQuota is 0). " +
+        "Returns fixed-term offers with APR, term, min investment, and remaining quota. " +
+        "Use to check available products and quota before purchasing. " +
         "For flexible earn rates, use earn_get_lending_rate_history instead.",
       isWrite: false,
       inputSchema: {

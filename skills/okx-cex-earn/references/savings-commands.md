@@ -170,6 +170,25 @@ Plain-language status explanations (translate to user's language):
 
 # Simple Earn Fixed (定期) Command Reference
 
+## earn savings fixed-products
+
+Query available Simple Earn Fixed-term products. Returns all fixed-term offers with APR, term, minimum investment, and remaining quota.
+
+```bash
+okx --profile live earn savings fixed-products --json            # all currencies
+okx --profile live earn savings fixed-products --ccy USDT --json # specific currency
+```
+
+| Parameter | Required | Description |
+|---|---|---|
+| `--ccy` | No | Filter by currency, e.g. USDT |
+
+Output fields: `ccy` · `term` · `rate` (annualized APR) · `minLend` (minimum subscription amount) · `lendQuota` (remaining subscribable amount) · `soldOut` (whether product is fully subscribed)
+
+Use this command to check which fixed-term products are available and whether they still have quota before subscribing via `earn savings fixed-purchase`.
+
+---
+
 ## earn savings fixed-orders
 
 Query fixed-term (定期) orders. Returns all orders or filtered by currency/state.
