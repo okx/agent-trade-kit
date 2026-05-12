@@ -17,9 +17,9 @@ export function registerEarnTools(): ToolSpec[] {
       module: "earn.savings",
       description:
         "Get Simple Earn (savings/flexible earn) balance. Returns current holdings for all currencies or a specific one. " +
-        "To show market rates alongside balance (市场均利率), call earn_get_lending_rate_history. " +
-        "earn_get_lending_rate_history also returns fixed-term (定期) product offers, so one call gives a complete view of both flexible and fixed options. " +
-        "Do NOT use for fixed-term (定期) order queries - use earn_get_fixed_order_list instead.",
+        "To show market rates alongside balance, call earn_get_lending_rate_history. " +
+        "To browse available fixed-term products with quota info, use earn_get_fixed_earn_products. " +
+        "Do NOT use for fixed-term order queries — use earn_get_fixed_order_list instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -442,7 +442,7 @@ export function registerEarnTools(): ToolSpec[] {
       name: "earn_get_fixed_earn_products",
       module: "earn.savings",
       description:
-        "Query available Simple Earn Fixed (定期赚币) products. " +
+        "Query available Simple Earn Fixed-term products. " +
         "Returns all fixed-term offers with APR, term, min investment amount, and remaining quota. " +
         "Use to check which fixed-term products are available and whether they still have quota before purchasing. " +
         "Fields: lendQuota = remaining quota, soldOut = true when product is fully subscribed (lendQuota is 0). " +

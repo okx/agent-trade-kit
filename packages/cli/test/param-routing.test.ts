@@ -885,6 +885,17 @@ function makeEarnSpy(): { spy: ToolRunner; captured: { tool: string; args: Recor
     return {spy, captured};
 }
 
+describe("earn savings fixed-products: params come from v (named flags)", () => {
+    it("ccy comes from v.ccy", async () => {
+        const {spy, captured} = makeEarnSpy();
+        await handleEarnCommand(spy, "savings", ["fixed-products"], vals({
+            ccy: "USDT",
+        }), false);
+        assert.equal(captured.tool, "earn_get_fixed_earn_products");
+        assert.equal(captured.args["ccy"], "USDT");
+    });
+});
+
 describe("earn savings fixed-orders: params come from v (named flags)", () => {
     it("ccy and state come from v.ccy and v.state", async () => {
         const {spy, captured} = makeEarnSpy();

@@ -84,6 +84,7 @@ Stable rollup of `1.3.4-beta.1` only. The `1.3.4-beta.2` line below is retained 
 
 ### Added
 
+- **`earn_get_fixed_earn_products` MCP tool and `okx earn savings fixed-products` CLI command** for querying Simple Earn Fixed-term product pool with quota info.
 - **Economic calendar tools** (`news_get_economic_calendar`, `news_list_calendar_regions`). Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance.
 
 ## [1.3.3] - 2026-05-08
