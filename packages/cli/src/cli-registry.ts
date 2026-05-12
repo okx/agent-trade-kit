@@ -652,7 +652,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "fixed-redeem": {
             toolName: "earn_fixed_redeem",
-            usage: "okx earn savings fixed-redeem <reqId>",
+            usage: "okx earn savings fixed-redeem --reqId <reqId>",
             description: "Redeem a fixed-term earn order (full amount)",
           },
         },

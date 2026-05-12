@@ -242,12 +242,12 @@ okx --profile live earn savings fixed-purchase --ccy USDT --amt 1000 --term 7D -
 Redeem a fixed-term order. Redeems the full amount — partial redemption is not supported. Only orders in `pending` state can be redeemed early.
 
 ```bash
-okx --profile live earn savings fixed-redeem <reqId> --json
+okx --profile live earn savings fixed-redeem --reqId <reqId> --json
 ```
 
 | Parameter | Required | Description |
 |---|---|---|
-| `<reqId>` | Yes | Order ID (positional) from `earn savings fixed-orders` |
+| `--reqId` | Yes | Order ID from `earn savings fixed-orders` (named flag, e.g. `--reqId REQ123`) |
 
 **Pre-execution checklist:**
 1. Check order state: `okx --profile live earn savings fixed-orders --json` — find the order and verify `state` is `pending`

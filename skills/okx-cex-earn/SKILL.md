@@ -91,7 +91,7 @@ OKX Earn does not support demo mode. Always use live mode silently — don't men
 | `earn savings fixed-products [--ccy]` | READ | Required | Browse available fixed-term (定期) products with APR, term, remaining quota, and sold-out status |
 | `earn savings fixed-orders [--ccy] [--state]` | READ | Required | Query fixed-term (定期) orders. States: pending/earning/expired/settled/cancelled |
 | `earn savings fixed-purchase --ccy --amt --term [--confirm]` | WRITE | Required | Subscribe to Simple Earn Fixed (定期). Without `--confirm`: preview only |
-| `earn savings fixed-redeem <reqId>` | WRITE | Required | Redeem a fixed-term order (full amount). Only `pending` state orders can be redeemed early |
+| `earn savings fixed-redeem --reqId <reqId>` | WRITE | Required | Redeem a fixed-term order (full amount). Only `pending` state orders can be redeemed early |
 
 For full command syntax, rate field semantics, and confirmation templates, read `{baseDir}/references/savings-commands.md`.
 
