@@ -63,6 +63,11 @@ okx market trades BTC-USDT --limit 20
 okx market index-ticker --instId BTC-USD
 okx market price-limit BTC-USDT-SWAP
 okx market open-interest --instType SWAP
+
+# pair-spread — spread statistics between two instruments
+okx market pair-spread BTC-USDT-SWAP ETH-USDT-SWAP
+okx market pair-spread BTC-USDT-SWAP ETH-USDT-SWAP --bar 5m --window 4H
+okx market pair-spread BTC-USDT-SWAP ETH-USDT-SWAP --backtest-time 1715000000000 --json
 ```
 
 Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`

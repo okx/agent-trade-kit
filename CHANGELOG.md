@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.3.4-beta.2] - 2026-05-12
+
+### Added
+
+- **Pair spread tool** (`market_get_pair_spread`). Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
+
 ## [1.3.4-beta.1] - 2026-05-12
 
 ### Added

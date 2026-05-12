@@ -68,6 +68,7 @@ Market data commands return the same public data regardless of demo/live mode â€
 | 16 | `okx market oi-change --instType <SWAP\|FUTURES> [--bar <5m\|15m\|1H\|4H\|1D>] [--sortBy <field>] [--sortOrder <asc\|desc>] [--limit <n>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]` | Find instruments with largest OI changes (accumulation/distribution scanner) |
 | 17 | `okx market indicator list` | List all supported indicator names and descriptions |
 | 18 | `okx market indicator <indicator> <instId> [--bar] [--params] [--list] [--limit] [--backtest-time]` | Technical indicator values |
+| 19 | `okx market pair-spread <instIdA> <instIdB> [--bar <5m\|15m>] [--window <window>] [--backtest-time <ms>]` | Spread statistics (abs + ratio: mean/stdDev/median/min/max) over a lookback window; supports backtest mode |
 
 ---
 
@@ -83,6 +84,7 @@ Market data commands return the same public data regardless of demo/live mode â€
 | Screen / rank instruments; find top movers, high-OI, high-volume contracts | Use `okx market filter` directly |
 | OI history time series for a single instrument | Use `okx market oi-history` directly |
 | OI change scanner; find contracts with large OI shifts | Use `okx market oi-change` directly |
+| Pair spread statistics; mean-reversion / pairs-trade sizing | Use `okx market pair-spread` directly |
 | List instruments, discover stock tokens, metals/commodities/forex/bonds, find option instIds | `{baseDir}/references/instrument-commands.md` |
 | Multi-step or cross-skill workflows; MCP tool names | `{baseDir}/references/workflows.md` |
 

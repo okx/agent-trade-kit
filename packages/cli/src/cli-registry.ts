@@ -142,6 +142,11 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx market oi-change --instType <SWAP|FUTURES> [--bar <5m|15m|1H|4H|1D>] [--sortBy <oiUsd|oiDeltaUsd|oiDeltaPct|absOiDeltaPct|volUsd24h|fundingRate|last>] [--sortOrder <asc|desc>] [--limit <1-100>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]",
         description: "Find instruments with largest OI changes over a bar window (accumulation/distribution scanner)",
       },
+      "pair-spread": {
+        toolName: "market_get_pair_spread",
+        usage: "okx market pair-spread <instIdA> <instIdB> [--bar <5m|15m>] [--window <window>] [--backtest-time <ms>] [--json]",
+        description: "Compute spread statistics (abs + ratio) between two instruments over a lookback window",
+      },
     },
     subgroups: {
       indicator: {

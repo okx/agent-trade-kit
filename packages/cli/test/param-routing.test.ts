@@ -1080,6 +1080,12 @@ const fakeOiChangeResult = {
     data: [],
 };
 
+const fakePairSpreadResult = {
+    endpoint: "POST /api/v5/aigc/mcp/pair-spread",
+    requestTime: new Date().toISOString(),
+    data: {mode: "live", bar: "15m", window: "1W", realtime: null, statistics: {absolute: {}, ratio: {}}, meta: {requestedBars: 0, alignedBars: 0, droppedBars: 0, truncated: false}},
+};
+
 function makeFilterSpy(result: typeof fakeFilterResult | typeof fakeOiHistoryResult | typeof fakeOiChangeResult) {
     const captured = {tool: "", args: {} as Record<string, unknown>};
     const spy: ToolRunner = async (tool, args) => {
@@ -1208,6 +1214,34 @@ describe("handleMarketCommand — filter/oi-history/oi-change parameter routing"
         const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
         await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", minOiUsd: "100000000"}), false);
         assert.equal(captured.args["minOiUsd"], "100000000");
+    });
+
+    // ── market pair-spread ────────────────────────────────────────────────
+    it("pair-spread: instIdA comes from rest[0], instIdB from rest[1]", async () => {
+        const {spy, captured} = makeFilterSpy(fakePairSpreadResult);
+        await handleMarketCommand(spy, "pair-spread", ["BTC-USDT-SWAP", "ETH-USDT-SWAP"], vals({}), false);
+        assert.equal(captured.tool, "market_get_pair_spread");
+        assert.equal(captured.args["instIdA"], "BTC-USDT-SWAP");
+        assert.equal(captured.args["instIdB"], "ETH-USDT-SWAP");
+    });
+
+    it("pair-spread: bar comes from v.bar (not rest)", async () => {
+        const {spy, captured} = makeFilterSpy(fakePairSpreadResult);
+        await handleMarketCommand(spy, "pair-spread", ["BTC-USDT-SWAP", "ETH-USDT-SWAP"], vals({bar: "5m"}), false);
+        assert.equal(captured.args["bar"], "5m");
+    });
+
+    it("pair-spread: window comes from v.window (not rest)", async () => {
+        const {spy, captured} = makeFilterSpy(fakePairSpreadResult);
+        await handleMarketCommand(spy, "pair-spread", ["BTC-USDT-SWAP", "ETH-USDT-SWAP"], vals({window: "4H"}), false);
+        assert.equal(captured.args["window"], "4H");
+    });
+
+    it("pair-spread: backtestTime comes from v['backtest-time'] (string → number)", async () => {
+        const {spy, captured} = makeFilterSpy(fakePairSpreadResult);
+        await handleMarketCommand(spy, "pair-spread", ["BTC-USDT-SWAP", "ETH-USDT-SWAP"], vals({"backtest-time": "1715000000000"}), false);
+        assert.equal(captured.args["backtestTime"], 1715000000000);
+        assert.equal(typeof captured.args["backtestTime"], "number");
     });
 });
 

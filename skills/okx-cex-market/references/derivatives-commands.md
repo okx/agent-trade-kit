@@ -111,4 +111,31 @@ okx market index-ticker --instId BTC-USD
 okx market index-ticker --quoteCcy USD
 ```
 
+## Pair Spread
+
+`okx market pair-spread` — spread statistics between two instruments.
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `<instIdA>` | Yes | - | First instrument (positional), e.g. `BTC-USDT-SWAP` |
+| `<instIdB>` | Yes | - | Second instrument (positional); must differ from instIdA |
+| `--bar` | No | `15m` | Bar size: `5m` or `15m` (1m not supported) |
+| `--window` | No | `1W` | Lookback window. Format `<n><unit>`, units m/H/D/W (case-sensitive), max 1W |
+| `--backtest-time` | No | - | Anchor timestamp (ms epoch) for backtest mode; omits realtime block |
+
+Returns: `mode` · `realtime` (lastPriceA/B, spreadAbs, spreadRatio) · `statistics` (absolute + ratio: mean/stdDev/median/min/max) · `meta` (requestedBars, alignedBars, droppedBars, truncated)
+
+```bash
+# Live spread between two perpetuals, default bar=15m, window=1W
+okx market pair-spread BTC-USDT-SWAP ETH-USDT-SWAP
+
+# Tight window for fast mean-reversion setups
+okx market pair-spread BTC-USDT-SWAP BTC-USDT --bar 5m --window 4H
+
+# Backtest anchor (ms epoch). When set, realtime block is omitted.
+okx market pair-spread BTC-USDT-SWAP ETH-USDT-SWAP --bar 15m --window 1D --backtest-time 1715000000000 --json
+```
+
+> Constraints: bar must be 5m or 15m; window ≤ 1W (units case-sensitive: m/H/D/W); requires ≥80% bar coverage (otherwise returns error 41020).
+
 > **Demo market data**: All commands above support `--demo` (CLI) or `demo: true` (MCP) to query OKX's simulated trading market data. Default is live data.
