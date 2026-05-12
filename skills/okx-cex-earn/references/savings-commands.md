@@ -89,7 +89,7 @@ okx --profile live earn savings rate-history --ccy USDT --limit 30         # rec
 | Parameter | Required | Description |
 |---|---|---|
 | `--ccy` | No | Filter by currency |
-| `--limit` | No | Max results (default 100) |
+| `--limit` | No | Max results (default 7) |
 
 This endpoint returns both flexible lending rates and fixed-term product offers:
 
@@ -242,11 +242,11 @@ okx --profile live earn savings fixed-purchase --ccy USDT --amt 1000 --term 7D -
 |---|---|---|
 | `--ccy` | Yes | Currency to subscribe, e.g. USDT |
 | `--amt` | Yes | Amount to subscribe |
-| `--term` | Yes | Lock period, e.g. `7D` (must match an available offer term from `rate-history`) |
+| `--term` | Yes | Lock period, e.g. `7D` (must match an available offer term from `fixed-products`) |
 | `--confirm` | No | Execute the subscription. Without this flag, only a preview is returned. |
 
 **Pre-execution checklist:**
-1. Check available offers: `okx --profile live earn savings rate-history --ccy <ccy> --json` — verify the requested term exists and has remaining quota
+1. Check available offers: `okx --profile live earn savings fixed-products --ccy <ccy> --json` — verify the requested term exists and has remaining quota
 2. Check balance (in parallel with step 1): `okx --profile live account asset-balance <ccy>` — verify user has sufficient funds in funding account; if insufficient, inform user and stop
 3. Preview the order (without `--confirm`): show the locked APR, term, and expected earnings. **Must** include this warning in the preview output: "⚠️ Orders still in 'pending' state can be cancelled before matching completes. Once the status changes to 'earning', funds are LOCKED until maturity — early redemption is NOT allowed."
 4. Show confirmation summary (see [Fixed-Term Confirmation Templates](#fixed-term-confirmation-templates))
