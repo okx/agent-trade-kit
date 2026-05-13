@@ -12,6 +12,11 @@
 ## [Unreleased]
 
 
+
+### Added
+
+- **经济日历工具**（`news_get_economic_calendar`、`news_list_calendar_regions`）。可按地区/重要程度筛选并查询宏观经济事件（GDP、CPI、NFP、FOMC 等），支持自定义时间窗口。CLI 命令：`okx news economic-calendar`、`okx news list-regions`。Skill `okx-sentiment-tracker` 同步更新，新增日历使用工作流引导。(!298)
+
 ## [1.3.4-beta.2] - 2026-05-12
 
 ### 新增
