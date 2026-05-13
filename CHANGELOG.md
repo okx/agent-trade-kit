@@ -12,10 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+---
+
+## [1.3.4] - 2026-05-13
+
+Stable rollup of `1.3.4-beta.1` → `1.3.4-beta.2`. See per-beta sections below for full implementation detail.
 
 ### Added
 
-- **Economic calendar tools** (`news_get_economic_calendar`, `news_list_calendar_regions`). Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and configurable time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance. (!298)
+- **Economic calendar tools** (1.3.4-beta.1, !298). `news_get_economic_calendar` + `news_list_calendar_regions`. Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and configurable time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance.
+- **Pair spread tool** (1.3.4-beta.2, !315). `market_get_pair_spread`. Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
 
 ---
 
