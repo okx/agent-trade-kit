@@ -14,14 +14,23 @@
 
 ---
 
+## [1.3.5-beta.1] - 2026-05-13
+
+### 新增
+
+- **配对价差工具**（!315）。`market_get_pair_spread`。计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率）。支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
+
+> 说明：此工具曾出现在 `1.3.4-beta.2` 中，但已**不在 `v1.3.4` 稳定版 tag 内**（tag 锚定在 `cd99d487`，即 `1.3.4-beta.1` 那次 bump commit）。改由 `1.3.5-beta.1` 发布。
+
+---
+
 ## [1.3.4] - 2026-05-13
 
-`1.3.4-beta.1` → `1.3.4-beta.2` 两个 beta 版本的稳定版整合发布。完整实现细节请见下方对应 beta 段。
+`1.3.4-beta.1` 整合发布。下面的 `1.3.4-beta.2` 段作为历史记录保留，但其内容（`market_get_pair_spread`）**不在 `v1.3.4` tag 中** —— 已移至 `## [1.3.5-beta.1]`。
 
 ### 新增
 
 - **经济日历工具**（1.3.4-beta.1，!298）。`news_get_economic_calendar` + `news_list_calendar_regions`。可按地区/重要程度筛选并查询宏观经济事件（GDP、CPI、NFP、FOMC 等），支持自定义时间窗口。CLI 命令：`okx news economic-calendar`、`okx news list-regions`。Skill `okx-sentiment-tracker` 同步更新，新增日历使用工作流引导。
-- **配对价差工具**（1.3.4-beta.2，!315）。`market_get_pair_spread`。计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率）。支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
 
 ---
 
