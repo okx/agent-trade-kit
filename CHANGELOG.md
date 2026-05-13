@@ -14,14 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.5-beta.1] - 2026-05-13
+
+### Added
+
+- **Pair spread tool** (!315). `market_get_pair_spread`. Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
+
+> Note: this tool was historically tagged in `1.3.4-beta.2` but was deliberately excluded from the `v1.3.4` stable release tag (which is anchored at `cd99d487`, the `1.3.4-beta.1` bump commit). It ships in `1.3.5-beta.1` instead.
+
+---
+
 ## [1.3.4] - 2026-05-13
 
-Stable rollup of `1.3.4-beta.1` → `1.3.4-beta.2`. See per-beta sections below for full implementation detail.
+Stable rollup of `1.3.4-beta.1` only. The `1.3.4-beta.2` line below is retained as historical record but its content (`market_get_pair_spread`) does NOT ship in the `v1.3.4` tag — see `## [1.3.5-beta.1]` above.
 
 ### Added
 
 - **Economic calendar tools** (1.3.4-beta.1, !298). `news_get_economic_calendar` + `news_list_calendar_regions`. Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and configurable time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance.
-- **Pair spread tool** (1.3.4-beta.2, !315). `market_get_pair_spread`. Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
 
 ---
 
