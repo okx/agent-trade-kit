@@ -13,32 +13,17 @@
 
 ### 新增
 
-- **通过环境变量自动支持 HTTP/HTTPS 代理**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 调用（CLI、MCP server、mcp-gateway）将自动通过代理路由。支持 `NO_PROXY` 按主机跳过代理。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需修改配置；当两者同时设置时，`proxy_url` 配置仍优先生效。
-
-### Changed
-
-- **非 ASCII 字符清理完成（第二轮）**（TRDATA-3977，!325）。清除了测试 `describe`/`it` 块名称中仍通过 TAP 输出泄露的剩余 5 个非 ASCII 字符，将计数降至 0，完成 1.3.5-beta.1 中启动的 TRDATA-3977 系列修复。
-
----
-
-## [1.3.5] - 2026-05-20
-
-`1.3.5-beta.1` 整合发布，外加一次 follow-up 清理。所有 skill 的 `metadata.version` 由 `1.3.3` 同步至 `1.3.5`。
-
-### 新增
-
-- **配对价差工具**（1.3.5-beta.1，!315）。`market_get_pair_spread`，计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率），支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
+- **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
+- **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
 
 ### 修复
 
-- **CLI 启动性能优化**（1.3.5-beta.1，TRDATA-3954）。`okx` 启动不再阻塞 Node 事件循环。四层修复：`OKX_UPDATE_CHECK=false` 开关、使用用户 npm 镜像、`AbortSignal.timeout(3000)` 超时、失败负缓存 1h TTL。
+- **`earn savings fixed-redeem` 文档使用了位置参数而非 `--reqId` 标志**：SKILL.md、cli-registry 和 savings-commands.md 均记录为 `fixed-redeem <reqId>`（位置参数），但 CLI 路由读取的是 `v.reqId`（命名标志）。按文档操作的 Agent 会传入 `undefined` 作为 reqId。现已更正为 `--reqId <reqId>`。
+- **`earn savings rate-history --limit` 文档默认值为 100，但代码实际默认值为 7**：savings-commands.md 之前记录默认值为 100，但 CLI 实现中使用的是 `readNumber(args, "limit") ?? 7`。现已更正为实际默认值 7。
 
 ### 变更
 
-- **`grid_stop_order` / `dca_stop_order` 工作流指引**（1.3.5-beta.1，!305）。工具描述记录有残留仓位时的两步关停模式。
-- **Smartmoney V7 漏斗语义文档同步**（1.3.5-beta.1）。design / module / context-kg / skill / eval 文档与 V7 信号漏斗对齐。仅文档变更。
-- **非 ASCII 排版标点清理**（TRDATA-3977）。两轮整理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物，覆盖 CLI 帮助、工具描述和测试。Round 1（1.3.5-beta.1）处理主体表面；Round 2（本次发布）清理 5 个通过 TAP 泄露的残留字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
-- **Skill `metadata.version` 统一 bump 到 `1.3.5`**，覆盖 9 个 skill（`okx-cex-trade`、`okx-cex-market`、`okx-cex-earn`、`okx-cex-bot`、`okx-cex-portfolio`、`okx-cex-skill-mp`、`okx-cex-auth`、`okx-cex-smartmoney`、`okx-sentiment-tracker`）。补齐 `1.3.3` → `1.3.5` 的差（`1.3.4` 稳定版当时未 bump skill）。
+- **非 ASCII 字符清理第二轮**（TRDATA-3977，!325）。清理了 TAP 输出中 test `describe`/`it` 块名称中残留的 5 个非 ASCII 字符，降为 0。完成 1.3.5-beta.1 中开始的 TRDATA-3977 系列。
 
 ---
 

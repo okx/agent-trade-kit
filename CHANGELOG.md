@@ -13,34 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`earn_get_fixed_earn_products` MCP tool** and `okx earn savings fixed-products` CLI command for querying Simple Earn Fixed-term product pool with APR, term, remaining quota, and sold-out status
 - **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
-
-### Changed
-
-- **Non-ASCII cleanup completed — round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
-
----
-
----
-
-## [1.3.5] - 2026-05-20
-
-Stable rollup of `1.3.5-beta.1` plus a follow-up cleanup. All skill `metadata.version` synced from `1.3.3` to `1.3.5`.
-
-### Added
-
-- **Pair spread tool** (1.3.5-beta.1, !315). `market_get_pair_spread`. Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
 
 ### Fixed
 
-- **CLI startup performance** (1.3.5-beta.1, TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror; (A') fetch uses `AbortSignal.timeout(3000)`; (B1.5) failed fetches write a negative-cache entry (1 h TTL).
+- **`earn savings fixed-redeem` documentation used positional arg instead of `--reqId` flag**: SKILL.md, cli-registry, and savings-commands.md all documented `fixed-redeem <reqId>` (positional), but the CLI router reads `v.reqId` (named flag). Agents following the docs would pass `undefined` as reqId. Now correctly documented as `--reqId <reqId>`.
+- **`earn savings rate-history --limit` documentation default was 100, actual code default is 7**: savings-commands.md previously documented the default as 100, but the CLI implementation uses `readNumber(args, "limit") ?? 7`. Now corrected to match the actual default of 7.
 
 ### Changed
 
-- **`grid_stop_order` / `dca_stop_order` workflow guidance** (1.3.5-beta.1, !305). Tool descriptions now document the two-step close pattern for bots with residual positions.
-- **Smartmoney V7 funnel semantics doc sync** (1.3.5-beta.1). Aligned design / module / context-kg / skill / eval docs with the shipped V7 signal funnel. Docs only.
-- **Non-ASCII typographic punctuation cleanup** (TRDATA-3977). Two-round sweep replacing em-dash, en-dash, right-arrow, ellipsis with ASCII equivalents across CLI help, tool descriptions, and tests. Round 1 (1.3.5-beta.1) handled the primary surface; round 2 (this release) cleaned 5 residual chars leaking through TAP. No functional change; addresses OKG SonarQube TAP lexer compatibility.
-- **Skill `metadata.version` bumped to `1.3.5`** across all 9 skills (`okx-cex-trade`, `okx-cex-market`, `okx-cex-earn`, `okx-cex-bot`, `okx-cex-portfolio`, `okx-cex-skill-mp`, `okx-cex-auth`, `okx-cex-smartmoney`, `okx-sentiment-tracker`). Catches up `1.3.3` → `1.3.5` (skill versions were not bumped in `1.3.4` stable).
+- **Non-ASCII cleanup completed -- round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
 
 ---
 

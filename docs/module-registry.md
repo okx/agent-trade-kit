@@ -21,7 +21,7 @@ Unregistered modules will be rejected during review.
 | event | ✅ approved | 9 | 6 | 3 | ~2,607 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
 | news | ✅ approved | 9 | 9 | 0 | ~3,352 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
 | bot.grid | ✅ approved | 6 | 3 | 3 | ~2,218 | _(founding module)_ | @Jasmine.Li | — |
-| earn.savings | ✅ approved | 10 | 6 | 4 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
+| earn.savings | ✅ approved | 10 | 5 | 5 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,341 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |
 | earn.onchain | ✅ approved | 6 | 3 | 3 | ~993 | _(founding module)_ | @Jasmine.Li | — |
