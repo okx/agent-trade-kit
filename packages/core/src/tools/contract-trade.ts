@@ -98,6 +98,35 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           slOrdPx: { type: "string", description: "SL order price; -1=market" },
           slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
           stpMode: STP_MODE_SCHEMA,
+          tpLevels: {
+            type: "array",
+            description:
+              "Multi-level attached TP/SL. Each element is one algo order attached to this entry. " +
+              "When present and non-empty, takes precedence over the single tpTriggerPx/slTriggerPx pair. " +
+              "OKX accepts up to a few levels per entry; each level can specify its own trigger price, " +
+              "order price, trigger source, kind, and ratio. Already supported internally by " +
+              "buildAttachAlgoOrds; this schema entry exposes it to MCP clients.",
+            items: {
+              type: "object",
+              properties: {
+                tpTriggerPx: { type: "string", description: "TP trigger price for this level" },
+                tpOrdPx: { type: "string", description: "TP order price for this level; -1=market" },
+                slTriggerPx: { type: "string", description: "SL trigger price for this level" },
+                slOrdPx: { type: "string", description: "SL order price for this level; -1=market" },
+                tpOrdKind: TP_ORD_KIND_SCHEMA,
+                tpTriggerPxType: TP_TRIGGER_PX_TYPE_SCHEMA,
+                slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
+                tpTriggerRatio: {
+                  type: "string",
+                  description: "TP trigger as ratio from entry, e.g. '0.05'=5%",
+                },
+                slTriggerRatio: {
+                  type: "string",
+                  description: "SL trigger as ratio from entry",
+                },
+              },
+            },
+          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
