@@ -76,7 +76,7 @@ function baseAlgoOpts(instId: string): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId } of PLACE_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place — Phase 1 flags`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place - Phase 1 flags`, () => {
     it("forwards tpOrdKind", async () => {
       const c = makeCapture();
       await cmd(c.runner, { ...basePlaceOpts(instId), tpOrdKind: "limit" });
@@ -111,7 +111,7 @@ for (const { name, cmd, instId } of PLACE_MODULES) {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId, supportsCxlOnClosePos } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — Phase 1 flags`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - Phase 1 flags`, () => {
     it("forwards tpOrdKind", async () => {
       const c = makeCapture();
       await cmd(c.runner, { ...baseAlgoOpts(instId), tpOrdKind: "condition" });
@@ -174,7 +174,7 @@ for (const { name, cmd, instId, supportsCxlOnClosePos } of ALGO_MODULES) {
 
 // Place: pxAmendType forwarded from all 3 modules
 for (const { name, cmd, instId } of PLACE_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place — Phase 3c flags`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place - Phase 3c flags`, () => {
     it("forwards pxAmendType", async () => {
       const c = makeCapture();
       await cmd(c.runner, { ...basePlaceOpts(instId), pxAmendType: "1" });
@@ -190,7 +190,7 @@ for (const { name, cmd, instId } of PLACE_MODULES) {
 }
 
 // Spot place: tradeQuoteCcy and banAmend
-describe("cmdSpotPlace — Phase 3c spot-specific flags", () => {
+describe("cmdSpotPlace - Phase 3c spot-specific flags", () => {
   it("forwards tradeQuoteCcy", async () => {
     const c = makeCapture();
     await cmdSpotPlace(c.runner, { ...basePlaceOpts("BTC-USDT"), tradeQuoteCcy: "USDC" } as Record<string, unknown> as Parameters<typeof cmdSpotPlace>[1]);
@@ -213,7 +213,7 @@ describe("cmdSpotPlace — Phase 3c spot-specific flags", () => {
 
 // Algo place: tpTriggerRatio, slTriggerRatio, closeFraction, pxAmendType
 for (const { name, cmd, instId } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — Phase 3a flags`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - Phase 3a flags`, () => {
     it("forwards tpTriggerRatio", async () => {
       const c = makeCapture();
       await cmd(c.runner, { ...baseAlgoOpts(instId), tpTriggerRatio: "0.3" });

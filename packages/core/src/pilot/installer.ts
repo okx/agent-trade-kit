@@ -1,5 +1,5 @@
 /**
- * Pilot binary installer — TypeScript equivalent of scripts/postinstall-notice.js.
+ * Pilot binary installer - TypeScript equivalent of scripts/postinstall-notice.js.
  *
  * Provides status, install, and remove operations for the okx-pilot binary.
  * The CDN list and checksum logic mirrors the postinstall script; if CDN sources
@@ -40,7 +40,7 @@ export const DOWNLOAD_TIMEOUT_MS = 30_000;
 // ---------------------------------------------------------------------------
 
 /**
- * Supported platform → CDN directory name mapping.
+ * Supported platform -> CDN directory name mapping.
  * Exported so tests can assert that specific platforms are present without
  * having to run on that platform (guards against accidental removal of entries).
  */
@@ -94,7 +94,7 @@ export function hashFile(filePath: string): { size: number; sha256: string } {
  * Accepts an optional binaryPath override for testing.
  *
  * Pass `skipHash: true` for fast checks (e.g. --version output) that only
- * need existence info — avoids reading and hashing a multi-MB binary.
+ * need existence info - avoids reading and hashing a multi-MB binary.
  */
 export function getPilotStatus(binaryPath?: string, opts?: { skipHash?: boolean }): PilotLocalStatus {
   const resolvedPath = binaryPath ?? getPilotBinaryPath();
@@ -129,7 +129,7 @@ export function getPilotStatus(binaryPath?: string, opts?: { skipHash?: boolean 
 /**
  * Fetch the checksum.json from CDN for the current platform.
  * Returns null if all CDN sources fail or the platform is unsupported.
- * Never throws — all errors are swallowed and result in null.
+ * Never throws - all errors are swallowed and result in null.
  */
 export async function fetchCdnChecksum(
   sources: CdnSource[] = CDN_SOURCES,
@@ -241,7 +241,7 @@ async function downloadAndVerify(
  * Platform-aware atomic replacement of the destination binary.
  */
 function atomicReplace(tmpPath: string, resolvedDest: string): void {
-  // On POSIX, rename(2) atomically replaces the destination — no pre-unlink needed.
+  // On POSIX, rename(2) atomically replaces the destination - no pre-unlink needed.
   // On Windows, rename fails with EEXIST if the destination exists, so we must
   // unlink first. Risk: if unlink succeeds but rename fails (e.g. file lock),
   // the user loses both copies. We minimise the window by doing the unlink only
@@ -344,11 +344,11 @@ export function removePilotBinary(binaryPath?: string): RemoveResult {
     unlinkSync(resolvedPath);
     return { status: "removed" };
   } catch (err) {
-    // ENOENT = file was already absent — treat as not-found, not an error.
+    // ENOENT = file was already absent - treat as not-found, not an error.
     if ((err as NodeJS.ErrnoException).code === "ENOENT") {
       return { status: "not-found" };
     }
-    // Other errors (e.g. Windows file lock) — re-throw with context.
+    // Other errors (e.g. Windows file lock) - re-throw with context.
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(`Failed to remove ${resolvedPath}: ${msg}`);
   }

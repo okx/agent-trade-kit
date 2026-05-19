@@ -14,7 +14,7 @@ const OI_BARS = ["5m", "15m", "1H", "4H", "1D"] as const;
 export function registerMarketFilterTools(): ToolSpec[] {
   return [
     // ─────────────────────────────────────────────────────────────────────────
-    // market_filter — /api/v5/aigc/mcp/market-filter
+    // market_filter - /api/v5/aigc/mcp/market-filter
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_filter",
@@ -24,8 +24,8 @@ export function registerMarketFilterTools(): ToolSpec[] {
         "price range, 24h change %, market cap, 24h volume (USD), funding rate (SWAP), " +
         "open interest (USD), listing time. Returns ranked rows with full ticker snapshot. " +
         "Use to find top movers, high-OI contracts, newly listed tokens, etc. No credentials required. " +
-        "Do NOT use to get OI change rankings across contracts — use market_filter_oi_change instead. " +
-        "Do NOT use to get OI time series for a single instrument — use market_get_oi_history instead.",
+        "Do NOT use to get OI change rankings across contracts - use market_filter_oi_change instead. " +
+        "Do NOT use to get OI time series for a single instrument - use market_get_oi_history instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -111,7 +111,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
             enum: ["last", "chg24hPct", "marketCapUsd", "volUsd24h", "fundingRate", "oiUsd", "listTime"],
             description:
               "Sort field. Default: volUsd24h. Note: marketCapUsd is only meaningful for SPOT (null for SWAP/FUTURES). " +
-              "To rank by OI *change* (oiDeltaPct / absOiDeltaPct), use market_filter_oi_change — market_filter only sorts by the current snapshot.",
+              "To rank by OI *change* (oiDeltaPct / absOiDeltaPct), use market_filter_oi_change - market_filter only sorts by the current snapshot.",
           },
           sortOrder: {
             type: "string",
@@ -160,7 +160,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     },
 
     // ─────────────────────────────────────────────────────────────────────────
-    // market_get_oi_history — /api/v5/aigc/mcp/oi-history
+    // market_get_oi_history - /api/v5/aigc/mcp/oi-history
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_get_oi_history",
@@ -169,8 +169,8 @@ export function registerMarketFilterTools(): ToolSpec[] {
         "Get open interest (OI) history time series for a single SWAP or FUTURES instrument. " +
         "Returns per-bar OI in contracts, base currency and USD, plus bar-over-bar delta and delta %. " +
         "Useful for tracking how OI evolves around price moves. No credentials required. " +
-        "Do NOT use to compare OI changes across multiple contracts — use market_filter_oi_change instead. " +
-        "Do NOT use to screen instruments by current OI level — use market_filter instead.",
+        "Do NOT use to compare OI changes across multiple contracts - use market_filter_oi_change instead. " +
+        "Do NOT use to screen instruments by current OI level - use market_filter instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -213,7 +213,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     },
 
     // ─────────────────────────────────────────────────────────────────────────
-    // market_filter_oi_change — /api/v5/aigc/mcp/oi-change-filter
+    // market_filter_oi_change - /api/v5/aigc/mcp/oi-change-filter
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_filter_oi_change",
@@ -224,8 +224,8 @@ export function registerMarketFilterTools(): ToolSpec[] {
         "price change %, 24h volume and funding rate. " +
         "Ideal for spotting unusual accumulation/distribution or confirming trend momentum. " +
         "No credentials required. " +
-        "Do NOT use to get OI time series for a single instrument — use market_get_oi_history instead. " +
-        "Do NOT use to screen by current OI absolute level or other non-OI metrics — use market_filter instead.",
+        "Do NOT use to get OI time series for a single instrument - use market_get_oi_history instead. " +
+        "Do NOT use to screen by current OI absolute level or other non-OI metrics - use market_filter instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -258,10 +258,10 @@ export function registerMarketFilterTools(): ToolSpec[] {
             type: "string",
             enum: ["oiUsd", "oiDeltaUsd", "oiDeltaPct", "absOiDeltaPct", "volUsd24h", "fundingRate", "last"],
             description:
-              "Sort field. Default: oiDeltaPct (largest movers first, signed — longs and shorts separate). " +
+              "Sort field. Default: oiDeltaPct (largest movers first, signed - longs and shorts separate). " +
               "Use absOiDeltaPct to sort by |oiDeltaPct| (largest-magnitude moves regardless of direction). " +
               "fundingRate is also supported for SWAP. " +
-              "Do NOT use the market_filter tool's sort fields (chg24hPct, marketCapUsd, listTime) here — they are not in the OI-change Row.",
+              "Do NOT use the market_filter tool's sort fields (chg24hPct, marketCapUsd, listTime) here - they are not in the OI-change Row.",
           },
           sortOrder: {
             type: "string",
@@ -297,7 +297,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     },
 
     // ─────────────────────────────────────────────────────────────────────────
-    // market_get_pair_spread — /api/v5/aigc/mcp/pair-spread
+    // market_get_pair_spread - /api/v5/aigc/mcp/pair-spread
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_get_pair_spread",

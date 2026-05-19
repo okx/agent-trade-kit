@@ -15,7 +15,7 @@ const SMARTMONEY_RPS = 5;
 
 /* ------------------------------------------------------------------ */
 /*  API path constants                                                 */
-/*  Uses privateGet (requires API key) to drive user conversion —      */
+/*  Uses privateGet (requires API key) to drive user conversion -      */
 /*  users must connect credentials before accessing smart money data.  */
 /* ------------------------------------------------------------------ */
 const PATH_LEADERBOARD = "/api/v5/orbit/public/leaderboard";
@@ -34,7 +34,7 @@ const PERIOD_DAYS = ["3", "7", "30", "90"] as const;
 
 /**
  * Signal endpoints (`/overview`, `/signal-history`) use enum-based tiers
- * for pool filters. Public names == upstream API names — no rename layer.
+ * for pool filters. Public names == upstream API names - no rename layer.
  */
 const SIGNAL_POOL_FILTER_PROPS = {
   sortBy: {
@@ -63,7 +63,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
       "PnL percentile gate applied on top of `sortBy`. " +
       "Naming: `TOP{N}` = top N% percentile (NOT an absolute PnL value). " +
       "PNL_ANY = no filter; PNL_TOP50 = PnL ≥ P50 (median); PNL_TOP20 = ≥ P80; PNL_TOP5 = ≥ P95. " +
-      "PnL distribution is long-tailed — use percentile, not absolute thresholds.",
+      "PnL distribution is long-tailed - use percentile, not absolute thresholds.",
   },
   winRateTier: {
     type: "string" as const,
@@ -71,7 +71,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "WR_ANY",
     description:
       "Minimum win-rate gate (absolute thresholds, NOT percentile). " +
-      "Naming: `GE_{N}` = career win-rate ≥ N% — distinct from `pnlTier`/`aumTier` `TOP{N}` which are percentiles. " +
+      "Naming: `GE_{N}` = career win-rate ≥ N% - distinct from `pnlTier`/`aumTier` `TOP{N}` which are percentiles. " +
       "WR_ANY = no filter; WR_GE_50 = ≥ 50%; WR_GE_80 = ≥ 80%.",
   },
   maxDrawdownTier: {
@@ -80,7 +80,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     default: "MR_ANY",
     description:
       "Maximum-drawdown gate (absolute thresholds, NOT percentile; smaller drawdown = lower risk). " +
-      "Naming: `LE_{N}` = drawdown ≤ N% — distinct from `pnlTier`/`aumTier` `TOP{N}` which are percentiles. " +
+      "Naming: `LE_{N}` = drawdown ≤ N% - distinct from `pnlTier`/`aumTier` `TOP{N}` which are percentiles. " +
       "MR_ANY = no filter; MR_LE_20 = drawdown ≤ 20%; MR_LE_50 = ≤ 50%.",
   },
   aumTier: {
@@ -91,7 +91,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
       "AUM (Assets Under Management) percentile gate. " +
       "Naming: `TOP{N}` = top N% percentile (NOT an absolute USD amount). " +
       "AUM_ANY = no filter; AUM_TOP50 = AUM ≥ P50; AUM_TOP20 = ≥ P80; AUM_TOP5 = ≥ P95. " +
-      "AUM is long-tailed — use percentile, not absolute USD.",
+      "AUM is long-tailed - use percentile, not absolute USD.",
   },
 };
 
@@ -125,30 +125,30 @@ const LEADERBOARD_POOL_FILTER_PROPS = {
   minPnl: {
     type: "string" as const,
     description:
-      "Minimum absolute PnL in USD as a string, e.g. `\"10000\"` → traders with PnL ≥ $10,000. " +
-      "Numeric threshold — distinct from the signal-side `pnlTier` percentile enum.",
+      "Minimum absolute PnL in USD as a string, e.g. `\"10000\"` -> traders with PnL ≥ $10,000. " +
+      "Numeric threshold - distinct from the signal-side `pnlTier` percentile enum.",
   },
   minWinRate: {
     type: "string" as const,
     description:
-      "Minimum win-rate as a decimal in 0~1 range, passed as a string, e.g. `\"0.8\"` → traders with win-rate ≥ 80%. " +
-      "Numeric threshold — distinct from the signal-side `winRateTier` enum.",
+      "Minimum win-rate as a decimal in 0~1 range, passed as a string, e.g. `\"0.8\"` -> traders with win-rate ≥ 80%. " +
+      "Numeric threshold - distinct from the signal-side `winRateTier` enum.",
   },
   maxDrawdown: {
     type: "string" as const,
     description:
-      "Maximum drawdown as a decimal, passed as a string, e.g. `\"0.1\"` → traders with drawdown ≤ 10%. Lower = lower risk. " +
-      "Numeric threshold — distinct from the signal-side `maxDrawdownTier` enum.",
+      "Maximum drawdown as a decimal, passed as a string, e.g. `\"0.1\"` -> traders with drawdown ≤ 10%. Lower = lower risk. " +
+      "Numeric threshold - distinct from the signal-side `maxDrawdownTier` enum.",
   },
   minAum: {
     type: "string" as const,
     description:
-      "Minimum AUM (Assets Under Management) in USD as a string, e.g. `\"1000\"` → traders with AUM ≥ $1,000. " +
-      "Numeric threshold — distinct from the signal-side `aumTier` percentile enum.",
+      "Minimum AUM (Assets Under Management) in USD as a string, e.g. `\"1000\"` -> traders with AUM ≥ $1,000. " +
+      "Numeric threshold - distinct from the signal-side `aumTier` percentile enum.",
   },
 };
 
-/** Public param name → upstream `/leaderboard` query-string param name. */
+/** Public param name -> upstream `/leaderboard` query-string param name. */
 const LEADERBOARD_FILTER_UPSTREAM_NAMES: Record<string, string> = {
   sortBy: "sortBy",
   period: "period",
@@ -158,7 +158,7 @@ const LEADERBOARD_FILTER_UPSTREAM_NAMES: Record<string, string> = {
   minAum: "asset",
 };
 
-/** Leaderboard pool filters: public name → upstream API name (handler does the rename). */
+/** Leaderboard pool filters: public name -> upstream API name (handler does the rename). */
 function readPoolFilters(args: Record<string, unknown>): Record<string, unknown> {
   assertPoolFilterEnums(args, LEADERBOARD_POOL_FILTER_PROPS);
   const result: Record<string, unknown> = {};
@@ -191,7 +191,7 @@ function readSignalPoolFilters(args: Record<string, unknown>): Record<string, un
 /**
  * Leaderboard wrapper extraction.
  *
- * Backend returns `data: { updateTime: "yyyyMMddHHmm", data: [...] }` — the snapshot
+ * Backend returns `data: { updateTime: "yyyyMMddHHmm", data: [...] }` - the snapshot
  * version stamp lives on the wrapper, NOT on each trader row. Returning the items as a
  * flat array would silently drop `updateTime`; we surface it separately so the tool
  * handler can re-attach it at the response top level.
@@ -229,7 +229,7 @@ function deriveDirection(posSide: unknown, pos: unknown): "long" | "short" | und
 }
 
 /**
- * Position-current API returns `data: [{ posData: [...] }]` — flatten to posData array
+ * Position-current API returns `data: [{ posData: [...] }]` - flatten to posData array
  * and decorate each row with the derived `direction` field (see deriveDirection).
  */
 function extractPositionData(data: unknown): unknown[] {
@@ -275,15 +275,15 @@ function buildPagination(
  * Extract the base currency from a full instrument ID.
  * The trader-side endpoints (`position-current`, `position-history`, `trade-records`)
  * filter by base ccy upstream. Public param accepts either form for AI-agent ergonomics:
- * - "BTC-USDT-SWAP" → "BTC"
- * - "BTC-USDT" → "BTC"
- * - "BTC" → "BTC"
+ * - "BTC-USDT-SWAP" -> "BTC"
+ * - "BTC-USDT" -> "BTC"
+ * - "BTC" -> "BTC"
  */
 function extractBaseCcy(instId: string | undefined): string | undefined {
   if (!instId) return undefined;
   const idx = instId.indexOf("-");
   const base = idx === -1 ? instId : instId.slice(0, idx);
-  // Defensive: malformed input like "-USDT-SWAP" yields "" — drop instead of forwarding empty filter.
+  // Defensive: malformed input like "-USDT-SWAP" yields "" - drop instead of forwarding empty filter.
   return base || undefined;
 }
 
@@ -300,7 +300,7 @@ function actionableError(message: string, hint: string): ValidationError {
  * Reject an arg whose value is not in the schema's `enum` list before it reaches
  * the upstream API. Without this, agents that ignore the schema (e.g. pass a bare
  * `TOP20` instead of `PNL_TOP20`) only see a truncated upstream "Invalid parameter"
- * message — making misuse hard to diagnose. No-op when the field is absent/empty,
+ * message - making misuse hard to diagnose. No-op when the field is absent/empty,
  * since enum fields are all optional with server-side defaults.
  */
 function assertEnum(
@@ -331,7 +331,7 @@ function assertPoolFilterEnums(
 
 /**
  * Read a string-array param and serialize to upstream CSV form.
- * Public API uses arrays (mcp-builder best-practice — Zod arrays > comma-joined strings),
+ * Public API uses arrays (mcp-builder best-practice - Zod arrays > comma-joined strings),
  * but the upstream Orbit/Journal endpoints accept CSV in their query string.
  * Returns undefined for empty/missing input so `compactObject` drops the key.
  */
@@ -388,13 +388,13 @@ const PAGINATION_PROP = {
 /*  Reusable item shapes                                               */
 /* ------------------------------------------------------------------ */
 
-/** Trader leaderboard row — shared by `get_top_traders` and `get_trader_performance`. */
+/** Trader leaderboard row - shared by `get_top_traders` and `get_trader_performance`. */
 const TRADER_ITEM_PROPS = {
-  authorId: { type: "string", description: "Trader's unique ID — pass to other smartmoney_get_trader_* tools." },
+  authorId: { type: "string", description: "Trader's unique ID - pass to other smartmoney_get_trader_* tools." },
   nickName: { type: "string", description: "Display nickname." },
   pnl: { type: "string", description: "Absolute PnL in USD over the requested `period` (numeric string)." },
   pnlRatio: { type: "string", description: "PnL as a decimal ratio over the requested `period` (e.g. \"0.35\" = +35%)." },
-  asset: { type: "string", description: "AUM (Assets Under Management) in USD — same field that the input `minAum` filter applies to." },
+  asset: { type: "string", description: "AUM (Assets Under Management) in USD - same field that the input `minAum` filter applies to." },
   winRate: { type: "string", description: "Lifetime win-rate as a decimal (0~1)." },
   maxDrawdown: { type: "string", description: "Max drawdown as a decimal (e.g. \"0.2\" = 20%). Lower = lower risk." },
   onboardDuration: { type: "string", description: "Days the trader has been onboarded on the leaderboard (numeric string)." },
@@ -413,7 +413,7 @@ const TRADER_ITEM_PROPS = {
 };
 
 /**
- * Per-instrument overview item — shared by both `_overview_*` tools.
+ * Per-instrument overview item - shared by both `_overview_*` tools.
  * Backend response is nested with three groups (`notional`, `longShortRatio`, `winRate`),
  * matching the `/overview` spec from the SmartMoney OpenAPI doc.
  */
@@ -441,24 +441,24 @@ const SIGNAL_ITEM_PROPS = {
         type: "string",
         description:
           "Sum of long-side notional in USDT, weighted by each trader's ENTRY PRICE (price_avg), not mark price. " +
-          "Moves only when positions are opened / closed / scaled — stays constant when positions are unchanged.",
+          "Moves only when positions are opened / closed / scaled - stays constant when positions are unchanged.",
       },
       shortNotionalUsdt: {
         type: "string",
         description:
           "Sum of short-side notional in USDT, weighted by each trader's ENTRY PRICE (price_avg), not mark price. " +
-          "Moves only when positions are opened / closed / scaled — stays constant when positions are unchanged.",
+          "Moves only when positions are opened / closed / scaled - stays constant when positions are unchanged.",
       },
       netNotionalUsdt: {
         type: "string",
         description:
           "Net directional notional in USDT = long − short. Weighted by each trader's ENTRY PRICE (price_avg), " +
-          "not mark price — reflects position scaling, not underlying price movement.",
+          "not mark price - reflects position scaling, not underlying price movement.",
       },
       totalNotionalUsdt: {
         type: "string",
         description:
-          "Gross notional in USDT = long + short. Weighted by each trader's ENTRY PRICE (price_avg), not mark price — " +
+          "Gross notional in USDT = long + short. Weighted by each trader's ENTRY PRICE (price_avg), not mark price - " +
           "reflects position scaling (open / close / add), not underlying price movement. " +
           "Stays constant across buckets when traders hold positions unchanged.",
       },
@@ -496,7 +496,7 @@ const SIGNAL_ITEM_PROPS = {
         type: "string",
         description:
           "Notional-weighted long ratio = Σ(long_notional) / Σ(notional). " +
-          "Notional uses each trader's ENTRY PRICE (price_avg), not mark price — ratio shifts only when positions are scaled. " +
+          "Notional uses each trader's ENTRY PRICE (price_avg), not mark price - ratio shifts only when positions are scaled. " +
           "NULL when no notional.",
       },
       weightedShortRatio: {
@@ -526,7 +526,7 @@ const SIGNAL_ITEM_PROPS = {
   },
 };
 
-/** Time-bucket signal item — shared by both signal-history tools. */
+/** Time-bucket signal item - shared by both signal-history tools. */
 const SIGNAL_HISTORY_ITEM_PROPS = {
   ccy: { type: "string", description: "Base currency / instrument key for this bucket." },
   longRatio: {
@@ -541,7 +541,7 @@ const SIGNAL_HISTORY_ITEM_PROPS = {
     type: "string",
     description:
       "Notional-weighted long ratio at this bucket = Σ(long_notional) / Σ(notional). Decimal 0~1. " +
-      "Notional uses each trader's ENTRY PRICE (price_avg), not mark price — ratio shifts only when positions are scaled.",
+      "Notional uses each trader's ENTRY PRICE (price_avg), not mark price - ratio shifts only when positions are scaled.",
   },
   weightedShortRatio: {
     type: "string",
@@ -565,13 +565,13 @@ const SIGNAL_HISTORY_ITEM_PROPS = {
     type: "string",
     description:
       "Net directional notional in USDT at this bucket = long notional − short notional. " +
-      "Weighted by each trader's ENTRY PRICE (price_avg), not mark price — reflects position scaling, not underlying price movement.",
+      "Weighted by each trader's ENTRY PRICE (price_avg), not mark price - reflects position scaling, not underlying price movement.",
   },
   totalNotionalUsdt: {
     type: "string",
     description:
       "Gross notional in USDT at this bucket = long notional + short notional. " +
-      "Weighted by each trader's ENTRY PRICE (price_avg), not mark price — " +
+      "Weighted by each trader's ENTRY PRICE (price_avg), not mark price - " +
       "tracks capital deployed (rising = adding, falling = retreating). " +
       "Stays constant across buckets when traders hold positions unchanged.",
   },
@@ -597,7 +597,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Leaderboard ranking of OKX smart-money traders, filtered by pool conditions and ranked by `sortBy`. " +
         "Use when: discovering top performers by criteria (PnL / win-rate / drawdown / AUM). " +
         "See also: `smartmoney_get_performance_by_trader` (lookup by ID), `smartmoney_search_trader` (lookup by nickname). " +
-        "Note: `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8, different from signal tools' 10-digit UTC `asOfTime`/`dataVersion` — do not cross-pass.",
+        "Note: `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8, different from signal tools' 10-digit UTC `asOfTime`/`dataVersion` - do not cross-pass.",
       isWrite: false,
       outputSchema: envelope(
         { type: "array", items: { type: "object", properties: TRADER_ITEM_PROPS } },
@@ -618,20 +618,20 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           updateTime: {
             type: "string",
             description:
-              "Snapshot version key — 12-digit `yyyyMMddHHmm` (UTC+8) as a string, e.g. `\"202604301815\"`. " +
+              "Snapshot version key - 12-digit `yyyyMMddHHmm` (UTC+8) as a string, e.g. `\"202604301815\"`. " +
               "Omit to query the latest snapshot (refreshed every ~5 min).",
           },
           ...LEADERBOARD_POOL_FILTER_PROPS,
           after: {
             type: "string",
             description:
-              "Pagination cursor (older page) — pass the `authorId` of the last item from the previous page as a string, e.g. `\"872913470357110787\"`. " +
+              "Pagination cursor (older page) - pass the `authorId` of the last item from the previous page as a string, e.g. `\"872913470357110787\"`. " +
               "Cursor anchors on `authorId` while preserving the current `sortBy` order.",
           },
           before: {
             type: "string",
             description:
-              "Pagination cursor (newer page) — pass the `authorId` of the first item from the previous page as a string, e.g. `\"872913470357110787\"`. " +
+              "Pagination cursor (newer page) - pass the `authorId` of the first item from the previous page as a string, e.g. `\"872913470357110787\"`. " +
               "Cursor anchors on `authorId` while preserving the current `sortBy` order.",
           },
           limit: {
@@ -676,8 +676,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "PnL / win-rate / drawdown profile for one or more traders looked up by `authorIds`. " +
         "Use when: caller already has trader IDs and needs their performance metrics. " +
-        "See also: `smartmoney_search_trader` (resolve nickname → authorId), `smartmoney_get_traders_by_filter` (criteria-based discovery). " +
-        "Note: response `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8 — do not pass to signal-side tools' `asOfTime` (10-digit UTC).",
+        "See also: `smartmoney_search_trader` (resolve nickname -> authorId), `smartmoney_get_traders_by_filter` (criteria-based discovery). " +
+        "Note: response `updateTime` is 12-digit `yyyyMMddHHmm` UTC+8 - do not pass to signal-side tools' `asOfTime` (10-digit UTC).",
       isWrite: false,
       outputSchema: envelope(
         { type: "array", items: { type: "object", properties: TRADER_ITEM_PROPS } },
@@ -757,7 +757,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Currently-open positions held by a single trader (direction, size, leverage, entry, conviction). " +
         "Use when: inspecting what a top trader is holding RIGHT NOW. " +
-        "See also: `smartmoney_get_trader_positions_history` (closed positions), `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
+        "See also: `smartmoney_get_trader_positions_history` (closed positions), `smartmoney_search_trader` (nickname -> authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
       outputSchema: envelope({
         type: "array",
@@ -784,10 +784,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               type: "string",
               enum: ["long", "short"],
               description:
-                "Derived clean direction (`long` | `short`) — handler computes this from `posSide` + sign of `pos` " +
+                "Derived clean direction (`long` | `short`) - handler computes this from `posSide` + sign of `pos` " +
                 "so agents do not have to branch on the `posSide=\"net\"` net-mode case.",
             },
-            posCcy: { type: "string", description: "Position currency — the asset being held, e.g. \"BTC\"." },
+            posCcy: { type: "string", description: "Position currency - the asset being held, e.g. \"BTC\"." },
             quoteCcy: { type: "string", description: "Quote currency the position is priced/settled in, e.g. \"USDT\"." },
             pos: {
               type: "string",
@@ -821,7 +821,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           instId: {
             type: "string",
             description:
-              "Optional instrument filter. Accepts either full instId (e.g. \"BTC-USDT-SWAP\") or bare base currency (e.g. \"BTC\") — the handler extracts the base currency for the upstream filter.",
+              "Optional instrument filter. Accepts either full instId (e.g. \"BTC-USDT-SWAP\") or bare base currency (e.g. \"BTC\") - the handler extracts the base currency for the upstream filter.",
           },
         },
         required: ["authorId"],
@@ -855,7 +855,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Closed-position history of a single trader, paginated by `posId` cursor. " +
         "Use when: studying realized PnL pattern, holding duration, win/loss streaks, or how positions ended (closed vs liquidated). " +
-        "See also: `smartmoney_get_trader_positions` (currently-open), `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
+        "See also: `smartmoney_get_trader_positions` (currently-open), `smartmoney_search_trader` (nickname -> authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
       outputSchema: envelope(
         {
@@ -873,7 +873,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
               ctVal: {
                 type: "string",
                 description:
-                  "Contract face value — USD value of a single contract (张). Numeric string. Empty/0 for non-contract instruments.",
+                  "Contract face value - USD value of a single contract (张). Numeric string. Empty/0 for non-contract instruments.",
               },
               posSide: {
                 type: "string",
@@ -956,15 +956,15 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           instId: {
             type: "string",
             description:
-              "Optional instrument filter. Accepts either full instId (e.g. \"BTC-USDT-SWAP\") or bare base currency (e.g. \"BTC\") — the handler extracts the base currency for the upstream filter.",
+              "Optional instrument filter. Accepts either full instId (e.g. \"BTC-USDT-SWAP\") or bare base currency (e.g. \"BTC\") - the handler extracts the base currency for the upstream filter.",
           },
           after: {
             type: "string",
-            description: "Pagination cursor (older) — returns positions with `posId` smaller than this value. Pass the `posId` as a string, e.g. `\"872913470357110787\"`.",
+            description: "Pagination cursor (older) - returns positions with `posId` smaller than this value. Pass the `posId` as a string, e.g. `\"872913470357110787\"`.",
           },
           before: {
             type: "string",
-            description: "Pagination cursor (newer) — returns positions with `posId` greater than this value. Pass the `posId` as a string, e.g. `\"872913470357110787\"`.",
+            description: "Pagination cursor (newer) - returns positions with `posId` greater than this value. Pass the `posId` as a string, e.g. `\"872913470357110787\"`.",
           },
           limit: {
             type: "integer",
@@ -1015,7 +1015,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         "Recent orders/fills placed by a single trader (direction, size, price, leverage), paginated by `ordId` cursor. " +
         "Aligned with the cross-module `*_get_orders` family. " +
         "Use when: tracking a top trader's latest trade activity. " +
-        "See also: `smartmoney_search_trader` (nickname → authorId), `smartmoney_get_traders_by_filter` (discover trader).",
+        "See also: `smartmoney_search_trader` (nickname -> authorId), `smartmoney_get_traders_by_filter` (discover trader).",
       isWrite: false,
       outputSchema: envelope(
         {
@@ -1084,15 +1084,15 @@ export function registerSmartmoneyTools(): ToolSpec[] {
           instId: {
             type: "string",
             description:
-              "Optional instrument filter. Accepts either full instId (e.g. \"BTC-USDT-SWAP\") or bare base currency (e.g. \"BTC\") — the handler extracts the base currency for the upstream filter.",
+              "Optional instrument filter. Accepts either full instId (e.g. \"BTC-USDT-SWAP\") or bare base currency (e.g. \"BTC\") - the handler extracts the base currency for the upstream filter.",
           },
           after: {
             type: "string",
-            description: "Pagination cursor (older) — returns trades with `ordId` smaller than this value. Pass the `ordId` as a string, e.g. `\"872913470357110787\"`.",
+            description: "Pagination cursor (older) - returns trades with `ordId` smaller than this value. Pass the `ordId` as a string, e.g. `\"872913470357110787\"`.",
           },
           before: {
             type: "string",
-            description: "Pagination cursor (newer) — returns trades with `ordId` greater than this value. Pass the `ordId` as a string, e.g. `\"872913470357110787\"`.",
+            description: "Pagination cursor (newer) - returns trades with `ordId` greater than this value. Pass the `ordId` as a string, e.g. `\"872913470357110787\"`.",
           },
           limit: {
             type: "integer",
@@ -1151,7 +1151,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         items: {
           type: "object",
           properties: {
-            authorId: { type: "string", description: "Trader's unique ID — pass to other `smartmoney_get_trader_*` tools." },
+            authorId: { type: "string", description: "Trader's unique ID - pass to other `smartmoney_get_trader_*` tools." },
             nickName: { type: "string", description: "Display nickname matched against the keyword." },
             followerCount: { type: "string", description: "OKX-platform follower count (numeric string; Twitter followers excluded). Sort key." },
           },
@@ -1200,8 +1200,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Multi-asset smart-money consensus signals (long/short ratio, weighted entry, capital flow, deltas vs 1h/24h/7d), " +
         "aggregated over a tier-filtered trader pool (PnL / win-rate / drawdown / AUM). " +
-        "Pick instruments via `topInstruments` OR `instCcyList` — exactly one. Snapshot time auto-resolved to current hour. " +
-        "**Linear (USDT/USDS-margined) contracts only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are excluded by upstream and silently omitted from the aggregation.** " +
+        "Pick instruments via `topInstruments` OR `instCcyList` - exactly one. Snapshot time auto-resolved to current hour. " +
+        "**Linear (USDT/USDS-margined) contracts only - coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are excluded by upstream and silently omitted from the aggregation.** " +
         "Use when: latest cross-asset consensus from a criteria-defined pool. " +
         "See also: `smartmoney_get_signal_overview_by_trader` (restrict pool to specific traders), `smartmoney_get_signal_trend_by_filter` (time-series instead of latest snapshot).",
       isWrite: false,
@@ -1229,7 +1229,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description:
               "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
               "Mutually exclusive with `topInstruments`. " +
-              "Scope: only USDT-margined and USDS-margined (linear) instruments — e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`. " +
+              "Scope: only USDT-margined and USDS-margined (linear) instruments - e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`. " +
               "Coin-margined contracts (`BTC-USD-SWAP`, `BTC-USD-DELIVERY`) are NOT included; positions a trader holds in those instruments are silently dropped from the aggregation.",
           },
           ...SIGNAL_POOL_FILTER_PROPS,
@@ -1252,7 +1252,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         if (instCcyList && topInstrumentsRaw !== undefined) {
           throw actionableError(
             '"topInstruments" and "instCcyList" are mutually exclusive.',
-            "Pass exactly one — `topInstruments` for top-N hottest coins, or `instCcyList` for specific coins.",
+            "Pass exactly one - `topInstruments` for top-N hottest coins, or `instCcyList` for specific coins.",
           );
         }
         const response = await context.client.privateGet(
@@ -1277,8 +1277,8 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Multi-asset smart-money signals aggregated over a hand-picked set of traders (`authorIds`). " +
         "Pick instruments via `topInstruments` OR `instCcyList`. " +
-        "Capability tier filters (pnlTier / winRateTier / etc.) not exposed — backend uses defaults for direct-lookup scenarios. " +
-        "**Linear (USDT/USDS-margined) contracts only — a trader's coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are silently excluded from the aggregation, even when those positions are large.** Use `smartmoney_get_trader_positions` if the full position book is needed. " +
+        "Capability tier filters (pnlTier / winRateTier / etc.) not exposed - backend uses defaults for direct-lookup scenarios. " +
+        "**Linear (USDT/USDS-margined) contracts only - a trader's coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are silently excluded from the aggregation, even when those positions are large.** Use `smartmoney_get_trader_positions` if the full position book is needed. " +
         "Use when: caller already knows which traders to follow and wants their cross-asset consensus at the latest hour. " +
         "See also: `smartmoney_get_signal_overview_by_filter` (criteria-defined pool), `smartmoney_get_signal_trend_by_trader` (time-series), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds).",
       isWrite: false,
@@ -1313,7 +1313,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             description:
               "Base currencies to aggregate, e.g. `[\"BTC\", \"ETH\", \"SOL\"]`. " +
               "Mutually exclusive with `topInstruments`. " +
-              "Scope: only USDT-margined and USDS-margined (linear) instruments — e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`. " +
+              "Scope: only USDT-margined and USDS-margined (linear) instruments - e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`. " +
               "Coin-margined contracts (`BTC-USD-SWAP`, `BTC-USD-DELIVERY`) are NOT included; the trader's positions in those instruments are silently dropped.",
           },
           sortBy: {
@@ -1350,7 +1350,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
         if (instCcyList && topInstrumentsRaw !== undefined) {
           throw actionableError(
             '"topInstruments" and "instCcyList" are mutually exclusive.',
-            "Pass exactly one — `topInstruments` for top-N hottest coins, or `instCcyList` for specific coins.",
+            "Pass exactly one - `topInstruments` for top-N hottest coins, or `instCcyList` for specific coins.",
           );
         }
         const response = await context.client.privateGet(
@@ -1378,10 +1378,10 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Time-series of single-asset smart-money signal across hourly/daily buckets, aggregated over a tier-filtered trader pool. " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
-        "**Linear (USDT/USDS-margined) contracts only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are excluded by upstream and silently omitted.** " +
+        "**Linear (USDT/USDS-margined) contracts only - coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are excluded by upstream and silently omitted.** " +
         "Use when: tracking how long/short conviction and capital evolve over time (smart money adding exposure or retreating). " +
         "See also: `smartmoney_get_signal_overview_by_filter` (latest snapshot only), `smartmoney_get_signal_trend_by_trader` (restrict to specific traders). " +
-        "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
+        "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` - do not cross-pass.",
       isWrite: false,
       outputSchema: envelope({
         type: "array",
@@ -1395,12 +1395,12 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             type: "string",
             description:
               "Base currency to scope the time-series, e.g. \"BTC\". Required. " +
-              "Scope: USDT-margined and USDS-margined (linear) instruments only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are NOT included.",
+              "Scope: USDT-margined and USDS-margined (linear) instruments only - coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions are NOT included.",
           },
           asOfTime: {
             type: "string",
             description:
-              "Anchor snapshot time — 10-digit `yyyyMMddHH` UTC as a string, e.g. `\"2026050100\"`. " +
+              "Anchor snapshot time - 10-digit `yyyyMMddHH` UTC as a string, e.g. `\"2026050100\"`. " +
               "Returns the latest `limit` buckets ending at this anchor. " +
               "Omit to use the current UTC hour.",
           },
@@ -1465,11 +1465,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
       description:
         "Time-series of single-asset smart-money signal aggregated over a hand-picked set of traders (`authorIds`). " +
         "Returns the latest `limit` buckets ending at `asOfTime` (defaults to current UTC hour). " +
-        "Capability tier filters (pnlTier / winRateTier / etc.) not exposed — backend uses defaults for direct-lookup scenarios. " +
-        "**Linear (USDT/USDS-margined) contracts only — a trader's coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions on the requested base ccy are silently excluded from each bucket.** Use `smartmoney_get_trader_positions` to inspect the full position book. " +
+        "Capability tier filters (pnlTier / winRateTier / etc.) not exposed - backend uses defaults for direct-lookup scenarios. " +
+        "**Linear (USDT/USDS-margined) contracts only - a trader's coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions on the requested base ccy are silently excluded from each bucket.** Use `smartmoney_get_trader_positions` to inspect the full position book. " +
         "Use when: tracking how a specific group of traders has evolved their long/short consensus over time on one coin. " +
         "See also: `smartmoney_get_signal_trend_by_filter` (criteria-defined pool), `smartmoney_get_signal_overview_by_trader` (latest snapshot only), `smartmoney_get_traders_by_filter` / `smartmoney_search_trader` (discover authorIds). " +
-        "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` — do not cross-pass.",
+        "Note: `asOfTime` is 10-digit `yyyyMMddHH` UTC, different from leaderboard tools' 12-digit UTC+8 `updateTime` - do not cross-pass.",
       isWrite: false,
       outputSchema: envelope({
         type: "array",
@@ -1490,12 +1490,12 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             type: "string",
             description:
               "Base currency to scope the time-series, e.g. \"BTC\". Required. " +
-              "Scope: USDT-margined and USDS-margined (linear) instruments only — coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions held by the trader set are NOT included.",
+              "Scope: USDT-margined and USDS-margined (linear) instruments only - coin-margined (`-USD-SWAP` / `-USD-DELIVERY`) positions held by the trader set are NOT included.",
           },
           asOfTime: {
             type: "string",
             description:
-              "Anchor snapshot time — 10-digit `yyyyMMddHH` UTC as a string, e.g. `\"2026050100\"`. " +
+              "Anchor snapshot time - 10-digit `yyyyMMddHH` UTC as a string, e.g. `\"2026050100\"`. " +
               "Returns the latest `limit` buckets ending at this anchor. " +
               "Omit to use the current UTC hour.",
           },

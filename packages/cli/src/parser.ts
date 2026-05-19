@@ -141,13 +141,13 @@ export interface CliValues {
   instCcyList?: string;
   topInstruments?: string;
   asOfTime?: string;
-  // smartmoney pool filters — leaderboard (numeric thresholds, traders-by-filter endpoint)
+  // smartmoney pool filters - leaderboard (numeric thresholds, traders-by-filter endpoint)
   // Names deliberately distinct from signal-side `*Tier` enums to avoid cross-tool footguns.
   minPnl?: string;
   minWinRate?: string;
   maxDrawdown?: string;
   minAum?: string;
-  // smartmoney pool filters — signal endpoints (enum tiers; sortBy declared elsewhere)
+  // smartmoney pool filters - signal endpoints (enum tiers; sortBy declared elsewhere)
   pnlTier?: string;
   winRateTier?: string;
   maxDrawdownTier?: string;
@@ -397,12 +397,12 @@ export const CLI_OPTIONS = {
   instCcyList: { type: "string" },
   topInstruments: { type: "string" },
   asOfTime: { type: "string" },
-  // smartmoney pool filters — leaderboard (numeric thresholds)
+  // smartmoney pool filters - leaderboard (numeric thresholds)
   minPnl: { type: "string" },
   minWinRate: { type: "string" },
   maxDrawdown: { type: "string" },
   minAum: { type: "string" },
-  // smartmoney pool filters — signal endpoints (enum tiers)
+  // smartmoney pool filters - signal endpoints (enum tiers)
   pnlTier: { type: "string" },
   winRateTier: { type: "string" },
   maxDrawdownTier: { type: "string" },
@@ -485,7 +485,7 @@ export const CLI_OPTIONS = {
   settleCcy:        { type: "string" },
   ts:               { type: "string" },
   minAbsOiDeltaPct: { type: "string" },
-  // diagnostics — cli/mcp/all/output are diagnose-specific; verbose is shared
+  // diagnostics - cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks
   cli: { type: "boolean", default: false }, // diagnose --cli only: CLI/general checks (explicit alias for default)

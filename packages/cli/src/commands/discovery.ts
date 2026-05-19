@@ -151,7 +151,7 @@ export function getDiscoveryOutput(): DiscoveryOutput {
  * `okx list-tools [--json]`
  *
  * Prints structured JSON listing all CLI modules, commands, and parameters.
- * Designed for AI agent consumption — use `okx list-tools --json` to get
+ * Designed for AI agent consumption - use `okx list-tools --json` to get
  * machine-readable capability discovery.
  */
 export function cmdListTools(json: boolean): void {
@@ -165,7 +165,7 @@ export function cmdListTools(json: boolean): void {
   // Human-readable summary
   const lines: string[] = [
     "",
-    `OKX CLI v${data.version} — ${data.totalTools} tool-backed commands across ${data.modules.length} modules`,
+    `OKX CLI v${data.version} - ${data.totalTools} tool-backed commands across ${data.modules.length} modules`,
     "",
     "Modules:",
   ];

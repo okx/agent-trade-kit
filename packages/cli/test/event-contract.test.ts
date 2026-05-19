@@ -90,7 +90,7 @@ describe("cmdEventBrowse", () => {
     assert.ok(text.includes("15min"), "should show freq label");
     assert.ok(text.includes("BTC"), "should show underlying");
     assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
-    assert.ok(text.includes("—"), "pending outcome shows dash (no incremental info)");
+    assert.ok(/54\.8%\s+-\s/.test(text), "pending outcome shows dash in Outcome column (not instId hyphen)");
     assert.ok(text.includes("1 active contract(s)"), "should show total count");
     assert.ok(text.includes("Up/Down · 1/1"), "should show formatted contract name via formatDisplayTitle");
   });
@@ -699,7 +699,7 @@ function vals(overrides: Partial<CliValues>): CliValues {
   return overrides as CliValues;
 }
 
-describe("handleEventCommand orders — parameter routing", () => {
+describe("handleEventCommand orders - parameter routing", () => {
   it("--status archive passes status: 'archive' to the tool", async () => {
     const { spy, captured } = makeSpyRunner();
     await handleEventCommand(spy, "orders", [], vals({ status: "archive" }), false);
@@ -733,7 +733,7 @@ describe("handleEventCommand orders — parameter routing", () => {
   });
 });
 
-describe("handleEventCommand fills — parameter routing", () => {
+describe("handleEventCommand fills - parameter routing", () => {
   it("--archive passes archive: true (boolean) to the tool", async () => {
     const { spy, captured } = makeSpyRunner();
     await handleEventCommand(spy, "fills", [], vals({ archive: true }), false);

@@ -31,7 +31,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       description:
         "Place a SWAP/FUTURES algo order. [CAUTION] Executes real trades. " +
         "conditional: single TP, single SL, or both on one order. " +
-        "oco: TP+SL simultaneously — first trigger cancels the other. " +
+        "oco: TP+SL simultaneously - first trigger cancels the other. " +
         "move_order_stop: trailing stop (callbackRatio or callbackSpread). " +
         "trigger: pending order activated when triggerPx is hit (provide triggerPx + orderPx). " +
         "chase: smart-follow best bid/ask. " +
@@ -162,7 +162,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop — Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callBackRatio: readString(args, "callbackRatio"),
@@ -416,7 +416,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       description:
         "Place a FUTURES delivery algo order. [CAUTION] Executes real trades. " +
         "conditional: single TP, single SL, or both on one order. " +
-        "oco: TP+SL simultaneously — first trigger cancels the other. " +
+        "oco: TP+SL simultaneously - first trigger cancels the other. " +
         "move_order_stop: trailing stop (callbackRatio or callbackSpread). " +
         "trigger: pending order activated when triggerPx is hit (provide triggerPx + orderPx). " +
         "chase: smart-follow best bid/ask. " +
@@ -547,7 +547,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop — Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callBackRatio: readString(args, "callbackRatio"),
@@ -651,7 +651,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       name: "futures_amend_algo_order",
       module: "futures",
       description:
-        "Amend a pending FUTURES delivery algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order — look up algoId via futures_get_algo_orders first.",
+        "Amend a pending FUTURES delivery algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via futures_get_algo_orders first.",
       isWrite: true,
       inputSchema: {
         type: "object",

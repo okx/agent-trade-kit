@@ -8,7 +8,7 @@ import type { CommandInfo, GroupInfo, HelpTree } from "./help-generator.js";
 export type { CommandInfo, GroupInfo, HelpTree };
 
 // ---------------------------------------------------------------------------
-// Help data — auto-generated from CLI_REGISTRY + ToolSpec descriptions.
+// Help data - auto-generated from CLI_REGISTRY + ToolSpec descriptions.
 // The static HELP_TREE constant has been replaced by generateHelpTree() which
 // reads packages/cli/src/cli-registry.ts and auto-fills descriptions from core
 // ToolSpec registry.  Drift is prevented by packages/cli/test/drift.test.ts.
@@ -185,11 +185,11 @@ function printCommandList(lines: string[], commands: Record<string, CommandInfo>
 /**
  * Print help text to stdout.
  *
- * - `printHelp()` — global module overview
- * - `printHelp("market")` — module detail with all commands
- * - `printHelp("bot")` — module overview listing sub-strategies
- * - `printHelp("bot", "grid")` — subgroup detail with all commands
- * - `printHelp("spot", "algo")` — subgroup detail with all commands
+ * - `printHelp()` - global module overview
+ * - `printHelp("market")` - module detail with all commands
+ * - `printHelp("bot")` - module overview listing sub-strategies
+ * - `printHelp("bot", "grid")` - subgroup detail with all commands
+ * - `printHelp("spot", "algo")` - subgroup detail with all commands
  */
 export function printHelp(...path: string[]): void {
   const [moduleName, subgroupName] = path;

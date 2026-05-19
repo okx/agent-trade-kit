@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 变更
+
+- 将 CLI 帮助文本、工具描述和 CLI 输出占位符中的非 ASCII 排版标点（em-dash、en-dash、right-arrow、ellipsis）替换为 ASCII 等价物。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。详见 #190。
+
 ### 修复
 
 - **CLI 启动性能优化** (TRDATA-3954)。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 环境变量开关，可完全禁用更新检查；(B1) 更新检查使用用户配置的 npm 镜像（`npm_config_registry` 环境变量或 `.npmrc` 文件），不再硬编码 `registry.npmjs.org`；(A') 使用 `AbortSignal.timeout(3000)` 发起 fetch，其内部使用 unref'd 计时器，不会阻止进程退出；(B1.5) fetch 失败时写入负缓存条目（1 小时 TTL），避免在不可达网络下每次冷启动都重复发起请求。

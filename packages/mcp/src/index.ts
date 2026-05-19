@@ -32,7 +32,7 @@ Options:
   --profile <name>     Profile to load from ${configFilePath()}
                        Falls back to default_profile in config, then "default"
   --site <site>        OKX site to connect to: global, eea, us (default: global)
-                       global → www.okx.com, eea → eea.okx.com, us → app.okx.com
+                       global -> www.okx.com, eea -> eea.okx.com, us -> app.okx.com
   --read-only          Expose only read/query tools and disable write operations
   --demo               Enable simulated trading (injects x-simulated-trading: 1)
   --live               Force live trading mode (overrides profile demo=true; mutually exclusive with --demo)

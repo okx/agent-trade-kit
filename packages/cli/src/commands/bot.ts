@@ -362,7 +362,7 @@ export async function cmdDcaSubOrders(
   if (!rows.length) { outputLine("No sub-orders"); return; }
 
   if (opts.cycleId) {
-    // Orders within a cycle — fields from /orders endpoint
+    // Orders within a cycle - fields from /orders endpoint
     printTable(
       rows.map((o) => ({
         ordId:     o["ordId"],
@@ -376,7 +376,7 @@ export async function cmdDcaSubOrders(
       })),
     );
   } else {
-    // Cycle list — fields from /cycle-list endpoint
+    // Cycle list - fields from /cycle-list endpoint
     printTable(
       rows.map((o) => ({
         cycleId:     o["cycleId"],

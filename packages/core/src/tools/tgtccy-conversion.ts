@@ -146,10 +146,10 @@ function computeContracts(p: ConversionParams): { contractsStr: string; conversi
 
   const contractsStr = contractsRounded.toFixed(lotSzDecimals);
   const conversionNote = isMarginMode
-    ? `Converting ${sz} USDT margin (${leverStr}x leverage) → ${contractsStr} contracts ` +
+    ? `Converting ${sz} USDT margin (${leverStr}x leverage) -> ${contractsStr} contracts ` +
       `(notional value ≈ ${(contractsRounded * contractValue).toFixed(2)} USDT, ` +
       `ctVal=${ctValStr}, lastPx=${lastStr}, lever=${leverStr}, minSz=${minSzStr}, lotSz=${lotSzStr})`
-    : `Converting ${sz} USDT → ${contractsStr} contracts ` +
+    : `Converting ${sz} USDT -> ${contractsStr} contracts ` +
       `(ctVal=${ctValStr}, lastPx=${lastStr}, minSz=${minSzStr}, lotSz=${lotSzStr})`;
 
   return { contractsStr, conversionNote };

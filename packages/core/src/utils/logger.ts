@@ -52,7 +52,7 @@ export function pruneOldLogs(logDir: string, retentionDays: number, now: number)
         checkedAt = data.checkedAt;
       }
     } catch {
-      // absent or corrupt — sweep unconditionally
+      // absent or corrupt - sweep unconditionally
     }
     if (checkedAt > 0 && now - checkedAt <= PRUNE_INTERVAL_MS) return;
     const cutoff = now - retentionDays * MS_PER_DAY;

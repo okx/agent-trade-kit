@@ -65,7 +65,7 @@ const BASE_CLI = {
 // Site parsing
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — site defaults", () => {
+describe("loadConfig - site defaults", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => { restoreEnv(saved); });
@@ -86,7 +86,7 @@ describe("loadConfig — site defaults", () => {
   });
 });
 
-describe("loadConfig — site from CLI arg", () => {
+describe("loadConfig - site from CLI arg", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => { restoreEnv(saved); });
@@ -121,7 +121,7 @@ describe("loadConfig — site from CLI arg", () => {
   });
 });
 
-describe("loadConfig — site from env var", () => {
+describe("loadConfig - site from env var", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => { restoreEnv(saved); });
@@ -151,7 +151,7 @@ describe("loadConfig — site from env var", () => {
   });
 });
 
-describe("loadConfig — OKX_API_BASE_URL overrides site mapping", () => {
+describe("loadConfig - OKX_API_BASE_URL overrides site mapping", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => { restoreEnv(saved); });
@@ -170,7 +170,7 @@ describe("loadConfig — OKX_API_BASE_URL overrides site mapping", () => {
   });
 });
 
-describe("loadConfig — site ConfigError suggestion", () => {
+describe("loadConfig - site ConfigError suggestion", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => { restoreEnv(saved); });
@@ -192,7 +192,7 @@ describe("loadConfig — site ConfigError suggestion", () => {
 // Whitespace trimming
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — site whitespace trimming", () => {
+describe("loadConfig - site whitespace trimming", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => { restoreEnv(saved); });
@@ -215,7 +215,7 @@ describe("loadConfig — site whitespace trimming", () => {
 // Site from toml profile
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — site from toml profile", () => {
+describe("loadConfig - site from toml profile", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;
@@ -275,7 +275,7 @@ describe("loadConfig — site from toml profile", () => {
 // Bot sub-module parsing
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — bot sub-modules", () => {
+describe("loadConfig - bot sub-modules", () => {
   let saved: SavedEnv;
   beforeEach(() => { saved = saveEnv(); });
   afterEach(() => restoreEnv(saved));
@@ -342,7 +342,7 @@ describe("loadConfig — bot sub-modules", () => {
 // Proxy URL from toml profile
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — proxy_url from toml profile", () => {
+describe("loadConfig - proxy_url from toml profile", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;
@@ -432,7 +432,7 @@ describe("loadConfig — proxy_url from toml profile", () => {
 // TOML parse error — special characters in passphrase
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — TOML parse error for special characters", () => {
+describe("loadConfig - TOML parse error for special characters", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;
@@ -516,7 +516,7 @@ describe("loadConfig — TOML parse error for special characters", () => {
 // Demo / Live flag resolution
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — demo/live flag resolution", () => {
+describe("loadConfig - demo/live flag resolution", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;
@@ -577,7 +577,7 @@ describe("loadConfig — demo/live flag resolution", () => {
   });
 });
 
-describe("loadConfig — demo/live with toml profile", () => {
+describe("loadConfig - demo/live with toml profile", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;
@@ -627,7 +627,7 @@ describe("loadConfig — demo/live with toml profile", () => {
 // Partial API credentials & OAuth fallback
 // ---------------------------------------------------------------------------
 
-describe("loadConfig — partial API credentials", () => {
+describe("loadConfig - partial API credentials", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;
@@ -692,7 +692,7 @@ describe("loadConfig — partial API credentials", () => {
   });
 });
 
-describe("loadConfig — OAuth fallback", () => {
+describe("loadConfig - OAuth fallback", () => {
   let saved: SavedEnv;
   let savedHome: string | undefined;
   let tmpHome: string;

@@ -1,7 +1,7 @@
 import { EOL } from "node:os";
 
 // ---------------------------------------------------------------------------
-// Output interface — defines the contract for any IO sink.
+// Output interface - defines the contract for any IO sink.
 // The default implementation writes to process.stdout/stderr.
 // Swap it out in tests or to redirect to a file.
 // ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ export function resetOutput(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Environment context — injected once in main() after config load.
+// Environment context - injected once in main() after config load.
 // When null, all output functions behave as before (backward compat).
 // ---------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ export function errorLine(message: string): void {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Opt-in JSON env wrapper — controlled by the --env CLI flag.
+// Opt-in JSON env wrapper - controlled by the --env CLI flag.
 // When disabled (default), printJson outputs raw data for backward compat.
 // When enabled, printJson wraps the data with {env, profile, data}.
 // ---------------------------------------------------------------------------
@@ -153,14 +153,14 @@ export function extractData(result: unknown): Record<string, unknown>[] {
 }
 
 export function markFailedIfSCodeError(data: unknown): void {
-  // Read-only endpoints return plain arrays without sCode — skip them.
+  // Read-only endpoints return plain arrays without sCode - skip them.
   if (!Array.isArray(data)) return;
   for (const item of data) {
     if (item !== null && typeof item === "object") {
       const sCode = (item as Record<string, unknown>)["sCode"];
-      // sCode absent → not a write-response item, ignore.
-      // sCode "0" or 0 → success.
-      // anything else → business failure (e.g. "51008" = insufficient balance).
+      // sCode absent -> not a write-response item, ignore.
+      // sCode "0" or 0 -> success.
+      // anything else -> business failure (e.g. "51008" = insufficient balance).
       if (sCode !== undefined && sCode !== "0" && sCode !== 0) {
         process.exitCode = 1;
         return;

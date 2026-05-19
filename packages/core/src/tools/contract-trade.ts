@@ -25,7 +25,7 @@ import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
 import { ValidationError } from "../utils/errors.js";
 
 export interface ContractConfig {
-  /** Tool name prefix, e.g. "swap" → "swap_place_order" */
+  /** Tool name prefix, e.g. "swap" -> "swap_place_order" */
   prefix: string;
   /** MCP module name */
   module: ModuleId;
@@ -49,7 +49,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     {
       name: n("place_order"),
       module,
-      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. Before placing, use market_get_instruments to get ctVal (contract face value) — do NOT assume contract sizes. [CAUTION] Executes real trades.`,
+      description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. Before placing, use market_get_instruments to get ctVal (contract face value) - do NOT assume contract sizes. [CAUTION] Executes real trades.`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -397,10 +397,10 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
       description:
         `Set leverage for a ${label} instrument or position. [CAUTION] Changes risk parameters.\n` +
         "Scenarios (SWAP/FUTURES only):\n" +
-        "  • cross + any instId under the index → sets leverage at the index level\n" +
-        "  • isolated + buy-sell (net) posMode → instId only\n" +
-        "  • isolated + long-short (hedge) posMode → instId + posSide=long|short (BOTH directions must be set separately)\n" +
-        "Not supported: PORTFOLIO MARGIN accounts cannot adjust cross leverage for SWAP/FUTURES — the request will be rejected by OKX. " +
+        "  • cross + any instId under the index -> sets leverage at the index level\n" +
+        "  • isolated + buy-sell (net) posMode -> instId only\n" +
+        "  • isolated + long-short (hedge) posMode -> instId + posSide=long|short (BOTH directions must be set separately)\n" +
+        "Not supported: PORTFOLIO MARGIN accounts cannot adjust cross leverage for SWAP/FUTURES - the request will be rejected by OKX. " +
         "Use account_get_config first if unsure of the account's margin mode.",
       isWrite: true,
       inputSchema: {
@@ -409,7 +409,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           instId: { type: "string", description: instIdExample },
           lever: {
             type: "string",
-            description: "Leverage multiplier as a positive number string, e.g. '10'. Max value depends on the instrument (query market_get_instruments → lever).",
+            description: "Leverage multiplier as a positive number string, e.g. '10'. Max value depends on the instrument (query market_get_instruments -> lever).",
           },
           mgnMode: { type: "string", enum: ["cross", "isolated"] },
           posSide: {
@@ -417,7 +417,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             enum: ["long", "short"],
             description:
               "REQUIRED when mgnMode=isolated AND the account is in hedge (long/short) position mode. " +
-              "Use 'long' or 'short' — setting one side does NOT auto-apply to the other. " +
+              "Use 'long' or 'short' - setting one side does NOT auto-apply to the other. " +
               "Omit entirely for one-way (net) position mode or for cross margin.",
           },
         },

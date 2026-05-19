@@ -7,7 +7,7 @@ import { outputLine, errorLine, printJson, printTable } from "../formatter.js";
 
 interface BalanceDetail {
   ccy: string;
-  eq?: string;              // equity — used as invested amount for USDG earn currencies
+  eq?: string;              // equity - used as invested amount for USDG earn currencies
   autoLendStatus: string;   // "unsupported" | "off" | "pending" | "active"
   autoStakingStatus: string; // "unsupported" | "off" | "pending" | "active"
   autoLendAmt: string;
@@ -36,9 +36,9 @@ function isSupported(status: string | undefined): boolean {
 /**
  * Infer earnType from balance detail.
  *
- * - autoLendStatus or autoStakingStatus != "unsupported" → earnType "0" (lend+stake)
- * - Known USDG-earn currencies (USDG, BUIDL) → earnType "1"
- * - Otherwise → null (not supported)
+ * - autoLendStatus or autoStakingStatus != "unsupported" -> earnType "0" (lend+stake)
+ * - Known USDG-earn currencies (USDG, BUIDL) -> earnType "1"
+ * - Otherwise -> null (not supported)
  */
 export function inferEarnType(detail: BalanceDetail): EarnType | null {
   if (isSupported(detail.autoLendStatus) || isSupported(detail.autoStakingStatus)) return "0";

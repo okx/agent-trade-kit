@@ -103,7 +103,7 @@ const fakeConfig = {
 // handleSkillCommand — parameter routing
 // ---------------------------------------------------------------------------
 
-describe("handleSkillCommand — parameter routing", () => {
+describe("handleSkillCommand - parameter routing", () => {
   it("search: keyword from rest[0]", async () => {
     const { spy, captured } = makeSpy();
     await handleSkillCommand(spy, "search", ["grid"], vals({}), false, fakeConfig);
@@ -197,7 +197,7 @@ describe("handleSkillCommand — parameter routing", () => {
 // Search output
 // ---------------------------------------------------------------------------
 
-describe("cmdSkillSearch — output formatting", () => {
+describe("cmdSkillSearch - output formatting", () => {
   it("displays tabular results with pagination info", async () => {
     const { spy } = makeSpy();
     await handleSkillCommand(spy, "search", ["grid"], vals({}), false, fakeConfig);
@@ -236,7 +236,7 @@ describe("cmdSkillSearch — output formatting", () => {
 // Categories output
 // ---------------------------------------------------------------------------
 
-describe("cmdSkillCategories — output formatting", () => {
+describe("cmdSkillCategories - output formatting", () => {
   it("displays category list", async () => {
     const { spy } = makeSpy();
     await handleSkillCommand(spy, "categories", [], vals({}), false, fakeConfig);
@@ -305,7 +305,7 @@ import {
   removeSkillRecord,
 } from "@agent-tradekit/core";
 
-describe("cmdSkillCheck — installed skill", () => {
+describe("cmdSkillCheck - installed skill", () => {
   const testSkill = `test-check-${randomUUID()}`;
 
   beforeEach(() => {
@@ -372,7 +372,7 @@ describe("cmdSkillCheck — installed skill", () => {
 // cmdSkillCategories — additional branches
 // ---------------------------------------------------------------------------
 
-describe("cmdSkillCategories — additional", () => {
+describe("cmdSkillCategories - additional", () => {
   it("displays 'No categories found' for empty results", async () => {
     const { spy } = makeSpy({
       endpoint: "GET /api/v5/skill/categories",
@@ -396,7 +396,7 @@ describe("cmdSkillCategories — additional", () => {
 // cmdSkillList — with installed skills
 // ---------------------------------------------------------------------------
 
-describe("cmdSkillList — with installed skill", () => {
+describe("cmdSkillList - with installed skill", () => {
   const testSkill = `test-list-${randomUUID()}`;
 
   beforeEach(() => {
@@ -419,7 +419,7 @@ describe("cmdSkillList — with installed skill", () => {
 // cmdSkillRemove — JSON output
 // ---------------------------------------------------------------------------
 
-describe("cmdSkillRemove — additional", () => {
+describe("cmdSkillRemove - additional", () => {
   it("reports error with JSON flag when skill not installed", () => {
     cmdSkillRemove(`nonexistent-${randomUUID()}`, true);
     assert.equal(process.exitCode, 1);
@@ -448,7 +448,7 @@ describe("cmdSkillRemove — additional", () => {
 // handleSkillCommand — list route
 // ---------------------------------------------------------------------------
 
-describe("handleSkillCommand — list route", () => {
+describe("handleSkillCommand - list route", () => {
   it("list: routes to cmdSkillList", async () => {
     const { spy } = makeSpy();
     await handleSkillCommand(spy, "list", [], vals({}), false, fakeConfig);

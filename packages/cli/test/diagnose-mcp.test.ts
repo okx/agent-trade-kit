@@ -116,7 +116,7 @@ describe("checkMcpClients", () => {
     });
   });
 
-  it("reports ✗ and fails when config file has invalid JSON (cursor)", () => {
+  it("reports failure when config file has invalid JSON (cursor)", () => {
     const report = new Report();
     const origExistsSync = fs.existsSync;
     const origReadFileSync = fs.readFileSync;
@@ -146,7 +146,7 @@ describe("checkMcpClients", () => {
     }
   });
 
-  it("reports ✗ and fails when config exists but okx-trade-mcp not in mcpServers (cursor)", () => {
+  it("reports failure when config exists but okx-trade-mcp not in mcpServers (cursor)", () => {
     const report = new Report();
     const origExistsSync = fs.existsSync;
     const origReadFileSync = fs.readFileSync;
@@ -211,7 +211,7 @@ describe("checkMcpClients", () => {
     }
   });
 
-  it("shows ✓ found when client is configured", () => {
+  it("shows found when client is configured", () => {
     const report = new Report();
     const origExistsSync = fs.existsSync;
     const origReadFileSync = fs.readFileSync;

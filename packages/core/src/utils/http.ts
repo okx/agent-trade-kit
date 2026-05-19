@@ -24,7 +24,7 @@ export function validateRedirect(
   }
   const location = res.headers.location!;
   if (requestUrl.startsWith("https") && !location.startsWith("https")) {
-    throw new Error("Refused HTTPS → HTTP redirect downgrade");
+    throw new Error("Refused HTTPS -> HTTP redirect downgrade");
   }
   return location;
 }

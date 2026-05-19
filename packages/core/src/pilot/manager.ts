@@ -26,7 +26,7 @@ export interface PilotManagerOptions {
   packageUserAgent?: string;
   /** Whether verbose logging is enabled. */
   verbose?: boolean;
-  /** Whether a custom proxy (proxyUrl) is configured — skips Pilot entirely. */
+  /** Whether a custom proxy (proxyUrl) is configured - skips Pilot entirely. */
   hasCustomProxy?: boolean;
 }
 
@@ -62,7 +62,7 @@ export class PilotManager {
       const result = resolvePilot(hostname);
 
       if (!result.mode) {
-        // No cache → try direct first. If it works, we'll cache "direct".
+        // No cache -> try direct first. If it works, we'll cache "direct".
         this.directUnverified = true;
         if (this.opts.verbose) {
           vlog("Pilot: no cache, trying direct connection first");
@@ -142,7 +142,7 @@ export class PilotManager {
         return true;
       }
     } catch {
-      // resolution failed — fall through to direct
+      // resolution failed - fall through to direct
     }
 
     if (this.opts.verbose) {
@@ -176,8 +176,8 @@ export class PilotManager {
    * Apply a Pilot node: set up the custom Agent + base URL.
    *
    * node.ip may be a real IP or a domain (CNAME like *.aliyunddos1021.com).
-   * - Real IP → use directly in lookup callback
-   * - Domain  → dns.lookup on every connection to get a fresh IP
+   * - Real IP -> use directly in lookup callback
+   * - Domain  -> dns.lookup on every connection to get a fresh IP
    */
   private applyNode(node: PilotNode, protocol: string): void {
     this.pilotNode = node;
@@ -198,7 +198,7 @@ export class PilotManager {
               callback(null, node.ip, 4);
             }
           } else {
-            // Domain (CNAME) → resolve via system DNS each time
+            // Domain (CNAME) -> resolve via system DNS each time
             dnsLookup(node.ip, { family: 4 }, (err, address, family) => {
               if (err) {
                 callback(err, "", 0);

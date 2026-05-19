@@ -110,7 +110,7 @@ function vals(overrides: Partial<CliValues>): CliValues {
 // SPOT
 // ===========================================================================
 
-describe("handleSpotCommand — parameter routing", () => {
+describe("handleSpotCommand - parameter routing", () => {
     it("cancel: instId and ordId come from v (not rest)", async () => {
         const {spy, captured} = makeSpy();
         await handleSpotCommand(spy, "cancel", [], vals({instId: "ETH-USDT", ordId: "123"}), false);
@@ -252,7 +252,7 @@ describe("handleSpotCommand — parameter routing", () => {
 // SPOT ALGO
 // ===========================================================================
 
-describe("handleSpotAlgoCommand — parameter routing", () => {
+describe("handleSpotAlgoCommand - parameter routing", () => {
     it("cancel: instId and algoId come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleSpotAlgoCommand(spy, "cancel", vals({instId: "ETH-USDT", algoId: "456"}), false);
@@ -303,7 +303,7 @@ describe("handleSpotAlgoCommand — parameter routing", () => {
 // SWAP
 // ===========================================================================
 
-describe("handleSwapCommand — parameter routing", () => {
+describe("handleSwapCommand - parameter routing", () => {
     it("cancel: instId and ordId come from v (not rest)", async () => {
         const {spy, captured} = makeSpy();
         await handleSwapCommand(spy, "cancel", [], vals({instId: "BTC-USDT-SWAP", ordId: "123"}), false);
@@ -414,7 +414,7 @@ describe("handleSwapCommand — parameter routing", () => {
 // SWAP ALGO
 // ===========================================================================
 
-describe("handleSwapAlgoCommand — parameter routing", () => {
+describe("handleSwapAlgoCommand - parameter routing", () => {
     it("cancel: instId and algoId come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleSwapAlgoCommand(spy, "cancel", vals({instId: "BTC-USDT-SWAP", algoId: "456"}), false);
@@ -465,7 +465,7 @@ describe("handleSwapAlgoCommand — parameter routing", () => {
 // FUTURES
 // ===========================================================================
 
-describe("handleFuturesCommand — parameter routing", () => {
+describe("handleFuturesCommand - parameter routing", () => {
     it("cancel: instId and ordId come from v (not rest)", async () => {
         const {spy, captured} = makeSpy();
         await handleFuturesCommand(spy, "cancel", [], vals({instId: "BTC-USD-250328", ordId: "123"}), false);
@@ -572,7 +572,7 @@ describe("handleFuturesCommand — parameter routing", () => {
 // FUTURES ALGO
 // ===========================================================================
 
-describe("handleFuturesAlgoCommand — parameter routing", () => {
+describe("handleFuturesAlgoCommand - parameter routing", () => {
     it("cancel: instId and algoId come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleFuturesAlgoCommand(spy, "cancel", vals({instId: "BTC-USD-250328", algoId: "456"}), false);
@@ -623,7 +623,7 @@ describe("handleFuturesAlgoCommand — parameter routing", () => {
 // OPTION
 // ===========================================================================
 
-describe("handleOptionCommand — parameter routing", () => {
+describe("handleOptionCommand - parameter routing", () => {
     it("cancel: instId and ordId come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleOptionCommand(spy, "cancel", [], vals({instId: "BTC-USD-250328-50000-C", ordId: "123"}), false);
@@ -691,7 +691,7 @@ describe("handleOptionCommand — parameter routing", () => {
 // OPTION ALGO
 // ===========================================================================
 
-describe("handleOptionAlgoCommand — parameter routing", () => {
+describe("handleOptionAlgoCommand - parameter routing", () => {
     it("cancel: instId and algoId come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleOptionAlgoCommand(spy, "cancel", vals({instId: "BTC-USD-250328-50000-C", algoId: "456"}), false);
@@ -731,7 +731,7 @@ describe("handleOptionAlgoCommand — parameter routing", () => {
 // BOT GRID
 // ===========================================================================
 
-describe("handleBotGridCommand — parameter routing", () => {
+describe("handleBotGridCommand - parameter routing", () => {
     it("create: tpTriggerPx and slTriggerPx come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleBotGridCommand(spy, vals({
@@ -816,7 +816,7 @@ const fakeFlashEarnResult = {
     data: [],
 };
 
-describe("handleEarnCommand flash-earn — parameter routing", () => {
+describe("handleEarnCommand flash-earn - parameter routing", () => {
     it("projects: --status flag is passed as integer array", async () => {
         const captured = {tool: "", args: {} as Record<string, unknown>};
         const spy: ToolRunner = async (tool, args) => {
@@ -921,7 +921,7 @@ describe("earn savings fixed-redeem: reqId comes from v (named flag)", () => {
         assert.equal(captured.args["reqId"], "REQ-FROM-FLAG");
     });
 
-    it("does NOT fall back to rest[0] — positional args are ignored (issue #78)", async () => {
+    it("does NOT fall back to rest[0] - positional args are ignored (issue #78)", async () => {
         const {spy, captured} = makeEarnSpy();
         await handleEarnCommand(spy, "savings", ["fixed-redeem", "REQ-FROM-POS"], vals({}), false);
         assert.equal(captured.tool, "earn_fixed_redeem");
@@ -949,7 +949,7 @@ function makeMarketSpy(): { spy: ToolRunner; captured: { tool: string; args: Rec
     return {spy, captured};
 }
 
-describe("handleMarketCommand — demo flag routing", () => {
+describe("handleMarketCommand - demo flag routing", () => {
     it("ticker: demo=true comes from v.demo", async () => {
         const {spy, captured} = makeMarketSpy();
         await handleMarketCommand(spy, "ticker", ["BTC-USDT"], vals({demo: true}), false);
@@ -985,7 +985,7 @@ describe("handleMarketCommand — demo flag routing", () => {
 // EVENT
 // ===========================================================================
 
-describe("handleEventCommand — parameter routing", () => {
+describe("handleEventCommand - parameter routing", () => {
     it("place: instId, side, outcome, sz come from v (not rest)", async () => {
         const {spy, captured} = makeSpy();
         await handleEventCommand(spy, "place", [], vals({
@@ -1096,7 +1096,7 @@ function makeFilterSpy(result: typeof fakeFilterResult | typeof fakeOiHistoryRes
     return {spy, captured};
 }
 
-describe("handleMarketCommand — filter/oi-history/oi-change parameter routing", () => {
+describe("handleMarketCommand - filter/oi-history/oi-change parameter routing", () => {
     // ── market filter ──────────────────────────────────────────────────────
     it("filter: instType comes from v.instType (not rest)", async () => {
         const {spy, captured} = makeFilterSpy(fakeFilterResult);
@@ -1116,7 +1116,7 @@ describe("handleMarketCommand — filter/oi-history/oi-change parameter routing"
         assert.equal(captured.args["sortOrder"], "asc");
     });
 
-    it("filter: limit comes from v.limit (string → number)", async () => {
+    it("filter: limit comes from v.limit (string -> number)", async () => {
         const {spy, captured} = makeFilterSpy(fakeFilterResult);
         await handleMarketCommand(spy, "filter", [], vals({instType: "FUTURES", limit: "50"}), false);
         assert.equal(captured.args["limit"], 50);
@@ -1160,13 +1160,13 @@ describe("handleMarketCommand — filter/oi-history/oi-change parameter routing"
         assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
     });
 
-    it("oi-history: limit comes from v.limit (string → number)", async () => {
+    it("oi-history: limit comes from v.limit (string -> number)", async () => {
         const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
         await handleMarketCommand(spy, "oi-history", ["ETH-USDT-SWAP"], vals({limit: "100"}), false);
         assert.equal(captured.args["limit"], 100);
     });
 
-    it("oi-history: ts comes from v.ts (string → number)", async () => {
+    it("oi-history: ts comes from v.ts (string -> number)", async () => {
         const {spy, captured} = makeFilterSpy(fakeOiHistoryResult);
         await handleMarketCommand(spy, "oi-history", ["BTC-USDT-SWAP"], vals({ts: "1700000000000"}), false);
         assert.equal(captured.args["ts"], 1700000000000);
@@ -1204,7 +1204,7 @@ describe("handleMarketCommand — filter/oi-history/oi-change parameter routing"
         assert.equal(captured.args["sortBy"], "oiDeltaUsd");
     });
 
-    it("oi-change: limit comes from v.limit (string → number)", async () => {
+    it("oi-change: limit comes from v.limit (string -> number)", async () => {
         const {spy, captured} = makeFilterSpy(fakeOiChangeResult);
         await handleMarketCommand(spy, "oi-change", [], vals({instType: "SWAP", limit: "30"}), false);
         assert.equal(captured.args["limit"], 30);
@@ -1237,7 +1237,7 @@ describe("handleMarketCommand — filter/oi-history/oi-change parameter routing"
         assert.equal(captured.args["window"], "4H");
     });
 
-    it("pair-spread: backtestTime comes from v['backtest-time'] (string → number)", async () => {
+    it("pair-spread: backtestTime comes from v['backtest-time'] (string -> number)", async () => {
         const {spy, captured} = makeFilterSpy(fakePairSpreadResult);
         await handleMarketCommand(spy, "pair-spread", ["BTC-USDT-SWAP", "ETH-USDT-SWAP"], vals({"backtest-time": "1715000000000"}), false);
         assert.equal(captured.args["backtestTime"], 1715000000000);
@@ -1267,7 +1267,7 @@ function makeAssetBalanceSpy(): { spy: ToolRunner; captured: { tool: string; arg
     return {spy, captured};
 }
 
-describe("cmdAccountAssetBalance — valuationCcy parameter routing", () => {
+describe("cmdAccountAssetBalance - valuationCcy parameter routing", () => {
     it("passes valuationCcy='BTC' to tool when provided", async () => {
         const {spy, captured} = makeAssetBalanceSpy();
         await cmdAccountAssetBalance(spy, undefined, false, true, "BTC");

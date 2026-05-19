@@ -176,7 +176,7 @@ describe("cmdUpgrade", () => {
   // 2 & 3. Throttle: fresh cache
   // -------------------------------------------------------------------------
 
-  describe("throttle — fresh cache", () => {
+  describe("throttle - fresh cache", () => {
     it("returns silently (no stderr, no stdout) when no flags and cache is fresh", async () => {
       writeFreshCache();
       // If fetch were called, it would throw — proving it was NOT called
@@ -215,7 +215,7 @@ describe("cmdUpgrade", () => {
   // 10. Stale cache bypasses throttle
   // -------------------------------------------------------------------------
 
-  describe("throttle — stale cache", () => {
+  describe("throttle - stale cache", () => {
     it("proceeds to fetch when cache is older than 12 h", async () => {
       writeStaleCache();
       let fetchCalled = false;

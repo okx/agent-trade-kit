@@ -338,7 +338,7 @@ export async function cmdMarketInstrumentsByCategory(
     "7": "Bonds",
   };
   const label = CATEGORY_LABELS[opts.instCategory] ?? opts.instCategory;
-  process.stdout.write(`instCategory=${opts.instCategory} (${label}) — ${items?.length ?? 0} instruments\n\n`);
+  process.stdout.write(`instCategory=${opts.instCategory} (${label}) - ${items?.length ?? 0} instruments\n\n`);
   printTable(
     (items ?? []).slice(0, 50).map((t) => ({
       instId: t["instId"],

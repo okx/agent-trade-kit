@@ -30,7 +30,7 @@ function getAlgoCommandDescription(module: string, command: string): string {
   return commandEntry.description!;
 }
 
-describe("TP/SL amend discoverability — CLI registry descriptions", () => {
+describe("TP/SL amend discoverability - CLI registry descriptions", () => {
   describe("regular amend commands: must route users to algo amend for TP/SL", () => {
     it("spot amend description mentions 'algo amend' for TP/SL", () => {
       const desc = getCommandDescription("spot", "amend");

@@ -22,9 +22,9 @@ export const OUTCOME_LABELS: Record<string, string> = {
 /**
  * Translate a raw outcome code to a human-readable label using the instId
  * to distinguish series type.
- * - price_up_down instIds contain "UPDOWN" → "1"=UP, "2"=DOWN
- * - price_above / price_once_touch → "1"=YES, "2"=NO
- * - "0" always → "pending" (same regardless of series type)
+ * - price_up_down instIds contain "UPDOWN" -> "1"=UP, "2"=DOWN
+ * - price_above / price_once_touch -> "1"=YES, "2"=NO
+ * - "0" always -> "pending" (same regardless of series type)
  */
 export function resolveOutcomeLabel(instId: string, raw: string): string {
   if (raw === "0") return "pending";
@@ -35,7 +35,7 @@ export function resolveOutcomeLabel(instId: string, raw: string): string {
   return OUTCOME_LABELS[raw] ?? raw;
 }
 
-/** Order state mapping — aligned with UI design spec. */
+/** Order state mapping - aligned with UI design spec. */
 const ORDER_STATE_MAP: Record<string, string> = {
   live:             "Unfilled",
   partially_filled: "Partially filled",
@@ -131,7 +131,7 @@ export interface BalanceResult {
 
 /**
  * Extract quote currency from an underlying pair string.
- * e.g. "BTC-USDT" → "USDT", "ETH-USDC" → "USDC"
+ * e.g. "BTC-USDT" -> "USDT", "ETH-USDC" -> "USDC"
  * Returns DEFAULT_SETTLE_CCY if extraction fails.
  */
 export function extractQuoteCcy(underlying: string | null): string {
@@ -175,7 +175,7 @@ export async function fetchAvailableBalance(
 
 /**
  * Extract underlying asset from seriesId for known patterns.
- * e.g. "BTC-ABOVE-DAILY" → "BTC", "ETH-UPDOWN-15MIN" → "ETH"
+ * e.g. "BTC-ABOVE-DAILY" -> "BTC", "ETH-UPDOWN-15MIN" -> "ETH"
  */
 const KNOWN_UNDERLYINGS = /^(BTC|ETH|TRX|EOS|SOL|IOTA|KISHU|SUSHI|BTG|XTZ|SOLVU)/i;
 
@@ -186,7 +186,7 @@ export function extractUnderlying(seriesId: string): string | null {
 
 /**
  * Convert semantic outcome string to API value.
- * Accepts: UP / YES → "yes",  DOWN / NO → "no"  (case-insensitive)
+ * Accepts: UP / YES -> "yes",  DOWN / NO -> "no"  (case-insensitive)
  */
 export function resolveOutcome(value: string): string {
   const map: Record<string, string> = {
@@ -444,7 +444,7 @@ export function handlePlaceOrderError(
     const isExpired = expiryMs !== null && expiryMs < Date.now();
     const reason = isExpired
       ? `The contract (${instId}) has expired.`
-      : `The contract (${instId}) was not found — it may not exist or has not started yet.`;
+      : `The contract (${instId}) was not found - it may not exist or has not started yet.`;
     throw new OkxApiError(
       `${reason} Ask the user if they'd like to place the same order on the next session. ` +
       `If yes, call event_get_markets with seriesId=${seriesId} and state=live to find available contracts.`,

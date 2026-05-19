@@ -14,14 +14,14 @@ export function readCliVersion(): string {
     try {
       return (_require(rel) as { version: string }).version;
     } catch (_err: unknown) {
-      // Path not found in this layout (bundled vs source) — try next
+      // Path not found in this layout (bundled vs source) - try next
     }
   }
   return "0.0.0";
 }
 
 // ---------------------------------------------------------------------------
-// Report collector — accumulates raw data for the copy-paste block
+// Report collector - accumulates raw data for the copy-paste block
 // ---------------------------------------------------------------------------
 
 export interface ReportLine { key: string; value: string }
@@ -91,7 +91,7 @@ export function section(title: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Output file helper — shared between diagnose.ts and diagnose-mcp.ts
+// Output file helper - shared between diagnose.ts and diagnose-mcp.ts
 // ---------------------------------------------------------------------------
 
 export function writeReportIfRequested(report: Report, outputPath?: string): void {
@@ -105,7 +105,7 @@ export function writeReportIfRequested(report: Report, outputPath?: string): voi
 }
 
 // ---------------------------------------------------------------------------
-// Sanitization — strip secrets / long hex / UUIDs before sharing
+// Sanitization - strip secrets / long hex / UUIDs before sharing
 // ---------------------------------------------------------------------------
 
 export function sanitize(value: string): string {
@@ -114,7 +114,7 @@ export function sanitize(value: string): string {
     /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
     "****-uuid-****",
   );
-  // Long hex strings (32+ chars) — likely keys/tokens
+  // Long hex strings (32+ chars) - likely keys/tokens
   value = value.replace(/\b[0-9a-f]{32,}\b/gi, "****hex****");
   // Bearer/token patterns
   value = value.replace(/Bearer\s+\S{8,}/gi, "Bearer ****");

@@ -16,35 +16,35 @@ type CodeBehavior =
   | { retry: false; suggestion: string };
 
 const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
-  // Rate limit → throw RateLimitError
+  // Rate limit -> throw RateLimitError
   "50011": { retry: true,  suggestion: "Rate limited. Back off and retry after a delay." },
   "50061": { retry: true,  suggestion: "Too many connections. Reduce request frequency and retry." },
 
-  // Server temporarily unavailable → retryable
+  // Server temporarily unavailable -> retryable
   "50001": { retry: true,  suggestion: "Service temporarily unavailable. Retry in a few minutes." },
   "50004": { retry: true,  suggestion: "Endpoint request timeout. Retry later." },
   "50013": { retry: true,  suggestion: "System busy. Retry after 1-2 seconds." },
   "50026": { retry: true,  suggestion: "System error. Retry in a few minutes." },
 
-  // Region / compliance restriction → do not retry
+  // Region / compliance restriction -> do not retry
   "51155": { retry: false, suggestion: "Feature unavailable in your region (site: {site}). Verify your site setting matches your account registration region. Available sites: global, eea, us. Do not retry." },
   "51734": { retry: false, suggestion: "Feature not supported for your KYC country (site: {site}). Verify your site setting matches your account registration region. Available sites: global, eea, us. Do not retry." },
 
-  // Account issues → do not retry
+  // Account issues -> do not retry
   "50007": { retry: false, suggestion: "Account suspended. Contact OKX support. Do not retry." },
   "50009": { retry: false, suggestion: "Account blocked by risk control. Contact OKX support. Do not retry." },
   "51009": { retry: false, suggestion: "Account mode not supported for this operation. Check account settings." },
 
-  // API key permission / expiry → do not retry
+  // API key permission / expiry -> do not retry
   "50100": { retry: false, suggestion: "API key lacks required permissions. Update API key permissions." },
   "50110": { retry: false, suggestion: "API key expired. Generate a new API key." },
 
-  // Insufficient funds / margin → do not retry
-  "51008": { retry: false, suggestion: "Insufficient balance in trading account. Check funding account via account_get_asset_balance — funds may be there. Use account_transfer (from=18, to=6) to move funds to trading account, then retry." },
+  // Insufficient funds / margin -> do not retry
+  "51008": { retry: false, suggestion: "Insufficient balance in trading account. Check funding account via account_get_asset_balance - funds may be there. Use account_transfer (from=18, to=6) to move funds to trading account, then retry." },
   "51119": { retry: false, suggestion: "Insufficient margin. Add margin or check funding account (account_get_asset_balance). Transfer via account_transfer (from=18, to=6) if needed." },
   "51127": { retry: false, suggestion: "Insufficient available margin. Reduce position, add margin, or transfer from funding account (account_transfer from=18 to=6)." },
 
-  // Instrument unavailable → do not retry
+  // Instrument unavailable -> do not retry
   "51021": { retry: false, suggestion: "Instrument does not exist. Check instId." },
   "51022": { retry: false, suggestion: "Instrument not available for trading." },
   "51027": { retry: false, suggestion: "Contract has expired." },
@@ -160,16 +160,16 @@ export class OkxRestClient {
   }
 
   /**
-   * Dynamic auth — determines auth method per request.
+   * Dynamic auth - determines auth method per request.
    *
-   * 1. API key in config → HMAC signing (no OAuth fallback)
-   * 2. OAuth token via okx-auth binary → Bearer token
-   * 3. Neither → throw ConfigError
+   * 1. API key in config -> HMAC signing (no OAuth fallback)
+   * 2. OAuth token via okx-auth binary -> Bearer token
+   * 3. Neither -> throw ConfigError
    */
   private async applyAuth(
     headers: Headers, method: string, requestPath: string, bodyJson: string, timestamp: string,
   ): Promise<void> {
-    // 1. API key exists → HMAC signing (no OAuth fallback)
+    // 1. API key exists -> HMAC signing (no OAuth fallback)
     if (this.config.apiKey && this.config.secretKey && this.config.passphrase) {
       this.setAuthHeaders(headers, method, requestPath, bodyJson, timestamp);
       return;
@@ -385,7 +385,7 @@ export class OkxRestClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Binary (non-JSON) download — reuses auth, proxy, rate-limit, verbose
+  // Binary (non-JSON) download - reuses auth, proxy, rate-limit, verbose
   // ---------------------------------------------------------------------------
 
   private static readonly DEFAULT_MAX_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -446,7 +446,7 @@ export class OkxRestClient {
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
 
-    // Network path is valid — cache direct mode if this was the first successful connection
+    // Network path is valid - cache direct mode if this was the first successful connection
     this.pilot.cacheDirectIfNeeded();
 
     if (!response.ok) {
@@ -618,7 +618,7 @@ export class OkxRestClient {
     requestPath: string,
     t0: number,
   ): Promise<RequestResult<TData>> {
-    // Network failure → refresh Pilot state for subsequent requests
+    // Network failure -> refresh Pilot state for subsequent requests
     if (!this.pilot.hasRetried) {
       if (this.config.verbose) {
         const cause = error instanceof Error ? error.message : String(error);
@@ -654,7 +654,7 @@ export class OkxRestClient {
     const queryString = buildQueryString(reqConfig.query);
     const requestPath = queryString.length > 0 ? `${reqConfig.path}?${queryString}` : reqConfig.path;
 
-    // Route: proxy_url → Pilot proxy → direct
+    // Route: proxy_url -> Pilot proxy -> direct
     const conn = this.pilot.getConnectionParams();
     const url = `${conn.baseUrl}${requestPath}`;
     const bodyJson = reqConfig.body ? JSON.stringify(reqConfig.body) : "";

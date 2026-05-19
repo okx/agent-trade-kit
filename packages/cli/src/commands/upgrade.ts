@@ -52,12 +52,12 @@ function printResult(result: UpgradeResult, json: boolean): void {
         break;
       case "update-available":
         process.stderr.write(
-          `[info]  Update available: ${result.currentVersion} → ${result.latestVersion}\n` +
+          `[info]  Update available: ${result.currentVersion} -> ${result.latestVersion}\n` +
             `        Run: okx upgrade\n`,
         );
         break;
       case "updated":
-        process.stderr.write(`[ok]    Upgraded: ${result.currentVersion} → ${result.latestVersion}\n`);
+        process.stderr.write(`[ok]    Upgraded: ${result.currentVersion} -> ${result.latestVersion}\n`);
         break;
       case "error":
         process.stderr.write(`[error] Failed to fetch latest version from npm registry\n`);

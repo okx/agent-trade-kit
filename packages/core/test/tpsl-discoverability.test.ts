@@ -19,7 +19,7 @@ function getDescriptionByName(name: string): string {
   return spec.description;
 }
 
-describe("TP/SL amend discoverability — MCP tool descriptions", () => {
+describe("TP/SL amend discoverability - MCP tool descriptions", () => {
   describe("regular amend tools: must route users to algo amend for TP/SL", () => {
     it("spot_amend_order description references spot_amend_algo_order", () => {
       const desc = getDescriptionByName("spot_amend_order");

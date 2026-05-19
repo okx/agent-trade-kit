@@ -72,7 +72,7 @@ function baseOpts(instId: string): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — trigger ordType`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - trigger ordType`, () => {
     it("routes triggerPx + orderPx", async () => {
       const c = makeCapture();
       await cmd(c.runner, { ...baseOpts(instId), ordType: "trigger", triggerPx: "50000", orderPx: "50100" });
@@ -107,7 +107,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — chase ordType`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - chase ordType`, () => {
     it("routes chaseType + chaseVal", async () => {
       const c = makeCapture();
       await cmd(c.runner, { ...baseOpts(instId), ordType: "chase", chaseType: "distance", chaseVal: "0.5" });
@@ -141,7 +141,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — iceberg ordType`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - iceberg ordType`, () => {
     it("routes pxVar + szLimit + pxLimit + timeInterval", async () => {
       const c = makeCapture();
       await cmd(c.runner, {
@@ -179,7 +179,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — twap ordType`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - twap ordType`, () => {
     it("routes pxVar + szLimit + pxLimit + timeInterval", async () => {
       const c = makeCapture();
       await cmd(c.runner, {
@@ -209,7 +209,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId, supportsCxlOnClosePos } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — backward compat`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - backward compat`, () => {
     const NEW_PHASE2_KEYS = [
       "triggerPx", "orderPx", "advanceOrdType", "triggerPxType",
       "chaseType", "chaseVal", "maxChaseType", "maxChaseVal",

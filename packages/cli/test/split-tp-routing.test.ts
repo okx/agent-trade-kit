@@ -60,7 +60,7 @@ afterEach(() => resetOutput());
 // parseTpLevel unit tests
 // ---------------------------------------------------------------------------
 
-describe("parseTpLevel — kv mini-DSL", () => {
+describe("parseTpLevel - kv mini-DSL", () => {
   it("parses px:price,sz:size,kind:limit", () => {
     const result = parseTpLevel("px:78000,sz:0.5,kind:limit");
     assert.equal(result.tpOrdPx, "78000");
@@ -68,23 +68,23 @@ describe("parseTpLevel — kv mini-DSL", () => {
     assert.equal(result.tpOrdKind, "limit");
   });
 
-  it("parses triggerPx key → tpTriggerPx", () => {
+  it("parses triggerPx key -> tpTriggerPx", () => {
     const result = parseTpLevel("triggerPx:75000,sz:0.5");
     assert.equal(result.tpTriggerPx, "75000");
     assert.equal(result.sz, "0.5");
   });
 
-  it("parses triggerPxType key → tpTriggerPxType", () => {
+  it("parses triggerPxType key -> tpTriggerPxType", () => {
     const result = parseTpLevel("px:78000,sz:0.5,triggerPxType:mark");
     assert.equal(result.tpTriggerPxType, "mark");
   });
 
-  it("parses amendPxOnTrigger key → amendPxOnTriggerType", () => {
+  it("parses amendPxOnTrigger key -> amendPxOnTriggerType", () => {
     const result = parseTpLevel("px:78000,sz:0.5,amendPxOnTrigger:1");
     assert.equal(result.amendPxOnTriggerType, "1");
   });
 
-  it("parses clOrdId key → attachAlgoClOrdId", () => {
+  it("parses clOrdId key -> attachAlgoClOrdId", () => {
     const result = parseTpLevel("px:78000,sz:0.5,clOrdId:mytp1");
     assert.equal(result.attachAlgoClOrdId, "mytp1");
   });
@@ -128,8 +128,8 @@ describe("parseTpLevel — kv mini-DSL", () => {
 // buildAttachAlgoOrds — tpLevels multi-entry path
 // ---------------------------------------------------------------------------
 
-describe("buildAttachAlgoOrds — tpLevels multi-entry path", () => {
-  it("single tpLevels entry → array of length 1", () => {
+describe("buildAttachAlgoOrds - tpLevels multi-entry path", () => {
+  it("single tpLevels entry -> array of length 1", () => {
     const result = buildAttachAlgoOrds({
       tpLevels: [{ tpOrdPx: "78000", sz: "0.5", tpOrdKind: "limit" }],
     });
@@ -140,7 +140,7 @@ describe("buildAttachAlgoOrds — tpLevels multi-entry path", () => {
     assert.equal(result![0]!.tpOrdKind, "limit");
   });
 
-  it("two tpLevels entries → array of length 2 with both fields preserved", () => {
+  it("two tpLevels entries -> array of length 2 with both fields preserved", () => {
     const result = buildAttachAlgoOrds({
       tpLevels: [
         { tpOrdPx: "78000", sz: "0.5" },
@@ -163,7 +163,7 @@ describe("buildAttachAlgoOrds — tpLevels multi-entry path", () => {
     assert.equal("sz" in result![0]!, false);
   });
 
-  it("empty tpLevels array → falls through to single-entry path (returns undefined for no single-TP fields)", () => {
+  it("empty tpLevels array -> falls through to single-entry path (returns undefined for no single-TP fields)", () => {
     const result = buildAttachAlgoOrds({ tpLevels: [] });
     assert.equal(result, undefined);
   });
@@ -175,7 +175,7 @@ describe("buildAttachAlgoOrds — tpLevels multi-entry path", () => {
     assert.equal(result![0]!.tpTriggerPx, "75000");
   });
 
-  it("backward compat: no TP fields → returns undefined", () => {
+  it("backward compat: no TP fields -> returns undefined", () => {
     const result = buildAttachAlgoOrds({ instId: "BTC-USDT-SWAP" });
     assert.equal(result, undefined);
   });
@@ -213,8 +213,8 @@ function baseAlgoOpts(instId: string): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId, tdMode } of PLACE_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place — Phase 3b tpLevels`, () => {
-    it("single tpLevels entry → tpLevels array of length 1 forwarded to runner", async () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}Place - Phase 3b tpLevels`, () => {
+    it("single tpLevels entry -> tpLevels array of length 1 forwarded to runner", async () => {
       const c = makeCapture();
       const tpLevels = [{ tpOrdPx: "78000", sz: "0.5", tpOrdKind: "limit" }];
       await cmd(c.runner, { ...basePlaceOpts(instId, tdMode), tpLevels });
@@ -224,7 +224,7 @@ for (const { name, cmd, instId, tdMode } of PLACE_MODULES) {
       assert.equal((got[0] as Record<string, unknown>).tpOrdPx, "78000");
     });
 
-    it("two tpLevels entries → array of length 2 forwarded to runner", async () => {
+    it("two tpLevels entries -> array of length 2 forwarded to runner", async () => {
       const c = makeCapture();
       const tpLevels = [
         { tpOrdPx: "78000", sz: "0.5" },
@@ -238,7 +238,7 @@ for (const { name, cmd, instId, tdMode } of PLACE_MODULES) {
       assert.equal((got[1] as Record<string, unknown>).tpOrdPx, "81000");
     });
 
-    it("no tpLevels → tpLevels not present in runner args (backward compat)", async () => {
+    it("no tpLevels -> tpLevels not present in runner args (backward compat)", async () => {
       const c = makeCapture();
       await cmd(c.runner, basePlaceOpts(instId, tdMode));
       assert.equal(c.get().tpLevels, undefined);
@@ -251,7 +251,7 @@ for (const { name, cmd, instId, tdMode } of PLACE_MODULES) {
 // ---------------------------------------------------------------------------
 
 for (const { name, cmd, instId } of ALGO_MODULES) {
-  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace — Phase 3b tpLevels`, () => {
+  describe(`cmd${name[0]!.toUpperCase()}${name.slice(1)}AlgoPlace - Phase 3b tpLevels`, () => {
     it("single tpLevels entry forwarded to runner", async () => {
       const c = makeCapture();
       const tpLevels = [{ tpOrdPx: "78000", sz: "0.5" }];
@@ -261,7 +261,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
       assert.equal(got.length, 1);
     });
 
-    it("two tpLevels entries → array of length 2", async () => {
+    it("two tpLevels entries -> array of length 2", async () => {
       const c = makeCapture();
       const tpLevels = [{ tpOrdPx: "78000", sz: "0.5" }, { tpOrdPx: "82000", sz: "0.5" }];
       await cmd(c.runner, { ...baseAlgoOpts(instId), tpLevels });
@@ -270,7 +270,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
       assert.equal(got.length, 2);
     });
 
-    it("no tpLevels → tpLevels absent from runner args", async () => {
+    it("no tpLevels -> tpLevels absent from runner args", async () => {
       const c = makeCapture();
       await cmd(c.runner, baseAlgoOpts(instId));
       assert.equal(c.get().tpLevels, undefined);
@@ -283,7 +283,7 @@ for (const { name, cmd, instId } of ALGO_MODULES) {
 // (tested via assertNoTpConflict exported from index.ts)
 // ---------------------------------------------------------------------------
 
-describe("conflict detection — tpLevel + single-TP fields", () => {
+describe("conflict detection - tpLevel + single-TP fields", () => {
   it("throws when tpLevel array is non-empty AND tpTriggerPx is set", () => {
     assert.throws(
       () => assertNoTpConflict(["px:78000,sz:0.5"], { tpTriggerPx: "77000" }),
@@ -327,7 +327,7 @@ const ALGO_DISPATCH_CASES: Array<{
 ];
 
 for (const { name, handler, instId } of ALGO_DISPATCH_CASES) {
-  describe(`handle${name[0]!.toUpperCase()}${name.slice(1)}AlgoCommand — conflict detection integration`, () => {
+  describe(`handle${name[0]!.toUpperCase()}${name.slice(1)}AlgoCommand - conflict detection integration`, () => {
     it("throws when --tpLevel AND --tpTriggerPx are both passed to algo place", () => {
       const { runner } = makeCapture();
       const v: import("../src/parser.js").CliValues = {

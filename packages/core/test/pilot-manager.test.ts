@@ -115,7 +115,7 @@ describe("PilotManager.preparePilot", () => {
     assert.equal(mgr.isProxyActive, true);
   });
 
-  it("is idempotent — second call does nothing", () => {
+  it("is idempotent - second call does nothing", () => {
     const mgr = new PilotManager({ baseUrl: BASE_URL });
     mgr.preparePilot();
     // Seed cache AFTER first call — should be ignored

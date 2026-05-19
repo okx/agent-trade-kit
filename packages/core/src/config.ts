@@ -22,7 +22,7 @@ export interface OkxConfig {
   passphrase?: string;
   /** True if any credentials are available (OAuth token OR API key). */
   hasAuth: boolean;
-  /** Resolved profile name — used for OAuth token storage path. */
+  /** Resolved profile name - used for OAuth token storage path. */
   profile: string;
   baseUrl: string;
   timeoutMs: number;
@@ -130,7 +130,7 @@ function resolveBaseUrl(site: SiteId, tomlBaseUrl?: string): string {
 /**
  * Credential priority (highest to lowest):
  *   1. Environment variables (OKX_API_KEY / OKX_SECRET_KEY / OKX_PASSPHRASE)
- *   2. ~/.okx/config.toml  — profile selected by cli.profile or default_profile
+ *   2. ~/.okx/config.toml  - profile selected by cli.profile or default_profile
  *
  * Site priority (highest to lowest):
  *   1. cli.site arg
@@ -139,7 +139,7 @@ function resolveBaseUrl(site: SiteId, tomlBaseUrl?: string): string {
  *   4. default: "global"
  *
  * Base URL priority (highest to lowest):
- *   1. OKX_API_BASE_URL env var  (explicit override — advanced users)
+ *   1. OKX_API_BASE_URL env var  (explicit override - advanced users)
  *   2. toml profile base_url
  *   3. site's apiBaseUrl (auto-derived from site)
  */
@@ -179,7 +179,7 @@ export async function loadConfig(cli: CliOptions): Promise<OkxConfig> {
     );
   }
 
-  // proxy: toml profile only (no env vars — keep it explicit)
+  // proxy: toml profile only (no env vars - keep it explicit)
   const rawProxyUrl = toml.proxy_url?.trim();
   if (rawProxyUrl && !rawProxyUrl.startsWith("http://") && !rawProxyUrl.startsWith("https://")) {
     throw new ConfigError(

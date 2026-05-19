@@ -39,7 +39,7 @@ const INDICATOR_CODE_OVERRIDES: Record<string, string> = {
   "shooting-star":     "SHOOTINGSTAR",   // default: SHOOTING_STAR
   "nvi-pvi":           "NVIPVI",         // default: NVI_PVI
   "top-long-short":    "TOPLONGSHORT",   // default: TOP_LONG_SHORT
-  // Note: range-filter → RANGE_FILTER is correct via the default rule; no override needed.
+  // Note: range-filter -> RANGE_FILTER is correct via the default rule; no override needed.
 };
 
 /** All indicators supported by the /api/v5/aigc/mcp/indicators endpoint. */
@@ -158,7 +158,7 @@ function validateIndicatorName(name: string): void {
   if (INDICATOR_CODE_OVERRIDES[lower]) return;
 
   // Find close matches for suggestion; skip substring-match for very short queries
-  // to avoid flooding the user with unrelated results (e.g. "ma" matching ema, macd, …)
+  // to avoid flooding the user with unrelated results (e.g. "ma" matching ema, macd, ...)
   const suggestions = [...VALID_INDICATOR_NAMES]
     .filter((n) => lower.length >= 3 && (n.includes(lower) || lower.includes(n)))
     .slice(0, 5);

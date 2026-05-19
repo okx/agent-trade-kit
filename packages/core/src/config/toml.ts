@@ -40,9 +40,9 @@ export function readFullConfig(): OkxTomlConfig {
     throw new ConfigError(
       `Failed to parse ${path}: ${err instanceof Error ? err.message : String(err)}`,
       "If your passphrase or keys contain special characters:\n" +
-      "  - Contains # \\ \"  → use single quotes:  passphrase = 'your#pass'\n" +
-      "  - Contains '       → use double quotes:  passphrase = \"your'pass\"\n" +
-      "  - Contains both    → use triple quotes:  passphrase = '''your'#pass'''\n" +
+      "  - Contains # \\ \"  -> use single quotes:  passphrase = 'your#pass'\n" +
+      "  - Contains '       -> use double quotes:  passphrase = \"your'pass\"\n" +
+      "  - Contains both    -> use triple quotes:  passphrase = '''your'#pass'''\n" +
       "Or re-run: okx config init",
     );
   }

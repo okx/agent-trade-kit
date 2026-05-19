@@ -192,7 +192,7 @@ describe("reResolvePilot", () => {
     assert.equal(updated["proxy.okx.com"].failedNodes.length, 1);
   });
 
-  it("all nodes exhausted → no cache write, returns null", async () => {
+  it("all nodes exhausted -> no cache write, returns null", async () => {
     // Seed cache with both nodes already failed
     const file: PilotCacheFile = {
       "multi.okx.com": {

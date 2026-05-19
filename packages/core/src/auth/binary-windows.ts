@@ -5,7 +5,7 @@
  * pipe `\\.\pipe\okx-auth-<256-bit hex>` and passes the name to the child via
  * `OKX_AUTH_TOKEN_PIPE`. The child opens the pipe with
  * `CreateFileW(FILE_GENERIC_WRITE, OPEN_EXISTING)`, writes the access token,
- * and closes — signalling EOF to the parent.
+ * and closes - signalling EOF to the parent.
  *
  * The Rust binary enforces the `\\.\pipe\okx-auth-` prefix and scrubs
  * `OKX_AUTH_TOKEN_PIPE` from its environment immediately after read so it
@@ -29,7 +29,7 @@ export function defaultWindowsPipeName(): string {
 /**
  * Spawn `okx-auth token` and read the access token from a per-invocation
  * named pipe. Resolves only after **both** the child has exited AND the pipe
- * socket has ended cleanly — resolving on either alone races on slow CI.
+ * socket has ended cleanly - resolving on either alone races on slow CI.
  *
  * `makePipeName` is injectable so the unit tests can substitute a UNIX
  * domain socket path on POSIX hosts (Node's `net.createServer` abstracts the
@@ -45,7 +45,7 @@ export function execAuthTokenWindows(
     const chunks: Buffer[] = [];
 
     // The dual-wait invariant: resolve only when we know there will be no
-    // more pipe data — i.e. either (a) a connection happened and ended
+    // more pipe data - i.e. either (a) a connection happened and ended
     // cleanly, or (b) the child exited without ever connecting. On Windows
     // IOCP completions for the named pipe and process-exit notifications
     // ride different libuv paths, so we cannot assume socket data has been
@@ -94,7 +94,7 @@ export function execAuthTokenWindows(
       child.on("close", (code) => {
         exitCode = code;
         // If no connection was ever made (e.g. exit 2 NOT_LOGGED_IN before
-        // opening the pipe), unblock tryFinalize ourselves — socket.end will
+        // opening the pipe), unblock tryFinalize ourselves - socket.end will
         // never fire. If a connection WAS made, do NOT touch pipeClosed:
         // socket data may still be queued in libuv, and only socket.end can
         // tell us it has been drained.

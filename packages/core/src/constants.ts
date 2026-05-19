@@ -79,7 +79,7 @@ export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account",
 // "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only; "earn.autoearn": Auto-Earn only; "earn.flash": Flash Earn only
 
 // ---------------------------------------------------------------------------
-// Module descriptions — canonical single source of truth used by CLI help and
+// Module descriptions - canonical single source of truth used by CLI help and
 // MCP tool descriptions.  Keys include all ModuleId values plus CLI-only modules.
 // ---------------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ export type CliModuleKey =
   | "upgrade"
   | "skill";
 
-const SKILLS_MARKETPLACE_DESC = "OKX Skills Marketplace — search, install, and manage agent skills";
+const SKILLS_MARKETPLACE_DESC = "OKX Skills Marketplace - search, install, and manage agent skills";
 
 export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   market:          "Market data (ticker, orderbook, candles, trades)",
@@ -103,18 +103,18 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   futures:         "Futures trading (orders, positions, algo orders, leverage)",
   option:          "Options trading (orders, positions, greeks)",
   account:         "Account balance, positions, bills, and configuration",
-  "earn.savings":  "Simple Earn — flexible savings, fixed-term, and lending",
-  "earn.onchain":  "On-chain Earn — staking and DeFi products",
-  "earn.dcd":      "DCD (Dual Currency Deposit) — structured products with fixed yield",
-  "earn.autoearn": "Auto-earn — automatically lend, stake, or earn on idle assets",
-  "earn.flash":    "Flash Earn — short-window high-yield earn projects",
-  event:           "Event contracts — binary prediction markets (YES/NO, UP/DOWN)",
-  "bot.grid":      "Grid trading bot — create, monitor, and stop grid orders",
-  "bot.dca":       "DCA (Martingale) bot — spot or contract recurring buys",
+  "earn.savings":  "Simple Earn - flexible savings, fixed-term, and lending",
+  "earn.onchain":  "On-chain Earn - staking and DeFi products",
+  "earn.dcd":      "DCD (Dual Currency Deposit) - structured products with fixed yield",
+  "earn.autoearn": "Auto-earn - automatically lend, stake, or earn on idle assets",
+  "earn.flash":    "Flash Earn - short-window high-yield earn projects",
+  event:           "Event contracts - binary prediction markets (YES/NO, UP/DOWN)",
+  "bot.grid":      "Grid trading bot - create, monitor, and stop grid orders",
+  "bot.dca":       "DCA (Martingale) bot - spot or contract recurring buys",
   news:            "Crypto news, sentiment analysis, and coin trend tracking",
-  smartmoney:      "Smart money signals — trader leaderboard, consensus signals, and position analysis",
+  smartmoney:      "Smart money signals - trader leaderboard, consensus signals, and position analysis",
   skills:          SKILLS_MARKETPLACE_DESC,
-  earn:            "Earn products — Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
+  earn:            "Earn products - Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
   bot:             "Trading bot strategies (grid, dca)",
   config:          "Manage CLI configuration profiles",
   setup:           "Set up client integrations (Cursor, Windsurf, Claude, etc.)",

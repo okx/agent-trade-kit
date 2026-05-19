@@ -9,7 +9,7 @@ export function registerSkillsTools(): ToolSpec[] {
       description:
         "List all available skill categories in OKX Skills Marketplace. " +
         "Use the returned categoryId as input to skills_search for category filtering. " +
-        "Do NOT use for searching or downloading skills — use skills_search or skills_download.",
+        "Do NOT use for searching or downloading skills - use skills_search or skills_download.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -25,7 +25,7 @@ export function registerSkillsTools(): ToolSpec[] {
         "Search for skills in OKX Skills Marketplace by keyword or category. " +
         "To get valid category IDs, call skills_get_categories first. " +
         "Returns skill names for use with skills_download. " +
-        "Do NOT use for downloading — use skills_download.",
+        "Do NOT use for downloading - use skills_download.",
       inputSchema: {
         type: "object",
         properties: {
@@ -58,7 +58,7 @@ export function registerSkillsTools(): ToolSpec[] {
         "Download a skill package from OKX Skills Marketplace to a local directory. " +
         "Always call skills_search first to confirm the skill name exists. " +
         "Downloads the latest approved version. " +
-        "NOTE: Downloads third-party developer content — does NOT install to agents. " +
+        "NOTE: Downloads third-party developer content - does NOT install to agents. " +
         "For full installation use CLI: okx skill add <name>. " +
         "Use when the user wants to inspect or manually install a skill package.",
       inputSchema: {

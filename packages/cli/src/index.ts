@@ -594,7 +594,7 @@ export function assertNoTpConflict(
     const flagNames = conflicting.map((k) => `--${k}`).join(", ");
     throw new Error(
       `Cannot use --tpLevel together with ${flagNames}. ` +
-      `Use --tpLevel for split multi-tier take-profit, or single-TP flags for a single TP — not both.`,
+      `Use --tpLevel for split multi-tier take-profit, or single-TP flags for a single TP - not both.`,
     );
   }
 }
@@ -1368,7 +1368,7 @@ export function handleSmartmoneyCommand(
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
-  // Explicitly drop positional args — every smartmoney param comes from named flags (see issue #78).
+  // Explicitly drop positional args - every smartmoney param comes from named flags (see issue #78).
   void rest;
   const signalPoolFilters = {
     sortBy: v.sortBy, period: v.period, pnlTier: v.pnlTier,
@@ -1459,7 +1459,7 @@ export function handleSmartmoneyCommand(
     if (v.topInstruments && v.instCcyList) {
       errorLine(
         "--topInstruments and --instCcyList are mutually exclusive. " +
-        "Pass exactly one — `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
+        "Pass exactly one - `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
       );
       process.exitCode = 1;
       return;
@@ -1482,7 +1482,7 @@ export function handleSmartmoneyCommand(
     if (v.topInstruments && v.instCcyList) {
       errorLine(
         "--topInstruments and --instCcyList are mutually exclusive. " +
-        "Pass exactly one — `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
+        "Pass exactly one - `--topInstruments` for top-N hottest coins, or `--instCcyList` for specific coins.",
       );
       process.exitCode = 1;
       return;
@@ -1835,7 +1835,7 @@ async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<vo
   try {
     config = await loadProfileConfig({ profile: v.profile, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
   } catch {
-    // Config parse failed — diagnose will detect and report it
+    // Config parse failed - diagnose will detect and report it
   }
   return cmdDiagnose(config, v.profile ?? "default", { mcp: v.mcp, cli: v.cli, all: v.all, output: v.output });
 }
@@ -1843,7 +1843,7 @@ async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<vo
 // Extracted to reduce cognitive complexity of main()
 function printVersion(): void {
   outputLine(`${CLI_VERSION} (${GIT_HASH})`);
-  // Use skipHash: true — only need existence/platform, not SHA-256
+  // Use skipHash: true - only need existence/platform, not SHA-256
   const pilotStatus = getPilotStatus(undefined, { skipHash: true });
   if (pilotStatus.exists) {
     outputLine(`Pilot: installed (${pilotStatus.platform ?? "unknown"})`);

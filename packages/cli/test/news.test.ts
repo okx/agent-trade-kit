@@ -126,7 +126,7 @@ function vals(overrides: Partial<CliValues>): CliValues {
 // news latest
 // ===========================================================================
 
-describe("handleNewsCommand latest — parameter routing", () => {
+describe("handleNewsCommand latest - parameter routing", () => {
   it("--coins routes via v.coins as string", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "latest", [], vals({ coins: "BTC,ETH" }), false);
@@ -175,7 +175,7 @@ describe("handleNewsCommand latest — parameter routing", () => {
 // news important
 // ===========================================================================
 
-describe("handleNewsCommand important — parameter routing", () => {
+describe("handleNewsCommand important - parameter routing", () => {
   it("--platform routes via v.platform", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "important", [], vals({ platform: "blockbeats" }), false);
@@ -189,7 +189,7 @@ describe("handleNewsCommand important — parameter routing", () => {
 // news by-coin
 // ===========================================================================
 
-describe("handleNewsCommand by-coin — parameter routing", () => {
+describe("handleNewsCommand by-coin - parameter routing", () => {
   it("--coins named flag takes precedence over rest[0]", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "by-coin", ["REST_COIN"], vals({ coins: "BTC" }), false);
@@ -226,7 +226,7 @@ describe("handleNewsCommand by-coin — parameter routing", () => {
 // news search
 // ===========================================================================
 
-describe("handleNewsCommand search — parameter routing", () => {
+describe("handleNewsCommand search - parameter routing", () => {
   it("--keyword named flag takes precedence over rest[0]", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "search", ["REST_KEYWORD"], vals({ keyword: "SEC ETF" }), false);
@@ -264,7 +264,7 @@ describe("handleNewsCommand search — parameter routing", () => {
 // news coin-sentiment
 // ===========================================================================
 
-describe("handleNewsCommand coin-sentiment — parameter routing", () => {
+describe("handleNewsCommand coin-sentiment - parameter routing", () => {
   it("--coins named flag takes precedence over rest[0]", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "coin-sentiment", ["REST_COIN"], vals({ coins: "BTC" }), false);
@@ -289,7 +289,7 @@ describe("handleNewsCommand coin-sentiment — parameter routing", () => {
 // news coin-trend
 // ===========================================================================
 
-describe("handleNewsCommand coin-trend — parameter routing", () => {
+describe("handleNewsCommand coin-trend - parameter routing", () => {
   it("coin comes from rest[0]; --period and --points from flags", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "coin-trend", ["BTC"], vals({ period: "4h", points: "6" }), false);
@@ -310,7 +310,7 @@ describe("handleNewsCommand coin-trend — parameter routing", () => {
 // news sentiment-rank
 // ===========================================================================
 
-describe("handleNewsCommand sentiment-rank — parameter routing", () => {
+describe("handleNewsCommand sentiment-rank - parameter routing", () => {
   it("--sort-by 'bullish' passes as string (not number)", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "sentiment-rank", [], vals({ "sort-by": "bullish" }), false);
@@ -348,7 +348,7 @@ describe("handleNewsCommand sentiment-rank — parameter routing", () => {
 // Formatter coverage — exercises non-json output paths
 // ===========================================================================
 
-describe("news formatter paths — non-json output", () => {
+describe("news formatter paths - non-json output", () => {
   it("latest: formats news list with data items", async () => {
     const { spy } = makeSpy();
     await handleNewsCommand(spy, "latest", [], vals({}), false);
@@ -439,7 +439,7 @@ describe("news formatter paths — non-json output", () => {
 // Formatter edge cases — sparse/missing data to hit ?? fallback branches
 // ===========================================================================
 
-describe("news formatter — sparse data fallbacks", () => {
+describe("news formatter - sparse data fallbacks", () => {
   function makeSparseSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<string, unknown> } } {
     const captured = { tool: "", args: {} as Record<string, unknown> };
     const spy: ToolRunner = async (tool, args) => {
@@ -506,7 +506,7 @@ describe("news formatter — sparse data fallbacks", () => {
 // news economic-calendar
 // ===========================================================================
 
-describe("handleNewsCommand economic-calendar — parameter routing", () => {
+describe("handleNewsCommand economic-calendar - parameter routing", () => {
   it("--region routes via v.region", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "economic-calendar", [], vals({ region: "united_states" }), false);
@@ -548,7 +548,7 @@ describe("handleNewsCommand economic-calendar — parameter routing", () => {
 // news list-regions
 // ===========================================================================
 
-describe("cmdNewsListCalendarRegions — parameter routing", () => {
+describe("cmdNewsListCalendarRegions - parameter routing", () => {
   it("dispatches to news_list_calendar_regions tool", async () => {
     const { spy, captured } = makeSpy();
     await handleNewsCommand(spy, "list-regions", [], vals({}), false);
