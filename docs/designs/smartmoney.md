@@ -5,10 +5,10 @@
 - **目标用户**: 散户、量化团队、AI agent —— 希望基于"聪明钱"持仓与共识做交易决策的用户
 - **业务优先级**: 已稳定上线，是项目"内容侧"的核心模块
 - **预期调用量**: 中频 —— 既有 leaderboard 浏览（低频），也有 signal 多次刷新查询（中高频）
-- **依赖模块**: 无（独立模块，端点全部 public 路径）
+- **依赖模块**: 无（独立模块，端点分布在 orbit / journal 路径，均通过 `privateGet` 签名通道访问）
 - **风控要求**: 全部只读；无资金变动、无 24 小时锁定等约束
 - **站点支持**: global（端点未做多站点化）
-- **API 权限**: Read-only public —— 无需 API key，复用 `client.privateGet` 走通用签名通道即可
+- **API 权限**: Read-only，需要 credentials；实现复用 `client.privateGet` 走通用签名通道（skill preflight 会先确认已配置 API key 或 OAuth session）
 
 ---
 
@@ -117,7 +117,7 @@ Trader 家族对外接受完整 `instId`（如 `BTC-USDT-SWAP`），handler 内�
   "data": [...],
   // 时间锚字段（按家族）
   "updateTime": "202605061800",      // 仅 Trader 家族（UTC+8）
-  "dataVersion": "2026050615",       // 仅 Signal 家族（UTC）
+  // Signal 家族的 dataVersion 在 data[] 每个 item 内，不在顶层
   "pagination": { ... }              // 仅分页类工具
 }
 ```

@@ -78,7 +78,7 @@ function leaderboardPoolFilterArgs(o: LeaderboardPoolFilterOpts): Record<string,
 }
 
 /* ------------------------------------------------------------------ */
-/*  Trader family (5)                                                  */
+/*  Trader family (6)                                                  */
 /* ------------------------------------------------------------------ */
 
 export async function cmdSmartmoneyTradersByFilter(

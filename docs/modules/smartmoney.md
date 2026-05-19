@@ -72,7 +72,7 @@ Two **disjoint** parameter conventions, separated by endpoint family:
 | `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | Drawdown threshold (≤ N%, absolute) |
 | `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM percentile (top N% of pool) |
 
-> **Tier naming convention**: `TOP{N}` = percentile (top N% of pool — used by `pnlTier` / `aumTier`, since both distributions are long-tailed); `GE_{N}` = absolute threshold ≥ N% (`winRateTier`); `LE_{N}` = absolute threshold ≤ N% (`maxDrawdownTier`). Empirically verified at `lmtNum=100`: `WR_GE_50` keeps ~95 traders (career win-rate ≥ 50%), `MR_LE_20` keeps ~9 (drawdown ≤ 20%), `PNL_TOP20` keeps exactly 20.
+> **Tier naming convention**: `TOP{N}` = percentile (top N% of pool — used by `pnlTier` / `aumTier`, since both distributions are long-tailed); `GE_{N}` = absolute threshold ≥ N% (`winRateTier`); `LE_{N}` = absolute threshold ≤ N% (`maxDrawdownTier`). Tier filters run BEFORE `lmtNum` truncation: candidates pass all tier gates first, then top-N by `sortBy` (DESC) are kept up to `lmtNum`. So `tradersQualified ≈ lmtNum` whenever the candidate pool (after tier filtering) has at least `lmtNum` traders — only underflows for very strict combos (e.g. `WR_GE_80 + MR_LE_20 + PNL_TOP5`) or low-volume instruments.
 
 **Leaderboard family** (top_traders) — numeric thresholds in raw units:
 
@@ -213,7 +213,7 @@ smartmoney_get_signal_trend_by_trader    ← 单币时间序列、authorIds
 | `maxDrawdownTier` | `MR_ANY` / `MR_LE_20` / `MR_LE_50` | `MR_ANY` | 回撤阈值（≤ N%，绝对值） |
 | `aumTier` | `AUM_ANY` / `AUM_TOP50` / `AUM_TOP20` / `AUM_TOP5` | `AUM_ANY` | AUM 百分位（池前 N%） |
 
-> **Tier 命名约定**：`TOP{N}` = 百分位（池前 N%，用于 `pnlTier` / `aumTier`，因为这两个分布都是长尾的）；`GE_{N}` = 绝对阈值 ≥ N%（`winRateTier`）；`LE_{N}` = 绝对阈值 ≤ N%（`maxDrawdownTier`）。`lmtNum=100` 实测：`WR_GE_50` 入池 ~95 人（生涯胜率 ≥ 50%），`MR_LE_20` 入池 ~9 人（回撤 ≤ 20%），`PNL_TOP20` 恰好 20 人。
+> **Tier 命名约定**：`TOP{N}` = 百分位（池前 N%，用于 `pnlTier` / `aumTier`，因为这两个分布都是长尾的）；`GE_{N}` = 绝对阈值 ≥ N%（`winRateTier`）；`LE_{N}` = 绝对阈值 ≤ N%（`maxDrawdownTier`）。tier 过滤先于 `lmtNum` 截断:候选交易员先全部通过 tier gate,再按 `sortBy`（DESC）取 top-N 直到 `lmtNum`。所以当候选池（tier 过滤后）至少有 `lmtNum` 个交易员时,`tradersQualified ≈ lmtNum`;只有非常严格的 tier 组合（如 `WR_GE_80 + MR_LE_20 + PNL_TOP5`）或低成交量币种才会出现 underflow。
 
 **Leaderboard 家族**（top_traders）—— 数值阈值：
 

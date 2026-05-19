@@ -60,7 +60,7 @@ const SIGNAL_POOL_FILTER_PROPS = {
     enum: ["PNL_ANY", "PNL_TOP50", "PNL_TOP20", "PNL_TOP5"],
     default: "PNL_ANY",
     description:
-      "PnL percentile gate applied on top of `sortBy`. " +
+      "PnL percentile gate. " +
       "Naming: `TOP{N}` = top N% percentile (NOT an absolute PnL value). " +
       "PNL_ANY = no filter; PNL_TOP50 = PnL ≥ P50 (median); PNL_TOP20 = ≥ P80; PNL_TOP5 = ≥ P95. " +
       "PnL distribution is long-tailed - use percentile, not absolute thresholds.",
@@ -429,7 +429,12 @@ const SIGNAL_ITEM_PROPS = {
   },
   tradersQualified: {
     type: "integer",
-    description: "Pool size after applying tier filters (incl. those without positions on this instrument).",
+    description:
+      "Final aggregation pool size after tier filters + top-N truncation by `sortBy`. " +
+      "Bounded by the request's pool size limit (`lmtNum` for `_by_filter` variants, " +
+      "`authorIds.length` for `_by_trader` variants). " +
+      "Smaller than the bound only when the upstream candidate pool (traders passing all tier filters) " +
+      "contains fewer entries than the bound — typical for low-volume instruments or very strict tier combos.",
   },
   longTraders: { type: "integer", description: "Number of pool traders currently long this asset (incl. double-sided)." },
   shortTraders: { type: "integer", description: "Number of pool traders currently short this asset (incl. double-sided)." },
@@ -575,7 +580,15 @@ const SIGNAL_HISTORY_ITEM_PROPS = {
       "tracks capital deployed (rising = adding, falling = retreating). " +
       "Stays constant across buckets when traders hold positions unchanged.",
   },
-  tradersQualified: { type: "integer", description: "Pool size after applying tier filters (includes traders without a position)." },
+  tradersQualified: {
+    type: "integer",
+    description:
+      "Final aggregation pool size in this bucket after tier filters + top-N truncation by `sortBy`. " +
+      "Bounded by the request's pool size limit (`lmtNum` for `_by_filter` variants, " +
+      "`authorIds.length` for `_by_trader` variants). " +
+      "The funnel + top-N selection runs once per query (not per bucket); each bucket reuses the same selected pool " +
+      "for position aggregation. Smaller than the bound only when the upstream candidate pool underflows.",
+  },
   dataVersion: { type: "string", description: "Snapshot version key in `yyyyMMddHH` UTC (10-digit, e.g. `2026042820`)." },
 };
 
@@ -1239,8 +1252,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             maximum: 2000,
             default: 100,
             description:
-              "Top-N traders to pull into the aggregation pool, ranked by `sortBy` (DESC). " +
-              "Larger pool = stronger signal but slower. Default 100 is fine for most cases.",
+              "Upper bound on `tradersQualified` (final aggregation pool size). " +
+              "Candidates pass through tier filters (`pnlTier` / `winRateTier` / `aumTier` / `maxDrawdownTier`), " +
+              "then are truncated to top-N by `sortBy` (DESC). `tradersQualified` ≤ `lmtNum` always; " +
+              "equals `lmtNum` unless candidate pool underflows (rare ccy / strict tier combos). " +
+              "Default 100; values above ~1500 add latency without benefit (exceeds typical candidate pool size).",
           },
         },
         required: ["sortBy", "period"],
@@ -1426,7 +1442,11 @@ export function registerSmartmoneyTools(): ToolSpec[] {
             maximum: 2000,
             default: 100,
             description:
-              "Top-N traders to pull into the aggregation pool, ranked by `sortBy` (DESC). Default 100, max 2000.",
+              "Upper bound on `tradersQualified` per bucket (final aggregation pool size). " +
+              "Candidates pass through tier filters (`pnlTier` / `winRateTier` / `aumTier` / `maxDrawdownTier`), " +
+              "then are truncated to top-N by `sortBy` (DESC). `tradersQualified` ≤ `lmtNum` always; " +
+              "equals `lmtNum` unless candidate pool underflows (rare ccy / strict tier combos). " +
+              "Default 100; values above ~1500 add latency without benefit (exceeds typical candidate pool size).",
           },
         },
         required: ["instCcy", "granularity", "sortBy", "period"],

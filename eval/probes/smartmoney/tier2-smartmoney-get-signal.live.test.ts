@@ -10,8 +10,8 @@ import {
 
 const PROBE_ID = 'tier2.smartmoney-get-signal';
 const USER_PROMPT = 'Get the latest smart money trading signals for BTC. Report the signal direction and strength. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "smartmoney", "signal"]];
-const EXPECTATION = 'okx smartmoney signal';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "smartmoney", "signal-overview-by-filter", "--instCcyList", "BTC"]];
+const EXPECTATION = 'okx smartmoney signal-overview-by-filter --instCcyList BTC';
 
 describe(PROBE_ID, () => {
   const models = getModels();

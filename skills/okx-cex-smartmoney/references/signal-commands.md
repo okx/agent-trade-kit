@@ -27,7 +27,7 @@ Pick instruments via `--topInstruments` (top-N hottest) **OR** `--instCcyList` (
 |---|---|---|---|
 | `--topInstruments` | No | `20` | Top-N hottest instruments (1–100). Mutually exclusive with `--instCcyList`. |
 | `--instCcyList` | No | - | Comma-separated base ccys, e.g. `BTC,ETH,SOL`. Mutually exclusive with `--topInstruments`. **Linear-only**: matches USDT-margined and USDS-margined instruments only (e.g. `BTC` covers `BTC-USDT-SWAP` + `BTC-USDS-SWAP`). Coin-margined `BTC-USD-SWAP` / `BTC-USD-DELIVERY` positions are excluded by upstream. |
-| `--lmtNum` | No | `100` | Candidate trader pool size limit (1–2000) |
+| `--lmtNum` | No | `100` | Upper bound on `tradersQualified` (final aggregation pool size). Candidates pass through tier filters, then truncated to top-N by `sortBy` (DESC). `tradersQualified` ≤ `lmtNum` always. Range 1–2000; values above ~1500 add latency without benefit. |
 
 > **No `--ts` parameter.** The handler always uses the current hour. For historical timeline, use `signal-trend-by-filter`.
 
@@ -48,7 +48,7 @@ Each item has an outer ID + 3 nested groups (`notional`, `longShortRatio`, `winR
 | `ccy` | String | Instrument ID e.g. `BTC-USDT-SWAP` (outer key is `ccy`, NOT `instId`) |
 | `dataVersion` | String | UTC `yyyyMMddHH` — 10 digits, hour-floored (e.g. `2026043014`) |
 | `tradersWithPosition` | Integer | Pool traders holding this asset (long+short, double-sided counted once) |
-| `tradersQualified` | Integer | Pool size after applying tier filters (incl. ones with no position) |
+| `tradersQualified` | Integer | Final aggregation pool size after tier filters + top-N truncation by `sortBy`. Always ≤ `lmtNum`. Smaller than `lmtNum` only when candidate pool underflows (rare ccy / strict tier combos). |
 | `longTraders` | Integer | Pool traders currently long this asset |
 | `shortTraders` | Integer | Pool traders currently short this asset |
 
@@ -127,7 +127,7 @@ Historical single-coin signal snapshots across hourly/daily buckets, anchored at
 | `--asOfTime` | No | (current UTC hour) | 10-digit UTC anchor `yyyyMMddHH` (e.g. `2026050100`) |
 | `--granularity` | No | `1h` | Bucket size: `1h` or `1d` |
 | `--limit` | No | `24` | Number of buckets (1–500) ending at `asOfTime` |
-| `--lmtNum` | No | `100` | Candidate trader pool size limit (1–2000) |
+| `--lmtNum` | No | `100` | Upper bound on `tradersQualified` per bucket. Candidates pass through tier filters, then truncated to top-N by `sortBy` (DESC). `tradersQualified` ≤ `lmtNum` always; equals `lmtNum` unless candidate pool underflows (rare ccy / strict tier combos). Range 1–2000; values above ~1500 add latency without benefit (exceeds typical candidate pool size). |
 
 Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below) apply.
 
@@ -144,7 +144,7 @@ Pool filter params (see [Signal Filter Enums](#signal-filter-enum-values) below)
 | `longTraders` | Integer | Traders with long exposure (includes dual-side) |
 | `shortTraders` | Integer | Traders with short exposure (includes dual-side) |
 | `tradersWithPosition` | Integer | Traders holding a position in this bucket |
-| `tradersQualified` | Integer | Pool size after tier filters (incl. those without a position) |
+| `tradersQualified` | Integer | Final aggregation pool size in this bucket after tier filters + top-N truncation by `sortBy`. Always ≤ `lmtNum`. |
 | `netNotionalUsdt` | String | Net = long − short (USDT) |
 | `totalNotionalUsdt` | String | Total = long + short (USDT) |
 
