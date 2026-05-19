@@ -402,11 +402,14 @@ export function registerGridTools(): ToolSpec[] {
       name: "grid_stop_order",
       module: "bot.grid",
       description:
-        "Stop a running grid bot. [CAUTION] This stops the strategy and handles open orders/positions " +
-        "according to stopType. Default (stopType='1') closes all positions immediately - use this for " +
-        "a clean exit. stopType='2' stops the strategy without selling: " +
-        "spot grid keeps all base assets as-is (no sell-back to quote); " +
-        "contract grid cancels all grid orders but leaves the position open for manual close later.",
+        "[CAUTION] Stop a grid bot or close its remaining open position — real trades, irreversible. " +
+        "Workflow: " +
+        "(1) If the user has not specified which bot to stop, call grid_get_orders first and ask the user to confirm which bot before proceeding. " +
+        "(2) Call grid_get_order_details to check the current 'state' field. " +
+        "(3) If state='running' → call this tool: " +
+        "stopType='1' (default, clean exit) — spot grid sells all base assets back to quote; contract grid market-closes all positions. " +
+        "stopType='2' (keep assets) — spot grid keeps base assets as-is; contract grid cancels grid orders but leaves the position open. " +
+        "(4) If state='no_close_position' → call this tool with stopType='1' to close the remaining open position.",
       isWrite: true,
       inputSchema: {
         type: "object",

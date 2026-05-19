@@ -185,7 +185,13 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_stop_order",
       module: "bot.dca",
       description:
-        "Stop a running DCA bot. [CAUTION] spot_dca needs stopType: 1=sell, 2=keep.",
+        "[CAUTION] Stop a DCA bot or close its remaining open position — real trades, irreversible. " +
+        "Workflow: " +
+        "(1) If the user has not specified which bot to stop, call dca_get_orders first and ask the user to confirm which bot before proceeding. " +
+        "(2) Call dca_get_order_details to check the current 'state' field. " +
+        "(3) If state='running' → call this tool. " +
+        "(4) If state='no_close_position' → call this tool with stopType='1' to close the remaining open position. " +
+        "spot_dca requires stopType: 1=sell all tokens, 2=keep tokens.",
       isWrite: true,
       inputSchema: {
         type: "object",
