@@ -22,7 +22,7 @@ export function registerFlashEarnTools(): ToolSpec[] {
       module: "earn.flash",
       description:
         "Get Flash Earn projects. Use this to browse upcoming or in-progress Flash Earn opportunities. " +
-        "Do NOT use for purchase or redeem actions — Flash Earn is query-only in this module.",
+        "Do NOT use for purchase or redeem actions - Flash Earn is query-only in this module.",
       isWrite: false,
       inputSchema: {
         type: "object",

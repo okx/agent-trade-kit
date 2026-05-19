@@ -109,7 +109,7 @@ async function captureProcessStdout(fn: () => void | Promise<void>): Promise<str
 // handleAuthCommand — router
 // ---------------------------------------------------------------------------
 
-describe("handleAuthCommand — router", () => {
+describe("handleAuthCommand - router", () => {
   let saved: SavedEnv;
   let savedExitCode: number | undefined;
 
@@ -576,7 +576,7 @@ describe("cmdAuthStatus", () => {
 // NOT from rest[N] (positional args). See issue #78 for prior incident.
 // ---------------------------------------------------------------------------
 
-describe("handleAuthCommand — parameter routing", () => {
+describe("handleAuthCommand - parameter routing", () => {
   let saved: SavedEnv;
   let savedExitCode: number | undefined;
   let argsFile: string;

@@ -478,7 +478,7 @@ describe("cmdEarnLendingRateHistory output", () => {
   });
 });
 
-describe("earn onchain CLI commands — full dispatch coverage", () => {
+describe("earn onchain CLI commands - full dispatch coverage", () => {
   it("dispatches onchain purchase (returns a Promise)", () => {
     const result = handleEarnCommand(mockRunner, "onchain", ["purchase"], { productId: "p1", ccy: "ETH", amt: "1" } as never, false);
     assert.ok(result instanceof Promise, "onchain purchase should return a Promise");
@@ -774,7 +774,7 @@ const productSample = {
 const dcdProductsRunnerWith = (products: object[]): ToolRunner =>
   async () => ({ endpoint: "/test", requestTime: "ts", data: { products } });
 
-describe("cmdDcdProducts — client-side filters", () => {
+describe("cmdDcdProducts - client-side filters", () => {
   it("minYield filters out low-yield products", async () => {
     const runner = dcdProductsRunnerWith([
       { ...productSample, annualizedYield: "0.05" },
@@ -787,7 +787,7 @@ describe("cmdDcdProducts — client-side filters", () => {
     assert.ok(!out.includes("BTC-USDT-260327-77000-C"), "should exclude low-yield product");
   });
 
-  it("strikeNear filters by ±10% of reference price", async () => {
+  it("strikeNear filters by +/-10% of reference price", async () => {
     const runner = dcdProductsRunnerWith([
       { ...productSample, strike: "77000" },
       { ...productSample, productId: "BTC-USDT-260327-99000-C", strike: "99000" },

@@ -87,7 +87,7 @@ function buildEntry(
   args: string[]
 ): Record<string, unknown> {
   if (client === "vscode") {
-    // VS Code inherits the terminal PATH — bare command is fine
+    // VS Code inherits the terminal PATH - bare command is fine
     return { type: "stdio", command: "okx-trade-mcp", args };
   }
   // Standalone apps (Claude Desktop, Cursor, Windsurf) have a limited PATH
@@ -122,7 +122,7 @@ function mergeJsonConfig(
     // Backup before modifying
     const backupPath = configPath + ".bak";
     fs.copyFileSync(configPath, backupPath);
-    process.stdout.write(`  Backup → ${backupPath}\n`);
+    process.stdout.write(`  Backup -> ${backupPath}\n`);
   }
 
   if (typeof data.mcpServers !== "object" || data.mcpServers === null) {

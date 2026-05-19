@@ -36,7 +36,7 @@ function captureStderr(fn: () => void): string {
 // ---------------------------------------------------------------------------
 // Global help — printHelp()
 // ---------------------------------------------------------------------------
-describe("printHelp() — global overview", () => {
+describe("printHelp() - global overview", () => {
   it("outputs a Usage line", () => {
     const out = captureStdout(() => printHelp());
     assert.ok(out.includes("Usage: okx"), "should include Usage line");
@@ -65,7 +65,7 @@ describe("printHelp() — global overview", () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("market")
 // ---------------------------------------------------------------------------
-describe('printHelp("market") — market module detail', () => {
+describe('printHelp("market") - market module detail', () => {
   it("includes a Usage line", () => {
     const out = captureStdout(() => printHelp("market"));
     assert.ok(out.includes("Usage: okx market"), "should include module usage");
@@ -90,7 +90,7 @@ describe('printHelp("market") — market module detail', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("account")
 // ---------------------------------------------------------------------------
-describe('printHelp("account") — account module detail', () => {
+describe('printHelp("account") - account module detail', () => {
   it("includes all account sub-commands", () => {
     const out = captureStdout(() => printHelp("account"));
     for (const cmd of ["balance", "positions", "bills", "fees", "config", "transfer", "audit"]) {
@@ -102,7 +102,7 @@ describe('printHelp("account") — account module detail', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("bot") — has subgroups only
 // ---------------------------------------------------------------------------
-describe('printHelp("bot") — bot module overview', () => {
+describe('printHelp("bot") - bot module overview', () => {
   it("includes Usage line mentioning strategy", () => {
     const out = captureStdout(() => printHelp("bot"));
     assert.ok(out.includes("Usage: okx bot"), "should include bot usage");
@@ -125,7 +125,7 @@ describe('printHelp("bot") — bot module overview', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("bot", "grid")
 // ---------------------------------------------------------------------------
-describe('printHelp("bot", "grid") — grid bot subgroup detail', () => {
+describe('printHelp("bot", "grid") - grid bot subgroup detail', () => {
   it("includes Usage line for bot grid", () => {
     const out = captureStdout(() => printHelp("bot", "grid"));
     assert.ok(out.includes("Usage: okx bot grid"), "should include subgroup usage");
@@ -154,7 +154,7 @@ describe('printHelp("bot", "grid") — grid bot subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("bot", "dca")
 // ---------------------------------------------------------------------------
-describe('printHelp("bot", "dca") — dca bot subgroup detail', () => {
+describe('printHelp("bot", "dca") - dca bot subgroup detail', () => {
   it("includes Usage line for bot dca", () => {
     const out = captureStdout(() => printHelp("bot", "dca"));
     assert.ok(out.includes("Usage: okx bot dca"), "should include subgroup usage");
@@ -176,7 +176,7 @@ describe('printHelp("bot", "dca") — dca bot subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("spot") — has both commands and subgroups
 // ---------------------------------------------------------------------------
-describe('printHelp("spot") — spot module with algo subgroup', () => {
+describe('printHelp("spot") - spot module with algo subgroup', () => {
   it("includes spot direct commands", () => {
     const out = captureStdout(() => printHelp("spot"));
     for (const cmd of ["orders", "get", "fills", "place", "amend", "cancel", "batch"]) {
@@ -198,7 +198,7 @@ describe('printHelp("spot") — spot module with algo subgroup', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("spot", "algo")
 // ---------------------------------------------------------------------------
-describe('printHelp("spot", "algo") — spot algo subgroup detail', () => {
+describe('printHelp("spot", "algo") - spot algo subgroup detail', () => {
   it("includes Usage line for spot algo", () => {
     const out = captureStdout(() => printHelp("spot", "algo"));
     assert.ok(out.includes("Usage: okx spot algo"), "should include subgroup usage");
@@ -215,7 +215,7 @@ describe('printHelp("spot", "algo") — spot algo subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("futures")
 // ---------------------------------------------------------------------------
-describe('printHelp("futures") — futures module detail', () => {
+describe('printHelp("futures") - futures module detail', () => {
   it("includes all futures direct commands", () => {
     const out = captureStdout(() => printHelp("futures"));
     for (const cmd of ["orders", "positions", "fills", "place", "cancel", "amend", "get", "close", "get-leverage", "leverage", "batch"]) {
@@ -232,7 +232,7 @@ describe('printHelp("futures") — futures module detail', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("futures", "algo")
 // ---------------------------------------------------------------------------
-describe('printHelp("futures", "algo") — futures algo subgroup detail', () => {
+describe('printHelp("futures", "algo") - futures algo subgroup detail', () => {
   it("includes Usage line for futures algo", () => {
     const out = captureStdout(() => printHelp("futures", "algo"));
     assert.ok(out.includes("Usage: okx futures algo"), "should include subgroup usage");
@@ -256,7 +256,7 @@ describe('printHelp("futures", "algo") — futures algo subgroup detail', () => 
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("swap", "algo")
 // ---------------------------------------------------------------------------
-describe('printHelp("swap", "algo") — swap algo subgroup detail', () => {
+describe('printHelp("swap", "algo") - swap algo subgroup detail', () => {
   it("includes Usage line for swap algo", () => {
     const out = captureStdout(() => printHelp("swap", "algo"));
     assert.ok(out.includes("Usage: okx swap algo"), "should include subgroup usage");
@@ -273,7 +273,7 @@ describe('printHelp("swap", "algo") — swap algo subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Error handling — unknown module / subgroup
 // ---------------------------------------------------------------------------
-describe("printHelp() — error handling", () => {
+describe("printHelp() - error handling", () => {
   it("writes error to stderr for unknown module", () => {
     const origCode = process.exitCode;
     const err = captureStderr(() => printHelp("nonexistent-module"));
@@ -295,7 +295,7 @@ describe("printHelp() — error handling", () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("setup") — no sub-commands, usage only
 // ---------------------------------------------------------------------------
-describe('printHelp("setup") — setup module with usage only', () => {
+describe('printHelp("setup") - setup module with usage only', () => {
   it("includes Usage line with --client flag", () => {
     const out = captureStdout(() => printHelp("setup"));
     assert.ok(out.includes("Usage: okx setup"), "should include setup usage");
@@ -311,7 +311,7 @@ describe('printHelp("setup") — setup module with usage only', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("earn") — earn module with DCD subgroup
 // ---------------------------------------------------------------------------
-describe('printHelp("earn") — earn module overview', () => {
+describe('printHelp("earn") - earn module overview', () => {
   it("includes Usage line", () => {
     const out = captureStdout(() => printHelp("earn"));
     assert.ok(out.includes("Usage: okx earn"), "should include earn usage");
@@ -328,7 +328,7 @@ describe('printHelp("earn") — earn module overview', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("earn", "dcd")
 // ---------------------------------------------------------------------------
-describe('printHelp("earn", "dcd") — dcd subgroup detail', () => {
+describe('printHelp("earn", "dcd") - dcd subgroup detail', () => {
   it("includes Usage line for earn dcd", () => {
     const out = captureStdout(() => printHelp("earn", "dcd"));
     assert.ok(out.includes("Usage: okx earn dcd"), "should include subgroup usage");
@@ -351,7 +351,7 @@ describe('printHelp("earn", "dcd") — dcd subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Verify backward-compat: existing tests still pass
 // ---------------------------------------------------------------------------
-describe("printHelp() — backward compatibility", () => {
+describe("printHelp() - backward compatibility", () => {
   it("printHelp() with no args outputs all major module names", () => {
     const out = captureStdout(() => printHelp());
     for (const mod of ["market", "account", "spot", "swap", "futures", "bot", "earn", "config", "setup"]) {
@@ -363,7 +363,7 @@ describe("printHelp() — backward compatibility", () => {
 // ---------------------------------------------------------------------------
 // Global help — additional option checks
 // ---------------------------------------------------------------------------
-describe("printHelp() — global options completeness", () => {
+describe("printHelp() - global options completeness", () => {
   it("includes --verbose flag", () => {
     const out = captureStdout(() => printHelp());
     assert.ok(out.includes("--verbose"), "should mention --verbose option");
@@ -383,7 +383,7 @@ describe("printHelp() — global options completeness", () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("swap") — has both commands and subgroups
 // ---------------------------------------------------------------------------
-describe('printHelp("swap") — swap module with algo subgroup', () => {
+describe('printHelp("swap") - swap module with algo subgroup', () => {
   it("includes a Usage line", () => {
     const out = captureStdout(() => printHelp("swap"));
     assert.ok(out.includes("Usage: okx swap"), "should include swap usage");
@@ -410,7 +410,7 @@ describe('printHelp("swap") — swap module with algo subgroup', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("option") — plain commands only
 // ---------------------------------------------------------------------------
-describe('printHelp("option") — option module detail', () => {
+describe('printHelp("option") - option module detail', () => {
   it("includes a Usage line", () => {
     const out = captureStdout(() => printHelp("option"));
     assert.ok(out.includes("Usage: okx option"), "should include option usage");
@@ -432,7 +432,7 @@ describe('printHelp("option") — option module detail', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("config") — plain commands only
 // ---------------------------------------------------------------------------
-describe('printHelp("config") — config module detail', () => {
+describe('printHelp("config") - config module detail', () => {
   it("includes a Usage line", () => {
     const out = captureStdout(() => printHelp("config"));
     assert.ok(out.includes("Usage: okx config"), "should include config usage");
@@ -449,7 +449,7 @@ describe('printHelp("config") — config module detail', () => {
 // ---------------------------------------------------------------------------
 // Module-level help — printHelp("diagnose") — usage-only module
 // ---------------------------------------------------------------------------
-describe('printHelp("diagnose") — diagnose module with usage only', () => {
+describe('printHelp("diagnose") - diagnose module with usage only', () => {
   it("includes Usage line with relevant flags", () => {
     const out = captureStdout(() => printHelp("diagnose"));
     assert.ok(out.includes("Usage: okx diagnose"), "should include diagnose usage");
@@ -466,7 +466,7 @@ describe('printHelp("diagnose") — diagnose module with usage only', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("earn", "savings")
 // ---------------------------------------------------------------------------
-describe('printHelp("earn", "savings") — savings subgroup detail', () => {
+describe('printHelp("earn", "savings") - savings subgroup detail', () => {
   it("includes Usage line for earn savings", () => {
     const out = captureStdout(() => printHelp("earn", "savings"));
     assert.ok(out.includes("Usage: okx earn savings"), "should include subgroup usage");
@@ -483,7 +483,7 @@ describe('printHelp("earn", "savings") — savings subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("earn", "onchain")
 // ---------------------------------------------------------------------------
-describe('printHelp("earn", "onchain") — onchain subgroup detail', () => {
+describe('printHelp("earn", "onchain") - onchain subgroup detail', () => {
   it("includes Usage line for earn onchain", () => {
     const out = captureStdout(() => printHelp("earn", "onchain"));
     assert.ok(out.includes("Usage: okx earn onchain"), "should include subgroup usage");
@@ -505,7 +505,7 @@ describe('printHelp("earn", "onchain") — onchain subgroup detail', () => {
 // ---------------------------------------------------------------------------
 // Multi-line usage continuation rendering
 // ---------------------------------------------------------------------------
-describe("printCommandList — multi-line usage continuation lines", () => {
+describe("printCommandList - multi-line usage continuation lines", () => {
   it("renders spot algo place continuation lines after the first usage line", () => {
     const out = captureStdout(() => printHelp("spot", "algo"));
     // usage has \n — continuation lines should appear trimmed
@@ -529,7 +529,7 @@ describe("printCommandList — multi-line usage continuation lines", () => {
 // ---------------------------------------------------------------------------
 // Market module — additional commands not explicitly checked
 // ---------------------------------------------------------------------------
-describe('printHelp("market") — additional commands coverage', () => {
+describe('printHelp("market") - additional commands coverage', () => {
   it("includes stock-tokens command", () => {
     const out = captureStdout(() => printHelp("market"));
     assert.ok(out.includes("stock-tokens"), "should mention stock-tokens command");
@@ -544,7 +544,7 @@ describe('printHelp("market") — additional commands coverage', () => {
 // ---------------------------------------------------------------------------
 // Subgroup-level help — printHelp("market", "indicator") — new subgroup
 // ---------------------------------------------------------------------------
-describe('printHelp("market", "indicator") — indicator subgroup detail', () => {
+describe('printHelp("market", "indicator") - indicator subgroup detail', () => {
   it("includes Usage line for market indicator", () => {
     const out = captureStdout(() => printHelp("market", "indicator"));
     assert.ok(out.includes("Usage: okx market indicator"), "should include indicator usage");
@@ -560,7 +560,7 @@ describe('printHelp("market", "indicator") — indicator subgroup detail', () =>
 // ---------------------------------------------------------------------------
 // Error handling — unknown module in printSubgroupHelp
 // ---------------------------------------------------------------------------
-describe("printHelp() — error handling edge cases", () => {
+describe("printHelp() - error handling edge cases", () => {
   it("sets exitCode=1 for unknown module when two path args given", () => {
     const origCode = process.exitCode;
     const err = captureStderr(() => printHelp("nonexistent-module", "somecmd"));

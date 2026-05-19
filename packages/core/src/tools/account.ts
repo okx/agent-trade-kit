@@ -64,7 +64,7 @@ export function registerAccountTools(): ToolSpec[] {
           },
           type: {
             type: "string",
-            description: "0=main account (default), 1=main→sub, 2=sub→main, 3=sub→sub",
+            description: "0=main account (default), 1=main->sub, 2=sub->main, 3=sub->sub",
           },
           subAcct: {
             type: "string",

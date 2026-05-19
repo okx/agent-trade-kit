@@ -74,7 +74,7 @@ export interface AuthLoginArgs {
 
 /**
  * Return the name of the first profile with a non-empty api_key, or null.
- * Used to short-circuit OAuth login when API key credentials are already present —
+ * Used to short-circuit OAuth login when API key credentials are already present -
  * the REST client prefers API key over OAuth and never falls back (see
  * rest-client.ts applyAuth), so starting an OAuth flow in that state is wasted
  * effort and confuses the user.
@@ -100,10 +100,10 @@ export async function cmdAuthLogin(args: AuthLoginArgs): Promise<void> {
         status: "skipped",
         reason: "api_key_configured",
         profile: apiKeyProfile,
-        message: `API key already configured (profile: ${apiKeyProfile}). OAuth login skipped — API key will be used automatically.`,
+        message: `API key already configured (profile: ${apiKeyProfile}). OAuth login skipped - API key will be used automatically.`,
       }));
     } else {
-      outputLine(`API key already configured (profile: ${apiKeyProfile}). OAuth login skipped — API key will be used automatically.`);
+      outputLine(`API key already configured (profile: ${apiKeyProfile}). OAuth login skipped - API key will be used automatically.`);
     }
     return;
   }

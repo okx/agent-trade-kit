@@ -1,5 +1,5 @@
 /**
- * MCP server diagnostics — `okx diagnose --mcp`
+ * MCP server diagnostics - `okx diagnose --mcp`
  *
  * All checks use Node.js built-ins only (no external dependencies).
  */
@@ -112,7 +112,7 @@ export function checkMcpEntryPoint(report: Report): { entryPath: string | null; 
         entryPath = candidate;
         break;
       } catch (_e) {
-        // not found or not accessible — try next
+        // not found or not accessible - try next
       }
     }
   }
@@ -207,7 +207,7 @@ function handleJsonClient(
   const name = CLIENT_NAMES[clientId];
   const status = checkJsonMcpConfig(configPath);
 
-  if (status === "missing") return false; // client not installed — skip silently
+  if (status === "missing") return false; // client not installed - skip silently
 
   if (status === "found") {
     ok(name, `configured (${sanitize(configPath)})`);
@@ -231,7 +231,7 @@ function handleJsonClient(
 
 /**
  * Handle Claude Code client. Returns true if a hard failure was recorded.
- * "not-configured" is a warning only — Claude Code may be used for other purposes.
+ * "not-configured" is a warning only - Claude Code may be used for other purposes.
  */
 function handleClaudeCodeClient(report: Report, configuredClients: ClientId[]): boolean {
   const status = checkClaudeCodeConfig();
@@ -261,10 +261,10 @@ function handleClaudeCodeClient(report: Report, configuredClients: ClientId[]): 
 
 /**
  * Check all known MCP clients and return overall pass/fail and list of configured clients.
- * - Found + valid → ✓, added to configuredClients
- * - Found + invalid → ✗ with fix guidance
- * - Not found → skip (no output, no fail)
- * - At least one client configured → overall pass
+ * - Found + valid -> ✓, added to configuredClients
+ * - Found + invalid -> ✗ with fix guidance
+ * - Not found -> skip (no output, no fail)
+ * - At least one client configured -> overall pass
  */
 export function checkMcpClients(report: Report): { passed: boolean; configuredClients: ClientId[] } {
   section("MCP Client Config");
@@ -277,10 +277,10 @@ export function checkMcpClients(report: Report): { passed: boolean; configuredCl
     if (handleJsonClient(clientId, report, configuredClients)) anyFailed = true;
   }
 
-  // Claude Code — special handling (uses claude mcp add, config paths vary)
+  // Claude Code - special handling (uses claude mcp add, config paths vary)
   if (handleClaudeCodeClient(report, configuredClients)) anyFailed = true;
 
-  // vscode is project-level — skip for global diagnose
+  // vscode is project-level - skip for global diagnose
 
   if (configuredClients.length === 0 && !anyFailed) {
     // No client config found at all
@@ -299,7 +299,7 @@ export function checkMcpClients(report: Report): { passed: boolean; configuredCl
 
 /**
  * Check tool count and warn if exceeding known client limits.
- * Tool count warnings do not affect overall pass/fail — they are advisory only.
+ * Tool count warnings do not affect overall pass/fail - they are advisory only.
  *
  * @param getSpecs - Optional override for retrieving tool specs (used in tests).
  */
@@ -324,7 +324,7 @@ export function checkToolCount(
     .filter((x): x is { id: ClientId; limits: { perServer: number; total: number } } => x.limits !== undefined);
 
   if (applicableLimits.length === 0) {
-    // No clients with known limits — just report count
+    // No clients with known limits - just report count
     ok("total tools", `${totalCount} tools loaded`);
     report.add("tool_count", `${totalCount}`);
     return;
@@ -337,7 +337,7 @@ export function checkToolCount(
     if (totalCount > limits.total) {
       warn(
         "tool count",
-        `${totalCount} tools loaded — exceeds ${name} limit (${limits.total} total / ${limits.perServer} per server)`,
+        `${totalCount} tools loaded - exceeds ${name} limit (${limits.total} total / ${limits.perServer} per server)`,
         [
           `Use --modules to reduce: okx-trade-mcp --modules ${defaultModulesArg} (${defaultCount} tools)`,
         ],
@@ -347,7 +347,7 @@ export function checkToolCount(
     } else if (totalCount > limits.perServer) {
       warn(
         "tool count",
-        `${totalCount} tools loaded — exceeds ${name} per-server limit (${limits.perServer})`,
+        `${totalCount} tools loaded - exceeds ${name} per-server limit (${limits.perServer})`,
         [
           `Use --modules to reduce: okx-trade-mcp --modules ${defaultModulesArg} (${defaultCount} tools)`,
         ],
@@ -394,7 +394,7 @@ function getMcpLogCandidates(): string[] {
         .map((f) => path.join(logsDir, f));
       candidates.push(...extra);
     } catch (_e) {
-      // logsDir not found or not readable — skip
+      // logsDir not found or not readable - skip
     }
     return candidates;
   }
@@ -402,7 +402,7 @@ function getMcpLogCandidates(): string[] {
     const appData = process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
     return [path.join(appData, "Claude", "logs", "mcp.log")];
   }
-  // Linux — XDG
+  // Linux - XDG
   const configHome = process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config");
   return [path.join(configHome, "Claude", "logs", "mcp.log")];
 }
@@ -428,11 +428,11 @@ export function checkMcpLogs(report: Report): void {
       }
       return;
     } catch (_e) {
-      // File does not exist or is unreadable — try next candidate
+      // File does not exist or is unreadable - try next candidate
     }
   }
 
-  ok("log file", "(not found — logs only appear after MCP server has been started)");
+  ok("log file", "(not found - logs only appear after MCP server has been started)");
   report.add("mcp_log", "not_found");
 }
 
@@ -468,7 +468,7 @@ function parseHandshakeResponse(line: string): ParsedHandshake {
       return { ok: false, errMsg: String(errMsg) };
     }
   } catch (_e) {
-    // not valid JSON — possibly startup noise, keep buffering
+    // not valid JSON - possibly startup noise, keep buffering
   }
   return null;
 }
@@ -531,7 +531,7 @@ export async function checkStdioHandshake(entryPath: string, report: Report): Pr
         const parsed = parseHandshakeResponse(line);
         if (!parsed) continue;
         if (parsed.ok) {
-          ok("handshake", `OK — ${parsed.serverName} v${parsed.serverVer}`);
+          ok("handshake", `OK - ${parsed.serverName} v${parsed.serverVer}`);
           report.add("handshake", `OK ${parsed.serverName}@${parsed.serverVer}`);
         } else {
           fail("handshake", `JSON-RPC error: ${parsed.errMsg}`, [
@@ -565,7 +565,7 @@ export function checkModuleLoading(entryPath: string | null, report: Report): bo
   section("Module Loading");
 
   if (!entryPath) {
-    ok("module load", "(skipped — entry point not found)");
+    ok("module load", "(skipped - entry point not found)");
     report.add("module_load", "skipped");
     return true;
   }
@@ -618,7 +618,7 @@ export async function cmdDiagnoseMcp(options: DiagnoseMcpOptions = {}): Promise<
 
   const moduleLoadPassed = checkModuleLoading(entryPath, report);
 
-  // Tool count check — advisory only, does not affect pass/fail
+  // Tool count check - advisory only, does not affect pass/fail
   checkToolCount(report, configuredClients);
 
   let handshakePassed = false;
@@ -626,7 +626,7 @@ export async function cmdDiagnoseMcp(options: DiagnoseMcpOptions = {}): Promise<
     handshakePassed = await checkStdioHandshake(entryPath, report);
   } else {
     section("stdio Handshake");
-    ok("handshake", "(skipped — entry point not available)");
+    ok("handshake", "(skipped - entry point not available)");
     report.add("handshake", "skipped");
     handshakePassed = true; // don't count as failure if entry not found
   }

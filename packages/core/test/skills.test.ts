@@ -476,7 +476,7 @@ describe("validateZipEntryPath", () => {
 // extractSkillZip — security
 // ---------------------------------------------------------------------------
 
-describe("extractSkillZip — security", () => {
+describe("extractSkillZip - security", () => {
   let testDir: string;
 
   beforeEach(() => {

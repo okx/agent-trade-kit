@@ -57,8 +57,8 @@ function writeCache(cdnSha256: string): void {
  * Straight-line flow with early returns:
  * 1. Skip if OKX_AUTH_BIN env is set (custom binary)
  * 2. Skip if cache says binary was verified within the last 2 hours
- * 3. Fetch CDN checksum → compare with local → auto-install if mismatch
- * 4. Any network error → proceed silently (best-effort)
+ * 3. Fetch CDN checksum -> compare with local -> auto-install if mismatch
+ * 4. Any network error -> proceed silently (best-effort)
  */
 export async function ensureAuthBinaryLatest(
   onProgress?: (msg: string) => void,
@@ -70,7 +70,7 @@ export async function ensureAuthBinaryLatest(
 
   try {
     const cdn = await fetchAuthCdnChecksum(undefined, 5_000);
-    if (!cdn) return; // CDN unreachable — proceed with current binary
+    if (!cdn) return; // CDN unreachable - proceed with current binary
 
     const local = getAuthStatus();
     if (local.exists && local.sha256 === cdn.sha256) {
@@ -78,7 +78,7 @@ export async function ensureAuthBinaryLatest(
       return;
     }
 
-    // Stale or not installed — auto-update
+    // Stale or not installed - auto-update
     onProgress?.("Updating okx-auth binary...");
     const result = await installAuthBinary(undefined, undefined, onProgress);
     if (result.status === "installed" || result.status === "up-to-date") {
@@ -89,7 +89,7 @@ export async function ensureAuthBinaryLatest(
       }
     }
   } catch {
-    // Network or install error — proceed with current binary
+    // Network or install error - proceed with current binary
   }
 }
 

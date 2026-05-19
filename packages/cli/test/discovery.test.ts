@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { getDiscoveryOutput } from "../src/commands/discovery.js";
 
-describe("getDiscoveryOutput() — agent discovery JSON", () => {
+describe("getDiscoveryOutput() - agent discovery JSON", () => {
   it("returns an object with version, modules, totalTools", () => {
     const result = getDiscoveryOutput();
     assert.ok(typeof result.version === "string", "should have version string");

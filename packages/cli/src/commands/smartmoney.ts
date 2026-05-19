@@ -15,7 +15,7 @@ function printDataTable(
 }
 
 // Split a comma-separated CLI flag value into a non-empty array of trimmed strings.
-// MCP tool inputSchema expects arrays for authorIds / instCcyList — CLI keeps the
+// MCP tool inputSchema expects arrays for authorIds / instCcyList - CLI keeps the
 // ergonomic `--authorIds 1001,1002` flag form and converts at the boundary.
 function csvToArray(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
@@ -32,7 +32,7 @@ function printPaginationHint(result: unknown): void {
   const { hasMore, nextAfter } = pagination as Record<string, unknown>;
   if (hasMore !== true) return;
   const cursor = typeof nextAfter === "string" || typeof nextAfter === "number" ? String(nextAfter) : "";
-  errorLine(cursor ? `more results — pass --after ${cursor} for next page` : "more results — pass --after <cursor> for next page");
+  errorLine(cursor ? `more results - pass --after ${cursor} for next page` : "more results - pass --after <cursor> for next page");
 }
 
 /** Pool-filter fields for signal endpoints (overview / signal-history). Enum tiers. */
@@ -322,7 +322,7 @@ export async function cmdSmartmoneySignalOverviewByTrader(
 }
 
 // Time-bucket essence: dataVersion (anchor), headcount + weighted ratios, pool size,
-// and gross/net notional. No trend deltas — the time series itself is the trend.
+// and gross/net notional. No trend deltas - the time series itself is the trend.
 const trendRowMapper = (r: Record<string, unknown>): Record<string, unknown> => ({
   dataVersion: r["dataVersion"],
   ccy: r["ccy"],

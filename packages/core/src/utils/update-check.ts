@@ -44,7 +44,7 @@ function writeCache(cache: UpdateCache): void {
  *
  * Precedence (highest wins):
  *   1. npm_config_registry env var
- *   2. registry= key in .npmrc, walking cwd → home → /etc/npmrc
+ *   2. registry= key in .npmrc, walking cwd -> home -> /etc/npmrc
  *   3. DEFAULT_REGISTRY fallback
  */
 export function resolveNpmRegistry(): string {
@@ -192,7 +192,7 @@ function refreshCacheInBackground(packageName: string): void {
  * Set OKX_UPDATE_CHECK=false to disable entirely.
  */
 export function checkForUpdates(packageName: string, currentVersion: string): void {
-  // B0: kill switch — exact string "false" only
+  // B0: kill switch - exact string "false" only
   if (process.env.OKX_UPDATE_CHECK === "false") return;
 
   const cache = readCache();
@@ -200,7 +200,7 @@ export function checkForUpdates(packageName: string, currentVersion: string): vo
 
   if (entry && entry.latestVersion && isNewerVersion(currentVersion, entry.latestVersion)) {
     process.stderr.write(
-      `\nUpdate available for ${packageName}: ${currentVersion} → ${entry.latestVersion}\n` +
+      `\nUpdate available for ${packageName}: ${currentVersion} -> ${entry.latestVersion}\n` +
         `Run: npm install -g ${packageName}\n\n`,
     );
   }

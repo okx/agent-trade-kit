@@ -976,7 +976,7 @@ describe("event_get_markets unknown underlying series fallback", () => {
 // 测试组 12：event_place_order market order — orderNote and availableBalance
 // ---------------------------------------------------------------------------
 
-describe("event_place_order market order — orderNote and availableBalance", () => {
+describe("event_place_order market order - orderNote and availableBalance", () => {
   const tools = registerEventContractTools();
   const tool = tools.find((t) => t.name === "event_place_order")!;
 
@@ -1185,7 +1185,7 @@ import { withConcurrency } from "../src/tools/event-helpers.js";
 // 测试组 16：withConcurrency helper — settled result shape
 // ---------------------------------------------------------------------------
 
-describe("withConcurrency — settled result shape", () => {
+describe("withConcurrency - settled result shape", () => {
   it("returns fulfilled results for all resolved promises", async () => {
     const items = [1, 2, 3];
     const results = await withConcurrency(items, 10, (x) => Promise.resolve(x * 2));
@@ -1231,7 +1231,7 @@ describe("withConcurrency — settled result shape", () => {
 // 测试组 17：withConcurrency — concurrency cap enforcement
 // ---------------------------------------------------------------------------
 
-describe("withConcurrency — concurrency cap enforcement", () => {
+describe("withConcurrency - concurrency cap enforcement", () => {
   it("never exceeds maxConcurrency in-flight", async () => {
     const items = Array.from({ length: 18 }, (_, i) => i);
     let inFlight = 0;
@@ -1297,7 +1297,7 @@ describe("withConcurrency — concurrency cap enforcement", () => {
 // 测试组 18：event_browse — concurrency cap via handler
 // ---------------------------------------------------------------------------
 
-describe("event_browse — concurrency cap via handler (MAX=8)", () => {
+describe("event_browse - concurrency cap via handler (MAX=8)", () => {
   const tools = registerEventContractTools();
   const tool = tools.find((t) => t.name === "event_browse")!;
 

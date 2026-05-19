@@ -42,7 +42,7 @@ function clearExitCode(): void {
   process.exitCode = undefined as unknown as number;
 }
 
-describe("handleSmartmoneyCommand — parameter routing", () => {
+describe("handleSmartmoneyCommand - parameter routing", () => {
   /* ------------------------------------------------------------------ */
   /*  Trader family (5)                                                  */
   /* ------------------------------------------------------------------ */

@@ -117,8 +117,8 @@ export async function cmdDcdProducts(
     quoteCcy: r["quoteCcy"],
     optType: r["optType"],
     strike: r["strike"],
-    // products endpoint returns decimal (e.g. 0.3423 = 34.23%) — multiply by 100
-    annualizedYield: r["annualizedYield"] ? `${(parseFloat(r["annualizedYield"] as string) * 100).toFixed(2)}%` : "—",
+    // products endpoint returns decimal (e.g. 0.3423 = 34.23%) - multiply by 100
+    annualizedYield: r["annualizedYield"] ? `${(parseFloat(r["annualizedYield"] as string) * 100).toFixed(2)}%` : "-",
     minSize: r["minSize"],
     expTime: r["expTime"] ? new Date(Number(r["expTime"])).toLocaleDateString() : "",
   })));
@@ -151,8 +151,8 @@ export async function cmdDcdRedeemExecute(
   printKv({
     ordId: r["ordId"],
     state: r["state"],
-    redeemSz: q["redeemSz"] ? `${parseFloat(q["redeemSz"] as string).toFixed(8)} ${q["redeemCcy"]}` : "—",
-    termRate: q["termRate"] ? `${(parseFloat(q["termRate"] as string) * 100).toFixed(2)}%` : "—",
+    redeemSz: q["redeemSz"] ? `${parseFloat(q["redeemSz"] as string).toFixed(8)} ${q["redeemCcy"]}` : "-",
+    termRate: q["termRate"] ? `${(parseFloat(q["termRate"] as string) * 100).toFixed(2)}%` : "-",
   });
 }
 
@@ -212,7 +212,7 @@ export async function cmdDcdOrders(
     quoteCcy: r["quoteCcy"],
     strike: r["strike"],
     notionalSz: r["notionalSz"],
-    annualizedYield: r["annualizedYield"] ? `${(parseFloat(r["annualizedYield"] as string) * 100).toFixed(2)}%` : "—",
+    annualizedYield: r["annualizedYield"] ? `${(parseFloat(r["annualizedYield"] as string) * 100).toFixed(2)}%` : "-",
     yieldSz: r["yieldSz"],
     settleTime: r["settleTime"] ? new Date(Number(r["settleTime"])).toLocaleDateString() : "",   // scheduled settlement time
     settledTime: r["settledTime"] ? new Date(Number(r["settledTime"])).toLocaleDateString() : "", // actual settled time (non-empty only after settlement)
@@ -247,7 +247,7 @@ export async function cmdDcdQuoteAndBuy(
       const stateResult = await run("dcd_get_orders", { ordId });
       stateRow = extractArray(stateResult)[0];
     } catch {
-      // Secondary query failed — order was already placed, do not propagate
+      // Secondary query failed - order was already placed, do not propagate
     }
   }
 
@@ -260,7 +260,7 @@ export async function cmdDcdQuoteAndBuy(
     outputLine("Quote:");
     printKv({
       quoteId: q["quoteId"],
-      annualizedYield: q["annualizedYield"] ? `${(parseFloat(q["annualizedYield"] as string) * 100).toFixed(2)}%` : "—",
+      annualizedYield: q["annualizedYield"] ? `${(parseFloat(q["annualizedYield"] as string) * 100).toFixed(2)}%` : "-",
       absYield: q["absYield"],
       notionalSz: q["notionalSz"],
       notionalCcy: q["notionalCcy"],

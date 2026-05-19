@@ -1,10 +1,10 @@
 /**
- * `okx pilot` command — Pilot binary management.
+ * `okx pilot` command - Pilot binary management.
  *
  * Sub-commands:
- *   status   — show local binary info + CDN match
- *   install  — download/update the binary
- *   remove   — delete the binary (with confirmation unless --force)
+ *   status   - show local binary info + CDN match
+ *   install  - download/update the binary
+ *   remove   - delete the binary (with confirmation unless --force)
  */
 
 import readline from "node:readline";

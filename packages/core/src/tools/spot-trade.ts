@@ -386,7 +386,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop — Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callbackRatio: readString(args, "callbackRatio"),
@@ -406,7 +406,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_amend_algo_order",
       module: "spot",
       description:
-        "Amend a pending spot algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order — look up algoId via spot_get_algo_orders first.",
+        "Amend a pending spot algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via spot_get_algo_orders first.",
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -477,7 +477,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
       name: "spot_get_algo_orders",
       module: "spot",
       description:
-        "Query spot algo orders (TP/SL) — pending or history.",
+        "Query spot algo orders (TP/SL) - pending or history.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -787,11 +787,11 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
 
     // ── set_leverage (SPOT margin: instId-level isolated OR ccy-level cross) ──
-    // Covers OKX scenarios 1–5 (everything except SWAP/FUTURES, which are in
+    // Covers OKX scenarios 1-5 (everything except SWAP/FUTURES, which are in
     // contract-trade.ts). Callers supply exactly one of {instId, ccy}:
-    //  • instId + isolated       → scenario 1 (pair-level margin)
-    //  • instId + cross          → scenario 3 (contract-mode pair-level cross margin)
-    //  • ccy + cross             → scenarios 2 / 4 / 5 (spot/multi-ccy/PM currency-level cross)
+    //  • instId + isolated       -> scenario 1 (pair-level margin)
+    //  • instId + cross          -> scenario 3 (contract-mode pair-level cross margin)
+    //  • ccy + cross             -> scenarios 2 / 4 / 5 (spot/multi-ccy/PM currency-level cross)
     // Not applicable: posSide (spot has no long/short hedge).
     {
       name: "spot_set_leverage",
@@ -800,9 +800,9 @@ export function registerSpotTradeTools(): ToolSpec[] {
         "Set leverage for SPOT margin trading. Provide exactly ONE of instId (pair-level) or ccy (currency-level cross, requires borrow-enabled account / multi-ccy / portfolio margin). " +
         "[CAUTION] Changes risk parameters.\n" +
         "Scenarios:\n" +
-        "  • instId + mgnMode=isolated → pair-level isolated margin\n" +
-        "  • instId + mgnMode=cross    → pair-level cross margin (contract-mode account)\n" +
-        "  • ccy    + mgnMode=cross    → currency-level cross margin (spot-with-borrow / multi-ccy / portfolio margin)\n" +
+        "  • instId + mgnMode=isolated -> pair-level isolated margin\n" +
+        "  • instId + mgnMode=cross    -> pair-level cross margin (contract-mode account)\n" +
+        "  • ccy    + mgnMode=cross    -> currency-level cross margin (spot-with-borrow / multi-ccy / portfolio margin)\n" +
         "When ccy is supplied, mgnMode MUST be cross. posSide is never applicable to spot margin.",
       isWrite: true,
       inputSchema: {
@@ -818,7 +818,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           lever: {
             type: "string",
-            description: "Leverage multiplier as a positive number string, e.g. '3'. Max depends on the pair (query market_get_instruments → lever) or the account policy for ccy-level.",
+            description: "Leverage multiplier as a positive number string, e.g. '3'. Max depends on the pair (query market_get_instruments -> lever) or the account policy for ccy-level.",
           },
           mgnMode: {
             type: "string",
@@ -839,7 +839,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
         }
         if (instId && ccy) {
           throw new ValidationError(
-            `Parameters "instId" and "ccy" are mutually exclusive — provide only one. instId sets pair-level leverage; ccy sets currency-level cross margin leverage.`,
+            `Parameters "instId" and "ccy" are mutually exclusive - provide only one. instId sets pair-level leverage; ccy sets currency-level cross margin leverage.`,
           );
         }
         const leverRaw = requireString(args, "lever");

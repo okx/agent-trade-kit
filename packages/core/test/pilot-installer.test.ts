@@ -315,7 +315,7 @@ describe("installPilotBinary with mock CDN server", () => {
   });
 
   // Skip all server tests if platform is unsupported (platformDir is null)
-  it("fresh install — downloads and verifies binary", async () => {
+  it("fresh install - downloads and verifies binary", async () => {
     if (!platformDir) return; // skip on unsupported platform
     const destPath = join(tempDir, "okx-pilot");
     const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
@@ -336,7 +336,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.ok(progress.length > 0, "should have emitted progress messages");
   });
 
-  it("up-to-date — existing binary matches CDN checksum", async () => {
+  it("up-to-date - existing binary matches CDN checksum", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
     // Pre-write the correct binary content
@@ -349,7 +349,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.equal(result.source, `127.0.0.1:${serverPort}`);
   });
 
-  it("checksum mismatch — returns failed when CDN serves wrong checksum", async () => {
+  it("checksum mismatch - returns failed when CDN serves wrong checksum", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
 
@@ -367,7 +367,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.ok(result.error?.includes("SHA-256 mismatch"), `expected SHA-256 mismatch error, got: ${result.error}`);
   });
 
-  it("size mismatch — returns failed when CDN reports wrong size", async () => {
+  it("size mismatch - returns failed when CDN reports wrong size", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
 
@@ -384,7 +384,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.ok(result.error?.includes("Size mismatch"), `expected size mismatch error, got: ${result.error}`);
   });
 
-  it("invalid checksum.json — missing fields", async () => {
+  it("invalid checksum.json - missing fields", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
 
@@ -397,7 +397,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.equal(result.status, "failed");
   });
 
-  it("CDN returns 500 for checksum — falls through to failure", async () => {
+  it("CDN returns 500 for checksum - falls through to failure", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
 
@@ -410,7 +410,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.ok(typeof result.error === "string");
   });
 
-  it("binary download fails — returns failed", async () => {
+  it("binary download fails - returns failed", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
 
@@ -422,7 +422,7 @@ describe("installPilotBinary with mock CDN server", () => {
     assert.equal(result.status, "failed");
   });
 
-  it("target mismatch in checksum.json — returns failed", async () => {
+  it("target mismatch in checksum.json - returns failed", async () => {
     if (!platformDir) return;
     const destPath = join(tempDir, "okx-pilot");
 

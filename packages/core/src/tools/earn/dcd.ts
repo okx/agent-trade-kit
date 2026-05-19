@@ -13,7 +13,7 @@ import { OkxApiError, RateLimitError } from "../../utils/errors.js";
 // retry=true: withDcdErrors converts the error to RateLimitError, signaling the caller to back off and retry.
 const DCD_CODE_BEHAVIORS: Record<string, { retry: boolean; suggestion: string }> = {
   "50001": { retry: true,  suggestion: "Service temporarily unavailable. Retry in a few minutes." },
-  "50002": { retry: false, suggestion: "Invalid JSON in request body. This is likely a bug — check request parameters." },
+  "50002": { retry: false, suggestion: "Invalid JSON in request body. This is likely a bug - check request parameters." },
   "50014": { retry: false, suggestion: "Missing required parameter. Check that all required fields are provided." },
   "50016": { retry: false, suggestion: "notionalCcy does not match productId option type. Use baseCcy for CALL, quoteCcy for PUT." },
   "50026": { retry: true,  suggestion: "DCD system error. Retry in a few minutes." },
@@ -304,7 +304,7 @@ export function registerDcdTools(): ToolSpec[] {
         const quoteId = readString(args, "quoteId");
 
         if (!quoteId) {
-          // First call: preview mode — request quote only, no state change
+          // First call: preview mode - request quote only, no state change
           return withDcdErrors(async () => {
             const resp = await context.client.privatePost(
               "/api/v5/finance/sfp/dcd/redeem-quote",
@@ -326,7 +326,7 @@ export function registerDcdTools(): ToolSpec[] {
             );
             return normalizeResponse(resp);
           } catch (error) {
-            // Quote expired: user already confirmed — re-request and execute atomically
+            // Quote expired: user already confirmed - re-request and execute atomically
             if (error instanceof OkxApiError && error.code === "52905") {
               const quoteResp = await context.client.privatePost(
                 "/api/v5/finance/sfp/dcd/redeem-quote",

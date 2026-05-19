@@ -168,7 +168,7 @@ export function registerMarketTools(): ToolSpec[] {
         const hasTimestamp = afterTs !== undefined || beforeTs !== undefined;
         // Only route to history based on `after`: `after=T` means "data older than T".
         // `before=T` means "data newer than T" (paginating forward), so it always needs
-        // the recent endpoint — routing it to history would drop the latest 2 days.
+        // the recent endpoint - routing it to history would drop the latest 2 days.
         const useHistory = afterTs !== undefined && Number(afterTs) < Date.now() - TWO_DAYS_MS;
 
         const path = useHistory ? "/api/v5/market/history-candles" : "/api/v5/market/candles";

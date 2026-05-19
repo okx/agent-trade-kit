@@ -9,7 +9,7 @@ export type Lang = "en" | "zh";
 
 const messages = {
   en: {
-    title: "OKX Trade CLI — Configuration Wizard",
+    title: "OKX Trade CLI - Configuration Wizard",
     selectSite: "Select site:",
     sitePrompt: "Site (1/2/3, default: 1): ",
     demoPrompt: "Use demo trading? (Y/n) ",
@@ -32,7 +32,7 @@ const messages = {
     manualWrite: (p: string) => `Please manually write the following to ${p}:\n\n`,
   },
   zh: {
-    title: "OKX Trade CLI — 配置向导",
+    title: "OKX Trade CLI - 配置向导",
     selectSite: "请选择站点:",
     sitePrompt: "站点 (1/2/3, 默认: 1): ",
     demoPrompt: "使用模拟盘？(Y/n) ",
@@ -219,7 +219,7 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
     const siteRaw = (await prompt(rl, t.sitePrompt)).trim();
     const siteKey = parseSiteKey(siteRaw);
 
-    // Step 2: demo / live selection — must happen before URL construction
+    // Step 2: demo / live selection - must happen before URL construction
     const demoRaw = (await prompt(rl, t.demoPrompt)).trim().toLowerCase();
     const demo = demoRaw !== "n";
 

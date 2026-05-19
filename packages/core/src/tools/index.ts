@@ -25,7 +25,7 @@ import type { ToolSpec, ToolArgs } from "./types.js";
  *
  * Exported for external consumers (e.g. diagnostic / introspection tooling)
  * that need to enumerate tool names, schemas, or module membership without
- * instantiating a full client.  Not all callers use every spec — consumers
+ * instantiating a full client.  Not all callers use every spec - consumers
  * should filter as needed.
  */
 export function allToolSpecs(): ToolSpec[] {

@@ -79,7 +79,7 @@ function makeSpy(result: unknown = MOCK_INDICATOR_RESULT): {
 // handleMarketPublicCommand — indicator routing
 // ---------------------------------------------------------------------------
 
-describe("handleMarketPublicCommand — indicator routing", () => {
+describe("handleMarketPublicCommand - indicator routing", () => {
   it("routes 'indicator' action to market_get_indicator", async () => {
     const { spy, captured } = makeSpy();
     await captureStdout(() =>
@@ -142,7 +142,7 @@ describe("handleMarketPublicCommand — indicator routing", () => {
 // cmdMarketIndicator — formatter
 // ---------------------------------------------------------------------------
 
-describe("cmdMarketIndicator — formatter", () => {
+describe("cmdMarketIndicator - formatter", () => {
   it("with --json flag outputs raw JSON array", async () => {
     const { spy } = makeSpy();
     const output = await captureStdout(() =>
@@ -269,7 +269,7 @@ describe("cmdMarketIndicator — formatter", () => {
     assert.equal(captured.args["backtestTime"], 1700000000000);
   });
 
-  it("uses boll→BB override in output header", async () => {
+  it("uses boll->BB override in output header", async () => {
     const bbResult = {
       ...MOCK_INDICATOR_RESULT,
       data: [{

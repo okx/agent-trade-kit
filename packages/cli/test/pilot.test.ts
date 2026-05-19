@@ -21,7 +21,7 @@ afterEach(() => {
 // Help tree — pilot module must appear in global help
 // ---------------------------------------------------------------------------
 
-describe("printHelp() — pilot module in global overview", () => {
+describe("printHelp() - pilot module in global overview", () => {
   it("includes pilot in module list", () => {
     const chunks: string[] = [];
     setOutput({ out: (m) => chunks.push(m), err: () => {} });
@@ -35,7 +35,7 @@ describe("printHelp() — pilot module in global overview", () => {
   });
 });
 
-describe('printHelp("pilot") — pilot module detail', () => {
+describe('printHelp("pilot") - pilot module detail', () => {
   it("includes status, install, and remove commands", () => {
     const chunks: string[] = [];
     setOutput({ out: (m) => chunks.push(m), err: () => {} });
@@ -127,7 +127,7 @@ describe("handlePilotCommand routing", () => {
 // handlePilotCommand — status with --json
 // ---------------------------------------------------------------------------
 
-describe("handlePilotCommand — status --json", () => {
+describe("handlePilotCommand - status --json", () => {
   it("returns valid JSON when binary does not exist", async () => {
     const binaryPath = join(tempDir, "no-binary");
     let out = "";
@@ -170,7 +170,7 @@ describe("handlePilotCommand — status --json", () => {
 // handlePilotCommand — status with existing binary (text mode)
 // ---------------------------------------------------------------------------
 
-describe("handlePilotCommand — status with existing binary (text)", () => {
+describe("handlePilotCommand - status with existing binary (text)", () => {
   it("shows 'Installed   : yes' for an existing binary", async () => {
     const binaryPath = join(tempDir, "okx-pilot");
     writeFileSync(binaryPath, Buffer.from("status-text-binary"));
@@ -191,7 +191,7 @@ describe("handlePilotCommand — status with existing binary (text)", () => {
 // handlePilotCommand — install --json with empty sources
 // ---------------------------------------------------------------------------
 
-describe("handlePilotCommand — install --json", () => {
+describe("handlePilotCommand - install --json", () => {
   it("returns valid JSON output with expected shape", async () => {
     const binaryPath = join(tempDir, "okx-pilot");
     let out = "";
@@ -240,7 +240,7 @@ describe("handlePilotCommand — install --json", () => {
 // handlePilotCommand — remove --json
 // ---------------------------------------------------------------------------
 
-describe("handlePilotCommand — remove --json", () => {
+describe("handlePilotCommand - remove --json", () => {
   it("returns JSON with status=not-installed when binary absent", async () => {
     const binaryPath = join(tempDir, "no-binary");
     let out = "";

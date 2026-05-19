@@ -1,21 +1,21 @@
 /**
- * Event Contract tools — binary outcome prediction markets.
+ * Event Contract tools - binary outcome prediction markets.
  *
  * Three product types (settlement.method field in series response):
  *   - price_up_down:    BTC/ETH price UP (rises in period) or DOWN (falls in period)
- *   - price_above:      BTC/ETH price at expiry above strike — YES or NO
- *   - price_once_touch: BTC/ETH price ever touches strike — YES or NO
+ *   - price_above:      BTC/ETH price at expiry above strike - YES or NO
+ *   - price_once_touch: BTC/ETH price ever touches strike - YES or NO
  *
  * Outcome semantics (input):
- *   UP / YES  → API value "yes"  (lowercase, case-insensitive input)
- *   DOWN / NO → API value "no"   (lowercase, case-insensitive input)
+ *   UP / YES  -> API value "yes"  (lowercase, case-insensitive input)
+ *   DOWN / NO -> API value "no"   (lowercase, case-insensitive input)
  *
  * Outcome semantics (response from markets endpoint):
  *   "0" = not yet settled, "1" = YES won, "2" = NO won
  *
  * Key parameters unique to this module:
- *   outcome   "UP"/"YES" → "yes",  "DOWN"/"NO" → "no"
- *   px        event contract price (0.01–0.99), reflects market-implied probability when actively trading
+ *   outcome   "UP"/"YES" -> "yes",  "DOWN"/"NO" -> "no"
+ *   px        event contract price (0.01-0.99), reflects market-implied probability when actively trading
  *   tdMode    always "isolated" for event contracts
  *   speedBump auto-set to "1" for non-post_only orders (required by exchange)
  */
@@ -64,18 +64,18 @@ const OUTCOME_SCHEMA = {
 UP/DOWN direction contracts: UP (price rises during the period) or DOWN (price falls).
 YES/NO price-target or touch contracts: YES (condition met) or NO (condition not met).
 Check the series type from event_get_series to determine which applies.
-NOTE: px is the event contract price (0.01–0.99), NOT the underlying asset price. It reflects market-implied probability when actively trading.`,
+NOTE: px is the event contract price (0.01-0.99), NOT the underlying asset price. It reflects market-implied probability when actively trading.`,
 };
 
 export function registerEventContractTools(): ToolSpec[] {
   return [
     // -----------------------------------------------------------------------
-    // Read-only — browse (user-facing) + series / events / markets (internal)
+    // Read-only - browse (user-facing) + series / events / markets (internal)
     // -----------------------------------------------------------------------
     {
       name: "event_browse",
       module: "event",
-      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Returns only in-progress contracts (floorStrike set). If a live quote field px is present, it is the event contract price (0.01–0.99), not the underlying asset price; it reflects the market-implied probability when actively trading. Grouped by settlement type and underlying. Do NOT use for querying contracts within a specific series — use event_get_markets with seriesId instead.",
+      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Returns only in-progress contracts (floorStrike set). If a live quote field px is present, it is the event contract price (0.01-0.99), not the underlying asset price; it reflects the market-implied probability when actively trading. Grouped by settlement type and underlying. Do NOT use for querying contracts within a specific series - use event_get_markets with seriesId instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -206,7 +206,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_markets",
       module: "event",
-      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; px (when present) is the event contract price (0.01–0.99), not the underlying asset price — reflects the market-implied probability when actively trading; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8. Do NOT use for discovering what series are available across all underlyings — use event_browse instead.",
+      description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; px (when present) is the event contract price (0.01-0.99), not the underlying asset price - reflects the market-implied probability when actively trading; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8. Do NOT use for discovering what series are available across all underlyings - use event_browse instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -295,7 +295,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_orders",
       module: "event",
-      description: "Query event contract orders (open, 7d history, or 3-month archive). outcome pre-translated (YES/NO/UP/DOWN). Do NOT use for trade executions — use event_get_fills for fill records and settlement outcomes.",
+      description: "Query event contract orders (open, 7d history, or 3-month archive). outcome pre-translated (YES/NO/UP/DOWN). Do NOT use for trade executions - use event_get_fills for fill records and settlement outcomes.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -356,7 +356,7 @@ export function registerEventContractTools(): ToolSpec[] {
     {
       name: "event_get_fills",
       module: "event",
-      description: "Get event contract fill history (trade executions and settlement payouts). archive=true for up to 3mo, false (default) for last 3d. outcome pre-translated (YES/NO/UP/DOWN). Each record includes a 'type' field: 'fill' (opening trade) or 'settlement' (expiry payout with settlementResult win/loss and pnl). Do NOT use for order status — use event_get_orders instead.",
+      description: "Get event contract fill history (trade executions and settlement payouts). archive=true for up to 3mo, false (default) for last 3d. outcome pre-translated (YES/NO/UP/DOWN). Each record includes a 'type' field: 'fill' (opening trade) or 'settlement' (expiry payout with settlementResult win/loss and pnl). Do NOT use for order status - use event_get_orders instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -401,15 +401,15 @@ export function registerEventContractTools(): ToolSpec[] {
     },
 
     // -----------------------------------------------------------------------
-    // Private — write
+    // Private - write
     // -----------------------------------------------------------------------
     {
       name: "event_place_order",
       module: "event",
       description: `Place an event contract order. [CAUTION] Places a real order. Before placing, call event_get_markets(seriesId, state=live) to obtain the instId of the target contract.
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
-- For limit orders: px is the event contract price (0.01–0.99), NOT the underlying asset price. It reflects market-implied probability when actively trading
-- tdMode is always isolated; speedBump is auto-set per exchange requirement — do not pass either`,
+- For limit orders: px is the event contract price (0.01-0.99), NOT the underlying asset price. It reflects market-implied probability when actively trading
+- tdMode is always isolated; speedBump is auto-set per exchange requirement - do not pass either`,
       isWrite: true,
       inputSchema: {
         type: "object",
@@ -435,7 +435,7 @@ export function registerEventContractTools(): ToolSpec[] {
           },
           px: {
             type: "string",
-            description: "Event contract price (0.01–0.99). Required when ordType=limit. Do NOT use for market orders.",
+            description: "Event contract price (0.01-0.99). Required when ordType=limit. Do NOT use for market orders.",
           },
         },
         required: ["instId", "side", "outcome", "sz"],
@@ -499,7 +499,7 @@ export function registerEventContractTools(): ToolSpec[] {
         properties: {
           instId: { type: "string", description: "Event contract instrument ID" },
           ordId:  { type: "string", description: "Order ID to amend" },
-          newPx:  { type: "string", description: "New event contract price (0.01–0.99). Omit to keep current." },
+          newPx:  { type: "string", description: "New event contract price (0.01-0.99). Omit to keep current." },
           newSz:  { type: "string", description: "New size in contracts (omit to keep current)" },
         },
         required: ["instId", "ordId"],
@@ -556,7 +556,7 @@ export function registerEventContractTools(): ToolSpec[] {
             const expiryMs = inferExpiryMsFromInstId(instId);
             const isExpired = expiryMs !== null && expiryMs < Date.now();
             const reason = isExpired
-              ? `The contract (${instId}) has already expired — the order was auto-cancelled at settlement. Check event_get_fills to confirm the outcome.`
+              ? `The contract (${instId}) has already expired - the order was auto-cancelled at settlement. Check event_get_fills to confirm the outcome.`
               : `Instrument (${instId}) not found. Verify the instId with event_get_markets before retrying.`;
             throw new OkxApiError(reason, { code: sCode, endpoint: response.endpoint });
           }

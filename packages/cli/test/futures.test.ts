@@ -560,7 +560,7 @@ describe("cmdFuturesCancel", () => {
 // ---------------------------------------------------------------------------
 // cmdFuturesBatch — emitBatchResults error path
 // ---------------------------------------------------------------------------
-describe("cmdFuturesBatch — mixed success/error", () => {
+describe("cmdFuturesBatch - mixed success/error", () => {
   it("routes success lines to stdout and error lines to stderr", async () => {
     const mixedResult = {
       endpoint: "POST /api/v5/trade/batch-orders",

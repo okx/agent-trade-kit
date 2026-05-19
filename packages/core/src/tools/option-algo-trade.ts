@@ -124,7 +124,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
       name: "option_amend_algo_order",
       module: "option",
       description:
-        "Amend a pending OPTION algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order — look up algoId via option_get_algo_orders first.",
+        "Amend a pending OPTION algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via option_get_algo_orders first.",
       isWrite: true,
       inputSchema: {
         type: "object",

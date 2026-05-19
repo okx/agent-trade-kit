@@ -49,7 +49,7 @@ export function writeCache(
     try {
       file = JSON.parse(readFileSync(cachePath, "utf-8")) as PilotCacheFile;
     } catch {
-      // File missing or corrupted — start fresh
+      // File missing or corrupted - start fresh
     }
 
     file[hostname] = entry;
@@ -57,7 +57,7 @@ export function writeCache(
     writeFileSync(tmpPath, JSON.stringify(file));
     renameSync(tmpPath, cachePath);
   } catch {
-    // Best-effort — do not crash
+    // Best-effort - do not crash
   }
 }
 
@@ -70,6 +70,6 @@ export function invalidateCache(
   try {
     unlinkSync(cachePath);
   } catch {
-    // File may not exist — ignore
+    // File may not exist - ignore
   }
 }

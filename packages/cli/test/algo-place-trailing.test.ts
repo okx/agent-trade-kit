@@ -24,7 +24,7 @@ const fakeAlgoResult = {
 // ---------------------------------------------------------------------------
 // cmdSpotAlgoPlace
 // ---------------------------------------------------------------------------
-describe("cmdSpotAlgoPlace — trailing stop params passthrough", () => {
+describe("cmdSpotAlgoPlace - trailing stop params passthrough", () => {
   it("passes callbackRatio and activePx when ordType=move_order_stop", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
@@ -99,7 +99,7 @@ describe("cmdSpotAlgoPlace — trailing stop params passthrough", () => {
 // ---------------------------------------------------------------------------
 // cmdSwapAlgoPlace
 // ---------------------------------------------------------------------------
-describe("cmdSwapAlgoPlace — trailing stop params passthrough", () => {
+describe("cmdSwapAlgoPlace - trailing stop params passthrough", () => {
   it("passes callbackRatio and activePx when ordType=move_order_stop", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
@@ -176,7 +176,7 @@ describe("cmdSwapAlgoPlace — trailing stop params passthrough", () => {
 // ---------------------------------------------------------------------------
 // cmdFuturesAlgoPlace
 // ---------------------------------------------------------------------------
-describe("cmdFuturesAlgoPlace — trailing stop params passthrough", () => {
+describe("cmdFuturesAlgoPlace - trailing stop params passthrough", () => {
   it("passes callbackRatio and activePx when ordType=move_order_stop", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;
@@ -252,7 +252,7 @@ describe("cmdFuturesAlgoPlace — trailing stop params passthrough", () => {
 // ---------------------------------------------------------------------------
 // tgtCcy passthrough (issue #86)
 // ---------------------------------------------------------------------------
-describe("cmdSpotAlgoPlace — tgtCcy passthrough", () => {
+describe("cmdSpotAlgoPlace - tgtCcy passthrough", () => {
   it("passes tgtCcy=quote_ccy when provided", async () => {
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (_tool, params) => {
@@ -295,7 +295,7 @@ describe("cmdSpotAlgoPlace — tgtCcy passthrough", () => {
   });
 });
 
-describe("cmdSwapAlgoPlace — tgtCcy passthrough", () => {
+describe("cmdSwapAlgoPlace - tgtCcy passthrough", () => {
   it("passes tgtCcy=quote_ccy when provided", async () => {
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (_tool, params) => {
@@ -340,7 +340,7 @@ describe("cmdSwapAlgoPlace — tgtCcy passthrough", () => {
   });
 });
 
-describe("cmdFuturesAlgoPlace — tgtCcy passthrough", () => {
+describe("cmdFuturesAlgoPlace - tgtCcy passthrough", () => {
   it("passes tgtCcy=quote_ccy when provided", async () => {
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (_tool, params) => {
@@ -385,7 +385,7 @@ describe("cmdFuturesAlgoPlace — tgtCcy passthrough", () => {
   });
 });
 
-describe("cmdOptionAlgoPlace — tgtCcy conversion (options use resolveQuoteCcySz)", () => {
+describe("cmdOptionAlgoPlace - tgtCcy conversion (options use resolveQuoteCcySz)", () => {
   it("passes tgtCcy=quote_ccy for conversion in handler", async () => {
     let capturedParams: Record<string, unknown> | undefined;
     const runner: ToolRunner = async (_tool, params) => {

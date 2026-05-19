@@ -37,7 +37,7 @@ const fakeCancelResult = {
   data: [{ algoId: "12345", sCode: "0" }],
 };
 
-describe("cmdSwapAlgoCancel — orders array format", () => {
+describe("cmdSwapAlgoCancel - orders array format", () => {
   it("passes orders array with { instId, algoId } to swap_cancel_algo_orders", async () => {
     let capturedTool: string | undefined;
     let capturedParams: Record<string, unknown> | undefined;

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced non-ASCII typographic punctuation (em-dash, en-dash, right-arrow, ellipsis) with ASCII equivalents in CLI help text, tool descriptions, and CLI output placeholders. No functional change; addresses OKG SonarQube TAP lexer compatibility. See #190.
+
 ### Fixed
 
 - **CLI startup performance** (TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror (`npm_config_registry` env or `.npmrc` walk) instead of hardcoding `registry.npmjs.org`; (A') fetch uses `AbortSignal.timeout(3000)` whose internal unref'd timer prevents infinite event-loop hang; (B1.5) failed fetches write a negative-cache entry (1 h TTL) so repeated cold-starts on unreachable networks skip the fetch entirely.

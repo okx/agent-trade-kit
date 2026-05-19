@@ -67,7 +67,7 @@ export function resolvePilot(hostname: string, cachePath?: string): ResolveResul
     }
   }
 
-  // No cache → let caller try direct first.
+  // No cache -> let caller try direct first.
   // If direct fails, handlePilotNetworkFailure() will call the binary.
   return { mode: null, node: null };
 }

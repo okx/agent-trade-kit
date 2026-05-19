@@ -439,7 +439,7 @@ describe("market_get_instruments_by_category", () => {
     assert.equal(result.data[0].instId, "XAUUSDT-USDT-SWAP");
   });
 
-  it("filters stock tokens (instCategory=3) — replaces market_get_stock_tokens", async () => {
+  it("filters stock tokens (instCategory=3) - replaces market_get_stock_tokens", async () => {
     const { client } = makeMockClient();
     (client as unknown as { publicGet: (e: string, p: Record<string, unknown>) => Promise<unknown> }).publicGet = async (endpoint, params) => ({
       endpoint,
@@ -1299,7 +1299,7 @@ describe("spot_set_leverage", () => {
   const tools = registerSpotTradeTools();
   const tool = tools.find((t) => t.name === "spot_set_leverage")!;
 
-  it("instId + isolated → pair-level margin", async () => {
+  it("instId + isolated -> pair-level margin", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       { instId: "BTC-USDT", lever: "5", mgnMode: "isolated" },
@@ -1312,7 +1312,7 @@ describe("spot_set_leverage", () => {
     assert.equal(params.ccy, undefined);
   });
 
-  it("ccy + cross → currency-level cross margin", async () => {
+  it("ccy + cross -> currency-level cross margin", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       { ccy: "BTC", lever: "3", mgnMode: "cross" },
@@ -3246,7 +3246,7 @@ describe("dca tools registration", () => {
 // Grid — grid_amend_order
 // ---------------------------------------------------------------------------
 
-describe("grid_amend_order — price-range mode", () => {
+describe("grid_amend_order - price-range mode", () => {
   const tools = registerGridTools();
   const tool = tools.find((t) => t.name === "grid_amend_order")!;
 
@@ -3286,7 +3286,7 @@ describe("grid_amend_order — price-range mode", () => {
   });
 });
 
-describe("grid_amend_order — TP/SL mode", () => {
+describe("grid_amend_order - TP/SL mode", () => {
   const tools = registerGridTools();
   const tool = tools.find((t) => t.name === "grid_amend_order")!;
 
@@ -3340,7 +3340,7 @@ describe("grid_amend_order — TP/SL mode", () => {
   });
 });
 
-describe("grid_amend_order — combined mode", () => {
+describe("grid_amend_order - combined mode", () => {
   const tools = registerGridTools();
   const tool = tools.find((t) => t.name === "grid_amend_order")!;
 
@@ -3382,7 +3382,7 @@ describe("grid_amend_order — combined mode", () => {
   });
 });
 
-describe("grid_amend_order — validation", () => {
+describe("grid_amend_order - validation", () => {
   const tools = registerGridTools();
   const tool = tools.find((t) => t.name === "grid_amend_order")!;
 
@@ -5022,7 +5022,7 @@ describe("earn demo guard", () => {
 // option_place_algo_order — tgtCcy conversion via resolveQuoteCcySz
 // ---------------------------------------------------------------------------
 
-describe("option_place_algo_order — tgtCcy conversion", () => {
+describe("option_place_algo_order - tgtCcy conversion", () => {
   const tools = registerOptionAlgoTools();
   const tool = tools.find((t) => t.name === "option_place_algo_order")!;
 
@@ -5093,7 +5093,7 @@ describe("option_place_algo_order — tgtCcy conversion", () => {
 // option_place_order — tgtCcy conversion via resolveQuoteCcySz
 // ---------------------------------------------------------------------------
 
-describe("option_place_order — tgtCcy conversion", () => {
+describe("option_place_order - tgtCcy conversion", () => {
   const tools = registerOptionTools();
   const tool = tools.find((t) => t.name === "option_place_order")!;
 
@@ -5381,7 +5381,7 @@ describe("smartmoney_get_traders_by_filter", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/orbit/public/leaderboard");
   });
 
-  it("passes leaderboard pool-filter params with public→upstream rename (minPnl→pnl, minWinRate→winRate, minAum→asset)", async () => {
+  it("passes leaderboard pool-filter params with public->upstream rename (minPnl->pnl, minWinRate->winRate, minAum->asset)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {

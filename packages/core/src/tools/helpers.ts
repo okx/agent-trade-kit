@@ -168,7 +168,7 @@ export const CXL_ON_CLOSE_POS_SCHEMA = {
 
 /**
  * Convenience grouping of all 5 Phase 1 algo flags applicable to PLACE-ORDER
- * tools (no cxlOnClosePos — that's algo-only).
+ * tools (no cxlOnClosePos - that's algo-only).
  */
 export const PHASE1_PLACE_FLAGS_SCHEMA = {
   tpOrdKind: TP_ORD_KIND_SCHEMA,
@@ -191,7 +191,7 @@ export const PHASE1_ALGO_FLAGS_SCHEMA = {
  * Spread into algo-place tool inputSchema to avoid Sonar duplication.
  */
 
-/** trigger ordType — pending order activated when triggerPx is hit */
+/** trigger ordType - pending order activated when triggerPx is hit */
 export const TRIGGER_FLAGS_SCHEMA = {
   triggerPx: {
     type: "string",
@@ -213,7 +213,7 @@ export const TRIGGER_FLAGS_SCHEMA = {
   },
 } as const;
 
-/** chase ordType — smart-follow best bid/ask */
+/** chase ordType - smart-follow best bid/ask */
 export const CHASE_FLAGS_SCHEMA = {
   chaseType: {
     type: "string",
@@ -235,7 +235,7 @@ export const CHASE_FLAGS_SCHEMA = {
   },
 } as const;
 
-/** iceberg + twap ordTypes — large-order split / time-weighted average price */
+/** iceberg + twap ordTypes - large-order split / time-weighted average price */
 export const ICEBERG_TWAP_FLAGS_SCHEMA = {
   pxVar: {
     type: "string",
@@ -261,7 +261,7 @@ export const ICEBERG_TWAP_FLAGS_SCHEMA = {
 
 /**
  * Phase 2 ordType-specific body builders. Each takes the raw tool args and
- * returns the subset of fields applicable to one ordType — to be merged into
+ * returns the subset of fields applicable to one ordType - to be merged into
  * the algo-place request body via Object.assign.
  *
  * Extracted to eliminate duplication across swap/futures/spot algo handlers
@@ -325,7 +325,7 @@ export function buildAlgoConditionalCommonFields(args: Record<string, unknown>):
 export function buildAttachAlgoOrds(
   source: Record<string, unknown>,
 ): Record<string, unknown>[] | undefined {
-  // Phase 3b (issue #183): multi-entry path — CLI passes tpLevels as an array of level objects.
+  // Phase 3b (issue #183): multi-entry path - CLI passes tpLevels as an array of level objects.
   // Each level is compacted and returned as a separate attachAlgoOrds entry.
   // This path takes priority over the single-entry path when tpLevels is a non-empty array.
   const tpLevels = source["tpLevels"];
@@ -343,7 +343,7 @@ export function buildAttachAlgoOrds(
   const tpOrdKind = readString(source, "tpOrdKind");
   const tpTriggerPxType = readString(source, "tpTriggerPxType");
   const slTriggerPxType = readString(source, "slTriggerPxType");
-  // Phase 3a+c CLI power-user flags — ratio-based triggers (issue #182, CLI-only)
+  // Phase 3a+c CLI power-user flags - ratio-based triggers (issue #182, CLI-only)
   const tpTriggerRatio = readString(source, "tpTriggerRatio");
   const slTriggerRatio = readString(source, "slTriggerRatio");
   const entry = compactObject({

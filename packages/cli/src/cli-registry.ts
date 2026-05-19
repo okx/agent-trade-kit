@@ -1,5 +1,5 @@
 /**
- * CLI Command Registry — declarative mapping of CLI command paths to ToolSpec names.
+ * CLI Command Registry - declarative mapping of CLI command paths to ToolSpec names.
  *
  * This is the single source of truth for CLI command structure.  Help generation
  * reads this registry and auto-fills descriptions from ToolSpec when not overridden.
@@ -42,7 +42,7 @@ export interface CliModuleEntry {
   usage?: string;
   /** Direct commands in this module or subgroup. */
   commands?: Record<string, CliCommandEntry>;
-  /** Nested subgroups (e.g. spot→algo, earn→savings). */
+  /** Nested subgroups (e.g. spot->algo, earn->savings). */
   subgroups?: Record<string, CliModuleEntry>;
 }
 
@@ -371,7 +371,7 @@ export const CLI_REGISTRY: CliRegistry = {
       leverage: {
         toolName: "swap_set_leverage",
         usage: "okx swap leverage --instId <id> --lever <positive-number> --mgnMode <cross|isolated> [--posSide <long|short>]",
-        description: "Set leverage for a swap instrument. posSide is REQUIRED when mgnMode=isolated and account is in hedge mode — must be set for BOTH long and short separately. Not supported for portfolio margin + cross.",
+        description: "Set leverage for a swap instrument. posSide is REQUIRED when mgnMode=isolated and account is in hedge mode - must be set for BOTH long and short separately. Not supported for portfolio margin + cross.",
       },
       "get-leverage": {
         toolName: "swap_get_leverage",
@@ -471,7 +471,7 @@ export const CLI_REGISTRY: CliRegistry = {
       leverage: {
         toolName: "futures_set_leverage",
         usage: "okx futures leverage --instId <id> --lever <positive-number> --mgnMode <cross|isolated> [--posSide <long|short>]",
-        description: "Set leverage for a futures instrument. posSide is REQUIRED when mgnMode=isolated and account is in hedge mode — must be set for BOTH long and short separately. Not supported for portfolio margin + cross.",
+        description: "Set leverage for a futures instrument. posSide is REQUIRED when mgnMode=isolated and account is in hedge mode - must be set for BOTH long and short separately. Not supported for portfolio margin + cross.",
       },
       batch: {
         toolName: "futures_batch_orders",
@@ -600,10 +600,10 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── earn ───────────────────────────────────────────────────────────────────
   earn: {
-    description: "Earn products — Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
+    description: "Earn products - Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
     subgroups: {
       savings: {
-        description: "Simple Earn — flexible savings, fixed-term, and lending",
+        description: "Simple Earn - flexible savings, fixed-term, and lending",
         commands: {
           balance: {
             toolName: "earn_get_savings_balance",
@@ -653,7 +653,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       onchain: {
-        description: "On-chain Earn — staking and DeFi products",
+        description: "On-chain Earn - staking and DeFi products",
         commands: {
           offers: {
             toolName: "onchain_earn_get_offers",
@@ -688,7 +688,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       "auto-earn": {
-        description: "Auto-earn — automatically lend, stake, or earn on idle assets",
+        description: "Auto-earn - automatically lend, stake, or earn on idle assets",
         commands: {
           status: {
             // CLI reads from account_get_balance; earn_auto_set is covered by 'on' command below
@@ -710,7 +710,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       "flash-earn": {
-        description: "Flash Earn — browse short-window earn projects by status",
+        description: "Flash Earn - browse short-window earn projects by status",
         commands: {
           projects: {
             toolName: "earn_get_flash_earn_projects",
@@ -720,7 +720,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       dcd: {
-        description: "DCD (Dual Currency Deposit) — structured products with fixed yield",
+        description: "DCD (Dual Currency Deposit) - structured products with fixed yield",
         commands: {
           pairs: {
             toolName: "dcd_get_currency_pairs",
@@ -762,7 +762,7 @@ export const CLI_REGISTRY: CliRegistry = {
     description: "Trading bot strategies (grid, dca)",
     subgroups: {
       grid: {
-        description: "Grid trading bot — create, monitor, and stop grid orders",
+        description: "Grid trading bot - create, monitor, and stop grid orders",
         commands: {
           orders: {
             toolName: "grid_get_orders",
@@ -797,7 +797,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       dca: {
-        description: "DCA (Martingale) bot — spot or contract recurring buys",
+        description: "DCA (Martingale) bot - spot or contract recurring buys",
         commands: {
           orders: {
             toolName: "dca_get_orders",
@@ -831,7 +831,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── event ──────────────────────────────────────────────────────────────────
   event: {
-    description: "Event contracts — binary prediction markets (YES/NO, UP/DOWN)",
+    description: "Event contracts - binary prediction markets (YES/NO, UP/DOWN)",
     commands: {
       browse: {
         toolName: "event_browse",
@@ -883,7 +883,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── smartmoney ─────────────────────────────────────────────────────────────
   smartmoney: {
-    description: "Smart money analytics — trader leaderboard, consensus signals, and position analysis",
+    description: "Smart money analytics - trader leaderboard, consensus signals, and position analysis",
     commands: {
       "traders-by-filter": {
         toolName: "smartmoney_get_traders_by_filter",
@@ -1061,7 +1061,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── skill ──────────────────────────────────────────────────────────────────
   skill: {
-    description: "OKX Skills Marketplace — search, install, and manage agent skills",
+    description: "OKX Skills Marketplace - search, install, and manage agent skills",
     commands: {
       search: {
         toolName: "skills_search",

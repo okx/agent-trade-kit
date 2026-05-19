@@ -1,5 +1,5 @@
 /**
- * Help tree generator — builds HelpTree from CLI_REGISTRY + ToolSpec descriptions.
+ * Help tree generator - builds HelpTree from CLI_REGISTRY + ToolSpec descriptions.
  *
  * Description resolution order (first non-null wins):
  *   1. entry.description  (explicit override in CLI registry)
@@ -7,7 +7,7 @@
  *   3. MODULE_DESCRIPTIONS[key]  (module-level fallback from constants)
  *   4. key  (raw key as last resort)
  *
- * The generated tree is memoized — computed once on first call and cached.
+ * The generated tree is memoized - computed once on first call and cached.
  */
 
 import { allToolSpecs, MODULE_DESCRIPTIONS } from "@agent-tradekit/core";
@@ -30,7 +30,7 @@ export interface GroupInfo {
   usage?: string;
   /** Leaf commands within this group */
   commands?: Record<string, CommandInfo>;
-  /** Nested sub-groups (e.g. bot → grid, spot → algo) */
+  /** Nested sub-groups (e.g. bot -> grid, spot -> algo) */
   subgroups?: Record<string, GroupInfo>;
 }
 
@@ -46,7 +46,7 @@ function buildSpecMap(): Map<string, ToolSpec> {
 
 /**
  * Resolve a short CLI description for a command entry.
- * Falls back through: explicit registry description → ToolSpec first sentence → fallback string.
+ * Falls back through: explicit registry description -> ToolSpec first sentence -> fallback string.
  * Exported so discovery.ts can share the same logic without duplication.
  */
 export function resolveCommandDescription(

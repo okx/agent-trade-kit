@@ -64,7 +64,7 @@ export async function downloadSkillZip(
     { maxBytes: MAX_DOWNLOAD_BYTES },
   );
 
-  // Fixed filename — never trust server-supplied Content-Disposition
+  // Fixed filename - never trust server-supplied Content-Disposition
   const ext = format === "skill" ? "skill" : "zip";
   const fileName = `${name}.${ext}`;
   const filePath = safeWriteFile(targetDir, fileName, result.data);

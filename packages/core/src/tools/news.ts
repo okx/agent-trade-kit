@@ -65,7 +65,7 @@ const D_COINS_SENTIMENT = "Comma-separated uppercase ticker symbols, max 20 (e.g
 const D_LANGUAGE = "Content language: zh-CN or en-US. Infer from user's message. No server default.";
 const D_BEGIN = "Start time, Unix epoch milliseconds. API defaults to 72 hours ago when omitted. Pass explicitly for older topics (e.g. 'last 30 days'). Max range: 180 days. Parse relative time if given.";
 const D_END = "End time, Unix epoch milliseconds. Parse relative time if given. Omit for no upper bound.";
-const D_IMPORTANCE = "Importance filter: 'low' returns all news (both low and high importance); 'high' narrows to major/breaking news only. Omitted → server default (high-only). Default to 'low' for broad browsing; pass 'high' only when the user explicitly asks for major news.";
+const D_IMPORTANCE = "Importance filter: 'low' returns all news (both low and high importance); 'high' narrows to major/breaking news only. Omitted -> server default (high-only). Default to 'low' for broad browsing; pass 'high' only when the user explicitly asks for major news.";
 const D_PLATFORM = "Filter by news source. Use values from news_get_domains (e.g. blockbeats, odaily_flash). Omit for all sources.";
 const D_LIMIT = "Number of results (default 10, max 50).";
 
@@ -168,7 +168,7 @@ export function registerNewsTools(): ToolSpec[] {
     {
       name: "news_search",
       module: "news",
-      description: "Search crypto news by keyword with optional filters. Use when user provides specific search terms: 'SEC ETF news', 'stablecoin regulation'. Keyword is optional — pass sentiment alone to browse by sentiment direction. For coin-only queries prefer news_get_by_coin.",
+      description: "Search crypto news by keyword with optional filters. Use when user provides specific search terms: 'SEC ETF news', 'stablecoin regulation'. Keyword is optional - pass sentiment alone to browse by sentiment direction. For coin-only queries prefer news_get_by_coin.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -282,7 +282,7 @@ export function registerNewsTools(): ToolSpec[] {
     {
       name: "news_get_coin_sentiment",
       module: "news",
-      description: "Get sentiment snapshot or time-series trend for coins. Returns bullish/bearish ratios and mention counts. Pass trendPoints for trend data (1h→24 points, 4h→6, 24h→7). Use when user asks about coin sentiment, sentiment trend, or how bullish/bearish a coin is. For ranking all coins by sentiment, use news_get_sentiment_ranking instead.",
+      description: "Get sentiment snapshot or time-series trend for coins. Returns bullish/bearish ratios and mention counts. Pass trendPoints for trend data (1h->24 points, 4h->6, 24h->7). Use when user asks about coin sentiment, sentiment trend, or how bullish/bearish a coin is. For ranking all coins by sentiment, use news_get_sentiment_ranking instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -295,7 +295,7 @@ export function registerNewsTools(): ToolSpec[] {
           },
           trendPoints: {
             type: "number",
-            description: "Trend data points. Pass for time-series trend; omit for snapshot. Guide: 1h→24, 4h→6, 24h→7.",
+            description: "Trend data points. Pass for time-series trend; omit for snapshot. Guide: 1h->24, 4h->6, 24h->7.",
           },
         },
         required: ["coins"],
@@ -365,7 +365,7 @@ export function registerNewsTools(): ToolSpec[] {
     {
       name: "news_list_calendar_regions",
       module: "news",
-      description: "List all valid region values for the economic calendar. Returns a string array of snake_case region codes. Call this when economic-calendar returns empty results to verify the region value, or to help the user pick a valid region. Do NOT use to list news source platforms — use news_get_domains instead.",
+      description: "List all valid region values for the economic calendar. Returns a string array of snake_case region codes. Call this when economic-calendar returns empty results to verify the region value, or to help the user pick a valid region. Do NOT use to list news source platforms - use news_get_domains instead.",
       isWrite: false,
       inputSchema: { type: "object", properties: {}, required: [] },
       handler: async () => ({ data: CALENDAR_REGIONS }),
@@ -374,15 +374,15 @@ export function registerNewsTools(): ToolSpec[] {
     {
       name: "news_get_economic_calendar",
       module: "news",
-      description: "Get macro-economic calendar data (GDP, CPI, NFP, interest rate decisions, PMI, etc.). Returns scheduled and released economic events with forecast, previous, and actual values. Use when user asks about economic calendar, macro data, or specific indicators like NFP/CPI/GDP/FOMC. Do NOT use for news articles or sentiment — use news_get_latest or news_search instead.",
+      description: "Get macro-economic calendar data (GDP, CPI, NFP, interest rate decisions, PMI, etc.). Returns scheduled and released economic events with forecast, previous, and actual values. Use when user asks about economic calendar, macro data, or specific indicators like NFP/CPI/GDP/FOMC. Do NOT use for news articles or sentiment - use news_get_latest or news_search instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           region: { type: "string", description: "Country/region filter in snake_case (e.g. united_states, euro_area, japan). Invalid values return empty results silently. If empty results, call news_list_calendar_regions to verify the value." },
           importance: { type: "string", enum: ["1", "2", "3"], description: "Importance level: 1=low, 2=medium, 3=high. Omit for all levels." },
-          before: { type: "string", description: "Lower time bound — returns events NEWER than this timestamp (reversed semantics). Pair with 'after' for future-event windows. Unix ms." },
-          after: { type: "string", description: "Upper time bound — returns events OLDER than this timestamp (reversed semantics). Default=now (returns past events). Pair with 'before' for a bounded window. Unix ms." },
+          before: { type: "string", description: "Lower time bound - returns events NEWER than this timestamp (reversed semantics). Pair with 'after' for future-event windows. Unix ms." },
+          after: { type: "string", description: "Upper time bound - returns events OLDER than this timestamp (reversed semantics). Default=now (returns past events). Pair with 'before' for a bounded window. Unix ms." },
           limit: { type: "number", minimum: 1, maximum: 100, description: "Number of results (default 100, max 100)." },
         },
         required: [],
@@ -407,7 +407,7 @@ export function registerNewsTools(): ToolSpec[] {
     },
   ];
 
-  // Pure info tools (no API call / no user data) — exclude from demo guard
+  // Pure info tools (no API call / no user data) - exclude from demo guard
   const exempt = new Set(["news_get_domains", "news_list_calendar_regions"]);
   const exempted: ToolSpec[] = [];
   const guarded: ToolSpec[] = [];

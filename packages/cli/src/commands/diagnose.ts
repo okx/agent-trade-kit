@@ -122,7 +122,7 @@ function checkEnvironment(report: Report): boolean {
 
   report.add("cli", `${CLI_VERSION} (${GIT_HASH})`);
   report.add("node", `${nodeVersion} ${process.platform} ${process.arch}`);
-  // os.machine() available since Node 19.9 — fall back to process.arch for Node 18
+  // os.machine() available since Node 19.9 - fall back to process.arch for Node 18
   const machine = typeof os.machine === "function" ? os.machine() : process.arch;
   report.add("os", `${os.type()} ${os.release()} ${machine}`);
   report.add("shell", process.env.SHELL ?? "-");
@@ -336,16 +336,16 @@ async function checkPilot(report: Report): Promise<void> {
   ok("Pilot binary", local.binaryPath);
   report.add("pilot_binary", `installed (${local.platform ?? "unknown"})`);
 
-  // CDN checksum comparison — use a 5s timeout to match other network probes
+  // CDN checksum comparison - use a 5s timeout to match other network probes
   const cdnChecksum = await fetchCdnChecksum(undefined, 5_000);
   if (!cdnChecksum) {
-    warn("Pilot checksum", "CDN unreachable — cannot verify");
+    warn("Pilot checksum", "CDN unreachable - cannot verify");
     report.add("pilot_checksum", "CDN unreachable");
   } else if (cdnChecksum.sha256 === local.sha256) {
     ok("Pilot checksum", `match (${cdnChecksum.source})`);
     report.add("pilot_checksum", `match (${cdnChecksum.source})`);
   } else {
-    warn("Pilot checksum", "mismatch — update available", ["Run: okx pilot install"]);
+    warn("Pilot checksum", "mismatch - update available", ["Run: okx pilot install"]);
     report.add("pilot_checksum", "mismatch");
   }
 
@@ -377,9 +377,9 @@ function checkConfigFile(report: Report): boolean {
     const msg = e instanceof Error ? e.message : String(e);
     fail("Config parse", msg, [
       "If passphrase contains special characters (# \\ \" '), wrap in quotes:",
-      "  Contains # \\ \"  → passphrase = 'value'",
-      "  Contains '       → passphrase = \"value\"",
-      "  Contains both    → passphrase = '''value'''",
+      "  Contains # \\ \"  -> passphrase = 'value'",
+      "  Contains '       -> passphrase = \"value\"",
+      "  Contains both    -> passphrase = '''value'''",
       "Or re-run: okx config init",
     ]);
     report.add("config_parse", `FAIL ${msg}`);
@@ -399,7 +399,7 @@ async function runCliChecks(config: OkxConfig | undefined, profile: string, outp
   await checkPilot(report);
 
   if (!config) {
-    // Config parse failed — skip remaining checks that need config
+    // Config parse failed - skip remaining checks that need config
     fail("Config", "Could not load config (see Config File check above)", []);
     report.add("result", "FAIL");
     report.print();

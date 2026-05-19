@@ -15,95 +15,95 @@ import type { ModuleId } from "../src/constants.js";
 // resolveIndicatorCode
 // ---------------------------------------------------------------------------
 
-describe("resolveIndicatorCode — CLI name → API code", () => {
+describe("resolveIndicatorCode - CLI name -> API code", () => {
   // Overrides: names that deviate from the default toUpperCase + hyphen→underscore rule
-  it("rainbow → BTCRAINBOW (override)", () => {
+  it("rainbow -> BTCRAINBOW (override)", () => {
     assert.equal(resolveIndicatorCode("rainbow"), "BTCRAINBOW");
   });
 
-  it("Rainbow (mixed case) → BTCRAINBOW (case-insensitive override)", () => {
+  it("Rainbow (mixed case) -> BTCRAINBOW (case-insensitive override)", () => {
     assert.equal(resolveIndicatorCode("Rainbow"), "BTCRAINBOW");
   });
 
-  it("stoch-rsi → STOCHRSI (override, not STOCH_RSI)", () => {
+  it("stoch-rsi -> STOCHRSI (override, not STOCH_RSI)", () => {
     assert.equal(resolveIndicatorCode("stoch-rsi"), "STOCHRSI");
   });
 
-  it("boll → BB (alias override)", () => {
+  it("boll -> BB (alias override)", () => {
     assert.equal(resolveIndicatorCode("boll"), "BB");
   });
 
   // Candlestick pattern overrides (hyphen names → no-separator backend codes)
-  it("bull-engulf → BULLENGULF (override, not BULL_ENGULF)", () => {
+  it("bull-engulf -> BULLENGULF (override, not BULL_ENGULF)", () => {
     assert.equal(resolveIndicatorCode("bull-engulf"), "BULLENGULF");
   });
 
-  it("bear-engulf → BEARENGULF (override)", () => {
+  it("bear-engulf -> BEARENGULF (override)", () => {
     assert.equal(resolveIndicatorCode("bear-engulf"), "BEARENGULF");
   });
 
-  it("bull-harami → BULLHARAMI (override)", () => {
+  it("bull-harami -> BULLHARAMI (override)", () => {
     assert.equal(resolveIndicatorCode("bull-harami"), "BULLHARAMI");
   });
 
-  it("bear-harami → BEARHARAMI (override)", () => {
+  it("bear-harami -> BEARHARAMI (override)", () => {
     assert.equal(resolveIndicatorCode("bear-harami"), "BEARHARAMI");
   });
 
-  it("bull-harami-cross → BULLHARAMICROSS (override)", () => {
+  it("bull-harami-cross -> BULLHARAMICROSS (override)", () => {
     assert.equal(resolveIndicatorCode("bull-harami-cross"), "BULLHARAMICROSS");
   });
 
-  it("bear-harami-cross → BEARHARAMICROSS (override)", () => {
+  it("bear-harami-cross -> BEARHARAMICROSS (override)", () => {
     assert.equal(resolveIndicatorCode("bear-harami-cross"), "BEARHARAMICROSS");
   });
 
-  it("three-soldiers → THREESOLDIERS (override)", () => {
+  it("three-soldiers -> THREESOLDIERS (override)", () => {
     assert.equal(resolveIndicatorCode("three-soldiers"), "THREESOLDIERS");
   });
 
-  it("three-crows → THREECROWS (override)", () => {
+  it("three-crows -> THREECROWS (override)", () => {
     assert.equal(resolveIndicatorCode("three-crows"), "THREECROWS");
   });
 
-  it("hanging-man → HANGINGMAN (override)", () => {
+  it("hanging-man -> HANGINGMAN (override)", () => {
     assert.equal(resolveIndicatorCode("hanging-man"), "HANGINGMAN");
   });
 
-  it("inverted-hammer → INVERTEDH (override, backend uses abbreviated code)", () => {
+  it("inverted-hammer -> INVERTEDH (override, backend uses abbreviated code)", () => {
     assert.equal(resolveIndicatorCode("inverted-hammer"), "INVERTEDH");
   });
 
-  it("shooting-star → SHOOTINGSTAR (override)", () => {
+  it("shooting-star -> SHOOTINGSTAR (override)", () => {
     assert.equal(resolveIndicatorCode("shooting-star"), "SHOOTINGSTAR");
   });
 
-  it("nvi-pvi → NVIPVI (override)", () => {
+  it("nvi-pvi -> NVIPVI (override)", () => {
     assert.equal(resolveIndicatorCode("nvi-pvi"), "NVIPVI");
   });
 
-  it("top-long-short → TOPLONGSHORT (override)", () => {
+  it("top-long-short -> TOPLONGSHORT (override)", () => {
     assert.equal(resolveIndicatorCode("top-long-short"), "TOPLONGSHORT");
   });
 
   // Default rule: toUpperCase + hyphen→underscore (no override needed)
-  it("range-filter → RANGE_FILTER (default rule, no override needed)", () => {
+  it("range-filter -> RANGE_FILTER (default rule, no override needed)", () => {
     assert.equal(resolveIndicatorCode("range-filter"), "RANGE_FILTER");
   });
 
-  it("ma → MA (default uppercase transform)", () => {
+  it("ma -> MA (default uppercase transform)", () => {
     assert.equal(resolveIndicatorCode("ma"), "MA");
   });
 
-  it("rsi → RSI (default uppercase transform)", () => {
+  it("rsi -> RSI (default uppercase transform)", () => {
     assert.equal(resolveIndicatorCode("rsi"), "RSI");
   });
 
-  it("macd → MACD (default uppercase transform)", () => {
+  it("macd -> MACD (default uppercase transform)", () => {
     assert.equal(resolveIndicatorCode("macd"), "MACD");
   });
 
-  it("halftrend → HALFTREND (default uppercase transform)", () => {
+  it("halftrend -> HALFTREND (default uppercase transform)", () => {
     assert.equal(resolveIndicatorCode("halftrend"), "HALFTREND");
   });
 
@@ -174,7 +174,7 @@ describe("KNOWN_INDICATORS", () => {
 // registerIndicatorTools — spec shape
 // ---------------------------------------------------------------------------
 
-describe("registerIndicatorTools — tool spec", () => {
+describe("registerIndicatorTools - tool spec", () => {
   const tools = registerIndicatorTools();
   const getTool = (name: string) => tools.find(t => t.name === name)!;
 
@@ -259,7 +259,7 @@ const MOCK_RESPONSE = {
   msg: "",
 };
 
-describe("market_get_indicator handler — request body", () => {
+describe("market_get_indicator handler - request body", () => {
   const tool = registerIndicatorTools()[0]!;
 
   it("sends correct instId and indicator code", async () => {
@@ -382,7 +382,7 @@ describe("market_get_indicator handler — request body", () => {
     assert.equal((captured as Record<string, unknown>)["backtestTime"], undefined);
   });
 
-  it("applies boll → BB override in request", async () => {
+  it("applies boll -> BB override in request", async () => {
     let captured: unknown;
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
@@ -435,7 +435,7 @@ describe("market_get_indicator handler — request body", () => {
 // publicPost — no auth headers sent
 // ---------------------------------------------------------------------------
 
-describe("OkxRestClient.publicPost — unauthenticated POST", () => {
+describe("OkxRestClient.publicPost - unauthenticated POST", () => {
   it("completes successfully without credentials", async () => {
     await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
       const client = new OkxRestClient(BASE_CONFIG);
@@ -497,7 +497,7 @@ describe("OkxRestClient.publicPost — unauthenticated POST", () => {
 // Indicator name validation
 // ---------------------------------------------------------------------------
 
-describe("market_get_indicator — indicator name validation", () => {
+describe("market_get_indicator - indicator name validation", () => {
   const tool = registerIndicatorTools()[0]!;
 
   it("rejects unknown indicator name", async () => {

@@ -1,6 +1,6 @@
 /**
  * Pure string formatting utilities for event contract display.
- * No external dependencies — safe to use from both MCP and CLI layers.
+ * No external dependencies - safe to use from both MCP and CLI layers.
  */
 
 export function findDateIdx(parts: string[]): number {
@@ -29,8 +29,8 @@ export function inferExpiryMsFromInstId(instId: string): number | null {
   const month = parseInt(dp.slice(2, 4), 10) - 1; // 0-based
   const day   = parseInt(dp.slice(4, 6), 10);
 
-  // UPDOWN: DATE-START-END → expiry is END (parts[dateIdx+2] if 4 digits)
-  // ABOVE/TOUCH: DATE-EXPIRY-STRIKE → expiry is parts[dateIdx+1]
+  // UPDOWN: DATE-START-END -> expiry is END (parts[dateIdx+2] if 4 digits)
+  // ABOVE/TOUCH: DATE-EXPIRY-STRIKE -> expiry is parts[dateIdx+1]
   const isUpDown = upper.includes("UPDOWN");
   let timePart: string | undefined;
   if (isUpDown) {
@@ -49,8 +49,8 @@ export function inferExpiryMsFromInstId(instId: string): number | null {
 
 /**
  * Extract series ID from a full event contract instrument ID.
- * e.g. "BTC-UPDOWN-15MIN-260325-1700-1715" → "BTC-UPDOWN-15MIN"
- *      "BTC-ABOVE-DAILY-260320-1600-69700"  → "BTC-ABOVE-DAILY"
+ * e.g. "BTC-UPDOWN-15MIN-260325-1700-1715" -> "BTC-UPDOWN-15MIN"
+ *      "BTC-ABOVE-DAILY-260320-1600-69700"  -> "BTC-ABOVE-DAILY"
  */
 export function extractSeriesId(instId: string): string {
   const parts = instId.split("-");
@@ -83,7 +83,7 @@ function fmtStrikeName(seriesId: string, dateStr: string, label: string, parts: 
 
 /**
  * Convert instId to a short human-readable contract name.
- * Unknown format → returns original instId.
+ * Unknown format -> returns original instId.
  *
  * @example
  * formatDisplayTitle("BTC-ABOVE-DAILY-260401-1600-70000")  // "BTC above 70,000 · 4/1"

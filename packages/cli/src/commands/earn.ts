@@ -68,7 +68,7 @@ export async function cmdEarnSetLendingRate(
   const data = extractData(await run("earn_set_lending_rate", { ccy: opts.ccy, rate: opts.rate }));
   if (opts.json) { printJson(data); return; }
   const r = data[0];
-  outputLine(`Lending rate set: ${r?.["ccy"]} → ${r?.["rate"]}`);
+  outputLine(`Lending rate set: ${r?.["ccy"]} -> ${r?.["rate"]}`);
 }
 
 export async function cmdEarnLendingHistory(
@@ -127,7 +127,7 @@ export async function cmdEarnFixedPurchase(
     return;
   }
 
-  // Execute mode — show result
+  // Execute mode - show result
   const data = extractData(result);
   if (opts.json) { printJson(data); return; }
   const r = data[0];

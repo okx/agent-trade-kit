@@ -29,7 +29,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
       name: "swap_amend_algo_order",
       module: "swap",
       description:
-        "Amend a pending SWAP/FUTURES algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order — look up algoId via swap_get_algo_orders first.",
+        "Amend a pending SWAP/FUTURES algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via swap_get_algo_orders first.",
       isWrite: true,
       inputSchema: {
         type: "object",

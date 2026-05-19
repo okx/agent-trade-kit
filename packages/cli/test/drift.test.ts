@@ -25,7 +25,7 @@ const EXCLUDED_FROM_CLI: Record<string, string> = {
   // Currently none — all ToolSpecs are accessible via CLI.
 };
 
-describe("CLI registry ↔ ToolSpec drift test", () => {
+describe("CLI registry vs ToolSpec drift test", () => {
   const specs = allToolSpecs();
   const specNames = new Set(specs.map((s) => s.name));
   const registeredNames = getAllRegisteredToolNames();

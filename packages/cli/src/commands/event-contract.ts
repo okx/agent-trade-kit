@@ -29,7 +29,7 @@ function fmtFreq(raw: unknown): string {
   return map[String(raw).toLowerCase()] ?? String(raw ?? "");
 }
 
-/** outcome field in markets response: already translated by MCP — "YES", "NO", "UP", "DOWN", "pending", or empty */
+/** outcome field in markets response: already translated by MCP - "YES", "NO", "UP", "DOWN", "pending", or empty */
 function fmtOutcome(raw: unknown): string {
   const s = String(raw ?? "").toLowerCase();
   if (s === "" || s === "pending") return "";
@@ -44,8 +44,8 @@ function fmtMarketOutcome(instId: unknown, outcome: unknown): string {
 
 /**
  * Translate order/fill outcome field using instId to distinguish series type.
- * price_up_down instIds contain "UPDOWN" → UP / DOWN
- * price_above / price_once_touch → YES / NO
+ * price_up_down instIds contain "UPDOWN" -> UP / DOWN
+ * price_above / price_once_touch -> YES / NO
  */
 function fmtOrderOutcome(instId: unknown, outcome: unknown): string {
   const id = String(instId ?? "").toUpperCase();
@@ -118,9 +118,9 @@ export async function cmdEventBrowse(
       contracts.map((c) => ({
         "Contract": formatDisplayTitle(String(c["instId"] ?? "")),
         "Expiry":   c["expTime"] ?? "",
-        "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "—",
+        "Target Price":   c["floorStrike"] ? String(c["floorStrike"]) : "-",
         "Probability": fmtProbability(c["px"]),
-        "Outcome":  fmtOutcome(c["outcome"]) || "—",
+        "Outcome":  fmtOutcome(c["outcome"]) || "-",
         "instId":   c["instId"],
       })),
     );
@@ -135,7 +135,7 @@ const FEATURED_SERIES = new Set([
   "BTC-ABOVE-DAILY",  "ETH-ABOVE-DAILY",
 ]);
 
-// Well-known crypto prefixes — series with these underlying are shown by default.
+// Well-known crypto prefixes - series with these underlying are shown by default.
 const KNOWN_PREFIXES = /^(BTC|ETH|TRX|SOL|EOS|BNB|XRP|ADA|DOGE|IOTA|SUSHI|KISHU|BTG|XTZ)-/i;
 
 function getSeriesMethod(s: Record<string, unknown>): string {
@@ -283,7 +283,7 @@ export async function cmdEventMarkets(
         expTime:     m["expTime"] ?? "",
         targetPrice: m["floorStrike"] ?? "",
         probability: fmtProbability(m["px"]),
-        outcome:     outcome.toLowerCase() === "pending" ? "—" : outcome,
+        outcome:     outcome.toLowerCase() === "pending" ? "-" : outcome,
         settleValue: m["settleValue"] ?? "",
         instId:      id,
       };
@@ -355,7 +355,7 @@ export async function cmdEventFills(
         const side    = String(f["side"] ?? "").toUpperCase();
         const outcome = fmtOrderOutcome(f["instId"], f["outcome"]).toUpperCase();
         const dir     = `${side} ${outcome}`.trim();
-        return dir || "—";
+        return dir || "-";
       })(),
       "Fill Price": f["fillPx"],
       "Fill Size":  f["fillSz"],
@@ -403,7 +403,7 @@ async function handleExpiredContractFallback(
       process.stdout.write(`No active contracts found in this series.\n`);
     }
   } catch {
-    // silently ignore — main message already printed
+    // silently ignore - main message already printed
   }
 }
 
@@ -477,8 +477,8 @@ export async function cmdEventPlace(
   const order = data?.[0];
   const stateHint =
     ordType === "market"
-      ? "market order — typically fills immediately"
-      : `${ordType} order — may still be live; verify with: okx event orders --instId ${opts.instId} --state live`;
+      ? "market order - typically fills immediately"
+      : `${ordType} order - may still be live; verify with: okx event orders --instId ${opts.instId} --state live`;
   const period = fmtPeriodFromInstId(opts.instId);
   const pxPart = opts.px ? `  px: ${opts.px}` : "";
   process.stdout.write(
@@ -528,7 +528,7 @@ function handleCancelCatchError(instId: string, ordId: string, err: unknown): vo
   if (isExpired) {
     process.stdout.write(
       `Cannot cancel: contract ${instId} has already expired.\n` +
-      `  The order was auto-cancelled at settlement — no action needed.\n`,
+      `  The order was auto-cancelled at settlement - no action needed.\n`,
     );
   } else {
     process.stdout.write(`Failed to cancel order ${ordId}: ${msg}\n`);

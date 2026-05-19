@@ -152,7 +152,7 @@ describe("WRITE_ACTION_PATTERN", () => {
   ];
 
   for (const msg of shouldMatch) {
-    it(`matches: "${msg.slice(0, 60)}…"`, () => {
+    it(`matches: "${msg.slice(0, 60)}..."`, () => {
       assert.ok(WRITE_ACTION_PATTERN.test(msg), `should match: ${msg}`);
     });
   }

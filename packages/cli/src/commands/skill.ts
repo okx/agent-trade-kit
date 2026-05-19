@@ -203,7 +203,7 @@ export function cmdSkillRemove(name: string, json: boolean): void {
     try {
       rmSync(agentsPath, { recursive: true, force: true });
     } catch {
-      // Ignore — cleanup is best-effort
+      // Ignore - cleanup is best-effort
     }
   }
 
@@ -250,9 +250,9 @@ export async function cmdSkillCheck(
       upToDate,
     }, null, 2));
   } else if (upToDate) {
-    outputLine(`${name}: installed v${local.version} → latest v${remote.latestVersion} (up to date)`);
+    outputLine(`${name}: installed v${local.version} -> latest v${remote.latestVersion} (up to date)`);
   } else {
-    outputLine(`${name}: installed v${local.version} → latest v${remote.latestVersion} (update available)`);
+    outputLine(`${name}: installed v${local.version} -> latest v${remote.latestVersion} (update available)`);
     outputLine(`  Use \`okx skill add ${name}\` to update.`);
   }
 }
