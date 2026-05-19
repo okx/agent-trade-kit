@@ -446,6 +446,7 @@ export function registerEarnTools(): ToolSpec[] {
         "Query available Simple Earn Fixed-term products. " +
         "Returns fixed-term offers with APR, term, min investment, and remaining quota. " +
         "Use to check available products and quota before purchasing. " +
+        "Do NOT use for querying your own orders — use earn_get_fixed_order_list instead. " +
         "For flexible earn rates, use earn_get_lending_rate_history instead.",
       isWrite: false,
       inputSchema: {
