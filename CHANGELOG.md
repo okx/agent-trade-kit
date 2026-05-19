@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Replaced non-ASCII typographic punctuation (em-dash, en-dash, right-arrow, ellipsis) with ASCII equivalents in CLI help text, tool descriptions, and CLI output placeholders. No functional change; addresses OKG SonarQube TAP lexer compatibility. See #190.
+- **`grid_stop_order` / `dca_stop_order` workflow guidance** (!305). Tool descriptions now document the two-step close pattern for bots with residual positions: stopping with `stopType="2"` puts the bot into `no_close_position` (strategy paused, position still open); calling stop again with `stopType="1"` then closes the remaining position. Applies to both grid and DCA (contract and spot variants). Empirically verified on OKX demo API.
 
 ### Fixed
 

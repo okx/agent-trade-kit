@@ -229,6 +229,7 @@ AI recommended parameters: `initOrdAmt`, `safetyOrdAmt`, `maxSafetyOrds`, `pxSte
 |-------|----------|------|-------------|---------|
 | algoId | Y | String | Strategy id | `12345` |
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
+| stopType | N | String | `"1"` close position (default); `"2"` keep position open → bot enters `no_close_position` state, position remains open until explicitly closed (call stop again with stopType=`"1"`) | `"1"` |
 
 #### Response (`StopBotResult`)
 

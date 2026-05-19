@@ -14,6 +14,7 @@
 ### 变更
 
 - 将 CLI 帮助文本、工具描述和 CLI 输出占位符中的非 ASCII 排版标点（em-dash、en-dash、right-arrow、ellipsis）替换为 ASCII 等价物。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。详见 #190。
+- **`grid_stop_order` / `dca_stop_order` 工作流指引更新** (!305)。工具描述现在记录了有残留仓位的 bot 关闭的两步模式：使用 `stopType="2"` 停止后 bot 进入 `no_close_position` 状态（策略暂停，仓位仍开放）；再次调用 stop 并传 `stopType="1"` 才会关闭剩余仓位。适用于 grid 和 DCA（合约和现货变种）。已在 OKX demo API 上实测验证。
 
 ### 修复
 

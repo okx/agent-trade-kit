@@ -224,10 +224,15 @@ okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> \
 
 > **`--algoId`** and **`--algoOrdType`** must come from `bot grid orders` output. The `algoOrdType` must match the bot's actual type — do not guess.
 
-| `--stopType` | Behavior |
-|---|---|
-| `1` | Stop + sell/close all positions at market (default) |
-| `2` | Stop + keep current assets as-is |
+**Workflow:**
+1. Run `bot grid details --algoId <id> --algoOrdType <type>` and check the `state` field.
+2. If `state=running`: call stop with `--stopType 1` (default, clean exit) or `--stopType 2` (keep assets).
+3. If `state=no_close_position` (user previously stopped with stopType=2): call stop again with `--stopType 1` to close the remaining open position.
+
+| `--stopType` | Spot grid | Contract grid |
+|---|---|---|
+| `1` (default) | Sells all base assets back to quote | Market-closes all open positions |
+| `2` | Keeps base assets as-is | Cancels grid orders, leaves position open |
 
 ---
 
@@ -321,11 +326,16 @@ okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --directi
 okx bot dca stop --algoOrdType <spot_dca|contract_dca> --algoId <id> [--stopType <1|2>] [--json]
 ```
 
+**Workflow:**
+1. Run `bot dca details --algoId <id> --algoOrdType <type>` and check the `state` field.
+2. If `state=running`: call stop (with `--stopType` for spot_dca).
+3. If `state=no_close_position` (user previously stopped with stopType=2): call stop again with `--stopType 1` to close the remaining open position.
+
 | Param | Required | Default | Description |
 |---|---|---|---|
 | `--algoOrdType` | Yes | - | `spot_dca` or `contract_dca` |
 | `--algoId` | Yes | - | DCA bot algo order ID (from create or list output). NOT a normal trade order ID |
-| `--stopType` | Cond. | `1` (contract_dca) | Required for `spot_dca`: `1`=sell all tokens, `2`=keep tokens. `contract_dca` always uses `1` (close position) |
+| `--stopType` | Cond. | `1` | `spot_dca` required: `1`=sell all tokens, `2`=keep tokens. `contract_dca`: `1`=close position (default), `2`=keep position open |
 
 ---
 

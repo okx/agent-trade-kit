@@ -57,11 +57,20 @@ The bot module exposes two automated strategy types. Like earn, it uses `bot.all
 - `grid_amend_order` — amend a running grid bot without stopping it (write); supports price-range mode (maxPx/minPx/gridNum), TP/SL mode (instId + tpTriggerPx/slTriggerPx/tpRatio/slRatio), or both combined in one call
 - `grid_stop_order` — terminate a grid bot (write); stopType `"1"` closes all positions (default), `"2"` keeps positions open
 
+**Bot state field** (returned by `grid_get_order_details` and `dca_get_order_details`):
+- `running` — strategy is active
+- `no_close_position` — strategy stopped via stopType=`"2"`; remaining position is still open and must be closed explicitly (call stop again with stopType=`"1"`)
+- `stopped` — strategy fully terminated
+
+Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details` and `/api/v5/tradingBot/dca/ongoing-list`) — state field is present in both grid and DCA list/detail responses.
+
 ### dca (`bot/dca.ts`)
 - DCA (Dollar Cost Averaging) bots: recurring purchases at fixed intervals
-- `bot_create_dca` — create a DCA bot with amount, frequency, and instrument (write)
-- `bot_list_dca` — list active DCA bots
-- `bot_stop_dca` — terminate a DCA bot (write)
+- `dca_create_order` — create a DCA bot (write)
+- `dca_get_orders` — list active or historical DCA bots
+- `dca_get_order_details` — get DCA bot position details
+- `dca_get_sub_orders` — list DCA cycles or orders within a cycle
+- `dca_stop_order` — terminate a DCA bot (write); spot_dca requires stopType; contract_dca supports stopType `"1"` (close, default) or `"2"` (keep position)
 
 ### Sub-module ID Expansion
 
