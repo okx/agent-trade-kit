@@ -1379,7 +1379,7 @@ export function handleSmartmoneyCommand(
     minWinRate: v.minWinRate, maxDrawdown: v.maxDrawdown, minAum: v.minAum,
   };
 
-  /* ---------- Trader family (5) ---------- */
+  /* ---------- Trader family (6) ---------- */
 
   if (action === "traders-by-filter")
     return cmdSmartmoneyTradersByFilter(run, {

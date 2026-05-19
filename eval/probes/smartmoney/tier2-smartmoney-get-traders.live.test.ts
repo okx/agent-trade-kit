@@ -10,8 +10,8 @@ import {
 
 const PROBE_ID = 'tier2.smartmoney-get-traders';
 const USER_PROMPT = 'List the top 5 smart money traders by P&L. Show their IDs or addresses and performance. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "smartmoney", "traders"]];
-const EXPECTATION = 'okx smartmoney traders';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "smartmoney", "traders-by-filter"]];
+const EXPECTATION = 'okx smartmoney traders-by-filter';
 
 describe(PROBE_ID, () => {
   const models = getModels();

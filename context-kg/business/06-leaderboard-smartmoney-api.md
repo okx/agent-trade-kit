@@ -307,7 +307,7 @@ Time-series of aggregated long/short signal across hourly/daily buckets for one 
 | `winRateTier` | `winRateTier` | String | `WR_ANY` | Fixed threshold: `WR_ANY`, `WR_GE_50`, `WR_GE_80` |
 | `maxDrawdownTier` | `maxDrawdownTier` | String | `MR_ANY` | Fixed threshold: `MR_ANY`, `MR_LE_20`, `MR_LE_50` |
 | `aumTier` | `aumTier` | String | `AUM_ANY` | Percentile gate: `AUM_ANY`, `AUM_TOP50`, `AUM_TOP20`, `AUM_TOP5` |
-| `lmtNum` | `lmtNum` | Integer | `100` | Top-N traders ranked by `sortBy`. Range 1-2000 |
+| `lmtNum` | `lmtNum` | Integer | `100` | Upper bound on `tradersQualified` (final aggregation pool size). Candidates pass through tier filters (`pnlTier` / `winRateTier` / `aumTier` / `maxDrawdownTier`), then truncated to top-N by `sortBy` (DESC). `tradersQualified` ≤ `lmtNum` always; equals `lmtNum` unless candidate pool underflows (rare ccy / strict tier combos). Range 1-2000; values above ~1500 add latency without benefit (exceeds typical candidate pool size — the upstream SmartMoney whitelist yields approximately this many ranked traders). |
 
 ### Request — `_by_trader` extra params
 
@@ -328,7 +328,7 @@ Time-series of aggregated long/short signal across hourly/daily buckets for one 
 | `longTraders` | Integer | Count of pool traders currently long (incl. dual-side) |
 | `shortTraders` | Integer | Count of pool traders currently short |
 | `tradersWithPosition` | Integer | Pool traders holding this asset at this bucket. Few = unreliable signal. |
-| `tradersQualified` | Integer | Pool size after tier filters (incl. those without a position) |
+| `tradersQualified` | Integer | Final aggregation pool size after tier filters + top-N truncation by `sortBy`. Always ≤ `lmtNum`. Smaller than `lmtNum` only when candidate pool underflows (rare ccy / strict tier combos). Funnel + top-N selection runs once per query; reused across buckets. |
 | `netNotionalUsdt` | String | Net directional notional = long − short |
 | `totalNotionalUsdt` | String | Gross notional = long + short. Tracks total capital deployed. |
 
@@ -357,7 +357,7 @@ Cross-instrument latest snapshot — top-N most-held instruments at the current 
 
 ### Request — `_by_filter` extra params
 
-Same signal pool tier filter set as 4.2 `_by_filter`: `sortBy`, `period` (default `7`), `pnlTier`, `winRateTier`, `maxDrawdownTier`, `aumTier`, `lmtNum` (default 100, max 2000).
+Same signal pool tier filter set as 4.2 `_by_filter`: `sortBy`, `period` (default `7`), `pnlTier`, `winRateTier`, `maxDrawdownTier`, `aumTier`, `lmtNum` (default 100, max 2000 — see 4.2 `lmtNum` for full semantics).
 
 ### Request — `_by_trader` extra params
 
@@ -376,7 +376,7 @@ Outer item carries identity + headcount; aggregate metrics live in three nested 
 | `ccy` | String | Instrument identifier — the field name is **`ccy`, NOT `instId`**, e.g. `"BTC-USDT-SWAP"` |
 | `dataVersion` | String | Snapshot version `yyyyMMddHH` UTC (10-digit, e.g. `"2026043014"` = 2026-04-30 14:00 UTC, floored to the hour) |
 | `tradersWithPosition` | Integer | Pool traders holding this asset (double-sided counted once). Higher = stronger consensus |
-| `tradersQualified` | Integer | Pool size after tier filters (incl. those without a position) |
+| `tradersQualified` | Integer | Final aggregation pool size after tier filters + top-N truncation by `sortBy`. Always ≤ `lmtNum`. Smaller than `lmtNum` only when candidate pool underflows (rare ccy / strict tier combos). |
 | `longTraders` | Integer | Pool traders currently long (incl. dual-side) |
 | `shortTraders` | Integer | Pool traders currently short (incl. dual-side) |
 
