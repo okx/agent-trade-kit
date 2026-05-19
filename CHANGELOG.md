@@ -11,24 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- Replaced non-ASCII typographic punctuation (em-dash, en-dash, right-arrow, ellipsis) with ASCII equivalents in CLI help text, tool descriptions, and CLI output placeholders. No functional change; addresses OKG SonarQube TAP lexer compatibility. See #190.
-- **`grid_stop_order` / `dca_stop_order` workflow guidance** (!305). Tool descriptions now document the two-step close pattern for bots with residual positions: stopping with `stopType="2"` puts the bot into `no_close_position` (strategy paused, position still open); calling stop again with `stopType="1"` then closes the remaining position. Applies to both grid and DCA (contract and spot variants). Empirically verified on OKX demo API.
-
-### Fixed
-
-- **CLI startup performance** (TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror (`npm_config_registry` env or `.npmrc` walk) instead of hardcoding `registry.npmjs.org`; (A') fetch uses `AbortSignal.timeout(3000)` whose internal unref'd timer prevents infinite event-loop hang; (B1.5) failed fetches write a negative-cache entry (1 h TTL) so repeated cold-starts on unreachable networks skip the fetch entirely.
-
 ---
 
-## [1.3.5-beta.1] - 2026-05-13
+## [1.3.5-beta.1] - 2026-05-19
 
 ### Added
 
 - **Pair spread tool** (!315). `market_get_pair_spread`. Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
 
-> Note: this tool was historically tagged in `1.3.4-beta.2` but was deliberately excluded from the `v1.3.4` stable release tag (which is anchored at `cd99d487`, the `1.3.4-beta.1` bump commit). It ships in `1.3.5-beta.1` instead.
+### Fixed
+
+- **CLI startup performance** (TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror (`npm_config_registry` env or `.npmrc` walk) instead of hardcoding `registry.npmjs.org`; (A') fetch uses `AbortSignal.timeout(3000)` whose internal unref'd timer prevents infinite event-loop hang; (B1.5) failed fetches write a negative-cache entry (1 h TTL) so repeated cold-starts on unreachable networks skip the fetch entirely.
+
+### Changed
+
+- **`grid_stop_order` / `dca_stop_order` workflow guidance** (!305). Tool descriptions now document the two-step close pattern for bots with residual positions: stopping with `stopType="2"` puts the bot into `no_close_position` (strategy paused, position still open); calling stop again with `stopType="1"` then closes the remaining position. Applies to both grid and DCA (contract and spot variants). Empirically verified on OKX demo API.
+- **Smartmoney V7 funnel semantics doc sync.** Aligned `docs/designs/smartmoney.md`, `docs/modules/smartmoney.md`, `context-kg/business/06-leaderboard-smartmoney-api.md`, `skills/okx-cex-smartmoney/references/signal-commands.md`, and `eval/README.md` with the shipped V7 signal funnel. Docs only.
+- Replaced non-ASCII typographic punctuation (em-dash, en-dash, right-arrow, ellipsis) with ASCII equivalents in CLI help text, tool descriptions, and CLI output placeholders (TRDATA-3977, #190). No functional change; addresses OKG SonarQube TAP lexer compatibility.
+
+> Note: `market_get_pair_spread` was historically tagged in `1.3.4-beta.2` but was deliberately excluded from the `v1.3.4` stable release tag (which is anchored at `cd99d487`, the `1.3.4-beta.1` bump commit). It ships in `1.3.5-beta.1` instead.
 
 ---
 

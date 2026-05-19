@@ -11,24 +11,25 @@
 
 ## [Unreleased]
 
-### 变更
-
-- 将 CLI 帮助文本、工具描述和 CLI 输出占位符中的非 ASCII 排版标点（em-dash、en-dash、right-arrow、ellipsis）替换为 ASCII 等价物。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。详见 #190。
-- **`grid_stop_order` / `dca_stop_order` 工作流指引更新** (!305)。工具描述现在记录了有残留仓位的 bot 关闭的两步模式：使用 `stopType="2"` 停止后 bot 进入 `no_close_position` 状态（策略暂停，仓位仍开放）；再次调用 stop 并传 `stopType="1"` 才会关闭剩余仓位。适用于 grid 和 DCA（合约和现货变种）。已在 OKX demo API 上实测验证。
-
-### 修复
-
-- **CLI 启动性能优化** (TRDATA-3954)。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 环境变量开关，可完全禁用更新检查；(B1) 更新检查使用用户配置的 npm 镜像（`npm_config_registry` 环境变量或 `.npmrc` 文件），不再硬编码 `registry.npmjs.org`；(A') 使用 `AbortSignal.timeout(3000)` 发起 fetch，其内部使用 unref'd 计时器，不会阻止进程退出；(B1.5) fetch 失败时写入负缓存条目（1 小时 TTL），避免在不可达网络下每次冷启动都重复发起请求。
-
 ---
 
-## [1.3.5-beta.1] - 2026-05-13
+## [1.3.5-beta.1] - 2026-05-19
 
 ### 新增
 
 - **配对价差工具**（!315）。`market_get_pair_spread`。计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率）。支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
 
-> 说明：此工具曾出现在 `1.3.4-beta.2` 中，但已**不在 `v1.3.4` 稳定版 tag 内**（tag 锚定在 `cd99d487`，即 `1.3.4-beta.1` 那次 bump commit）。改由 `1.3.5-beta.1` 发布。
+### 修复
+
+- **CLI 启动性能优化** (TRDATA-3954)。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 环境变量开关，可完全禁用更新检查；(B1) 更新检查使用用户配置的 npm 镜像（`npm_config_registry` 环境变量或 `.npmrc` 文件），不再硬编码 `registry.npmjs.org`；(A') 使用 `AbortSignal.timeout(3000)` 发起 fetch，其内部使用 unref'd 计时器，不会阻止进程退出；(B1.5) fetch 失败时写入负缓存条目（1 小时 TTL），避免在不可达网络下每次冷启动都重复发起请求。
+
+### 变更
+
+- **`grid_stop_order` / `dca_stop_order` 工作流指引更新** (!305)。工具描述现在记录了有残留仓位的 bot 关闭的两步模式：使用 `stopType="2"` 停止后 bot 进入 `no_close_position` 状态（策略暂停，仓位仍开放）；再次调用 stop 并传 `stopType="1"` 才会关闭剩余仓位。适用于 grid 和 DCA（合约和现货变种）。已在 OKX demo API 上实测验证。
+- **Smartmoney V7 漏斗语义文档同步。** 同步 `docs/designs/smartmoney.md`、`docs/modules/smartmoney.md`、`context-kg/business/06-leaderboard-smartmoney-api.md`、`skills/okx-cex-smartmoney/references/signal-commands.md`、`eval/README.md` 与 V7 信号漏斗保持一致。仅文档变更。
+- 将 CLI 帮助文本、工具描述和 CLI 输出占位符中的非 ASCII 排版标点（em-dash、en-dash、right-arrow、ellipsis）替换为 ASCII 等价物 (TRDATA-3977, #190)。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
+
+> 说明：`market_get_pair_spread` 曾出现在 `1.3.4-beta.2` 中，但已**不在 `v1.3.4` 稳定版 tag 内**（tag 锚定在 `cd99d487`，即 `1.3.4-beta.1` 那次 bump commit）。改由 `1.3.5-beta.1` 发布。
 
 ---
 
