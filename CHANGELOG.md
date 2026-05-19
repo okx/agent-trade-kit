@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CLI startup performance** (TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror (`npm_config_registry` env or `.npmrc` walk) instead of hardcoding `registry.npmjs.org`; (A') fetch uses `AbortSignal.timeout(3000)` whose internal unref'd timer prevents infinite event-loop hang; (B1.5) failed fetches write a negative-cache entry (1 h TTL) so repeated cold-starts on unreachable networks skip the fetch entirely.
 
 ---
 
