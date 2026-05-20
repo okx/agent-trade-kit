@@ -183,7 +183,7 @@ okx --profile live earn savings fixed-products --ccy USDT --json # specific curr
 |---|---|---|
 | `--ccy` | No | Filter by currency, e.g. USDT |
 
-Output fields: `ccy` · `term` · `rate` (annualized APR) · `minLend` (minimum subscription amount) · `lendQuota` (remaining subscribable amount) · `soldOut` (whether product is fully subscribed)
+Output fields: `ccy` · `term` · `apr` (annualized APR) · `minLend` (minimum subscription amount) · `lendQuota` (remaining subscribable amount) · `soldOut` (whether product is fully subscribed)
 
 Use this command to check which fixed-term products are available and whether they still have quota before subscribing via `earn savings fixed-purchase`.
 

@@ -164,7 +164,7 @@ export async function cmdEarnLendingRateHistory(
     outputLine("");
     outputLine("Fixed-term offers:");
     printTable(fixedOffers.map((r) => ({
-      ccy: r["ccy"], term: r["term"], rate: r["rate"],
+      ccy: r["ccy"], term: r["term"], apr: r["apr"],
       minLend: r["minLend"],
       remainingQuota: r["lendQuota"],
       soldOut: r["soldOut"] ? "Yes" : "No",
@@ -178,7 +178,7 @@ export async function cmdEarnFixedProducts(
 ): Promise<void> {
   const data = extractData(await run("earn_get_fixed_earn_products", { ccy: opts.ccy }));
   printDataList(data, opts.json, "No fixed earn products available", (r) => ({
-    ccy: r["ccy"], term: r["term"], rate: r["rate"],
+    ccy: r["ccy"], term: r["term"], apr: r["apr"],
     minLend: r["minLend"],
     remainingQuota: r["lendQuota"],
     soldOut: r["soldOut"] ? "Yes" : "No",
