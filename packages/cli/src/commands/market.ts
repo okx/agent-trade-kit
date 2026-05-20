@@ -299,8 +299,8 @@ export async function cmdMarketIndicator(
     const values = indicators?.[apiCode] as Record<string, unknown>[] | undefined;
     if (!values?.length) continue;
 
-    process.stdout.write(`${instId} · ${apiCode} · ${tf}\n`);
-    process.stdout.write("─".repeat(40) + "\n");
+    process.stdout.write(`${instId} | ${apiCode} | ${tf}\n`);
+    process.stdout.write("-".repeat(40) + "\n");
 
     if (opts.list) {
       const tableRows = values.map((entry) => ({

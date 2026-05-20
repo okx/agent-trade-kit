@@ -200,7 +200,7 @@ describe("cmdEventMarkets", () => {
     assert.ok(text.includes("69500"), "should show current index price");
     assert.ok(text.includes("BTC"), "should show underlying");
     assert.ok(text.includes("54.8%"), "should show implied probability when px is present");
-    assert.ok(!text.includes("In Progress"), "status column removed — no 'In Progress' in output");
+    assert.ok(!text.includes("In Progress"), "status column removed - no 'In Progress' in output");
   });
 
   it("shows settled outcome for expired contracts (status column removed)", async () => {
@@ -211,7 +211,7 @@ describe("cmdEventMarkets", () => {
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
     assert.ok(text.includes("YES"), "expired contract should show outcome YES");
-    assert.ok(!text.includes("Settled"), "status column removed — no 'Settled' in output");
+    assert.ok(!text.includes("Settled"), "status column removed - no 'Settled' in output");
   });
 
   it("shows UP for settled UPDOWN contracts when core already translated outcome to YES", async () => {
@@ -230,7 +230,7 @@ describe("cmdEventMarkets", () => {
     ]);
     await cmdEventMarkets(run, { seriesId: "BTC-ABOVE-DAILY", json: false });
     const text = joined();
-    assert.ok(!text.includes("Upcoming"), "status column removed — no 'Upcoming' in output");
+    assert.ok(!text.includes("Upcoming"), "status column removed - no 'Upcoming' in output");
   });
 
   it("outputs JSON when json=true", async () => {

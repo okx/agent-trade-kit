@@ -1063,7 +1063,7 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
     restore("MOCK_AUTH_STATUS_JSON", savedStatus);
   }
 
-  /** Config with no API key — forces OAuth path. */
+  /** Config with no API key - forces OAuth path. */
   const OAUTH_CONFIG: OkxConfig = {
     ...BASE_CONFIG,
     hasAuth: true,

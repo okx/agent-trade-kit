@@ -25,7 +25,7 @@ const UNREACHABLE_REGISTRY = "http://192.0.2.1/";
 
 describe("CLI startup performance", () => {
   if (!existsSync(dist)) {
-    it.skip("dist/index.js not built — run pnpm build first");
+    it.skip("dist/index.js not built - run pnpm build first");
     return;
   }
 
@@ -53,7 +53,7 @@ describe("CLI startup performance", () => {
       );
       assert.ok(
         elapsed < 500,
-        `CLI took ${elapsed} ms with OKX_UPDATE_CHECK=false — expected < 500 ms`,
+        `CLI took ${elapsed} ms with OKX_UPDATE_CHECK=false - expected < 500 ms`,
       );
     } finally {
       rmSync(fakeHome, { recursive: true, force: true });

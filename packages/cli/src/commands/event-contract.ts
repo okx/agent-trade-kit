@@ -203,17 +203,17 @@ export async function cmdEventSeries(
   const above = mainSeries.filter(s => !isUpDownSeries(s));
 
   if (updown.length > 0) {
-    process.stdout.write("\n── Up/Down ──\n");
+    process.stdout.write("\n-- Up/Down --\n");
     printTable(updown.map(s => toRow(s, isFeatured(s))));
   }
   if (above.length > 0) {
-    process.stdout.write("\n── Price Above ──\n");
+    process.stdout.write("\n-- Price Above --\n");
     printTable(above.map(s => toRow(s, isFeatured(s))));
   }
 
   if (testSeries.length > 0) {
     if (opts.all) {
-      process.stdout.write("\n── Test / Other ──\n");
+      process.stdout.write("\n-- Test / Other --\n");
       printTable(testSeries.map(s => toRow(s, false)));
     } else {
       process.stdout.write(`\n${testSeries.length} test series hidden (use --all to show)\n`);

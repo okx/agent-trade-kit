@@ -40,7 +40,7 @@ describe("CLI registry vs ToolSpec drift test", () => {
         assert.ok(
           isInRegistry || isExcluded,
           `ToolSpec '${name}' has no CLI registry entry.\n` +
-            `  → Add an entry to CLI_REGISTRY in packages/cli/src/cli-registry.ts,\n` +
+            `  -> Add an entry to CLI_REGISTRY in packages/cli/src/cli-registry.ts,\n` +
             `    or add to EXCLUDED_FROM_CLI in this test with a justification comment.`,
         );
       });
@@ -54,7 +54,7 @@ describe("CLI registry vs ToolSpec drift test", () => {
         assert.ok(
           specNames.has(name),
           `CLI registry references non-existent ToolSpec '${name}'.\n` +
-            `  → Remove or fix this entry in packages/cli/src/cli-registry.ts.`,
+            `  -> Remove or fix this entry in packages/cli/src/cli-registry.ts.`,
         );
       });
     }

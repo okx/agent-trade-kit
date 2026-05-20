@@ -47,7 +47,7 @@ describe("RateLimiter", () => {
   it("refills tokens over time", async () => {
     // Use a high refill rate so the wait is short in CI
     const limiter = new RateLimiter(2000);
-    const config = cfg("fast-refill", 1, 500); // 500 tokens/s → 2ms per token
+    const config = cfg("fast-refill", 1, 500); // 500 tokens/s -> 2ms per token
     await limiter.consume(config); // drain
     // After consuming, wait briefly and consume again — should succeed
     await new Promise((r) => setTimeout(r, 10));

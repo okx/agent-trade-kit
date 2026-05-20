@@ -39,7 +39,7 @@ test("unknownSubcommand emits diagnostic + sets exit code", async () => {
   assert.match(joined, /okx swap --help/);
 });
 
-test("unknownSubcommand suggests MCP-style 'x-y' → 'y x' rewrite when path is in knownPaths", async () => {
+test("unknownSubcommand suggests MCP-style 'x-y' -> 'y x' rewrite when path is in knownPaths", async () => {
   const { stderr } = await captureStderr(() => {
     unknownSubcommand("swap", "place-algo", ["positions", "orders", "place", "algo", "batch"], [
       "algo place", "algo cancel", "algo amend", "algo trail", "algo orders",
@@ -97,7 +97,7 @@ test("suggestSubcommand: no rewrite for undefined action", () => {
 // even though "leverage" is a known action — "leverage set" is not a registered path.
 // ---------------------------------------------------------------------------
 
-test("suggestSubcommand: set-leverage returns undefined — 'leverage set' not in knownPaths", () => {
+test("suggestSubcommand: set-leverage returns undefined - 'leverage set' not in knownPaths", () => {
   const swapKnownActions = [
     "positions", "orders", "get", "fills", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
@@ -116,7 +116,7 @@ test("suggestSubcommand: set-anything returns undefined when combined path absen
   );
 });
 
-test("suggestSubcommand: b is known action but b+a absent from knownPaths → undefined", () => {
+test("suggestSubcommand: b is known action but b+a absent from knownPaths -> undefined", () => {
   // "leverage" is in knownActions but "leverage set" is not in knownPaths
   assert.equal(
     suggestSubcommand("set-leverage", ["leverage", "get-leverage"], ["leverage"]),

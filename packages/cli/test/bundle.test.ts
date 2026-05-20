@@ -49,7 +49,7 @@ describe("CLI bundle integrity", () => {
     assert.deepStrictEqual(
       leaked,
       [],
-      `These packages are in noExternal but still appear as external imports in dist/index.js — ` +
+      `These packages are in noExternal but still appear as external imports in dist/index.js - ` +
         `tsup did not bundle them: ${leaked.join(", ")}`,
     );
   });

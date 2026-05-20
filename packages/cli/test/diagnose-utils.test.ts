@@ -54,7 +54,7 @@ describe("Report.add and Report.print", () => {
   it("print outputs separator lines", () => {
     const report = new Report();
     const output = captureStdout(() => report.print());
-    assert.ok(output.includes("\u2500"), "should include horizontal rule characters");
+    assert.ok(output.includes("─"), "should include horizontal rule characters");
   });
 
   it("keys are left-padded to align values", () => {
@@ -105,7 +105,7 @@ describe("Report.writeToFile", () => {
     report.add("node", "v20.0.0");
     report.writeToFile(outFile);
     const content = fs.readFileSync(outFile, "utf8");
-    assert.ok(content.includes("---"), "should contain separator dashes");
+    assert.ok(content.includes("───"), "should contain separator dashes");
   });
 });
 
@@ -116,7 +116,7 @@ describe("Report.writeToFile", () => {
 describe("ok()", () => {
   it("outputs check mark and label and detail", () => {
     const output = captureStdout(() => ok("DNS resolve", "ok.com -> 1.2.3.4 (12ms)"));
-    assert.ok(output.includes("\u2713"), "should include checkmark");
+    assert.ok(output.includes("[ok]"), "should include checkmark");
     assert.ok(output.includes("DNS resolve"), "should include label");
     assert.ok(output.includes("ok.com"), "should include detail");
   });
@@ -134,7 +134,7 @@ describe("fail()", () => {
     const output = captureStdout(() =>
       fail("TCP connect", "timed out", ["Check firewall", "Try VPN"]),
     );
-    assert.ok(output.includes("\u2717"), "should include cross mark");
+    assert.ok(output.includes("[x]"), "should include cross mark");
     assert.ok(output.includes("TCP connect"), "should include label");
     assert.ok(output.includes("timed out"), "should include detail");
     assert.ok(output.includes("Check firewall"), "should include hint 1");
@@ -143,7 +143,7 @@ describe("fail()", () => {
 
   it("shows arrow before each hint", () => {
     const output = captureStdout(() => fail("Test", "error", ["hint A"]));
-    assert.ok(output.includes("\u2192"), "should include arrow before hint");
+    assert.ok(output.includes("→"), "should include arrow before hint");
   });
 
   it("works with empty hints array", () => {

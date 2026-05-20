@@ -18,6 +18,7 @@ import {
   cmdSkillCheck,
   THIRD_PARTY_INSTALL_NOTICE,
   printSkillInstallResult,
+  npxEnv,
 } from "../src/commands/skill.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 import type { CliValues } from "../src/index.js";
@@ -429,18 +430,32 @@ describe("cmdSkillRemove - additional", () => {
   it("removes installed skill and outputs text", () => {
     const name = `test-rm-${randomUUID()}`;
     upsertSkillRecord({ name, version: "1.0.0", title: "T", description: "d" });
-    cmdSkillRemove(name, false);
+    const noopExec = (() => Buffer.from("")) as unknown as Parameters<typeof cmdSkillRemove>[2];
+    cmdSkillRemove(name, false, noopExec);
     const output = out.join("");
-    assert.ok(output.includes(`✓ Skill "${name}" removed`));
+    assert.ok(output.includes(`[ok] Skill "${name}" removed`));
   });
 
   it("removes installed skill and outputs JSON", () => {
     const name = `test-rm-json-${randomUUID()}`;
     upsertSkillRecord({ name, version: "1.0.0", title: "T", description: "d" });
-    cmdSkillRemove(name, true);
+    const noopExec = (() => Buffer.from("")) as unknown as Parameters<typeof cmdSkillRemove>[2];
+    cmdSkillRemove(name, true, noopExec);
     const parsed = JSON.parse(out.join(""));
     assert.equal(parsed.name, name);
     assert.equal(parsed.status, "removed");
+  });
+
+  it("falls back to manual cleanup when injected exec throws", () => {
+    const name = `test-rm-fallback-${randomUUID()}`;
+    upsertSkillRecord({ name, version: "1.0.0", title: "T", description: "d" });
+    const throwingExec = (() => {
+      throw new Error("simulated npx failure");
+    }) as unknown as Parameters<typeof cmdSkillRemove>[2];
+    cmdSkillRemove(name, false, throwingExec);
+    // remove still succeeds at the registry level + best-effort manual cleanup
+    const output = out.join("");
+    assert.ok(output.includes(`[ok] Skill "${name}" removed`));
   });
 });
 
@@ -484,5 +499,37 @@ describe("printSkillInstallResult", () => {
     assert.equal(parsed.name, "my-skill");
     assert.equal(parsed.version, "1.0.0");
     assert.equal(parsed.status, "installed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// npxEnv() — subprocess env builder for ANSI stripping
+// ---------------------------------------------------------------------------
+
+describe("npxEnv", () => {
+  it("sets NO_COLOR=1 to suppress ANSI escape codes from spawned npx", () => {
+    const env = npxEnv();
+    assert.equal(env.NO_COLOR, "1");
+  });
+
+  it("sets FORCE_COLOR=0 so libraries respecting that flag also strip color", () => {
+    const env = npxEnv();
+    assert.equal(env.FORCE_COLOR, "0");
+  });
+
+  it("inherits all existing process.env entries", () => {
+    process.env.OKX_NPX_ENV_TEST_INHERIT = "leaked-value";
+    try {
+      const env = npxEnv();
+      assert.equal(env.OKX_NPX_ENV_TEST_INHERIT, "leaked-value");
+    } finally {
+      delete process.env.OKX_NPX_ENV_TEST_INHERIT;
+    }
+  });
+
+  it("returns a fresh object (does not mutate process.env)", () => {
+    const env = npxEnv();
+    env.OKX_NPX_ENV_MUTATION_TEST = "should-not-leak";
+    assert.equal(process.env.OKX_NPX_ENV_MUTATION_TEST, undefined);
   });
 });
