@@ -4177,6 +4177,58 @@ describe("earn_get_lending_rate_history", () => {
   });
 });
 
+describe("earn_get_fixed_earn_products", () => {
+  const tools = registerEarnTools();
+  const tool = tools.find((t) => t.name === "earn_get_fixed_earn_products")!;
+
+  it("calls /finance/simple-earn-fixed/offers via privateGet", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/simple-earn-fixed/offers");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes ccy parameter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ccy: "USDT" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ccy, "USDT");
+  });
+
+  it("strips borrowingOrderQuota from response", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "90D", apr: "0.05", lendQuota: "50000", borrowingOrderQuota: "1000000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data.length, 1);
+    assert.equal(data[0]!["borrowingOrderQuota"], undefined);
+  });
+
+  it("sets soldOut=true when lendQuota is '0'", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "30D", apr: "0.03", lendQuota: "0", borrowingOrderQuota: "500000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data[0]!["soldOut"], true);
+  });
+
+  it("sets soldOut=false when lendQuota is not '0'", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "BTC", term: "60D", apr: "0.04", lendQuota: "10000", borrowingOrderQuota: "200000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data[0]!["soldOut"], false);
+  });
+});
+
 describe("onchain_earn_cancel", () => {
   const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "onchain_earn_cancel")!;
