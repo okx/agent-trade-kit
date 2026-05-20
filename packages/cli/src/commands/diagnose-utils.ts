@@ -34,9 +34,9 @@ export class Report {
   }
 
   print(): void {
-    const sep = "\u2500".repeat(52);
+    const sep = "─".repeat(52);
     outputLine("");
-    outputLine(`  \u2500\u2500 Diagnostic Report (copy & share) ${sep.slice(35)}`);
+    outputLine(`  ── Diagnostic Report (copy & share) ${sep.slice(35)}`);
     for (const { key, value } of this.lines) {
       outputLine(`  ${key.padEnd(14)} ${value}`);
     }
@@ -47,9 +47,9 @@ export class Report {
   /** Write report to a file path, returns true on success. */
   writeToFile(filePath: string): boolean {
     try {
-      const sep = "-".repeat(52);
+      const sep = "─".repeat(52);
       const lines: string[] = [
-        `-- Diagnostic Report (copy & share) ${sep.slice(35)}`,
+        `── Diagnostic Report (copy & share) ${sep.slice(35)}`,
       ];
       for (const { key, value } of this.lines) {
         lines.push(`${key.padEnd(14)} ${value}`);
@@ -68,20 +68,20 @@ export class Report {
 // ---------------------------------------------------------------------------
 
 export function ok(label: string, detail: string): void {
-  outputLine(`  \u2713 ${label.padEnd(14)} ${detail}`);
+  outputLine(`  [ok]   ${label.padEnd(14)} ${detail}`);
 }
 
 export function fail(label: string, detail: string, hints: string[]): void {
-  outputLine(`  \u2717 ${label.padEnd(14)} ${detail}`);
+  outputLine(`  [x]    ${label.padEnd(14)} ${detail}`);
   for (const hint of hints) {
-    outputLine(`    \u2192 ${hint}`);
+    outputLine(`    → ${hint}`);
   }
 }
 
 export function warn(label: string, detail: string, hints: string[] = []): void {
-  outputLine(`  \u26a0 ${label.padEnd(14)} ${detail}`);
+  outputLine(`  ⚠ ${label.padEnd(14)} ${detail}`);
   for (const hint of hints) {
-    outputLine(`    \u2192 ${hint}`);
+    outputLine(`    → ${hint}`);
   }
 }
 

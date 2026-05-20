@@ -5131,7 +5131,7 @@ describe("option_place_order - tgtCcy conversion", () => {
 
     const postCall = calls.find((c) => c.method === "POST");
     assert.ok(postCall, "should POST");
-    assert.equal(postCall!.params.sz, "2", "200k USDT → 2 contracts");
+    assert.equal(postCall!.params.sz, "2", "200k USDT -> 2 contracts");
     assert.equal(postCall!.params.tgtCcy, undefined, "tgtCcy stripped");
   });
 

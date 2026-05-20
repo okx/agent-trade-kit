@@ -20,7 +20,7 @@ const dist = join(__dirname, "../dist/index.js");
 
 // Skip bundle checks if dist has not been built yet (e.g. CI runs tests without build).
 if (!existsSync(dist)) {
-  console.log("# bundle.test.ts: skipping — dist/index.js not found (run pnpm build first)");
+  console.log("# bundle.test.ts: skipping - dist/index.js not found (run pnpm build first)");
   process.exit(0);
 }
 
@@ -56,7 +56,7 @@ describe("MCP bundle integrity", () => {
     assert.deepStrictEqual(
       leaked,
       [],
-      `These packages are in noExternal but still appear as external imports in dist/index.js — ` +
+      `These packages are in noExternal but still appear as external imports in dist/index.js - ` +
         `tsup did not bundle them: ${leaked.join(", ")}`,
     );
   });

@@ -99,7 +99,7 @@ describe("cmdDcdProducts", () => {
 
   it("filters by minYield", async () => {
     const runner: ToolRunner = async () => productsResult;
-    await cmdDcdProducts(runner, { minYield: 0.5, json: false }); // 0.2 < 0.5 → filtered out
+    await cmdDcdProducts(runner, { minYield: 0.5, json: false }); // 0.2 < 0.5 -> filtered out
     assert.ok(out.join("").includes("No products matched"));
   });
 });

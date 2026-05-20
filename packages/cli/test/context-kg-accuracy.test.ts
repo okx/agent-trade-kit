@@ -44,7 +44,7 @@ function extractNumber(content: string, pattern: RegExp, fileHint: string): numb
   assert.ok(
     match !== null,
     `Pattern ${pattern} not found in context-kg/${fileHint}.\n` +
-      `  → The markdown structure may have changed — update the regex in this test file.`,
+      `  -> The markdown structure may have changed - update the regex in this test file.`,
   );
   return parseInt(match[1], 10);
 }
@@ -55,7 +55,7 @@ function countTestFiles(packageName: string): number {
   return readdirSync(testDir).filter((f) => f.endsWith(".test.ts")).length;
 }
 
-/** Count skill packs — directories inside skills/ that contain a SKILL.md file. */
+/** Count skill packs - directories inside skills/ that contain a SKILL.md file. */
 function countSkillPacks(): number {
   const skillsDir = join(REPO_ROOT, "skills");
   return readdirSync(skillsDir, { withFileTypes: true })
@@ -78,7 +78,7 @@ describe("context-kg accuracy: numbers match actual code state", () => {
         declared,
         actual,
         `context-kg/business/01-overview.md declares ${declared} MCP tools, but allToolSpecs() returns ${actual}.\n` +
-          `  → Update the tool count in context-kg/business/01-overview.md to ${actual}.`,
+          `  -> Update the tool count in context-kg/business/01-overview.md to ${actual}.`,
       );
     });
 
@@ -89,7 +89,7 @@ describe("context-kg accuracy: numbers match actual code state", () => {
         declared,
         actual,
         `context-kg/business/01-overview.md declares ${declared} modules, but MODULES.length is ${actual}.\n` +
-          `  → Update the module count in context-kg/business/01-overview.md to ${actual}.`,
+          `  -> Update the module count in context-kg/business/01-overview.md to ${actual}.`,
       );
     });
 
@@ -100,7 +100,7 @@ describe("context-kg accuracy: numbers match actual code state", () => {
         declared,
         actual,
         `context-kg/business/01-overview.md declares ${declared} skill packs, but skills/ contains ${actual}.\n` +
-          `  → Update the skill pack count in context-kg/business/01-overview.md to ${actual}.`,
+          `  -> Update the skill pack count in context-kg/business/01-overview.md to ${actual}.`,
       );
     });
   });
@@ -125,7 +125,7 @@ describe("context-kg accuracy: numbers match actual code state", () => {
           declared,
           actual,
           `context-kg/technical/01-architecture.md declares ${declared} ${pkg} test files, but packages/${pkg}/test/ has ${actual}.\n` +
-            `  → Update the count in context-kg/technical/01-architecture.md to ${actual}.`,
+            `  -> Update the count in context-kg/technical/01-architecture.md to ${actual}.`,
         );
       });
     }

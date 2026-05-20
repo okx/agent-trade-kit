@@ -153,7 +153,7 @@ describe("cmdDiagnose", () => {
       baseUrl: "https://this-host-does-not-exist-okx-test.invalid",
     };
     const { output } = await run(badConfig);
-    assert.ok(output.includes("FAIL") || output.includes("\u2717"));
+    assert.ok(output.includes("FAIL") || output.includes("[x]"));
   });
 
   it("handles auth error hints for code 50111", async () => {

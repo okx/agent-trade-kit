@@ -29,6 +29,30 @@ function resolveNpx(): string {
   return "npx";
 }
 
+/**
+ * Build the env for child npm/npx invocations.
+ *
+ * Strips ANSI color output via NO_COLOR / FORCE_COLOR for any code path that
+ * actually invokes npm/npx (notably `cmdSkillAdd` and `cmdSkillRemove`).
+ * Exported so it can be exercised by unit tests.
+ *
+ * Note: NO_COLOR / FORCE_COLOR don't fully silence npm's own loglevel
+ * output (`npm WARN exec ...`), which still emits ANSI cursor sequences
+ * that trip the OKG sonar TAP lexer. Tests therefore inject a mock `exec`
+ * rather than relying on env-var stripping alone.
+ */
+export function npxEnv(): NodeJS.ProcessEnv {
+  return { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" };
+}
+
+/**
+ * Subprocess executor type — `execFileSync` by default. Dependency-injected
+ * so unit tests can substitute a no-op (or throwing) stub instead of
+ * spawning real `npx skills add/remove`, which previously leaked ANSI
+ * escape codes into the test TAP stream.
+ */
+export type SkillExec = typeof execFileSync;
+
 /** Notice shown after installing a third-party skill. */
 export const THIRD_PARTY_INSTALL_NOTICE =
   "Note: This skill was created by a third-party developer, not by OKX. Review SKILL.md before use.";
@@ -112,6 +136,7 @@ export async function cmdSkillAdd(
   name: string,
   config: OkxConfig,
   json: boolean,
+  exec: SkillExec = execFileSync,
 ): Promise<void> {
   const tmpBase = join(tmpdir(), `okx-skill-${randomUUID()}`);
   mkdirSync(tmpBase, { recursive: true });
@@ -132,9 +157,10 @@ export async function cmdSkillAdd(
     // Step 4: Install via npx skills add
     outputLine("Installing to detected agents...");
     try {
-      execFileSync(resolveNpx(), ["skills", "add", contentDir, "-y", "-g"], {
+      exec(resolveNpx(), ["skills", "add", contentDir, "-y", "-g"], {
         stdio: "inherit",
         timeout: 60_000,
+        env: npxEnv(),
       });
     } catch (e) {
       // Copy zip to cwd so the user has a fallback after tmpBase is cleaned up
@@ -182,7 +208,7 @@ export async function cmdSkillDownload(
 // okx skill remove <name>
 // ---------------------------------------------------------------------------
 
-export function cmdSkillRemove(name: string, json: boolean): void {
+export function cmdSkillRemove(name: string, json: boolean, exec: SkillExec = execFileSync): void {
   const removed = removeSkillRecord(name);
 
   if (!removed) {
@@ -193,9 +219,10 @@ export function cmdSkillRemove(name: string, json: boolean): void {
 
   // Remove from all agent directories via npx skills remove
   try {
-    execFileSync(resolveNpx(), ["skills", "remove", name, "-y", "-g"], {
+    exec(resolveNpx(), ["skills", "remove", name, "-y", "-g"], {
       stdio: "inherit",
       timeout: 60_000,
+      env: npxEnv(),
     });
   } catch {
     // Fallback: manually remove .agents/skills/<name>/
@@ -210,7 +237,7 @@ export function cmdSkillRemove(name: string, json: boolean): void {
   if (json) {
     outputLine(JSON.stringify({ name, status: "removed" }, null, 2));
   } else {
-    outputLine(`✓ Skill "${name}" removed`);
+    outputLine(`[ok] Skill "${name}" removed`);
   }
 }
 
