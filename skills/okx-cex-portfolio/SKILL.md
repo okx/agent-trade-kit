@@ -4,7 +4,7 @@ description: "This skill should be used when the user asks about 'account balanc
 license: MIT
 metadata:
   author: okx
-  version: "1.3.3"
+  version: "1.3.5"
   homepage: "https://www.okx.com"
   agent:
     requires:

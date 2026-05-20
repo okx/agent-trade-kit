@@ -1,7 +1,7 @@
 {
   "name": "okx-hub",
   "private": true,
-  "version": "1.3.5-beta.1",
+  "version": "1.3.5",
   "type": "module",
   "workspaces": [
     "packages/*"

@@ -4,7 +4,7 @@ description: "Use when the user asks to 'buy BTC', 'sell ETH', 'place a limit or
 license: MIT
 metadata:
   author: okx
-  version: "1.3.3"
+  version: "1.3.5"
   homepage: "https://www.okx.com"
   agent:
     requires:
