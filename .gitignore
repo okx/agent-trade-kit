@@ -16,12 +16,7 @@ scripts/mcp-token-stats.ts
 .idea/
 skills-lock.json
 .agents/
-# All .claude/skills are user-local by default; the project-wide okx-mcp-release
-# skill is the explicit exception so the team shares it via git. Note: a plain
-# `.claude/skills/` rule cannot be undone by `!` (git ignores files inside an
-# excluded *directory*), hence `.claude/skills/*` + per-entry inversion.
-.claude/skills/*
-!.claude/skills/okx-mcp-release/
+.claude/skills/
 aTempFiles/
 *.tgz
 .worktrees/
