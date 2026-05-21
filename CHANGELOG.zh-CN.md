@@ -11,6 +11,9 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **通过环境变量自动支持 HTTP/HTTPS 代理**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 调用（CLI、MCP server、mcp-gateway）将自动通过代理路由。支持 `NO_PROXY` 按主机跳过代理。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需修改配置；当两者同时设置时，`proxy_url` 配置仍优先生效。
 
 ### Changed
 

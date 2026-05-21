@@ -75,6 +75,30 @@ Setting `readOnly: true` in config (or `--read-only` CLI flag) removes all tools
 
 ## Proxy Configuration
 
+### Automatic environment variable proxy (recommended)
+
+The SDK automatically routes all undici-based fetch calls through the system proxy when `HTTPS_PROXY` or `HTTP_PROXY` is set. This is handled by `packages/core/src/runtime/undici-proxy-bootstrap.ts`, which registers `EnvHttpProxyAgent` as the global undici dispatcher on import. `packages/core/src/index.ts` imports this module as its first statement, so CLI, MCP server, and mcp-gateway all get proxy support transitively.
+
+Supported env vars (standard names):
+
+| Env var | Effect |
+|---------|--------|
+| `HTTPS_PROXY` | Proxy for HTTPS requests |
+| `HTTP_PROXY` | Proxy for HTTP requests |
+| `NO_PROXY` | Comma/space-separated hostnames to bypass proxy |
+
+Example:
+```sh
+export HTTPS_PROXY=http://proxy.corp.example.com:8080
+export NO_PROXY=localhost,127.0.0.1,.internal.corp
+```
+
+`EnvHttpProxyAgent` reads all env vars (`HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY`) at construction time. To pick up a changed proxy env var at runtime, reconstruct and re-register the dispatcher via `setGlobalDispatcher(new EnvHttpProxyAgent())`. Only `http://` and `https://` proxy schemes are supported.
+
+**Precedence**: per-request `dispatcher` option overrides the global dispatcher. The explicit `proxy_url` toml field (below) creates a `ProxyAgent` and passes it per-request — so it takes precedence over `HTTPS_PROXY`/`HTTP_PROXY` when both are set.
+
+### Explicit proxy_url (per-profile override)
+
 `proxy_url` is a **profile-level** field — configure it inside the profile section:
 
 ```toml

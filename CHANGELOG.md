@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
 
 ### Changed
 
