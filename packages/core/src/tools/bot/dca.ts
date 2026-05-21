@@ -95,12 +95,14 @@ export function registerDcaTools(): ToolSpec[] {
   return [
     {
       name: "dca_create_order",
+      title: "Martingale Bot Create",
       module: "bot.dca",
       description:
         "Create a DCA (Martingale) bot. [CAUTION] Real trades. " +
         "contract_dca requires lever; spot_dca must be long. " +
         "If maxSafetyOrds>0: need safetyOrdAmt, pxSteps.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -183,7 +185,9 @@ export function registerDcaTools(): ToolSpec[] {
     },
     {
       name: "dca_stop_order",
+      title: "Martingale Bot Stop",
       module: "bot.dca",
+      idempotentHint: true,
       description:
         "[CAUTION] Stop a DCA bot or close its remaining open position — real trades, irreversible. " +
         "Workflow: " +
@@ -226,6 +230,7 @@ export function registerDcaTools(): ToolSpec[] {
     },
     {
       name: "dca_get_orders",
+      title: "Martingale Bot List Orders",
       module: "bot.dca",
       description: "List DCA bots. Default: active (running). Use status=history for stopped.",
       isWrite: false,
@@ -266,6 +271,7 @@ export function registerDcaTools(): ToolSpec[] {
     },
     {
       name: "dca_get_order_details",
+      title: "Martingale Bot Get Detail",
       module: "bot.dca",
       description: "Get DCA bot position details (avgPx, upl, liqPx, etc).",
       isWrite: false,
@@ -292,6 +298,7 @@ export function registerDcaTools(): ToolSpec[] {
     },
     {
       name: "dca_get_sub_orders",
+      title: "Martingale Bot Get Sub-Orders",
       module: "bot.dca",
       description: "Get DCA cycles or orders in a cycle. Omit cycleId=cycle list; with cycleId=orders.",
       isWrite: false,
