@@ -138,7 +138,7 @@ The agent MUST copy titles verbatim from this catalogue. Use this when filling e
 | spot_cancel_algo_order | Spot Cancel Algo Order | idempotentHint=true |
 | spot_get_algo_orders | Spot Get Algo Orders | — |
 | spot_get_fills | Spot Get Fills | — |
-| spot_batch_orders | Spot Batch Place Orders | destructiveHint=false |
+| spot_batch_orders | Spot Batch Orders | — |
 | spot_get_order | Spot Get Order | — |
 | spot_batch_amend | Spot Batch Amend Orders | idempotentHint=true |
 | spot_batch_cancel | Spot Batch Cancel Orders | idempotentHint=true |
@@ -736,7 +736,7 @@ git commit -m "feat(core): add titles for option algo tools"
 | ~443 | `spot_cancel_algo_order` | `title: "Spot Cancel Algo Order",`<br>`idempotentHint: true,` |
 | ~477 | `spot_get_algo_orders` | `title: "Spot Get Algo Orders",` |
 | ~562 | `spot_get_fills` | `title: "Spot Get Fills",` |
-| ~626 | `spot_batch_orders` | `title: "Spot Batch Place Orders",`<br>`destructiveHint: false,` |
+| ~626 | `spot_batch_orders` | `title: "Spot Batch Orders",` |
 | ~689 | `spot_get_order` | `title: "Spot Get Order",` |
 | ~727 | `spot_batch_amend` | `title: "Spot Batch Amend Orders",`<br>`idempotentHint: true,` |
 | ~758 | `spot_batch_cancel` | `title: "Spot Batch Cancel Orders",`<br>`idempotentHint: true,` |
@@ -1068,12 +1068,12 @@ Expected output (exact numbers):
 - `tools: 162`
 - `missing title: 0 []`
 - `missing annotations.title: 0`
-- `writes: 62`, `additive (destructive=false): 25`, `idempotent writes: 37`
+- `writes: 62`, `additive (destructive=false): 24`, `idempotent writes: 37`
 
 Categorisation source-of-truth (run `grep` against the catalogue if a mismatch appears):
-- **Additive (25):** spot_place_order, spot_place_algo_order, spot_batch_orders, swap_place_order, swap_place_algo_order, swap_place_move_stop_order, futures_place_order, futures_batch_orders, futures_place_algo_order, futures_place_move_stop_order, option_place_order, option_place_algo_order, event_place_order, dca_create_order, grid_create_order, account_transfer, earn_savings_purchase, earn_savings_redeem, earn_fixed_purchase, earn_fixed_redeem, dcd_subscribe, dcd_redeem, onchain_earn_purchase, onchain_earn_redeem, skills_download.
+- **Additive (24):** spot_place_order, spot_place_algo_order, swap_place_order, swap_place_algo_order, swap_place_move_stop_order, futures_place_order, futures_batch_orders, futures_place_algo_order, futures_place_move_stop_order, option_place_order, option_place_algo_order, event_place_order, dca_create_order, grid_create_order, account_transfer, earn_savings_purchase, earn_savings_redeem, earn_fixed_purchase, earn_fixed_redeem, dcd_subscribe, dcd_redeem, onchain_earn_purchase, onchain_earn_redeem, skills_download.
 - **Idempotent writes (37):** spot_cancel_order, spot_amend_order, spot_amend_algo_order, spot_cancel_algo_order, spot_batch_amend, spot_batch_cancel, spot_set_leverage, swap_cancel_order, swap_amend_algo_order, swap_cancel_algo_orders, swap_close_position, swap_set_leverage, swap_batch_amend, swap_batch_cancel, futures_cancel_order, futures_amend_order, futures_amend_algo_order, futures_cancel_algo_orders, futures_close_position, futures_set_leverage, futures_batch_amend, futures_batch_cancel, option_cancel_order, option_batch_cancel, option_amend_order, option_amend_algo_order, option_cancel_algo_orders, event_amend_order, event_cancel_order, dca_stop_order, grid_amend_order, grid_stop_order, earn_set_lending_rate, earn_auto_set, onchain_earn_cancel, account_set_position_mode, skills_download.
-- **Overlap (1):** skills_download is both additive AND idempotent. So `additive ∪ idempotent` distinct count = 25 + 37 − 1 = 61, NOT 62. The missing write is `swap_batch_orders` itself, which is now intentionally classified as a destructive non-idempotent write (the safe default for a 3-in-1 router whose `action` param selects place/cancel/amend — `destructiveHint` and `idempotentHint` are both unset, so `toMcpTool` falls back to the write defaults `destructive=true, idempotent=false`). It is therefore in neither category — the "default-write" exception.
+- **Overlap (1):** skills_download is both additive AND idempotent. Math: `additive + idempotent_writes − overlap = total_writes − default_write_routers`. Concretely 24 + 37 − 1 = 60, and 62 − 60 = 2 "default-write" routers (`swap_batch_orders` and `spot_batch_orders`). Both are 3-in-1 routers whose `action` param selects place/cancel/amend; `destructiveHint` and `idempotentHint` are intentionally left unset so `toMcpTool` falls back to the safe write defaults (`destructive=true, idempotent=false`). They sit in neither category — the "default-write" exception.
 
 If any of these diverge, identify the offending tool and fix the registration (override or catalogue mismatch).
 
