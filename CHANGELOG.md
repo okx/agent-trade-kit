@@ -12,8 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+### Added
+
+- All 163 MCP tools now expose a human-readable `title` at both top-level (`Tool.title`, per MCP spec 2025-06-18) and inside `annotations.title` for backward compatibility, so clients like MCP Inspector render readable labels instead of snake_case names.
+
 ### Changed
 
+- Per-tool `annotations.destructiveHint` and `idempotentHint` are now accurate to MCP spec semantics: 24 additive writes (place_order, transfer, subscribe, redeem) are no longer marked destructive, and 37 destructive idempotent writes (cancel, amend, close, set_leverage) are now marked idempotent. Two 3-in-1 batch routers (`swap_batch_orders`, `spot_batch_orders`) keep the safe write defaults.
 - **Non-ASCII cleanup completed — round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
 
 ---

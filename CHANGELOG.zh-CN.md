@@ -12,8 +12,13 @@
 ## [Unreleased]
 
 
-### Changed
+### 新增
 
+- 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
+
+### 变更
+
+- 各工具的 `annotations.destructiveHint` 和 `idempotentHint` 现已严格遵循 MCP spec 语义：24 个 additive 写操作（place_order、transfer、subscribe、redeem）不再被标记为 destructive；37 个 destructive 且幂等的写操作（cancel、amend、close、set_leverage）现已正确标记 `idempotentHint=true`。两个 3-in-1 批处理路由（`swap_batch_orders`、`spot_batch_orders`）保留安全写默认值。
 - **非 ASCII 字符清理完成（第二轮）**（TRDATA-3977，!325）。清除了测试 `describe`/`it` 块名称中仍通过 TAP 输出泄露的剩余 5 个非 ASCII 字符，将计数降至 0，完成 1.3.5-beta.1 中启动的 TRDATA-3977 系列修复。
 
 ---
