@@ -20,6 +20,8 @@ export function registerOptionTools(): ToolSpec[] {
   return [
     {
       name: "option_place_order",
+      title: "Option Place Order",
+      destructiveHint: false,
       module: "option",
       description:
         "Place OPTION order. instId: {uly}-{expiry}-{strike}-C/P, e.g. BTC-USD-241227-50000-C. Before placing, use market_get_instruments to get ctVal (contract face value) - do NOT assume contract sizes. [CAUTION] Executes real trades.",
@@ -124,6 +126,8 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_cancel_order",
+      title: "Option Cancel Order",
+      idempotentHint: true,
       module: "option",
       description:
         "Cancel an unfilled OPTION order. Provide ordId or clOrdId.",
@@ -153,6 +157,8 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_batch_cancel",
+      title: "Option Batch Cancel Orders",
+      idempotentHint: true,
       module: "option",
       description:
         "[CAUTION] Batch cancel up to 20 OPTION orders.",
@@ -184,6 +190,8 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_amend_order",
+      title: "Option Amend Order",
+      idempotentHint: true,
       module: "option",
       description:
         "Amend an unfilled OPTION order (price and/or size). Provide ordId or clOrdId. To modify attached TP/SL, use option_amend_algo_order with the algoId from option_get_algo_orders.",
@@ -217,6 +225,7 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_get_order",
+      title: "Option Get Order",
       module: "option",
       description:
         "Get details of a single OPTION order by ordId or clOrdId.",
@@ -246,6 +255,7 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_get_orders",
+      title: "Option Get Orders",
       module: "option",
       description:
         "List OPTION orders. status: live=pending (default), history=7d, archive=3mo.",
@@ -301,6 +311,7 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_get_positions",
+      title: "Option Get Positions with Greeks",
       module: "option",
       description:
         "Get current OPTION positions including Greeks (delta, gamma, theta, vega).",
@@ -328,6 +339,7 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_get_fills",
+      title: "Option Get Fills",
       module: "option",
       description:
         "Get OPTION fill history. archive=false: last 3 days (default); archive=true: up to 3 months.",
@@ -371,6 +383,7 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_get_instruments",
+      title: "Option List Instruments (Chain)",
       module: "option",
       description:
         "List available OPTION contracts for a given underlying (option chain). Use to find valid instIds before placing orders.",
@@ -405,6 +418,7 @@ export function registerOptionTools(): ToolSpec[] {
     },
     {
       name: "option_get_greeks",
+      title: "Option Get Greeks",
       module: "option",
       description:
         "Get implied volatility and Greeks (delta, gamma, theta, vega) for OPTION contracts by underlying.",
