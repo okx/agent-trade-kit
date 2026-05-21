@@ -6,6 +6,7 @@ export function registerSkillsTools(): ToolSpec[] {
     {
       name: "skills_get_categories",
       module: "skills",
+      title: "Skills Marketplace List Categories",
       description:
         "List all available skill categories in OKX Skills Marketplace. " +
         "Use the returned categoryId as input to skills_search for category filtering. " +
@@ -21,6 +22,7 @@ export function registerSkillsTools(): ToolSpec[] {
     {
       name: "skills_search",
       module: "skills",
+      title: "Skills Marketplace Search",
       description:
         "Search for skills in OKX Skills Marketplace by keyword or category. " +
         "To get valid category IDs, call skills_get_categories first. " +
@@ -54,6 +56,7 @@ export function registerSkillsTools(): ToolSpec[] {
     {
       name: "skills_download",
       module: "skills",
+      title: "Skills Marketplace Download",
       description:
         "Download a skill package from OKX Skills Marketplace to a local directory. " +
         "Always call skills_search first to confirm the skill name exists. " +
@@ -82,6 +85,8 @@ export function registerSkillsTools(): ToolSpec[] {
         additionalProperties: false,
       },
       isWrite: true,
+      destructiveHint: false,
+      idempotentHint: true,
       handler: handleDownload,
     },
   ];
