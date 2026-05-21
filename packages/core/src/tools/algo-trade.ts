@@ -27,6 +27,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
   return [
     {
       name: "swap_place_algo_order",
+      title: "Perpetual Futures Place Algo Order",
+      destructiveHint: false,
       module: "swap",
       description:
         "Place a SWAP/FUTURES algo order. [CAUTION] Executes real trades. " +
@@ -184,6 +186,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
     },
     {
       name: "swap_place_move_stop_order",
+      title: "Perpetual Futures Place Move-Stop Order",
+      destructiveHint: false,
       module: "swap",
       description:
         "[DEPRECATED] Use swap_place_algo_order with ordType='move_order_stop' instead. " +
@@ -266,6 +270,8 @@ export function registerAlgoTradeTools(): ToolSpec[] {
     },
     {
       name: "swap_cancel_algo_orders",
+      title: "Perpetual Futures Cancel Algo Orders",
+      idempotentHint: true,
       module: "swap",
       description:
         "Cancel one or more pending SWAP/FUTURES algo orders (TP/SL). Accepts a list of {algoId, instId} objects.",
@@ -310,6 +316,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
     },
     {
       name: "swap_get_algo_orders",
+      title: "Perpetual Futures Get Algo Orders",
       module: "swap",
       description:
         "Query pending or completed SWAP/FUTURES algo orders (TP/SL, OCO, trailing stop).",
@@ -412,6 +419,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
   return [
     {
       name: "futures_place_algo_order",
+      title: "Futures Place Algo Order",
+      destructiveHint: false,
       module: "futures",
       description:
         "Place a FUTURES delivery algo order. [CAUTION] Executes real trades. " +
@@ -569,6 +578,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
     },
     {
       name: "futures_place_move_stop_order",
+      title: "Futures Place Move-Stop Order",
+      destructiveHint: false,
       module: "futures",
       description:
         "[DEPRECATED] Use futures_place_algo_order with ordType='move_order_stop' instead. " +
@@ -649,6 +660,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
     },
     {
       name: "futures_amend_algo_order",
+      title: "Futures Amend Algo Order",
+      idempotentHint: true,
       module: "futures",
       description:
         "Amend a pending FUTURES delivery algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via futures_get_algo_orders first.",
@@ -686,6 +699,8 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
     },
     {
       name: "futures_cancel_algo_orders",
+      title: "Futures Cancel Algo Orders",
+      idempotentHint: true,
       module: "futures",
       description:
         "Cancel one or more pending FUTURES delivery algo orders (TP/SL). Accepts a list of {algoId, instId} objects.",
@@ -724,6 +739,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
     },
     {
       name: "futures_get_algo_orders",
+      title: "Futures Get Algo Orders",
       module: "futures",
       description:
         "Query pending or completed FUTURES delivery algo orders (TP/SL, OCO, trailing stop).",
