@@ -15,6 +15,7 @@ export function registerFuturesTools(): ToolSpec[] {
     prefix: "futures",
     module: "futures",
     label: "FUTURES delivery",
+    titleLabel: "Futures",
     instTypes: ["FUTURES", "SWAP"],
     instIdExample: "e.g. BTC-USDT-240329",
   });
@@ -26,6 +27,8 @@ export function registerFuturesTools(): ToolSpec[] {
     // Unique to futures: amend a regular (non-algo) unfilled order.
     {
       name: "futures_amend_order",
+      title: "Futures Amend Order",
+      idempotentHint: true,
       module: "futures",
       description:
         "Amend an unfilled FUTURES delivery order (modify price and/or size). To modify attached TP/SL, use futures_amend_algo_order with the algoId from futures_get_algo_orders.",
@@ -62,6 +65,8 @@ export function registerFuturesTools(): ToolSpec[] {
     // Unique to futures: batch place only (no cancel/amend action dispatch).
     {
       name: "futures_batch_orders",
+      title: "Futures Batch Place Orders",
+      destructiveHint: false,
       module: "futures",
       description:
         "[CAUTION] Batch place up to 20 FUTURES delivery orders.",

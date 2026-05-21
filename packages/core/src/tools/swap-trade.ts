@@ -16,6 +16,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
     prefix: "swap",
     module: "swap",
     label: "SWAP/FUTURES",
+    titleLabel: "Perpetual Futures",
     instTypes: ["SWAP", "FUTURES"],
     instIdExample: "e.g. BTC-USDT-SWAP",
   });
@@ -27,6 +28,8 @@ export function registerSwapTradeTools(): ToolSpec[] {
     // Unique to swap: amend a pending TP/SL algo order attached to a position.
     {
       name: "swap_amend_algo_order",
+      title: "Perpetual Futures Amend Algo Order",
+      idempotentHint: true,
       module: "swap",
       description:
         "Amend a pending SWAP/FUTURES algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via swap_get_algo_orders first.",
@@ -67,6 +70,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
     // Unique to swap: 3-in-1 batch tool (place / cancel / amend via action param).
     {
       name: "swap_batch_orders",
+      title: "Perpetual Futures Batch Orders",
       module: "swap",
       description:
         "[CAUTION] Batch place/cancel/amend SWAP/FUTURES orders (max 20). action=place|cancel|amend.",
