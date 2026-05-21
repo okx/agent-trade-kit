@@ -14,6 +14,7 @@ export function registerAccountTools(): ToolSpec[] {
   return [
     {
       name: "account_get_balance",
+      title: "Get Trading Account Balance",
       module: "account",
       description:
         "Get account balance for trading account. Returns balances for all currencies or a specific one.",
@@ -39,10 +40,12 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_transfer",
+      title: "Transfer Between Accounts",
       module: "account",
       description:
         "Transfer funds between accounts (trading, funding, etc.). [CAUTION] Moves real funds.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -97,6 +100,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_max_size",
+      title: "Get Max Order Size",
       module: "account",
       description:
         "Get max buy/sell order size for a SWAP/FUTURES instrument given current balance and leverage. Useful before placing orders.",
@@ -145,6 +149,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_asset_balance",
+      title: "Get Funding Account Balance",
       module: "account",
       description:
         "Get funding account balance (asset account). Different from account_get_balance which queries the trading account. Optionally includes total asset valuation across all account types (trading, funding, earn, etc.).",
@@ -212,6 +217,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_bills",
+      title: "Get Account Bills",
       module: "account",
       description:
         "Get account ledger: fees paid, funding charges, realized PnL, transfers, etc. Default 20 records (last 7 days), max 100.",
@@ -279,6 +285,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_positions_history",
+      title: "Get Closed Positions History",
       module: "account",
       description:
         "Get closed position history for SWAP or FUTURES. Default 20 records, max 100.",
@@ -341,6 +348,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_trade_fee",
+      title: "Get Trade Fee Tier",
       module: "account",
       description:
         "Get maker/taker fee rates for the account. Useful to understand your fee tier before trading.",
@@ -374,6 +382,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_config",
+      title: "Get Account Configuration",
       module: "account",
       description:
         "Get account configuration: position mode (net vs hedge), account level, auto-loan settings, etc. " +
@@ -396,6 +405,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_max_withdrawal",
+      title: "Get Max Withdrawable Amount",
       module: "account",
       description:
         "Get maximum withdrawable amount for a currency from the trading account. Useful before initiating a transfer or withdrawal.",
@@ -421,6 +431,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_max_avail_size",
+      title: "Get Max Available Position Size",
       module: "account",
       description:
         "Get maximum available size for opening or reducing a position. Different from account_get_max_size which calculates new order size.",
@@ -466,6 +477,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_positions",
+      title: "Get Current Positions",
       module: "account",
       description:
         "Get current open positions across all instrument types (MARGIN, SWAP, FUTURES, OPTION, EVENTS). Use swap_get_positions for SWAP/FUTURES-only queries.",
@@ -502,6 +514,7 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_get_bills_archive",
+      title: "Get Archived Account Bills",
       module: "account",
       description:
         "Get archived account ledger (bills older than 7 days, up to 3 months). Use account_get_bills for recent 7-day records. Default 20 records, max 100.",
@@ -569,12 +582,14 @@ export function registerAccountTools(): ToolSpec[] {
     },
     {
       name: "account_set_position_mode",
+      title: "Set Position Mode",
       module: "account",
       description:
         "Switch between net position mode and long/short hedge mode. " +
         "net: one position per instrument (default). long_short_mode: separate long and short positions. " +
         "[CAUTION] Requires no open positions or pending orders.",
       isWrite: true,
+      idempotentHint: true,
       inputSchema: {
         type: "object",
         properties: {
