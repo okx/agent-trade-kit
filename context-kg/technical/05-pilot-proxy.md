@@ -113,7 +113,15 @@ With `--verbose`, the REST client (via `PilotManager`) emits lifecycle events to
 
 ## Interaction with Custom Proxy (`proxyUrl`)
 
-If `proxyUrl` is configured in the user's profile, Pilot is **disabled entirely** (`hasCustomProxy: true` → `preparePilot()` returns immediately). The two mechanisms are mutually exclusive — a custom SOCKS/HTTP proxy is assumed to handle connectivity.
+The SDK supports three proxy mechanisms; they interact with Pilot differently:
+
+| Mechanism | How configured | Pilot behavior |
+|-----------|----------------|----------------|
+| `proxyUrl` (per-profile toml field) | `proxy_url = "http://..."` in `[profiles.X]` | Pilot is **disabled entirely** (`hasCustomProxy: true` → `preparePilot()` returns immediately). The two mechanisms are mutually exclusive — a custom SOCKS/HTTP proxy is assumed to handle connectivity. |
+| `HTTPS_PROXY` / `HTTP_PROXY` env vars | Set in the shell environment | Pilot remains **fully active**. The env-proxy dispatcher is registered globally via `EnvHttpProxyAgent`. The effect on outgoing requests depends on Pilot mode: in **`direct` mode** (cache says direct connection works), requests travel through the env proxy via the global `EnvHttpProxyAgent`. In **`proxy` mode** (Pilot has an active proxy node), `getConnectionParams()` returns a per-request undici `Agent` pointing to the Pilot node; this per-request dispatcher takes precedence over the global `EnvHttpProxyAgent`, so traffic is routed through the Pilot node rather than the env proxy. In practice, Pilot `proxy` mode activates only in DNS-restricted regions, where corporate-proxy environments (`HTTPS_PROXY`) are uncommon — but the two mechanisms are not transparent to each other in that mode. |
+| No proxy configured | (default) | Pilot operates as described above (cache-first direct connection, fallback to proxy node). |
+
+**Summary**: only the explicit `proxyUrl` toml field disables Pilot. Setting `HTTPS_PROXY` / `HTTP_PROXY` does **not** disable Pilot; Pilot state machines run regardless. When Pilot is in `direct` mode, outgoing requests travel through `EnvHttpProxyAgent` (the global dispatcher). When Pilot is in `proxy` mode, the per-request undici `Agent` returned by `getConnectionParams()` takes precedence over the global dispatcher, so env-proxy settings have no effect on Pilot-routed traffic in that mode.
 
 ## Environment Variables
 
@@ -121,3 +129,6 @@ If `proxyUrl` is configured in the user's profile, Pilot is **disabled entirely*
 |----------|---------|
 | `OKX_PILOT_BINARY_PATH` | Override the default binary path (`~/.okx/bin/okx-pilot`) |
 | `OKX_PILOT_CACHE_PATH` | Override the default cache path (`~/.okx/pilot-cache.json`) |
+| `HTTPS_PROXY` | Route HTTPS requests through a proxy (does not affect Pilot state) |
+| `HTTP_PROXY` | Route HTTP requests through a proxy (does not affect Pilot state) |
+| `NO_PROXY` | Comma/space-separated hostnames to bypass the env proxy |
