@@ -14,6 +14,7 @@ export function registerEarnTools(): ToolSpec[] {
   return [
     {
       name: "earn_get_savings_balance",
+      title: "Get Simple Earn Balance",
       module: "earn.savings",
       description:
         "Get Simple Earn (savings/flexible earn) balance. Returns current holdings for all currencies or a specific one. " +
@@ -42,6 +43,7 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_get_fixed_order_list",
+      title: "Get Fixed-Term Earn Orders",
       module: "earn.savings",
       description:
         "Get Simple Earn Fixed (定期赚币) lending order list. " +
@@ -85,10 +87,12 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_savings_purchase",
+      title: "Subscribe Simple Earn",
       module: "earn.savings",
       description:
         "Purchase Simple Earn (savings/flexible earn). [CAUTION] Moves real funds into earn product.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -125,10 +129,12 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_savings_redeem",
+      title: "Redeem Simple Earn",
       module: "earn.savings",
       description:
         "Redeem Simple Earn (savings/flexible earn). [CAUTION] Withdraws funds from earn product.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -159,10 +165,12 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_set_lending_rate",
+      title: "Set Lending Rate",
       module: "earn.savings",
       description:
         "Set lending rate for Simple Earn. [CAUTION] Changes your lending rate preference.",
       isWrite: true,
+      idempotentHint: true,
       inputSchema: {
         type: "object",
         properties: {
@@ -192,6 +200,7 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_get_lending_history",
+      title: "Get Lending History",
       module: "earn.savings",
       description:
         "Get personal lending records for Simple Earn (your own lending history). NOT for market rate queries. " +
@@ -235,6 +244,7 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_fixed_purchase",
+      title: "Subscribe Fixed-Term Earn",
       module: "earn.savings",
       description:
         "Purchase Simple Earn Fixed (定期) product, two-step flow. " +
@@ -244,6 +254,7 @@ export function registerEarnTools(): ToolSpec[] {
         "Second call (confirm=true): executes the purchase. Only proceed after the user explicitly confirms. " +
         "IMPORTANT: Orders in 'pending' (匹配中) state can still be cancelled via earn_fixed_redeem; once the status changes to 'earning' (赚币中), funds are LOCKED until maturity - no early redemption allowed.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -331,6 +342,7 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_fixed_redeem",
+      title: "Redeem Fixed-Term Earn",
       module: "earn.savings",
       description:
         "Redeem Simple Earn Fixed (定期赚币) order. [CAUTION] Redeems a fixed-term lending order. " +
@@ -338,6 +350,7 @@ export function registerEarnTools(): ToolSpec[] {
         "orders in 'earning' state are locked until maturity and cannot be redeemed early. " +
         "Do NOT use for flexible earn redemption - use earn_savings_redeem instead.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -363,6 +376,7 @@ export function registerEarnTools(): ToolSpec[] {
     },
     {
       name: "earn_get_lending_rate_history",
+      title: "Get Lending Rates & Offers",
       module: "earn.savings",
       description:
         "Query Simple Earn lending rates and fixed-term offers. " +
