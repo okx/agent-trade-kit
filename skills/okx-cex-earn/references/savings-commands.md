@@ -89,12 +89,12 @@ okx --profile live earn savings rate-history --ccy USDT --limit 30         # rec
 | Parameter | Required | Description |
 |---|---|---|
 | `--ccy` | No | Filter by currency |
-| `--limit` | No | Max results (default 100) |
+| `--limit` | No | Max results (default 7) |
 
 This endpoint returns both flexible lending rates and fixed-term product offers:
 
 - **Flexible (活期):** `ccy` · `lendingRate` · `ts`
-- **Fixed-term (定期):** `ccy` · `term` · `rate` · `minLend` · `lendQuota` (remaining subscribable amount) · `soldOut`
+- **Fixed-term (定期):** `ccy` · `term` · `apr` · `minLend` · `lendQuota` (remaining subscribable amount) · `soldOut`
 
 Use this endpoint to check available fixed-term offers before subscribing (verify term exists and has remaining quota).
 
@@ -105,13 +105,13 @@ Use this endpoint to check available fixed-term offers before subscribing (verif
 | `rate` | User's minimum lending rate threshold (set via `set-rate`). Funds are only lent when the market lending rate ≥ this value. This is a filter, not a yield — do NOT display it as APY. |
 | `lendingRate` | Actual yield received by lenders. **Always use `lendingRate` as the true APY to show users.** For stablecoins (e.g. USDT/USDC): subject to pro-rata dilution — when eligible supply exceeds borrowing demand, total interest is shared among all eligible lenders. For non-stablecoins: no dilution. |
 | `term` | Lock period for fixed-term offers, e.g. `7D`. |
-| `rate` (fixed-term) | Annualized rate for fixed-term offers. |
+| `apr` (fixed-term) | Annualized rate for fixed-term offers. |
 | `minLend` | Minimum subscription amount for a fixed-term offer. |
 | `lendQuota` | Remaining subscribable amount for a fixed-term offer. |
 | `soldOut` | Whether the offer is sold out (`lendQuota` is `0`). |
 
 For flexible: always display `lendingRate` as the actual yield. Do NOT raise the minimum rate (`rate`) to increase yield — the actual yield (`lendingRate`) is determined by market supply/demand, not the minimum rate setting.
-For fixed-term: display `rate` and `term`, check `soldOut` is false (or `lendQuota` > 0) before subscribing.
+For fixed-term: display `apr` and `term`, check `soldOut` is false (or `lendQuota` > 0) before subscribing.
 
 ---
 
@@ -170,6 +170,25 @@ Plain-language status explanations (translate to user's language):
 
 # Simple Earn Fixed (定期) Command Reference
 
+## earn savings fixed-products
+
+Query available Simple Earn Fixed-term products. Returns all fixed-term offers with APR, term, minimum investment, and remaining quota.
+
+```bash
+okx --profile live earn savings fixed-products --json            # all currencies
+okx --profile live earn savings fixed-products --ccy USDT --json # specific currency
+```
+
+| Parameter | Required | Description |
+|---|---|---|
+| `--ccy` | No | Filter by currency, e.g. USDT |
+
+Output fields: `ccy` · `term` · `apr` (annualized APR) · `minLend` (minimum subscription amount) · `lendQuota` (remaining subscribable amount) · `soldOut` (whether product is fully subscribed)
+
+Use this command to check which fixed-term products are available and whether they still have quota before subscribing via `earn savings fixed-purchase`.
+
+---
+
 ## earn savings fixed-orders
 
 Query fixed-term (定期) orders. Returns all orders or filtered by currency/state.
@@ -223,11 +242,11 @@ okx --profile live earn savings fixed-purchase --ccy USDT --amt 1000 --term 7D -
 |---|---|---|
 | `--ccy` | Yes | Currency to subscribe, e.g. USDT |
 | `--amt` | Yes | Amount to subscribe |
-| `--term` | Yes | Lock period, e.g. `7D` (must match an available offer term from `rate-history`) |
+| `--term` | Yes | Lock period, e.g. `7D` (must match an available offer term from `fixed-products`) |
 | `--confirm` | No | Execute the subscription. Without this flag, only a preview is returned. |
 
 **Pre-execution checklist:**
-1. Check available offers: `okx --profile live earn savings rate-history --ccy <ccy> --json` — verify the requested term exists and has remaining quota
+1. Check available offers: `okx --profile live earn savings fixed-products --ccy <ccy> --json` — verify the requested term exists and has remaining quota
 2. Check balance (in parallel with step 1): `okx --profile live account asset-balance <ccy>` — verify user has sufficient funds in funding account; if insufficient, inform user and stop
 3. Preview the order (without `--confirm`): show the locked APR, term, and expected earnings. **Must** include this warning in the preview output: "⚠️ Orders still in 'pending' state can be cancelled before matching completes. Once the status changes to 'earning', funds are LOCKED until maturity — early redemption is NOT allowed."
 4. Show confirmation summary (see [Fixed-Term Confirmation Templates](#fixed-term-confirmation-templates))
@@ -242,12 +261,12 @@ okx --profile live earn savings fixed-purchase --ccy USDT --amt 1000 --term 7D -
 Redeem a fixed-term order. Redeems the full amount — partial redemption is not supported. Only orders in `pending` state can be redeemed early.
 
 ```bash
-okx --profile live earn savings fixed-redeem <reqId> --json
+okx --profile live earn savings fixed-redeem --reqId <reqId> --json
 ```
 
 | Parameter | Required | Description |
 |---|---|---|
-| `<reqId>` | Yes | Order ID (positional) from `earn savings fixed-orders` |
+| `--reqId` | Yes | Order ID from `earn savings fixed-orders` (named flag, e.g. `--reqId REQ123`) |
 
 **Pre-execution checklist:**
 1. Check order state: `okx --profile live earn savings fixed-orders --json` — find the order and verify `state` is `pending`

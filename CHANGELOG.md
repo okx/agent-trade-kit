@@ -13,13 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`earn_get_fixed_earn_products` MCP tool** and `okx earn savings fixed-products` CLI command for querying Simple Earn Fixed-term product pool with APR, term, remaining quota, and sold-out status
 - **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
+
+### Fixed
+
+- **`earn savings fixed-redeem` documentation used positional arg instead of `--reqId` flag**: SKILL.md, cli-registry, and savings-commands.md all documented `fixed-redeem <reqId>` (positional), but the CLI router reads `v.reqId` (named flag). Agents following the docs would pass `undefined` as reqId. Now correctly documented as `--reqId <reqId>`.
+- **`earn savings rate-history --limit` documentation default was 100, actual code default is 7**: savings-commands.md previously documented the default as 100, but the CLI implementation uses `readNumber(args, "limit") ?? 7`. Now corrected to match the actual default of 7.
+- **`earn savings rate-history` and `fixed-products` CLI output used `rate` column but OKX API returns `apr`**: fixed-term offers table always showed empty `rate` column. Now correctly reads `apr` field.
 
 ### Changed
 
-- **Non-ASCII cleanup completed — round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
-
----
+- **Non-ASCII cleanup completed -- round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
 
 ---
 
@@ -83,7 +88,6 @@ Stable rollup of `1.3.4-beta.1` only. The `1.3.4-beta.2` line below is retained 
 ## [1.3.4-beta.1] - 2026-05-12
 
 ### Added
-
 - **Economic calendar tools** (`news_get_economic_calendar`, `news_list_calendar_regions`). Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance.
 
 ## [1.3.3] - 2026-05-08
