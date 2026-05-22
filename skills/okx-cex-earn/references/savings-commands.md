@@ -94,7 +94,7 @@ okx --profile live earn savings rate-history --ccy USDT --limit 30         # rec
 This endpoint returns both flexible lending rates and fixed-term product offers:
 
 - **Flexible (活期):** `ccy` · `lendingRate` · `ts`
-- **Fixed-term (定期):** `ccy` · `term` · `rate` · `minLend` · `lendQuota` (remaining subscribable amount) · `soldOut`
+- **Fixed-term (定期):** `ccy` · `term` · `apr` · `minLend` · `lendQuota` (remaining subscribable amount) · `soldOut`
 
 Use this endpoint to check available fixed-term offers before subscribing (verify term exists and has remaining quota).
 
@@ -105,13 +105,13 @@ Use this endpoint to check available fixed-term offers before subscribing (verif
 | `rate` | User's minimum lending rate threshold (set via `set-rate`). Funds are only lent when the market lending rate ≥ this value. This is a filter, not a yield — do NOT display it as APY. |
 | `lendingRate` | Actual yield received by lenders. **Always use `lendingRate` as the true APY to show users.** For stablecoins (e.g. USDT/USDC): subject to pro-rata dilution — when eligible supply exceeds borrowing demand, total interest is shared among all eligible lenders. For non-stablecoins: no dilution. |
 | `term` | Lock period for fixed-term offers, e.g. `7D`. |
-| `rate` (fixed-term) | Annualized rate for fixed-term offers. |
+| `apr` (fixed-term) | Annualized rate for fixed-term offers. |
 | `minLend` | Minimum subscription amount for a fixed-term offer. |
 | `lendQuota` | Remaining subscribable amount for a fixed-term offer. |
 | `soldOut` | Whether the offer is sold out (`lendQuota` is `0`). |
 
 For flexible: always display `lendingRate` as the actual yield. Do NOT raise the minimum rate (`rate`) to increase yield — the actual yield (`lendingRate`) is determined by market supply/demand, not the minimum rate setting.
-For fixed-term: display `rate` and `term`, check `soldOut` is false (or `lendQuota` > 0) before subscribing.
+For fixed-term: display `apr` and `term`, check `soldOut` is false (or `lendQuota` > 0) before subscribing.
 
 ---
 
