@@ -184,6 +184,7 @@ export function registerIndicatorTools(): ToolSpec[] {
   return [
     {
       name: "market_get_indicator",
+      title: "Get Technical Indicator",
       module: "market",
       description:
         "Get technical indicator values for an instrument. Common indicators: ma, ema, rsi, macd, bb (Bollinger), kdj, supertrend, ahr999. Call market_list_indicators first to see all valid names. No credentials required.",
@@ -262,6 +263,7 @@ export function registerIndicatorTools(): ToolSpec[] {
     },
     {
       name: "market_list_indicators",
+      title: "List Technical Indicators",
       module: "market",
       description:
         "List all supported technical indicator names and descriptions. Call this before market_get_indicator to discover valid indicator names. No credentials required.",

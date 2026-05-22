@@ -5,7 +5,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import type { ToolContext } from "../src/tools/types.js";
+import { toMcpTool, type ToolContext, type ToolSpec } from "../src/tools/types.js";
 import { normalizeResponse } from "../src/tools/helpers.js";
 import { registerMarketTools } from "../src/tools/market.js";
 import { registerSpotTradeTools } from "../src/tools/spot-trade.js";
@@ -6052,6 +6052,75 @@ describe("smartmoney_search_trader", () => {
     assert.equal(data.length, 2);
     assert.equal(data[0].authorId, "1");
     assert.equal(data[1].nickName, "alice_eth");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toMcpTool: title propagation & annotation overrides
+// ---------------------------------------------------------------------------
+
+describe("toMcpTool title & annotation overrides", () => {
+  const baseSpec: Omit<ToolSpec, "name" | "title" | "isWrite"> = {
+    module: "market",
+    description: "test",
+    inputSchema: { type: "object", properties: {} },
+    handler: async () => ({}),
+  };
+
+  it("propagates title to Tool.title and annotations.title", () => {
+    const t = toMcpTool({ ...baseSpec, name: "x_get_y", title: "Get Y", isWrite: false } as ToolSpec);
+    assert.equal(t.title, "Get Y");
+    assert.equal(t.annotations?.title, "Get Y");
+  });
+
+  it("defaults destructive/idempotent from isWrite when no override", () => {
+    const r = toMcpTool({ ...baseSpec, name: "x_get_y", title: "Get Y", isWrite: false } as ToolSpec);
+    assert.equal(r.annotations?.readOnlyHint, true);
+    assert.equal(r.annotations?.destructiveHint, false);
+    assert.equal(r.annotations?.idempotentHint, true);
+
+    const w = toMcpTool({ ...baseSpec, name: "x_place", title: "Place", isWrite: true } as ToolSpec);
+    assert.equal(w.annotations?.readOnlyHint, false);
+    assert.equal(w.annotations?.destructiveHint, true);
+    assert.equal(w.annotations?.idempotentHint, false);
+  });
+
+  it("respects destructiveHint override on additive writes", () => {
+    const t = toMcpTool({
+      ...baseSpec,
+      name: "x_place",
+      title: "Place X",
+      isWrite: true,
+      destructiveHint: false,
+    } as ToolSpec);
+    assert.equal(t.annotations?.destructiveHint, false);
+    assert.equal(t.annotations?.idempotentHint, false); // default for write
+  });
+
+  it("respects idempotentHint override on cancel/amend writes", () => {
+    const t = toMcpTool({
+      ...baseSpec,
+      name: "x_cancel",
+      title: "Cancel X",
+      isWrite: true,
+      idempotentHint: true,
+    } as ToolSpec);
+    assert.equal(t.annotations?.destructiveHint, true); // default for write
+    assert.equal(t.annotations?.idempotentHint, true);
+  });
+
+  it("respects both destructive and idempotent overrides combined", () => {
+    const t = toMcpTool({
+      ...baseSpec,
+      name: "x_transfer",
+      title: "Transfer X",
+      isWrite: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    } as ToolSpec);
+    assert.equal(t.annotations?.readOnlyHint, false);
+    assert.equal(t.annotations?.destructiveHint, false);
+    assert.equal(t.annotations?.idempotentHint, true);
   });
 });
 

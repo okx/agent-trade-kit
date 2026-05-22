@@ -51,14 +51,26 @@ Each tool is defined as a `ToolSpec` object in `packages/core/src/tools/types.ts
 
 ```typescript
 interface ToolSpec {
-  name: string;          // e.g. "spot_place_order"
-  description: string;   // Intent-oriented description for the model
-  inputSchema: JsonSchema; // JSON Schema for parameter validation (MCP SDK format)
-  isWrite: boolean;       // true = funds/state modification
-  module: ModuleId;       // e.g. "spot", "earn.savings"
+  name: string;              // e.g. "spot_place_order"
+  title: string;             // Human-readable label shown by MCP clients (required)
+  description: string;       // Intent-oriented description for the model
+  inputSchema: JsonSchema;   // JSON Schema for parameter validation (MCP SDK format)
+  outputSchema?: OutputSchema; // Optional JSON Schema for structured response payload
+  isWrite: boolean;          // true = funds/state modification (drives readOnlyHint)
+  destructiveHint?: boolean; // Override for annotations.destructiveHint; defaults to isWrite
+  idempotentHint?: boolean;  // Override for annotations.idempotentHint; defaults to !isWrite
+  module: ModuleId;          // e.g. "spot", "earn.savings"
   handler: (args: ToolArgs, context: ToolContext) => Promise<unknown>;
 }
 ```
+
+`toMcpTool(spec)` emits the MCP `Tool` object: `title` is written both at the top level (MCP 2025-06-18+) and inside `annotations.title` for client back-compat. `readOnlyHint` is derived directly from `isWrite` and has no override (per MCP spec, `destructiveHint`/`idempotentHint` only matter when `readOnlyHint=false`).
+
+Annotation overrides exist for two write patterns where the default `isWrite`-derived hints would mislead clients:
+- **Additive writes** (`place_order`, `transfer`, `subscribe`, `redeem`, …) — set `destructiveHint: false` because they add state rather than destroying it.
+- **Idempotent writes** (`cancel_*`, `amend_*`, `close_position`, `*_set_*`, …) — set `idempotentHint: true` because repeated calls converge to the same final state.
+
+Per MCP spec, `annotations.*Hint` fields are advisory hints to clients; they do not change tool execution semantics.
 
 The `handler` function receives:
 - `args`: validated parameter object (typed as `Record<string, unknown>`)

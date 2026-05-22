@@ -16,6 +16,7 @@ export function registerMarketTools(): ToolSpec[] {
   return [
     {
       name: "market_get_ticker",
+      title: "Get Ticker",
       module: "market",
       description:
         "Get ticker data for a single instrument.",
@@ -44,6 +45,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_tickers",
+      title: "Get All Tickers",
       module: "market",
       description:
         "Get ticker data for all instruments of a given type.",
@@ -84,6 +86,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_orderbook",
+      title: "Get Order Book",
       module: "market",
       description:
         "Get the order book (bids/asks) for an instrument.",
@@ -119,6 +122,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_candles",
+      title: "Get Candlesticks",
       module: "market",
       description:
         "Get candlestick (OHLCV) data for an instrument. Automatically retrieves historical data (back to 2021) when requesting older time ranges. Use the `after` parameter to paginate back in time (the old `history` parameter has been removed). IMPORTANT: Before fetching with `after`/`before`, estimate the number of candles: time_range_ms / bar_interval_ms. If the estimate exceeds ~500 candles, inform the user of the estimated count and ask for confirmation before proceeding.",
@@ -186,6 +190,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_instruments",
+      title: "List Instruments",
       module: "market",
       description:
         "Get tradable instruments for a given type. Returns contract specs: min order size, lot size, tick size, contract value, settlement currency, listing/expiry time. Essential before placing orders.",
@@ -231,6 +236,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_funding_rate",
+      title: "Get Funding Rate",
       module: "market",
       description:
         "Get funding rate for a perpetual SWAP instrument. IMPORTANT: instId must end with -SWAP (e.g. BTC-USDT-SWAP). Spot IDs like BTC-USDT are NOT valid. history=false (default): current rate + next estimated rate; history=true: historical rates.",
@@ -293,6 +299,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_mark_price",
+      title: "Get Mark Price",
       module: "market",
       description:
         "Get mark price for SWAP, FUTURES, or MARGIN instruments. Used for liquidation calculations and unrealized PnL.",
@@ -337,6 +344,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_trades",
+      title: "Get Recent Trades",
       module: "market",
       description:
         "Get recent trades for an instrument. Default 20 records, max 500.",
@@ -372,6 +380,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_index_ticker",
+      title: "Get Index Ticker",
       module: "market",
       description:
         "Get index ticker data (e.g. BTC-USD, ETH-USD index prices). Independent of any single exchange.",
@@ -406,6 +415,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_index_candles",
+      title: "Get Index Candlesticks",
       module: "market",
       description:
         "Get candlestick data for an index (e.g. BTC-USD index). history=false: recent up to 1440 bars; history=true: older data.",
@@ -465,6 +475,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_price_limit",
+      title: "Get Price Limit",
       module: "market",
       description:
         "Get the current price limit (upper and lower bands) for a SWAP or FUTURES instrument. Orders outside these limits will be rejected.",
@@ -493,6 +504,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_open_interest",
+      title: "Get Open Interest",
       module: "market",
       description:
         "Get open interest for SWAP, FUTURES, or OPTION instruments. Useful for gauging market sentiment and positioning.",
@@ -537,6 +549,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_stock_tokens",
+      title: "List Stock Tokens",
       module: "market",
       description:
         "[Deprecated: use market_get_instruments_by_category with instCategory=\"3\" instead] Get all stock token instruments (instCategory=3). Stock tokens track real-world stock prices on OKX (e.g. AAPL-USDT-SWAP).",
@@ -576,6 +589,7 @@ export function registerMarketTools(): ToolSpec[] {
     },
     {
       name: "market_get_instruments_by_category",
+      title: "List Instruments by Category",
       module: "market",
       description:
         "Discover tradeable instruments by asset category. Stock tokens (instCategory=3, e.g. AAPL-USDT-SWAP, TSLA-USDT-SWAP), Metals (4, e.g. XAUUSDT-USDT-SWAP for gold), Commodities (5, e.g. OIL-USDT-SWAP for crude oil), Forex (6, e.g. EURUSDT-USDT-SWAP for EUR/USD), Bonds (7, e.g. US30Y-USDT-SWAP for crude oil). Use this to find instIds before querying prices or placing orders. Filters client-side by instCategory.",

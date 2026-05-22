@@ -15,6 +15,7 @@
 
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
+- 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
 
 ### 修复
 
@@ -24,6 +25,7 @@
 
 ### 变更
 
+- 各工具的 `annotations.destructiveHint` 和 `idempotentHint` 现已严格遵循 MCP spec 语义：24 个 additive 写操作（place_order、transfer、subscribe、redeem）不再被标记为 destructive；37 个 destructive 且幂等的写操作（cancel、amend、close、set_leverage）现已正确标记 `idempotentHint=true`。两个 3-in-1 批处理路由（`swap_batch_orders`、`spot_batch_orders`）保留安全写默认值。
 - **非 ASCII 字符清理第二轮**（TRDATA-3977，!325）。清理了 TAP 输出中 test `describe`/`it` 块名称中残留的 5 个非 ASCII 字符，降为 0。完成 1.3.5-beta.1 中开始的 TRDATA-3977 系列。
 
 ---

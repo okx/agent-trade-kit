@@ -605,6 +605,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- T1. Top traders (leaderboard rank) ---------- */
     {
       name: "smartmoney_get_traders_by_filter",
+      title: "Smart Money Leaderboard",
       module: "smartmoney",
       description:
         "Leaderboard ranking of OKX smart-money traders, filtered by pool conditions and ranked by `sortBy`. " +
@@ -685,6 +686,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- T2. Trader performance (by authorIds) ---------- */
     {
       name: "smartmoney_get_performance_by_trader",
+      title: "Smart Money Trader Performance",
       module: "smartmoney",
       description:
         "PnL / win-rate / drawdown profile for one or more traders looked up by `authorIds`. " +
@@ -766,6 +768,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- T3. Trader current positions ---------- */
     {
       name: "smartmoney_get_trader_positions",
+      title: "Smart Money Trader Current Positions",
       module: "smartmoney",
       description:
         "Currently-open positions held by a single trader (direction, size, leverage, entry, conviction). " +
@@ -864,6 +867,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- T4. Trader closed-position history ---------- */
     {
       name: "smartmoney_get_trader_positions_history",
+      title: "Smart Money Trader Position History",
       module: "smartmoney",
       description:
         "Closed-position history of a single trader, paginated by `posId` cursor. " +
@@ -1023,6 +1027,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- T5. Trader order history ---------- */
     {
       name: "smartmoney_get_trader_orders_history",
+      title: "Smart Money Trader Order History",
       module: "smartmoney",
       description:
         "Recent orders/fills placed by a single trader (direction, size, price, leverage), paginated by `ordId` cursor. " +
@@ -1151,6 +1156,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- T6. Search top traders by nickname keyword ---------- */
     {
       name: "smartmoney_search_trader",
+      title: "Search Smart Money Top Traders",
       module: "smartmoney",
       description:
         "Search Top Traders by nickname keyword, ranked by OKX-platform follower count DESC. " +
@@ -1209,6 +1215,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- S1. Signal overview by filter (multi-asset, tier-filtered pool) ---------- */
     {
       name: "smartmoney_get_signal_overview_by_filter",
+      title: "Smart Money Consensus Signals by Filter",
       module: "smartmoney",
       description:
         "Multi-asset smart-money consensus signals (long/short ratio, weighted entry, capital flow, deltas vs 1h/24h/7d), " +
@@ -1289,6 +1296,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- S2. Signal overview by trader (multi-asset, authorIds-restricted) ---------- */
     {
       name: "smartmoney_get_signal_overview_by_trader",
+      title: "Smart Money Consensus Signals by Trader",
       module: "smartmoney",
       description:
         "Multi-asset smart-money signals aggregated over a hand-picked set of traders (`authorIds`). " +
@@ -1390,6 +1398,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- S3. Signal trend by filter (single-asset, tier-filtered pool, asOfTime anchor) ---------- */
     {
       name: "smartmoney_get_signal_trend_by_filter",
+      title: "Smart Money Signal Trend by Filter",
       module: "smartmoney",
       description:
         "Time-series of single-asset smart-money signal across hourly/daily buckets, aggregated over a tier-filtered trader pool. " +
@@ -1481,6 +1490,7 @@ export function registerSmartmoneyTools(): ToolSpec[] {
     /* ---------- S4. Signal trend by trader (single-asset, authorIds-restricted) ---------- */
     {
       name: "smartmoney_get_signal_trend_by_trader",
+      title: "Smart Money Signal Trend by Trader",
       module: "smartmoney",
       description:
         "Time-series of single-asset smart-money signal aggregated over a hand-picked set of traders (`authorIds`). " +

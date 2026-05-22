@@ -20,6 +20,7 @@ import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 const SYSTEM_CAPABILITIES_TOOL_NAME = "system_get_capabilities";
 const SYSTEM_CAPABILITIES_TOOL: Tool = {
   name: SYSTEM_CAPABILITIES_TOOL_NAME,
+  title: "Server Capabilities Snapshot",
   description:
     "Return machine-readable server capabilities and module availability for agent planning.",
   inputSchema: {
@@ -27,6 +28,7 @@ const SYSTEM_CAPABILITIES_TOOL: Tool = {
     additionalProperties: false,
   },
   annotations: {
+    title: "Server Capabilities Snapshot",
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
