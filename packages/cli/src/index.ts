@@ -147,6 +147,7 @@ import {
   cmdEarnFixedOrderList,
   cmdEarnFixedPurchase,
   cmdEarnFixedRedeem,
+  cmdEarnFixedProducts,
   cmdEarnSavingsPurchase,
   cmdEarnSavingsRedeem,
   cmdEarnSetLendingRate,
@@ -1556,6 +1557,7 @@ function handleEarnSavingsCommand(
   if (action === "set-rate") return cmdEarnSetLendingRate(run, { ccy: v.ccy!, rate: v.rate!, json });
   if (action === "lending-history") return cmdEarnLendingHistory(run, { ccy: v.ccy, limit, json });
   if (action === "rate-history") return cmdEarnLendingRateHistory(run, { ccy: v.ccy, limit, json });
+  if (action === "fixed-products") return cmdEarnFixedProducts(run, { ccy: v.ccy, json });
   if (action === "fixed-orders") return cmdEarnFixedOrderList(run, { ccy: v.ccy, state: v.state, json });
   if (action === "fixed-purchase") return cmdEarnFixedPurchase(run, { ccy: v.ccy!, amt: v.amt!, term: v.term!, confirm: v.confirm ?? false, json });
   if (action === "fixed-redeem") return cmdEarnFixedRedeem(run, { reqId: v.reqId!, json });

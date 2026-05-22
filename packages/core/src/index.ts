@@ -1,3 +1,4 @@
+import "./runtime/undici-proxy-bootstrap.js"; // registers EnvHttpProxyAgent as global undici dispatcher (reads HTTPS_PROXY / HTTP_PROXY / NO_PROXY)
 export { OkxRestClient } from "./client/rest-client.js";
 export { resolveIndicatorCode, INDICATOR_BARS, KNOWN_INDICATORS } from "./tools/indicator.js";
 export type { IndicatorBar } from "./tools/indicator.js";

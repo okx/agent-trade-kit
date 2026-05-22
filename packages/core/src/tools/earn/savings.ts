@@ -18,9 +18,9 @@ export function registerEarnTools(): ToolSpec[] {
       module: "earn.savings",
       description:
         "Get Simple Earn (savings/flexible earn) balance. Returns current holdings for all currencies or a specific one. " +
-        "To show market rates alongside balance (市场均利率), call earn_get_lending_rate_history. " +
-        "earn_get_lending_rate_history also returns fixed-term (定期) product offers, so one call gives a complete view of both flexible and fixed options. " +
-        "Do NOT use for fixed-term (定期) order queries - use earn_get_fixed_order_list instead.",
+        "To show market rates alongside balance, call earn_get_lending_rate_history. " +
+        "To browse available fixed-term products with quota info, use earn_get_fixed_earn_products. " +
+        "Do NOT use for fixed-term order queries — use earn_get_fixed_order_list instead.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -249,8 +249,8 @@ export function registerEarnTools(): ToolSpec[] {
       description:
         "Purchase Simple Earn Fixed (定期) product, two-step flow. " +
         "First call (confirm omitted or false): returns purchase preview with product details and risk warning. " +
-        "Preview offer fields: lendQuota = remaining quota (剩余额度), soldOut = whether product is sold out (lendQuota is 0). " +
-        "YOU MUST display the 'warning' field from the preview response to the user VERBATIM before asking for confirmation - do NOT omit or summarize it. " +
+        "Preview offer fields: lendQuota = remaining quota, soldOut = whether product is sold out (lendQuota is 0). " +
+        "YOU MUST display the 'warning' field from the preview response to the user VERBATIM before asking for confirmation — do NOT omit or summarize it. " +
         "Second call (confirm=true): executes the purchase. Only proceed after the user explicitly confirms. " +
         "IMPORTANT: Orders in 'pending' (匹配中) state can still be cancelled via earn_fixed_redeem; once the status changes to 'earning' (赚币中), funds are LOCKED until maturity - no early redemption allowed.",
       isWrite: true,
@@ -383,8 +383,9 @@ export function registerEarnTools(): ToolSpec[] {
         "Use this tool when the user asks about Simple Earn products, current or historical lending rates, " +
         "or when displaying savings balance with market rate context (市场均利率). " +
         "Returns lending rate history (lendingRate field, newest-first) AND available fixed-term (定期) offers " +
-        "with APR, term, min amount, and quota - one call gives a complete view of both flexible and fixed options. " +
-        "In fixedOffers: lendQuota = remaining quota (剩余额度), soldOut = whether product is sold out (lendQuota is 0). " +
+        "with APR, term, min amount, and quota — one call gives a complete view of both flexible and fixed options. " +
+        "In fixedOffers: lendQuota = remaining quota, soldOut = whether product is sold out (lendQuota is 0). " +
+        "For dedicated fixed-term product queries, use earn_get_fixed_earn_products. " +
         "To get current flexible APY: use limit=1 and read lendingRate.",
       isWrite: false,
       inputSchema: {
@@ -450,6 +451,42 @@ export function registerEarnTools(): ToolSpec[] {
           data: rateData,
           fixedOffers,
         };
+      },
+    },
+    {
+      name: "earn_get_fixed_earn_products",
+      title: "Get Fixed-Term Earn Products",
+      module: "earn.savings",
+      description:
+        "Query available Simple Earn Fixed-term products. " +
+        "Returns fixed-term offers with APR, term, min investment, and remaining quota. " +
+        "Use to check available products and quota before purchasing. " +
+        "Do NOT use for querying your own orders — use earn_get_fixed_order_list instead. " +
+        "Do NOT use just for current flexible APY -- use earn_get_lending_rate_history with limit=1 instead.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          ccy: {
+            type: "string",
+            description: "e.g. USDT. Omit for all currencies.",
+          },
+        },
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/finance/simple-earn-fixed/offers",
+          compactObject({ ccy: readString(args, "ccy") }),
+          privateRateLimit("earn_get_fixed_earn_products", 2),
+        );
+        const result = normalizeResponse(response);
+        const allOffers = (Array.isArray(result["data"]) ? result["data"] : []) as Array<Record<string, unknown>>;
+        result["data"] = allOffers.map(({ borrowingOrderQuota: _, ...rest }) => ({
+          ...rest,
+          soldOut: rest["lendQuota"] === "0",
+        }));
+        return result;
       },
     },
   ];
