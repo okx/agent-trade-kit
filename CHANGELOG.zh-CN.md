@@ -13,6 +13,7 @@
 
 ### 新增
 
+- **聚合余额工具 `account_get_balance_all`**（OPRS-360）。一次性获取交易账户+资金账户余额及可选跨账户估值快照。本地通过 `Promise.allSettled` 并发聚合（与上游 BFF 灰度解耦）。部分失败语义：每个 section 有 `available` 标记 + `meta.partialFailure`。CLI 命令：`okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--valuationCcy <ccy>]`。Skill `okx-cex-portfolio` 同步更新。参考：[TD] 聚合balance接口。
 - **通过环境变量自动支持 HTTP/HTTPS 代理**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 调用（CLI、MCP server、mcp-gateway）将自动通过代理路由。支持 `NO_PROXY` 按主机跳过代理。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需修改配置；当两者同时设置时，`proxy_url` 配置仍优先生效。
 
 ### Changed

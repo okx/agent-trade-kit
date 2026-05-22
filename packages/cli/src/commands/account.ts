@@ -258,6 +258,99 @@ export async function cmdAccountTransfer(
   outputLine(`Transfer: ${r?.["transId"]} (${r?.["ccy"]} ${r?.["amt"]})`);
 }
 
+export async function cmdAccountBalanceAll(
+  run: ToolRunner,
+  ccy: string | undefined,
+  opts: {
+    accounts?: string;
+    noValuation?: boolean;
+    valuationCcy?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = (await run("account_get_balance_all", {
+    ...(ccy ? { ccy } : {}),
+    ...(opts.accounts ? { accounts: opts.accounts } : {}),
+    showValuation: !opts.noValuation,
+    ...(opts.valuationCcy ? { valuationCcy: opts.valuationCcy } : {}),
+  })) as unknown as Record<string, unknown>;
+
+  if (opts.json) return printJson(result);
+
+  const meta = result.meta as Record<string, unknown> | undefined;
+  if (meta?.partialFailure) {
+    outputLine("[PARTIAL] Some balance queries failed — results may be incomplete.");
+    outputLine("");
+  }
+
+  const trading = result.trading as Record<string, unknown> | undefined;
+  if (trading) {
+    if (trading.available) {
+      outputLine("=== Trading Account ===");
+      const details = (trading.details as Record<string, unknown>[]) ?? [];
+      const first = details[0] as Record<string, unknown> | undefined;
+      if (first) {
+        outputLine(`Total Equity: ${String(first["totalEq"] ?? trading["totalEq"] ?? "0")}`);
+        const innerDetails = (first["details"] as Record<string, unknown>[]) ?? details;
+        const rows = innerDetails
+          .filter((d) => Number(d["eq"] ?? d["bal"] ?? 0) > 0)
+          .map((d) => ({
+            ccy: d["ccy"],
+            equity: d["eq"] ?? d["bal"],
+            available: d["availEq"] ?? d["availBal"],
+            frozen: d["frozenBal"],
+          }));
+        if (rows.length > 0) printTable(rows);
+      }
+    } else {
+      const error = trading.error as Record<string, unknown> | undefined;
+      outputLine(`=== Trading Account === [ERROR: ${error?.msg ?? "unavailable"}]`);
+    }
+    outputLine("");
+  }
+
+  const funding = result.funding as Record<string, unknown> | undefined;
+  if (funding) {
+    if (funding.available) {
+      outputLine("=== Funding Account ===");
+      const details = (funding.details as Record<string, unknown>[]) ?? [];
+      const rows = details
+        .filter((d) => Number(d["bal"] ?? 0) > 0)
+        .map((d) => ({
+          ccy: d["ccy"],
+          balance: d["bal"],
+          available: d["availBal"],
+          frozen: d["frozenBal"],
+        }));
+      if (rows.length > 0) printTable(rows);
+      else outputLine("(no non-zero balances)");
+    } else {
+      const error = funding.error as Record<string, unknown> | undefined;
+      outputLine(`=== Funding Account === [ERROR: ${error?.msg ?? "unavailable"}]`);
+    }
+    outputLine("");
+  }
+
+  const valuation = result.valuation as Record<string, unknown> | undefined;
+  if (valuation) {
+    if (valuation.available) {
+      outputLine(`=== Valuation (${String(valuation.valuationCcy ?? "USDT")}) ===`);
+      printKv({ totalBal: valuation.totalBal });
+      const details = (valuation.details as Record<string, unknown>[]) ?? [];
+      if (details.length > 0) {
+        const first = details[0] as Record<string, unknown> | undefined;
+        const breakdown = (first?.["details"] as Record<string, unknown>) ?? {};
+        if (Object.keys(breakdown).length > 0) {
+          printKv(breakdown);
+        }
+      }
+    } else {
+      const error = valuation.error as Record<string, unknown> | undefined;
+      outputLine(`=== Valuation === [ERROR: ${error?.msg ?? "unavailable"}]`);
+    }
+  }
+}
+
 interface LogEntry {
   timestamp: string;
   tool: string;
