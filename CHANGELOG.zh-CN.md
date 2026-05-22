@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.6-beta.1] - 2026-05-22
+
 ### 新增
 
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
