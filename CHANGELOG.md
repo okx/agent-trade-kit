@@ -20,10 +20,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`earn savings fixed-redeem` documentation used positional arg instead of `--reqId` flag**: SKILL.md, cli-registry, and savings-commands.md all documented `fixed-redeem <reqId>` (positional), but the CLI router reads `v.reqId` (named flag). Agents following the docs would pass `undefined` as reqId. Now correctly documented as `--reqId <reqId>`.
 - **`earn savings rate-history --limit` documentation default was 100, actual code default is 7**: savings-commands.md previously documented the default as 100, but the CLI implementation uses `readNumber(args, "limit") ?? 7`. Now corrected to match the actual default of 7.
+- **`earn savings rate-history` and `fixed-products` CLI output used `rate` column but OKX API returns `apr`**: fixed-term offers table always showed empty `rate` column. Now correctly reads `apr` field.
 
 ### Changed
 
 - **Non-ASCII cleanup completed -- round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
+
+---
+
+## [1.3.5] - 2026-05-20
+
+Stable rollup of `1.3.5-beta.1` plus a follow-up cleanup. All skill `metadata.version` synced from `1.3.3` to `1.3.5`.
+
+### Added
+
+- **Pair spread tool** (1.3.5-beta.1, !315). `market_get_pair_spread`. Compute spread statistics (mean/stdDev/median/min/max for both absolute and ratio) between two instruments over a configurable lookback window. Supports backtest mode. CLI command: `okx market pair-spread`. No credentials required.
+
+### Fixed
+
+- **CLI startup performance** (1.3.5-beta.1, TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror; (A') fetch uses `AbortSignal.timeout(3000)`; (B1.5) failed fetches write a negative-cache entry (1 h TTL).
+
+### Changed
+
+- **`grid_stop_order` / `dca_stop_order` workflow guidance** (1.3.5-beta.1, !305). Tool descriptions now document the two-step close pattern for bots with residual positions.
+- **Smartmoney V7 funnel semantics doc sync** (1.3.5-beta.1). Aligned design / module / context-kg / skill / eval docs with the shipped V7 signal funnel. Docs only.
+- **Non-ASCII typographic punctuation cleanup** (TRDATA-3977). Two-round sweep replacing em-dash, en-dash, right-arrow, ellipsis with ASCII equivalents across CLI help, tool descriptions, and tests. Round 1 (1.3.5-beta.1) handled the primary surface; round 2 (this release) cleaned 5 residual chars leaking through TAP. No functional change; addresses OKG SonarQube TAP lexer compatibility.
+- **Skill `metadata.version` bumped to `1.3.5`** across all 9 skills (`okx-cex-trade`, `okx-cex-market`, `okx-cex-earn`, `okx-cex-bot`, `okx-cex-portfolio`, `okx-cex-skill-mp`, `okx-cex-auth`, `okx-cex-smartmoney`, `okx-sentiment-tracker`). Catches up `1.3.3` → `1.3.5` (skill versions were not bumped in `1.3.4` stable).
 
 ---
 
@@ -66,8 +88,6 @@ Stable rollup of `1.3.4-beta.1` only. The `1.3.4-beta.2` line below is retained 
 ## [1.3.4-beta.1] - 2026-05-12
 
 ### Added
-
-- **`earn_get_fixed_earn_products` MCP tool and `okx earn savings fixed-products` CLI command** for querying Simple Earn Fixed-term product pool with quota info.
 - **Economic calendar tools** (`news_get_economic_calendar`, `news_list_calendar_regions`). Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance.
 
 ## [1.3.3] - 2026-05-08
