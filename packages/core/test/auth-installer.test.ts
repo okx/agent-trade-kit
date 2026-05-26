@@ -23,6 +23,8 @@ import {
   fetchAuthCdnChecksum,
   installAuthBinary,
   removeAuthBinary,
+  _resolveAuthPlatformFromNative,
+  LINUX_ARM64_FALLBACK_DIR,
 } from "../src/auth/installer.js";
 import { getPlatformDir, hashFile } from "../src/pilot/installer.js";
 import type { AuthLocalStatus } from "../src/auth/installer-types.js";
@@ -477,5 +479,183 @@ describe("installAuthBinary with mock CDN server", () => {
     await installAuthBinary(destPath, sources);
 
     assert.equal(existsSync(tmpPath), false, ".tmp file should be cleaned up");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// _resolveAuthPlatformFromNative — linux-arm64 CDN probe logic
+// ---------------------------------------------------------------------------
+
+describe("_resolveAuthPlatformFromNative", () => {
+  let server: Server;
+  let serverPort: number;
+  let arm64Behavior: "200" | "404" | "network-error";
+  const warnMessages: string[] = [];
+  const originalWarn = console.warn.bind(console);
+
+  beforeEach(async () => {
+    arm64Behavior = "200";
+    warnMessages.length = 0;
+    console.warn = (...args: unknown[]) => {
+      warnMessages.push(args.map(String).join(" "));
+    };
+
+    server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      const url = req.url ?? "";
+      if (url.includes("linux-arm64")) {
+        if (arm64Behavior === "200") {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ sha256: "abc", size: 100, target: "linux-arm64" }));
+        } else if (arm64Behavior === "404") {
+          res.writeHead(404);
+          res.end("Not Found");
+        } else {
+          // network-error: destroy the socket abruptly
+          req.socket.destroy();
+        }
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ sha256: "abc", size: 100, target: "linux-x64" }));
+    });
+
+    await new Promise<void>((resolve) => {
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address();
+        if (addr && typeof addr === "object") {
+          serverPort = addr.port;
+        }
+        resolve();
+      });
+    });
+  });
+
+  afterEach(async () => {
+    console.warn = originalWarn;
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  });
+
+  it("scenario 1: linux-arm64 + CDN 404 → returns linux-x64, warns once about emulation", async () => {
+    arm64Behavior = "404";
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await _resolveAuthPlatformFromNative("linux-arm64", sources, 5_000);
+    assert.equal(result, LINUX_ARM64_FALLBACK_DIR);
+    assert.equal(warnMessages.length, 1, "should warn exactly once");
+    assert.ok(
+      warnMessages[0].toLowerCase().includes("emulat"),
+      `warn message should mention emulation, got: ${warnMessages[0]}`,
+    );
+  });
+
+  it("scenario 2: linux-arm64 + CDN 200 → returns linux-arm64 (native binary exists)", async () => {
+    arm64Behavior = "200";
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await _resolveAuthPlatformFromNative("linux-arm64", sources, 5_000);
+    assert.equal(result, "linux-arm64");
+    assert.equal(warnMessages.length, 0, "no warn when native binary exists");
+  });
+
+  it("scenario 3: linux-arm64 + all network errors → returns linux-arm64 (conservative)", async () => {
+    arm64Behavior = "network-error";
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await _resolveAuthPlatformFromNative("linux-arm64", sources, 5_000);
+    assert.equal(result, "linux-arm64");
+    assert.equal(warnMessages.length, 0, "no warn when CDN is unreachable");
+  });
+
+  it("scenario 4: darwin-arm64 → returns native immediately, no probe", async () => {
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await _resolveAuthPlatformFromNative("darwin-arm64", sources, 5_000);
+    assert.equal(result, "darwin-arm64");
+    assert.equal(warnMessages.length, 0);
+  });
+
+  it("scenario 4: linux-x64 → returns native immediately, no probe", async () => {
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await _resolveAuthPlatformFromNative("linux-x64", sources, 5_000);
+    assert.equal(result, "linux-x64");
+    assert.equal(warnMessages.length, 0);
+  });
+
+  it("scenario 4: win32-x64 → returns native immediately, no probe", async () => {
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await _resolveAuthPlatformFromNative("win32-x64", sources, 5_000);
+    assert.equal(result, "win32-x64");
+    assert.equal(warnMessages.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// installAuthBinary — improved error messages
+// ---------------------------------------------------------------------------
+
+describe("installAuthBinary - improved error messages", () => {
+  let server: Server;
+  let serverPort: number;
+  let responseMode: "all-404" | "all-network-error";
+
+  beforeEach(async () => {
+    responseMode = "all-404";
+
+    server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      if (responseMode === "all-404") {
+        res.writeHead(404);
+        res.end("Not Found");
+      } else {
+        req.socket.destroy();
+      }
+    });
+
+    await new Promise<void>((resolve) => {
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address();
+        if (addr && typeof addr === "object") {
+          serverPort = addr.port;
+        }
+        resolve();
+      });
+    });
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  });
+
+  it("scenario 6: all HTTP 404 → error message contains 'not available' or 'not supported'", async () => {
+    const destPath = join(tempDir, "okx-auth");
+    // Use a real platform dir to bypass the null-guard
+    const platformDir = getPlatformDir();
+    if (!platformDir) return;
+
+    responseMode = "all-404";
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await installAuthBinary(destPath, sources);
+
+    assert.equal(result.status, "failed");
+    const err = result.error?.toLowerCase() ?? "";
+    assert.ok(
+      err.includes("not available") || err.includes("not supported"),
+      `expected 'not available' or 'not supported' in error, got: ${result.error}`,
+    );
+  });
+
+  it("scenario 7: all network errors → error preserves 'All CDN sources failed' format", async () => {
+    const destPath = join(tempDir, "okx-auth");
+    const platformDir = getPlatformDir();
+    if (!platformDir) return;
+
+    responseMode = "all-network-error";
+    const sources = [{ host: `127.0.0.1:${serverPort}`, protocol: "http" as const }];
+    const result = await installAuthBinary(destPath, sources);
+
+    assert.equal(result.status, "failed");
+    assert.ok(
+      result.error?.includes("All CDN sources failed"),
+      `expected 'All CDN sources failed', got: ${result.error}`,
+    );
   });
 });
