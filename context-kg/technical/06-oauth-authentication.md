@@ -116,10 +116,10 @@ The `okx-auth` binary is distributed via CDN, following the same CDN-download pa
 | `darwin-arm64` | `darwin-arm64/` |
 | `darwin-x64` | `darwin-x64/` |
 | `linux-x64` | `linux-x64/` |
-| `linux-arm64` | `linux-x64/` *(aliased — see note below)* |
+| `linux-arm64` | `linux-x64/` *(CDN fallback — probe-based; self-deactivates when native binary is uploaded)* |
 | `win32-x64` | `win32-x64/` |
 
-> Note: `linux-arm64` is intentionally aliased to `linux-x64` in `PLATFORM_MAP` (see `packages/core/src/pilot/installer.ts`). This matches the standard Docker Desktop test environment on Apple Silicon, where containers run under `linux/amd64` emulation. Native `linux-arm64` hosts will therefore receive the `linux-x64` binary and rely on the host's binfmt / emulation layer. Adding a native `linux-arm64/` directory to the CDN is tracked as future work.
+> Note: `linux-arm64` uses a **runtime probe-based fallback** implemented in `resolveAuthPlatformDir()` (see `packages/core/src/auth/installer.ts`). On every install or status-check on linux-arm64, the auth installer probes CDN for a native `linux-arm64/checksum.json`. If any CDN source returns HTTP 404 (authoritative: binary not uploaded), it falls back to `linux-x64` and emits a `console.warn` that x86_64 emulation (binfmt_misc/Rosetta) is required. If all sources return network errors (CDN unreachable), it conservatively stays on `linux-arm64` to avoid a false fallback. Once a native `linux-arm64` binary is uploaded to CDN, the probe returns HTTP 200 and the fallback self-deactivates. This matches the standard Docker Desktop test environment on Apple Silicon, where containers run under `linux/amd64` emulation. The pilot binary PLATFORM_MAP is unchanged — it already maps `linux-arm64` natively.
 
 **CDN path template**: `<CDN_HOST>/upgradeapp/tools/oauth/<platformDir>/<binaryName>`
 
@@ -186,7 +186,7 @@ Returned by `okx-auth status --json`. The `status` field determines `hasAuth` at
 | `packages/core/src/auth/binary-windows.ts` | Windows named-pipe token reader (`\\.\pipe\okx-auth-<rand>` + `OKX_AUTH_TOKEN_PIPE`) |
 | `packages/core/src/auth/binary-shared.ts` | `finalizeToken` (shared exit-code → typed-error mapping) and `spawnFailedError` |
 | `packages/core/src/auth/types.ts` | Exit codes and `AuthStatusResult` type |
-| `packages/core/src/auth/installer.ts` | CDN download, checksum verify, atomic install/remove |
+| `packages/core/src/auth/installer.ts` | CDN download, checksum verify, atomic install/remove; `resolveAuthPlatformDir()` + `_resolveAuthPlatformFromNative()` for linux-arm64 CDN probe fallback |
 | `packages/core/src/auth/installer-types.ts` | `AuthLocalStatus` type |
 | `packages/core/src/client/rest-client.ts` | `applyAuth()` — dynamic auth selection; `resolveAccessToken()` — JS-side cache |
 | `packages/core/src/config.ts` | `loadCredentials()` — probes OAuth state at startup |

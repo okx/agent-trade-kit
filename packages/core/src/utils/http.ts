@@ -6,6 +6,16 @@ import { createWriteStream, unlinkSync } from "node:fs";
 import { get as httpsGet } from "node:https";
 import { get as httpGet } from "node:http";
 
+export class HttpStatusError extends Error {
+  public readonly statusCode: number;
+
+  public constructor(statusCode: number) {
+    super(`HTTP ${statusCode}`);
+    this.name = "HttpStatusError";
+    this.statusCode = statusCode;
+  }
+}
+
 export function isRedirect(statusCode: number | undefined): boolean {
   return statusCode !== undefined && statusCode >= 300 && statusCode < 400;
 }
@@ -54,7 +64,12 @@ export function fetchResponse(
         }
 
         if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode ?? "unknown"}`));
+          // Preserve string `unknown` for the unusual case where Node gave us no statusCode.
+          if (res.statusCode === undefined) {
+            reject(new Error("HTTP unknown"));
+          } else {
+            reject(new HttpStatusError(res.statusCode));
+          }
           return;
         }
 
