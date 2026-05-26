@@ -39,7 +39,7 @@ As of the latest registry scan, the server exposes **163 MCP tools** organized i
 
 ## Skills Ecosystem
 
-**9 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
+**10 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
 
 - `skills/okx-cex-trade/` — trading operations
 - `skills/okx-cex-market/` — market data queries
@@ -48,7 +48,9 @@ As of the latest registry scan, the server exposes **163 MCP tools** organized i
 - `skills/okx-cex-portfolio/` — portfolio overview
 - `skills/okx-cex-skill-mp/` — skill marketplace management
 - `skills/okx-cex-smartmoney/` — smart-money signals and trader leaderboard
+- `skills/okx-cex-auth/` — authentication setup and credential management
 - `skills/okx-sentiment-tracker/` — crypto news and market sentiment
+- `skills/okx-prediction/` — prediction markets (YES/NO event contracts) via external `okx-predict` binary
 
 Each skill pack's `SKILL.md` carries a `metadata.version` that must be synchronized with the package release version on every stable release.
 

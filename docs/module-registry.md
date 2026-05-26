@@ -28,7 +28,10 @@ Unregistered modules will be rejected during review.
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
+| prediction (wrapper) | ✅ approved (CLI-only) | 0 | 0 | 0 | 0 | [prediction-wrapper](designs/prediction-wrapper.md) | @Dehang.Chi | 2026-05-22 |
 | **Total** | | **163** | **101** | **62** | **~47,354** | | | |
+
+> **CLI-only wrapper modules** (e.g. `prediction`) expose CLI subcommands by spawning an external binary but register no MCP tools. They consume zero MCP token budget and are out of scope for the drift / eval-probe checks.
 
 ## Status Legend
 

@@ -1,0 +1,155 @@
+# CTF (Conditional Token Framework) Commands
+
+CTF lets the user move **points** in and out of YES/NO outcome tokens for a market. Three operations: **split**, **merge**, **redeem**.
+
+> The unit of value is the OKX Prediction internal **points** (pts), not USDC. Holdings, spreads, prices, and CTF amounts are all denominated in pts.
+
+All CTF commands are **EIP-712 signed** and high-risk. Same credential resolution as CLOB:
+
+```
+1. --key <hex>           (NEVER pass from chat)
+2. PREDICTIONS_AGENT_PRIVATE_KEY  (from .env)
+3. Test-key fallback     (localhost / mock only)
+```
+
+> Every CTF write requires the **dry-run preview + user "confirm" reply** flow. See SKILL.md "Operation Flow" Step 2.
+
+---
+
+## ctf split
+
+Split points into **paired YES + NO outcome tokens** for a market. After splitting:
+- 100 pts → 100 YES + 100 NO
+- One outcome will pay out 1 pt per share on resolution; the other 0.
+
+```bash
+okx prediction ctf split --market 12345 --amount 100
+```
+
+| Flag | Required | Description |
+|---|---|---|
+| `--market <id>` | Yes | Market ID (integer) |
+| `--amount <n>` | Yes | Points amount to split |
+
+**Dry-run summary**:
+
+```
+About to SPLIT pts into YES+NO tokens:
+  Market           : <title from data market <id>>
+  Amount           : <amount> pts
+  Will mint        : <amount> YES + <amount> NO shares
+  Wallet           : <0x... from wallet show>
+  Available (spots): <from account balance>
+
+Reply "confirm" to execute, or "cancel" to abort.
+```
+
+**When to use**: user wants to **provide liquidity** or **hedge both sides** of a market before placing orders, instead of buying through the orderbook.
+
+---
+
+## ctf merge
+
+Burn equal YES + NO and receive points back. Inverse of `split`.
+
+```bash
+okx prediction ctf merge --market 12345 --amount 100
+```
+
+| Flag | Required | Description |
+|---|---|---|
+| `--market <id>` | Yes | Market ID |
+| `--amount <n>` | Yes | Token-pair amount to merge (you need ≥ this many of BOTH YES and NO) |
+
+**Dry-run summary**:
+
+```
+About to MERGE YES+NO back to pts:
+  Market           : <title>
+  Amount           : <amount> YES + <amount> NO
+  Will return      : <amount> pts to wallet
+  Wallet           : <0x...>
+  Holdings (YES)   : <from account positions>
+  Holdings (NO)    : <from account positions>
+
+Reply "confirm" to execute, or "cancel" to abort.
+```
+
+**When to use**: unwind paired holdings before a market resolves, e.g. user no longer wants exposure.
+
+---
+
+## ctf redeem
+
+Redeem winning outcome tokens **after** market resolution. Burns the **entire** winning-token balance for that market in a single tx — there is no `--amount` flag.
+
+```bash
+okx prediction ctf redeem --market 12345
+```
+
+| Flag | Required | Description |
+|---|---|---|
+| `--market <id>` | Yes | Market ID |
+
+**Find redeemable markets**:
+
+```bash
+okx prediction account positions --json | jq '.[] | select(.status=="Won") | {marketId, marketTitle, shares}'
+```
+
+Each row with `status="Won"` is a redeem candidate.
+
+**Dry-run summary**:
+
+```
+About to REDEEM resolved tokens:
+  Market           : <title>
+  Status           : settled (winning outcome: <YES|NO>)
+  Holdings         : <winning shares from account positions>
+  Expected payout  : <holdings> pts
+  Wallet           : <0x...>
+
+Reply "confirm" to execute, or "cancel" to abort.
+```
+
+**Pre-flight checks for redeem**:
+1. Confirm the market is settled — `okx prediction data event <eventId> --json` or `okx prediction ws event-status <eventId> --json | head -n 5`
+2. Verify the user holds the winning side via `account positions` (status `Won`)
+3. If the user holds only the losing side, refuse — there is nothing to redeem
+
+---
+
+## Combined workflow: split → trade → redeem
+
+A common path for liquidity provision or aggressive directional bets:
+
+1. **Split** pts into YES+NO at par (one of each)
+2. **Sell** the side you don't want via `clob create-order` (SELL side)
+3. **Wait** for resolution (or close early via opposite-side order)
+4. After resolution, **redeem** winning shares via `ctf redeem`
+
+```bash
+# 1. Split 100 pts in market 12345
+okx prediction ctf split --market 12345 --amount 100
+
+# 2. Sell 100 NO shares at 0.45 (keeps YES exposure). Use NO asset id.
+okx prediction clob create-order --asset <NO_asset> --side sell --price 0.45 --size 100
+
+# 3. (wait for settlement)
+okx prediction ws event-status <eventId> --json | head -n 5
+
+# 4. Redeem (only winning shares pay 1 pt each)
+okx prediction ctf redeem --market 12345
+```
+
+Each write step **must** go through the dry-run + confirm flow described above.
+
+---
+
+## Edge cases
+
+- **Insufficient points for split**: binary rejects. Prompt user to top up and retry.
+- **Insufficient paired holdings for merge**: requires equal counts of YES and NO — if positions are unbalanced, the binary rejects.
+- **Redeem before settlement**: binary rejects — the market must be `settled` with a known winning outcome.
+- **Wrong side held**: redeem still succeeds but returns 0 pts. Always confirm `status="Won"` in `account positions` before redeeming.
+- **NO outcome asset id**: look it up in `event-markets <eventId>` output — each market lists both YES and NO asset ids.

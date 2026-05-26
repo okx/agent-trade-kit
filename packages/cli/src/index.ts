@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { handleAuthCommand } from "./commands/auth.js";
+import { handlePredictionCommand } from "./commands/prediction.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
@@ -27,7 +28,7 @@ import {
 } from "./commands/news.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
-import { parseCli, parseTpLevel } from "./parser.js";
+import { parseCli, parseTpLevel, peekFirstPositional } from "./parser.js";
 import type { CliValues } from "./parser.js";
 import {
   cmdMarketTicker,
@@ -1879,7 +1880,22 @@ async function main(): Promise<void> {
 
   checkForUpdates("@okx_ai/okx-trade-cli", CLI_VERSION);
 
-  const { values, positionals } = parseCli(process.argv.slice(2));
+  const rawArgv = process.argv.slice(2);
+
+  // `prediction` is a pass-through to the external okx-predict binary, so its
+  // wrapper-binary flags (--asset, --keeper, ...) are intentionally absent from
+  // CLI_OPTIONS. Strict parseArgs would reject them before routing, so peek the
+  // first positional and short-circuit here.
+  const peek = peekFirstPositional(rawArgv);
+  if (peek?.module === "prediction") {
+    const after = rawArgv.slice(peek.idx + 1);
+    const action = after[0];
+    const rest = after.slice(1);
+    const json = rawArgv.includes("--json") || rawArgv.includes("-j");
+    return handlePredictionCommand(action, rest, { json });
+  }
+
+  const { values, positionals } = parseCli(rawArgv);
 
   if (values.version) {
     printVersion();

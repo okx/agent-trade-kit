@@ -3,7 +3,8 @@ dist/
 coverage/
 *.tsbuildinfo
 .env
-.env.local
+.env.*
+!.env.example
 npm-debug.log*
 _tmp_*
 .cursor/

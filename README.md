@@ -52,6 +52,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 | `news` | 7 | Crypto news: latest news, by-coin filter, full-text search, article detail, news sources, coin sentiment (snapshot + trend) | [→](docs/modules/news.md) |
 | `smartmoney` | 10 | Smart money analytics: leaderboard ranking, trader performance / positions / position history / order history, top-coin signals, single-asset signal (by coin / by traders), signal history (by coin / by traders) — all read-only, split by entry mode for AI-agent disambiguation | [→](docs/modules/smartmoney.md) |
+| `prediction` | 0 (wrapper) | OKX Prediction Markets (YES/NO event contracts) — CLI-only wrapper that forwards to the external `okx-predict` binary (`@okx/predict-market-cli`). Browse events, account queries (HMAC), CLOB price/orderbook, dry-run-gated trade placement, and CTF split/merge/redeem | [→](docs/designs/prediction-wrapper.md) |
 
 ---
 
@@ -119,6 +120,7 @@ Pre-built skill files for AI agent frameworks are included in the [`skills/`](sk
 | [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | Trading bots: grid and DCA (spot & contract) | Yes |
 | [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | Earn: Simple Earn, On-chain staking, Dual Investment, AutoEarn | Yes |
 | [`okx-cex-smartmoney`](skills/okx-cex-smartmoney/SKILL.md) | Smart Money: trader leaderboard, consensus signals, position analysis | Yes |
+| [`okx-prediction`](skills/okx-prediction/SKILL.md) | Prediction markets: YES/NO event contracts, CLOB orders, CTF split/merge/redeem (requires separate `@okx/predict-market-cli` binary) | Yes |
 
 **[Skills documentation →](skills/README.md)**
 
