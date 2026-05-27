@@ -2,7 +2,7 @@
 
 CTF lets the user move **points** in and out of YES/NO outcome tokens for a market. Three operations: **split**, **merge**, **redeem**.
 
-> The unit of value is the OKX Prediction internal **points** (pts), not USDC. Holdings, spreads, prices, and CTF amounts are all denominated in pts.
+> The unit of value is the OKX Prediction internal **points** (xp), not USDC. Holdings, spreads, prices, and CTF amounts are all denominated in xp.
 
 All CTF commands are **EIP-712 signed** and high-risk. Same credential resolution as CLOB:
 
@@ -19,8 +19,8 @@ All CTF commands are **EIP-712 signed** and high-risk. Same credential resolutio
 ## ctf split
 
 Split points into **paired YES + NO outcome tokens** for a market. After splitting:
-- 100 pts → 100 YES + 100 NO
-- One outcome will pay out 1 pt per share on resolution; the other 0.
+- 100 xp → 100 YES + 100 NO
+- One outcome will pay out 1 xp per share on resolution; the other 0.
 
 ```bash
 okx prediction ctf split --market 12345 --amount 100
@@ -34,9 +34,9 @@ okx prediction ctf split --market 12345 --amount 100
 **Dry-run summary**:
 
 ```
-About to SPLIT pts into YES+NO tokens:
+About to SPLIT xp into YES+NO tokens:
   Market           : <title from data market <id>>
-  Amount           : <amount> pts
+  Amount           : <amount> xp
   Will mint        : <amount> YES + <amount> NO shares
   Wallet           : <0x... from wallet show>
   Available (spots): <from account balance>
@@ -64,10 +64,10 @@ okx prediction ctf merge --market 12345 --amount 100
 **Dry-run summary**:
 
 ```
-About to MERGE YES+NO back to pts:
+About to MERGE YES+NO back to xp:
   Market           : <title>
   Amount           : <amount> YES + <amount> NO
-  Will return      : <amount> pts to wallet
+  Will return      : <amount> xp to wallet
   Wallet           : <0x...>
   Holdings (YES)   : <from account positions>
   Holdings (NO)    : <from account positions>
@@ -106,7 +106,7 @@ About to REDEEM resolved tokens:
   Market           : <title>
   Status           : settled (winning outcome: <YES|NO>)
   Holdings         : <winning shares from account positions>
-  Expected payout  : <holdings> pts
+  Expected payout  : <holdings> xp
   Wallet           : <0x...>
 
 Reply "confirm" to execute, or "cancel" to abort.
@@ -123,13 +123,13 @@ Reply "confirm" to execute, or "cancel" to abort.
 
 A common path for liquidity provision or aggressive directional bets:
 
-1. **Split** pts into YES+NO at par (one of each)
+1. **Split** xp into YES+NO at par (one of each)
 2. **Sell** the side you don't want via `clob create-order` (SELL side)
 3. **Wait** for resolution (or close early via opposite-side order)
 4. After resolution, **redeem** winning shares via `ctf redeem`
 
 ```bash
-# 1. Split 100 pts in market 12345
+# 1. Split 100 xp in market 12345
 okx prediction ctf split --market 12345 --amount 100
 
 # 2. Sell 100 NO shares at 0.45 (keeps YES exposure). Use NO asset id.
@@ -138,7 +138,7 @@ okx prediction clob create-order --asset <NO_asset> --side sell --price 0.45 --s
 # 3. (wait for settlement — poll periodically)
 okx prediction data event <eventId> --json | jq '.status'
 
-# 4. Redeem (only winning shares pay 1 pt each)
+# 4. Redeem (only winning shares pay 1 xp each)
 okx prediction ctf redeem --market 12345
 ```
 
@@ -151,5 +151,5 @@ Each write step **must** go through the dry-run + confirm flow described above.
 - **Insufficient points for split**: binary rejects. Prompt user to top up and retry.
 - **Insufficient paired holdings for merge**: requires equal counts of YES and NO — if positions are unbalanced, the binary rejects.
 - **Redeem before settlement**: binary rejects — the market must be `settled` with a known winning outcome.
-- **Wrong side held**: redeem still succeeds but returns 0 pts. Always confirm `status="Won"` in `account positions` before redeeming.
+- **Wrong side held**: redeem still succeeds but returns 0 xp. Always confirm `status="Won"` in `account positions` before redeeming.
 - **NO outcome asset id**: look it up in `event-markets <eventId>` output — each market lists both YES and NO asset ids.

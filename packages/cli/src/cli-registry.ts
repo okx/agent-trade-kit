@@ -1147,8 +1147,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       ctf: {
         toolName: null,
-        usage: "okx prediction ctf <split|merge|redeem> --market <id> [--amount <pts>]",
-        description: "Conditional Token Framework: split pts into YES/NO, merge, redeem",
+        usage: "okx prediction ctf <split|merge|redeem> --market <id> [--amount <xp>]",
+        description: "Conditional Token Framework: split xp into YES/NO, merge, redeem",
       },
       wallet: {
         toolName: null,

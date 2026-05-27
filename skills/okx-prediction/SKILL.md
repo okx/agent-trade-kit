@@ -1,6 +1,6 @@
 ---
 name: okx-prediction
-description: "Use this skill for OKX prediction markets (YES/NO event contracts via @okx/predict-market-cli). Triggers: 'list prediction events', 'browse prediction markets', '预测市场', 'event detail', '事件详情', 'market detail', 'place prediction order', '预测下单', 'buy YES', 'buy NO', '买 YES', '买 NO', 'cancel prediction order', '撤单 预测', 'cancel-all', 'split pts', '拆分 pts', 'merge YES NO', 'redeem prediction', '赎回 预测', 'prediction balance', 'prediction positions', '预测持仓', 'live prediction price', '预测行情', 'sports event prediction', '体育事件预测', 'CTF', 'conditional token', 'EIP-712', 'okxpredictions', 'polymarket'. Requires PREDICTIONS_API_KEY/SECRET/PASSPHRASE + PREDICTIONS_AGENT_PRIVATE_KEY env vars. Do NOT use for OKX CEX event contracts (use okx-cex-trade event), spot/swap/futures (okx-cex-trade), crypto market data (okx-cex-market), or CEX portfolio (okx-cex-portfolio)."
+description: "Use this skill for OKX prediction markets (YES/NO event contracts via @okx/predict-market-cli). Triggers: 'list prediction events', 'browse prediction markets', '预测市场', 'event detail', '事件详情', 'market detail', 'place prediction order', '预测下单', 'buy YES', 'buy NO', '买 YES', '买 NO', 'cancel prediction order', '撤单 预测', 'cancel-all', 'split xp', '拆分 xp', 'merge YES NO', 'redeem prediction', '赎回 预测', 'prediction balance', 'prediction positions', '预测持仓', 'live prediction price', '预测行情', 'sports event prediction', '体育事件预测', 'CTF', 'conditional token', 'EIP-712', 'okxpredictions', 'polymarket'. Requires PREDICTIONS_API_KEY/SECRET/PASSPHRASE + PREDICTIONS_AGENT_PRIVATE_KEY env vars. Do NOT use for OKX CEX event contracts (use okx-cex-trade event), spot/swap/futures (okx-cex-trade), crypto market data (okx-cex-market), or CEX portfolio (okx-cex-portfolio)."
 license: MIT
 metadata:
   author: okx
@@ -144,8 +144,8 @@ okx prediction clob create-order --asset <assetId> --side buy --price 0.55 --siz
 | 25 | `okx prediction clob cancel-client-order-id --client-order-id <id> --asset <id>` | Medium |
 | 26 | `okx prediction clob cancel-all` | High |
 | 27 | `okx prediction clob heartbeat` | Medium (5-min dead-man auto cancel-all) |
-| 28 | `okx prediction ctf split --market <id> --amount <pts>` | High (locks pts) |
-| 29 | `okx prediction ctf merge --market <id> --amount <pts>` | High |
+| 28 | `okx prediction ctf split --market <id> --amount <xp>` | High (locks xp) |
+| 29 | `okx prediction ctf merge --market <id> --amount <xp>` | High |
 | 30 | `okx prediction ctf redeem --market <id>` | High (burns full winning balance) |
 
 > Aliases: `clob order/orders/trades` delegate to the corresponding `account *` commands. Prefer `account *` in skill output for clarity.
@@ -177,12 +177,12 @@ About to execute: okx prediction clob create-order --asset 100888000 --side buy 
   Market           : "Will BTC be above $100k by Dec 31, 2026?"  (mkt_t001)
   Asset            : 100888000  (YES outcome)
   Side             : buy
-  Price            : 0.55 pts
+  Price            : 0.55 xp
   Size             : 100 shares
   TIF              : gtc
-  Estimated notional: 55.00 pts
+  Estimated notional: 55.00 xp
   Wallet           : 0x1234...abcd                              (from `wallet show`)
-  Available (spots): 1,234.56 pts                               (from `account balance`)
+  Available (spots): 1,234.56 xp                               (from `account balance`)
 
 Reply "confirm" to execute, or "cancel" to abort.
 ```
@@ -190,7 +190,7 @@ Reply "confirm" to execute, or "cancel" to abort.
 The summary fields:
 - **Market title** — fetched via `okx prediction data market <marketId>` (look up `marketId` from the asset's parent market)
 - **Asset + outcome** — the numeric `assetId` from `event-markets <eventId>` plus which outcome (YES / NO) it represents
-- **Notional** — `price * size` (pts)
+- **Notional** — `price * size` (xp)
 - **Wallet** — `okx prediction wallet show --json`
 - **Available balance** — `okx prediction account balance --json` → row where `oddsType="spots"`, `available` field
 
@@ -234,7 +234,7 @@ This module **does not expose any MCP tools** in the current release. Agents inv
 ## Global Notes
 
 - **Always pass `--json`** when piping into other tools or summarizing — the wrapper auto-appends `--json` if the user is in `--json` mode globally.
-- **Unit of value**: prediction markets transact in **points (pts)**, not USDC. All balances, prices (decimal in `[0,1]`), notionals, and CTF amounts are pts.
+- **Unit of value**: prediction markets transact in **points (xp)**, not USDC. All balances, prices (decimal in `[0,1]`), notionals, and CTF amounts are xp.
 - **Private key handling**: NEVER echo `PREDICTIONS_AGENT_PRIVATE_KEY` (or any `0x` followed by 64 hex chars) to chat. If you must reference it, mask as `0x****`. Do not write it to memory.
 - **Side is lowercase**: `--side buy` / `--side sell` (write commands). `account trades --side` accepts `BUY` / `SELL` (uppercase) — the inconsistency is upstream, follow each command's signature.
 - **Rate limits**: HMAC endpoints follow OKX-style throttling. On `429` / rate-limit errors, back off and retry after the suggested wait.

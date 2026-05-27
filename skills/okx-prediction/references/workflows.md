@@ -2,7 +2,7 @@
 
 Common composed flows. The skill should pick the matching workflow based on user intent, then chain commands.
 
-> **Unit of value**: prediction markets transact in **points** (pts), not USDC. Balances, prices, and CTF amounts are all pts.
+> **Unit of value**: prediction markets transact in **points** (xp), not USDC. Balances, prices, and CTF amounts are all xp.
 
 > **ID kinds**: `eventId` (event-level), `marketId` (market-level, used for `ctf *` and `account trades --market`), `assetId` (outcome-token-level, used for `clob *` reads and writes). See `data-commands.md` "ID glossary".
 
@@ -86,13 +86,13 @@ Display:
      Market           : <title>           (mkt_<id>)
      Asset            : <yesAssetId>      (YES outcome)
      Side             : buy
-     Price            : 0.55 pts
+     Price            : 0.55 xp
      Size             : 100 shares
      TIF              : gtc
-     Notional         : ~55.00 pts
+     Notional         : ~55.00 xp
      Current market   : YES bid 0.54 / ask 0.55
      Wallet           : 0x1234...abcd
-     Available (spots): 1,234.56 pts
+     Available (spots): 1,234.56 xp
 
    Reply "confirm" to execute, or "cancel" to abort.
    ```
@@ -142,7 +142,7 @@ Same dry-run + confirm structure applies to:
      Market           : <title>
      Status           : settled (winning outcome: YES)
      Holdings (YES)   : 250 shares
-     Expected payout  : 250.00 pts
+     Expected payout  : 250.00 xp
      Wallet           : 0x...
 
    Reply "confirm" to execute, or "cancel" to abort.
@@ -156,7 +156,7 @@ Same dry-run + confirm structure applies to:
    okx prediction account positions --json            → confirm winning shares removed
 ```
 
-If the user holds only the **losing** side: warn that redeem will return 0 pts and ask whether to skip.
+If the user holds only the **losing** side: warn that redeem will return 0 xp and ask whether to skip.
 
 ---
 

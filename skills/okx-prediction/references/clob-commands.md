@@ -108,7 +108,7 @@ okx prediction clob create-order --asset 100888000 --side sell --price 0.65 --si
 # Good-til-date with explicit expiry
 okx prediction clob create-order --asset 100888000 --side buy --price 0.40 --size 200 --tif gtd --expiry 1735689600000
 
-# Spend 50 pts buying YES, IOC the remainder (notional budget)
+# Spend 50 xp buying YES, IOC the remainder (notional budget)
 okx prediction clob create-order --asset 100888000 --side buy --price 0.65 --size 50 --tif ioc --size-type quote
 ```
 
@@ -131,10 +131,10 @@ About to place order:
   Market           : <title from data market <mkt>>
   Asset            : <assetId>  (YES outcome)
   Side             : buy
-  Price            : 0.55 pts
+  Price            : 0.55 xp
   Size             : 100 shares
   TIF              : gtc
-  Notional         : ~55.00 pts
+  Notional         : ~55.00 xp
   Wallet           : <0x... from wallet show>
   Available (spots): <from account balance>
 
@@ -152,7 +152,7 @@ okx prediction clob market-order --asset 100888000 --side buy --size 100
 # FOK — rejected locally if visible depth < 100 shares (no signed message sent)
 okx prediction clob market-order --asset 100888000 --side buy --size 100 --tif fok
 
-# Quote mode: spend 50 pts (buy + ioc only)
+# Quote mode: spend 50 xp (buy + ioc only)
 okx prediction clob market-order --asset 100888000 --side buy --size 50 --size-type quote
 ```
 
