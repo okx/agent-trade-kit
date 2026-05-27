@@ -4,7 +4,7 @@ Common composed flows. The skill should pick the matching workflow based on user
 
 > **Unit of value**: prediction markets transact in **points** (pts), not USDC. Balances, prices, and CTF amounts are all pts.
 
-> **ID kinds**: `eventId` (event-level), `marketId` (market-level, used for `ctf *` and `account trades --market`), `assetId` (outcome-token-level, used for `clob *` reads and writes, `ws *`). See `data-commands.md` "ID glossary".
+> **ID kinds**: `eventId` (event-level), `marketId` (market-level, used for `ctf *` and `account trades --market`), `assetId` (outcome-token-level, used for `clob *` reads and writes). See `data-commands.md` "ID glossary".
 
 ---
 

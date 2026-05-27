@@ -6,7 +6,7 @@
 
 ## Why this design
 
-OKX Prediction Markets (YES/NO event contracts, CTF-based) ship as an independent Rust workspace ([`okxpredictions`](https://github.com/okx/okxpredictions)) with its own SDK, CLI, and EIP-712 signing. Its capability surface is large (~50+ subcommands across `data`, `account`, `clob`, `ctf`, `ws`), the team has its own release cadence, and the wider integration target is "let users do prediction-market trading through the existing `okx` CLI / agent ecosystem **without re-implementing the business logic in TypeScript**".
+OKX Prediction Markets (YES/NO event contracts, CTF-based) ship as an independent Rust workspace ([`okxpredictions`](https://github.com/okx/okxpredictions)) with its own SDK, CLI, and EIP-712 signing. Its capability surface is large (~30+ subcommands across `data`, `account`, `clob`, `ctf`), the team has its own release cadence, and the wider integration target is "let users do prediction-market trading through the existing `okx` CLI / agent ecosystem **without re-implementing the business logic in TypeScript**".
 
 The Lark doc above lays out two integration options:
 
@@ -46,7 +46,7 @@ This repo explicitly does **not**:
 
 - **PATH discovery**: search `$PATH` for `okx-predict`, with `OKX_PREDICT_BIN` env override.
 - **Binary-not-found UX**: print a friendly install hint (`npm install -g @okx/predict-market-cli`) and exit `127`.
-- **Argument forwarding**: spawn the binary with `stdio: "inherit"`, transparent argument pass-through. The TUI command (`ws terminal`) works because of `inherit`.
+- **Argument forwarding**: spawn the binary with `stdio: "inherit"`, transparent argument pass-through. Interactive subcommands like `setup` (env wizard) and `shell` (REPL) work because of `inherit`.
 - **Global flag normalization**: if the user invoked `okx --json prediction <cmd>`, auto-append `--json` to the forwarded args (unless already present). This matches behavior for other modules.
 - **`okx prediction --help`**: print a wrapper-level help summary (curated, abridged); for command-specific help defer to `okx prediction <cmd> --help` (the binary's own help).
 - **Exit-code propagation**: set `process.exitCode = code` when the binary returns non-zero.
@@ -57,8 +57,8 @@ Prediction markets use **three independent** auth paths, none of which intersect
 
 | Class | Credential | Used by |
 |---|---|---|
-| Public | none | `data` / `search` / `clob price` / public `ws` |
-| HMAC | `PREDICTIONS_API_KEY` / `_SECRET` / `_PASSPHRASE` | `account *` / `data export` / private `ws` |
+| Public | none | `data` / `search` / `clob price/book/midpoint/spread` |
+| HMAC | `PREDICTIONS_API_KEY` / `_SECRET` / `_PASSPHRASE` | `account *` |
 | EIP-712 | `PREDICTIONS_AGENT_PRIVATE_KEY` | `clob create-order` / `clob cancel*` / `ctf *` / `wallet show` |
 
 This is documented prominently in `skills/okx-prediction/SKILL.md` to prevent users from confusing the two systems.

@@ -7,7 +7,7 @@ import type { CliValues } from "../parser.js";
 const PREDICT_BINARY_NAME =
   process.platform === "win32" ? "okx-predict.exe" : "okx-predict";
 
-// Locate the okx-predict binary: PATH search → OKX_PREDICT_BIN override.
+// Locate the okx-predict binary: OKX_PREDICT_BIN override → PATH search.
 function resolvePredictBinaryPath(): string | null {
   const override = process.env.OKX_PREDICT_BIN;
   if (override && existsSync(override)) return override;

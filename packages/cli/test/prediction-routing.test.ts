@@ -268,9 +268,9 @@ describe("handlePredictionCommand - argument forwarding", () => {
   it("does not duplicate when user passed short -j", async () => {
     const argsFile = join(tempDir, "argv.json");
     process.env.MOCK_PREDICT_ARGS_FILE = argsFile;
-    await handlePredictionCommand("ws", ["prices", "BTC", "-j"], { json: true });
+    await handlePredictionCommand("clob", ["price", "--asset", "100888000", "-j"], { json: true });
     const recorded = JSON.parse(readFileSync(argsFile, "utf-8"));
-    assert.deepEqual(recorded, ["ws", "prices", "BTC", "-j"]);
+    assert.deepEqual(recorded, ["clob", "price", "--asset", "100888000", "-j"]);
   });
 
   it("propagates non-zero exit code from binary", async () => {

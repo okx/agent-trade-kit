@@ -119,9 +119,9 @@ okx prediction search ETH --cursor abc123 -j
 
 | ID kind | Where it appears | Used by |
 |---|---|---|
-| `eventId` | `events`, `event`, `event-markets`, `trending` outputs; also `ws event-status` | event-level queries |
+| `eventId` | `events`, `event`, `event-markets`, `trending` outputs | event-level queries |
 | `marketId` | `event-markets`, `market` outputs; `account trades --market`, `clob trades --market`; all `ctf *` writes | market-level operations (one market has two outcomes) |
-| `assetId` (numeric, e.g. `100888000`) | `ticker`, `candles`, all `clob price/book/midpoint/spread/...`, all `ws *` streams, `clob create-order --asset`, `clob market-order --asset` | outcome-token-level operations |
+| `assetId` (numeric, e.g. `100888000`) | `ticker`, `candles`, all `clob price/book/midpoint/spread/...`, `clob create-order --asset`, `clob market-order --asset` | outcome-token-level operations |
 
 Knowing which ID kind a command expects is the most common source of confusion — always read the parameter table before invoking.
 
