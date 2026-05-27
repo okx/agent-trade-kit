@@ -1150,11 +1150,6 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx prediction ctf <split|merge|redeem> --market <id> [--amount <pts>]",
         description: "Conditional Token Framework: split pts into YES/NO, merge, redeem",
       },
-      ws: {
-        toolName: null,
-        usage: "okx prediction ws <prices|books|trades|tickers|event-status|game|candle1m|candle5m|candle15m|candle1H|candle4H|candle1D|orders|positions|balance|user-trades|pnl|private|terminal> [<assetId>...]",
-        description: "WebSocket streams (public + private). Private channels require HMAC.",
-      },
       wallet: {
         toolName: null,
         usage: "okx prediction wallet show",

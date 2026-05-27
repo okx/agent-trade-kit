@@ -113,7 +113,7 @@ Reply "confirm" to execute, or "cancel" to abort.
 ```
 
 **Pre-flight checks for redeem**:
-1. Confirm the market is settled — `okx prediction data event <eventId> --json` or `okx prediction ws event-status <eventId> --json | head -n 5`
+1. Confirm the market is settled — `okx prediction data event <eventId> --json` (poll periodically until `status == settled`)
 2. Verify the user holds the winning side via `account positions` (status `Won`)
 3. If the user holds only the losing side, refuse — there is nothing to redeem
 
@@ -135,8 +135,8 @@ okx prediction ctf split --market 12345 --amount 100
 # 2. Sell 100 NO shares at 0.45 (keeps YES exposure). Use NO asset id.
 okx prediction clob create-order --asset <NO_asset> --side sell --price 0.45 --size 100
 
-# 3. (wait for settlement)
-okx prediction ws event-status <eventId> --json | head -n 5
+# 3. (wait for settlement — poll periodically)
+okx prediction data event <eventId> --json | jq '.status'
 
 # 4. Redeem (only winning shares pay 1 pt each)
 okx prediction ctf redeem --market 12345

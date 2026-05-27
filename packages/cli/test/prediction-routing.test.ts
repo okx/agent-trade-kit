@@ -123,9 +123,9 @@ describe("handlePredictionCommand - help output", () => {
     assert.ok(text.includes("events"), "events listed");
     assert.ok(text.includes("clob"), "clob listed");
     assert.ok(text.includes("ctf"), "ctf listed");
-    assert.ok(text.includes("ws"), "ws listed");
     assert.ok(text.includes("status"), "status listed");
     assert.ok(text.includes("@okx/predict-market-cli"), "install reference");
+    assert.ok(!text.includes(" ws "), "ws should NOT be listed (WS support dropped)");
   });
 
   it("prints help when action is --help", async () => {

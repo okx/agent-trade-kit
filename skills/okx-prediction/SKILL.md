@@ -1,6 +1,6 @@
 ---
 name: okx-prediction
-description: "Use this skill for OKX prediction markets (YES/NO event contracts via @okx/predict-market-cli). Triggers: 'list prediction events', 'browse prediction markets', '预测市场', 'event detail', '事件详情', 'market detail', 'place prediction order', '预测下单', 'buy YES', 'buy NO', '买 YES', '买 NO', 'cancel prediction order', '撤单 预测', 'cancel-all', 'split USDC', '拆分 USDC', 'merge YES NO', 'redeem prediction', '赎回 预测', 'prediction balance', 'prediction positions', '预测持仓', 'live prediction price', '预测行情', 'prediction WS stream', 'sports event prediction', '体育事件预测', 'CTF', 'conditional token', 'EIP-712', 'okxpredictions', 'polymarket'. Requires PREDICTIONS_API_KEY/SECRET/PASSPHRASE + PREDICTIONS_AGENT_PRIVATE_KEY env vars. Do NOT use for OKX CEX event contracts (use okx-cex-trade event), spot/swap/futures (okx-cex-trade), crypto market data (okx-cex-market), or CEX portfolio (okx-cex-portfolio)."
+description: "Use this skill for OKX prediction markets (YES/NO event contracts via @okx/predict-market-cli). Triggers: 'list prediction events', 'browse prediction markets', '预测市场', 'event detail', '事件详情', 'market detail', 'place prediction order', '预测下单', 'buy YES', 'buy NO', '买 YES', '买 NO', 'cancel prediction order', '撤单 预测', 'cancel-all', 'split USDC', '拆分 USDC', 'merge YES NO', 'redeem prediction', '赎回 预测', 'prediction balance', 'prediction positions', '预测持仓', 'live prediction price', '预测行情', 'sports event prediction', '体育事件预测', 'CTF', 'conditional token', 'EIP-712', 'okxpredictions', 'polymarket'. Requires PREDICTIONS_API_KEY/SECRET/PASSPHRASE + PREDICTIONS_AGENT_PRIVATE_KEY env vars. Do NOT use for OKX CEX event contracts (use okx-cex-trade event), spot/swap/futures (okx-cex-trade), crypto market data (okx-cex-market), or CEX portfolio (okx-cex-portfolio)."
 license: MIT
 metadata:
   author: okx
@@ -55,7 +55,7 @@ okx prediction status
 
 | Var | Required for | Notes |
 |---|---|---|
-| `PREDICTIONS_API_KEY` | HMAC reads (account/data export/private WS) | Get from OKX Predictions API portal |
+| `PREDICTIONS_API_KEY` | HMAC reads (account, data export) | Get from OKX Predictions API portal |
 | `PREDICTIONS_API_SECRET` | HMAC reads | Keep secret |
 | `PREDICTIONS_API_PASSPHRASE` | HMAC reads | Keep secret |
 | `PREDICTIONS_AGENT_PRIVATE_KEY` | On-chain writes (clob create-order / cancel / ctf *) | secp256k1 hex with `0x` prefix; NEVER share or print |
@@ -68,8 +68,8 @@ Prediction markets use **three independent authentication paths**. They are **no
 
 | Operation class | Example commands | Credential |
 |---|---|---|
-| Public data | `events`, `event`, `market`, `search`, `ticker`, `candles`, `clob price/prices/midpoint/spread/book/books`, `ws prices/books/trades/tickers/event-status/game/candle*` | none |
-| HMAC reads | `account balance/order/orders/positions/closed-positions/trades`, `ws orders/positions/balance/user-trades/pnl/private` | API KEY + SECRET + PASSPHRASE |
+| Public data | `events`, `event`, `market`, `search`, `ticker`, `candles`, `clob price/prices/midpoint/spread/book/books` | none |
+| HMAC reads | `account balance/order/orders/positions/closed-positions/trades` | API KEY + SECRET + PASSPHRASE |
 | On-chain writes | `clob create-order / market-order / cancel-oid / cancel-client-order-id / cancel-all / heartbeat`, `ctf split / merge / redeem`, `wallet show` | AGENT_PRIVATE_KEY |
 
 ## Skill Routing
@@ -102,9 +102,6 @@ okx prediction clob book --asset <yesAssetId> --sz 5
 okx prediction account balance
 okx prediction account positions
 
-# Real-time price stream (cap rows to avoid hangs)
-okx prediction ws prices <assetId> --json | head -n 20
-
 # Place an order (ALWAYS dry-run first — see Operation Flow)
 okx prediction clob create-order --asset <assetId> --side buy --price 0.55 --size 100
 ```
@@ -135,25 +132,21 @@ okx prediction clob create-order --asset <assetId> --side buy --price 0.55 --siz
 | 18 | `okx prediction account closed-positions` | HMAC | Closed positions |
 | 19 | `okx prediction account trades` | HMAC | Trade history |
 | 20 | `okx prediction wallet show` | signing | Derived wallet address |
-| 21 | `okx prediction ws prices/books/trades/tickers <assetId...>` | none | Public WS streams |
-| 22 | `okx prediction ws event-status <eventId...>` | none | Event settlement results |
-| 23 | `okx prediction ws candle{1m,5m,15m,1H,4H,1D} <assetId...>` | none | K-line stream |
-| 24 | `okx prediction ws orders/positions/balance/user-trades/pnl/private` | HMAC | Private WS streams |
-| 25 | `okx prediction status` | HMAC | Health check |
+| 21 | `okx prediction status` | HMAC | Health check |
 
 ### Write commands (REQUIRE dry-run preview + user confirmation)
 
 | # | Command | Risk |
 |---|---|---|
-| 26 | `okx prediction clob create-order --asset <id> --side buy\|sell --price --size [--tif gtc\|gtd\|ioc\|fok\|alo] [--expiry <ms>] [--size-type base\|quote]` | High |
-| 27 | `okx prediction clob market-order --asset <id> --side buy\|sell --size [--tif ioc\|fok] [--size-type base\|quote]` | High (immediate cross) |
-| 28 | `okx prediction clob cancel-oid --oid <id> --asset <id>` | Medium |
-| 29 | `okx prediction clob cancel-client-order-id --client-order-id <id> --asset <id>` | Medium |
-| 30 | `okx prediction clob cancel-all` | High |
-| 31 | `okx prediction clob heartbeat` | Medium (5-min dead-man auto cancel-all) |
-| 32 | `okx prediction ctf split --market <id> --amount <pts>` | High (locks pts) |
-| 33 | `okx prediction ctf merge --market <id> --amount <pts>` | High |
-| 34 | `okx prediction ctf redeem --market <id>` | High (burns full winning balance) |
+| 22 | `okx prediction clob create-order --asset <id> --side buy\|sell --price --size [--tif gtc\|gtd\|ioc\|fok\|alo] [--expiry <ms>] [--size-type base\|quote]` | High |
+| 23 | `okx prediction clob market-order --asset <id> --side buy\|sell --size [--tif ioc\|fok] [--size-type base\|quote]` | High (immediate cross) |
+| 24 | `okx prediction clob cancel-oid --oid <id> --asset <id>` | Medium |
+| 25 | `okx prediction clob cancel-client-order-id --client-order-id <id> --asset <id>` | Medium |
+| 26 | `okx prediction clob cancel-all` | High |
+| 27 | `okx prediction clob heartbeat` | Medium (5-min dead-man auto cancel-all) |
+| 28 | `okx prediction ctf split --market <id> --amount <pts>` | High (locks pts) |
+| 29 | `okx prediction ctf merge --market <id> --amount <pts>` | High |
+| 30 | `okx prediction ctf redeem --market <id>` | High (burns full winning balance) |
 
 > Aliases: `clob order/orders/trades` delegate to the corresponding `account *` commands. Prefer `account *` in skill output for clarity.
 
@@ -222,7 +215,6 @@ Detailed parameter tables and examples per command group:
 - [`references/account-commands.md`](references/account-commands.md) — account balance / orders / positions / trades / data export
 - [`references/clob-commands.md`](references/clob-commands.md) — clob price / order / orders / trades / create-order / cancel / cancel-all / heartbeat
 - [`references/ctf-commands.md`](references/ctf-commands.md) — ctf split / merge / redeem
-- [`references/stream-commands.md`](references/stream-commands.md) — ws public + private channels
 - [`references/workflows.md`](references/workflows.md) — daily brief / event deep-dive / portfolio check / safe place-order / resolve-and-redeem
 
 ## MCP Tool Reference
@@ -232,14 +224,12 @@ This module **does not expose any MCP tools** in the current release. Agents inv
 ## Edge Cases
 
 - **`okx-predict` not in PATH**: wrapper prints install hint and exits 127. Tell the user to run `npm install -g @okx/predict-market-cli`.
-- **WebSocket NDJSON output**: streams emit forever. ALWAYS chain with `| head -n N` (e.g. `head -n 20`) to cap rows; never let a `ws *` command hang the conversation.
 - **AGENT_PRIVATE_KEY missing**: any `clob create-order` / `market-order` / `ctf *` will fail. Walk the user through `okx prediction setup` rather than asking for the key in chat.
 - **Asset id vs market id mix-up**: the most common error class. `clob price/book/create-order/market-order` need `assetId`; `ctf *` and `account trades --market` need `marketId`. When unsure, run `event-markets <eventId>` first — its output lists both.
 - **`--tif gtd` without `--expiry`**: rejected client-side. Pair them or default to `gtc`.
 - **`--size-type quote` outside `buy + ioc`**: rejected client-side (`create-order`). Tell the user up front that "spend N points" syntax requires buy + IOC.
 - **FOK rejected from snapshot**: `clob market-order --tif fok` is rejected client-side when visible depth is insufficient — no signed message sent. Surface the rejection and suggest reducing `--size` or using `--tif ioc`.
 - **Mode confusion**: there is no demo / live flag for prediction markets. The site is selected at signup. Be aware of which deployment the user is on (mainnet vs testnet) — `okx prediction status` reports it.
-- **Sports event-status stream**: `okx prediction ws event-status <eventId>` emits resolution outcomes; use with `head -n 5` to fetch the latest result.
 
 ## Global Notes
 

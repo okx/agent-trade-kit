@@ -42,9 +42,6 @@ Display:
    okx prediction clob price --asset <yesAssetId> --json   → live price (YES side)
    okx prediction clob book --asset <yesAssetId> --sz 5 --json  → top-of-book depth
    okx prediction data candles <yesAssetId> --bar 1H --limit 50 --json  → price history
-
-4. (Optional) Short live tape:
-   okx prediction ws prices <yesAssetId> --json | head -n 20
 ```
 
 Output should answer: "Is this tradable now? What's the spread? How has it moved?"
@@ -60,7 +57,6 @@ Output should answer: "Is this tradable now? What's the spread? How has it moved
 2. okx prediction account balance --json              → spots + points
 3. okx prediction account positions --json            → open positions (note "Won" rows for redeem)
 4. okx prediction account closed-positions --json     → recent realized PnL
-5. (Optional) okx prediction ws pnl --json | head -n 10   → live unrealized
 ```
 
 Display:
@@ -111,7 +107,7 @@ Display:
 
 4. VERIFY
    okx prediction account orders --json               → confirm the order is open
-   (Optional) okx prediction ws orders --json | head -n 5   → wait for fill event
+   (Optional) Poll periodically until status changes from "open" to "filled"
 ```
 
 **Variations**:
@@ -135,8 +131,6 @@ Same dry-run + confirm structure applies to:
 
 ```
 1. okx prediction data event <eventId> --json              → confirm status == settled
-   (or stream)
-   okx prediction ws event-status <eventId> --json | head -n 5
                                                        → look at "winningOutcome"
 
 2. okx prediction account positions --json | jq '.[] | select(.status=="Won") | {marketId, marketTitle, shares}'
