@@ -4,14 +4,13 @@ description: "Automatically monitors OKX Flash Earn and Fixed Earn opportunities
 license: MIT
 metadata:
   author: okx
-  version: "0.2.1"
   agent:
     requires:
       bins: ["okx"]
     install:
       - id: okx-cli
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.3"
+        package: "@okx_ai/okx-trade-cli"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
