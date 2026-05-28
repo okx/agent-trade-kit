@@ -25,8 +25,7 @@ Automated monitor for OKX Flash Earn and Fixed Earn opportunities.
 
 1. Verify `okx` CLI installed: `which okx`. If missing, install via `npm install -g @okx_ai/okx-trade-cli`.
    On OpenClaw, also verify `openclaw` CLI is available.
-2. On OpenClaw: verify exec-approvals are configured for `okx` and `curl` commands (required for cron to work without interactive approval). Check `~/.openclaw/exec-approvals.json` — if `okx *` and `curl *` are not whitelisted, guide user to add them. See `{baseDir}/references/scheduler-setup.md` for details.
-3. Check optional dependent skills:
+2. Check optional dependent skills:
    ```bash
    okx skill list --json
    ```
@@ -75,7 +74,7 @@ Three independent dimensions: **platform** (where the agent runs), **scheduler**
    - User says no → ask: "你使用的是哪个平台？1) OpenClaw  2) Claude Code  3) Hermes Agent  4) 其他"
 3. Initialize platform config:
    - OpenClaw / Claude Code → copy `{baseDir}/config/<confirmed_platform>.default.json` to `~/.okx/earn-hunter/platform.json`
-   - Hermes Agent → copy `{baseDir}/config/claude-code.default.json` as base, set `.platform` to `"hermes"`, `.scheduler.type` to `"hermes-cronjob"`
+   - Hermes Agent → copy `{baseDir}/config/claude-code.default.json` as base, set `.platform` to `"hermes"`, `.scheduler.type` to `"cron"`
    - Generic → copy `{baseDir}/config/claude-code.default.json` as base, set `.platform` to `"generic"`, `.scheduler.type` to `"manual"`
 4. Result written to `~/.okx/earn-hunter/platform.json`, subsequent runs skip detection.
 
@@ -95,11 +94,13 @@ Read `~/.okx/earn-hunter/platform.json` and extract the `.platform` field (retur
 
 Core config (`config.json`) is identical across platforms. Platform config (`platform.json`) differs:
 
+All platforms use **OS crontab** for scheduling (zero LLM token cost). Platform config records the detected platform for notification channel routing.
+
 **OpenClaw (`openclaw.default.json`):**
-- scheduler.type = `"cron"`, delivery via native `--announce --channel`
+- scheduler.type = `"cron"` (OS crontab), notification via TG / Lark curl
 
 **Claude Code (`claude-code.default.json`):**
-- scheduler.type = `"cron"`, notification via TG / Lark curl (OS crontab)
+- scheduler.type = `"cron"` (OS crontab), notification via TG / Lark curl
 
 ### Notification Channels (independent of platform)
 
@@ -108,9 +109,7 @@ Detect in priority order (PRD requirement: TG first):
 2. **Lark** — `platform.notify.lark_webhook` non-empty → Lark ready
 3. **Session** — fallback, only works in interactive mode
 
-OpenClaw additionally supports native `delivery` routing via `--announce --channel`.
-
-TG and Lark are **standalone push channels** — they work regardless of whether the agent client is open.
+TG and Lark are **standalone push channels** — they work regardless of whether the agent client is open. Scheduled scans send notifications via direct curl.
 
 ---
 
@@ -140,11 +139,7 @@ See [Platform Detection](#platform-detection-active-probe--user-confirmation). P
 
 **Must actively check available channels before proceeding.** Do NOT silently fall back to session.
 
-**OpenClaw:**
-OpenClaw cron uses `--no-deliver` + direct curl to TG/Lark (see scheduler-setup.md for why). Detect available channels same as Claude Code (TG env vars → Lark webhook → session), then write the confirmed channel to `platform.json` `notify.channel` (e.g. `"telegram"`, `"lark"`, `"session"`). Do NOT write `"delivery"` — OpenClaw's announce delivery is unreliable in isolated cron sessions.
-
-**Claude Code / Hermes / Generic:**
-Detection order (check each, report status for all):
+All platforms use direct curl for scheduled notifications. Detection order (check each, report status for all):
 1. Check `$TELEGRAM_BOT_TOKEN` and `$TELEGRAM_CHAT_ID` env vars:
    - Both set → TG ready
    - Token set but chat_id missing → warn: "Telegram 配置不完整（缺少 TELEGRAM_CHAT_ID），跳过 TG" → continue to next channel
@@ -211,23 +206,12 @@ Display summary using `{baseDir}/templates/activation.md` template (in user's la
 
 **Note:** The smoke test ignores `verboseLog` setting — it always produces output to verify the full pipeline works end-to-end.
 
-### Step 5 — Set Up Scheduler
+### Step 5 — Set Up Scheduler (OS crontab)
 
-**OpenClaw:**
-```bash
-openclaw cron add --name "earn-hunter-hourly" --at "1h" \
-  --tools exec,read,write \
-  --no-deliver \
-  --message "执行 earn-hunter 扫描。扫描完成后如有新机会，直接用 curl 调 TG Bot API 或 Lark Webhook 发送通知。"
-```
-Note: `--tools` limits context to 3 tools (saves tokens); `--no-deliver` because isolated cron agents cannot reliably deliver to TG via announce — agent sends notifications directly via curl. Regardless of `platform.notify.channel` value, OpenClaw cron always uses curl for delivery.
-
-**Claude Code (OS crontab):**
-
-Claude Code `/loop` costs too much (each tick spawns an LLM session) and cannot reliably push TG/Lark notifications. Use OS crontab + `okx` CLI instead:
+All platforms use **OS crontab + `okx` CLI + curl notifications**. Agent-platform scheduling (OpenClaw cron, Claude Code `/loop`, Hermes cronjob) spawns LLM sessions per tick — too expensive and unreliable for notifications.
 
 ```bash
-# Write a one-liner cron script
+# Generate scan script
 cat > ~/.okx/earn-hunter/scan.sh << 'SCRIPT'
 #!/usr/bin/env bash
 okx earn flash-earn projects --status 0,100 --json > /tmp/eh-flash.json 2>&1
@@ -240,16 +224,9 @@ chmod +x ~/.okx/earn-hunter/scan.sh
 (crontab -l 2>/dev/null; echo "0 * * * * ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
 ```
 
-Notifications are sent via direct curl to TG Bot API or Lark Webhook (same as OpenClaw). See `{baseDir}/references/notify-channels.md` for curl templates.
+Notifications are sent via direct curl to TG Bot API or Lark Webhook. See `{baseDir}/references/notify-channels.md` for curl templates.
 
-**IMPORTANT: Do NOT use `/loop` or Routines.** `/loop` is expensive (~$20+/week) and cannot push external notifications. Routines lack persistent state, breaking dedup.
-
-**Hermes Agent:**
-Ask user for their Hermes version's cronjob setup command. Do NOT guess — different Hermes versions have different CLI syntax. Once user provides the command format, create a job named `earn-hunter-hourly` with 1h interval and message "执行 earn-hunter 扫描".
-
-**Generic (no auto-scheduler):**
-Skip scheduler setup. Inform user:
-"当前平台不支持自动调度。你可以随时手动说'执行 earn-hunter 扫描'来触发扫描。如果你有外部 cron 能力（如系统 crontab），可自行配置定时触发。"
+**IMPORTANT: Do NOT use agent-platform scheduling** (OpenClaw cron, Claude Code `/loop`, Hermes cronjob, Routines). These spawn LLM sessions per tick (~$20+/week) and cannot reliably push external notifications.
 
 ---
 
@@ -322,11 +299,9 @@ When user wants to change settings:
 
 ## Pause/Resume
 
-**Pause:** Stop the scheduler.
-- OpenClaw: `openclaw cron remove --name "earn-hunter-hourly"`
-- Claude Code: `crontab -e` → remove the `earn-hunter` line
+**Pause:** `crontab -l | grep -v 'earn-hunter' | crontab -`
 
-**Resume:** Restart the scheduler (same commands as Activation Step 5).
+**Resume:** Re-add the crontab entry (same as Activation Step 5).
 
 Config and state are preserved — resuming picks up where it left off.
 
@@ -356,7 +331,7 @@ Behavior:
    - Scan command results (flash project count + fixed product count)
    - Post-filter results (how many passed filters)
    - Notification channel status (which channel is configured, send result)
-   - Scheduler status (cron job exists? hermes cronjob active?)
+   - Scheduler status (crontab entry exists?)
    - Last 5 lines of `~/.okx/earn-hunter/notify.log`
 5. **Completion message:** "测试完成。test: 前缀的 state 不影响正式去重，正式扫描不受影响。"
 

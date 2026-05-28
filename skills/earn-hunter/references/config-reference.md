@@ -64,25 +64,21 @@ Common mappings:
 
 ## Platform Config (`platform.json`)
 
-### OpenClaw (`openclaw.default.json`)
+Initialized from `{baseDir}/config/<platform>.default.json` during platform detection. All platforms use `scheduler.type = "cron"` (OS crontab).
+
+### Common Fields (all platforms)
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `platform` | string | `"openclaw"` | 平台标识 |
-| `scheduler.type` | string | `"cron"` | 调度方式 |
-| `scheduler.interval` | string | `"1h"` | 扫描间隔 |
-| `scheduler.cron_name` | string | `"earn-hunter-hourly"` | cron 任务名 |
-| `notify.channel` | string | `"auto"` | 通知渠道（OpenClaw 用 delivery 路由） |
-| `notify.delivery_channel` | string | `""` | delivery 目标渠道（如 `"telegram"`） |
-
-### Claude Code (`claude-code.default.json`)
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `platform` | string | `"claude-code"` | 平台标识 |
-| `scheduler.type` | string | `"cron"` | 调度方式（OS crontab） |
+| `platform` | string | varies | 平台标识（`"openclaw"` / `"claude-code"` / `"hermes"` / `"generic"`） |
+| `scheduler.type` | string | `"cron"` | 调度方式（OS crontab，所有平台统一） |
 | `scheduler.interval` | string | `"1h"` | 扫描间隔 |
 | `notify.channel` | string | `"auto"` | 通知渠道：`"auto"` / `"telegram"` / `"lark"` / `"session"` |
+
+### Claude Code additional fields
+
+| Field | Type | Default | Description |
+|---|---|---|---|
 | `notify.fallbackToSession` | boolean | `false` | 排障失败降级标记 |
 | `notify.telegram.bot_token_env` | string | `"TELEGRAM_BOT_TOKEN"` | TG Bot Token 环境变量名 |
 | `notify.telegram.chat_id_env` | string | `"TELEGRAM_CHAT_ID"` | TG Chat ID 环境变量名 |
@@ -118,7 +114,7 @@ Read → parse → modify field → Write back
 Copy {baseDir}/config/default.json → ~/.okx/earn-hunter/config.json
 
 # Init platform (if file missing)
-Copy {baseDir}/config/<platform>.default.json → ~/.okx/earn-hunter/platform.json
+Copy {baseDir}/config/claude-code.default.json → ~/.okx/earn-hunter/platform.json
 ```
 
 ## State File (`state.json`)

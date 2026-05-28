@@ -10,7 +10,7 @@ The agent outputs markdown directly in the conversation. Works on all platforms 
 
 ### 2. Cron / Isolated Session (scheduled scan, no user present)
 
-The agent runs in an isolated context (OpenClaw cron, OS crontab, Hermes cronjob). **Always use direct curl to TG Bot API or Lark Webhook.** Do NOT use OpenClaw `--announce` — it is a known bug that silently fails in isolated cron sessions (reports `lastDelivered: true` but TG never receives the message).
+Scheduled scans run via OS crontab (no LLM session). **Always use direct curl to TG Bot API or Lark Webhook** for notifications.
 
 ### 3. Direct Webhook (standalone push, no agent session)
 
@@ -21,18 +21,12 @@ External system calls TG Bot API or Lark Webhook directly via curl. Does not dep
 | Delivery Model | Platform | Method | Interactivity |
 |------|---------|---------|---------|
 | Interactive session | Any | Markdown in conversation | Full (can reply) |
-| Cron isolated session | OpenClaw / Claude Code / Hermes | `--no-deliver` + curl TG/Lark | Push only |
+| OS crontab (scheduled) | All platforms | curl TG/Lark | Push only |
 | Direct webhook | N/A | curl TG Bot API / Lark Webhook | Push only |
 
 ## Channel Detection (auto mode)
 
-### OpenClaw
-
-**Interactive sessions:** Agent outputs in conversation directly. If user prefers push, use curl to TG/Lark.
-
-**Cron sessions:** Always `--no-deliver` + curl. Do NOT use `--announce --channel telegram` — isolated cron agents are separate sessions without TG bot pairing, announce delivery silently fails.
-
-### Claude Code
+### All Platforms
 
 渠道探测优先级（TG > Lark > Session），含半配置处理：
 
