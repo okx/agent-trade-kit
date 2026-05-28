@@ -66,25 +66,26 @@ openclaw cron edit <id> --tools exec,read,write,fetch # add tools
 openclaw cron edit <id> --clear-tools                 # remove tool filter
 ```
 
-## Claude Code — /loop
+## Claude Code — OS crontab
 
-In Claude Code, type:
+Claude Code `/loop` is **not recommended**: each tick spawns an LLM session (~$20+/week) and isolated sessions cannot reliably push TG/Lark notifications. Use OS crontab + `okx` CLI instead.
 
+```bash
+# Add to crontab (every hour)
+(crontab -l 2>/dev/null; echo "0 * * * * ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
 ```
-/loop 1h 执行 earn-hunter 扫描
-```
 
-Stops when Claude Code is closed. This is the recommended scheduling method for Claude Code v1.
+The `scan.sh` script is generated during activation (Step 5). It calls `okx` CLI directly and sends notifications via curl to TG/Lark.
 
-To change frequency, use a different interval: `/loop 30m`, `/loop 2h`, etc.
+To change frequency: `crontab -e` → modify the cron expression (e.g., `*/30 * * * *` for every 30 minutes).
 
-**IMPORTANT: Do NOT use Routines (cloud scheduled tasks).** Routines run in an isolated cloud sandbox with no persistent state — dedup will not work. Always choose "仅本次会话" if prompted.
+**Do NOT use `/loop` or Routines.** `/loop` is expensive and cannot push external notifications. Routines lack persistent state, breaking dedup.
 
 ### Verification
 
-1. `/loop` will display a Job ID upon startup — confirm it appears
-2. After the first trigger fires, verify that scan output appears in the conversation
-3. Check `~/.okx/earn-hunter/notify.log` for a corresponding log entry
+1. `crontab -l` → confirm `earn-hunter` entry exists
+2. After the first trigger, check `~/.okx/earn-hunter/cron.log` for scan output
+3. Check `~/.okx/earn-hunter/notify.log` for a corresponding notification log entry
 
 ## Frequency Configuration
 
@@ -92,7 +93,7 @@ The `scheduler.interval` field in `platform.json` records the user's preferred f
 
 - Read `platform.json` → `.scheduler.interval` to determine the interval
 - Default `"1h"` = every hour
-- User can change via natural language: "把扫描频率改成 30 分钟" → update `platform.json` `.scheduler.interval` to `"30m"` + restart cron/loop
+- User can change via natural language: "把扫描频率改成 30 分钟" → update `platform.json` `.scheduler.interval` to `"30m"` + restart cron
 
 ## Testing Tips
 

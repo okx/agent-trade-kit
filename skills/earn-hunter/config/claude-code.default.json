@@ -1,7 +1,7 @@
 {
   "platform": "claude-code",
   "scheduler": {
-    "type": "loop",
+    "type": "cron",
     "interval": "1h"
   },
   "notify": {

@@ -10,7 +10,7 @@ The agent outputs markdown directly in the conversation. Works on all platforms 
 
 ### 2. Cron / Isolated Session (scheduled scan, no user present)
 
-The agent runs in an isolated context (OpenClaw cron, Claude Code /loop, Hermes cronjob). **Always use `--no-deliver` + direct curl to TG Bot API or Lark Webhook.** Do NOT use OpenClaw `--announce` — it is a known bug that silently fails in isolated cron sessions (reports `lastDelivered: true` but TG never receives the message).
+The agent runs in an isolated context (OpenClaw cron, OS crontab, Hermes cronjob). **Always use direct curl to TG Bot API or Lark Webhook.** Do NOT use OpenClaw `--announce` — it is a known bug that silently fails in isolated cron sessions (reports `lastDelivered: true` but TG never receives the message).
 
 ### 3. Direct Webhook (standalone push, no agent session)
 

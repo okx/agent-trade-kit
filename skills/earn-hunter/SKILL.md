@@ -99,7 +99,7 @@ Core config (`config.json`) is identical across platforms. Platform config (`pla
 - scheduler.type = `"cron"`, delivery via native `--announce --channel`
 
 **Claude Code (`claude-code.default.json`):**
-- scheduler.type = `"loop"`, notification via TG / Lark / session
+- scheduler.type = `"cron"`, notification via TG / Lark curl (OS crontab)
 
 ### Notification Channels (independent of platform)
 
@@ -121,7 +121,7 @@ TG and Lark are **standalone push channels** — they work regardless of whether
 | "有闪赚通知我" / "monitor earn" / "帮我监控赚币" | → [Activation Flow](#activation-flow) |
 | "改 APY 阈值" / "只看 USDT" / "change config" | → [Config Management](#config-management) |
 | "申购 USDT 定期 7D" / "subscribe" / "我要买" | → [Purchase Guide](#purchase-guide) |
-| "执行 earn-hunter 扫描" (from cron/loop) | → [Scan Cycle](#scan-cycle) |
+| "执行 earn-hunter 扫描" (from cron) | → [Scan Cycle](#scan-cycle) |
 | "停止监控" / "暂停" / "stop" | → [Pause/Resume](#pauseresume) |
 | "卸载 earn-hunter" / "uninstall" | → [Uninstall](#uninstall) |
 | "测试 earn-hunter" / "smoke test" / "测试定时任务" | → [Test Mode](#test-mode) |
@@ -222,12 +222,27 @@ openclaw cron add --name "earn-hunter-hourly" --at "1h" \
 ```
 Note: `--tools` limits context to 3 tools (saves tokens); `--no-deliver` because isolated cron agents cannot reliably deliver to TG via announce — agent sends notifications directly via curl. Regardless of `platform.notify.channel` value, OpenClaw cron always uses curl for delivery.
 
-**Claude Code:**
-```
-/loop 1h 执行 earn-hunter 扫描
+**Claude Code (OS crontab):**
+
+Claude Code `/loop` costs too much (each tick spawns an LLM session) and cannot reliably push TG/Lark notifications. Use OS crontab + `okx` CLI instead:
+
+```bash
+# Write a one-liner cron script
+cat > ~/.okx/earn-hunter/scan.sh << 'SCRIPT'
+#!/usr/bin/env bash
+okx earn flash-earn projects --status 0,100 --json > /tmp/eh-flash.json 2>&1
+okx earn fixed-earn products --json > /tmp/eh-fixed.json 2>&1
+# TODO: agent processes results and sends notification via curl
+SCRIPT
+chmod +x ~/.okx/earn-hunter/scan.sh
+
+# Add to crontab (every hour)
+(crontab -l 2>/dev/null; echo "0 * * * * ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
 ```
 
-**IMPORTANT: Do NOT use Routines (cloud scheduled tasks) for Claude Code.** Routines run in an isolated cloud sandbox with no persistent state across runs, so dedup will not work — every scan would re-notify all existing products. Always use `/loop` (local session mode) instead. If the system prompts whether to use Routines, choose "仅本次会话" (current session only).
+Notifications are sent via direct curl to TG Bot API or Lark Webhook (same as OpenClaw). See `{baseDir}/references/notify-channels.md` for curl templates.
+
+**IMPORTANT: Do NOT use `/loop` or Routines.** `/loop` is expensive (~$20+/week) and cannot push external notifications. Routines lack persistent state, breaking dedup.
 
 **Hermes Agent:**
 Ask user for their Hermes version's cronjob setup command. Do NOT guess — different Hermes versions have different CLI syntax. Once user provides the command format, create a job named `earn-hunter-hourly` with 1h interval and message "执行 earn-hunter 扫描".
@@ -240,7 +255,7 @@ Skip scheduler setup. Inform user:
 
 ## Scan Cycle
 
-Executed by cron/loop triggers. Read `{baseDir}/references/scan-logic.md` for the complete flow.
+Executed by cron triggers. Read `{baseDir}/references/scan-logic.md` for the complete flow.
 
 Summary:
 
@@ -309,7 +324,7 @@ When user wants to change settings:
 
 **Pause:** Stop the scheduler.
 - OpenClaw: `openclaw cron remove --name "earn-hunter-hourly"`
-- Claude Code: tell user to stop the `/loop`
+- Claude Code: `crontab -e` → remove the `earn-hunter` line
 
 **Resume:** Restart the scheduler (same commands as Activation Step 5).
 
@@ -341,7 +356,7 @@ Behavior:
    - Scan command results (flash project count + fixed product count)
    - Post-filter results (how many passed filters)
    - Notification channel status (which channel is configured, send result)
-   - Scheduler status (cron job exists? /loop running? hermes cronjob active?)
+   - Scheduler status (cron job exists? hermes cronjob active?)
    - Last 5 lines of `~/.okx/earn-hunter/notify.log`
 5. **Completion message:** "测试完成。test: 前缀的 state 不影响正式去重，正式扫描不受影响。"
 

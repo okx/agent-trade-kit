@@ -42,12 +42,12 @@
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `schedule.cron` | string | `"0 * * * *"` | Cron expression for scan frequency. Standard 5-field cron syntax |
-| `schedule.interval` | string | `"1h"` | Human-readable interval (for display and /loop). Must stay in sync with `schedule.cron` |
+| `schedule.interval` | string | `"1h"` | Human-readable interval (for display). Must stay in sync with `schedule.cron` |
 
 When user changes frequency (e.g. "把扫描频率改成 30 分钟"):
 1. Convert to cron expression: "30 分钟" → `"*/30 * * * *"`
 2. Update both `schedule.cron` and `schedule.interval` in config.json
-3. Update the actual scheduler (restart cron/loop with new interval)
+3. Update the actual scheduler (restart cron with new interval)
 
 Common mappings:
 - "每小时" / "1h" → `"0 * * * *"`
@@ -80,7 +80,7 @@ Common mappings:
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `platform` | string | `"claude-code"` | 平台标识 |
-| `scheduler.type` | string | `"loop"` | 调度方式（/loop） |
+| `scheduler.type` | string | `"cron"` | 调度方式（OS crontab） |
 | `scheduler.interval` | string | `"1h"` | 扫描间隔 |
 | `notify.channel` | string | `"auto"` | 通知渠道：`"auto"` / `"telegram"` / `"lark"` / `"session"` |
 | `notify.fallbackToSession` | boolean | `false` | 排障失败降级标记 |
