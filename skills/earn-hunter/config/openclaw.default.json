@@ -1,0 +1,12 @@
+{
+  "platform": "openclaw",
+  "scheduler": {
+    "type": "cron",
+    "interval": "1h",
+    "cron_name": "earn-hunter-hourly"
+  },
+  "notify": {
+    "channel": "auto",
+    "delivery_channel": ""
+  }
+}
