@@ -1,20 +1,18 @@
 /**
  * Tests for undici global proxy dispatcher bootstrap.
  *
- * Verifies that EnvHttpProxyAgent is registered as the global undici
- * dispatcher when the bootstrap module is imported, and that all three
- * proxy-routing scenarios work correctly:
- *   1. No proxy vars -> direct connection (EnvHttpProxyAgent falls through)
+ * The bootstrap only registers EnvHttpProxyAgent as the global undici dispatcher
+ * when a proxy env var is set (gating avoids Node's ExperimentalWarning on
+ * proxy-less commands). These tests cover:
+ *   0. The gating decision (`hasProxyEnv` / `installEnvProxyDispatcher`)
+ *   1. No proxy vars -> bootstrap registers nothing; direct connection still works
  *   2. HTTP_PROXY set -> requests routed through proxy (CONNECT tunnel established)
  *   3. NO_PROXY set -> target host bypasses proxy (direct connection, no CONNECT)
  *   4. HTTPS_PROXY set, HTTP_PROXY unset -> HTTP traffic goes direct
  *
- * Test-ordering note: node:test runs describe() blocks in declaration order.
- * Scenario 1's EnvHttpProxyAgent assertion relies on the bootstrap side-effect
- * firing first (see the before() comment in scenario 1). Scenarios 2, 3, and 4
- * each call setGlobalDispatcher() explicitly in their own before() hooks, so
- * they are self-contained and not sensitive to execution order relative to each
- * other or scenario 1.
+ * Scenarios 2, 3, and 4 each call setGlobalDispatcher() explicitly in their own
+ * before() hooks, so they are self-contained and not sensitive to execution
+ * order. The gating tests (scenario 0) inject deps and never touch global state.
  *
  * undici's ProxyAgent uses CONNECT tunneling for HTTP->HTTP proxy by default
  * (proxyTunnel=true). The mock proxy server handles CONNECT via the Node.js
@@ -30,6 +28,10 @@ import {
   getGlobalDispatcher,
   type Dispatcher,
 } from "undici";
+import {
+  hasProxyEnv,
+  installEnvProxyDispatcher,
+} from "../src/runtime/undici-proxy-bootstrap.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -89,7 +91,51 @@ function stopServer(server: Server): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Scenario 1: No proxy env → direct connection
+// Scenario 0: gating decision — hasProxyEnv / installEnvProxyDispatcher
+//
+// These are pure unit tests with injected deps. They never touch the global
+// dispatcher or instantiate the experimental EnvHttpProxyAgent, so they assert
+// the gating logic deterministically and in isolation.
+// ---------------------------------------------------------------------------
+
+describe("undici-proxy-bootstrap: scenario 0 — gating decision", () => {
+  it("hasProxyEnv is false when no proxy var is set", () => {
+    assert.equal(hasProxyEnv({}), false);
+  });
+
+  for (const key of ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"]) {
+    it(`hasProxyEnv is true when ${key} is set`, () => {
+      assert.equal(hasProxyEnv({ [key]: "http://127.0.0.1:7890" }), true);
+    });
+  }
+
+  it("installEnvProxyDispatcher does not register when no proxy var is set", () => {
+    let registered = false;
+    const result = installEnvProxyDispatcher({
+      env: {},
+      register: () => {
+        registered = true;
+      },
+    });
+    assert.equal(result, false);
+    assert.equal(registered, false);
+  });
+
+  it("installEnvProxyDispatcher registers when a proxy var is set", () => {
+    let registered = false;
+    const result = installEnvProxyDispatcher({
+      env: { HTTPS_PROXY: "http://127.0.0.1:7890" },
+      register: () => {
+        registered = true;
+      },
+    });
+    assert.equal(result, true);
+    assert.equal(registered, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scenario 1: No proxy env → bootstrap registers nothing; direct fetch works
 // ---------------------------------------------------------------------------
 
 describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
@@ -98,7 +144,7 @@ describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
   let savedHttpProxy: string | undefined;
   let savedNoProxy: string | undefined;
 
-  before(async () => {
+  before(() => {
     savedDispatcher = getGlobalDispatcher();
     savedHttpsProxy = process.env.HTTPS_PROXY;
     savedHttpProxy = process.env.HTTP_PROXY;
@@ -106,13 +152,6 @@ describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
     delete process.env.HTTPS_PROXY;
     delete process.env.HTTP_PROXY;
     delete process.env.NO_PROXY;
-
-    // Import bootstrap — sets global dispatcher to EnvHttpProxyAgent.
-    // Note: Node.js module caching makes this import idempotent after the first
-    // load. Scenario 1 must run before scenarios 2/3 for the bootstrap side-effect
-    // to fire here; if test order shifts, the dispatcher will already be set from
-    // a prior scenario's explicit setGlobalDispatcher() call.
-    await import("../src/runtime/undici-proxy-bootstrap.js");
   });
 
   after(() => {
@@ -122,12 +161,12 @@ describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
     if (savedNoProxy !== undefined) process.env.NO_PROXY = savedNoProxy;
   });
 
-  it("global dispatcher is an EnvHttpProxyAgent after bootstrap", () => {
-    const dispatcher = getGlobalDispatcher();
-    assert.ok(
-      dispatcher instanceof EnvHttpProxyAgent,
-      `Expected EnvHttpProxyAgent, got: ${dispatcher?.constructor?.name ?? typeof dispatcher}`,
-    );
+  it("does not register a dispatcher when no proxy env vars are set", () => {
+    setGlobalDispatcher(savedDispatcher);
+    const before = getGlobalDispatcher();
+    const registered = installEnvProxyDispatcher();
+    assert.equal(registered, false);
+    assert.equal(getGlobalDispatcher(), before);
   });
 
   it("direct fetch succeeds when no proxy env vars are set", async () => {

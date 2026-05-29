@@ -77,7 +77,7 @@ Setting `readOnly: true` in config (or `--read-only` CLI flag) removes all tools
 
 ### Automatic environment variable proxy (recommended)
 
-The SDK automatically routes all undici-based fetch calls through the system proxy when `HTTPS_PROXY` or `HTTP_PROXY` is set. This is handled by `packages/core/src/runtime/undici-proxy-bootstrap.ts`, which registers `EnvHttpProxyAgent` as the global undici dispatcher on import. `packages/core/src/index.ts` imports this module as its first statement, so CLI, MCP server, and mcp-gateway all get proxy support transitively.
+The SDK automatically routes all undici-based fetch calls through the system proxy when `HTTPS_PROXY` or `HTTP_PROXY` is set. This is handled by `packages/core/src/runtime/undici-proxy-bootstrap.ts`, which registers `EnvHttpProxyAgent` as the global undici dispatcher on import — but **only when a proxy env var is actually set** (`HTTPS_PROXY` / `HTTP_PROXY`, upper- or lower-case). `EnvHttpProxyAgent` is still flagged experimental by Node, so this gating avoids emitting an `ExperimentalWarning` on every command (including local-only ones like `okx skill list` that never make a request). `packages/core/src/index.ts` imports this module as its first statement, so CLI, MCP server, and mcp-gateway all get proxy support transitively.
 
 Supported env vars (standard names):
 
