@@ -20,6 +20,7 @@
 
 ### 修复
 
+- **每条命令都触发 `EnvHttpProxyAgent` 实验性警告**：undici 代理引导模块在加载时无条件注册 `EnvHttpProxyAgent`，导致 Node 在每条 CLI 命令上都打印 `[UNDICI-EHPA] ExperimentalWarning`——包括 `okx skill list` 这类从不发请求的纯本地命令。现已改为仅在检测到代理环境变量（`HTTPS_PROXY` / `HTTP_PROXY`，大小写均可）时才注册，代理用户的自动代理支持保持不变，其他用户则得到无警告的干净 CLI。
 - **`earn savings fixed-redeem` 文档使用了位置参数而非 `--reqId` 标志**：SKILL.md、cli-registry 和 savings-commands.md 均记录为 `fixed-redeem <reqId>`（位置参数），但 CLI 路由读取的是 `v.reqId`（命名标志）。按文档操作的 Agent 会传入 `undefined` 作为 reqId。现已更正为 `--reqId <reqId>`。
 - **`earn savings rate-history --limit` 文档默认值为 100，但代码实际默认值为 7**：savings-commands.md 之前记录默认值为 100，但 CLI 实现中使用的是 `readNumber(args, "limit") ?? 7`。现已更正为实际默认值 7。
 - **`earn savings rate-history` 和 `fixed-products` CLI 输出使用 `rate` 列但 OKX API 返回 `apr`**：定期产品表格的 `rate` 列始终为空。现已更正为读取 `apr` 字段。
