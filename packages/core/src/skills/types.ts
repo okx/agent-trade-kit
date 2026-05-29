@@ -1,12 +1,38 @@
-/** zip 包内 _meta.json 的结构（后端打包时注入） */
+/** Shape of the `signing` block injected into _meta.json by the server at packaging time. */
+export interface SkillSigning {
+  files: Record<string, string>;  // filename → "sha256:<hex>"
+  public_key_id: string;          // ID of the Ed25519 key used to sign
+  signature: string;              // Base64-encoded Ed25519 signature
+  /** Skill name bound into the payload at signing time (v2 payload — prevents cross-skill transplant). */
+  name?: string;
+  /** Skill version bound into the payload at signing time (v2 payload). */
+  version?: string;
+}
+
+/** Outcome of a skill signature verification attempt. */
+export type VerificationStatus = "verified" | "verified_by_server" | "failed" | "bypassed";
+
+/** Full result returned by verifySkillSignature(). */
+export interface VerificationResult {
+  status: VerificationStatus;
+  publicKeyId?: string;
+  filesChecked?: number;
+  extraFiles?: string[];       // local files present but absent from signing.files
+  mismatched?: string[];       // files whose hash did not match the server DB
+  serverVersion?: string;      // version the server matched against during fallback verification
+  error?: string;
+}
+
+/** Shape of _meta.json inside a skill zip, injected by the server at packaging time. */
 export interface SkillMeta {
   name: string;
   version: string;
   title: string;
   description: string;
+  signing?: SkillSigning;      // absent in skills packaged before signing was introduced
 }
 
-/** registry.json 中每个 skill 的记录 */
+/** Per-skill record stored in registry.json. */
 export interface SkillRecord {
   name: string;
   version: string;
@@ -14,15 +40,16 @@ export interface SkillRecord {
   installedAt: string;
   updatedAt: string;
   source: "marketplace";
+  verification?: VerificationStatus;  // verification status at install time
 }
 
-/** registry.json 顶层结构 */
+/** Top-level structure of registry.json. */
 export interface SkillRegistry {
   version: number;
   skills: Record<string, SkillRecord>;
 }
 
-/** Search API 返回的 skill 条目 */
+/** Skill entry returned by the Search API. */
 export interface SkillSearchItem {
   title: string;
   name: string;
@@ -35,7 +62,7 @@ export interface SkillSearchItem {
   skillURL: string;
 }
 
-/** Categories API 返回的分类条目 */
+/** Category entry returned by the Categories API. */
 export interface SkillCategory {
   categoryId: string;
   name: string;

@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import type { SkillMeta } from "./types.js";
+import type { SkillMeta, SkillSigning } from "./types.js";
 
 /**
  * Read and parse _meta.json from an extracted skill directory.
@@ -33,6 +33,41 @@ export function readMetaJson(contentDir: string): SkillMeta {
     version: String(meta.version),
     title: typeof meta.title === "string" ? meta.title : "",
     description: typeof meta.description === "string" ? meta.description : "",
+    signing: parseSigningBlock(meta.signing),
+  };
+}
+
+/**
+ * Graceful version of readMetaJson — returns null if _meta.json is missing or corrupted.
+ * Used as fallback before server-side verification.
+ */
+export function tryReadMetaJson(contentDir: string): SkillMeta | null {
+  try {
+    return readMetaJson(contentDir);
+  } catch {
+    return null;
+  }
+}
+
+function parseSigningBlock(raw: unknown): SkillSigning | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const s = raw as Record<string, unknown>;
+  if (typeof s.signature !== "string" || typeof s.public_key_id !== "string" || !s.files) {
+    return undefined;
+  }
+  // Validate files: drop entries whose value is not a string to avoid silent hash-mismatch confusion.
+  const rawFiles = s.files as Record<string, unknown>;
+  const files: Record<string, string> = {};
+  for (const [key, value] of Object.entries(rawFiles)) {
+    if (typeof value === "string") files[key] = value;
+  }
+
+  return {
+    signature: s.signature,
+    public_key_id: s.public_key_id,
+    files,
+    ...(typeof s.name === "string" && {name: s.name}),
+    ...(typeof s.version === "string" && {version: s.version}),
   };
 }
 

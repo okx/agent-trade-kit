@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`earn_get_fixed_earn_products` MCP tool** and `okx earn savings fixed-products` CLI command for querying Simple Earn Fixed-term product pool with APR, term, remaining quota, and sold-out status
 - **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
+- **Skill signature verification**: `okx skill add` now verifies Ed25519 signature and SHA-256 file integrity before installing a skill, with server-side fallback when local verification cannot proceed. Use `--force` to bypass on verification failure. New command `okx skill verify <name>` re-verifies an installed skill on demand and persists the result to the local registry. New SDK exports: `verifySkillSignature`, `getPublicKey`, `serverSideVerify`, `tryReadMetaJson`, `VerificationResult`, `VerificationStatus`.
 - All 163 MCP tools now expose a human-readable `title` at both top-level (`Tool.title`, per MCP spec 2025-06-18) and inside `annotations.title` for backward compatibility, so clients like MCP Inspector render readable labels instead of snake_case names.
 
 ### Fixed

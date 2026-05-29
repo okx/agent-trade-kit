@@ -6,7 +6,7 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { writeFileSync, mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { tmpdir, homedir } from "node:os";
 import { randomUUID } from "node:crypto";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { handleSkillCommand } from "../src/index.js";
@@ -186,6 +186,25 @@ describe("handleSkillCommand - parameter routing", () => {
     process.exitCode = undefined;
   });
 
+  it("add: --force flag is read from v.force, not positional args", async () => {
+    // Routing reads v.force (named flag). Without a real HTTP client cmdSkillAdd throws,
+    // but the routing layer should not set exitCode=1 (no missing-name error).
+    const { spy } = makeSpy();
+    try {
+      await handleSkillCommand(spy, "add", ["test-skill"], vals({ force: true }), false, fakeConfig);
+    } catch {
+      // Expected — no real HTTP client available
+    }
+    assert.notEqual(process.exitCode, 1);
+  });
+
+  it("verify: requires name argument", async () => {
+    const { spy } = makeSpy();
+    await handleSkillCommand(spy, "verify", [], vals({}), false, fakeConfig);
+    assert.equal(process.exitCode, 1);
+    process.exitCode = undefined;
+  });
+
   it("unknown subcommand: sets exitCode", async () => {
     const { spy } = makeSpy();
     handleSkillCommand(spy, "nonexistent", [], vals({}), false, fakeConfig);
@@ -298,13 +317,34 @@ describe("handleSkillCommand check", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Verify
+// ---------------------------------------------------------------------------
+
+describe("handleSkillCommand verify", () => {
+  it("name from rest[0] — reports 'not installed' for unknown skill", async () => {
+    const { spy } = makeSpy();
+    await handleSkillCommand(spy, "verify", [`nonexistent-${randomUUID()}`], vals({}), false, fakeConfig);
+    assert.equal(process.exitCode, 1);
+    const output = err.join("");
+    assert.ok(output.includes("not installed"));
+    process.exitCode = undefined;
+  });
+});
+
+// ---------------------------------------------------------------------------
 // cmdSkillCheck — with installed skill (uses real registry)
 // ---------------------------------------------------------------------------
 
 import {
   upsertSkillRecord,
   removeSkillRecord,
+  getSkillRecord,
 } from "@agent-tradekit/core";
+import {
+  cmdSkillAdd,
+  cmdSkillVerify,
+  type SkillAddDeps,
+} from "../src/commands/skill.js";
 
 describe("cmdSkillCheck - installed skill", () => {
   const testSkill = `test-check-${randomUUID()}`;
@@ -531,5 +571,140 @@ describe("npxEnv", () => {
     const env = npxEnv();
     env.OKX_NPX_ENV_MUTATION_TEST = "should-not-leak";
     assert.equal(process.env.OKX_NPX_ENV_MUTATION_TEST, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdSkillAdd --force bypass: registry + stderr outcomes
+//
+// Uses injectable _deps to bypass the network download/extract steps and reach
+// the verification bypass code path directly.
+// ---------------------------------------------------------------------------
+
+describe("cmdSkillAdd --force bypass outcomes", () => {
+  let contentDir: string;
+  let skillName: string;
+
+  beforeEach(() => {
+    skillName = `test-bypass-${randomUUID()}`;
+    contentDir = join(tmpdir(), `bypass-content-${randomUUID()}`);
+    mkdirSync(contentDir, { recursive: true });
+    writeFileSync(join(contentDir, "SKILL.md"), "# Test");
+    // Invalid signing block — signature won't verify, key fetch will fail (no network),
+    // triggering verifyResult.status === "failed" without any real server interaction.
+    writeFileSync(join(contentDir, "_meta.json"), JSON.stringify({
+      name: skillName,
+      version: "1.0.0",
+      title: "Test",
+      description: "test",
+      signing: {
+        files: { "SKILL.md": "sha256:invalid" },
+        public_key_id: "test-key-id",
+        signature: "AAAA",
+      },
+    }));
+  });
+
+  afterEach(() => {
+    rmSync(contentDir, { recursive: true, force: true });
+    removeSkillRecord(skillName);
+    process.exitCode = undefined;
+  });
+
+  const noopExec = (() => Buffer.from("")) as unknown as Parameters<typeof cmdSkillAdd>[4];
+
+  function makeDeps(): SkillAddDeps {
+    return {
+      download: async (_client, _name, dir) => join(dir, "fake.zip"),
+      extract: async () => contentDir,
+    };
+  }
+
+  it("persists 'bypassed' verification status to registry when --force is used", async () => {
+    await cmdSkillAdd(skillName, fakeConfig, false, true, noopExec, makeDeps());
+    const record = getSkillRecord(skillName);
+    assert.equal(record?.verification, "bypassed");
+  });
+
+  it("warning is written to stderr (not stdout) when --force bypasses failed verification", async () => {
+    const stderrMessages: string[] = [];
+    const origWrite = process.stderr.write.bind(process.stderr);
+    (process.stderr as unknown as { write: (c: string) => boolean }).write = (chunk: string) => {
+      stderrMessages.push(chunk);
+      return true;
+    };
+    try {
+      await cmdSkillAdd(skillName, fakeConfig, false, true, noopExec, makeDeps());
+    } finally {
+      (process.stderr as unknown as { write: typeof origWrite }).write = origWrite;
+    }
+    assert.ok(stderrMessages.some(m => m.includes("WARNING:")), "warning must appear on stderr");
+    assert.ok(stderrMessages.some(m => m.includes("--force")), "warning must mention --force");
+    assert.ok(!out.some(m => m.includes("WARNING:")), "warning must NOT appear on stdout");
+  });
+
+  it("--json mode still emits bypass warning to stderr (not silenced by json flag)", async () => {
+    const stderrMessages: string[] = [];
+    const origWrite = process.stderr.write.bind(process.stderr);
+    (process.stderr as unknown as { write: (c: string) => boolean }).write = (chunk: string) => {
+      stderrMessages.push(chunk);
+      return true;
+    };
+    try {
+      await cmdSkillAdd(skillName, fakeConfig, true, true, noopExec, makeDeps());
+    } finally {
+      (process.stderr as unknown as { write: typeof origWrite }).write = origWrite;
+    }
+    assert.ok(stderrMessages.some(m => m.includes("WARNING:")), "warning must appear on stderr even in --json mode");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdSkillVerify — exitCode = 1 on verification failure (AC #9)
+//
+// Creates a real skill content dir at ~/.agents/skills/<name>/ (the path that
+// cmdSkillVerify resolves internally via getSkillContentDir) with a signing
+// block that cannot pass — key fetch returns null (network error swallowed),
+// server fallback also returns null, so verifySkillSignature yields "failed".
+// ---------------------------------------------------------------------------
+
+describe("cmdSkillVerify — exitCode on verification failure (AC #9)", () => {
+  let skillName: string;
+  let contentDir: string;
+
+  beforeEach(() => {
+    skillName = `test-verify-fail-${randomUUID()}`;
+    contentDir = join(homedir(), ".agents", "skills", skillName);
+    mkdirSync(contentDir, { recursive: true });
+    writeFileSync(join(contentDir, "SKILL.md"), "# Test");
+    writeFileSync(join(contentDir, "_meta.json"), JSON.stringify({
+      name: skillName,
+      version: "1.0.0",
+      title: "Test",
+      description: "test",
+      signing: {
+        files: { "SKILL.md": "sha256:invalid-hash" },
+        public_key_id: "nonexistent-key-id",
+        signature: "AAAA",
+      },
+    }));
+    upsertSkillRecord({ name: skillName, version: "1.0.0", title: "Test", description: "test" });
+  });
+
+  afterEach(() => {
+    rmSync(contentDir, { recursive: true, force: true });
+    removeSkillRecord(skillName);
+    process.exitCode = undefined;
+  });
+
+  it("sets exitCode = 1 when signature verification fails", async () => {
+    await cmdSkillVerify(skillName, fakeConfig, false);
+    assert.equal(process.exitCode, 1);
+    assert.ok(err.join("").match(/verification failed/i));
+  });
+
+  it("sets exitCode = 1 in --json mode (verification failure always exits 1)", async () => {
+    await cmdSkillVerify(skillName, fakeConfig, true);
+    assert.equal(process.exitCode, 1);
   });
 });
