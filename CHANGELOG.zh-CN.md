@@ -15,6 +15,7 @@
 
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
+- **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
 - 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
 
 ### 修复

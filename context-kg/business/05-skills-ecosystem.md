@@ -65,3 +65,7 @@ The downloader (`packages/core/src/skills/downloader.ts`) fetches skill packs fr
 Any change to CLI command signatures or output format must be reflected in the corresponding `SKILL.md`. The skills documentation is what the agent reads to understand how to use the CLI — stale skills lead to incorrect agent behavior.
 
 When adding a new CLI flag or changing `--json` output format, always check the matching skill pack's command documentation and update it in the same MR.
+
+## Skill Signature Verification
+
+Skills downloaded from the marketplace are verified via Ed25519 signature + SHA-256 file integrity before installation. See `context-kg/technical/08-skill-signing.md` for the full verification state machine, `VerificationStatus` values, bypass policy, and server fallback flow.

@@ -209,6 +209,7 @@ import {
   cmdSkillRemove,
   cmdSkillCheck,
   cmdSkillList,
+  cmdSkillVerify,
 } from "./commands/skill.js";
 import { markFailedIfSCodeError, outputLine, errorLine, setOutput, setEnvContext, setJsonEnvEnabled } from "./formatter.js";
 import { cmdPilotStatus, cmdPilotInstall, cmdPilotRemove } from "./commands/pilot.js";
@@ -1695,9 +1696,14 @@ function requireSkillName(rest: string[], usage: string): string | undefined {
   return name;
 }
 
-function handleSkillAdd(rest: string[], config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
+function handleSkillAdd(rest: string[], v: CliValues, config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
   const n = requireSkillName(rest, "Usage: okx skill add <name>");
-  if (n) return cmdSkillAdd(n, config, json);
+  if (n) return cmdSkillAdd(n, config, json, v.force ?? false);
+}
+
+function handleSkillVerify(rest: string[], config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
+  const n = requireSkillName(rest, "Usage: okx skill verify <name>");
+  if (n) return cmdSkillVerify(n, config, json);
 }
 
 function handleSkillDownload(rest: string[], v: CliValues, config: import("@agent-tradekit/core").OkxConfig, json: boolean): Promise<void> | void {
@@ -1727,12 +1733,13 @@ export function handleSkillCommand(
   if (action === "search") return cmdSkillSearch(run, { keyword: rest[0] ?? v.keyword, categories: v.categories, page: v.page, limit: v.limit, json });
   if (action === "categories") return cmdSkillCategories(run, json);
   if (action === "list") return cmdSkillList(json);
-  if (action === "add") return handleSkillAdd(rest, config, json);
+  if (action === "add") return handleSkillAdd(rest, v, config, json);
   if (action === "download") return handleSkillDownload(rest, v, config, json);
   if (action === "remove") return handleSkillRemove(rest, json);
   if (action === "check") return handleSkillCheck(run, rest, json);
+  if (action === "verify") return handleSkillVerify(rest, config, json);
   errorLine(`Unknown skill command: ${action}`);
-  errorLine("Valid: search, categories, add, download, remove, check, list");
+  errorLine("Valid: search, categories, add, download, remove, check, list, verify");
   process.exitCode = 1;
 }
 
