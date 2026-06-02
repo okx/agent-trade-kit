@@ -8,11 +8,15 @@ There are three distinct delivery models. Understanding which applies avoids con
 
 The agent outputs markdown directly in the conversation. Works on all platforms (OpenClaw, Claude Code, Hermes, Generic). Full interactivity — user can reply to subscribe immediately.
 
-### 2. Cron / Isolated Session (scheduled scan, no user present)
+### 2. OS Crontab (scheduled scan, no LLM session) — Claude Code / Hermes / Generic
 
-Scheduled scans run via OS crontab (no LLM session). **Always use direct curl to TG Bot API or Lark Webhook** for notifications.
+Scheduled scans run via OS crontab (no LLM session). **Always use direct curl to TG Bot API or Lark Webhook** for notifications. `scripts/scan.sh` does the curl itself.
 
-### 3. Direct Webhook (standalone push, no agent session)
+### 3. OpenClaw In-Session Cron (`announce` delivery)
+
+On OpenClaw the scheduled scan runs as an **isolated cron agent turn** created via the in-session `cron` tool. Delivery is via the cron job's **`announce`** mode, which pushes the turn's output back to the conversation channel that created the job. `platform.json` `notify.channel` is `"session"` so `scripts/scan.sh` prints the notification to stdout for the turn to relay — **do not curl TG/Lark from this turn** (that would double-send). The user can still switch to a TG/Lark channel explicitly if they prefer curl push.
+
+### 4. Direct Webhook (standalone push, no agent session)
 
 External system calls TG Bot API or Lark Webhook directly via curl. Does not depend on any agent platform's delivery mechanism. Useful for custom integrations.
 
@@ -21,7 +25,8 @@ External system calls TG Bot API or Lark Webhook directly via curl. Does not dep
 | Delivery Model | Platform | Method | Interactivity |
 |------|---------|---------|---------|
 | Interactive session | Any | Markdown in conversation | Full (can reply) |
-| OS crontab (scheduled) | All platforms | curl TG/Lark | Push only |
+| OS crontab (scheduled) | Claude Code / Hermes / Generic | curl TG/Lark | Push only |
+| In-session cron (scheduled) | OpenClaw | cron `announce` → conversation channel | Push (into chat) |
 | Direct webhook | N/A | curl TG Bot API / Lark Webhook | Push only |
 
 ## Channel Detection (auto mode)

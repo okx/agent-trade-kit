@@ -1,10 +1,10 @@
 {
   "platform": "openclaw",
   "scheduler": {
-    "type": "cron",
+    "type": "openclaw-cron",
     "interval": "1h"
   },
   "notify": {
-    "channel": "auto"
+    "channel": "session"
   }
 }

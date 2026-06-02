@@ -4,7 +4,9 @@
 >
 > Key script behaviors that satisfy the two original bugs:
 > - **No new opportunities + `verboseLog=false` → the script exits 0 silently with zero output and sends nothing.** (Fixes the "sends 'Scan complete' instead of staying silent" bug.)
-> - **Triggered by OS crontab, not an LLM session.** (Fixes the "Claude Code `/loop` expires" bug.)
+> - **Triggered by OS crontab, not an LLM session** (Claude Code / Hermes / Generic). (Fixes the "Claude Code `/loop` expires" bug.)
+>
+> **OpenClaw exception:** the scan is triggered by an isolated, light-context cron agent turn (via the in-session `cron` tool). That turn runs this same script with `notify.channel = "session"` (output to stdout) and lets cron `announce` deliver the result to the conversation — it does **not** curl TG/Lark. Everything else (filter, dedup, state, silent-exit) is identical.
 >
 > Test hooks (env vars, used only for verification, inert in production): `EH_FLASH_FIXTURE`, `EH_FIXED_FIXTURE`, `EH_DRY_RUN`, `EH_STATE_DIR`, `EH_FORCE_FAIL`, `EH_NOW_ISO`, `EH_TEST_NAMESPACE`. Profile is injected via `OKX_PROFILE` (empty → no `--profile` flag).
 

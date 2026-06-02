@@ -1,10 +1,46 @@
 # Scheduler Setup
 
-All platforms use **OS crontab + `okx` CLI + curl notifications**. No LLM sessions are spawned — zero token cost.
+Two scheduling models, selected by `platform.json` `.scheduler.type`:
 
-Agent-platform scheduling (OpenClaw cron, Claude Code `/loop`, Hermes cronjob, Routines) is **not recommended**: each tick spawns an LLM session (~$20+/week), and isolated sessions cannot reliably push TG/Lark notifications.
+- **`openclaw-cron`** (OpenClaw) — scheduled via the in-session **`cron` agent tool**, isolated + light-context, delivered back to the conversation via `announce`. See [OpenClaw](#openclaw-in-session-cron-tool).
+- **`cron`** (Claude Code / Hermes / Generic) — scheduled via **OS crontab + `okx` CLI + curl notifications**. No LLM sessions spawned — zero token cost. See [OS Crontab](#os-crontab-configuration).
 
-## Crontab Configuration
+For OS-crontab platforms, agent-platform `/loop` and cloud Routines are **not recommended**: each tick spawns an LLM session and isolated sessions cannot reliably push TG/Lark notifications. (OpenClaw is the deliberate exception — its in-session cron + `announce` delivery is the supported path.)
+
+## OpenClaw (in-session cron tool)
+
+OpenClaw does **not** use OS crontab or the `openclaw` CLI (the CLI cron path has permission issues here). Scheduling is created **inside the conversation** by calling the in-session **`cron` agent tool**, so the job inherits the current session's channel and can deliver scan results straight back to the chat.
+
+Encourage the user to set it up directly in the conversation, then call the tool — **never print a shell or `openclaw cron` command**.
+
+### Create the job
+
+Call the `cron` tool, `action: "add"`, with a `job`:
+
+| Field | Value | Why |
+|---|---|---|
+| `name` | `"earn-hunter-hourly"` | stable identifier for list/update/remove |
+| `schedule` | `{ "kind": "every", "everyMs": <ms> }` | from `platform.json` `.scheduler.interval` (`1h`→3600000, `30m`→1800000, `2h`→7200000) |
+| `sessionTarget` | `"isolated"` | run isolated, don't disturb the main session |
+| `payload` | `{ "kind": "agentTurn", "message": "执行 earn-hunter 扫描", "lightContext": true }` | the prompt routes to the Scan Cycle; `lightContext` keeps tokens low |
+| `delivery` | `{ "mode": "announce" }` | push the turn's output to the conversation channel |
+
+**Tool budget (the token guardrail):** OpenClaw cron jobs have **no per-job tool-whitelist field** — the old `--tools exec,read,write` flag no longer exists, and `lightContext` only trims bootstrap workspace files (it does not change which tools load). The scan stays cheap because it invokes the `okx` CLI via `exec` and does **not depend on** the 160+ okx MCP tools; provided the isolated cron agent isn't configured to attach the okx MCP server, only the regular tools (exec/read/write) are present. Tool loading is governed by the agent config, not the cron job.
+
+### Verification
+
+1. `cron` tool `action: "list"` → confirm the `earn-hunter-hourly` job exists with the expected next-run time
+2. After the first trigger, confirm the scan result was announced into the conversation
+3. Check `~/.okx/earn-hunter/notify.log` for a corresponding log entry
+
+### Management
+
+- **List:** `cron` `action: "list"`
+- **Pause:** `cron` `action: "update"`, patch `{ "enabled": false }` (or `action: "remove"`)
+- **Resume:** `cron` `action: "update"`, patch `{ "enabled": true }`
+- **Change frequency:** `cron` `action: "update"`, patch `schedule.everyMs` (and update `platform.json` `.scheduler.interval`)
+
+## OS Crontab Configuration
 
 `scan.sh` is shipped with the skill at `{baseDir}/scripts/scan.sh`. During activation it is **copied** (not generated) to `~/.okx/earn-hunter/scan.sh`:
 

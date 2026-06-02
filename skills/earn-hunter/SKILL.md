@@ -24,7 +24,7 @@ Automated monitor for OKX Flash Earn and Fixed Earn opportunities.
 ## Preflight
 
 1. Verify `okx` CLI installed: `which okx`. If missing, install via `npm install -g @okx_ai/okx-trade-cli`.
-   On OpenClaw, also verify `openclaw` CLI is available.
+   On OpenClaw, also verify the in-session `cron` tool is available in the agent tool list (used for scheduling — not the `openclaw` CLI).
 2. Check optional dependent skills:
    ```bash
    okx skill list --json
@@ -93,15 +93,13 @@ Read `~/.okx/earn-hunter/platform.json` and extract the `.platform` field (retur
 | `platform.json` | Platform-specific | Scheduler type/interval, notification channel, TG/Lark credentials |
 | `state.json` | Shared | Dedup state |
 
-Core config (`config.json`) is identical across platforms. Platform config (`platform.json`) differs:
-
-All platforms use **OS crontab** for scheduling (zero LLM token cost). Platform config records the detected platform for notification channel routing.
+Core config (`config.json`) is identical across platforms. Platform config (`platform.json`) differs — the `scheduler.type` field determines how scans are triggered:
 
 **OpenClaw (`openclaw.default.json`):**
-- scheduler.type = `"cron"` (OS crontab), notification via TG / Lark curl
+- scheduler.type = `"openclaw-cron"` — scheduled via the in-session **`cron` agent tool** (no OS crontab, no CLI commands). The job runs as an **isolated, light-context** agent turn and delivers its output back to the conversation channel via cron **`announce`** delivery. notify.channel defaults to `"session"` so the scan prints to stdout for `announce` to push (avoids double-send).
 
-**Claude Code (`claude-code.default.json`):**
-- scheduler.type = `"cron"` (OS crontab), notification via TG / Lark curl
+**Claude Code / Hermes / Generic (`claude-code.default.json`):**
+- scheduler.type = `"cron"` — scheduled via **OS crontab → `scripts/scan.sh`** (zero LLM token cost), notification via TG / Lark curl from the script itself.
 
 ### Notification Channels (independent of platform)
 
@@ -110,7 +108,7 @@ Detect in priority order (PRD requirement: TG first):
 2. **Lark** — `platform.notify.lark_webhook` non-empty → Lark ready
 3. **Session** — fallback, only works in interactive mode
 
-TG and Lark are **standalone push channels** — they work regardless of whether the agent client is open. Scheduled scans send notifications via direct curl.
+TG and Lark are **standalone push channels** — they work regardless of whether the agent client is open. On OS-crontab platforms, scheduled scans send notifications via direct curl. On **OpenClaw**, the scheduled scan runs in an isolated cron agent turn and delivers via cron **`announce`** to the conversation channel (channel = `"session"`); TG/Lark curl is not used unless the user explicitly switches the channel.
 
 ---
 
@@ -140,7 +138,7 @@ See [Platform Detection](#platform-detection-active-probe--user-confirmation). P
 
 **Must actively check available channels before proceeding.** Do NOT silently fall back to session.
 
-All platforms use direct curl for scheduled notifications. Detection order (check each, report status for all):
+On OS-crontab platforms, scheduled notifications go out via direct curl; on OpenClaw they go out via cron `announce` to the conversation. Detection order (check each, report status for all):
 1. Check `$TELEGRAM_BOT_TOKEN` and `$TELEGRAM_CHAT_ID` env vars:
    - Both set → TG ready
    - Token set but chat_id missing → warn: "Telegram 配置不完整（缺少 TELEGRAM_CHAT_ID），跳过 TG" → continue to next channel
@@ -213,9 +211,31 @@ Display summary using `{baseDir}/templates/activation.md` template (in user's la
 
 **Note:** The smoke test ignores `verboseLog` setting — it always produces output to verify the full pipeline works end-to-end.
 
-### Step 5 — Set Up Scheduler (OS crontab)
+### Step 5 — Set Up Scheduler
 
-All platforms use **OS crontab → `scripts/scan.sh`**. The script does everything (CLI calls, filter, dedup, render, curl notifications) with **zero LLM cost**. Agent-platform scheduling (OpenClaw cron, Claude Code `/loop`, Hermes cronjob) spawns LLM sessions per tick — too expensive and unreliable for notifications.
+The scheduling mechanism depends on `platform.json` `.scheduler.type`. Branch on the platform.
+
+#### OpenClaw (`scheduler.type = "openclaw-cron"`)
+
+On OpenClaw, scheduling is done **inside the conversation** by calling the in-session **`cron` agent tool** — never an OS command or `openclaw cron` CLI (the CLI path has permission issues in this context). Encourage the user to set it up right here in the chat: the cron job you create inherits the current session's channel, so its scan output is delivered straight back to this conversation.
+
+Call the `cron` tool with `action: "add"` and a `job` shaped like this (read `.scheduler.interval` from `platform.json` for the frequency):
+
+- `name`: `"earn-hunter-hourly"`
+- `schedule`: `{ "kind": "every", "everyMs": 3600000 }` — derive `everyMs` from `scheduler.interval` (`"1h"` → 3600000, `"30m"` → 1800000, `"2h"` → 7200000)
+- `sessionTarget`: `"isolated"` — run in an isolated session, not the main one
+- `payload`: `{ "kind": "agentTurn", "message": "执行 earn-hunter 扫描", "lightContext": true }`
+  - `lightContext: true` runs the turn with a lightweight bootstrap context (skips workspace bootstrap files) → lower token cost per tick.
+  - **Token budget:** OpenClaw cron jobs have **no per-job tool-whitelist field** (the old `--tools exec,read,write` flag no longer exists). The scan stays cheap because it runs the `okx` CLI through `exec` and does **not depend on** the 160+ okx MCP tools — so as long as the isolated cron agent isn't configured to load the okx MCP server, only the regular tools (exec/read/write) are in play. Which tools load is governed by the agent's config, not by this job.
+- `delivery`: `{ "mode": "announce" }` — pushes the turn's output back to the conversation channel that created the job.
+
+When it fires, the isolated agent runs the prompt `"执行 earn-hunter 扫描"` → [Scan Cycle](#scan-cycle) (which runs `scripts/scan.sh` with channel `session`/stdout) → relays the result → `announce` delivers it here. Any new opportunity is therefore sent automatically.
+
+**Do NOT** emit any shell/`openclaw cron` CLI command in the conversation — drive scheduling only through the `cron` tool.
+
+#### OS-crontab platforms (`scheduler.type = "cron"` — Claude Code / Hermes / Generic)
+
+These use **OS crontab → `scripts/scan.sh`**. The script does everything (CLI calls, filter, dedup, render, curl notifications) with **zero LLM cost**.
 
 **Install the script** — copy the skill's `scripts/scan.sh` into the state dir so cron has a stable path:
 
@@ -235,13 +255,15 @@ chmod +x ~/.okx/earn-hunter/scan.sh
 - The script reads `config.json` / `platform.json`, writes `state.json` / `notify.log`, and sends notifications via curl to TG Bot API or Lark Webhook itself. No agent involvement needed at tick time.
 - The script exits 0 and produces **no output** when there are no new opportunities and `verboseLog=false` — this is the intended silent behavior.
 
-**IMPORTANT: Do NOT use agent-platform scheduling** (OpenClaw cron, Claude Code `/loop`, Hermes cronjob, Routines). These spawn LLM sessions per tick (~$20+/week) and cannot reliably push external notifications.
+**IMPORTANT: On OS-crontab platforms, do NOT use agent-platform `/loop` / Routines** (Claude Code `/loop`, cloud Routines). These spawn LLM sessions per tick and cannot reliably push external notifications. (OpenClaw is the exception above — it uses its in-session `cron` tool with `announce` delivery by design.)
 
 ---
 
 ## Scan Cycle
 
-**The entire Scan Cycle is implemented by `scripts/scan.sh` (pure shell + jq, zero LLM cost).** Whether triggered by OS crontab or by a user in an interactive session ("执行 earn-hunter 扫描"), the cycle is the **same**: run the script and relay its output. Do NOT re-implement the scan steps in natural language — the script is the single source of truth.
+**The entire Scan Cycle is implemented by `scripts/scan.sh` (pure shell + jq, zero LLM cost).** Whether triggered by OS crontab, by an OpenClaw isolated cron agent turn, or by a user in an interactive session ("执行 earn-hunter 扫描"), the cycle is the **same**: run the script and relay its output. Do NOT re-implement the scan steps in natural language — the script is the single source of truth.
+
+**OpenClaw isolated cron turn:** the job's prompt routes here. Run `scripts/scan.sh` (with `platform.json` `notify.channel = "session"`, the script prints any notification to stdout); relay that stdout as the turn's response. The cron job's `announce` delivery then pushes it to the conversation channel. Do not curl TG/Lark from this turn — delivery is handled by `announce`.
 
 ### How the agent runs a scan (interactive trigger)
 
@@ -312,9 +334,16 @@ When user wants to change settings:
 
 ## Pause/Resume
 
-**Pause:** `crontab -l | grep -v 'earn-hunter' | crontab -`
+Branch on `platform.json` `.scheduler.type`:
 
-**Resume:** Re-add the crontab entry (same as Activation Step 5).
+**OpenClaw (`openclaw-cron`)** — manage via the in-session `cron` tool (no CLI):
+- **Pause:** call `cron` with `action: "update"`, targeting the `earn-hunter-hourly` job, patch `{ "enabled": false }` (or `action: "remove"` to delete it).
+- **Resume:** `action: "update"` with `{ "enabled": true }` (or re-create as in Activation Step 5).
+- Use `action: "list"` to find the job id.
+
+**OS-crontab platforms (`cron`):**
+- **Pause:** `crontab -l | grep -v 'earn-hunter' | crontab -`
+- **Resume:** Re-add the crontab entry (same as Activation Step 5).
 
 Config and state are preserved — resuming picks up where it left off.
 
@@ -349,7 +378,7 @@ EH_TEST_NAMESPACE=1 OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh   # with config.
    - Scan command results (flash project count + fixed product count)
    - Post-filter results (how many passed filters)
    - Notification channel status (which channel is configured, send result)
-   - Scheduler status (crontab entry exists?)
+   - Scheduler status (OS-crontab platforms: crontab entry exists? / OpenClaw: `cron` tool `action: "list"` shows the `earn-hunter-hourly` job?)
    - Last 5 lines of `~/.okx/earn-hunter/notify.log`
 5. **Completion message:** "测试完成。test: 前缀的 state 不影响正式去重，正式扫描不受影响。"
 

@@ -64,16 +64,16 @@ Common mappings:
 
 ## Platform Config (`platform.json`)
 
-Initialized from `{baseDir}/config/<platform>.default.json` during platform detection. All platforms use `scheduler.type = "cron"` (OS crontab).
+Initialized from `{baseDir}/config/<platform>.default.json` during platform detection. `scheduler.type` is `"openclaw-cron"` on OpenClaw (in-session `cron` tool + `announce` delivery), `"cron"` on Claude Code / Hermes (OS crontab), and `"manual"` on Generic (no automatic scheduler — user triggers scans by hand).
 
 ### Common Fields (all platforms)
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `platform` | string | varies | 平台标识（`"openclaw"` / `"claude-code"` / `"hermes"` / `"generic"`） |
-| `scheduler.type` | string | `"cron"` | 调度方式（OS crontab，所有平台统一） |
+| `scheduler.type` | string | varies | 调度方式：`"openclaw-cron"`（OpenClaw 会话内 cron 工具 + announce）/ `"cron"`（其它平台 OS crontab）/ `"manual"`（Generic） |
 | `scheduler.interval` | string | `"1h"` | 扫描间隔 |
-| `notify.channel` | string | `"auto"` | 通知渠道：`"auto"` / `"telegram"` / `"lark"` / `"session"` |
+| `notify.channel` | string | varies | 通知渠道：`"auto"` / `"telegram"` / `"lark"` / `"session"`（OpenClaw 默认 `"session"`，经 announce 投递回会话） |
 
 ### Claude Code additional fields
 
