@@ -6,14 +6,27 @@ Agent-platform scheduling (OpenClaw cron, Claude Code `/loop`, Hermes cronjob, R
 
 ## Crontab Configuration
 
-The `scan.sh` script is generated during activation (Step 4). It calls `okx` CLI directly and sends notifications via curl to TG/Lark.
+`scan.sh` is shipped with the skill at `{baseDir}/scripts/scan.sh`. During activation it is **copied** (not generated) to `~/.okx/earn-hunter/scan.sh`:
 
 ```bash
-# Add to crontab (every hour)
-(crontab -l 2>/dev/null; echo "0 * * * * ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
+mkdir -p ~/.okx/earn-hunter
+cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh
+chmod +x ~/.okx/earn-hunter/scan.sh
+```
+
+The script (pure shell + jq) calls the `okx` CLI directly, filters/dedups, and sends notifications via curl to TG/Lark — with **zero LLM cost**. It exits silently (no output, nothing sent) when there are no new opportunities and `verboseLog=false`.
+
+```bash
+# Add to crontab (every hour). Set OKX_PROFILE only in API Key mode; omit for OAuth.
+(crontab -l 2>/dev/null; echo "0 * * * * OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
 ```
 
 To change frequency: `crontab -e` → modify the cron expression (e.g., `*/30 * * * *` for every 30 minutes).
+
+### Prerequisites
+
+- `jq` must be installed (the script uses it for all JSON processing): `which jq` → if missing, `brew install jq` (macOS) or `apt-get install jq` (Linux).
+- `okx` CLI installed and authenticated (`~/.okx/config.toml`). The script never reads or prints credentials; auth is fully delegated to the CLI.
 
 ## Verification
 

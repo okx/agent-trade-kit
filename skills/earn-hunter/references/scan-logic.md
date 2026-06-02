@@ -1,5 +1,13 @@
 # Scan Logic
 
+> **⚙️ This logic is implemented by `scripts/scan.sh` (pure shell + jq).** The agent does **not** execute these steps manually — it runs `scripts/scan.sh` (installed to `~/.okx/earn-hunter/scan.sh`) and relays the output. This document is the **specification** the script implements, kept for reference and review. Do not hand-execute the steps below; if behavior needs to change, change the script and update this spec together.
+>
+> Key script behaviors that satisfy the two original bugs:
+> - **No new opportunities + `verboseLog=false` → the script exits 0 silently with zero output and sends nothing.** (Fixes the "sends 'Scan complete' instead of staying silent" bug.)
+> - **Triggered by OS crontab, not an LLM session.** (Fixes the "Claude Code `/loop` expires" bug.)
+>
+> Test hooks (env vars, used only for verification, inert in production): `EH_FLASH_FIXTURE`, `EH_FIXED_FIXTURE`, `EH_DRY_RUN`, `EH_STATE_DIR`, `EH_FORCE_FAIL`, `EH_NOW_ISO`, `EH_TEST_NAMESPACE`. Profile is injected via `OKX_PROFILE` (empty → no `--profile` flag).
+
 ## CLI Version Compatibility
 
 | Feature | v1.3.2 | v1.3.3+ |

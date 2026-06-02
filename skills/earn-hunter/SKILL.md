@@ -51,8 +51,9 @@ Automated monitor for OKX Flash Earn and Fixed Earn opportunities.
    - If `~/.okx/earn-hunter/config.json` does not exist → copy `{baseDir}/config/default.json` to it
    - If `~/.okx/earn-hunter/state.json` does not exist → write `{"flash":{},"fixed":{},"consecutive_failures":0,"last_error":""}`
    - If `~/.okx/earn-hunter/platform.json` does not exist → run [Platform Detection](#platform-detection-active-probe--user-confirmation)
+   - Always (re)install the scan script: `cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh && chmod +x ~/.okx/earn-hunter/scan.sh`. This is the script cron and interactive scans both call.
 
-   All JSON read/write operations are performed directly by the AI agent (Read file → parse → modify → Write file). No external tools (jq, etc.) are needed.
+   Config/state/platform JSON read-write done by the agent is only for activation/config management. The recurring **scan itself is performed entirely by `scripts/scan.sh`** (shell + jq) — `jq` is required for scanning. Verify with `which jq`; if missing, install (`brew install jq` / `apt-get install jq`).
 
 ## Platform & Channel Detection
 
@@ -120,7 +121,7 @@ TG and Lark are **standalone push channels** — they work regardless of whether
 | "有闪赚通知我" / "monitor earn" / "帮我监控赚币" | → [Activation Flow](#activation-flow) |
 | "改 APY 阈值" / "只看 USDT" / "change config" | → [Config Management](#config-management) |
 | "申购 USDT 定期 7D" / "subscribe" / "我要买" | → [Purchase Guide](#purchase-guide) |
-| "执行 earn-hunter 扫描" (from cron) | → [Scan Cycle](#scan-cycle) |
+| "执行 earn-hunter 扫描" (cron OR interactive) | → [Scan Cycle](#scan-cycle) — run `scripts/scan.sh` and relay its output |
 | "停止监控" / "暂停" / "stop" | → [Pause/Resume](#pauseresume) |
 | "卸载 earn-hunter" / "uninstall" | → [Uninstall](#uninstall) |
 | "测试 earn-hunter" / "smoke test" / "测试定时任务" | → [Test Mode](#test-mode) |
@@ -193,9 +194,15 @@ Display summary using `{baseDir}/templates/activation.md` template (in user's la
 
 **Smoke test always sends a notification, regardless of `verboseLog` setting.**
 
-1. Run one scan cycle immediately
-2. **If new opportunities found** → send normal notification (rendered from templates)
-3. **If no opportunities found** → send activation confirmation message:
+1. Run one scan cycle immediately with `verboseLog` forced on so output is always produced, even when there are no opportunities. Temporarily flip `verboseLog`, run the script, then restore it — and use `EH_TEST_NAMESPACE=1` so smoke-test dedup keys go under the `test:` prefix and don't pollute production state:
+   ```bash
+   jq '.verboseLog=true' ~/.okx/earn-hunter/config.json > ~/.okx/earn-hunter/config.tmp \
+     && mv ~/.okx/earn-hunter/config.tmp ~/.okx/earn-hunter/config.json
+   EH_TEST_NAMESPACE=1 OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh
+   # then restore verboseLog to the user's original value (e.g. false)
+   ```
+2. **If new opportunities found** → the script sends the normal notification (rendered from templates)
+3. **If no opportunities found** → with `verboseLog` forced on, the script sends the brief status. Optionally append the activation confirmation message:
    "Earn Hunter 已激活，当前暂无新机会，将在下一轮自动扫描。"
    (Use `{baseDir}/templates/activation.md` as base, append the no-opportunity note)
 4. TG or Lark channel → **ask:** "已向 {channel} 发送测试消息，请确认是否收到？"
@@ -208,23 +215,25 @@ Display summary using `{baseDir}/templates/activation.md` template (in user's la
 
 ### Step 5 — Set Up Scheduler (OS crontab)
 
-All platforms use **OS crontab + `okx` CLI + curl notifications**. Agent-platform scheduling (OpenClaw cron, Claude Code `/loop`, Hermes cronjob) spawns LLM sessions per tick — too expensive and unreliable for notifications.
+All platforms use **OS crontab → `scripts/scan.sh`**. The script does everything (CLI calls, filter, dedup, render, curl notifications) with **zero LLM cost**. Agent-platform scheduling (OpenClaw cron, Claude Code `/loop`, Hermes cronjob) spawns LLM sessions per tick — too expensive and unreliable for notifications.
+
+**Install the script** — copy the skill's `scripts/scan.sh` into the state dir so cron has a stable path:
 
 ```bash
-# Generate scan script
-cat > ~/.okx/earn-hunter/scan.sh << 'SCRIPT'
-#!/usr/bin/env bash
-okx earn flash-earn projects --status 0,100 --json > /tmp/eh-flash.json 2>&1
-okx earn fixed-earn products --json > /tmp/eh-fixed.json 2>&1
-# TODO: agent processes results and sends notification via curl
-SCRIPT
+mkdir -p ~/.okx/earn-hunter
+cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh
 chmod +x ~/.okx/earn-hunter/scan.sh
-
-# Add to crontab (every hour)
-(crontab -l 2>/dev/null; echo "0 * * * * ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
 ```
 
-Notifications are sent via direct curl to TG Bot API or Lark Webhook. See `{baseDir}/references/notify-channels.md` for curl templates.
+**Add to crontab** (default every hour; set `OKX_PROFILE` only in API Key mode):
+
+```bash
+(crontab -l 2>/dev/null; echo "0 * * * * OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
+```
+
+- **OAuth mode** → omit `OKX_PROFILE=live` (the script passes no `--profile` flag when the var is empty).
+- The script reads `config.json` / `platform.json`, writes `state.json` / `notify.log`, and sends notifications via curl to TG Bot API or Lark Webhook itself. No agent involvement needed at tick time.
+- The script exits 0 and produces **no output** when there are no new opportunities and `verboseLog=false` — this is the intended silent behavior.
 
 **IMPORTANT: Do NOT use agent-platform scheduling** (OpenClaw cron, Claude Code `/loop`, Hermes cronjob, Routines). These spawn LLM sessions per tick (~$20+/week) and cannot reliably push external notifications.
 
@@ -232,31 +241,35 @@ Notifications are sent via direct curl to TG Bot API or Lark Webhook. See `{base
 
 ## Scan Cycle
 
-Executed by cron triggers. Read `{baseDir}/references/scan-logic.md` for the complete flow.
+**The entire Scan Cycle is implemented by `scripts/scan.sh` (pure shell + jq, zero LLM cost).** Whether triggered by OS crontab or by a user in an interactive session ("执行 earn-hunter 扫描"), the cycle is the **same**: run the script and relay its output. Do NOT re-implement the scan steps in natural language — the script is the single source of truth.
 
-Summary:
+### How the agent runs a scan (interactive trigger)
 
-1. Read `~/.okx/earn-hunter/config.json` to load scan configuration
-2. Run scan commands (parallel, based on `flash.enabled` / `fixed.enabled`):
+```bash
+# Profile: pass OKX_PROFILE only in API Key mode (omit for OAuth mode).
+OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh
+```
+
+Then **relay the script's stdout verbatim** to the user:
+- If the script prints a notification (Flash / Fixed / mixed / verbose status), show it.
+- If the script prints **nothing** (silent exit 0, the no-new-opportunity + `verboseLog=false` case), tell the user "本轮扫描完成，无新机会" — do NOT fabricate a "scan complete" message into a channel; the silence is intentional.
+
+### What the script does (see `references/scan-logic.md` for the spec it implements)
+
+1. Reads `~/.okx/earn-hunter/config.json`
+2. Runs scan commands (based on `flash.enabled` / `fixed.enabled`):
    - Flash: `okx [--profile live] earn flash-earn projects --status 0,100 --json`
-   - Fixed: `okx [--profile live] earn savings fixed-products --json` (fallback: `rate-history` on CLI <1.3.3)
-3. Filter (two-layer APY threshold, terms filter, currency filter)
-4. Dedup: read `~/.okx/earn-hunter/state.json` (hierarchical structure), check keys:
-   - Flash: `state.flash["<id>:<status>"]`
-   - Fixed: `state.fixed["<ccy>:<term>:<rate>"]`
-5. If new opportunities:
-   - Flash only → render `{baseDir}/templates/flash-earn.md`
-   - Fixed only → render `{baseDir}/templates/fixed-earn.md`
-   - Both → render `{baseDir}/templates/mixed-notify.md`
-   - Send via configured channel, log result to `notify.log`
-6. Update state in `~/.okx/earn-hunter/state.json`:
-   - Write new keys with ISO 8601 timestamp to `state.flash` / `state.fixed`
-   - Flash diff cleanup by project ID; Fixed diff cleanup by key
-   - TTL cleanup: remove entries older than 7 days
-   - Update `consecutive_failures` counter (reset on success, increment on failure)
-7. If no new opportunities:
-   - `config.verboseLog = true` → send brief status: "✅ Earn Hunter 扫描完成，暂无新机会"
-   - `config.verboseLog = false` → **silent exit, no output**
+   - Fixed: `okx [--profile live] earn savings fixed-products --json` (auto-fallback to `rate-history` + `fixedOffers` on CLI <1.3.3)
+3. Filters (two-layer APY threshold, terms filter, currency filter)
+4. Dedups against `~/.okx/earn-hunter/state.json` (`state.flash["<id>:<status>"]`, `state.fixed["<ccy>:<term>:<rate>"]`)
+5. If new opportunities → renders the matching template (flash / fixed / mixed) and sends via the detected channel (TG → Lark → session), logging to `notify.log`
+6. Updates `state.json` (write new keys; flash ID-level diff cleanup; fixed key-level diff cleanup; 7-day TTL; failure counter)
+7. If no new opportunities: `verboseLog=true` → brief status; `verboseLog=false` → **silent exit 0, no output, nothing sent**
+8. Error handling: consecutive-failure counter (alert at 3, then reset); 401/session-expired → credential alert + stop
+
+**Channel routing inside the script:** detection order TG (`$TELEGRAM_BOT_TOKEN`+`$TELEGRAM_CHAT_ID`) → Lark (`platform.json` `.notify.lark_webhook`) → session (stdout). A `notify.channel` of `telegram`/`lark`/`session` in `platform.json` forces that channel.
+
+**Auth / profile:** the script never reads or prints credentials. It delegates all auth to the `okx` CLI (which reads `~/.okx/config.toml`). Profile is injected only via the `OKX_PROFILE` env var.
 
 ---
 
@@ -321,11 +334,16 @@ When user says "卸载" / "uninstall":
 
 Trigger phrases: "测试 earn-hunter" / "earn-hunter smoke test" / "测试定时任务触发"
 
-Behavior:
+Behavior — run the script with the Test Mode hooks (no separate logic needed):
 
-1. **Execute a full Scan Cycle** — same as a normal scan, but does not modify production config
-2. **Force-send notification** — ignores `verboseLog` setting; always sends output regardless of whether opportunities are found
-3. **Dedup writes to test namespace** — dedup keys are prefixed with `test:` (e.g. `test:flash:12345:100`), so test runs do not pollute production state
+```bash
+# Force verbose so output is always produced; write dedup keys under test: prefix.
+EH_TEST_NAMESPACE=1 OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh   # with config.verboseLog temporarily set to true
+```
+
+1. **Execute a full Scan Cycle** — the script runs the same scan, but `EH_TEST_NAMESPACE=1` isolates state writes
+2. **Force-send notification** — temporarily set `config.verboseLog=true` so the script always sends output regardless of whether opportunities are found (restore afterwards)
+3. **Dedup writes to test namespace** — `EH_TEST_NAMESPACE=1` prefixes dedup keys with `test:` (e.g. `test:flash:12345:100`); these keys are immune to diff cleanup (only TTL removes them), so test runs do not pollute production state
 4. **Output diagnostics** after scan completes:
    - okx auth status (logged in / expired / not configured)
    - Scan command results (flash project count + fixed product count)
