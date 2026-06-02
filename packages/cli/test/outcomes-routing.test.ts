@@ -14,6 +14,7 @@ import {
   rmSync,
   readFileSync,
   existsSync,
+  symlinkSync,
 } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
@@ -283,6 +284,78 @@ describe("handleOutcomesCommand - argument forwarding", () => {
     process.env.MOCK_OUTCOMES_EXIT = "0";
     await handleOutcomesCommand("status", [], {});
     assert.equal(process.exitCode, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PATH resolution edge cases (resolveOutcomesBinaryPath)
+// ---------------------------------------------------------------------------
+
+describe("handleOutcomesCommand - PATH resolution", () => {
+  let saved: SavedEnv;
+  let savedExitCode: number | undefined;
+
+  beforeEach(() => {
+    saved = saveEnv();
+    savedExitCode = process.exitCode;
+    process.exitCode = undefined;
+    // Ensure override is unset so the PATH-search branch is exercised.
+    delete process.env.OKX_OUTCOMES_BIN;
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+    process.exitCode = savedExitCode;
+  });
+
+  it("resolves the binary from PATH when present in a listed directory", async (t) => {
+    if (process.platform === "win32") {
+      // Windows binary name is `okx-outcomes.exe`; the mock fixture has no
+      // .exe extension, so the symlink-in-PATH approach doesn't apply.
+      t.skip("PATH-search via symlink not portable to Windows");
+      return;
+    }
+    const argsFile = join(tempDir, "argv.json");
+    process.env.MOCK_OUTCOMES_ARGS_FILE = argsFile;
+    // Drop a symlink named `okx-outcomes` inside tempDir pointing at the mock.
+    symlinkSync(MOCK_BINARY, join(tempDir, "okx-outcomes"));
+    // Prepend tempDir so our symlink wins, but keep the original PATH so the
+    // mock script's `#!/usr/bin/env node` shebang can still locate `node`.
+    process.env.PATH = `${tempDir}:${process.env.PATH ?? ""}`;
+
+    await handleOutcomesCommand("status", [], {});
+
+    const recorded = JSON.parse(readFileSync(argsFile, "utf-8"));
+    assert.deepEqual(recorded, ["status"]);
+  });
+
+  it("treats unset PATH as empty (no binary found, exits 127)", async () => {
+    delete process.env.PATH;
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleOutcomesCommand("events", [], {});
+    } finally {
+      cap.restore();
+    }
+    assert.equal(process.exitCode, 127);
+    assert.ok(cap.stderr().includes("okx-outcomes binary not found"));
+  });
+
+  it("skips empty PATH segments without crashing", async () => {
+    // Two consecutive colons introduce an empty segment between them. The
+    // resolver must `continue` past the empty entry rather than calling
+    // path.join with "" (which would search the cwd).
+    process.env.PATH = `::${tempDir}:`;
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleOutcomesCommand("events", [], {});
+    } finally {
+      cap.restore();
+    }
+    assert.equal(process.exitCode, 127);
+    assert.ok(cap.stderr().includes("okx-outcomes binary not found"));
   });
 });
 
