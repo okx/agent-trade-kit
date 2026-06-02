@@ -357,6 +357,27 @@ describe("handleOutcomesCommand - PATH resolution", () => {
     assert.equal(process.exitCode, 127);
     assert.ok(cap.stderr().includes("okx-outcomes binary not found"));
   });
+
+  it("warns and falls back to PATH when OKX_OUTCOMES_BIN points at a missing file", async () => {
+    const missing = join(tempDir, "does-not-exist-okx-outcomes");
+    process.env.OKX_OUTCOMES_BIN = missing;
+    delete process.env.PATH; // force the fallback search to also fail (exit 127)
+    const cap = createCapture();
+    cap.install();
+    try {
+      await handleOutcomesCommand("events", [], {});
+    } finally {
+      cap.restore();
+    }
+    assert.ok(
+      cap.stderr().includes("OKX_OUTCOMES_BIN is set to"),
+      "expected a warning that the override path is invalid",
+    );
+    assert.ok(cap.stderr().includes(missing));
+    // Fell through to PATH search, which finds nothing -> install hint + 127.
+    assert.equal(process.exitCode, 127);
+    assert.ok(cap.stderr().includes("okx-outcomes binary not found"));
+  });
 });
 
 // ---------------------------------------------------------------------------

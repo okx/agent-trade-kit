@@ -9,7 +9,12 @@ const OUTCOMES_BINARY_NAME =
 
 function resolveOutcomesBinaryPath(): string | null {
   const override = process.env.OKX_OUTCOMES_BIN;
-  if (override && existsSync(override)) return override;
+  if (override) {
+    if (existsSync(override)) return override;
+    errorLine(
+      `Warning: OKX_OUTCOMES_BIN is set to '${override}' but no file exists there; falling back to PATH search.`,
+    );
+  }
 
   const paths = (process.env.PATH ?? "").split(delimiter);
   for (const dir of paths) {
@@ -82,6 +87,10 @@ function printOutcomesHelp(): void {
     "  setup                           Interactive .env wizard",
     "",
     "Run 'okx outcomes <command> --help' for command-specific help.",
+    "",
+    "Note: place flags after the subcommand, e.g. 'okx outcomes events --json'",
+    "      (or before the module: 'okx --json outcomes events'). Writing",
+    "      'okx outcomes --json events' is not supported.",
     "",
     "Requires: curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh",
   ];

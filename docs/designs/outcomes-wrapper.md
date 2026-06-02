@@ -78,4 +78,4 @@ Once the outcomes team ships an `okx-outcomes mcp` subcommand exposing typed MCP
 - Lark design doc: https://okg-block.sg.larksuite.com/docx/THw9dhbyzo9JBQxairkljrVBgAf
 - Existing precedent (external-binary wrapper pattern): `packages/cli/src/commands/auth.ts`
 - Existing precedent (CLI-only registry entries): `auth`, `pilot`, `upgrade`, `setup` modules in `cli-registry.ts`
-- Upstream binary docs: `/Users/oker/meili/.../outcomes/docs/cli-reference.md`
+- Upstream binary docs: https://github.com/okx/outcomes/blob/master/docs/cli-reference.md

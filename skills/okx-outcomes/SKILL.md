@@ -106,6 +106,10 @@ okx outcomes account positions
 okx outcomes clob create-order --asset <assetId> --side buy --price 0.55 --size 100
 ```
 
+> **Flag placement:** put flags after the subcommand (`okx outcomes events --json`) or
+> before the module (`okx --json outcomes events`). `okx outcomes --json events` —
+> a flag wedged between the module and its subcommand — is not supported.
+
 ## Command Index
 
 ### Read commands (no gating)
