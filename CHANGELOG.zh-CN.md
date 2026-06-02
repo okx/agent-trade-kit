@@ -13,6 +13,7 @@
 
 ### 新增
 
+- **earn-hunter skill —— OpenClaw 会话内 cron 调度**：OpenClaw 上的 earn-hunter 定时扫描改为在对话内通过会话内 `cron` 工具创建（isolated 会话 + `lightContext`），并经 cron `announce` 投递回会话，不再使用 OS crontab。skill 内不再出现任何 CLI 命令（`openclaw cron` CLI 路径存在权限问题）。`platform.json` 的 `scheduler.type` 在 OpenClaw 上为 `"openclaw-cron"`；Claude Code / Hermes 保持 `"cron"`（OS crontab + curl），Generic 保持 `"manual"`。
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
 - **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。

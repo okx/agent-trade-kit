@@ -1,0 +1,418 @@
+---
+name: earn-hunter
+description: "Automatically monitors OKX Flash Earn and Fixed Earn opportunities, sends push notifications, and guides subscription. 自动监控 OKX 闪赚和定期赚币机会，推送通知并引导申购。Use when user says: 有闪赚通知我, 监控赚币, monitor earn, notify me about earn, 定时检查理财, 执行 earn-hunter 扫描, earn-hunter scan."
+license: MIT
+metadata:
+  author: okx
+  agent:
+    requires:
+      bins: ["okx"]
+    install:
+      - id: okx-cli
+        kind: node
+        package: "@okx_ai/okx-trade-cli"
+        bins: ["okx"]
+        label: "Install okx CLI (npm)"
+---
+
+# Earn Hunter
+
+Automated monitor for OKX Flash Earn and Fixed Earn opportunities.
+
+**`{baseDir}`** = the directory containing this SKILL.md file. All relative paths (references/, templates/, config/) are resolved from here.
+
+## Preflight
+
+1. Verify `okx` CLI installed: `which okx`. If missing, install via `npm install -g @okx_ai/okx-trade-cli`.
+   On OpenClaw, also verify the in-session `cron` tool is available in the agent tool list (used for scheduling — not the `openclaw` CLI).
+2. Check optional dependent skills:
+   ```bash
+   okx skill list --json
+   ```
+   Optional skills (not required for scanning/notifications):
+   - `okx-cex-earn` — needed for purchase guide (subscription execution)
+   - `okx-cex-auth` — needed for authentication recovery
+
+   If either is missing, attempt to install but **do not block** if installation fails:
+   ```bash
+   okx skill add okx-cex-earn
+   okx skill add okx-cex-auth
+   ```
+   - Install succeeds → continue
+   - Install fails (network error, marketplace unavailable, etc.) → **warn and continue**:
+     "⚠ `{skill_name}` 安装失败，扫描和通知功能不受影响。申购引导和认证恢复需要该 skill，后续可手动安装。"
+   - Preflight continues regardless of skill installation result
+4. Auth mode detection — run **both**, first match wins:
+   - `okx config show --json` → has non-empty `api_key` field → **API Key mode**. Add `--profile live` to all commands.
+   - No API key + `okx auth status --json` → `"status":"logged_in"` → **OAuth mode**. No `--profile` flag needed.
+   - Neither → **stop**. Load `okx-cex-auth` skill and follow login steps.
+5. Init config and state:
+   - If `~/.okx/earn-hunter/` directory does not exist → `mkdir -p ~/.okx/earn-hunter`
+   - If `~/.okx/earn-hunter/config.json` does not exist → copy `{baseDir}/config/default.json` to it
+   - If `~/.okx/earn-hunter/state.json` does not exist → write `{"flash":{},"fixed":{},"consecutive_failures":0,"last_error":""}`
+   - If `~/.okx/earn-hunter/platform.json` does not exist → run [Platform Detection](#platform-detection-active-probe--user-confirmation)
+   - Always (re)install the scan script: `cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh && chmod +x ~/.okx/earn-hunter/scan.sh`. This is the script cron and interactive scans both call.
+
+   Config/state/platform JSON read-write done by the agent is only for activation/config management. The recurring **scan itself is performed entirely by `scripts/scan.sh`** (shell + jq) — `jq` is required for scanning. Verify with `which jq`; if missing, install (`brew install jq` / `apt-get install jq`).
+
+## Platform & Channel Detection
+
+Three independent dimensions: **platform** (where the agent runs), **scheduler** (what triggers scans), **notification channel** (where alerts go).
+
+### Platform Detection (active probe + user confirmation)
+
+**First run (no `platform.json` exists):**
+
+1. Probe environment clues:
+   - `OPENCLAW_HOME` env var exists? → hint: OpenClaw
+   - Agent tool list contains `cron` / `delivery` tools? → hint: OpenClaw
+   - `HERMES_HOME` env var exists or `which hermes` succeeds? → hint: Hermes Agent
+   - Running inside Claude Code session? → hint: Claude Code
+   - None of the above matched → hint: Generic
+2. Present detection result and **ask user to confirm**:
+   - "检测到你正在使用 **{detected_platform}**，是否正确？"
+   - User confirms → proceed
+   - User says no → ask: "你使用的是哪个平台？1) OpenClaw  2) Claude Code  3) Hermes Agent  4) 其他"
+3. Initialize platform config:
+   - OpenClaw / Claude Code → copy `{baseDir}/config/<confirmed_platform>.default.json` to `~/.okx/earn-hunter/platform.json`
+   - Hermes Agent → copy `{baseDir}/config/claude-code.default.json` as base, set `.platform` to `"hermes"`, `.scheduler.type` to `"cron"`
+   - Generic → copy `{baseDir}/config/claude-code.default.json` as base, set `.platform` to `"generic"`, `.scheduler.type` to `"manual"`
+4. Result written to `~/.okx/earn-hunter/platform.json`, subsequent runs skip detection.
+
+**Subsequent runs (platform.json exists):**
+Read `~/.okx/earn-hunter/platform.json` and extract the `.platform` field (returns `"openclaw"`, `"claude-code"`, `"hermes"`, or `"generic"`).
+
+**No scheduler available on detected platform** (only applies to platforms that should have one but don't) → error: "当前客户端不支持定时任务，请升级到最新版本。"
+**Generic platform** → no automatic scheduler. Inform: "当前平台不支持自动调度，你可以手动说'执行 earn-hunter 扫描'来触发。"
+
+### Configuration Files
+
+| File | Scope | Content |
+|---|---|---|
+| `config.json` | Shared | Scan scope, currencies, APY thresholds, terms, language, verboseLog |
+| `platform.json` | Platform-specific | Scheduler type/interval, notification channel, TG/Lark credentials |
+| `state.json` | Shared | Dedup state |
+
+Core config (`config.json`) is identical across platforms. Platform config (`platform.json`) differs — the `scheduler.type` field determines how scans are triggered:
+
+**OpenClaw (`openclaw.default.json`):**
+- scheduler.type = `"openclaw-cron"` — scheduled via the in-session **`cron` agent tool** (no OS crontab, no CLI commands). The job runs as an **isolated, light-context** agent turn and delivers its output back to the conversation channel via cron **`announce`** delivery. notify.channel defaults to `"session"` so the scan prints to stdout for `announce` to push (avoids double-send).
+
+**Claude Code / Hermes / Generic (`claude-code.default.json`):**
+- scheduler.type = `"cron"` — scheduled via **OS crontab → `scripts/scan.sh`** (zero LLM token cost), notification via TG / Lark curl from the script itself.
+
+### Notification Channels (independent of platform)
+
+Detect in priority order (PRD requirement: TG first):
+1. **Telegram** — `$TELEGRAM_BOT_TOKEN` and `$TELEGRAM_CHAT_ID` both set → TG ready
+2. **Lark** — `platform.notify.lark_webhook` non-empty → Lark ready
+3. **Session** — fallback, only works in interactive mode
+
+TG and Lark are **standalone push channels** — they work regardless of whether the agent client is open. On OS-crontab platforms, scheduled scans send notifications via direct curl. On **OpenClaw**, the scheduled scan runs in an isolated cron agent turn and delivers via cron **`announce`** to the conversation channel (channel = `"session"`); TG/Lark curl is not used unless the user explicitly switches the channel.
+
+---
+
+## Skill Routing
+
+| User intent | Route |
+|---|---|
+| "有闪赚通知我" / "monitor earn" / "帮我监控赚币" | → [Activation Flow](#activation-flow) |
+| "改 APY 阈值" / "只看 USDT" / "change config" | → [Config Management](#config-management) |
+| "申购 USDT 定期 7D" / "subscribe" / "我要买" | → [Purchase Guide](#purchase-guide) |
+| "执行 earn-hunter 扫描" (cron OR interactive) | → [Scan Cycle](#scan-cycle) — run `scripts/scan.sh` and relay its output |
+| "停止监控" / "暂停" / "stop" | → [Pause/Resume](#pauseresume) |
+| "卸载 earn-hunter" / "uninstall" | → [Uninstall](#uninstall) |
+| "测试 earn-hunter" / "smoke test" / "测试定时任务" | → [Test Mode](#test-mode) |
+
+---
+
+## Activation Flow
+
+First-time setup. Only confirm platform — everything else uses smart defaults.
+
+### Step 1 — Platform Detection & Confirmation
+
+See [Platform Detection](#platform-detection-active-probe--user-confirmation). Probe environment → ask user to confirm → write `platform.json`.
+
+### Step 2 — Detect Notification Channel & Confirm
+
+**Must actively check available channels before proceeding.** Do NOT silently fall back to session.
+
+On OS-crontab platforms, scheduled notifications go out via direct curl; on OpenClaw they go out via cron `announce` to the conversation. Detection order (check each, report status for all):
+1. Check `$TELEGRAM_BOT_TOKEN` and `$TELEGRAM_CHAT_ID` env vars:
+   - Both set → TG ready
+   - Token set but chat_id missing → warn: "Telegram 配置不完整（缺少 TELEGRAM_CHAT_ID），跳过 TG" → continue to next channel
+   - Neither set → TG not available
+2. Check `platform.notify.lark_webhook` or Lark MCP tools:
+   - Webhook set and valid (starts with `https://` and contains `/hook/`) → Lark ready
+   - Webhook set but format invalid (does not start with `https://` or missing `/hook/`) → warn: "Lark webhook 格式无效，跳过 Lark" → continue to next channel
+   - Not configured and no Lark MCP → Lark not available
+
+**If one or more external channels detected**, ask user:
+
+"检测到以下推送渠道可用：
+- {list of detected channels, e.g. Telegram / Lark}
+
+使用哪个渠道推送通知？"
+
+**If no external channel detected**, inform and offer setup:
+
+"当前未检测到推送渠道（Telegram / Lark），通知将在会话内显示。
+如需离线推送，对我说'配置 Telegram 通知'。"
+
+Write confirmed channel to `platform.json` `notify.channel`.
+
+### Step 3 — Confirm Scan Config (3-step with defaults)
+
+Present default config and ask user to confirm or customize. Each step offers a default — user can press enter to accept.
+
+**Step 1/3 — 扫描范围：**
+"扫描范围：[1] Flash Earn + Fixed Earn（默认）  [2] 仅 Flash Earn  [3] 仅 Fixed Earn"
+- Default: both enabled
+- If user picks [2] → set `config.fixed.enabled = false`; skip Step 2/3 and 3/3 (Flash has no currency/APY filters)
+- If user picks [3] → set `config.flash.enabled = false`; skip Step 2/3 and 3/3
+
+**Step 2/3 — 监控币种：**
+"监控币种：全部（默认，按回车）或输入指定币种（如 USDT, SOL）"
+- Default: `"all"` (all currencies)
+- If user specifies → set `config.currencies` to array (e.g. `["USDT", "SOL"]`)
+
+**Step 3/3 — APY 阈值：**
+"最低 APY 阈值：不限（默认，按回车）或输入百分比（如 8）"
+- Default: `0` (no limit)
+- If user specifies → set `config.fixed.globalMinApy` to `value / 100` (e.g. 8 → `0.08`)
+
+Auto-detect language from conversation and write to `config.json` `notify.language`.
+
+Write config to `~/.okx/earn-hunter/config.json`.
+
+Display summary using `{baseDir}/templates/activation.md` template (in user's language).
+
+### Step 4 — Smoke Test & Delivery Confirmation
+
+**Smoke test always sends a notification, regardless of `verboseLog` setting.**
+
+1. Run one scan cycle immediately with `verboseLog` forced on so output is always produced, even when there are no opportunities. Temporarily flip `verboseLog`, run the script, then restore it — and use `EH_TEST_NAMESPACE=1` so smoke-test dedup keys go under the `test:` prefix and don't pollute production state:
+   ```bash
+   jq '.verboseLog=true' ~/.okx/earn-hunter/config.json > ~/.okx/earn-hunter/config.tmp \
+     && mv ~/.okx/earn-hunter/config.tmp ~/.okx/earn-hunter/config.json
+   EH_TEST_NAMESPACE=1 OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh
+   # then restore verboseLog to the user's original value (e.g. false)
+   ```
+2. **If new opportunities found** → the script sends the normal notification (rendered from templates)
+3. **If no opportunities found** → with `verboseLog` forced on, the script sends the brief status. Optionally append the activation confirmation message:
+   "Earn Hunter 已激活，当前暂无新机会，将在下一轮自动扫描。"
+   (Use `{baseDir}/templates/activation.md` as base, append the no-opportunity note)
+4. TG or Lark channel → **ask:** "已向 {channel} 发送测试消息，请确认是否收到？"
+5. User confirms → proceed to Step 5
+6. Not received → troubleshoot (see `notify-channels.md`)
+7. 5 min no response → ping once
+8. Session channel → skip confirmation
+
+**Note:** The smoke test ignores `verboseLog` setting — it always produces output to verify the full pipeline works end-to-end.
+
+### Step 5 — Set Up Scheduler
+
+The scheduling mechanism depends on `platform.json` `.scheduler.type`. Branch on the platform.
+
+#### OpenClaw (`scheduler.type = "openclaw-cron"`)
+
+On OpenClaw, scheduling is done **inside the conversation** by calling the in-session **`cron` agent tool** — never an OS command or `openclaw cron` CLI (the CLI path has permission issues in this context). Encourage the user to set it up right here in the chat: the cron job you create inherits the current session's channel, so its scan output is delivered straight back to this conversation.
+
+Call the `cron` tool with `action: "add"` and a `job` shaped like this (read `.scheduler.interval` from `platform.json` for the frequency):
+
+- `name`: `"earn-hunter-hourly"`
+- `schedule`: `{ "kind": "every", "everyMs": 3600000 }` — derive `everyMs` from `scheduler.interval` (`"1h"` → 3600000, `"30m"` → 1800000, `"2h"` → 7200000)
+- `sessionTarget`: `"isolated"` — run in an isolated session, not the main one
+- `payload`: `{ "kind": "agentTurn", "message": "执行 earn-hunter 扫描", "lightContext": true }`
+  - `lightContext: true` runs the turn with a lightweight bootstrap context (skips workspace bootstrap files) → lower token cost per tick.
+  - **Token budget:** OpenClaw cron jobs have **no per-job tool-whitelist field** (the old `--tools exec,read,write` flag no longer exists). The scan stays cheap because it runs the `okx` CLI through `exec` and does **not depend on** the 160+ okx MCP tools — so as long as the isolated cron agent isn't configured to load the okx MCP server, only the regular tools (exec/read/write) are in play. Which tools load is governed by the agent's config, not by this job.
+- `delivery`: `{ "mode": "announce" }` — pushes the turn's output back to the conversation channel that created the job.
+
+When it fires, the isolated agent runs the prompt `"执行 earn-hunter 扫描"` → [Scan Cycle](#scan-cycle) (which runs `scripts/scan.sh` with channel `session`/stdout) → relays the result → `announce` delivers it here. Any new opportunity is therefore sent automatically.
+
+**Do NOT** emit any shell/`openclaw cron` CLI command in the conversation — drive scheduling only through the `cron` tool.
+
+#### OS-crontab platforms (`scheduler.type = "cron"` — Claude Code / Hermes / Generic)
+
+These use **OS crontab → `scripts/scan.sh`**. The script does everything (CLI calls, filter, dedup, render, curl notifications) with **zero LLM cost**.
+
+**Install the script** — copy the skill's `scripts/scan.sh` into the state dir so cron has a stable path:
+
+```bash
+mkdir -p ~/.okx/earn-hunter
+cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh
+chmod +x ~/.okx/earn-hunter/scan.sh
+```
+
+**Add to crontab** (default every hour; set `OKX_PROFILE` only in API Key mode):
+
+```bash
+(crontab -l 2>/dev/null; echo "0 * * * * OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
+```
+
+- **OAuth mode** → omit `OKX_PROFILE=live` (the script passes no `--profile` flag when the var is empty).
+- The script reads `config.json` / `platform.json`, writes `state.json` / `notify.log`, and sends notifications via curl to TG Bot API or Lark Webhook itself. No agent involvement needed at tick time.
+- The script exits 0 and produces **no output** when there are no new opportunities and `verboseLog=false` — this is the intended silent behavior.
+
+**IMPORTANT: On OS-crontab platforms, do NOT use agent-platform `/loop` / Routines** (Claude Code `/loop`, cloud Routines). These spawn LLM sessions per tick and cannot reliably push external notifications. (OpenClaw is the exception above — it uses its in-session `cron` tool with `announce` delivery by design.)
+
+---
+
+## Scan Cycle
+
+**The entire Scan Cycle is implemented by `scripts/scan.sh` (pure shell + jq, zero LLM cost).** Whether triggered by OS crontab, by an OpenClaw isolated cron agent turn, or by a user in an interactive session ("执行 earn-hunter 扫描"), the cycle is the **same**: run the script and relay its output. Do NOT re-implement the scan steps in natural language — the script is the single source of truth.
+
+**OpenClaw isolated cron turn:** the job's prompt routes here. Run `scripts/scan.sh` (with `platform.json` `notify.channel = "session"`, the script prints any notification to stdout); relay that stdout as the turn's response. The cron job's `announce` delivery then pushes it to the conversation channel. Do not curl TG/Lark from this turn — delivery is handled by `announce`.
+
+### How the agent runs a scan (interactive trigger)
+
+```bash
+# Profile: pass OKX_PROFILE only in API Key mode (omit for OAuth mode).
+OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh
+```
+
+Then **relay the script's stdout verbatim** to the user:
+- If the script prints a notification (Flash / Fixed / mixed / verbose status), show it.
+- If the script prints **nothing** (silent exit 0, the no-new-opportunity + `verboseLog=false` case), tell the user "本轮扫描完成，无新机会" — do NOT fabricate a "scan complete" message into a channel; the silence is intentional.
+
+### What the script does (see `references/scan-logic.md` for the spec it implements)
+
+1. Reads `~/.okx/earn-hunter/config.json`
+2. Runs scan commands (based on `flash.enabled` / `fixed.enabled`):
+   - Flash: `okx [--profile live] earn flash-earn projects --status 0,100 --json`
+   - Fixed: `okx [--profile live] earn savings fixed-products --json` (auto-fallback to `rate-history` + `fixedOffers` on CLI <1.3.3)
+3. Filters (two-layer APY threshold, terms filter, currency filter)
+4. Dedups against `~/.okx/earn-hunter/state.json` (`state.flash["<id>:<status>"]`, `state.fixed["<ccy>:<term>:<rate>"]`)
+5. If new opportunities → renders the matching template (flash / fixed / mixed) and sends via the detected channel (TG → Lark → session), logging to `notify.log`
+6. Updates `state.json` (write new keys; flash ID-level diff cleanup; fixed key-level diff cleanup; 7-day TTL; failure counter)
+7. If no new opportunities: `verboseLog=true` → brief status; `verboseLog=false` → **silent exit 0, no output, nothing sent**
+8. Error handling: consecutive-failure counter (alert at 3, then reset); 401/session-expired → credential alert + stop
+
+**Channel routing inside the script:** detection order TG (`$TELEGRAM_BOT_TOKEN`+`$TELEGRAM_CHAT_ID`) → Lark (`platform.json` `.notify.lark_webhook`) → session (stdout). A `notify.channel` of `telegram`/`lark`/`session` in `platform.json` forces that channel.
+
+**Auth / profile:** the script never reads or prints credentials. It delegates all auth to the `okx` CLI (which reads `~/.okx/config.toml`). Profile is injected only via the `OKX_PROFILE` env var.
+
+---
+
+## Purchase Guide
+
+When user wants to subscribe to a Fixed Earn product after receiving a notification.
+
+Read `{baseDir}/references/purchase-guide.md` for the complete flow.
+
+Summary:
+
+1. Parallel balance check (funding + trading + flexible earn)
+2. Compare fixed APR vs flexible lendingRate
+3. Calculate recommended amount: `min(idle + movable_simple_earn, lendQuota)`
+4. Present recommendation with comparison hint
+5. User confirms → **re-check offer availability** (soldOut guard) → hand off to `okx-cex-earn`
+
+Edge cases covered in purchase-guide.md:
+- Balance < minLend → show deficit
+- Amount > lendQuota → auto-cap with notice
+- Redeem succeeded but subscribe failed → warn user, funds are in funding account
+- Offer sold out between notification and subscription → inform user
+
+**Important:** earn-hunter does NOT execute write operations directly. It transfers control to `okx-cex-earn`.
+
+---
+
+## Config Management
+
+Read `{baseDir}/references/config-reference.md` for field definitions and natural language examples.
+
+When user wants to change settings:
+1. Parse intent → map to config field (see `config-reference.md` for field mapping)
+2. Read the target JSON file (`config.json` or `platform.json`) → modify the field → write back
+3. Read the updated file → confirm the change to user
+
+**Exception:** TG credentials cannot be changed via natural language. Tell user to set environment variables directly.
+
+---
+
+## Pause/Resume
+
+Branch on `platform.json` `.scheduler.type`:
+
+**OpenClaw (`openclaw-cron`)** — manage via the in-session `cron` tool (no CLI):
+- **Pause:** call `cron` with `action: "update"`, targeting the `earn-hunter-hourly` job, patch `{ "enabled": false }` (or `action: "remove"` to delete it).
+- **Resume:** `action: "update"` with `{ "enabled": true }` (or re-create as in Activation Step 5).
+- Use `action: "list"` to find the job id.
+
+**OS-crontab platforms (`cron`):**
+- **Pause:** `crontab -l | grep -v 'earn-hunter' | crontab -`
+- **Resume:** Re-add the crontab entry (same as Activation Step 5).
+
+Config and state are preserved — resuming picks up where it left off.
+
+---
+
+## Uninstall
+
+When user says "卸载" / "uninstall":
+1. Stop the scheduler (same as Pause)
+2. Ask: "是否保留配置和历史数据？"
+   - Yes → only remove scheduler
+   - No → also remove `~/.okx/earn-hunter/` directory
+
+---
+
+## Test Mode
+
+Trigger phrases: "测试 earn-hunter" / "earn-hunter smoke test" / "测试定时任务触发"
+
+Behavior — run the script with the Test Mode hooks (no separate logic needed):
+
+```bash
+# Force verbose so output is always produced; write dedup keys under test: prefix.
+EH_TEST_NAMESPACE=1 OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh   # with config.verboseLog temporarily set to true
+```
+
+1. **Execute a full Scan Cycle** — the script runs the same scan, but `EH_TEST_NAMESPACE=1` isolates state writes
+2. **Force-send notification** — temporarily set `config.verboseLog=true` so the script always sends output regardless of whether opportunities are found (restore afterwards)
+3. **Dedup writes to test namespace** — `EH_TEST_NAMESPACE=1` prefixes dedup keys with `test:` (e.g. `test:flash:12345:100`); these keys are immune to diff cleanup (only TTL removes them), so test runs do not pollute production state
+4. **Output diagnostics** after scan completes:
+   - okx auth status (logged in / expired / not configured)
+   - Scan command results (flash project count + fixed product count)
+   - Post-filter results (how many passed filters)
+   - Notification channel status (which channel is configured, send result)
+   - Scheduler status (OS-crontab platforms: crontab entry exists? / OpenClaw: `cron` tool `action: "list"` shows the `earn-hunter-hourly` job?)
+   - Last 5 lines of `~/.okx/earn-hunter/notify.log`
+5. **Completion message:** "测试完成。test: 前缀的 state 不影响正式去重，正式扫描不受影响。"
+
+---
+
+## Error Handling
+
+Read `{baseDir}/templates/error-alert.md` for exact alert message templates.
+
+| Error | Action |
+|---|---|
+| `okx` 401 / "Session expired" | Stop scan. Send alert (凭证失效 template). Load `okx-cex-auth` if interactive. |
+| Network error / timeout | Retry once silently. If still fails, skip this cycle. |
+| 3 consecutive scan failures | Send alert (连续失败 template). Counter stored in `state.consecutive_failures`, reset after alert. |
+| `state.json` corrupted | Reset by writing `{"flash":{},"fixed":{},"consecutive_failures":0,"last_error":""}`. May cause one round of duplicate notifications. |
+| Notification send fails | Log to `notify.log`, continue scan. Dedup key NOT added (next cycle retries). |
+| `config.json` missing at runtime | Send alert: "earn-hunter 未配置，请运行首次激活流程。" |
+| Dual-client suspected (user mentions both platforms) | Warn: "建议仅在一个客户端运行 earn-hunter，避免重复通知。" |
+| `verboseLog = true` + no hits | Send brief status (not silent). |
+
+---
+
+## i18n
+
+- **All notifications rendered in user's language** (detected at activation, stored in `config.notify.language`)
+- **Locked terms (never translate):** Flash Earn, Fixed Earn, Simple Earn, DCD, APY, APR, OKX, earn-hunter, Telegram, project names, currency codes (USDT, BTC, etc.)
+- **Fallback:** If LLM rendering fails, send Chinese template + append `(translation unavailable, sent in zh-CN)`
+
+---
+
+## Global Notes
+
+- **Security:** Never accept credentials in chat. TG token only via env vars. Guide users to `okx config init` for OKX auth.
+- **Output:** Use `--json` for all okx commands. Render results as markdown tables.
+- **Logging:** All notification send results logged to `~/.okx/earn-hunter/notify.log`.
+- **Scope:** v1 covers Flash Earn and Simple Earn Fixed only. DCD, on-chain, auto-earn are out of scope.
+- **Mode:** Live trading only. `config.simulatedTrading` is always `false`.
