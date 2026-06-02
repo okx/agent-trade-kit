@@ -2,7 +2,7 @@
 
 Common composed flows. The skill should pick the matching workflow based on user intent, then chain commands.
 
-> **Unit of value**: prediction markets transact in **points** (xp), not USDC. Balances, prices, and CTF amounts are all xp.
+> **Unit of value**: outcomes markets transact in **points** (xp), not USDC. Balances, prices, and CTF amounts are all xp.
 
 > **ID kinds**: `eventId` (event-level), `marketId` (market-level, used for `ctf *` and `account trades --market`), `assetId` (outcome-token-level, used for `clob *` reads and writes). See `data-commands.md` "ID glossary".
 
@@ -10,13 +10,13 @@ Common composed flows. The skill should pick the matching workflow based on user
 
 ## 1. Daily brief (briefing of the market state)
 
-> User: "What's happening in prediction markets today?" / "今日预测市场" / "trending markets"
+> User: "What's happening in outcomes markets today?" / "今日预测市场" / "trending markets"
 
 ```
-1. okx prediction status --json                       → confirm env is OK
-2. okx prediction data trending --json                     → top events
-3. okx prediction data events --status active --limit 10 --json   → broader active list
-4. okx prediction account balance --json              → user's current balance (if authed)
+1. okx outcomes status --json                       → confirm env is OK
+2. okx outcomes data trending --json                     → top events
+3. okx outcomes data events --status active --limit 10 --json   → broader active list
+4. okx outcomes account balance --json              → user's current balance (if authed)
 ```
 
 Display:
@@ -31,17 +31,17 @@ Display:
 > User: "Tell me more about <X event>" / "深挖 <X>"
 
 ```
-1. okx prediction search <keyword> --limit 5 --json   → find candidate event IDs
+1. okx outcomes search <keyword> --limit 5 --json   → find candidate event IDs
    (or)
-   okx prediction data events --category <c> --limit 20 --json
+   okx outcomes data events --category <c> --limit 20 --json
 
-2. okx prediction data event-markets <eventId> --json      → full event + all sub-markets + YES/NO asset ids
+2. okx outcomes data event-markets <eventId> --json      → full event + all sub-markets + YES/NO asset ids
 
 3. For each sub-market the user is interested in:
-   okx prediction data market <marketId> --json            → details
-   okx prediction clob price --asset <yesAssetId> --json   → live price (YES side)
-   okx prediction clob book --asset <yesAssetId> --sz 5 --json  → top-of-book depth
-   okx prediction data candles <yesAssetId> --bar 1H --limit 50 --json  → price history
+   okx outcomes data market <marketId> --json            → details
+   okx outcomes clob price --asset <yesAssetId> --json   → live price (YES side)
+   okx outcomes clob book --asset <yesAssetId> --sz 5 --json  → top-of-book depth
+   okx outcomes data candles <yesAssetId> --bar 1H --limit 50 --json  → price history
 ```
 
 Output should answer: "Is this tradable now? What's the spread? How has it moved?"
@@ -53,10 +53,10 @@ Output should answer: "Is this tradable now? What's the spread? How has it moved
 > User: "Show me my positions and PnL" / "我的持仓" / "portfolio"
 
 ```
-1. okx prediction wallet show --json                  → wallet address
-2. okx prediction account balance --json              → spots + points
-3. okx prediction account positions --json            → open positions (note "Won" rows for redeem)
-4. okx prediction account closed-positions --json     → recent realized PnL
+1. okx outcomes wallet show --json                  → wallet address
+2. okx outcomes account balance --json              → spots + points
+3. okx outcomes account positions --json            → open positions (note "Won" rows for redeem)
+4. okx outcomes account closed-positions --json     → recent realized PnL
 ```
 
 Display:
@@ -73,12 +73,12 @@ Display:
 
 ```
 0. PREFLIGHT
-   okx prediction status --json                       → must be healthy
-   okx prediction wallet show --json                  → confirm wallet
-   okx prediction data event-markets <eventId> --json      → look up the YES assetId for this market
-   okx prediction data market <marketId> --json            → confirm active, fetch title
-   okx prediction clob price --asset <yesAssetId> --json   → confirm current price vs user's limit
-   okx prediction account balance --json              → spots.available ≥ price * size
+   okx outcomes status --json                       → must be healthy
+   okx outcomes wallet show --json                  → confirm wallet
+   okx outcomes data event-markets <eventId> --json      → look up the YES assetId for this market
+   okx outcomes data market <marketId> --json            → confirm active, fetch title
+   okx outcomes clob price --asset <yesAssetId> --json   → confirm current price vs user's limit
+   okx outcomes account balance --json              → spots.available ≥ price * size
 
 1. DRY-RUN PREVIEW (render to user, do NOT execute)
    ```
@@ -102,11 +102,11 @@ Display:
    - Anything else (including silence, "yes", "ok", "go", "yep") → abort with a polite ask for the exact word
 
 3. EXECUTE
-   okx prediction clob create-order \
+   okx outcomes clob create-order \
      --asset <yesAssetId> --side buy --price 0.55 --size 100
 
 4. VERIFY
-   okx prediction account orders --json               → confirm the order is open
+   okx outcomes account orders --json               → confirm the order is open
    (Optional) Poll periodically until status changes from "open" to "filled"
 ```
 
@@ -114,12 +114,11 @@ Display:
 
 - "Sell 100 NO at 0.45" → look up the **NO** assetId from `event-markets`, then `--asset <noAssetId> --side sell --price 0.45 --size 100`
 - "Spend 50 points buying YES" → notional/quote mode: `--side buy --price <limit> --size 50 --tif ioc --size-type quote`
-- "Market buy 100 shares of YES" → `okx prediction clob market-order --asset <yesAssetId> --side buy --size 100`
+- "Market buy 100 shares of YES" → `okx outcomes clob market-order --asset <yesAssetId> --side buy --size 100`
 - "GTD until <date>" → `--tif gtd --expiry <UNIX_MS>` (compute Unix ms from the user's date)
 
 Same dry-run + confirm structure applies to:
 - `clob cancel-oid --oid <id> --asset <id>` — preview shows order + market detail
-- `clob cancel-client-order-id` — same shape, different identifier
 - `clob cancel-all` — preview shows wallet + open-order count
 - `ctf split/merge/redeem` — preview shows market + amount + expected balance change
 
@@ -130,10 +129,10 @@ Same dry-run + confirm structure applies to:
 > User: "<X event> resolved — claim my winnings" / "结算后赎回"
 
 ```
-1. okx prediction data event <eventId> --json              → confirm status == settled
+1. okx outcomes data event <eventId> --json              → confirm status == settled
                                                        → look at "winningOutcome"
 
-2. okx prediction account positions --json | jq '.[] | select(.status=="Won") | {marketId, marketTitle, shares}'
+2. okx outcomes account positions --json | jq '.[] | select(.status=="Won") | {marketId, marketTitle, shares}'
                                                        → enumerate redeemable markets
 
 3. DRY-RUN (required for any ctf write)
@@ -149,37 +148,37 @@ Same dry-run + confirm structure applies to:
    ```
 
 4. EXECUTE (no --amount — redeem burns the full winning balance)
-   okx prediction ctf redeem --market <id>
+   okx outcomes ctf redeem --market <id>
 
 5. VERIFY
-   okx prediction account balance --json              → confirm spots increased
-   okx prediction account positions --json            → confirm winning shares removed
+   okx outcomes account balance --json              → confirm spots increased
+   okx outcomes account positions --json            → confirm winning shares removed
 ```
 
 If the user holds only the **losing** side: warn that redeem will return 0 xp and ask whether to skip.
 
 ---
 
-## 6. Recovery — "okx-predict not found"
+## 6. Recovery — "okx-outcomes not found"
 
-> User runs any prediction command → wrapper prints install hint.
+> User runs any outcomes command → wrapper prints install hint.
 
 ```
-1. Confirm node + npm available:
-   node --version
-   npm --version
+1. Confirm curl + sh available (macOS / Linux):
+   curl --version
+   sh --version
 
-2. Install platform-specific package:
-   npm install -g @okx/predict-market-cli
+2. Install prebuilt binary from GitHub Releases:
+   curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh
 
 3. Verify:
-   okx-predict --version
+   okx-outcomes --version
 
 4. (One-time) Run setup wizard:
-   okx prediction setup
+   okx outcomes setup
 
 5. Test:
-   okx prediction status --json
+   okx outcomes status --json
 ```
 
 Never have the user `cargo install` from source unless they explicitly need a dev build.
@@ -191,8 +190,8 @@ Never have the user `cargo install` from source unless they explicitly need a de
 > Any HMAC-protected command returns auth failure.
 
 1. Re-check env: `cat ~/.env | grep PREDICTIONS_` (mask values when echoing)
-2. Run `okx prediction setup` to re-write `.env`
-3. Run `okx prediction status --json` to verify both `balance` and `events` checks pass
+2. Run `okx outcomes setup` to re-write `.env`
+3. Run `okx outcomes status --json` to verify both `balance` and `events` checks pass
 4. Retry the original command
 
 If `wallet show` fails: `PREDICTIONS_AGENT_PRIVATE_KEY` is the missing piece — guide them through `setup` again, and do **not** ask them to paste the key in chat.

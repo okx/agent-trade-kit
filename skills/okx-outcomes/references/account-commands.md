@@ -6,7 +6,7 @@ Authenticated account view. All commands require **HMAC** credentials in `.env`:
 - `PREDICTIONS_API_SECRET`
 - `PREDICTIONS_API_PASSPHRASE`
 
-> These are **independent** from the main OKX CLI's OAuth / API key. Do **not** call `okx auth login` for prediction. Run `okx prediction setup` to populate `.env` interactively.
+> These are **independent** from the main OKX CLI's OAuth / API key. Do **not** call `okx auth login` for outcomes. Run `okx outcomes setup` to populate `.env` interactively.
 
 > **Aliases**: `clob order <id>`, `clob orders`, `clob trades` all delegate to the corresponding `account *` command — same SDK call, same rendering. Prefer the `account *` form in skill output for clarity.
 
@@ -23,7 +23,7 @@ Each row reports:
 - `available` — `total − frozen by open orders`
 
 ```bash
-okx prediction account balance --json
+okx outcomes account balance --json
 ```
 
 ---
@@ -33,7 +33,7 @@ okx prediction account balance --json
 Single-order detail.
 
 ```bash
-okx prediction account order 11309900 --json
+okx outcomes account order 11309900 --json
 ```
 
 `clob order <orderId>` is a thin alias for this command.
@@ -45,8 +45,8 @@ okx prediction account order 11309900 --json
 List **open** orders.
 
 ```bash
-okx prediction account orders --json
-okx prediction account orders --cursor abc123
+okx outcomes account orders --json
+okx outcomes account orders --cursor abc123
 ```
 
 | Flag | Description |
@@ -62,11 +62,11 @@ okx prediction account orders --cursor abc123
 List **open** positions.
 
 ```bash
-okx prediction account positions --json
-okx prediction account positions --cursor abc123
+okx outcomes account positions --json
+okx outcomes account positions --cursor abc123
 ```
 
-Each row includes a `Status` column. Rows showing `Won` mark resolved markets where you hold winning tokens — feed their `marketId` into `okx prediction ctf redeem --market <id>`.
+Each row includes a `Status` column. Rows showing `Won` mark resolved markets where you hold winning tokens — feed their `marketId` into `okx outcomes ctf redeem --market <id>`.
 
 ---
 
@@ -75,8 +75,8 @@ Each row includes a `Status` column. Rows showing `Won` mark resolved markets wh
 List **closed** positions with realized PnL.
 
 ```bash
-okx prediction account closed-positions --json
-okx prediction account closed-positions --cursor abc123
+okx outcomes account closed-positions --json
+okx outcomes account closed-positions --cursor abc123
 ```
 
 ---
@@ -86,9 +86,9 @@ okx prediction account closed-positions --cursor abc123
 Trade execution history.
 
 ```bash
-okx prediction account trades --json
-okx prediction account trades --market 12345
-okx prediction account trades --side BUY --json
+okx outcomes account trades --json
+okx outcomes account trades --market 12345
+okx outcomes account trades --side BUY --json
 ```
 
 | Flag | Description |
@@ -106,7 +106,7 @@ okx prediction account trades --side BUY --json
 The wallet address derived from `PREDICTIONS_AGENT_PRIVATE_KEY`. Useful as a pre-trade sanity check: confirm the agent will sign with the address the user expects.
 
 ```bash
-okx prediction wallet show --json
+okx outcomes wallet show --json
 ```
 
 > Does **not** require HMAC — only the agent private key. No `--private-key` override flag; the value must come from `.env`.
@@ -118,7 +118,7 @@ okx prediction wallet show --json
 Health check that pings the events API **and** reads balance.
 
 ```bash
-okx prediction status --json
+okx outcomes status --json
 ```
 
 Output legend:
@@ -126,7 +126,7 @@ Output legend:
 - `SKIP` — credentials missing (no failure, just informational)
 - `FAIL` — endpoint reachable but auth rejected
 
-Use this as the very first command in any prediction session.
+Use this as the very first command in any outcomes session.
 
 ---
 
@@ -135,23 +135,23 @@ Use this as the very first command in any prediction session.
 ### Pre-trade balance check
 
 ```bash
-okx prediction wallet show --json | jq '.address'
-okx prediction account balance --json | jq '.[] | select(.oddsType=="spots")'
+okx outcomes wallet show --json | jq '.address'
+okx outcomes account balance --json | jq '.[] | select(.oddsType=="spots")'
 ```
 
 ### Portfolio snapshot
 
 ```bash
-okx prediction account positions --json
-okx prediction account closed-positions --json
-okx prediction account trades --json
+okx outcomes account positions --json
+okx outcomes account closed-positions --json
+okx outcomes account trades --json
 ```
 
 ### Find redeemable markets after settlement
 
 ```bash
-okx prediction account positions --json | jq '.[] | select(.status=="Won") | .marketId'
-# pipe each marketId into:  okx prediction ctf redeem --market <id>
+okx outcomes account positions --json | jq '.[] | select(.status=="Won") | .marketId'
+# pipe each marketId into:  okx outcomes ctf redeem --market <id>
 ```
 
 > **CSV export removed**: the prior `data export {positions|trades}` subcommand is no longer available. To produce CSV, pipe `--json` through your own `jq`/`csvkit`/script.

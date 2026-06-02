@@ -1115,59 +1115,59 @@ export const CLI_REGISTRY: CliRegistry = {
     usage: "okx upgrade [--check] [--beta] [--force] [--json]",
   },
 
-  // ── prediction ─────────────────────────────────────────────────────────────
-  // External binary wrapper - forwards to @okx/predict-market-cli (okx-predict).
-  // All toolName=null because prediction commands are not exposed as MCP tools.
-  prediction: {
-    description: "Prediction markets (YES/NO event contracts) via external okx-predict binary",
+  // ── outcomes ───────────────────────────────────────────────────────────────
+  // External binary wrapper - forwards to the okx-outcomes binary (formerly okx-predict).
+  // All toolName=null because outcomes commands are not exposed as MCP tools.
+  outcomes: {
+    description: "OKX Outcomes markets (YES/NO event contracts) via external okx-outcomes binary",
     commands: {
       // Note: events / event / event-markets / market / trending / ticker /
       // candles live UNDER the `data` namespace in the upstream binary.
       // Calling them as top-level commands prints the binary's help text
-      // instead of returning JSON. Always invoke as `okx prediction data <cmd>`.
+      // instead of returning JSON. Always invoke as `okx outcomes data <cmd>`.
       data: {
         toolName: null,
-        usage: "okx prediction data <events|event|event-markets|market|trending|ticker|candles> [args...]",
+        usage: "okx outcomes data <events|event|event-markets|market|trending|ticker|candles> [args...]",
         description: "Public market data namespace: events, event(-markets), market, trending, ticker, candles",
       },
       search: {
         toolName: null,
-        usage: "okx prediction search <keyword> [--limit <n>] [--cursor <c>]",
+        usage: "okx outcomes search <keyword> [--limit <n>] [--cursor <c>]",
         description: "Search events/markets by keyword",
       },
       account: {
         toolName: null,
-        usage: "okx prediction account <balance|order|orders|positions|closed-positions|trades>",
+        usage: "okx outcomes account <balance|order|orders|positions|closed-positions|trades>",
         description: "HMAC-auth account queries",
       },
       clob: {
         toolName: null,
-        usage: "okx prediction clob <price|prices|midpoint|midpoints|spread|spreads|book|books|order|orders|trades|create-order|market-order|cancel-oid|cancel-client-order-id|cancel-all|heartbeat>",
+        usage: "okx outcomes clob <price|prices|midpoint|midpoints|spread|spreads|book|books|order|orders|trades|create-order|market-order|cancel-oid|cancel-all|heartbeat>",
         description: "CLOB market data (--asset) + EIP-712 signed order operations",
       },
       ctf: {
         toolName: null,
-        usage: "okx prediction ctf <split|merge|redeem> --market <id> [--amount <xp>]",
+        usage: "okx outcomes ctf <split|merge|redeem> --market <id> [--amount <xp>]",
         description: "Conditional Token Framework: split xp into YES/NO, merge, redeem",
       },
       wallet: {
         toolName: null,
-        usage: "okx prediction wallet show",
+        usage: "okx outcomes wallet show",
         description: "Show derived wallet address (from PREDICTIONS_AGENT_PRIVATE_KEY)",
       },
       status: {
         toolName: null,
-        usage: "okx prediction status [--json]",
+        usage: "okx outcomes status [--json]",
         description: "Health check: API + balance reachability",
       },
       setup: {
         toolName: null,
-        usage: "okx prediction setup",
+        usage: "okx outcomes setup",
         description: "Interactive .env wizard for PREDICTIONS_* env vars",
       },
       shell: {
         toolName: null,
-        usage: "okx prediction shell",
+        usage: "okx outcomes shell",
         description: "Interactive REPL (do not invoke from agent context)",
       },
     },

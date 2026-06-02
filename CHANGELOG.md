@@ -11,18 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed
-
-- **WebSocket (`ws *`) subcommands from `okx-prediction` skill and cli-registry**, matching upstream binary plan to drop WS support. `references/stream-commands.md` deleted; `ws prices/books/trades/tickers/event-status/game/candle*/orders/positions/balance/user-trades/pnl/private/terminal` references removed from SKILL.md, cli-registry, wrapper `--help`, `workflows.md`, and `ctf-commands.md` (which now uses `data event` polling instead of `ws event-status` for settlement detection). The wrapper remains a pure pass-through — `okx prediction ws ...` is no longer documented but is not actively rejected; if invoked, the binary returns "unknown command".
-- **`.gitignore` narrowed back to explicit `.env` / `.env.local` / `.env.bak`** (removing the broad `.env.*` + `!.env.example` introduced in the previous prediction wrapper commit). Sensitive file coverage is preserved without the wildcard.
-
 ### Added
 
-- **`okx prediction` CLI wrapper for OKX Prediction Markets** (YES/NO event contracts). Forwards all subcommands to the external `okx-predict` Rust binary distributed as `@okx/predict-market-cli` (npm, platform-specific). Includes binary discovery via `PATH` with `OKX_PREDICT_BIN` override, friendly install hint on `not found`, and curated `--help` summary. Module is CLI-only (no MCP tools registered) — see `docs/designs/prediction-wrapper.md`.
-- **`okx-prediction` skill** guides agents through event browsing, account queries (HMAC-auth), live CLOB price / order-book queries, and dry-run-gated trade placement and CTF split/merge/redeem on prediction markets. References split across `data-commands.md`, `account-commands.md`, `clob-commands.md`, `ctf-commands.md`, and `workflows.md`.
+- **`okx outcomes` CLI wrapper for OKX Outcomes Markets** (YES/NO event contracts; formerly OKX Predictions). Forwards all subcommands to the external `okx-outcomes` Rust binary installed via `curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh` (macOS/Linux; Windows users place `okx-outcomes.exe` on `PATH` from the same GitHub Releases). Includes `PATH` discovery with `OKX_OUTCOMES_BIN` override, friendly install hint, and curated `--help` summary. Module is CLI-only (no MCP tools registered) — see `docs/designs/outcomes-wrapper.md`. Requires `PREDICTIONS_API_KEY/SECRET/PASSPHRASE` + `PREDICTIONS_AGENT_PRIVATE_KEY` env vars (upstream kept the legacy `PREDICTIONS_*` prefix even after the rebrand). WebSocket (`ws *`) and `clob cancel-client-order-id` subcommands are intentionally not exposed by the wrapper.
+- **`okx-outcomes` skill** guides agents through event browsing, account queries (HMAC-auth), live CLOB price / order-book queries, and dry-run-gated trade placement and CTF split/merge/redeem. Trigger list preserves both `prediction`/`预测` and `outcomes` keywords to cover users still using legacy terminology. References split across `data-commands.md`, `account-commands.md`, `clob-commands.md`, `ctf-commands.md`, and `workflows.md`.
 - **`earn_get_fixed_earn_products` MCP tool** and `okx earn savings fixed-products` CLI command for querying Simple Earn Fixed-term product pool with APR, term, remaining quota, and sold-out status
 - **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
 - All 163 MCP tools now expose a human-readable `title` at both top-level (`Tool.title`, per MCP spec 2025-06-18) and inside `annotations.title` for backward compatibility, so clients like MCP Inspector render readable labels instead of snake_case names.
+
+### Removed
+
+- **`.gitignore` narrowed back to explicit `.env` / `.env.local` / `.env.bak`** (removing the broad `.env.*` + `!.env.example` pattern). Sensitive file coverage is preserved without the wildcard.
 
 ### Fixed
 

@@ -50,7 +50,7 @@ As of the latest registry scan, the server exposes **163 MCP tools** organized i
 - `skills/okx-cex-smartmoney/` — smart-money signals and trader leaderboard
 - `skills/okx-cex-auth/` — authentication setup and credential management
 - `skills/okx-sentiment-tracker/` — crypto news and market sentiment
-- `skills/okx-prediction/` — prediction markets (YES/NO event contracts) via external `okx-predict` binary
+- `skills/okx-outcomes/` — OKX Outcomes / prediction markets (YES/NO event contracts) via external `okx-outcomes` binary
 
 Each skill pack's `SKILL.md` carries a `metadata.version` that must be synchronized with the package release version on every stable release.
 

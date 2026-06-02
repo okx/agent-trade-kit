@@ -2,7 +2,7 @@
 
 CTF lets the user move **points** in and out of YES/NO outcome tokens for a market. Three operations: **split**, **merge**, **redeem**.
 
-> The unit of value is the OKX Prediction internal **points** (xp), not USDC. Holdings, spreads, prices, and CTF amounts are all denominated in xp.
+> The unit of value is the OKX Outcomes internal **points** (xp), not USDC. Holdings, spreads, prices, and CTF amounts are all denominated in xp.
 
 All CTF commands are **EIP-712 signed** and high-risk. Same credential resolution as CLOB:
 
@@ -23,7 +23,7 @@ Split points into **paired YES + NO outcome tokens** for a market. After splitti
 - One outcome will pay out 1 xp per share on resolution; the other 0.
 
 ```bash
-okx prediction ctf split --market 12345 --amount 100
+okx outcomes ctf split --market 12345 --amount 100
 ```
 
 | Flag | Required | Description |
@@ -53,7 +53,7 @@ Reply "confirm" to execute, or "cancel" to abort.
 Burn equal YES + NO and receive points back. Inverse of `split`.
 
 ```bash
-okx prediction ctf merge --market 12345 --amount 100
+okx outcomes ctf merge --market 12345 --amount 100
 ```
 
 | Flag | Required | Description |
@@ -84,7 +84,7 @@ Reply "confirm" to execute, or "cancel" to abort.
 Redeem winning outcome tokens **after** market resolution. Burns the **entire** winning-token balance for that market in a single tx — there is no `--amount` flag.
 
 ```bash
-okx prediction ctf redeem --market 12345
+okx outcomes ctf redeem --market 12345
 ```
 
 | Flag | Required | Description |
@@ -94,7 +94,7 @@ okx prediction ctf redeem --market 12345
 **Find redeemable markets**:
 
 ```bash
-okx prediction account positions --json | jq '.[] | select(.status=="Won") | {marketId, marketTitle, shares}'
+okx outcomes account positions --json | jq '.[] | select(.status=="Won") | {marketId, marketTitle, shares}'
 ```
 
 Each row with `status="Won"` is a redeem candidate.
@@ -113,7 +113,7 @@ Reply "confirm" to execute, or "cancel" to abort.
 ```
 
 **Pre-flight checks for redeem**:
-1. Confirm the market is settled — `okx prediction data event <eventId> --json` (poll periodically until `status == settled`)
+1. Confirm the market is settled — `okx outcomes data event <eventId> --json` (poll periodically until `status == settled`)
 2. Verify the user holds the winning side via `account positions` (status `Won`)
 3. If the user holds only the losing side, refuse — there is nothing to redeem
 
@@ -130,16 +130,16 @@ A common path for liquidity provision or aggressive directional bets:
 
 ```bash
 # 1. Split 100 xp in market 12345
-okx prediction ctf split --market 12345 --amount 100
+okx outcomes ctf split --market 12345 --amount 100
 
 # 2. Sell 100 NO shares at 0.45 (keeps YES exposure). Use NO asset id.
-okx prediction clob create-order --asset <NO_asset> --side sell --price 0.45 --size 100
+okx outcomes clob create-order --asset <NO_asset> --side sell --price 0.45 --size 100
 
 # 3. (wait for settlement — poll periodically)
-okx prediction data event <eventId> --json | jq '.status'
+okx outcomes data event <eventId> --json | jq '.status'
 
 # 4. Redeem (only winning shares pay 1 xp each)
-okx prediction ctf redeem --market 12345
+okx outcomes ctf redeem --market 12345
 ```
 
 Each write step **must** go through the dry-run + confirm flow described above.

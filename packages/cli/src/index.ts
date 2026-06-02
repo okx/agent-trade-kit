@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { handleAuthCommand } from "./commands/auth.js";
-import { handlePredictionCommand } from "./commands/prediction.js";
+import { handleOutcomesCommand } from "./commands/outcomes.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
@@ -1882,17 +1882,17 @@ async function main(): Promise<void> {
 
   const rawArgv = process.argv.slice(2);
 
-  // `prediction` is a pass-through to the external okx-predict binary, so its
+  // `outcomes` is a pass-through to the external okx-outcomes binary, so its
   // wrapper-binary flags (--asset, --keeper, ...) are intentionally absent from
   // CLI_OPTIONS. Strict parseArgs would reject them before routing, so peek the
   // first positional and short-circuit here.
   const peek = peekFirstPositional(rawArgv);
-  if (peek?.module === "prediction") {
+  if (peek?.module === "outcomes") {
     const after = rawArgv.slice(peek.idx + 1);
     const action = after[0];
     const rest = after.slice(1);
     const json = rawArgv.includes("--json") || rawArgv.includes("-j");
-    return handlePredictionCommand(action, rest, { json });
+    return handleOutcomesCommand(action, rest, { json });
   }
 
   const { values, positionals } = parseCli(rawArgv);

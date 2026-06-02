@@ -11,18 +11,17 @@
 
 ## [Unreleased]
 
-### 移除
-
-- **从 `okx-prediction` skill 与 cli-registry 中移除 WebSocket（`ws *`）子命令**，与上游 binary 撤掉 WS 支持的计划保持一致。`references/stream-commands.md` 整文件删除；SKILL.md、cli-registry、wrapper `--help`、`workflows.md`、`ctf-commands.md` 中对 `ws prices/books/trades/tickers/event-status/game/candle*/orders/positions/balance/user-trades/pnl/private/terminal` 的引用全部清理（结算检测改用 `data event` 轮询）。wrapper 仍是纯 pass-through —— `okx prediction ws ...` 不再被文档化但也不主动拦截；若用户硬调，binary 自己返回 "unknown command"。
-- **`.gitignore` 收缩回显式三行 `.env` / `.env.local` / `.env.bak`**，移除上次 prediction wrapper commit 引入的过宽 `.env.*` + `!.env.example` 通配。敏感文件覆盖范围不变。
-
 ### 新增
 
-- **`okx prediction` CLI 包装器**用于 OKX 预测市场（YES/NO 事件合约）。透传所有子命令到外部 `okx-predict` Rust 二进制（通过 npm 平台子包 `@okx/predict-market-cli` 分发）。包含 PATH 自动发现 + `OKX_PREDICT_BIN` 覆写、二进制缺失时的友好安装提示、以及精简的 `--help` 输出。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/prediction-wrapper.md`。
-- **`okx-prediction` skill** 引导 agent 完成事件浏览、HMAC 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。细节文档拆分到 `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
+- **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。需要 `PREDICTIONS_API_KEY/SECRET/PASSPHRASE` + `PREDICTIONS_AGENT_PRIVATE_KEY` 环境变量（上游沿用 `PREDICTIONS_*` 旧前缀）。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
+- **`okx-outcomes` skill** 引导 agent 完成事件浏览、HMAC 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。trigger 列表同时保留 `prediction`/`预测` 与 `outcomes` 关键词，承接仍使用旧词的用户。细节文档拆分到 `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
 - 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
+
+### 移除
+
+- **`.gitignore` 收缩回显式三行 `.env` / `.env.local` / `.env.bak`**，移除过宽的 `.env.*` + `!.env.example` 通配。敏感文件覆盖范围不变。
 
 ### 修复
 

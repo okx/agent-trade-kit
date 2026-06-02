@@ -1,10 +1,10 @@
 /**
- * Unit tests for the `okx prediction` CLI wrapper.
+ * Unit tests for the `okx outcomes` CLI wrapper.
  *
- * The wrapper spawns the external okx-predict binary. Tests cover:
+ * The wrapper spawns the external okx-outcomes binary. Tests cover:
  *   1. Argument forwarding (using a mock binary that records argv to a file)
  *   2. Help output (no spawn — exits early)
- *   3. Binary-not-found UX (PATH-empty + OKX_PREDICT_BIN unset → exit 127)
+ *   3. Binary-not-found UX (PATH-empty + OKX_OUTCOMES_BIN unset → exit 127)
  *   4. Global --json flag is appended when not already present
  */
 import { describe, it, beforeEach, afterEach } from "node:test";
@@ -19,7 +19,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { handlePredictionCommand } from "../src/commands/prediction.js";
+import { handleOutcomesCommand } from "../src/commands/outcomes.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
 // ---------------------------------------------------------------------------
@@ -34,13 +34,13 @@ const MOCK_BINARY = join(
   "core",
   "test",
   "fixtures",
-  "mock-okx-predict-binary.mjs",
+  "mock-okx-outcomes-binary.mjs",
 );
 
 let tempDir: string;
 
 beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "cli-prediction-test-"));
+  tempDir = mkdtempSync(join(tmpdir(), "cli-outcomes-test-"));
 });
 
 afterEach(() => {
@@ -48,11 +48,11 @@ afterEach(() => {
 });
 
 const ENV_KEYS = [
-  "OKX_PREDICT_BIN",
-  "MOCK_PREDICT_EXIT",
-  "MOCK_PREDICT_STDOUT",
-  "MOCK_PREDICT_STDERR",
-  "MOCK_PREDICT_ARGS_FILE",
+  "OKX_OUTCOMES_BIN",
+  "MOCK_OUTCOMES_EXIT",
+  "MOCK_OUTCOMES_STDOUT",
+  "MOCK_OUTCOMES_STDERR",
+  "MOCK_OUTCOMES_ARGS_FILE",
   "PATH",
 ] as const;
 
@@ -95,7 +95,7 @@ function createCapture(): {
 // help output (no spawn)
 // ---------------------------------------------------------------------------
 
-describe("handlePredictionCommand - help output", () => {
+describe("handleOutcomesCommand - help output", () => {
   let saved: SavedEnv;
   let savedExitCode: number | undefined;
 
@@ -114,17 +114,17 @@ describe("handlePredictionCommand - help output", () => {
     const cap = createCapture();
     cap.install();
     try {
-      await handlePredictionCommand(undefined, [], {});
+      await handleOutcomesCommand(undefined, [], {});
     } finally {
       cap.restore();
     }
     const text = cap.stdout();
-    assert.ok(text.includes("Usage: okx prediction"), "help header missing");
+    assert.ok(text.includes("Usage: okx outcomes"), "help header missing");
     assert.ok(text.includes("events"), "events listed");
     assert.ok(text.includes("clob"), "clob listed");
     assert.ok(text.includes("ctf"), "ctf listed");
     assert.ok(text.includes("status"), "status listed");
-    assert.ok(text.includes("@okx/predict-market-cli"), "install reference");
+    assert.ok(text.includes("install.sh"), "install reference");
     assert.ok(!text.includes(" ws "), "ws should NOT be listed (WS support dropped)");
   });
 
@@ -132,33 +132,33 @@ describe("handlePredictionCommand - help output", () => {
     const cap = createCapture();
     cap.install();
     try {
-      await handlePredictionCommand("--help", [], {});
+      await handleOutcomesCommand("--help", [], {});
     } finally {
       cap.restore();
     }
-    assert.ok(cap.stdout().includes("Usage: okx prediction"));
+    assert.ok(cap.stdout().includes("Usage: okx outcomes"));
   });
 
   it("prints help when action is -h", async () => {
     const cap = createCapture();
     cap.install();
     try {
-      await handlePredictionCommand("-h", [], {});
+      await handleOutcomesCommand("-h", [], {});
     } finally {
       cap.restore();
     }
-    assert.ok(cap.stdout().includes("Usage: okx prediction"));
+    assert.ok(cap.stdout().includes("Usage: okx outcomes"));
   });
 
   it("prints help when action is 'help'", async () => {
     const cap = createCapture();
     cap.install();
     try {
-      await handlePredictionCommand("help", [], {});
+      await handleOutcomesCommand("help", [], {});
     } finally {
       cap.restore();
     }
-    assert.ok(cap.stdout().includes("Usage: okx prediction"));
+    assert.ok(cap.stdout().includes("Usage: okx outcomes"));
   });
 });
 
@@ -166,7 +166,7 @@ describe("handlePredictionCommand - help output", () => {
 // binary-not-found UX
 // ---------------------------------------------------------------------------
 
-describe("handlePredictionCommand - binary not found", () => {
+describe("handleOutcomesCommand - binary not found", () => {
   let saved: SavedEnv;
   let savedExitCode: number | undefined;
 
@@ -175,7 +175,7 @@ describe("handlePredictionCommand - binary not found", () => {
     savedExitCode = process.exitCode;
     process.exitCode = undefined;
     process.env.PATH = tempDir; // empty PATH (only an empty temp dir)
-    delete process.env.OKX_PREDICT_BIN;
+    delete process.env.OKX_OUTCOMES_BIN;
   });
 
   afterEach(() => {
@@ -187,28 +187,28 @@ describe("handlePredictionCommand - binary not found", () => {
     const cap = createCapture();
     cap.install();
     try {
-      await handlePredictionCommand("events", [], {});
+      await handleOutcomesCommand("events", [], {});
     } finally {
       cap.restore();
     }
     assert.equal(process.exitCode, 127);
     const err = cap.stderr();
-    assert.ok(err.includes("okx-predict binary not found"));
-    assert.ok(err.includes("@okx/predict-market-cli"));
-    assert.ok(err.includes("OKX_PREDICT_BIN"));
+    assert.ok(err.includes("okx-outcomes binary not found"));
+    assert.ok(err.includes("install.sh"));
+    assert.ok(err.includes("OKX_OUTCOMES_BIN"));
   });
 
-  it("treats invalid OKX_PREDICT_BIN path as not-found", async () => {
-    process.env.OKX_PREDICT_BIN = join(tempDir, "nonexistent");
+  it("treats invalid OKX_OUTCOMES_BIN path as not-found", async () => {
+    process.env.OKX_OUTCOMES_BIN = join(tempDir, "nonexistent");
     const cap = createCapture();
     cap.install();
     try {
-      await handlePredictionCommand("events", [], {});
+      await handleOutcomesCommand("events", [], {});
     } finally {
       cap.restore();
     }
     assert.equal(process.exitCode, 127);
-    assert.ok(cap.stderr().includes("okx-predict binary not found"));
+    assert.ok(cap.stderr().includes("okx-outcomes binary not found"));
   });
 });
 
@@ -216,7 +216,7 @@ describe("handlePredictionCommand - binary not found", () => {
 // argument forwarding (mock binary)
 // ---------------------------------------------------------------------------
 
-describe("handlePredictionCommand - argument forwarding", () => {
+describe("handleOutcomesCommand - argument forwarding", () => {
   let saved: SavedEnv;
   let savedExitCode: number | undefined;
 
@@ -224,8 +224,8 @@ describe("handlePredictionCommand - argument forwarding", () => {
     saved = saveEnv();
     savedExitCode = process.exitCode;
     process.exitCode = undefined;
-    // Point OKX_PREDICT_BIN at the mock script (executable .mjs)
-    process.env.OKX_PREDICT_BIN = MOCK_BINARY;
+    // Point OKX_OUTCOMES_BIN at the mock script (executable .mjs)
+    process.env.OKX_OUTCOMES_BIN = MOCK_BINARY;
     assert.ok(
       existsSync(MOCK_BINARY),
       `mock binary fixture missing at ${MOCK_BINARY}`,
@@ -239,8 +239,8 @@ describe("handlePredictionCommand - argument forwarding", () => {
 
   it("forwards action and rest args verbatim", async () => {
     const argsFile = join(tempDir, "argv.json");
-    process.env.MOCK_PREDICT_ARGS_FILE = argsFile;
-    await handlePredictionCommand(
+    process.env.MOCK_OUTCOMES_ARGS_FILE = argsFile;
+    await handleOutcomesCommand(
       "events",
       ["--status", "active", "--limit", "10"],
       {},
@@ -251,72 +251,72 @@ describe("handlePredictionCommand - argument forwarding", () => {
 
   it("appends --json when global json flag is on and not already present", async () => {
     const argsFile = join(tempDir, "argv.json");
-    process.env.MOCK_PREDICT_ARGS_FILE = argsFile;
-    await handlePredictionCommand("account", ["balance"], { json: true });
+    process.env.MOCK_OUTCOMES_ARGS_FILE = argsFile;
+    await handleOutcomesCommand("account", ["balance"], { json: true });
     const recorded = JSON.parse(readFileSync(argsFile, "utf-8"));
     assert.deepEqual(recorded, ["account", "balance", "--json"]);
   });
 
   it("does not duplicate --json if user already passed it", async () => {
     const argsFile = join(tempDir, "argv.json");
-    process.env.MOCK_PREDICT_ARGS_FILE = argsFile;
-    await handlePredictionCommand("account", ["balance", "--json"], { json: true });
+    process.env.MOCK_OUTCOMES_ARGS_FILE = argsFile;
+    await handleOutcomesCommand("account", ["balance", "--json"], { json: true });
     const recorded = JSON.parse(readFileSync(argsFile, "utf-8"));
     assert.deepEqual(recorded, ["account", "balance", "--json"]);
   });
 
   it("does not duplicate when user passed short -j", async () => {
     const argsFile = join(tempDir, "argv.json");
-    process.env.MOCK_PREDICT_ARGS_FILE = argsFile;
-    await handlePredictionCommand("clob", ["price", "--asset", "100888000", "-j"], { json: true });
+    process.env.MOCK_OUTCOMES_ARGS_FILE = argsFile;
+    await handleOutcomesCommand("clob", ["price", "--asset", "100888000", "-j"], { json: true });
     const recorded = JSON.parse(readFileSync(argsFile, "utf-8"));
     assert.deepEqual(recorded, ["clob", "price", "--asset", "100888000", "-j"]);
   });
 
   it("propagates non-zero exit code from binary", async () => {
-    process.env.MOCK_PREDICT_EXIT = "2";
-    await handlePredictionCommand("status", [], {});
+    process.env.MOCK_OUTCOMES_EXIT = "2";
+    await handleOutcomesCommand("status", [], {});
     assert.equal(process.exitCode, 2);
   });
 
   it("does not set exit code when binary exits 0", async () => {
-    process.env.MOCK_PREDICT_EXIT = "0";
-    await handlePredictionCommand("status", [], {});
+    process.env.MOCK_OUTCOMES_EXIT = "0";
+    await handleOutcomesCommand("status", [], {});
     assert.equal(process.exitCode, undefined);
   });
 });
 
 // ---------------------------------------------------------------------------
 // main() short-circuit — wrapper-only flags must NOT be rejected by the
-// strict parseCli validator before routing reaches handlePredictionCommand.
+// strict parseCli validator before routing reaches handleOutcomesCommand.
 //
-// Regression: before the peekFirstPositional short-circuit, `okx prediction
+// Regression: before the peekFirstPositional short-circuit, `okx outcomes
 // clob price --asset 101209000` aborted with `Unknown option '--asset'`
 // because --asset is intentionally not in CLI_OPTIONS (it belongs to the
-// external okx-predict binary).
+// external okx-outcomes binary).
 // ---------------------------------------------------------------------------
-describe("CLI main() — prediction passthrough", () => {
+describe("CLI main() — outcomes passthrough", () => {
   const dist = join(__dirname, "..", "dist", "index.js");
 
-  it("forwards wrapper-only flags (e.g. --asset) to okx-predict without main-CLI rejection", () => {
+  it("forwards wrapper-only flags (e.g. --asset) to okx-outcomes without main-CLI rejection", () => {
     if (!existsSync(dist)) {
       // dist is produced by `pnpm build`; skip when running in an unbuilt env.
       return;
     }
-    const tmp = mkdtempSync(join(tmpdir(), "okx-predict-passthrough-"));
+    const tmp = mkdtempSync(join(tmpdir(), "okx-outcomes-passthrough-"));
     const argsFile = join(tmp, "argv.json");
     try {
       execFileSync(
         "node",
-        [dist, "prediction", "clob", "price", "--asset", "101209000", "--json"],
+        [dist, "outcomes", "clob", "price", "--asset", "101209000", "--json"],
         {
           timeout: 10_000,
           encoding: "utf-8",
           env: {
             ...process.env,
-            OKX_PREDICT_BIN: MOCK_BINARY,
-            MOCK_PREDICT_ARGS_FILE: argsFile,
-            MOCK_PREDICT_EXIT: "0",
+            OKX_OUTCOMES_BIN: MOCK_BINARY,
+            MOCK_OUTCOMES_ARGS_FILE: argsFile,
+            MOCK_OUTCOMES_EXIT: "0",
           },
         },
       );
@@ -333,20 +333,20 @@ describe("CLI main() — prediction passthrough", () => {
 
   it("still appends --json when only the global flag is set before the module", () => {
     if (!existsSync(dist)) return;
-    const tmp = mkdtempSync(join(tmpdir(), "okx-predict-passthrough-json-"));
+    const tmp = mkdtempSync(join(tmpdir(), "okx-outcomes-passthrough-json-"));
     const argsFile = join(tmp, "argv.json");
     try {
       execFileSync(
         "node",
-        [dist, "--json", "prediction", "account", "balance"],
+        [dist, "--json", "outcomes", "account", "balance"],
         {
           timeout: 10_000,
           encoding: "utf-8",
           env: {
             ...process.env,
-            OKX_PREDICT_BIN: MOCK_BINARY,
-            MOCK_PREDICT_ARGS_FILE: argsFile,
-            MOCK_PREDICT_EXIT: "0",
+            OKX_OUTCOMES_BIN: MOCK_BINARY,
+            MOCK_OUTCOMES_ARGS_FILE: argsFile,
+            MOCK_OUTCOMES_EXIT: "0",
           },
         },
       );

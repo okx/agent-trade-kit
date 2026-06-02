@@ -2,20 +2,20 @@
 
 Public market data — no auth required. All commands support `--json` for machine-readable output.
 
-> Reverse-mapping: every command below forwards verbatim to the `okx-predict` binary. The `okx prediction` wrapper does not modify arguments other than auto-appending `--json` when the user is in global `--json` mode.
+> Reverse-mapping: every command below forwards verbatim to the `okx-outcomes` binary. The `okx outcomes` wrapper does not modify arguments other than auto-appending `--json` when the user is in global `--json` mode.
 
-> **Concept**: prediction markets use **assetId** (e.g. `100888000`) as the primary identity for read-side data. An asset corresponds to a single outcome token (YES or NO) under a parent market. Price/depth/candles are keyed off the YES asset by convention — pass `--outcome no` (or use the NO asset id) when you need the NO side.
+> **Concept**: outcomes markets use **assetId** (e.g. `100888000`) as the primary identity for read-side data. An asset corresponds to a single outcome token (YES or NO) under a parent market. Price/depth/candles are keyed off the YES asset by convention — pass `--outcome no` (or use the NO asset id) when you need the NO side.
 
 ---
 
 ## events
 
-List prediction events. Filterable, paginated.
+List outcome events. Filterable, paginated.
 
 ```bash
-okx prediction data events
-okx prediction data events --status active --category sports --limit 50
-okx prediction data events --sort volume --cursor abc123 --json
+okx outcomes data events
+okx outcomes data events --status active --category sports --limit 50
+okx outcomes data events --sort volume --cursor abc123 --json
 ```
 
 | Flag | Description |
@@ -35,8 +35,8 @@ okx prediction data events --sort volume --cursor abc123 --json
 Single event top-level detail (no markets attached).
 
 ```bash
-okx prediction data event evt_t001
-okx prediction data event evt_t001 --json
+okx outcomes data event evt_t001
+okx outcomes data event evt_t001 --json
 ```
 
 ---
@@ -46,7 +46,7 @@ okx prediction data event evt_t001 --json
 Event detail **with all its markets** attached. The most useful command for diving into an event the user wants to trade.
 
 ```bash
-okx prediction data event-markets evt_t001 --json
+okx outcomes data event-markets evt_t001 --json
 ```
 
 ---
@@ -56,7 +56,7 @@ okx prediction data event-markets evt_t001 --json
 Single market detail.
 
 ```bash
-okx prediction data market mkt_t001 --json
+okx outcomes data market mkt_t001 --json
 ```
 
 ---
@@ -66,7 +66,7 @@ okx prediction data market mkt_t001 --json
 Trending events (separate API from `events`).
 
 ```bash
-okx prediction data trending --json
+okx outcomes data trending --json
 ```
 
 ---
@@ -76,7 +76,7 @@ okx prediction data trending --json
 24-hour ticker (last price, volume, open/high/low) for one outcome asset.
 
 ```bash
-okx prediction data ticker 100170100 --json
+okx outcomes data ticker 100170100 --json
 ```
 
 ---
@@ -86,7 +86,7 @@ okx prediction data ticker 100170100 --json
 K-line OHLCV data for one outcome asset.
 
 ```bash
-okx prediction data candles 100170100 --bar 1H --limit 50 --json
+okx outcomes data candles 100170100 --bar 1H --limit 50 --json
 ```
 
 | Flag | Default | Description |
@@ -101,9 +101,9 @@ okx prediction data candles 100170100 --bar 1H --limit 50 --json
 Public keyword search across events and markets.
 
 ```bash
-okx prediction search BTC --limit 20
-okx prediction search "US Election" --json
-okx prediction search ETH --cursor abc123 -j
+okx outcomes search BTC --limit 20
+okx outcomes search "US Election" --json
+okx outcomes search ETH --cursor abc123 -j
 ```
 
 | Flag | Description |
