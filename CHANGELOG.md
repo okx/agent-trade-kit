@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.6-beta.3] - 2026-06-02
+
 ### Added
 
 - **`okx outcomes` CLI wrapper for OKX Outcomes Markets** (YES/NO event contracts; formerly OKX Predictions). Forwards all subcommands to the external `okx-outcomes` Rust binary installed via `curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh` (macOS/Linux; Windows users place `okx-outcomes.exe` on `PATH` from the same GitHub Releases). Includes `PATH` discovery with `OKX_OUTCOMES_BIN` override, friendly install hint, and curated `--help` summary. Module is CLI-only (no MCP tools registered) — see `docs/designs/outcomes-wrapper.md`. Requires `PREDICTIONS_API_KEY/SECRET/PASSPHRASE` + `PREDICTIONS_AGENT_PRIVATE_KEY` env vars (upstream kept the legacy `PREDICTIONS_*` prefix even after the rebrand). WebSocket (`ws *`) and `clob cancel-client-order-id` subcommands are intentionally not exposed by the wrapper.

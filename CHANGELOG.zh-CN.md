@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.6-beta.3] - 2026-06-02
+
 ### 新增
 
 - **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。需要 `PREDICTIONS_API_KEY/SECRET/PASSPHRASE` + `PREDICTIONS_AGENT_PRIVATE_KEY` 环境变量（上游沿用 `PREDICTIONS_*` 旧前缀）。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
