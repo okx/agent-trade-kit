@@ -35,7 +35,7 @@ const MOCK_BINARY = join(
   "core",
   "test",
   "fixtures",
-  "mock-okx-outcomes-binary.mjs",
+  "mock-okx-outcomes-binary.test.mjs",
 );
 
 let tempDir: string;
