@@ -13,6 +13,16 @@
 
 ---
 
+## [1.3.6] - 2026-06-03
+
+1.3.6 系列首个稳定版。汇总整个 1.3.6 beta 周期累积的全部改动（完整 新增 / 修复 清单见下方 `[1.3.6-beta.1]` 条目）：earn-hunter skill、Ed25519 + SHA-256 skill 签名校验、HTTP/HTTPS 代理自动支持、linux-arm64 auth CDN 回退、`earn_get_fixed_earn_products` 工具，以及 MCP 工具 `title` 暴露。
+
+### Changed
+
+- 按稳定版 skill 版本同步策略，所有 skill pack 的 `metadata.version` 同步至 `1.3.6`。
+
+---
+
 ## [1.3.6-beta.1] - 2026-05-22
 
 ### 新增
