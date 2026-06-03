@@ -13,11 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.6-beta.4] - 2026-06-03
+## [1.3.6] - 2026-06-03
+
+First stable release of the 1.3.6 line. Consolidates all changes accumulated during the 1.3.6 beta cycle (see the `[1.3.6-beta.1]` entry below for the full Added / Fixed list): earn-hunter skill, Ed25519 + SHA-256 skill signature verification, automatic HTTP/HTTPS proxy support, linux-arm64 auth CDN fallback, `earn_get_fixed_earn_products` tool, and MCP tool `title` exposure.
 
 ### Changed
 
-- Version alignment release: bumped to `1.3.6-beta.4` to supersede the stale `v1.3.6-beta.3` tag, which was tagged on a divergent branch and never merged into `master`. There are no code changes since `1.3.6-beta.1`; all features and fixes remain as listed under that entry.
+- All skill packs' `metadata.version` synced to `1.3.6` per the stable-release skill version sync policy.
 
 ---
 

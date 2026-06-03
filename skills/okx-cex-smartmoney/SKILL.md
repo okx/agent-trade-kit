@@ -4,7 +4,7 @@ description: "Smart Money analytics on OKX: leaderboard traders, position tracki
 license: MIT
 metadata:
   author: okx
-  version: "1.3.5"
+  version: "1.3.6"
   homepage: "https://www.okx.com"
   agent:
     requires:
