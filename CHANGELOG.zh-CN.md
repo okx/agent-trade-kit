@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.6-beta.1] - 2026-05-22
+
 ### 新增
 
 - **earn-hunter skill —— OpenClaw 会话内 cron 调度**：OpenClaw 上的 earn-hunter 定时扫描改为在对话内通过会话内 `cron` 工具创建（isolated 会话 + `lightContext`），并经 cron `announce` 投递回会话，不再使用 OS crontab。skill 内不再出现任何 CLI 命令（`openclaw cron` CLI 路径存在权限问题）。`platform.json` 的 `scheduler.type` 在 OpenClaw 上为 `"openclaw-cron"`；Claude Code / Hermes 保持 `"cron"`（OS crontab + curl），Generic 保持 `"manual"`。

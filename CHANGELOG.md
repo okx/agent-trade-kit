@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.6-beta.1] - 2026-05-22
+
 ### Added
 
 - **earn-hunter skill — OpenClaw in-session cron scheduling**: on OpenClaw, the earn-hunter scheduled scan is now set up inside the conversation via the in-session `cron` agent tool (isolated session + `lightContext`) and delivered back to the chat via cron `announce`, instead of OS crontab. No CLI commands are emitted (the `openclaw cron` CLI path has permission issues). `platform.json` `scheduler.type` is `"openclaw-cron"` on OpenClaw; Claude Code / Hermes keep `"cron"` (OS crontab + curl) and Generic stays `"manual"`.
