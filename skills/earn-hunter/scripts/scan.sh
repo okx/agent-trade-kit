@@ -743,8 +743,7 @@ CURRENT_FLEX_KEYS=$(echo "$FLEX_FILTERED" | jq -c '[ .[] | .ccy ]' 2>/dev/null);
 tmp=$(jq --argjson keys "$CURRENT_FLEX_KEYS" '
   .flexible = ( .flexible | with_entries(
     select(
-      (.key|startswith("test:"))
-      or ( ( .key | sub("^test:";"") ) as $k | ($keys | index($k)) )
+      ( .key | sub("^test:";"") ) as $k | ($keys | index($k))
     )
   ) )
 ' "$STATE_FILE" 2>/dev/null)
