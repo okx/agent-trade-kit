@@ -169,8 +169,10 @@ t() {
     badge_upcoming)   [[ "$LANG_SEL" == en ]] && echo "upcoming" || echo "预告" ;;
     flash_cta)        [[ "$LANG_SEL" == en ]] && echo "→ Subscribe now ( https://okx.com/ul/rhNe3q )" || echo "→ 立即申购（ https://okx.com/ul/rhNe3q ）" ;;
     fixed_filter)     [[ "$LANG_SEL" == en ]] && echo "Filter" || echo "筛选条件" ;;
-    fixed_cta_push)   [[ "$LANG_SEL" == en ]] && echo "→ Open Claude Code and say \"subscribe %s fixed %s\"" || echo "→ 打开 Claude Code 说\"申购 %s 定期 %s\"" ;;
-    flex_cta)         [[ "$LANG_SEL" == en ]] && echo "→ Subscribe via OKX App or say \"subscribe %s flexible earn\"" || echo "→ 通过 OKX App 申购，或说\"申购 %s 活期\"" ;;
+    fixed_cta_session) [[ "$LANG_SEL" == en ]] && echo "→ Reply with amount to subscribe now" || echo "→ 回复申购金额，立即帮你申购" ;;
+    fixed_cta_push)    [[ "$LANG_SEL" == en ]] && echo "→ Say \"subscribe %s fixed %s\" in your agent chat" || echo "→ 在对话中说\"申购 %s 定期 %s\"" ;;
+    flex_cta_session)  [[ "$LANG_SEL" == en ]] && echo "→ Reply \"subscribe %s flexible earn\" to subscribe" || echo "→ 回复\"申购 %s 活期\"立即申购" ;;
+    flex_cta_push)     [[ "$LANG_SEL" == en ]] && echo "→ Say \"subscribe %s flexible earn\" in your agent chat" || echo "→ 在对话中说\"申购 %s 活期\"" ;;
     new_opps)         [[ "$LANG_SEL" == en ]] && echo "new" || echo "个新机会" ;;
     verbose_status)   [[ "$LANG_SEL" == en ]] && echo "✅ Earn Hunter scan complete, no new opportunities. Flash: %s active, Fixed: %s subscribable, Flexible: %s above threshold." || echo "✅ Earn Hunter 扫描完成，暂无新机会。Flash: %s 个活跃, Fixed: %s 个可申购, Flexible: %s 个达标。" ;;
     *) echo "" ;;
@@ -565,6 +567,9 @@ N_FLASH_FILT=$(echo "$FLASH_FILTERED" | jq 'length' 2>/dev/null); [[ -z "$N_FLAS
 N_FIXED_FILT=$(echo "$FIXED_FILTERED" | jq 'length' 2>/dev/null); [[ -z "$N_FIXED_FILT" ]] && N_FIXED_FILT=0
 N_FLEX_FILT=$(echo "$FLEX_FILTERED" | jq 'length' 2>/dev/null); [[ -z "$N_FLEX_FILT" ]] && N_FLEX_FILT=0
 
+# Pre-detect channel so CTA text can adapt (session=interactive, TG/Lark=push).
+NOTIFY_CHANNEL=$(detect_channel)
+
 # ---- Rendering ----
 render_flash_lines() {
   echo "$1" | jq -r --arg ip "$(t badge_inprogress)" --arg up "$(t badge_upcoming)" '
@@ -600,12 +605,15 @@ build_fixed_body() {
   local rows; rows=$(render_fixed_table "$FIXED_NEW")
   local hdr="| Currency | Term | APR | Min | Remaining |
 |----------|------|-----|-----|-----------|"
-  # CTA (push form, take first offer ccy/term as example)
   local ccy term cta
   ccy=$(echo "$FIXED_NEW" | jq -r '.[0].ccy // ""' 2>/dev/null)
   term=$(echo "$FIXED_NEW" | jq -r '.[0].term // ""' 2>/dev/null)
-  # shellcheck disable=SC2059
-  cta=$(printf "$(t fixed_cta_push)" "$ccy" "$term")
+  if [[ "$NOTIFY_CHANNEL" == "session" ]]; then
+    cta=$(t fixed_cta_session)
+  else
+    # shellcheck disable=SC2059
+    cta=$(printf "$(t fixed_cta_push)" "$ccy" "$term")
+  fi
   printf '%s\n%s\n\n%s' "$hdr" "$rows" "$cta"
 }
 
@@ -624,8 +632,13 @@ build_flexible_body() {
 |----------|-----|"
   local ccy cta
   ccy=$(echo "$FLEX_NEW" | jq -r '.[0].ccy // ""' 2>/dev/null)
-  # shellcheck disable=SC2059
-  cta=$(printf "$(t flex_cta)" "$ccy")
+  if [[ "$NOTIFY_CHANNEL" == "session" ]]; then
+    # shellcheck disable=SC2059
+    cta=$(printf "$(t flex_cta_session)" "$ccy")
+  else
+    # shellcheck disable=SC2059
+    cta=$(printf "$(t flex_cta_push)" "$ccy")
+  fi
   printf '%s\n%s\n\n%s' "$hdr" "$rows" "$cta"
 }
 
