@@ -1,6 +1,6 @@
 ---
 name: earn-hunter
-description: "Automatically monitors OKX Flash Earn and Fixed Earn opportunities, sends push notifications, and guides subscription. 自动监控 OKX 闪赚和定期赚币机会，推送通知并引导申购。Use when user says: 有闪赚通知我, 监控赚币, monitor earn, notify me about earn, 定时检查理财, 执行 earn-hunter 扫描, earn-hunter scan."
+description: "Automatically monitors OKX Flash Earn, Fixed Earn and Flexible Earn opportunities, sends push notifications, and guides subscription. 自动监控 OKX 闪赚、定期和活期赚币机会，推送通知并引导申购。Use when user says: 有闪赚通知我, 监控赚币, monitor earn, notify me about earn, 定时检查理财, 执行 earn-hunter 扫描, earn-hunter scan, 活期年化高了通知我, 监控活期."
 license: MIT
 metadata:
   author: okx
@@ -17,7 +17,7 @@ metadata:
 
 # Earn Hunter
 
-Automated monitor for OKX Flash Earn and Fixed Earn opportunities.
+Automated monitor for OKX Flash Earn, Fixed Earn, and Flexible Earn (Simple Earn) opportunities.
 
 **`{baseDir}`** = the directory containing this SKILL.md file. All relative paths (references/, templates/, config/) are resolved from here.
 
@@ -49,7 +49,7 @@ Automated monitor for OKX Flash Earn and Fixed Earn opportunities.
 5. Init config and state:
    - If `~/.okx/earn-hunter/` directory does not exist → `mkdir -p ~/.okx/earn-hunter`
    - If `~/.okx/earn-hunter/config.json` does not exist → copy `{baseDir}/config/default.json` to it
-   - If `~/.okx/earn-hunter/state.json` does not exist → write `{"flash":{},"fixed":{},"consecutive_failures":0,"last_error":""}`
+   - If `~/.okx/earn-hunter/state.json` does not exist → write `{"flash":{},"fixed":{},"flexible":{},"consecutive_failures":0,"last_error":""}`
    - If `~/.okx/earn-hunter/platform.json` does not exist → run [Platform Detection](#platform-detection-active-probe--user-confirmation)
    - Always (re)install the scan script: `cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh && chmod +x ~/.okx/earn-hunter/scan.sh`. This is the script cron and interactive scans both call.
 
@@ -89,7 +89,7 @@ Read `~/.okx/earn-hunter/platform.json` and extract the `.platform` field (retur
 
 | File | Scope | Content |
 |---|---|---|
-| `config.json` | Shared | Scan scope, currencies, APY thresholds, terms, language, verboseLog |
+| `config.json` | Shared | Scan scope (flash/fixed/flexible), currencies, APY thresholds, terms, language, verboseLog |
 | `platform.json` | Platform-specific | Scheduler type/interval, notification channel, TG/Lark credentials |
 | `state.json` | Shared | Dedup state |
 
@@ -116,8 +116,8 @@ TG and Lark are **standalone push channels** — they work regardless of whether
 
 | User intent | Route |
 |---|---|
-| "有闪赚通知我" / "monitor earn" / "帮我监控赚币" | → [Activation Flow](#activation-flow) |
-| "改 APY 阈值" / "只看 USDT" / "change config" | → [Config Management](#config-management) |
+| "有闪赚通知我" / "monitor earn" / "帮我监控赚币" / "活期年化高了通知我" | → [Activation Flow](#activation-flow) |
+| "改 APY 阈值" / "只看 USDT" / "change config" / "活期加上 BTC" | → [Config Management](#config-management) |
 | "申购 USDT 定期 7D" / "subscribe" / "我要买" | → [Purchase Guide](#purchase-guide) |
 | "执行 earn-hunter 扫描" (cron OR interactive) | → [Scan Cycle](#scan-cycle) — run `scripts/scan.sh` and relay its output |
 | "停止监控" / "暂停" / "stop" | → [Pause/Resume](#pauseresume) |
@@ -167,20 +167,34 @@ Write confirmed channel to `platform.json` `notify.channel`.
 Present default config and ask user to confirm or customize. Each step offers a default — user can press enter to accept.
 
 **Step 1/3 — 扫描范围：**
-"扫描范围：[1] Flash Earn + Fixed Earn（默认）  [2] 仅 Flash Earn  [3] 仅 Fixed Earn"
-- Default: both enabled
-- If user picks [2] → set `config.fixed.enabled = false`; skip Step 2/3 and 3/3 (Flash has no currency/APY filters)
-- If user picks [3] → set `config.flash.enabled = false`; skip Step 2/3 and 3/3
+"扫描范围（可多选）：
+ [1] Flash Earn（闪赚）
+ [2] Fixed Earn（定期赚币）
+ [3] Flexible Earn（活期赚币）
+ 默认：全选"
+- Default: all three enabled
+- If user picks specific items → disable the others
+- If user only picks [1] → set `config.fixed.enabled = false`, `config.flexible.enabled = false`; skip Step 2/3 and 3/3
+- If user only picks [3] → set `config.flash.enabled = false`, `config.fixed.enabled = false`; go to flexible-specific config (Step 2/3 asks flexible currencies, Step 3/3 asks flexible APY threshold)
 
 **Step 2/3 — 监控币种：**
-"监控币种：全部（默认，按回车）或输入指定币种（如 USDT, SOL）"
+For Fixed Earn: "定期监控币种：全部（默认，按回车）或输入指定币种（如 USDT, SOL）"
 - Default: `"all"` (all currencies)
 - If user specifies → set `config.currencies` to array (e.g. `["USDT", "SOL"]`)
 
+For Flexible Earn: "活期监控币种：USDT, USDC（默认，按回车）或输入指定币种"
+- Default: `["USDT", "USDC"]`
+- If user specifies → set `config.flexible.currencies` to array
+- Note: flexible requires per-currency API calls, so recommend keeping the list small
+
 **Step 3/3 — APY 阈值：**
-"最低 APY 阈值：不限（默认，按回车）或输入百分比（如 8）"
+For Fixed Earn: "定期最低 APY 阈值：不限（默认，按回车）或输入百分比（如 8）"
 - Default: `0` (no limit)
 - If user specifies → set `config.fixed.globalMinApy` to `value / 100` (e.g. 8 → `0.08`)
+
+For Flexible Earn: "活期最低 APY 阈值：8%（默认，按回车）或输入百分比"
+- Default: `0.08` (8%)
+- If user specifies → set `config.flexible.globalMinApy` to `value / 100`
 
 Auto-detect language from conversation and write to `config.json` `notify.language`.
 
@@ -279,19 +293,22 @@ Then **relay the script's stdout verbatim** to the user:
 ### What the script does (see `references/scan-logic.md` for the spec it implements)
 
 1. Reads `~/.okx/earn-hunter/config.json`
-2. Runs scan commands (based on `flash.enabled` / `fixed.enabled`):
+2. Runs scan commands (based on `flash.enabled` / `fixed.enabled` / `flexible.enabled`):
    - Flash: `okx [--profile live] earn flash-earn projects --status 0,100 --json`
    - Fixed: `okx [--profile live] earn savings fixed-products --json` (auto-fallback to `rate-history` + `fixedOffers` on CLI <1.3.3)
-3. Filters (two-layer APY threshold, terms filter, currency filter)
-4. Dedups against `~/.okx/earn-hunter/state.json` (`state.flash["<id>:<status>"]`, `state.fixed["<ccy>:<term>:<rate>"]`)
-5. If new opportunities → renders the matching template (flash / fixed / mixed) and sends via the detected channel (TG → Lark → session), logging to `notify.log`
-6. Updates `state.json` (write new keys; flash ID-level diff cleanup; fixed key-level diff cleanup; 7-day TTL; failure counter)
+   - Flexible: for each currency in `flexible.currencies`, `okx [--profile live] earn savings rate-history --ccy <ccy> --limit 1 --json`
+3. Filters (two-layer APY threshold, terms filter, currency filter; flexible uses threshold-crossing model)
+4. Dedups against `~/.okx/earn-hunter/state.json` (`state.flash["<id>:<status>"]`, `state.fixed["<ccy>:<term>:<rate>"]`, `state.flexible["<ccy>"]`)
+5. If new opportunities → renders the matching template (flash / fixed / flexible / mixed) and sends via the detected channel (TG → Lark → session), logging to `notify.log`
+6. Updates `state.json` (write new keys; flash ID-level diff cleanup; fixed key-level diff cleanup; flexible threshold-crossing diff cleanup; 7-day TTL; failure counter)
 7. If no new opportunities: `verboseLog=true` → brief status; `verboseLog=false` → **silent exit 0, no output, nothing sent**
 8. Error handling: consecutive-failure counter (alert at 3, then reset); 401/session-expired → credential alert + stop
 
 **Channel routing inside the script:** detection order TG (`$TELEGRAM_BOT_TOKEN`+`$TELEGRAM_CHAT_ID`) → Lark (`platform.json` `.notify.lark_webhook`) → session (stdout). A `notify.channel` of `telegram`/`lark`/`session` in `platform.json` forces that channel.
 
 **Auth / profile:** the script never reads or prints credentials. It delegates all auth to the `okx` CLI (which reads `~/.okx/config.toml`). Profile is injected only via the `OKX_PROFILE` env var.
+
+**Flexible Earn dedup model:** Unlike Flash/Fixed which dedup by specific opportunity, Flexible uses a **threshold-crossing** model — key is just `<ccy>`. Notifies once when APY crosses above threshold; stays silent while it remains above; resets when APY drops below threshold (diff cleanup removes the key). This avoids frequent notifications from rate fluctuations.
 
 ---
 
@@ -375,8 +392,8 @@ EH_TEST_NAMESPACE=1 OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh   # with config.
 3. **Dedup writes to test namespace** — `EH_TEST_NAMESPACE=1` prefixes dedup keys with `test:` (e.g. `test:flash:12345:100`); these keys are immune to diff cleanup (only TTL removes them), so test runs do not pollute production state
 4. **Output diagnostics** after scan completes:
    - okx auth status (logged in / expired / not configured)
-   - Scan command results (flash project count + fixed product count)
-   - Post-filter results (how many passed filters)
+   - Scan command results (flash project count + fixed product count + flexible rate count)
+   - Post-filter results (how many passed filters per type)
    - Notification channel status (which channel is configured, send result)
    - Scheduler status (OS-crontab platforms: crontab entry exists? / OpenClaw: `cron` tool `action: "list"` shows the `earn-hunter-hourly` job?)
    - Last 5 lines of `~/.okx/earn-hunter/notify.log`
@@ -414,5 +431,5 @@ Read `{baseDir}/templates/error-alert.md` for exact alert message templates.
 - **Security:** Never accept credentials in chat. TG token only via env vars. Guide users to `okx config init` for OKX auth.
 - **Output:** Use `--json` for all okx commands. Render results as markdown tables.
 - **Logging:** All notification send results logged to `~/.okx/earn-hunter/notify.log`.
-- **Scope:** v1 covers Flash Earn and Simple Earn Fixed only. DCD, on-chain, auto-earn are out of scope.
+- **Scope:** Covers Flash Earn, Simple Earn Fixed, and Simple Earn Flexible (活期). DCD, on-chain, auto-earn are out of scope.
 - **Mode:** Live trading only. `config.simulatedTrading` is always `false`.

@@ -22,6 +22,7 @@
 # TEST HOOKS (do not affect production paths when unset):
 #   EH_FLASH_FIXTURE   path to a JSON file used INSTEAD of the live flash CLI call
 #   EH_FIXED_FIXTURE   path to a JSON file used INSTEAD of the live fixed CLI call
+#   EH_FLEXIBLE_FIXTURE path to a JSON file used INSTEAD of the live flexible CLI calls
 #   EH_DRY_RUN=1       send functions echo the payload instead of curl-ing it
 #   EH_STATE_DIR       override state dir (default ~/.okx/earn-hunter), for tests
 #   EH_FORCE_FAIL=1    simulate a scan failure (for failure-counter tests)
@@ -39,7 +40,7 @@ PLATFORM_FILE="$STATE_DIR/platform.json"
 STATE_FILE="$STATE_DIR/state.json"
 NOTIFY_LOG="$STATE_DIR/notify.log"
 
-STATE_INIT='{"flash":{},"fixed":{},"consecutive_failures":0,"last_error":""}'
+STATE_INIT='{"flash":{},"fixed":{},"flexible":{},"consecutive_failures":0,"last_error":""}'
 TTL_DAYS=7
 
 # Profile flag injection — empty OKX_PROFILE => no flag.
@@ -90,6 +91,7 @@ init_storage() {
     {
       flash: (.flash // {}),
       fixed: (.fixed // {}),
+      flexible: (.flexible // {}),
       consecutive_failures: (.consecutive_failures // 0),
       last_error: (.last_error // "")
     }' "$STATE_FILE" 2>/dev/null) || fixed="$STATE_INIT"
@@ -136,8 +138,9 @@ t() {
     flash_cta)        [[ "$LANG_SEL" == en ]] && echo "→ Subscribe now ( https://okx.com/ul/rhNe3q )" || echo "→ 立即申购（ https://okx.com/ul/rhNe3q ）" ;;
     fixed_filter)     [[ "$LANG_SEL" == en ]] && echo "Filter" || echo "筛选条件" ;;
     fixed_cta_push)   [[ "$LANG_SEL" == en ]] && echo "→ Open Claude Code and say \"subscribe %s fixed %s\"" || echo "→ 打开 Claude Code 说\"申购 %s 定期 %s\"" ;;
+    flex_cta)         [[ "$LANG_SEL" == en ]] && echo "→ Subscribe via OKX App or say \"subscribe %s flexible earn\"" || echo "→ 通过 OKX App 申购，或说\"申购 %s 活期\"" ;;
     new_opps)         [[ "$LANG_SEL" == en ]] && echo "new" || echo "个新机会" ;;
-    verbose_status)   [[ "$LANG_SEL" == en ]] && echo "✅ Earn Hunter scan complete, no new opportunities. Flash: %s active, Fixed: %s subscribable." || echo "✅ Earn Hunter 扫描完成，暂无新机会。Flash: %s 个活跃, Fixed: %s 个可申购。" ;;
+    verbose_status)   [[ "$LANG_SEL" == en ]] && echo "✅ Earn Hunter scan complete, no new opportunities. Flash: %s active, Fixed: %s subscribable, Flexible: %s above threshold." || echo "✅ Earn Hunter 扫描完成，暂无新机会。Flash: %s 个活跃, Fixed: %s 个可申购, Flexible: %s 个达标。" ;;
     *) echo "" ;;
   esac
 }
@@ -169,6 +172,33 @@ fetch_fixed() {
     [[ -z "$out" ]] && out="[]"
   fi
   printf '%s' "$out"
+}
+
+fetch_flexible() {
+  if [[ -n "${EH_FLEXIBLE_FIXTURE:-}" ]]; then
+    cat "$EH_FLEXIBLE_FIXTURE" 2>/dev/null
+    return $?
+  fi
+  local ccys result="[]"
+  ccys=$(cfg_json '.flexible.currencies' '["USDT","USDC"]')
+  if [[ "$ccys" == '"all"' || "$ccys" == '[]' ]]; then
+    ccys='["USDT","USDC"]'
+  fi
+  local ccy_list
+  ccy_list=$(echo "$ccys" | jq -r '.[]' 2>/dev/null)
+  while IFS= read -r ccy; do
+    [[ -z "$ccy" ]] && continue
+    local out
+    out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --ccy "$ccy" --limit 1 --json 2>/dev/null)
+    if [[ $? -eq 0 ]] && echo "$out" | jq -e '.data[0]' >/dev/null 2>&1; then
+      local rate
+      rate=$(echo "$out" | jq -r '.data[0].lendingRate // ""' 2>/dev/null)
+      if [[ -n "$rate" && "$rate" != "null" ]]; then
+        result=$(echo "$result" | jq -c --arg c "$ccy" --arg r "$rate" '. + [{ccy: $c, lendingRate: $r}]' 2>/dev/null)
+      fi
+    fi
+  done <<< "$ccy_list"
+  printf '%s' "$result"
 }
 
 # ---------------------------------------------------------------------------
@@ -365,11 +395,14 @@ fi
 
 FLASH_ENABLED=$(cfg '.flash.enabled' 'true')
 FIXED_ENABLED=$(cfg '.fixed.enabled' 'true')
+FLEX_ENABLED=$(cfg '.flexible.enabled' 'true')
 VERBOSE=$(cfg '.verboseLog' 'false')
 GLOBAL_MIN_APY=$(cfg '.fixed.globalMinApy' '0')
 CCY_OVERRIDES=$(cfg_json '.fixed.currencyOverrides' '{}')
 TERMS=$(cfg_json '.fixed.terms' '"all"')
 CURRENCIES=$(cfg_json '.currencies' '"all"')
+FLEX_MIN_APY=$(cfg '.flexible.globalMinApy' '0.08')
+FLEX_CCY_OVERRIDES=$(cfg_json '.flexible.currencyOverrides' '{}')
 
 # ---- Step 2: fetch raw data ----
 FLASH_RAW="[]"
@@ -398,7 +431,19 @@ if [[ "$FIXED_ENABLED" == "true" ]]; then
   fi
 fi
 
-# If both enabled feeds errored → count as scan failure.
+FLEX_RAW="[]"
+if [[ "$FLEX_ENABLED" == "true" ]]; then
+  FLEX_RAW=$(fetch_flexible)
+  if ! echo "$FLEX_RAW" | jq -e 'type=="array"' >/dev/null 2>&1; then
+    if is_auth_error "$FLEX_RAW"; then
+      alert_auth; exit 0
+    fi
+    SCAN_ERR="${SCAN_ERR:+$SCAN_ERR; }flexible fetch failed: $(printf '%s' "$FLEX_RAW" | head -c 120)"
+    FLEX_RAW="[]"
+  fi
+fi
+
+# If all enabled feeds errored → count as scan failure.
 if [[ -n "$SCAN_ERR" ]]; then
   record_failure "$SCAN_ERR"
   exit 0
@@ -438,6 +483,17 @@ FIXED_FILTERED=$(echo "$FIXED_RAW" | jq -c \
 ' 2>/dev/null)
 [[ -z "$FIXED_FILTERED" ]] && FIXED_FILTERED="[]"
 
+# Flexible filter: rate >= threshold (two-layer: override > global).
+FLEX_FILTERED=$(echo "$FLEX_RAW" | jq -c \
+  --argjson gmin "$( [[ "$FLEX_MIN_APY" =~ ^-?[0-9.]+$ ]] && echo "$FLEX_MIN_APY" || echo 0.08 )" \
+  --argjson overrides "$FLEX_CCY_OVERRIDES" '
+  [ .[]
+    | ( ($overrides[.ccy].minApy) // $gmin ) as $thr
+    | select( ((.lendingRate // "0")|tonumber? // 0) >= $thr )
+  ]
+' 2>/dev/null)
+[[ -z "$FLEX_FILTERED" ]] && FLEX_FILTERED="[]"
+
 # ---- Step 4: dedup against state ----
 FLASH_NEW=$(echo "$FLASH_FILTERED" | jq -c --slurpfile st "$STATE_FILE" --arg p "$KEY_PREFIX" '
   ($st[0].flash // {}) as $seen
@@ -453,10 +509,20 @@ FIXED_NEW=$(echo "$FIXED_FILTERED" | jq -c --slurpfile st "$STATE_FILE" --arg p 
 ' 2>/dev/null)
 [[ -z "$FIXED_NEW" ]] && FIXED_NEW="[]"
 
+# Flexible dedup: key = <ccy> (threshold-crossing model).
+FLEX_NEW=$(echo "$FLEX_FILTERED" | jq -c --slurpfile st "$STATE_FILE" --arg p "$KEY_PREFIX" '
+  ($st[0].flexible // {}) as $seen
+  | [ .[] | . + {_key: ($p + .ccy)}
+        | select(($seen[._key]) == null) ]
+' 2>/dev/null)
+[[ -z "$FLEX_NEW" ]] && FLEX_NEW="[]"
+
 N_FLASH_NEW=$(echo "$FLASH_NEW" | jq 'length' 2>/dev/null); [[ -z "$N_FLASH_NEW" ]] && N_FLASH_NEW=0
 N_FIXED_NEW=$(echo "$FIXED_NEW" | jq 'length' 2>/dev/null); [[ -z "$N_FIXED_NEW" ]] && N_FIXED_NEW=0
+N_FLEX_NEW=$(echo "$FLEX_NEW" | jq 'length' 2>/dev/null); [[ -z "$N_FLEX_NEW" ]] && N_FLEX_NEW=0
 N_FLASH_FILT=$(echo "$FLASH_FILTERED" | jq 'length' 2>/dev/null); [[ -z "$N_FLASH_FILT" ]] && N_FLASH_FILT=0
 N_FIXED_FILT=$(echo "$FIXED_FILTERED" | jq 'length' 2>/dev/null); [[ -z "$N_FIXED_FILT" ]] && N_FIXED_FILT=0
+N_FLEX_FILT=$(echo "$FLEX_FILTERED" | jq 'length' 2>/dev/null); [[ -z "$N_FLEX_FILT" ]] && N_FLEX_FILT=0
 
 # ---- Rendering ----
 render_flash_lines() {
@@ -502,16 +568,54 @@ build_fixed_body() {
   printf '%s\n%s\n\n%s' "$hdr" "$rows" "$cta"
 }
 
+render_flexible_table() {
+  echo "$1" | jq -r '
+    .[] |
+    ( if (.lendingRate==null or .lendingRate=="") then "-"
+      else (((((.lendingRate|tonumber?)//0)*10000)|round)/100 | tostring) + "%" end ) as $apy |
+    "| " + (.ccy // "-") + " | " + $apy + " |"
+  ' 2>/dev/null
+}
+
+build_flexible_body() {
+  local rows; rows=$(render_flexible_table "$FLEX_NEW")
+  local hdr="| Currency | APY |
+|----------|-----|"
+  local ccy cta
+  ccy=$(echo "$FLEX_NEW" | jq -r '.[0].ccy // ""' 2>/dev/null)
+  # shellcheck disable=SC2059
+  cta=$(printf "$(t flex_cta)" "$ccy")
+  printf '%s\n%s\n\n%s' "$hdr" "$rows" "$cta"
+}
+
 DELIVERED=0
 
-if [[ "$N_FLASH_NEW" -gt 0 && "$N_FIXED_NEW" -gt 0 ]]; then
-  # Mixed
+# Count how many types have new opportunities.
+SECTION_COUNT=0
+[[ "$N_FLASH_NEW" -gt 0 ]] && SECTION_COUNT=$((SECTION_COUNT+1))
+[[ "$N_FIXED_NEW" -gt 0 ]] && SECTION_COUNT=$((SECTION_COUNT+1))
+[[ "$N_FLEX_NEW" -gt 0 ]] && SECTION_COUNT=$((SECTION_COUNT+1))
+
+if [[ "$SECTION_COUNT" -ge 2 ]]; then
+  # Mixed: two or more types.
   title="🎯 Earn Hunter · $(now_hhmm)"
-  fbody=$(build_flash_body)
-  xbody=$(build_fixed_body)
-  body=$(printf '⚡ Flash Earn · %s %s\n\n%s\n\n---\n\n🏦 Fixed Earn · %s %s\n\n%s' \
-    "$N_FLASH_NEW" "$(t new_opps)" "$fbody" "$N_FIXED_NEW" "$(t new_opps)" "$xbody")
-  if dispatch "$title" "$body" "green" "mixed:${N_FLASH_NEW}+${N_FIXED_NEW}"; then DELIVERED=1; fi
+  body=""
+  detail_parts=""
+  if [[ "$N_FLASH_NEW" -gt 0 ]]; then
+    body=$(printf '⚡ Flash Earn · %s %s\n\n%s' "$N_FLASH_NEW" "$(t new_opps)" "$(build_flash_body)")
+    detail_parts="flash:${N_FLASH_NEW}"
+  fi
+  if [[ "$N_FIXED_NEW" -gt 0 ]]; then
+    [[ -n "$body" ]] && body=$(printf '%s\n\n---\n\n' "$body")
+    body=$(printf '%s🏦 Fixed Earn · %s %s\n\n%s' "$body" "$N_FIXED_NEW" "$(t new_opps)" "$(build_fixed_body)")
+    detail_parts="${detail_parts:+$detail_parts+}fixed:${N_FIXED_NEW}"
+  fi
+  if [[ "$N_FLEX_NEW" -gt 0 ]]; then
+    [[ -n "$body" ]] && body=$(printf '%s\n\n---\n\n' "$body")
+    body=$(printf '%s💰 Simple Earn · %s %s\n\n%s' "$body" "$N_FLEX_NEW" "$(t new_opps)" "$(build_flexible_body)")
+    detail_parts="${detail_parts:+$detail_parts+}flex:${N_FLEX_NEW}"
+  fi
+  if dispatch "$title" "$body" "green" "mixed:${detail_parts}"; then DELIVERED=1; fi
 
 elif [[ "$N_FLASH_NEW" -gt 0 ]]; then
   title="⚡ Flash Earn · ${N_FLASH_NEW} $(t new_opps) · $(now_hhmm)"
@@ -522,6 +626,11 @@ elif [[ "$N_FIXED_NEW" -gt 0 ]]; then
   title="🏦 Fixed Earn · ${N_FIXED_NEW} $(t new_opps) · $(now_hhmm)"
   body=$(build_fixed_body)
   if dispatch "$title" "$body" "blue" "fixed:${N_FIXED_NEW}"; then DELIVERED=1; fi
+
+elif [[ "$N_FLEX_NEW" -gt 0 ]]; then
+  title="💰 Simple Earn · ${N_FLEX_NEW} $(t new_opps) · $(now_hhmm)"
+  body=$(build_flexible_body)
+  if dispatch "$title" "$body" "orange" "flex:${N_FLEX_NEW}"; then DELIVERED=1; fi
 fi
 
 # ---- Step 6: commit dedup keys (only for delivered notifications) ----
@@ -536,6 +645,12 @@ if [[ "$DELIVERED" == "1" ]]; then
   if [[ "$N_FIXED_NEW" -gt 0 ]]; then
     tmp=$(jq --slurpfile new <(echo "$FIXED_NEW") --arg now "$NOW" '
       reduce $new[0][] as $o (.; .fixed[$o._key] = {notifiedAt: $now})
+    ' "$STATE_FILE" 2>/dev/null)
+    [[ -n "$tmp" ]] && printf '%s\n' "$tmp" > "$STATE_FILE"
+  fi
+  if [[ "$N_FLEX_NEW" -gt 0 ]]; then
+    tmp=$(jq --slurpfile new <(echo "$FLEX_NEW") --arg now "$NOW" '
+      reduce $new[0][] as $o (.; .flexible[$o._key] = {notifiedAt: $now, rate: $o.lendingRate})
     ' "$STATE_FILE" 2>/dev/null)
     [[ -n "$tmp" ]] && printf '%s\n' "$tmp" > "$STATE_FILE"
   fi
@@ -569,6 +684,18 @@ tmp=$(jq --argjson keys "$CURRENT_FIXED_KEYS" '
 ' "$STATE_FILE" 2>/dev/null)
 [[ -n "$tmp" ]] && printf '%s\n' "$tmp" > "$STATE_FILE"
 
+# Flexible: key-level. Keep keys whose ccy is still above threshold (in FLEX_FILTERED).
+CURRENT_FLEX_KEYS=$(echo "$FLEX_FILTERED" | jq -c '[ .[] | .ccy ]' 2>/dev/null); [[ -z "$CURRENT_FLEX_KEYS" ]] && CURRENT_FLEX_KEYS="[]"
+tmp=$(jq --argjson keys "$CURRENT_FLEX_KEYS" '
+  .flexible = ( .flexible | with_entries(
+    select(
+      (.key|startswith("test:"))
+      or ( ( .key | sub("^test:";"") ) as $k | ($keys | index($k)) )
+    )
+  ) )
+' "$STATE_FILE" 2>/dev/null)
+[[ -n "$tmp" ]] && printf '%s\n' "$tmp" > "$STATE_FILE"
+
 # ---- Step 6c: TTL cleanup (7 days) ----
 # Compute cutoff epoch. notifiedAt parsed via jq fromdateiso8601 best-effort.
 NOW_EPOCH=$(date +%s 2>/dev/null)
@@ -582,6 +709,7 @@ tmp=$(jq --argjson cutoff "$CUTOFF" '
       end;
   .flash = (.flash | with_entries(select(keep(.value))))
   | .fixed = (.fixed | with_entries(select(keep(.value))))
+  | .flexible = (.flexible | with_entries(select(keep(.value))))
 ' "$STATE_FILE" 2>/dev/null)
 [[ -n "$tmp" ]] && printf '%s\n' "$tmp" > "$STATE_FILE"
 
@@ -589,10 +717,10 @@ tmp=$(jq --argjson cutoff "$CUTOFF" '
 mark_success
 
 # ---- Step 7: verboseLog gate when no new opportunities ----
-if [[ "$N_FLASH_NEW" -eq 0 && "$N_FIXED_NEW" -eq 0 ]]; then
+if [[ "$N_FLASH_NEW" -eq 0 && "$N_FIXED_NEW" -eq 0 && "$N_FLEX_NEW" -eq 0 ]]; then
   if [[ "$VERBOSE" == "true" ]]; then
     # shellcheck disable=SC2059
-    msg=$(printf "$(t verbose_status)" "$N_FLASH_FILT" "$N_FIXED_FILT")
+    msg=$(printf "$(t verbose_status)" "$N_FLASH_FILT" "$N_FIXED_FILT" "$N_FLEX_FILT")
     dispatch "Earn Hunter" "$msg" "grey" "verbose:no_new"
   fi
   # else: SILENT. No output, exit 0.
