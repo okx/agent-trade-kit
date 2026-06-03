@@ -16,6 +16,7 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     // -------------------------------------------------------------------------
     {
       name: "onchain_earn_get_offers",
+      title: "On-chain Earn List Offers",
       module: "earn.onchain",
       description:
         "List staking/DeFi products with APY, terms, and limits. " +
@@ -58,9 +59,11 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     // -------------------------------------------------------------------------
     {
       name: "onchain_earn_purchase",
+      title: "On-chain Earn Subscribe",
       module: "earn.onchain",
       description: "Invest in a staking/DeFi product. [CAUTION] Moves real funds.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -112,9 +115,11 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     // -------------------------------------------------------------------------
     {
       name: "onchain_earn_redeem",
+      title: "On-chain Earn Redeem",
       module: "earn.onchain",
       description: "Redeem a staking/DeFi investment. [CAUTION] Some products have lock periods, early redemption may incur penalties.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -153,9 +158,11 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     // -------------------------------------------------------------------------
     {
       name: "onchain_earn_cancel",
+      title: "On-chain Earn Cancel Order",
       module: "earn.onchain",
       description: "Cancel a pending staking/DeFi purchase order. [CAUTION]",
       isWrite: true,
+      idempotentHint: true,
       inputSchema: {
         type: "object",
         properties: {
@@ -189,6 +196,7 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     // -------------------------------------------------------------------------
     {
       name: "onchain_earn_get_active_orders",
+      title: "On-chain Earn Active Orders",
       module: "earn.onchain",
       description: "List current active staking/DeFi investments.",
       isWrite: false,
@@ -234,6 +242,7 @@ export function registerOnchainEarnTools(): ToolSpec[] {
     // -------------------------------------------------------------------------
     {
       name: "onchain_earn_get_order_history",
+      title: "On-chain Earn Order History",
       module: "earn.onchain",
       description: "List past staking/DeFi orders including redeemed ones.",
       isWrite: false,

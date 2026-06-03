@@ -35,11 +35,13 @@ export interface ContractConfig {
   instTypes: readonly [string, string];
   /** instId example string shown in property descriptions */
   instIdExample: string;
+  /** Human-readable label for tool titles, e.g. "Perpetual Futures" or "Futures". */
+  titleLabel: string;
 }
 
 /** Build the 11 common contract trade tools shared by swap and futures modules. */
 export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
-  const { prefix, module, label, instTypes, instIdExample } = cfg;
+  const { prefix, module, label, instTypes, instIdExample, titleLabel } = cfg;
   const [defaultType, otherType] = instTypes;
   const instTypeDesc = `${defaultType} (default) or ${otherType}`;
   const n = (suffix: string) => `${prefix}_${suffix}`;
@@ -48,6 +50,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── place_order ──────────────────────────────────────────────────────────
     {
       name: n("place_order"),
+      title: `${titleLabel} Place Order`,
+      destructiveHint: false,
       module,
       description: `Place ${label} order. Attach TP/SL via tpTriggerPx/slTriggerPx. Before placing, use market_get_instruments to get ctVal (contract face value) - do NOT assume contract sizes. [CAUTION] Executes real trades.`,
       isWrite: true,
@@ -145,6 +149,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── cancel_order ─────────────────────────────────────────────────────────
     {
       name: n("cancel_order"),
+      title: `${titleLabel} Cancel Order`,
+      idempotentHint: true,
       module,
       description: `Cancel an unfilled ${label} order.`,
       isWrite: true,
@@ -175,6 +181,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── get_order ─────────────────────────────────────────────────────────────
     {
       name: n("get_order"),
+      title: `${titleLabel} Get Order`,
       module,
       description: `Get details of a single ${label} order by ordId or clOrdId.`,
       isWrite: false,
@@ -205,6 +212,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── get_orders ───────────────────────────────────────────────────────────
     {
       name: n("get_orders"),
+      title: `${titleLabel} Get Orders`,
       module,
       description: `Query ${label} open orders, history (last 7 days), or archive (up to 3 months).`,
       isWrite: false,
@@ -264,6 +272,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── get_positions ────────────────────────────────────────────────────────
     {
       name: n("get_positions"),
+      title: `${titleLabel} Get Positions`,
       module,
       description: `Get current ${label} positions.`,
       isWrite: false,
@@ -299,6 +308,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── get_fills ────────────────────────────────────────────────────────────
     {
       name: n("get_fills"),
+      title: `${titleLabel} Get Fills`,
       module,
       description: `Get ${label} fill details. archive=false (default): last 3 days; archive=true: up to 3 months.`,
       isWrite: false,
@@ -350,6 +360,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── close_position ───────────────────────────────────────────────────────
     {
       name: n("close_position"),
+      title: `${titleLabel} Close Position`,
+      idempotentHint: true,
       module,
       description: `[CAUTION] Close entire ${label} position at market.`,
       isWrite: true,
@@ -393,6 +405,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── set_leverage ─────────────────────────────────────────────────────────
     {
       name: n("set_leverage"),
+      title: `${titleLabel} Set Leverage`,
+      idempotentHint: true,
       module,
       description:
         `Set leverage for a ${label} instrument or position. [CAUTION] Changes risk parameters.\n` +
@@ -463,6 +477,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── get_leverage ─────────────────────────────────────────────────────────
     {
       name: n("get_leverage"),
+      title: `${titleLabel} Get Leverage`,
       module,
       description: `Get current leverage for a ${label} instrument.`,
       isWrite: false,
@@ -491,6 +506,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── batch_amend ──────────────────────────────────────────────────────────
     {
       name: n("batch_amend"),
+      title: `${titleLabel} Batch Amend Orders`,
+      idempotentHint: true,
       module,
       description: `[CAUTION] Batch amend up to 20 unfilled ${label} orders.`,
       isWrite: true,
@@ -523,6 +540,8 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
     // ── batch_cancel ─────────────────────────────────────────────────────────
     {
       name: n("batch_cancel"),
+      title: `${titleLabel} Batch Cancel Orders`,
+      idempotentHint: true,
       module,
       description: `[CAUTION] Batch cancel up to 20 ${label} orders.`,
       isWrite: true,

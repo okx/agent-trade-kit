@@ -11,31 +11,60 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.6] - 2026-06-03
+
+1.3.6 系列首个稳定版。汇总整个 1.3.6 beta 周期累积的全部改动（完整 新增 / 修复 清单见下方 `[1.3.6-beta.1]` 条目）：earn-hunter skill、Ed25519 + SHA-256 skill 签名校验、HTTP/HTTPS 代理自动支持、linux-arm64 auth CDN 回退、`earn_get_fixed_earn_products` 工具，以及 MCP 工具 `title` 暴露。
 
 ### Changed
 
-- **非 ASCII 字符清理完成（第二轮）**（TRDATA-3977，!325）。清除了测试 `describe`/`it` 块名称中仍通过 TAP 输出泄露的剩余 5 个非 ASCII 字符，将计数降至 0，完成 1.3.5-beta.1 中启动的 TRDATA-3977 系列修复。
+- 按稳定版 skill 版本同步策略，所有 skill pack 的 `metadata.version` 同步至 `1.3.6`。
+
+---
+
+## [1.3.6-beta.1] - 2026-05-22
+
+### 新增
+
+- **earn-hunter skill —— OpenClaw 会话内 cron 调度**：OpenClaw 上的 earn-hunter 定时扫描改为在对话内通过会话内 `cron` 工具创建（isolated 会话 + `lightContext`），并经 cron `announce` 投递回会话，不再使用 OS crontab。skill 内不再出现任何 CLI 命令（`openclaw cron` CLI 路径存在权限问题）。`platform.json` 的 `scheduler.type` 在 OpenClaw 上为 `"openclaw-cron"`；Claude Code / Hermes 保持 `"cron"`（OS crontab + curl），Generic 保持 `"manual"`。
+- **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
+- **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
+- **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
+- 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
+
+### 修复
+
+- **每条命令都触发 `EnvHttpProxyAgent` 实验性警告**：undici 代理引导模块在加载时无条件注册 `EnvHttpProxyAgent`，导致 Node 在每条 CLI 命令上都打印 `[UNDICI-EHPA] ExperimentalWarning`——包括 `okx skill list` 这类从不发请求的纯本地命令。现已改为仅在检测到代理环境变量（`HTTPS_PROXY` / `HTTP_PROXY`，大小写均可）时才注册，代理用户的自动代理支持保持不变，其他用户则得到无警告的干净 CLI。
+- **`earn savings fixed-redeem` 文档使用了位置参数而非 `--reqId` 标志**：SKILL.md、cli-registry 和 savings-commands.md 均记录为 `fixed-redeem <reqId>`（位置参数），但 CLI 路由读取的是 `v.reqId`（命名标志）。按文档操作的 Agent 会传入 `undefined` 作为 reqId。现已更正为 `--reqId <reqId>`。
+- **`earn savings rate-history --limit` 文档默认值为 100，但代码实际默认值为 7**：savings-commands.md 之前记录默认值为 100，但 CLI 实现中使用的是 `readNumber(args, "limit") ?? 7`。现已更正为实际默认值 7。
+- **`earn savings rate-history` 和 `fixed-products` CLI 输出使用 `rate` 列但 OKX API 返回 `apr`**：定期产品表格的 `rate` 列始终为空。现已更正为读取 `apr` 字段。
+
+### 变更
+
+- 各工具的 `annotations.destructiveHint` 和 `idempotentHint` 现已严格遵循 MCP spec 语义：24 个 additive 写操作（place_order、transfer、subscribe、redeem）不再被标记为 destructive；37 个 destructive 且幂等的写操作（cancel、amend、close、set_leverage）现已正确标记 `idempotentHint=true`。两个 3-in-1 批处理路由（`swap_batch_orders`、`spot_batch_orders`）保留安全写默认值。
+- **非 ASCII 字符清理第二轮**（TRDATA-3977，!325）。清理了 TAP 输出中 test `describe`/`it` 块名称中残留的 5 个非 ASCII 字符，降为 0。完成 1.3.5-beta.1 中开始的 TRDATA-3977 系列。
 
 ---
 
 ## [1.3.5] - 2026-05-20
 
-`1.3.5-beta.1` 整合发布，外加一次 follow-up 清理。所有 skill 的 `metadata.version` 由 `1.3.3` 同步至 `1.3.5`。
+`1.3.5-beta.1` 整合发布，附加一轮清理。所有 skill 的 `metadata.version` 从 `1.3.3` 同步至 `1.3.5`。
 
 ### 新增
 
-- **配对价差工具**（1.3.5-beta.1，!315）。`market_get_pair_spread`，计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率），支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
+- **配对价差工具**（1.3.5-beta.1，!315）。`market_get_pair_spread`。计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率）。支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
 
 ### 修复
 
-- **CLI 启动性能优化**（1.3.5-beta.1，TRDATA-3954）。`okx` 启动不再阻塞 Node 事件循环。四层修复：`OKX_UPDATE_CHECK=false` 开关、使用用户 npm 镜像、`AbortSignal.timeout(3000)` 超时、失败负缓存 1h TTL。
+- **CLI 启动性能优化**（1.3.5-beta.1，TRDATA-3954）。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 开关；(B1) 使用用户配置的 npm 镜像；(A') `AbortSignal.timeout(3000)`；(B1.5) 失败时写入负缓存（1h TTL）。
 
 ### 变更
 
-- **`grid_stop_order` / `dca_stop_order` 工作流指引**（1.3.5-beta.1，!305）。工具描述记录有残留仓位时的两步关停模式。
-- **Smartmoney V7 漏斗语义文档同步**（1.3.5-beta.1）。design / module / context-kg / skill / eval 文档与 V7 信号漏斗对齐。仅文档变更。
-- **非 ASCII 排版标点清理**（TRDATA-3977）。两轮整理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物，覆盖 CLI 帮助、工具描述和测试。Round 1（1.3.5-beta.1）处理主体表面；Round 2（本次发布）清理 5 个通过 TAP 泄露的残留字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
-- **Skill `metadata.version` 统一 bump 到 `1.3.5`**，覆盖 9 个 skill（`okx-cex-trade`、`okx-cex-market`、`okx-cex-earn`、`okx-cex-bot`、`okx-cex-portfolio`、`okx-cex-skill-mp`、`okx-cex-auth`、`okx-cex-smartmoney`、`okx-sentiment-tracker`）。补齐 `1.3.3` → `1.3.5` 的差（`1.3.4` 稳定版当时未 bump skill）。
+- **`grid_stop_order` / `dca_stop_order` 工作流指引更新**（1.3.5-beta.1，!305）。工具描述新增两步关闭模式文档。
+- **Smartmoney V7 漏斗语义文档同步**（1.3.5-beta.1）。仅文档变更。
+- **非 ASCII 排版标点清理**（TRDATA-3977）。两轮清理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物。第一轮（1.3.5-beta.1）处理主要表面；第二轮（本版本）清理 TAP 输出残留的 5 个字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
+- **Skill `metadata.version` 统一升级至 `1.3.5`**，覆盖全部 9 个 skill。从 `1.3.3` 补齐（`1.3.4` stable 未更新 skill 版本）。
 
 ---
 
@@ -1141,7 +1170,7 @@ Promise.all([
 ### 新增
 
 - **DCD 模块**（`earn.dcd`）— 新增 8 个 MCP 工具和 10 个 CLI 命令，支持 OKX 双币赢（Dual Currency Deposit）：`dcd_get_currency_pairs`、`dcd_get_products`、`dcd_request_quote`、`dcd_execute_quote`、`dcd_request_redeem_quote`、`dcd_execute_redeem`、`dcd_get_order_state`、`dcd_get_orders`。CLI 命令：`okx earn dcd pairs`、`products`、`quote`、`buy`、`quote-and-buy`、`redeem-quote`、`redeem`、`redeem-execute`、`order`、`orders`。支持客户端产品筛选（`--minYield`、`--strikeNear`、`--termDays`、`--expDate`）、两步提前赎回流程，以及所有写操作的模拟盘拦截。
-- **HTTP/HTTPS 代理支持**：在 TOML Profile 中配置 `proxy_url`，所有 OKX API 请求将通过代理服务器转发。支持带认证的代理 URL（如 `http://user:pass@proxy:8080`）。仅支持 HTTP/HTTPS 代理，不支持 SOCKS。(#53)
+- **HTTP/HTTPS 代理支持**：在 TOML Profile 中配置 `proxy_url`，所有 OKX API 请求将通过代理服务器转发。支持带认证的代理 URL（如 `http://user:pass@proxy:8080`）。仅支持 HTTP/HTTPS 代理，不支持 SOCKS。（#53）
 - **CLI `--verbose` 标志**：为任意命令添加 `--verbose`，可在 stderr 查看详细的网络请求/响应信息 — 包括方法、URL、认证状态（密钥脱敏）、耗时、HTTP 状态码、OKX 错误码和 trace ID。适用于排查连接和认证问题。
 - **CLI `okx diagnose` 诊断命令**：逐步检查连通性 — 环境（Node.js、OS、shell、locale、时区、代理）、配置（凭证、站点、base URL）、网络（DNS → TCP → TLS → 公开 API）和认证。失败时给出具体建议，并在末尾输出可复制分享的诊断报告。
 - **CLI 下单命令 — 附带止盈止损**：`okx spot place`、`okx swap place`、`okx futures place` 现支持可选的止盈止损参数：`--tpTriggerPx`、`--tpOrdPx`、`--tpTriggerPxType`、`--slTriggerPx`、`--slOrdPx`、`--slTriggerPxType`。这些参数会直接作为附带 TP/SL 传递给 OKX 下单 API。

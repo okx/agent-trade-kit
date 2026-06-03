@@ -113,6 +113,9 @@ node test/mcp-e2e.mjs
 
 3. No changes needed to `server.ts` or `index.ts` — tools are auto-registered via `buildTools()`.
 4. Add a unit test in `packages/core/test/` if the tool has non-trivial logic.
+5. **Add an LLM eval probe** at `eval/probes/<module>/tier2-<tool_name>.live.test.ts`.
+   This is **mandatory** — the CI `eval-probe-check` job will block the MR if missing.
+   See [`eval/README.md`](eval/README.md) for the probe skeleton and import conventions.
 
 For a new **module**, see Section 10 of [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -155,6 +158,11 @@ pnpm build      # must pass
 pnpm typecheck  # must pass
 pnpm test:unit  # must pass
 ```
+
+If you added or modified an MCP tool, also verify:
+- `eval/probes/<module>/tier2-<tool_name>.live.test.ts` exists
+- Probe uses `@eval/shared/eval-helpers.js` import and the **trace-based** assertion pattern (`findToolCall(trace, { commandPatterns })`)
+- See [`eval/README.md`](eval/README.md) for full requirements
 
 ### PR Description
 

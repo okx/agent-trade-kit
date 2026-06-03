@@ -11,12 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.6] - 2026-06-03
+
+First stable release of the 1.3.6 line. Consolidates all changes accumulated during the 1.3.6 beta cycle (see the `[1.3.6-beta.1]` entry below for the full Added / Fixed list): earn-hunter skill, Ed25519 + SHA-256 skill signature verification, automatic HTTP/HTTPS proxy support, linux-arm64 auth CDN fallback, `earn_get_fixed_earn_products` tool, and MCP tool `title` exposure.
 
 ### Changed
 
-- **Non-ASCII cleanup completed — round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
+- All skill packs' `metadata.version` synced to `1.3.6` per the stable-release skill version sync policy.
 
 ---
+
+## [1.3.6-beta.1] - 2026-05-22
+
+### Added
+
+- **earn-hunter skill — OpenClaw in-session cron scheduling**: on OpenClaw, the earn-hunter scheduled scan is now set up inside the conversation via the in-session `cron` agent tool (isolated session + `lightContext`) and delivered back to the chat via cron `announce`, instead of OS crontab. No CLI commands are emitted (the `openclaw cron` CLI path has permission issues). `platform.json` `scheduler.type` is `"openclaw-cron"` on OpenClaw; Claude Code / Hermes keep `"cron"` (OS crontab + curl) and Generic stays `"manual"`.
+- **`earn_get_fixed_earn_products` MCP tool** and `okx earn savings fixed-products` CLI command for querying Simple Earn Fixed-term product pool with APR, term, remaining quota, and sold-out status
+- **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
+- **Skill signature verification**: `okx skill add` now verifies Ed25519 signature and SHA-256 file integrity before installing a skill, with server-side fallback when local verification cannot proceed. Use `--force` to bypass on verification failure. New command `okx skill verify <name>` re-verifies an installed skill on demand and persists the result to the local registry. New SDK exports: `verifySkillSignature`, `getPublicKey`, `serverSideVerify`, `tryReadMetaJson`, `VerificationResult`, `VerificationStatus`.
+- All 163 MCP tools now expose a human-readable `title` at both top-level (`Tool.title`, per MCP spec 2025-06-18) and inside `annotations.title` for backward compatibility, so clients like MCP Inspector render readable labels instead of snake_case names.
+
+### Fixed
+
+- **`EnvHttpProxyAgent` experimental warning on every command**: the undici proxy bootstrap registered `EnvHttpProxyAgent` unconditionally at load time, which made Node emit a `[UNDICI-EHPA] ExperimentalWarning` on every CLI command — including local-only ones like `okx skill list` that never make a request. Registration is now gated on the presence of a proxy env var (`HTTPS_PROXY` / `HTTP_PROXY`, upper- or lower-case), so proxy users keep automatic proxy support while everyone else gets a clean, warning-free CLI.
+- **linux-arm64: `okx auth status` and `okx auth logout` failed with "All CDN sources failed (HTTP 404)"** (TRDATA-4135). Added a probe-based CDN fallback in `resolveAuthPlatformDir()`: when running on linux-arm64 and CDN returns HTTP 404 for the native `linux-arm64/checksum.json`, the auth installer transparently falls back to the `linux-x64` binary and emits a warning that x86_64 emulation is required. Once a native linux-arm64 binary is uploaded to CDN, the fallback self-deactivates (probe returns HTTP 200 first).
+- **`earn savings fixed-redeem` documentation used positional arg instead of `--reqId` flag**: SKILL.md, cli-registry, and savings-commands.md all documented `fixed-redeem <reqId>` (positional), but the CLI router reads `v.reqId` (named flag). Agents following the docs would pass `undefined` as reqId. Now correctly documented as `--reqId <reqId>`.
+- **`earn savings rate-history --limit` documentation default was 100, actual code default is 7**: savings-commands.md previously documented the default as 100, but the CLI implementation uses `readNumber(args, "limit") ?? 7`. Now corrected to match the actual default of 7.
+- **`earn savings rate-history` and `fixed-products` CLI output used `rate` column but OKX API returns `apr`**: fixed-term offers table always showed empty `rate` column. Now correctly reads `apr` field.
+
+### Changed
+
+- Per-tool `annotations.destructiveHint` and `idempotentHint` are now accurate to MCP spec semantics: 24 additive writes (place_order, transfer, subscribe, redeem) are no longer marked destructive, and 37 destructive idempotent writes (cancel, amend, close, set_leverage) are now marked idempotent. Two 3-in-1 batch routers (`swap_batch_orders`, `spot_batch_orders`) keep the safe write defaults.
+- **Non-ASCII cleanup completed -- round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
 
 ---
 
@@ -80,7 +108,6 @@ Stable rollup of `1.3.4-beta.1` only. The `1.3.4-beta.2` line below is retained 
 ## [1.3.4-beta.1] - 2026-05-12
 
 ### Added
-
 - **Economic calendar tools** (`news_get_economic_calendar`, `news_list_calendar_regions`). Query macro-economic events (GDP, CPI, NFP, FOMC, etc.) with region/importance filters and time-window controls. CLI commands: `okx news economic-calendar`, `okx news list-regions`. Skill `okx-sentiment-tracker` updated with calendar workflow guidance.
 
 ## [1.3.3] - 2026-05-08

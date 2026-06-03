@@ -74,6 +74,7 @@ export function registerEventContractTools(): ToolSpec[] {
     // -----------------------------------------------------------------------
     {
       name: "event_browse",
+      title: "Event Contracts Browse Active",
       module: "event",
       description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Returns only in-progress contracts (floorStrike set). If a live quote field px is present, it is the event contract price (0.01-0.99), not the underlying asset price; it reflects the market-implied probability when actively trading. Grouped by settlement type and underlying. Do NOT use for querying contracts within a specific series - use event_get_markets with seriesId instead.",
       isWrite: false,
@@ -122,6 +123,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_get_series",
+      title: "Event Contracts List Series",
       module: "event",
       description: "List event contract series. Returns all available series with settlement type and underlying. Use event_browse to see currently active contracts.",
       isWrite: false,
@@ -147,6 +149,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_get_events",
+      title: "Event Contracts List Events",
       module: "event",
       description: "List expiry periods within a series. state: preopen|live|settling|expired. expTime is pre-formatted UTC+8.",
       isWrite: false,
@@ -205,6 +208,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_get_markets",
+      title: "Event Contracts List Markets",
       module: "event",
       description: "List tradeable contracts within a series. state=live for active contracts, state=expired for settlement results. floorStrike=strike price; px (when present) is the event contract price (0.01-0.99), not the underlying asset price - reflects the market-implied probability when actively trading; outcome pre-translated (pending/YES/NO/UP/DOWN); timestamps UTC+8. Do NOT use for discovering what series are available across all underlyings - use event_browse instead.",
       isWrite: false,
@@ -294,6 +298,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_get_orders",
+      title: "Event Contracts Get Orders",
       module: "event",
       description: "Query event contract orders (open, 7d history, or 3-month archive). outcome pre-translated (YES/NO/UP/DOWN). Do NOT use for trade executions - use event_get_fills for fill records and settlement outcomes.",
       isWrite: false,
@@ -355,6 +360,7 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_get_fills",
+      title: "Event Contracts Get Fills",
       module: "event",
       description: "Get event contract fill history (trade executions and settlement payouts). archive=true for up to 3mo, false (default) for last 3d. outcome pre-translated (YES/NO/UP/DOWN). Each record includes a 'type' field: 'fill' (opening trade) or 'settlement' (expiry payout with settlementResult win/loss and pnl). Do NOT use for order status - use event_get_orders instead.",
       isWrite: false,
@@ -405,6 +411,8 @@ export function registerEventContractTools(): ToolSpec[] {
     // -----------------------------------------------------------------------
     {
       name: "event_place_order",
+      title: "Event Contracts Place Order",
+      destructiveHint: false,
       module: "event",
       description: `Place an event contract order. [CAUTION] Places a real order. Before placing, call event_get_markets(seriesId, state=live) to obtain the instId of the target contract.
 - outcome: UP/YES (bet price goes up/condition met) or DOWN/NO (bet price goes down/condition not met)
@@ -491,6 +499,8 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_amend_order",
+      title: "Event Contracts Amend Order",
+      idempotentHint: true,
       module: "event",
       description: "Amend a pending event contract order (change price or size). [CAUTION] Modifies a real order. Before amending, call event_get_orders(status=open) to obtain the ordId and confirm the order is still pending. Only limit/post_only orders can be amended.",
       isWrite: true,
@@ -523,6 +533,8 @@ export function registerEventContractTools(): ToolSpec[] {
 
     {
       name: "event_cancel_order",
+      title: "Event Contracts Cancel Order",
+      idempotentHint: true,
       module: "event",
       description: "Cancel a pending event contract order. [CAUTION] Cancels a real order. Before cancelling, call event_get_orders(status=open) to obtain the ordId and confirm the order is still pending. instId must be the full event contract instrument ID (e.g. BTC-ABOVE-DAILY-260224-1600-69700), NOT a spot trading pair.",
       isWrite: true,

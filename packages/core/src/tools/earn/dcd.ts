@@ -60,6 +60,7 @@ export function registerDcdTools(): ToolSpec[] {
   return [
     {
       name: "dcd_get_currency_pairs",
+      title: "Dual Investment List Currency Pairs",
       module: "earn.dcd",
       description: "Get available DCD currency pairs.",
       isWrite: false,
@@ -77,6 +78,7 @@ export function registerDcdTools(): ToolSpec[] {
     },
     {
       name: "dcd_get_products",
+      title: "Dual Investment List Products",
       module: "earn.dcd",
       description: "Get DCD products with yield and quota info. Yields in response are decimal fractions, not percentages.",
       isWrite: false,
@@ -107,6 +109,7 @@ export function registerDcdTools(): ToolSpec[] {
     },
     {
       name: "dcd_get_order_state",
+      title: "Dual Investment Get Order State",
       module: "earn.dcd",
       description: "Check DCD order state after subscription (returns ordId + state only). For full order details (productId, strike, yield, settlement info), use dcd_get_orders instead.",
       isWrite: false,
@@ -131,6 +134,7 @@ export function registerDcdTools(): ToolSpec[] {
     },
     {
       name: "dcd_get_orders",
+      title: "Dual Investment Get Order History",
       module: "earn.dcd",
       description: "Get DCD order history. Yields in response are decimal fractions, not percentages.",
       isWrite: false,
@@ -176,6 +180,7 @@ export function registerDcdTools(): ToolSpec[] {
     },
     {
       name: "dcd_subscribe",
+      title: "Dual Investment Subscribe",
       module: "earn.dcd",
       description:
         "Subscribe to a DCD product: get quote and execute atomically. " +
@@ -183,6 +188,7 @@ export function registerDcdTools(): ToolSpec[] {
         "Optional minAnnualizedYield rejects the order if quote yield falls below threshold. " +
         "Returns order result with quote snapshot (minAnnualizedYield is in percent; response yields are decimal fractions).",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -279,12 +285,14 @@ export function registerDcdTools(): ToolSpec[] {
     },
     {
       name: "dcd_redeem",
+      title: "Dual Investment Redeem",
       module: "earn.dcd",
       description:
         "Early redemption of a DCD order, two-step flow. " +
         "First call (no quoteId): returns redemption quote for user confirmation. " +
         "Second call (with quoteId): executes redemption. If the quote expired, auto-refreshes and executes; response includes autoRefreshedQuote: true.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {

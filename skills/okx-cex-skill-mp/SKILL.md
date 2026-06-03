@@ -1,10 +1,10 @@
 ---
 name: okx-cex-skill-mp
-description: "Use this skill when the user asks to: 'find a trading skill', 'search for skills', 'install a skill', 'add a skill', 'download a skill', 'browse skill marketplace', 'what skills are available', 'update a skill', 'check for skill updates', 'remove a skill', 'uninstall a skill', 'list installed skills', 'show my skills', 'skill categories', or any request to discover, install, update, or manage AI trading skills from the OKX Skills Marketplace. This skill covers searching, browsing categories, installing via CLI, downloading zip packages, checking for updates, and removing installed skills. Requires API credentials for marketplace API access. Do NOT use for placing orders (use okx-cex-trade), market data (use okx-cex-market), or bot management (use okx-cex-bot)."
+description: "Use this skill when the user asks to: 'find a trading skill', 'search for skills', 'install a skill', 'add a skill', 'download a skill', 'browse skill marketplace', 'what skills are available', 'update a skill', 'check for skill updates', 'remove a skill', 'uninstall a skill', 'list installed skills', 'show my skills', 'skill categories', 'verify skill signature', 'verify installed skill', 're-verify a skill', 'check skill integrity', or any request to discover, install, update, verify, or manage AI trading skills from the OKX Skills Marketplace. This skill covers searching, browsing categories, installing via CLI, downloading zip packages, checking for updates, removing installed skills, and verifying Ed25519 signatures of installed skills. Requires API credentials for marketplace API access. Do NOT use for placing orders (use okx-cex-trade), market data (use okx-cex-market), or bot management (use okx-cex-bot)."
 license: MIT
 metadata:
   author: okx
-  version: "1.3.5"
+  version: "1.3.6"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.3"
+        package: "@okx_ai/okx-trade-cli@1.3.6"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -71,6 +71,7 @@ Never skip `add` and go straight to `download` unless `add` has already failed.
 | 6 | `okx skill list` | List locally installed skills |
 | 7 | `okx skill check <name>` | Check if a newer version is available |
 | 8 | `okx skill remove <name>` | Uninstall a skill |
+| 9 | `okx skill verify <name>` | Re-verify an installed skill's signature on demand |
 
 Add `--json` to any command for raw JSON output. Add `--env` to wrap the output as `{"env", "profile", "data"}`.
 
@@ -127,15 +128,25 @@ okx skill add grid-premium
 Output:
 ```
 Downloading grid-premium...
+Verifying signature...
+  Signature verified (key: okx-skill-signing-key-2026, files: 3)
 Installing to detected agents...
 ✓ Skill "grid-premium" v1.2.0 installed
+  Note: This skill was created by a third-party developer, not by OKX. Review SKILL.md before use.
 ```
 
 What happens under the hood:
 1. Downloads skill zip from OKX marketplace API
 2. Extracts and validates the package (checks SKILL.md exists, reads metadata)
-3. Runs `npx skills add` to install to all locally detected agents
-4. Records the installation in `~/.okx/skills/registry.json`
+3. **Verifies Ed25519 signature and SHA-256 file integrity** — blocks installation if verification fails
+4. Runs `npx skills add` to install to all locally detected agents
+5. Records the installation (including verification status) in `~/.okx/skills/registry.json`
+
+**Force-install (bypass verification):**
+```bash
+okx skill add grid-premium --force
+```
+> ⚠️ **Security warning**: `--force` bypasses signature verification and installs the skill even if verification fails. Only use this if you trust the source and understand the risk. The bypass is recorded in the registry with status `bypassed`.
 
 ### 4. Download Only (No Install)
 
@@ -200,6 +211,28 @@ Output:
 ```
 ✓ Skill "grid-premium" removed
 ```
+
+### 8. Verify a Skill's Signature
+
+Re-run signature verification on an already-installed skill without reinstalling it:
+
+```bash
+okx skill verify grid-premium
+```
+
+Output (success):
+```
+✓ grid-premium: signature verified (key: okx-skill-signing-key-2026, files: 3)
+```
+
+Output (failure):
+```
+✗ grid-premium: verification failed — Invalid signature
+```
+
+- Exit code is `1` on failure.
+- Result is persisted back to `~/.okx/skills/registry.json`.
+- Use `--json` for machine-readable output.
 
 ---
 

@@ -4,7 +4,7 @@ description: "Manages OKX Simple Earn (flexible savings/lending), Flash Earn, On
 license: MIT
 metadata:
   author: okx
-  version: "1.3.5"
+  version: "1.3.6"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.3"
+        package: "@okx_ai/okx-trade-cli@1.3.6"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -78,7 +78,7 @@ OKX Earn does not support demo mode. Always use live mode silently — don't men
 
 ## Command Index
 
-### earn savings — Simple Earn (9 commands)
+### earn savings — Simple Earn (10 commands)
 
 | Command | Type | Auth | Description |
 |---|---|---|---|
@@ -88,9 +88,10 @@ OKX Earn does not support demo mode. Always use live mode silently — don't men
 | `earn savings set-rate --ccy --rate` | WRITE | Required | Set minimum lending rate |
 | `earn savings lending-history` | READ | Required | User's personal lending records with earnings detail |
 | `earn savings rate-history` | READ | Required | Simple Earn lending rates and fixed-term offers (require auth) |
+| `earn savings fixed-products [--ccy]` | READ | Required | Browse available fixed-term (定期) products with APR, term, remaining quota, and sold-out status |
 | `earn savings fixed-orders [--ccy] [--state]` | READ | Required | Query fixed-term (定期) orders. States: pending/earning/expired/settled/cancelled |
 | `earn savings fixed-purchase --ccy --amt --term [--confirm]` | WRITE | Required | Subscribe to Simple Earn Fixed (定期). Without `--confirm`: preview only |
-| `earn savings fixed-redeem <reqId>` | WRITE | Required | Redeem a fixed-term order (full amount). Only `pending` state orders can be redeemed early |
+| `earn savings fixed-redeem --reqId <reqId>` | WRITE | Required | Redeem a fixed-term order (full amount). Only `pending` state orders can be redeemed early |
 
 For full command syntax, rate field semantics, and confirmation templates, read `{baseDir}/references/savings-commands.md`.
 
@@ -155,7 +156,8 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 - Subscribe / redeem / set-rate → WRITE command, go to Step 2.
 
 **Simple Earn Fixed (定期):**
-- Query offers / order list → READ command, proceed directly.
+- Browse available products / check quota → `earn savings fixed-products [--ccy]`. This is the dedicated tool for querying the fixed-term product pool — use it whenever the user asks about available fixed earn products, remaining quota, or APR.
+- Query user's existing orders → `earn savings fixed-orders [--ccy] [--state]`.
 - Subscribe (two-step: preview then confirm) / redeem (pending state only) → WRITE command, go to Step 2. Read `{baseDir}/references/savings-commands.md` for pre-execution checklists and confirmation templates.
 - For multi-step workflows (subscribe with preview, early redemption), read `{baseDir}/references/workflows.md`.
 

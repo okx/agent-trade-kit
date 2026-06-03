@@ -19,6 +19,7 @@ export function registerFlashEarnTools(): ToolSpec[] {
   return [
     {
       name: "earn_get_flash_earn_projects",
+      title: "Flash Earn List Projects",
       module: "earn.flash",
       description:
         "Get Flash Earn projects. Use this to browse upcoming or in-progress Flash Earn opportunities. " +

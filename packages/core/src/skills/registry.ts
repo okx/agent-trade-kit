@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
-import type { SkillMeta, SkillRecord, SkillRegistry } from "./types.js";
+import type { SkillMeta, SkillRecord, SkillRegistry, VerificationStatus } from "./types.js";
 
 const DEFAULT_REGISTRY_PATH = join(homedir(), ".okx", "skills", "registry.json");
 
@@ -25,7 +25,11 @@ export function writeRegistry(registry: SkillRegistry, registryPath = DEFAULT_RE
 }
 
 /** Add or update a skill record from _meta.json data. */
-export function upsertSkillRecord(meta: SkillMeta, registryPath = DEFAULT_REGISTRY_PATH): void {
+export function upsertSkillRecord(
+  meta: SkillMeta,
+  registryPath = DEFAULT_REGISTRY_PATH,
+  verification?: VerificationStatus,
+): void {
   const registry = readRegistry(registryPath);
   const now = new Date().toISOString();
   const existing = registry.skills[meta.name];
@@ -37,6 +41,7 @@ export function upsertSkillRecord(meta: SkillMeta, registryPath = DEFAULT_REGIST
     installedAt: existing?.installedAt ?? now,
     updatedAt: now,
     source: "marketplace",
+    ...(verification !== undefined && { verification }),
   };
 
   writeRegistry(registry, registryPath);

@@ -12,6 +12,8 @@ path:^\.idea/
 path:^\.agents/
 path:^\.worktrees/
 path:^\.gitlab/
+path:^\.gitlab-ci\.yml$
+path:^scripts/check-eval-probes\.sh$
 path:^memory/
 path:^aTempFiles/
 path:^context-kg/

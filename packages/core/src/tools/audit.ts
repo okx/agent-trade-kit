@@ -48,6 +48,7 @@ export function registerAuditTools(): ToolSpec[] {
     {
       name: "trade_get_history",
       module: "account",
+      title: "Get Tool-Call Audit Log",
       description:
         "Query local audit log of tool calls made through this MCP server. " +
         "Returns recent operations with timestamps, duration, params, and results. " +

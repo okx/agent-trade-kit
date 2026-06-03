@@ -10,7 +10,7 @@ The `earn` module provides tools for OKX Earn products, split into three sub-mod
 
 | Sub-module | Tools | Description |
 |------------|-------|-------------|
-| `earn.savings` | 9 | Simple Earn: balance, purchase, redeem, lending rate management, rate history; Fixed-term: order list, purchase (two-step), redeem |
+| `earn.savings` | 10 | Simple Earn: balance, purchase, redeem, lending rate management, rate history; Fixed-term: product query, order list, purchase (two-step), redeem |
 | `earn.onchain` | 6 | On-chain Earn (staking/DeFi): offers, purchase, redeem, cancel, active orders, history |
 | `earn.dcd` | 6 | Dual Currency Deposit (双币赢): currency pairs, products, atomic subscribe, two-step early redeem, order history |
 
@@ -26,6 +26,7 @@ Requires API key with **Read** permission. Write operations (purchase, redeem, s
 | `earn_set_lending_rate` | Set your lending rate preference |
 | `earn_get_lending_history` | Get personal lending records (requires auth) |
 | `earn_get_lending_rate_history` | Query Simple Earn lending rates and fixed-term offers — use this when asking about current or historical lending rates (requires auth) |
+| `earn_get_fixed_earn_products` | Query available fixed-term products with APR, term, min investment, and remaining quota |
 | `earn_get_fixed_order_list` | Get fixed-term earn order list (filter by ccy/state) |
 | `earn_fixed_purchase` | Purchase fixed-term earn product (two-step: preview then confirm). Funds locked until maturity |
 | `earn_fixed_redeem` | Redeem a fixed-term earn order (full amount) |
@@ -181,7 +182,7 @@ okx-trade-mcp --modules earn.dcd
 
 | 子模块 | 工具数 | 说明 |
 |--------|--------|------|
-| `earn.savings` | 9 | 简单赚币：余额、申购、赎回、出借利率管理、利率历史；定期赚币：订单列表、申购（两步确认）、赎回 |
+| `earn.savings` | 10 | 简单赚币：余额、申购、赎回、出借利率管理、利率历史；定期赚币：产品查询、订单列表、申购（两步确认）、赎回 |
 | `earn.onchain` | 6 | 链上赚币（质押/DeFi）：产品列表、申购、赎回、取消、活跃订单、历史订单 |
 | `earn.dcd` | 6 | 双币赢（Dual Currency Deposit）：币对、产品、原子化申购、两阶段提前赎回、订单历史 |
 
@@ -197,6 +198,7 @@ okx-trade-mcp --modules earn.dcd
 | `earn_set_lending_rate` | 设置出借利率偏好 |
 | `earn_get_lending_history` | 查询个人出借记录（需认证） |
 | `earn_get_lending_rate_history` | 查询简单赚币利率及定期产品——用户询问当前或历史利率时调用此工具（需认证） |
+| `earn_get_fixed_earn_products` | 查询可用定期赚币产品（含年化利率、期限、最低投资额、剩余额度） |
 | `earn_get_fixed_order_list` | 查询定期赚币订单列表（支持按币种/状态过滤） |
 | `earn_fixed_purchase` | 申购定期赚币产品（两步流程：预览后确认）。资金锁定至到期 |
 | `earn_fixed_redeem` | 赎回定期赚币订单（全额赎回） |

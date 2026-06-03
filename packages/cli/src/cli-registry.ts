@@ -635,6 +635,11 @@ export const CLI_REGISTRY: CliRegistry = {
             usage: "okx earn savings rate-history [--ccy <ccy>] [--limit <n>]",
             description: "Query Simple Earn lending rates and fixed-term offers (requires auth)",
           },
+          "fixed-products": {
+            toolName: "earn_get_fixed_earn_products",
+            usage: "okx earn savings fixed-products [--ccy <ccy>]",
+            description: "List available fixed-term earn products with APR, term, and remaining quota",
+          },
           "fixed-orders": {
             toolName: "earn_get_fixed_order_list",
             usage: "okx earn savings fixed-orders [--ccy <ccy>] [--state <pending|earning|expired|settled|cancelled>]",
@@ -647,7 +652,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "fixed-redeem": {
             toolName: "earn_fixed_redeem",
-            usage: "okx earn savings fixed-redeem <reqId>",
+            usage: "okx earn savings fixed-redeem --reqId <reqId>",
             description: "Redeem a fixed-term earn order (full amount)",
           },
         },

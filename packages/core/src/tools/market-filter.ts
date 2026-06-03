@@ -18,6 +18,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_filter",
+      title: "Screen Instruments",
       module: "market",
       description:
         "Screen / rank instruments across SPOT, SWAP, or FUTURES by multi-dimensional criteria: " +
@@ -164,6 +165,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_get_oi_history",
+      title: "Get Open Interest History",
       module: "market",
       description:
         "Get open interest (OI) history time series for a single SWAP or FUTURES instrument. " +
@@ -217,6 +219,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_filter_oi_change",
+      title: "Find Open Interest Change Instruments",
       module: "market",
       description:
         "Find SWAP or FUTURES instruments with significant open interest changes over a given bar window. " +
@@ -301,6 +304,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
     // ─────────────────────────────────────────────────────────────────────────
     {
       name: "market_get_pair_spread",
+      title: "Get Pair Spread",
       module: "market",
       description:
         "Compute spread statistics between two instruments over a lookback window. " +

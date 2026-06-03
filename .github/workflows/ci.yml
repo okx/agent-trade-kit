@@ -2,28 +2,30 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [master]
   pull_request:
     branches: [master]
 
 jobs:
-  # ── unit tests (all branches) ───────────────────────────────────────────────
-  unit-test:
-    name: Unit Test / Node ${{ matrix.node-version }}
+  build-and-test:
+    name: Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: ["20.x", "22.x"]
+        node-version: ["18.x", "20.x"]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
@@ -39,33 +41,3 @@ jobs:
 
       - name: Unit tests
         run: pnpm test:unit
-
-  # ── smoke test (master only, requires secrets) ──────────────────────────────
-  smoke-test:
-    name: Smoke Test (Demo API)
-    runs-on: ubuntu-latest
-    needs: unit-test
-    if: github.ref == 'refs/heads/master'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22.x"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Smoke test (read-only)
-        env:
-          OKX_API_KEY: ${{ secrets.OKX_DEMO_API_KEY }}
-          OKX_SECRET_KEY: ${{ secrets.OKX_DEMO_SECRET_KEY }}
-          OKX_PASSPHRASE: ${{ secrets.OKX_DEMO_PASSPHRASE }}
-          OKX_DEMO: "1"
-        run: node --import tsx/esm scripts/smoke-test/run.ts --read-only

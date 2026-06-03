@@ -1,6 +1,6 @@
 /** A resolved Pilot proxy node returned by the okx-pilot binary. */
 export interface PilotNode {
-  /** Proxy node IP address */
+  /** Proxy node IP address (e.g. "47.242.161.22") */
   ip: string;
   /** Proxy hostname for Host header / TLS SNI */
   host: string;

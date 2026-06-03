@@ -12,6 +12,7 @@ export function registerAutoEarnTools(): ToolSpec[] {
   return [
     {
       name: "earn_auto_set",
+      title: "Set Auto-Earn Configuration",
       module: "earn.autoearn",
       description:
         "Enable or disable auto-earn for a currency. " +
@@ -19,6 +20,7 @@ export function registerAutoEarnTools(): ToolSpec[] {
         "Use account_get_balance first: if autoLendStatus or autoStakingStatus != 'unsupported', use earnType='0'; for USDG/BUIDL use earnType='1'. " +
         "[CAUTION] Cannot disable within 24h of enabling.",
       isWrite: true,
+      idempotentHint: true,
       inputSchema: {
         type: "object",
         properties: {

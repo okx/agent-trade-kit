@@ -1,40 +1,13 @@
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE / Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# AI Assistant
-.cursor/
-.claude/
-CLAUDE.md
-
-# Build output
-dist/
-*.tsbuildinfo
-coverage/
-
-# Dependencies
 node_modules/
-package-lock.json
-
-# Logs
-npm-debug.log*
-
-# Environment / credentials
+dist/
+coverage/
+*.tsbuildinfo
 .env
 .env.local
-
-# Internal / not for open source
-sonar-project.properties
-.gitlab/
-.gitlab-ci.yml
-scripts/smoke-test/report.md
+npm-debug.log*
 _tmp_*
+.cursor/
+.idea/
 scripts/smoke-test/report.md
 packages/*/scripts/postinstall.js
 packages/*/scripts/postinstall-download.js
@@ -48,6 +21,8 @@ aTempFiles/
 *.tgz
 .worktrees/
 memory/
-context-kg/
-docs/designs/internal/
-docs/superpowers/
+.claude/worktrees/
+.tmp/
+__pycache__/
+*.pyc
+skills/okx-sentiment-tracker-workspace/
