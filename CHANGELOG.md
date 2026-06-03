@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.6-beta.4] - 2026-06-03
+
+### Changed
+
+- Version alignment release: bumped to `1.3.6-beta.4` to supersede the stale `v1.3.6-beta.3` tag, which was tagged on a divergent branch and never merged into `master`. There are no code changes since `1.3.6-beta.1`; all features and fixes remain as listed under that entry.
+
+---
+
 ## [1.3.6-beta.1] - 2026-05-22
 
 ### Added
