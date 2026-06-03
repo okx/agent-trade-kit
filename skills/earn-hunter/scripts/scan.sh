@@ -32,6 +32,38 @@
 set -uo pipefail
 
 # ---------------------------------------------------------------------------
+# 0a. Resolve tool paths (cron-safe — macOS cron PATH=/usr/bin:/bin only)
+# ---------------------------------------------------------------------------
+# Source env.snapshot if present (written during activation with known paths).
+_EH_SNAPSHOT="${EH_STATE_DIR:-$HOME/.okx/earn-hunter}/env.snapshot"
+# shellcheck disable=SC1090
+[[ -f "$_EH_SNAPSHOT" ]] && source "$_EH_SNAPSHOT"
+
+_resolve_bin() {
+  local name="$1" snap_var="$2"
+  local snap="${!snap_var:-}"
+  [[ -x "$snap" ]] && { printf '%s' "$snap"; return; }
+  local p
+  for p in \
+    "$(command -v "$name" 2>/dev/null || true)" \
+    /opt/homebrew/bin/"$name" \
+    /usr/local/bin/"$name" \
+    "$HOME/.npm-global/bin/$name" \
+    "${NVM_DIR:-$HOME/.nvm}/current/bin/$name" \
+    /usr/bin/"$name"; do
+    [[ -n "$p" && -x "$p" ]] && { printf '%s' "$p"; return; }
+  done
+  return 1
+}
+
+_OKX_BIN=$(_resolve_bin okx OKX_BIN)  || { echo "[earn-hunter] FATAL: 'okx' not found (PATH=$PATH)" >&2; exit 127; }
+_JQ_BIN=$(_resolve_bin jq JQ_BIN)     || { echo "[earn-hunter] FATAL: 'jq' not found (PATH=$PATH)" >&2; exit 127; }
+_NODE_BIN=$(_resolve_bin node NODE_BIN) || { echo "[earn-hunter] FATAL: 'node' not found (PATH=$PATH)" >&2; exit 127; }
+
+# Inject resolved dirs into PATH so okx's #!/usr/bin/env node shebang works.
+export PATH="$(dirname "$_NODE_BIN"):$(dirname "$_OKX_BIN"):$(dirname "$_JQ_BIN"):${PATH:-/usr/bin:/bin}"
+
+# ---------------------------------------------------------------------------
 # 0. Paths & globals
 # ---------------------------------------------------------------------------
 STATE_DIR="${EH_STATE_DIR:-$HOME/.okx/earn-hunter}"
@@ -153,7 +185,7 @@ fetch_flash() {
     cat "$EH_FLASH_FIXTURE" 2>/dev/null
     return $?
   fi
-  okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn flash-earn projects --status 0,100 --json 2>/dev/null
+  okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn flash-earn projects --status 0,100 --json 2>&1
 }
 
 fetch_fixed() {
@@ -162,12 +194,12 @@ fetch_fixed() {
     return $?
   fi
   local out
-  out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings fixed-products --json 2>/dev/null)
+  out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings fixed-products --json 2>&1)
   local rc=$?
   # Fallback: fixed-products unavailable (CLI <1.3.3) → rate-history.fixedOffers
   if [[ $rc -ne 0 || -z "$out" ]] || ! echo "$out" | jq -e 'type=="array"' >/dev/null 2>&1; then
     local rh
-    rh=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --limit 1 --json 2>/dev/null)
+    rh=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --limit 1 --json 2>&1)
     out=$(echo "$rh" | jq -c '.fixedOffers // []' 2>/dev/null)
     [[ -z "$out" ]] && out="[]"
   fi
@@ -189,7 +221,7 @@ fetch_flexible() {
   while IFS= read -r ccy; do
     [[ -z "$ccy" ]] && continue
     local out
-    out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --ccy "$ccy" --limit 1 --json 2>/dev/null)
+    out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --ccy "$ccy" --limit 1 --json 2>&1)
     if [[ $? -eq 0 ]] && echo "$out" | jq -e '.data[0]' >/dev/null 2>&1; then
       local rate
       rate=$(echo "$out" | jq -r '.data[0].lendingRate // ""' 2>/dev/null)
@@ -348,13 +380,22 @@ record_failure() {
   [[ -n "$tmp" ]] && printf '%s\n' "$tmp" > "$STATE_FILE"
 
   if [[ "$cur" -ge 3 ]]; then
-    local title body
+    local title body err_display
+    if [[ -z "$emsg" ]]; then
+      if [[ "$LANG_SEL" == en ]]; then
+        err_display="(no error captured — likely cron PATH issue, check ~/.okx/earn-hunter/cron.log)"
+      else
+        err_display="（未捕获到错误信息 — 通常是 cron 的 PATH 找不到 okx/node，请查看 ~/.okx/earn-hunter/cron.log）"
+      fi
+    else
+      err_display="$emsg"
+    fi
     if [[ "$LANG_SEL" == en ]]; then
       title="🚨 Earn Hunter · 3 consecutive scan failures"
-      body=$(printf 'The last 3 scans all failed.\n\n🔍 Last error:\n   %s\n\n🛠 Try:\n   1. Check network\n   2. Run `okx auth login`\n   3. Run `okx earn flash-earn projects --json` manually' "$emsg")
+      body=$(printf 'The last 3 scans all failed.\n\n🔍 Last error:\n   %s\n\n🛠 Try:\n   1. Check network\n   2. Run `okx auth login`\n   3. Run `okx earn flash-earn projects --json` manually\n   4. Check cron.log: cat ~/.okx/earn-hunter/cron.log' "$err_display")
     else
       title="🚨 Earn Hunter · 连续 3 轮扫描失败"
-      body=$(printf '最近 3 次扫描均未成功完成。\n\n🔍 最后一次错误：\n   %s\n\n🛠 排查建议：\n   1. 检查网络连接\n   2. 运行 `okx auth login` 确认凭证有效\n   3. 运行 `okx earn flash-earn projects --json` 手动测试 API' "$emsg")
+      body=$(printf '最近 3 次扫描均未成功完成。\n\n🔍 最后一次错误：\n   %s\n\n🛠 排查建议：\n   1. 检查网络连接\n   2. 运行 `okx auth login` 确认凭证有效\n   3. 运行 `okx earn flash-earn projects --json` 手动测试 API\n   4. 检查日志: cat ~/.okx/earn-hunter/cron.log' "$err_display")
     fi
     dispatch "$title" "$body" "red" "error:consecutive_failures"
     # Reset after alerting.
