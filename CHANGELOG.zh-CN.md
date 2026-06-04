@@ -11,6 +11,16 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`okx market filter` 非 `--json` 模式下输出为空**（Bug 1，array-unwrap）。`cmdMarketFilter` 的文本模式路径把 `aigc/mcp` 数组形态的响应当成单个对象处理，导致人类可读表格渲染为空，而 `--json` 正常。现已使用规范的 `(Array.isArray(raw) ? raw[0] : raw)` 模式（与 `cmdMarketOiHistory` 一致）拆包响应，非 `--json` 输出恢复正常。
+- **`okx market indicator` 在结果为空时静默失败**（Bug 2，Plan A）。当某个指标/时间周期组合没有返回任何值时，渲染循环在每个空周期上 `continue` 且不打印任何内容——退出码 0 却无输出。现在循环结束后若未渲染任何内容，CLI 会打印一条明确、可操作的提示（`No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`），不再静默失败。
+
+### 变更
+
+- **`okx market indicator` 在省略 `--params` 时应用默认周期**（Bug 2，Plan B，CLI 层）。对基于周期的指标（如 EMA/MA/WMA/RSI `[14]`、MACD `[12,26,9]`、BB `[20,2]`）省略 `--params` 时，现在会从 `packages/core` 中的默认参数表（单一数据源）应用默认 `paramList`，使 CLI 渲染出数值而非空输出。**这改变了在 CLI 上省略 `--params` 的语义**：之前为空，现在为默认周期值。显式传入 `--params` 仍会覆盖默认值。该变更**仅作用于 CLI 渲染层**——MCP 原始数据路径（`market_filter` / `market_get_indicator`）保持不变。
+- **更正 `market_get_indicator` 的 params 描述**（`indicator.ts:212`）。工具描述之前声称 "Omit to use server defaults"，这对基于周期的指标是错误的（服务端不会应用默认周期）。描述中已删除该不实声明。
+
 ---
 
 ## [1.3.6] - 2026-06-03

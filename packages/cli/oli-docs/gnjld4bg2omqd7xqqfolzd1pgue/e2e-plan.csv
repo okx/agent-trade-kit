@@ -1,0 +1,106 @@
+"No","Test Dimension","Feature Category","Feature Subcategory","Test Case Name","Priority","Description","Preconditions","Test Steps","Expected Results","Remarks","Tags","Result","Actual Result"
+"1","Functional","Market Filter Command","Render (non-json)","Filter SPOT: renders non-empty table from array-shaped response","P0","Verify Bug 1 fix: when the online market-filter API returns the real array-shaped envelope (data=[{rows,total}]), the CLI unwraps data[0] and renders a populated table instead of an empty result.","1. Not logged in - no API credentials required (read-only public market data)
+2. okx CLI built via 'pnpm build'
+3. ToolRunner returns data=[{ total: 3, rows: [{rank:1, instId:'BTC-USDT', last:'50000', chg24hPct:'2.1', volUsd24h:'1000000000', oiUsd:null, sortVal:'1000000000'}, ...] }]","1. Run 'okx market filter SPOT --limit 5'
+2. Observe stdout","1. stdout contains header 'Total: 3'
+2. Table includes column 'instId' with value 'BTC-USDT' and 'last' value '50000'
+3. stdout does NOT contain 'No results'
+4. stdout does NOT contain 'Total: 0'
+5. stderr is empty, exit code 0","Root cause of Bug 1: result object is data[0], not data. Existing unit suite packages/cli/test/market.test.ts cmdMarketFilter uses object-shaped fixture (lines 162-194) and MUST be updated to array shape per spec 7.3.1. Reference unwrap pattern: cmdMarketOiHistory (market.ts:469).","Showcase, E2E Auto","Automated",""
+"2","Functional","Market Filter Command","JSON output (backward compat)","Filter SPOT --json: output structurally unchanged and valid JSON","P0","Verify the --json path of market filter is byte-for-byte unchanged after the Bug 1 fix - it continues to print getData(result) verbatim (backward compatible).","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns a valid market-filter envelope","1. Run 'okx market filter SPOT --limit 5 --json'
+2. Capture stdout and JSON.parse it","1. stdout is valid JSON (parses without error)
+2. Parsed payload equals getData(result) - same structure as before the fix (no array-unwrap applied to the --json branch)
+3. stderr empty, exit code 0","Backward-compat guard (spec 9, success criteria 4). Existing test: market.test.ts cmdMarketFilter 'outputs JSON when json=true'.","Showcase, E2E Auto","Automated",""
+"3","Functional","Market Indicator Command","Plan B default param","Indicator ema (no --params): renders values via default period 14","P0","Verify Bug 2 Plan B happy path: when --params is omitted for a period-based indicator, the CLI substitutes the core-exported default paramList (EMA -> [14]) at the call site, so the server returns values that render normally.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. Online indicators endpoint reachable; with paramList [14] EMA returns one entry with values{'14': '66870.1'}","1. Run 'okx market indicator ema BTC-USDT --bar 1H'
+2. Observe stdout","1. stdout contains header 'BTC-USDT | EMA | 1H'
+2. A separator line of dashes is printed
+3. printKv output contains the EMA value (key '14') e.g. '66870.1'
+4. stdout is non-empty; stderr empty; exit code 0","Plan B applied CLI-layer only at market.ts:274 (replaces empty-params fallback) using core default table (packages/core/src/tools/indicator.ts). MCP raw-data path unchanged. Spec 6 / 8.2.","Showcase, E2E Auto","Automated",""
+"4","Functional","Market Indicator Command","Visible-output guarantee","Indicator ema (no --params): command is never silent","P0","Verify Bug 2 root fix: the indicator command always produces visible output - it never exits silently regardless of indicator/timeframe combination.","1. Not logged in - no API credentials required
+2. okx CLI built","1. Run 'okx market indicator ema BTC-USDT --bar 1H'
+2. Capture full stdout","1. out.join('') is non-empty (some visible line is printed)
+2. No silent failure - exit code 0, stderr empty
+3. Either rendered indicator values (Plan B) OR the Plan A hint line is present","Plan A is the universal safety net (spec 6, 8.2). New render test required per spec 7.3.3 in market.test.ts.","Showcase, E2E Auto","Automated",""
+"5","Integration","Market Filter Command","LLM agent eval probe","Agent invokes okx market filter for top-volume query","P0","Verify the existing trace-based eval probe still passes after the Bug 1 fix - the LLM agent correctly invokes the okx market filter CLI tool for a top-volume instrument query.","1. eval runner container with okx CLI available; credentials assumed configured (probe skips auth check)
+2. Bug 1 fix branch checked out","1. Run eval probe tier2.market-filter with prompt 'Find the top 5 USDT spot instruments by 24h volume'
+2. Inspect captured tool-call trace","1. findToolCall matches command pattern ['okx','market','filter'] or ['okx','market','tickers']
+2. Probe status = 'pass' (trace-based; upstream 401/auth not counted)","Existing probe: eval/probes/market/tier2-market-filter.live.test.ts - MUST be re-confirmed (spec 9 Eval probe). Do not duplicate; reuse this file.","Showcase, E2E Auto","Automated",""
+"6","Integration","Market Indicator Command","LLM agent eval probe","Agent invokes okx market indicator and omit-params yields values","P0","Verify the new required eval probe: the LLM agent invokes okx market indicator, and the omit---params path now yields values (Plan B changes tool behavior, so CI eval-probe-check requires this probe).","1. eval runner container with okx CLI available; credentials assumed configured
+2. Plan B fix branch checked out","1. Run new eval probe tier2.market-get-indicator with a prompt asking for an EMA indicator on BTC-USDT 1H
+2. Inspect captured tool-call trace","1. findToolCall matches command pattern ['okx','market','indicator']
+2. The invoked command omits --params yet the run yields indicator values
+3. Probe status = 'pass'","NEW probe required: eval/probes/market/tier2-market-get-indicator.live.test.ts (spec 9 / TBC[4]). Follow trace-based pattern of tier2-market-filter.live.test.ts. CI gate 'eval-probe-check' enforces presence.","Showcase, E2E Auto","Automated",""
+"7","Functional","Market Filter Command","SWAP column","Filter SWAP: renders fundingRate column","P1","Verify the SWAP instType render path includes the fundingRate column (SWAP-only) alongside the standard columns after the array-unwrap fix.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns data=[{ total:1, rows:[{rank:1, instId:'BTC-USDT-SWAP', last:'50000', chg24hPct:'1.5', volUsd24h:'5000000000', oiUsd:'2000000000', fundingRate:'0.0001', sortVal:'2000000000'}] }]","1. Run 'okx market filter SWAP --limit 5'
+2. Observe stdout","1. Table contains instId 'BTC-USDT-SWAP'
+2. fundingRate column present with value '0.0001'
+3. Total header shows 'Total: 1'
+4. stderr empty, exit code 0","fundingRate column logic at market.ts:442 (SWAP only). Existing test: market.test.ts 'outputs table with fundingRate column for SWAP' (fixture must move to array shape).","E2E Auto","Automated",""
+"8","Functional","Market Filter Command","Empty result","Filter: shows 'No results' only when API genuinely returns zero rows","P1","Verify the 'No results' fallback still fires correctly - but now only when the unwrapped payload genuinely has zero rows, not because of the array-unwrap bug.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns data=[{ total:0, rows:[] }]","1. Run 'okx market filter SPOT'
+2. Observe stdout","1. stdout contains 'No results'
+2. No table rows printed
+3. stderr empty, exit code 0","Spec 8.1: 'No results' (market.ts:430) retained. Existing test: market.test.ts 'outputs No results when rows are empty' (fixture must move to array shape).","E2E Auto","Automated",""
+"9","Functional","Market Indicator Command","Param routing (Plan B)","Indicator ema (no --params): CLI sends default paramList to tool","P1","Verify Plan B routing at the CLI layer: when --params is omitted, the ToolRunner receives the default paramList from the core table (EMA -> [14]), confirming defaults are applied CLI-side (MCP/core param-assembly untouched).","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner is spied to capture the params passed to market_get_indicator","1. Run 'okx market indicator ema BTC-USDT --bar 1H'
+2. Inspect the captured ToolRunner call arguments","1. ToolRunner called with tool 'market_get_indicator'
+2. Captured params (paramList) equals [14] - sourced from the core default table via named-flag routing, not positional rest[N]
+3. The empty-params fallback (params -> undefined) is no longer taken","Spec 7.3.4 routing test; route via v.xxx / named-flag per repo CLI Parameter Routing Tests rule (CLAUDE.md). Core default table lives in packages/core/src/tools/indicator.ts, applied at market.ts:274.","E2E Auto","Automated",""
+"10","Functional","Market Indicator Command","Param override","Indicator ema --params 2: explicit param overrides default","P1","Verify explicit --params always wins over the Plan B default - supplying --params 2 sends [2] (not the default [14]) and renders the corresponding value, with no regression.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner spied; with paramList [2] EMA returns values{'2': '66870.1'}","1. Run 'okx market indicator ema BTC-USDT --bar 1H --params 2'
+2. Inspect captured ToolRunner args and stdout","1. ToolRunner receives paramList [2] (NOT [14])
+2. stdout header 'BTC-USDT | EMA | 1H'
+3. printKv output contains value keyed '2'
+4. stderr empty, exit code 0","Spec 7.3.4 / 6: explicit --params wins. Success criteria 3 (no regression).","E2E Auto","Automated",""
+"11","Functional","Market Indicator Command","Plan A hint","Indicator with no values: prints actionable hint, not silence","P1","Verify the Plan A hint fires for the residual genuinely-empty case (non-period indicator, or a period indicator with no default entry) - an explicit, actionable message is printed instead of silence.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns timeframes present but indicators.<CODE> = [] for all timeframes (no values)","1. Run 'okx market indicator <indicator-with-no-default> BTC-USDT --bar 1H'
+2. Capture full stdout","1. stdout contains the exact hint copy: No indicator values returned. This indicator may require a period - try --params (e.g. --params 14).
+2. Hint printed once after the render loop via outputLine
+3. out.join('') non-empty; stderr empty; exit code 0","Plan A copy is verbatim per spec 8.2 / TBC[3]. New empty-result render test required per spec 7.3.3.","E2E Auto","Automated",""
+"12","Functional","Market Indicator Command","Plan B default (MACD)","Indicator macd (no --params): renders values via default [12,26,9]","P1","Verify the MACD multi-value default paramList is applied when --params is omitted, producing rendered MACD values.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner spied; with paramList [12,26,9] MACD returns values","1. Run 'okx market indicator macd BTC-USDT --bar 1H'
+2. Inspect captured args and stdout","1. ToolRunner receives paramList [12,26,9]
+2. stdout header 'BTC-USDT | MACD | 1H' with rendered values
+3. stderr empty, exit code 0","Default values per spec 7.2 table (PRD example, authoritative).","E2E Auto","Automated",""
+"13","Functional","Market Indicator Command","Plan B default (BB)","Indicator bb (no --params): renders values via default [20,2]","P1","Verify the Bollinger Bands default paramList [20,2] is applied when --params is omitted.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner spied; with paramList [20,2] BB returns values","1. Run 'okx market indicator bb BTC-USDT --bar 1H'
+2. Inspect captured args and stdout","1. ToolRunner receives paramList [20,2]
+2. stdout header 'BTC-USDT | BB | 1H' with rendered values
+3. stderr empty, exit code 0","Default values per spec 7.2 table (PRD example, authoritative).","E2E Auto","Automated",""
+"14","Functional","Market Indicator Command","List mode","Indicator ema --list: renders multi-row values table","P1","Verify the --list flag renders the full series of indicator entries as a table (printTable) rather than only the latest value (printKv).","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns multiple EMA entries with ts + values","1. Run 'okx market indicator ema BTC-USDT --bar 1H --list'
+2. Observe stdout","1. stdout header 'BTC-USDT | EMA | 1H'
+2. Table contains a 'ts' column plus value column(s), one row per entry
+3. stderr empty, exit code 0","Render branch at market.ts:305-310 (opts.list -> printTable).","E2E Auto","Automated",""
+"15","Functional","Market Indicator Command","JSON output","Indicator ema --json: outputs valid JSON envelope","P1","Verify the --json path prints the raw outer-array envelope as valid JSON (printJson), unaffected by the Plan A/Plan B render changes.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns a valid indicators envelope","1. Run 'okx market indicator ema BTC-USDT --bar 1H --json'
+2. JSON.parse stdout","1. stdout is valid parseable JSON (the outer array)
+2. stderr empty, exit code 0","--json branch at market.ts:282 (printJson). Backward compatible.","E2E Auto","Automated",""
+"16","Functional","Market Indicator Command","No data fallback","Indicator: shows 'No data' when response envelope is empty","P2","Verify the existing 'No data' fallback still fires when the outer response array is empty (no indicator data at all).","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns an empty outer array (getData -> [])","1. Run 'okx market indicator ema BTC-USDT --bar 1H'
+2. Observe stdout","1. stdout contains 'No data'
+2. No render loop output; stderr empty; exit code 0","Fallback at market.ts:284. Distinct from Plan A hint (which fires when timeframes exist but values are empty).","E2E Auto","Automated",""
+"17","Functional","Market Indicator Command","Raw JSON dump fallback","Indicator: dumps raw JSON when timeframes are absent","P2","Verify the existing raw-JSON-dump fallback still fires when the response has an outer array but no timeframes map - the CLI prints the raw envelope rather than rendering an empty table.","1. Not logged in - no API credentials required
+2. okx CLI built
+3. ToolRunner returns outerArray[0] with no 'timeframes' key","1. Run 'okx market indicator ema BTC-USDT --bar 1H'
+2. Observe stdout","1. stdout contains a pretty-printed JSON dump of the outer array
+2. out.join('') is non-empty; stderr empty; exit code 0","Fallback at market.ts:292-294. Confirms 'never silent' holds even in this branch.","E2E Auto","Automated",""
+"18","Integration","Market Indicator Command","MCP raw-data contract","MCP path unchanged: omit-params still returns empty from core tool","P2","Verify the MANDATORY 'MCP behavior unchanged' rule: the core tool param-assembly (indicator.ts:244) is NOT modified, so the raw market_get_indicator data returned to the LLM for an omitted paramList stays byte-identical (empty array) - the Plan B default is applied only at the CLI layer.","1. Not logged in - no API credentials required
+2. Core/MCP package built","1. Invoke the core market_get_indicator tool directly (MCP path) for a period indicator with no paramList
+2. Inspect the raw data returned","1. Raw response is unchanged vs. pre-fix: indicators.<CODE> = [] (server does not default)
+2. No CLI default-param substitution occurs on the MCP path
+3. Confirms defaults are CLI-render-only (spec 5.3 / 7.2)","Guards spec 9 'MCP behavior unchanged'. Verified at core/MCP tool level, not via the CLI command. indicator.ts:212 description corrected to drop the false 'Omit to use server defaults' claim.","E2E Auto","Automated",""

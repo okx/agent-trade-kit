@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`okx market filter` empty output in non-`--json` mode** (Bug 1, array-unwrap). The `cmdMarketFilter` text-mode path treated the `aigc/mcp` array-shaped response as a single object, so the human-readable table rendered nothing while `--json` worked. Now unwraps the response with the canonical `(Array.isArray(raw) ? raw[0] : raw)` pattern (matching `cmdMarketOiHistory`), so non-`--json` output is populated.
+- **`okx market indicator` silent failure on empty results** (Bug 2, Plan A). When an indicator/timeframe combination returned no values, the render loop `continue`d on every empty timeframe and printed nothing — exit 0 with no output. The CLI now prints an explicit, actionable hint after the loop when nothing was rendered (`No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`) instead of failing silently.
+
+### Changed
+
+- **`okx market indicator` applies a default period when `--params` is omitted** (Bug 2, Plan B, CLI layer). Omitting `--params` for a period-based indicator (e.g. EMA/MA/WMA/RSI `[14]`, MACD `[12,26,9]`, BB `[20,2]`) now applies a default `paramList` from a table in `packages/core` (single source of truth) so the CLI renders values instead of empty output. **This changes the meaning of omitting `--params` on the CLI**: previously empty, now default-period values. An explicit `--params` still overrides the default. The change is applied **at the CLI render layer only** — the MCP raw-data path (`market_filter` / `market_get_indicator`) is unchanged.
+- **Corrected `market_get_indicator` params description** (`indicator.ts:212`). The tool description previously claimed "Omit to use server defaults", which is factually wrong for period-based indicators (the server does not apply default periods). The description no longer makes that false claim.
+
 ---
 
 ## [1.3.6] - 2026-06-03
