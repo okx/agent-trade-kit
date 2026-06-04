@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.7] - 2026-06-04
+
+Skills-only stable release: the `packages/core·cli·mcp` code is unchanged from `1.3.6`; the `@okx_ai/okx-trade-cli@1.3.7` package is a version-only bump. All functional changes are in the earn-hunter skill.
+
 ### Added
 
 - **earn-hunter: Flexible Earn (活期赚币) monitoring** — monitors Simple Earn flexible lending rates for configured currencies (default USDT/USDC). Notifies when APY crosses above threshold (default 8%). Uses threshold-crossing dedup model: one notification per above-threshold period, resets when rate drops below. Activation flow updated to three-way multi-select (Flash/Fixed/Flexible) with independent currency and APY config per type.
@@ -24,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **earn-hunter: CTA hardcoded "Claude Code"** — notification CTA now adapts to channel: session uses interactive CTA ("回复申购金额"), TG/Lark uses generic push CTA without client-specific branding.
 - **earn-hunter: flexible diff cleanup test namespace immunity** — removed incorrect `test:` key immunity from flexible cleanup (threshold-crossing semantics differ from flash/fixed offer-existence semantics).
 - **earn-hunter: notification channel silently defaulted to session** — activation now always asks user to choose notification channel. Choosing session shows explicit warning about offline blindness.
+
+### Changed
+
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version synced to `1.3.7` per the stable-release skill version sync policy.
 
 ---
 

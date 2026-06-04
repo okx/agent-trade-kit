@@ -11,6 +11,12 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.7] - 2026-06-04
+
+纯 skill 发布：`packages/core·cli·mcp` 代码与 `1.3.6` 完全一致，`@okx_ai/okx-trade-cli@1.3.7` 仅为版本号 bump。所有功能改动都在 earn-hunter skill。
+
 ### 新增
 
 - **earn-hunter: 活期赚币（Flexible Earn）监控** —— 监控 Simple Earn 活期借贷利率（默认 USDT/USDC）。当 APY 超过阈值（默认 8%）时推送通知。使用阈值穿越去重模型：每个"高收益期"只通知一次，rate 降到阈值以下后 state 重置，下次回升再通知。激活流程改为三选多选（Flash/Fixed/Flexible），活期有独立的币种和 APY 配置。
@@ -24,6 +30,10 @@
 - **earn-hunter: CTA 硬编码 "Claude Code"** —— 通知 CTA 现在根据渠道自适应：session 用交互式文案（"回复申购金额"），TG/Lark 用通用推送文案，不再写死客户端名称。
 - **earn-hunter: 活期 diff cleanup 的 test namespace 豁免错误** —— 移除活期 cleanup 中错误的 `test:` key 豁免（阈值穿越语义不同于 flash/fixed 的 offer 存在性语义）。
 - **earn-hunter: 通知渠道静默默认 session** —— 激活时现在必须让用户选择通知渠道。选择 session 会给出明确警告"离线收不到通知"。
+
+### 变更
+
+- 所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本同步至 `1.3.7`，遵循稳定版 skill 版本同步策略。
 
 ---
 
