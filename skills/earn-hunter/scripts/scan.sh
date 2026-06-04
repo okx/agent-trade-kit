@@ -180,14 +180,30 @@ t() {
 }
 
 # ---------------------------------------------------------------------------
-# 2. CLI calls (fixture-aware)
+# 2. CLI calls (fixture-aware, with retry for transient server errors)
 # ---------------------------------------------------------------------------
+# Retry wrapper: run a command up to 3 times with 3s delay on transient errors.
+# Usage: retry_cmd okx ... --json
+# Returns the output of the last attempt.
+retry_cmd() {
+  local attempt out
+  for attempt in 1 2 3; do
+    out=$("$@" 2>&1)
+    if echo "$out" | jq -e 'type=="array" or .data' >/dev/null 2>&1; then
+      printf '%s' "$out"; return 0
+    fi
+    # Auth errors are not transient — bail immediately.
+    if is_auth_error "$out"; then printf '%s' "$out"; return 1; fi
+    [[ "$attempt" -lt 3 ]] && sleep 3
+  done
+  printf '%s' "$out"; return 1
+}
 fetch_flash() {
   if [[ -n "${EH_FLASH_FIXTURE:-}" ]]; then
     cat "$EH_FLASH_FIXTURE" 2>/dev/null
     return $?
   fi
-  okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn flash-earn projects --status 0,100 --json 2>&1
+  retry_cmd okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn flash-earn projects --status 0,100 --json
 }
 
 fetch_fixed() {
@@ -196,12 +212,12 @@ fetch_fixed() {
     return $?
   fi
   local out
-  out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings fixed-products --json 2>&1)
+  out=$(retry_cmd okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings fixed-products --json)
   local rc=$?
   # Fallback: fixed-products unavailable (CLI <1.3.3) → rate-history.fixedOffers
   if [[ $rc -ne 0 || -z "$out" ]] || ! echo "$out" | jq -e 'type=="array"' >/dev/null 2>&1; then
     local rh
-    rh=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --limit 1 --json 2>&1)
+    rh=$(retry_cmd okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --limit 1 --json)
     out=$(echo "$rh" | jq -c '.fixedOffers // []' 2>/dev/null)
     [[ -z "$out" ]] && out="[]"
   fi
@@ -223,7 +239,7 @@ fetch_flexible() {
   while IFS= read -r ccy; do
     [[ -z "$ccy" ]] && continue
     local out
-    out=$(okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --ccy "$ccy" --limit 1 --json 2>&1)
+    out=$(retry_cmd okx "${PROFILE_ARGS[@]+"${PROFILE_ARGS[@]}"}" earn savings rate-history --ccy "$ccy" --limit 1 --json)
     if [[ $? -eq 0 ]] && echo "$out" | jq -e '.data[0]' >/dev/null 2>&1; then
       local rate
       rate=$(echo "$out" | jq -r '.data[0].lendingRate // ""' 2>/dev/null)
