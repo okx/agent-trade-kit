@@ -186,17 +186,22 @@ t() {
 # Usage: retry_cmd okx ... --json
 # Returns the output of the last attempt.
 retry_cmd() {
-  local attempt out
+  local attempt out _ef _stderr
+  _ef=$(mktemp "${TMPDIR:-/tmp}/eh-stderr.XXXXXX")
   for attempt in 1 2 3; do
-    out=$("$@" 2>&1)
+    out=$("$@" 2>"$_ef")
+    # stdout is clean (no node warnings); check if valid JSON.
     if echo "$out" | jq -e 'type=="array" or .data' >/dev/null 2>&1; then
-      printf '%s' "$out"; return 0
+      rm -f "$_ef"; printf '%s' "$out"; return 0
     fi
     # Auth errors are not transient — bail immediately.
-    if is_auth_error "$out"; then printf '%s' "$out"; return 1; fi
+    _stderr=$(cat "$_ef" 2>/dev/null)
+    if is_auth_error "$out $_stderr"; then rm -f "$_ef"; printf '%s' "$out $_stderr"; return 1; fi
     [[ "$attempt" -lt 3 ]] && sleep 3
   done
-  printf '%s' "$out"; return 1
+  _stderr=$(cat "$_ef" 2>/dev/null)
+  rm -f "$_ef"
+  printf '%s' "${out:+$out }$_stderr"; return 1
 }
 fetch_flash() {
   if [[ -n "${EH_FLASH_FIXTURE:-}" ]]; then
