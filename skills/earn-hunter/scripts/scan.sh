@@ -450,9 +450,13 @@ FLEX_CCY_OVERRIDES=$(cfg_json '.flexible.currencyOverrides' '{}')
 # ---- Step 2: fetch raw data ----
 FLASH_RAW="[]"
 FIXED_RAW="[]"
+FLEX_RAW="[]"
 SCAN_ERR=""
+FEEDS_ENABLED=0
+FEEDS_FAILED=0
 
 if [[ "$FLASH_ENABLED" == "true" ]]; then
+  FEEDS_ENABLED=$((FEEDS_ENABLED+1))
   FLASH_RAW=$(fetch_flash)
   if ! echo "$FLASH_RAW" | jq -e 'type=="array"' >/dev/null 2>&1; then
     if is_auth_error "$FLASH_RAW"; then
@@ -460,10 +464,12 @@ if [[ "$FLASH_ENABLED" == "true" ]]; then
     fi
     SCAN_ERR="flash fetch failed: $(printf '%s' "$FLASH_RAW" | head -c 120)"
     FLASH_RAW="[]"
+    FEEDS_FAILED=$((FEEDS_FAILED+1))
   fi
 fi
 
 if [[ "$FIXED_ENABLED" == "true" ]]; then
+  FEEDS_ENABLED=$((FEEDS_ENABLED+1))
   FIXED_RAW=$(fetch_fixed)
   if ! echo "$FIXED_RAW" | jq -e 'type=="array"' >/dev/null 2>&1; then
     if is_auth_error "$FIXED_RAW"; then
@@ -471,11 +477,12 @@ if [[ "$FIXED_ENABLED" == "true" ]]; then
     fi
     SCAN_ERR="${SCAN_ERR:+$SCAN_ERR; }fixed fetch failed: $(printf '%s' "$FIXED_RAW" | head -c 120)"
     FIXED_RAW="[]"
+    FEEDS_FAILED=$((FEEDS_FAILED+1))
   fi
 fi
 
-FLEX_RAW="[]"
 if [[ "$FLEX_ENABLED" == "true" ]]; then
+  FEEDS_ENABLED=$((FEEDS_ENABLED+1))
   FLEX_RAW=$(fetch_flexible)
   if ! echo "$FLEX_RAW" | jq -e 'type=="array"' >/dev/null 2>&1; then
     if is_auth_error "$FLEX_RAW"; then
@@ -483,11 +490,13 @@ if [[ "$FLEX_ENABLED" == "true" ]]; then
     fi
     SCAN_ERR="${SCAN_ERR:+$SCAN_ERR; }flexible fetch failed: $(printf '%s' "$FLEX_RAW" | head -c 120)"
     FLEX_RAW="[]"
+    FEEDS_FAILED=$((FEEDS_FAILED+1))
   fi
 fi
 
-# If all enabled feeds errored → count as scan failure.
-if [[ -n "$SCAN_ERR" ]]; then
+# Only count as scan failure if ALL enabled feeds failed.
+# Partial failure → continue with the feeds that succeeded.
+if [[ "$FEEDS_FAILED" -gt 0 && "$FEEDS_FAILED" -ge "$FEEDS_ENABLED" ]]; then
   record_failure "$SCAN_ERR"
   exit 0
 fi
