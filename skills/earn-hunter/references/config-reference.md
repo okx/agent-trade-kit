@@ -25,7 +25,7 @@
 | `fixed.terms` | string \| string[] | `"all"` | 期限筛选。`"all"` = 全部；`["7D", "30D"]` = 仅指定期限 |
 | `flexible.enabled` | boolean | `true` | 是否扫描 Flexible Earn（活期赚币） |
 | `flexible.globalMinApy` | number | `0.08` | 活期全局最低 APY 阈值（小数形式，`0.08` = 8%） |
-| `flexible.currencies` | string[] | `["USDT","USDC"]` | 活期监控币种列表。需逐币种调用 API，建议精简。`"all"` 回退为默认列表 |
+| `flexible.currencies` | string[] \| `"all"` | `["USDT","USDC"]` | 活期监控币种列表。需逐币种调用 API，建议精简。`"all"` 或 `[]` 回退为默认列表 `["USDT","USDC"]` |
 | `flexible.currencyOverrides` | object | `{}` | 活期分币种阈值覆盖。格式 `{"USDC": {"minApy": 0.06}}`（= 6%），优先于 globalMinApy |
 
 ### Monitor Scope

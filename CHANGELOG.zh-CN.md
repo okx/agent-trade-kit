@@ -11,6 +11,20 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **earn-hunter: 活期赚币（Flexible Earn）监控** —— 监控 Simple Earn 活期借贷利率（默认 USDT/USDC）。当 APY 超过阈值（默认 8%）时推送通知。使用阈值穿越去重模型：每个"高收益期"只通知一次，rate 降到阈值以下后 state 重置，下次回升再通知。激活流程改为三选多选（Flash/Fixed/Flexible），活期有独立的币种和 APY 配置。
+- **earn-hunter: macOS LaunchAgent 自动降级** —— macOS cron daemon（`com.vix.cron`）未运行时，激活流程自动降级为 LaunchAgent（`~/Library/LaunchAgents/com.okx.earn-hunter.plist`）。无需 sudo，重启自动恢复。Pause/Resume/Uninstall 同步支持 `launchagent` 调度类型。
+
+### 修复
+
+- **earn-hunter: cron PATH 问题 + stderr 被吞** —— macOS cron 仅有 `PATH=/usr/bin:/bin`，找不到 node/okx。新增 `resolve_bin` + `env.snapshot` 工具路径解析；激活时写入 `env.snapshot` 记录绝对路径。`2>/dev/null` 改为 stderr 分离到临时文件，node 的 `[UNDICI-EHPA] Warning` 不再污染 JSON 输出。空 `last_error` 告警现在提示"可能是 cron PATH 问题"。
+- **earn-hunter: 单个 feed 失败导致整个扫描中断** —— flash 返回 OKX Code 8116（系统错误）时，fixed 和 flexible 也跟着不执行。现在继续处理成功的 feed；仅所有启用的 feed 全部失败才计入 3 连败告警。
+- **earn-hunter: 服务端瞬时错误重试** —— `retry_cmd` 对 Code 8116 等瞬时错误重试 3 次（间隔 3s）。401 认证错误不重试，直接告警。
+- **earn-hunter: CTA 硬编码 "Claude Code"** —— 通知 CTA 现在根据渠道自适应：session 用交互式文案（"回复申购金额"），TG/Lark 用通用推送文案，不再写死客户端名称。
+- **earn-hunter: 活期 diff cleanup 的 test namespace 豁免错误** —— 移除活期 cleanup 中错误的 `test:` key 豁免（阈值穿越语义不同于 flash/fixed 的 offer 存在性语义）。
+- **earn-hunter: 通知渠道静默默认 session** —— 激活时现在必须让用户选择通知渠道。选择 session 会给出明确警告"离线收不到通知"。
+
 ---
 
 ## [1.3.6-beta.1] - 2026-05-22

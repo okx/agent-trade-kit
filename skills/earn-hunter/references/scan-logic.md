@@ -186,10 +186,11 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
 **Flexible: 基于阈值穿越清理**：
 1. 收集本轮 `flex_filtered`（已过 APY 阈值过滤）中所有币种 key `<ccy>`
 2. 遍历 `state.flexible` 中所有 key
-3. 如果 key 不在本轮 current_flex_keys 中 → 删除（说明 rate 已低于阈值）
+3. 如果 key（去掉 `test:` 前缀后）不在本轮 current_flex_keys 中 → 删除（说明 rate 已低于阈值）
 4. 效果：rate 低于阈值时移除 state，下次 rate 回升时可重新触发通知
+5. **注意：flexible 的 `test:` key 也参与 diff 清理**（不同于 flash/fixed 的豁免），因为 flexible 的清理语义是"利率是否仍在阈值以上"，测试 fixture 的利率数据同样应参与此判断
 
-**Test namespace immunity**: `test:` 前缀的 key 不参与 diff 清理（Test Mode 写入的 key 只受 TTL 清理影响）。
+**Test namespace immunity (flash/fixed only)**: flash 和 fixed 的 `test:` 前缀 key 不参与 diff 清理（Test Mode 写入的 key 只受 TTL 清理影响），因为测试 fixture 的 ID/offer 不在真实 API 返回中，会被误删。Flexible 不适用此规则。
 
 ### Step 2: TTL 清理（过期兜底）
 
@@ -290,8 +291,9 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
    # Use FILTERED results (after APY threshold filter) — only currencies still above threshold
    current_flex_keys = [p.ccy for each in flex_filtered]
    For each key in state.flexible:
-     If key not in current_flex_keys → delete state.flexible[key]
-   Skip any key starting with "test:" (Test Mode immunity)
+     Strip "test:" prefix if present, then check against current_flex_keys
+     If stripped key not in current_flex_keys → delete state.flexible[key]
+   # NOTE: test: keys are NOT immune here (unlike flash/fixed) — see State Cleanup section
 
    # 6d. TTL cleanup: remove entries older than 7 days
    For each key in state.flash:

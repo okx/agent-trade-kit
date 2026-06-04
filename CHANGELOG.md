@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **earn-hunter: Flexible Earn (活期赚币) monitoring** — monitors Simple Earn flexible lending rates for configured currencies (default USDT/USDC). Notifies when APY crosses above threshold (default 8%). Uses threshold-crossing dedup model: one notification per above-threshold period, resets when rate drops below. Activation flow updated to three-way multi-select (Flash/Fixed/Flexible) with independent currency and APY config per type.
+- **earn-hunter: macOS LaunchAgent fallback** — when macOS cron daemon (`com.vix.cron`) is not running, activation auto-falls back to a LaunchAgent plist (`~/Library/LaunchAgents/com.okx.earn-hunter.plist`). No sudo required, survives reboot. Pause/Resume/Uninstall support `launchagent` scheduler type.
+
+### Fixed
+
+- **earn-hunter: cron PATH issue + stderr swallowed** — macOS cron runs with `PATH=/usr/bin:/bin`, unable to find node/okx. Added `resolve_bin` + `env.snapshot` for tool path resolution; activation writes `env.snapshot` with absolute paths. `2>/dev/null` replaced with stderr-to-tempfile separation so node's `[UNDICI-EHPA] Warning` no longer pollutes JSON output. Empty `last_error` alerts now show "likely cron PATH issue" guidance.
+- **earn-hunter: single feed failure aborted entire scan** — if flash returned OKX Code 8116 (system error), fixed and flexible feeds were never processed. Now continues with whichever feeds succeeded; only counts as scan failure when ALL enabled feeds fail.
+- **earn-hunter: transient server error retry** — `retry_cmd` retries up to 3 times (3s interval) for transient errors like Code 8116. Auth errors (401) bail immediately.
+- **earn-hunter: CTA hardcoded "Claude Code"** — notification CTA now adapts to channel: session uses interactive CTA ("回复申购金额"), TG/Lark uses generic push CTA without client-specific branding.
+- **earn-hunter: flexible diff cleanup test namespace immunity** — removed incorrect `test:` key immunity from flexible cleanup (threshold-crossing semantics differ from flash/fixed offer-existence semantics).
+- **earn-hunter: notification channel silently defaulted to session** — activation now always asks user to choose notification channel. Choosing session shows explicit warning about offline blindness.
+
 ---
 
 ## [1.3.6-beta.1] - 2026-05-22

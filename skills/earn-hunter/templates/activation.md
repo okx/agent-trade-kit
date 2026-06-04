@@ -12,8 +12,8 @@ Render in **user's language**. Brand/token names are never translated.
 📋 监控配置
    扫描时间：{scan_time}
    扫描品种：{scan_scope}
-   定期 — 币种：{currencies}，APY：{min_apy_display}，期限：{terms}
-   活期 — 币种：{flex_currencies}，APY：{flex_min_apy_display}
+   定期 — 币种：{currencies}，阈值：{min_apy_display}，期限：{terms}
+   活期 — 币种：{flex_currencies}，阈值：{flex_min_apy_display}
    模式：实盘
 
 🔍 首次扫描结果
@@ -72,8 +72,8 @@ Earn Hunter, Flash Earn, Fixed Earn, Simple Earn, APR, APY, OKX — brand/financ
 📋 监控配置
    扫描时间：2026-05-20T14:30:00+08:00
    扫描品种：Flash Earn + Fixed Earn + Flexible Earn
-   定期 — 币种：USDT, USDC，APY：APR ≥ 3.00%，期限：7D, 14D, 30D
-   活期 — 币种：USDT, USDC，APY：APY ≥ 8.00%
+   定期 — 币种：USDT, USDC，阈值：APR ≥ 3.00%，期限：7D, 14D, 30D
+   活期 — 币种：USDT, USDC，阈值：APY ≥ 8.00%
    模式：实盘
 
 🔍 首次扫描结果
