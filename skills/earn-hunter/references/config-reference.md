@@ -23,6 +23,10 @@
 | `fixed.globalMinApy` | number | `0` | 全局最低 APY 阈值（小数形式，如 `0.05` = 5%）。`0` = 不过滤 |
 | `fixed.currencyOverrides` | object | `{}` | 分币种阈值覆盖。格式 `{"USDT": {"minApy": 0.08}}`（= 8%），优先于 globalMinApy |
 | `fixed.terms` | string \| string[] | `"all"` | 期限筛选。`"all"` = 全部；`["7D", "30D"]` = 仅指定期限 |
+| `flexible.enabled` | boolean | `true` | 是否扫描 Flexible Earn（活期赚币） |
+| `flexible.globalMinApy` | number | `0.08` | 活期全局最低 APY 阈值（小数形式，`0.08` = 8%） |
+| `flexible.currencies` | string[] \| `"all"` | `["USDT","USDC"]` | 活期监控币种列表。需逐币种调用 API，建议精简。`"all"` 或 `[]` 回退为默认列表 `["USDT","USDC"]` |
+| `flexible.currencyOverrides` | object | `{}` | 活期分币种阈值覆盖。格式 `{"USDC": {"minApy": 0.06}}`（= 6%），优先于 globalMinApy |
 
 ### Monitor Scope
 
@@ -64,14 +68,14 @@ Common mappings:
 
 ## Platform Config (`platform.json`)
 
-Initialized from `{baseDir}/config/<platform>.default.json` during platform detection. `scheduler.type` is `"openclaw-cron"` on OpenClaw (in-session `cron` tool + `announce` delivery), `"cron"` on Claude Code / Hermes (OS crontab), and `"manual"` on Generic (no automatic scheduler — user triggers scans by hand).
+Initialized from `{baseDir}/config/<platform>.default.json` during platform detection. `scheduler.type` is `"openclaw-cron"` on OpenClaw (in-session `cron` tool + `announce` delivery), `"cron"` on Claude Code / Hermes (OS crontab), `"launchagent"` on macOS when cron daemon is not running (fallback to LaunchAgent), and `"manual"` on Generic (no automatic scheduler — user triggers scans by hand).
 
 ### Common Fields (all platforms)
 
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `platform` | string | varies | 平台标识（`"openclaw"` / `"claude-code"` / `"hermes"` / `"generic"`） |
-| `scheduler.type` | string | varies | 调度方式：`"openclaw-cron"`（OpenClaw 会话内 cron 工具 + announce）/ `"cron"`（其它平台 OS crontab）/ `"manual"`（Generic） |
+| `scheduler.type` | string | varies | 调度方式：`"openclaw-cron"`（OpenClaw 会话内 cron 工具 + announce）/ `"cron"`（OS crontab）/ `"launchagent"`（macOS LaunchAgent，cron daemon 不可用时自动 fallback）/ `"manual"`（Generic） |
 | `scheduler.interval` | string | `"1h"` | 扫描间隔 |
 | `notify.channel` | string | varies | 通知渠道：`"auto"` / `"telegram"` / `"lark"` / `"session"`（OpenClaw 默认 `"session"`，经 announce 投递回会话） |
 
@@ -91,8 +95,12 @@ Initialized from `{baseDir}/config/<platform>.default.json` during platform dete
 | "只监控 USDT 和 USDC" | Set `.currencies` to `["USDT","USDC"]` | config.json |
 | "APY 低于 3% 不通知" | Set `.fixed.globalMinApy` to `0.03` | config.json |
 | "USDT 要 5% 以上才通知" | Set `.fixed.currencyOverrides` to `{"USDT":{"minApy":0.05}}` | config.json |
-| "只看闪赚" | Set `.fixed.enabled` to `false` | config.json |
+| "只看闪赚" | Set `.fixed.enabled` and `.flexible.enabled` to `false` | config.json |
+| "只看活期" | Set `.flash.enabled` and `.fixed.enabled` to `false` | config.json |
 | "只看 7 天和 30 天" | Set `.fixed.terms` to `["7D","30D"]` | config.json |
+| "活期加上 BTC" | Append `"BTC"` to `.flexible.currencies` array | config.json |
+| "活期 APY 改成 10%" | Set `.flexible.globalMinApy` to `0.10` | config.json |
+| "USDC 活期 6% 就通知" | Set `.flexible.currencyOverrides` to `{"USDC":{"minApy":0.06}}` | config.json |
 | "没命中也告诉我" | Set `.verboseLog` to `true` | config.json |
 | "用飞书通知我" | Set `.notify.channel` to `"lark"` + ask webhook URL | platform.json |
 | "用 Telegram 通知" | Set `.notify.channel` to `"telegram"` | platform.json |
@@ -119,7 +127,7 @@ Copy {baseDir}/config/claude-code.default.json → ~/.okx/earn-hunter/platform.j
 
 ## State File (`state.json`)
 
-Hierarchical structure with separate namespaces for Flash and Fixed:
+Hierarchical structure with separate namespaces for Flash, Fixed, and Flexible:
 
 ```json
 {
@@ -128,6 +136,9 @@ Hierarchical structure with separate namespaces for Flash and Fixed:
   },
   "fixed": {
     "<ccy>:<term>:<rate>": { "notifiedAt": "<ISO 8601 timestamp>" }
+  },
+  "flexible": {
+    "<ccy>": { "notifiedAt": "<ISO 8601 timestamp>", "rate": "<lendingRate>" }
   },
   "consecutive_failures": 0,
   "last_error": ""
@@ -138,7 +149,8 @@ Hierarchical structure with separate namespaces for Flash and Fixed:
 |---|---|---|
 | `flash` | object | Flash Earn dedup entries. Key format: `<project_id>:<status>` |
 | `fixed` | object | Fixed Earn dedup entries. Key format: `<ccy>:<term>:<rate>` |
+| `flexible` | object | Flexible Earn dedup entries. Key format: `<ccy>`. Threshold-crossing model: key removed when rate drops below threshold |
 | `consecutive_failures` | number | Consecutive scan failure count. Reset to 0 on success. Alert at 3 |
 | `last_error` | string | Last error message (truncated to 200 chars) |
 
-Each dedup entry contains `notifiedAt` with ISO 8601 timestamp (e.g. `"2026-05-25T15:00:00+08:00"`).
+Each dedup entry contains `notifiedAt` with ISO 8601 timestamp (e.g. `"2026-05-25T15:00:00+08:00"`). Flexible entries additionally store the `rate` at notification time (informational, not used for dedup).

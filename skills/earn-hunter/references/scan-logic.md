@@ -8,7 +8,7 @@
 >
 > **OpenClaw exception:** the scan is triggered by an isolated, light-context cron agent turn (via the in-session `cron` tool). That turn runs this same script with `notify.channel = "session"` (output to stdout) and lets cron `announce` deliver the result to the conversation — it does **not** curl TG/Lark. Everything else (filter, dedup, state, silent-exit) is identical.
 >
-> Test hooks (env vars, used only for verification, inert in production): `EH_FLASH_FIXTURE`, `EH_FIXED_FIXTURE`, `EH_DRY_RUN`, `EH_STATE_DIR`, `EH_FORCE_FAIL`, `EH_NOW_ISO`, `EH_TEST_NAMESPACE`. Profile is injected via `OKX_PROFILE` (empty → no `--profile` flag).
+> Test hooks (env vars, used only for verification, inert in production): `EH_FLASH_FIXTURE`, `EH_FIXED_FIXTURE`, `EH_FLEXIBLE_FIXTURE`, `EH_DRY_RUN`, `EH_STATE_DIR`, `EH_FORCE_FAIL`, `EH_NOW_ISO`, `EH_TEST_NAMESPACE`. Profile is injected via `OKX_PROFILE` (empty → no `--profile` flag).
 
 ## CLI Version Compatibility
 
@@ -68,6 +68,27 @@ Output structure (v1.3.2):
 
 **Detection logic:** Try `earn savings fixed-products --json` first. If command not found, fall back to `earn savings rate-history --json` and extract `fixedOffers`.
 
+### Flexible Earn (活期)
+
+For each currency in `config.flexible.currencies` (default `["USDT", "USDC"]`):
+
+```bash
+okx [--profile live] earn savings rate-history --ccy <ccy> --limit 1 --json
+```
+
+Output structure:
+```json
+{
+  "data": [{"ccy": "USDC", "lendingRate": "0.0841", "ts": "1717020000000"}],
+  "fixedOffers": [...]
+}
+```
+
+- `data[0].lendingRate` — current flexible APY (decimal, e.g. `"0.0841"` = 8.41%)
+- The script iterates through configured currencies and collects `{ccy, lendingRate}` pairs into a JSON array
+
+If `flexible.currencies` is `"all"` or empty, defaults to `["USDT", "USDC"]` (since the API requires a `ccy` parameter per call).
+
 ## Filter Rules
 
 ### Flash Earn
@@ -93,9 +114,17 @@ Output structure (v1.3.2):
    - 如果 `terms` 是 `"all"` → 不过滤期限
    - 如果 `terms` 是数组（如 `["7D", "30D", "90D"]`）→ 只保留 `term` 在列表中的 offer
 
+### Flexible Earn
+
+1. **APY 两层阈值过滤**（same pattern as Fixed, all values in decimal form）：
+   - 先查 `config.flexible.currencyOverrides[ccy].minApy`，有值则用它作为该币种阈值
+   - 没有 override → 使用 `config.flexible.globalMinApy` 作为兜底阈值（default `0.08` = 8%）
+   - Compare `Number(lendingRate)` directly with threshold (both in decimal). If `Number(lendingRate) < threshold` → skip
+   - Example: lendingRate="0.0841" (8.41%), minApy=0.08 (8%) → 0.0841 >= 0.08 → pass
+
 ## Dedup Rules
 
-State uses a **hierarchical structure** with separate `flash` and `fixed` namespaces:
+State uses a **hierarchical structure** with separate `flash`, `fixed`, and `flexible` namespaces:
 
 ```json
 {
@@ -104,6 +133,9 @@ State uses a **hierarchical structure** with separate `flash` and `fixed` namesp
   },
   "fixed": {
     "<ccy>:<term>:<rate>": { "notifiedAt": "<ISO 8601>" }
+  },
+  "flexible": {
+    "<ccy>": { "notifiedAt": "<ISO 8601>", "rate": "<lendingRate>" }
   },
   "consecutive_failures": 0,
   "last_error": ""
@@ -119,12 +151,19 @@ Key format:
 - Fixed: `<ccy>:<term>:<rate>` in `state.fixed` (e.g. `state.fixed["USDT:7D:0.035"]`)
   - `rate` 使用 API 返回的全精度字符串（不做四舍五入）
   - APY 变化视为新 offer，生成新 key，触发新通知
+- Flexible: `<ccy>` in `state.flexible` (e.g. `state.flexible["USDC"]`)
+  - **阈值穿越模式**：key 只用币种名，当 rate >= threshold 时通知一次
+  - rate 下降到 threshold 以下时，diff cleanup 移除 key
+  - 下次 rate 重新超过 threshold 时，生成新通知
+  - 效果：每个"高收益期"只通知一次，避免活期利率波动导致频繁通知
+  - `rate` 字段存储通知时的利率（仅供参考，不参与去重判断）
 
 TTL (safety net — diff cleanup is the primary removal mechanism):
 - Flash keys expire after **7 days**
 - Fixed keys expire after **7 days**
+- Flexible keys expire after **7 days**
 
-After notifying: add key to the corresponding namespace with ISO 8601 timestamp → `state.flash["<id>:<status>"] = {"notifiedAt": "<ISO 8601>"}` or `state.fixed["<ccy>:<term>:<rate>"] = {"notifiedAt": "<ISO 8601>"}`.
+After notifying: add key to the corresponding namespace with ISO 8601 timestamp → `state.flash["<id>:<status>"] = {"notifiedAt": "<ISO 8601>"}` or `state.fixed["<ccy>:<term>:<rate>"] = {"notifiedAt": "<ISO 8601>"}` or `state.flexible["<ccy>"] = {"notifiedAt": "<ISO 8601>", "rate": "<lendingRate>"}`.
 
 ## State Cleanup
 
@@ -144,13 +183,21 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
 2. 遍历 `state.fixed` 中所有 key
 3. 如果 key 不在本轮 current_fixed_keys 中 → 删除
 
-**Test namespace immunity**: `test:` 前缀的 key 不参与 diff 清理（Test Mode 写入的 key 只受 TTL 清理影响）。
+**Flexible: 基于阈值穿越清理**：
+1. 收集本轮 `flex_filtered`（已过 APY 阈值过滤）中所有币种 key `<ccy>`
+2. 遍历 `state.flexible` 中所有 key
+3. 如果 key（去掉 `test:` 前缀后）不在本轮 current_flex_keys 中 → 删除（说明 rate 已低于阈值）
+4. 效果：rate 低于阈值时移除 state，下次 rate 回升时可重新触发通知
+5. **注意：flexible 的 `test:` key 也参与 diff 清理**（不同于 flash/fixed 的豁免），因为 flexible 的清理语义是"利率是否仍在阈值以上"，测试 fixture 的利率数据同样应参与此判断
+
+**Test namespace immunity (flash/fixed only)**: flash 和 fixed 的 `test:` 前缀 key 不参与 diff 清理（Test Mode 写入的 key 只受 TTL 清理影响），因为测试 fixture 的 ID/offer 不在真实 API 返回中，会被误删。Flexible 不适用此规则。
 
 ### Step 2: TTL 清理（过期兜底）
 
-遍历 `state.flash` 和 `state.fixed` 中所有 key，解析 `notifiedAt` 时间戳，删除超过 TTL 的条目：
+遍历 `state.flash`、`state.fixed` 和 `state.flexible` 中所有 key，解析 `notifiedAt` 时间戳，删除超过 TTL 的条目：
 - Flash keys: TTL = 7 天
 - Fixed keys: TTL = 7 天
+- Flexible keys: TTL = 7 天
 
 ### Step 3: 失败计数更新
 
@@ -164,10 +211,14 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
 1. Read config (AI reads ~/.okx/earn-hunter/config.json directly)
    flash_enabled = config.flash.enabled
    fixed_enabled = config.fixed.enabled
+   flex_enabled = config.flexible.enabled
    currencies = config.currencies
    globalMinApy = config.fixed.globalMinApy
    currencyOverrides = config.fixed.currencyOverrides
    terms = config.fixed.terms
+   flex_min_apy = config.flexible.globalMinApy    # default 0.08 (8%)
+   flex_currencies = config.flexible.currencies    # default ["USDT","USDC"]
+   flex_ccy_overrides = config.flexible.currencyOverrides
    verboseLog = config.verboseLog
 
 2. Run scan commands (parallel where possible)
@@ -178,6 +229,11 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
      If command not found (CLI <1.3.3), fallback:
        fixed_results = okx earn savings rate-history --ccy <ccy> --limit 1 --json → extract fixedOffers
      For APR comparison: fetch flexible rate for relevant currencies
+   If flex_enabled is true:
+     flex_results = []
+     For each ccy in flex_currencies:
+       out = okx earn savings rate-history --ccy <ccy> --limit 1 --json
+       Extract data[0].lendingRate → append {ccy, lendingRate} to flex_results
 
    NOTE: all numeric fields from API are strings. Always convert before comparison:
    Number(lendQuota), Number(rate), Number(lendingRate), etc.
@@ -185,12 +241,16 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
 3. Apply filters
    flash_filtered = apply Flash Earn filter rules
    fixed_filtered = apply Fixed Earn filter rules (两层 APY 阈值 + terms 筛选)
+   flex_filtered = apply Flexible Earn filter rules (两层 APY 阈值: override > globalMinApy)
 
 4. Apply dedup (read state.json hierarchical structure)
    flash_new = [p for p in flash_filtered if "<p.id>:<p.status>" not in state.flash]
    fixed_new = [p for p in fixed_filtered if "<p.ccy>:<p.term>:<p.rate>" not in state.fixed]
+   flex_new = [p for p in flex_filtered if "<p.ccy>" not in state.flexible]
 
 5. Notify (if any new opportunities)
+   Count sections with new opportunities. If >= 2, use mixed template.
+
    If flash_new is non-empty:
      Render notification using templates/flash-earn.md
      Send via configured channel (see notify-channels.md)
@@ -203,6 +263,12 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
      Send via configured channel
      For each notified product:
        state.fixed["<ccy>:<term>:<rate>"] = {"notifiedAt": "<ISO 8601 now>"}
+
+   If flex_new is non-empty:
+     Render notification using templates/flexible-earn.md
+     Send via configured channel
+     For each notified currency:
+       state.flexible["<ccy>"] = {"notifiedAt": "<ISO 8601 now>", "rate": "<lendingRate>"}
 
 6. Update state.json (AI reads, modifies, writes back)
 
@@ -221,21 +287,31 @@ After notifying: add key to the corresponding namespace with ISO 8601 timestamp 
      If key not in current_fixed_keys → delete state.fixed[key]
    Skip any key starting with "test:" (Test Mode immunity)
 
-   # 6c. TTL cleanup: remove entries older than 7 days
+   # 6c. Flexible diff cleanup: threshold-crossing (key = ccy)
+   # Use FILTERED results (after APY threshold filter) — only currencies still above threshold
+   current_flex_keys = [p.ccy for each in flex_filtered]
+   For each key in state.flexible:
+     Strip "test:" prefix if present, then check against current_flex_keys
+     If stripped key not in current_flex_keys → delete state.flexible[key]
+   # NOTE: test: keys are NOT immune here (unlike flash/fixed) — see State Cleanup section
+
+   # 6d. TTL cleanup: remove entries older than 7 days
    For each key in state.flash:
      Parse notifiedAt → if (now - notifiedAt) > 7 days → delete
    For each key in state.fixed:
      Parse notifiedAt → if (now - notifiedAt) > 7 days → delete
+   For each key in state.flexible:
+     Parse notifiedAt → if (now - notifiedAt) > 7 days → delete
 
-   # 6d. Failure counter update
+   # 6e. Failure counter update
    state.consecutive_failures = 0
    state.last_error = ""
 
 7. No new opportunities → verboseLog 控制行为
-   If flash_new and fixed_new are both empty:
+   If flash_new, fixed_new and flex_new are all empty:
      If verboseLog is true:
-       Send brief status: "✅ Earn Hunter 扫描完成，暂无新机会。Flash: X 个活跃, Fixed: Y 个可申购。"
-       (X = len(flash_filtered), Y = len(fixed_filtered))
+       Send brief status: "✅ Earn Hunter 扫描完成，暂无新机会。Flash: X 个活跃, Fixed: Y 个可申购, Flexible: Z 个达标。"
+       (X = len(flash_filtered), Y = len(fixed_filtered), Z = len(flex_filtered))
      If verboseLog is false:
        Silent exit (no output)
 

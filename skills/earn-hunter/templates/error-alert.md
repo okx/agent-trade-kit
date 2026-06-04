@@ -48,6 +48,29 @@ Trigger: scan has failed for 3 consecutive rounds (any error type: network, API,
 
 - `{error_message}` — last error message from the failed scan (truncated to 200 chars if needed)
 
+### Empty Error Fallback
+
+If `{error_message}` is an empty string, replace the error line with:
+
+```
+🔍 最后一次错误：
+   （未捕获到错误信息）
+
+💡 这通常是 cron 的 PATH 找不到 okx/node/jq 导致的。
+   请检查 ~/.okx/earn-hunter/cron.log 获取详细信息。
+   临时修复：在 crontab 行首添加 PATH=... 指向 node/okx/jq 所在目录。
+```
+
+**en:**
+```
+🔍 Last error:
+   (no error message captured)
+
+💡 This usually means cron's PATH cannot find okx/node/jq.
+   Check ~/.okx/earn-hunter/cron.log for details.
+   Quick fix: prepend PATH=... to the crontab entry pointing to node/okx/jq directories.
+```
+
 ## Locked Terms (do not translate)
 
 Earn Hunter, OKX — brand terms stay as-is. CLI commands stay as-is (e.g. `okx auth login`).
