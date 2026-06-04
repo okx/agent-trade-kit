@@ -159,17 +159,30 @@ On OS-crontab platforms, scheduled notifications go out via direct curl; on Open
    - Webhook set but format invalid (does not start with `https://` or missing `/hook/`) → warn: "Lark webhook 格式无效，跳过 Lark" → continue to next channel
    - Not configured and no Lark MCP → Lark not available
 
-**If one or more external channels detected**, ask user:
+**Always ask the user to confirm notification channel — never silently default to session.** For a monitoring tool, notification is critical; defaulting to session means alerts are lost when the user is not in the conversation.
+
+**If one or more external channels detected:**
 
 "检测到以下推送渠道可用：
 - {list of detected channels, e.g. Telegram / Lark}
 
-使用哪个渠道推送通知？"
+你希望通知发到哪里？
+1. {detected channel 1}
+2. {detected channel 2, if any}
+3. 仅在当前会话显示（离线收不到）"
 
-**If no external channel detected**, inform and offer setup:
+**If no external channel detected:**
 
-"当前未检测到推送渠道（Telegram / Lark），通知将在会话内显示。
-如需离线推送，对我说'配置 Telegram 通知'。"
+"新机会才能推送到你手上。你希望通知发到哪里？
+1. Telegram — 需要提供 Bot Token 和 Chat ID（通过环境变量）
+2. Lark/飞书 — 需要提供 Webhook URL
+3. 仅在当前会话显示（⚠ 离线收不到通知）
+
+推荐配置 Telegram 或 Lark，这样即使不在对话中也能收到提醒。"
+
+- If user picks Telegram → guide setting `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` env vars
+- If user picks Lark → ask for webhook URL, validate format (starts with `https://`, contains `/hook/`), write to `platform.notify.lark_webhook`
+- If user picks session → write `"session"` and warn: "⚠ 离线状态下不会收到通知，建议后续配置外部渠道。"
 
 Write confirmed channel to `platform.json` `notify.channel`.
 
