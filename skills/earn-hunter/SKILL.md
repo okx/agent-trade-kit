@@ -272,11 +272,11 @@ When it fires, the isolated agent runs the prompt `"执行 earn-hunter 扫描"` 
 
 **Do NOT** emit any shell/`openclaw cron` CLI command in the conversation — drive scheduling only through the `cron` tool.
 
-#### OS-crontab platforms (`scheduler.type = "cron"` — Claude Code / Hermes / Generic)
+#### OS-crontab platforms (`scheduler.type = "cron"` or `"launchagent"` — Claude Code / Hermes / Generic)
 
-These use **OS crontab → `scripts/scan.sh`**. The script does everything (CLI calls, filter, dedup, render, curl notifications) with **zero LLM cost**.
+These use **OS scheduler → `scripts/scan.sh`**. The script does everything (CLI calls, filter, dedup, render, curl notifications) with **zero LLM cost**.
 
-**Install the script** — copy the skill's `scripts/scan.sh` into the state dir so cron has a stable path:
+**Install the script** — copy the skill's `scripts/scan.sh` into the state dir so the scheduler has a stable path:
 
 ```bash
 mkdir -p ~/.okx/earn-hunter
@@ -284,7 +284,7 @@ cp {baseDir}/scripts/scan.sh ~/.okx/earn-hunter/scan.sh
 chmod +x ~/.okx/earn-hunter/scan.sh
 ```
 
-**Add to crontab** — dynamically inject PATH so cron can find `node`/`okx`/`jq` (macOS cron defaults to `PATH=/usr/bin:/bin` only):
+**Set up scheduler** — try crontab first, fallback to LaunchAgent on macOS if cron daemon is not running:
 
 ```bash
 # Resolve tool directories from the current shell
@@ -292,16 +292,83 @@ NODE_DIR=$(dirname "$(command -v node)")
 OKX_DIR=$(dirname "$(command -v okx)")
 JQ_DIR=$(dirname "$(command -v jq)")
 CRON_PATH=$(printf '%s\n' "$NODE_DIR" "$OKX_DIR" "$JQ_DIR" /usr/bin /bin | awk '!seen[$0]++' | paste -sd: -)
+```
 
+**Step A: Try crontab + verify cron daemon (macOS)**
+
+```bash
 (crontab -l 2>/dev/null; echo "0 * * * * PATH=$CRON_PATH OKX_PROFILE=live ~/.okx/earn-hunter/scan.sh >> ~/.okx/earn-hunter/cron.log 2>&1") | crontab -
 ```
 
-- **OAuth mode** → omit `OKX_PROFILE=live` (the script passes no `--profile` flag when the var is empty).
-- The `PATH=...` prefix ensures cron can find all required binaries. The script also has a built-in `resolve_bin` fallback that sources `env.snapshot` — belt and suspenders.
+On macOS (`uname -s` == `Darwin`), immediately check if the cron daemon is running:
+
+```bash
+if [[ "$(uname -s)" == "Darwin" ]] && ! launchctl list com.vix.cron >/dev/null 2>&1; then
+  # cron daemon not running — fallback to LaunchAgent
+fi
+```
+
+- If cron daemon is running → done, `scheduler.type = "cron"`.
+- If cron daemon is **not** running → remove the crontab entry and proceed to Step B.
+- On Linux → skip the check (cron is always available), `scheduler.type = "cron"`.
+
+**Step B: macOS LaunchAgent fallback** (`scheduler.type = "launchagent"`)
+
+Generate `~/Library/LaunchAgents/com.okx.earn-hunter.plist` with the resolved paths:
+
+```bash
+SCAN_SCRIPT="$HOME/.okx/earn-hunter/scan.sh"
+LOG_FILE="$HOME/.okx/earn-hunter/cron.log"
+INTERVAL=3600  # derive from scheduler.interval: "1h"→3600, "30m"→1800, "10m"→600
+
+cat > ~/Library/LaunchAgents/com.okx.earn-hunter.plist << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.okx.earn-hunter</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>${SCAN_SCRIPT}</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>${INTERVAL}</integer>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>${CRON_PATH}</string>
+        <key>OKX_PROFILE</key>
+        <string>live</string>
+        <key>HOME</key>
+        <string>${HOME}</string>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>${LOG_FILE}</string>
+    <key>StandardErrorPath</key>
+    <string>${LOG_FILE}</string>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+
+launchctl load ~/Library/LaunchAgents/com.okx.earn-hunter.plist
+```
+
+Write `scheduler.type = "launchagent"` to `platform.json`. Inform user:
+
+"macOS cron 服务未运行，已自动切换为 LaunchAgent 调度（无需 sudo，重启自动恢复）。"
+
+**Notes:**
+- **OAuth mode** → omit `OKX_PROFILE` from the plist `EnvironmentVariables` (or set to empty).
+- LaunchAgent plist paths must be absolute (no `~`). The activation flow expands `$HOME` at generation time.
+- `RunAtLoad: true` means the first scan runs immediately after loading.
 - The script reads `config.json` / `platform.json`, writes `state.json` / `notify.log`, and sends notifications via curl to TG Bot API or Lark Webhook itself. No agent involvement needed at tick time.
 - The script exits 0 and produces **no output** when there are no new opportunities and `verboseLog=false` — this is the intended silent behavior.
 
-**IMPORTANT: On OS-crontab platforms, do NOT use agent-platform `/loop` / Routines** (Claude Code `/loop`, cloud Routines). These spawn LLM sessions per tick and cannot reliably push external notifications. (OpenClaw is the exception above — it uses its in-session `cron` tool with `announce` delivery by design.)
+**IMPORTANT: On OS-scheduler platforms, do NOT use agent-platform `/loop` / Routines** (Claude Code `/loop`, cloud Routines). These spawn LLM sessions per tick and cannot reliably push external notifications. (OpenClaw is the exception above — it uses its in-session `cron` tool with `announce` delivery by design.)
 
 ---
 
@@ -394,6 +461,10 @@ Branch on `platform.json` `.scheduler.type`:
 - **Pause:** `crontab -l | grep -v 'earn-hunter' | crontab -`
 - **Resume:** Re-add the crontab entry (same as Activation Step 5).
 
+**macOS LaunchAgent (`launchagent`):**
+- **Pause:** `launchctl unload ~/Library/LaunchAgents/com.okx.earn-hunter.plist`
+- **Resume:** `launchctl load ~/Library/LaunchAgents/com.okx.earn-hunter.plist`
+
 Config and state are preserved — resuming picks up where it left off.
 
 ---
@@ -401,7 +472,8 @@ Config and state are preserved — resuming picks up where it left off.
 ## Uninstall
 
 When user says "卸载" / "uninstall":
-1. Stop the scheduler (same as Pause)
+1. Stop the scheduler (same as Pause). For LaunchAgent, also remove the plist:
+   `launchctl unload ~/Library/LaunchAgents/com.okx.earn-hunter.plist && rm -f ~/Library/LaunchAgents/com.okx.earn-hunter.plist`
 2. Ask: "是否保留配置和历史数据？"
    - Yes → only remove scheduler
    - No → also remove `~/.okx/earn-hunter/` directory
