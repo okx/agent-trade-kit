@@ -8,6 +8,12 @@
     "currencyOverrides": {},
     "terms": "all"
   },
+  "flexible": {
+    "enabled": true,
+    "globalMinApy": 0.08,
+    "currencies": ["USDT", "USDC"],
+    "currencyOverrides": {}
+  },
   "currencies": "all",
   "schedule": {
     "cron": "0 * * * *",

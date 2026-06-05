@@ -12,9 +12,8 @@ Render in **user's language**. Brand/token names are never translated.
 📋 监控配置
    扫描时间：{scan_time}
    扫描品种：{scan_scope}
-   监控币种：{currencies}
-   APY 要求：{min_apy_display}
-   期限筛选：{terms}
+   定期 — 币种：{currencies}，阈值：{min_apy_display}，期限：{terms}
+   活期 — 币种：{flex_currencies}，阈值：{flex_min_apy_display}
    模式：实盘
 
 🔍 首次扫描结果
@@ -34,12 +33,16 @@ Render in **user's language**. Brand/token names are never translated.
 ### Configuration
 
 - `{scan_time}` — activation timestamp, ISO 8601 format (e.g. `2026-05-20T14:30:00+08:00`)
-- `{scan_scope}` — one of: `flash` / `fixed` / `all`
-  - `flash` → "仅 Flash Earn"
-  - `fixed` → "仅 Fixed Earn"
-  - `all` → "Flash Earn + Fixed Earn"
-- `{currencies}` — comma-separated list of monitored currencies (e.g. `USDT, USDC, BTC`)
-- `{min_apy_display}` — when `globalMinApy = 0`, display "不限" (zh) or "No limit" (en); otherwise format as `APR ≥ X.XX%`
+- `{scan_scope}` — combination of enabled types
+  - all three → "Flash Earn + Fixed Earn + Flexible Earn"
+  - only flash → "仅 Flash Earn"
+  - only fixed → "仅 Fixed Earn"
+  - only flexible → "仅 Flexible Earn"
+  - any other combination → list enabled types with " + " separator
+- `{currencies}` — comma-separated list of monitored currencies for Fixed Earn (e.g. `USDT, USDC, BTC`)
+- `{flex_currencies}` — comma-separated list of monitored currencies for Flexible Earn (e.g. `USDT, USDC`)
+- `{min_apy_display}` — Fixed Earn: when `globalMinApy = 0`, display "不限" (zh) or "No limit" (en); otherwise format as `APR ≥ X.XX%`
+- `{flex_min_apy_display}` — Flexible Earn: format as `APY ≥ X.XX%` (default 8.00%)
 - `{terms}` — term filter display (e.g. `7D, 14D, 30D` or `全部期限`)
 
 ### First Scan Result
@@ -68,10 +71,9 @@ Earn Hunter, Flash Earn, Fixed Earn, Simple Earn, APR, APY, OKX — brand/financ
 
 📋 监控配置
    扫描时间：2026-05-20T14:30:00+08:00
-   扫描品种：Flash Earn + Fixed Earn
-   监控币种：USDT, USDC
-   APY 要求：APR ≥ 3.00%
-   期限筛选：7D, 14D, 30D
+   扫描品种：Flash Earn + Fixed Earn + Flexible Earn
+   定期 — 币种：USDT, USDC，阈值：APR ≥ 3.00%，期限：7D, 14D, 30D
+   活期 — 币种：USDT, USDC，阈值：APY ≥ 8.00%
    模式：实盘
 
 🔍 首次扫描结果
