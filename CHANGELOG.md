@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.8-beta.3] - 2026-06-05
+
 ### Fixed
 
 - **`okx market filter` empty output in non-`--json` mode** (Bug 1, array-unwrap). The `cmdMarketFilter` text-mode path treated the `aigc/mcp` array-shaped response as a single object, so the human-readable table rendered nothing while `--json` worked. Now unwraps the response with the canonical `(Array.isArray(raw) ? raw[0] : raw)` pattern (matching `cmdMarketOiHistory`), so non-`--json` output is populated.

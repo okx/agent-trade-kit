@@ -1,6 +1,0 @@
-## Code Review Changes
-| File | Change | Reason |
-|------|--------|--------|
-| packages/core/src/tools/indicator.ts | Changed `if (direct) return direct;` to `if (direct !== undefined) return direct;` in `getDefaultIndicatorParams` | P1: Truthiness guard would silently fall through for any zero-valued parameter (e.g. `[0]`-based indicator added in future), returning `undefined` instead of the correct value. Explicit undefined check communicates intent and is robust against future additions. |
-| packages/cli/test/indicator.test.ts | Replaced weak assertion `assert.ok(!output.includes("RSI") \|\| output === "")` with positive checks `assert.ok(output.includes("No indicator values returned"), ...)` and `assert.ok(!output.includes("RSI"), ...)` | P1: The vacuously-passing assertion did not verify that the Plan A hint is printed — a regression that silences the command would pass undetected, undermining the safety-net intent from spec §8.2. |
-| packages/cli/test/indicator.test.ts | Updated stale comment at line 237: was "Empty string splits to [''] → NaN, filtered out" → now "Empty string is falsy → params=undefined (ternary short-circuits; the split never runs)" | P2/TOFIX: Comment described the wrong code path; `opts.params=""` is falsy so the ternary short-circuits before the split runs. |

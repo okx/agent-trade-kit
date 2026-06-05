@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.8-beta.3] - 2026-06-05
+
 ### 修复
 
 - **`okx market filter` 非 `--json` 模式下输出为空**（Bug 1，array-unwrap）。`cmdMarketFilter` 的文本模式路径把 `aigc/mcp` 数组形态的响应当成单个对象处理，导致人类可读表格渲染为空，而 `--json` 正常。现已使用规范的 `(Array.isArray(raw) ? raw[0] : raw)` 模式（与 `cmdMarketOiHistory` 一致）拆包响应，非 `--json` 输出恢复正常。
