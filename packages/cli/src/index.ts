@@ -472,6 +472,7 @@ function handleAccountCommand(
     return cmdAccountBalanceAll(run, v.ccy ?? rest[0], {
       accounts: v.accounts,
       noValuation: v.valuation === false,
+      preferParallel: v.aggregate === false,
       valuationCcy: v.valuationCcy,
       json,
     });

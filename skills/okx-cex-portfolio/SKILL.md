@@ -291,7 +291,7 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 ### Balance All — One-Shot Aggregate Snapshot
 
 ```bash
-okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--valuationCcy <ccy>] [--json]
+okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>] [--json]
 ```
 
 | Param | Required | Default | Description |
@@ -299,15 +299,18 @@ okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--v
 | `ccy` | No | - | Filter by currency (comma-separated). Applied to trading + funding queries only. |
 | `--accounts` | No | `trading,funding` | Comma-separated accounts to query |
 | `--no-valuation` | No | - | Skip cross-account valuation (default: valuation included) |
+| `--no-aggregate` | No | - | Force the direct parallel path instead of the server aggregate. Use when you need the per-account valuation breakdown, or a non-USD `--valuationCcy` (the aggregate path denominates valuation in USD). |
 | `--valuationCcy` | No | `USDT` | Denomination currency for valuation |
+
+This command calls a server-side aggregate endpoint first and automatically falls back to direct parallel queries when it is unavailable; the output contract is identical either way.
 
 Returns `{ trading, funding, valuation, meta }`. Each section has `available: boolean`:
 - `trading`: `totalEq`, `adjEq`, `details[]` (per-currency)
 - `funding`: `details[]` (per-currency `ccy`, `bal`, `availBal`, `frozenBal`)
-- `valuation`: `valuationCcy`, `totalBal`, `details[]`
-- `meta`: `requestedAt`, `elapsedMs`, `partialFailure`
+- `valuation`: `valuationCcy`, `totalBal`, `details[]` (per-account breakdown is only populated on the parallel path; use `--no-aggregate` to force it)
+- `meta`: `requestedAt` (ISO 8601), `elapsedMs`, `partialFailure`, `source` (`aggregate` or `fallback`), `site`
 
-When `--json` is NOT set: prints `[PARTIAL]` banner if `meta.partialFailure=true`, followed by three sections (Trading / Funding / Valuation). Failed sections show `[ERROR: <msg>]`.
+When `--json` is NOT set: prints `[PARTIAL]` banner if `meta.partialFailure=true`, followed by three sections (Trading / Funding / Valuation), then a `[source: ...]` footer showing which path served the data. Failed sections show `[ERROR: <msg>]`.
 
 ---
 
@@ -487,7 +490,7 @@ Returns: `transId`, `ccy`, `amt`.
 
 | Tool | Description |
 |---|---|
-| `account_get_balance_all` | One-shot snapshot of trading + funding (+ valuation). Use `showValuation=true` (default) to include cross-account totals; `valuationCcy='USDT'` by default. Prefer over calling `account_get_balance` + `account_get_asset_balance` separately. |
+| `account_get_balance_all` | One-shot snapshot of trading + funding (+ valuation), served by a server-side aggregate endpoint with automatic fallback to parallel queries. Use `showValuation=true` (default) to include cross-account totals; `valuationCcy='USDT'` by default. Set `preferParallel=true` to force the parallel path (per-account valuation breakdown / non-USD valuation). Prefer over calling `account_get_balance` + `account_get_asset_balance` separately. |
 | `account_get_balance` | Trading account balance |
 | `account_get_asset_balance` | Funding account balance. Use `showValuation=true` to include total asset valuation across trading/funding/earn accounts. Use `valuationCcy` (default `"USDT"`) to set the denomination for the valuation total — e.g. `valuationCcy="BTC"` returns the total in BTC. |
 | `account_get_positions` | Open positions |

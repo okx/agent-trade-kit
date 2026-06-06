@@ -9,7 +9,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
-import { AuthenticationError, OkxApiError } from "../utils/errors.js";
+import { buildBalanceAll } from "./account-balance-all.js";
 
 export function registerAccountTools(): ToolSpec[] {
   return [
@@ -629,153 +629,14 @@ export function registerAccountTools(): ToolSpec[] {
             description:
               "Currency for valuation (e.g. USDT, BTC). Default USDT. Only effective when showValuation=true.",
           },
+          preferParallel: {
+            type: "boolean",
+            description:
+              "Skip the server-side aggregate endpoint and query trading/funding/valuation directly in parallel. Default false. Use when you need the per-account valuation breakdown or a non-USD valuation currency.",
+          },
         },
       },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const ccy = readString(args, "ccy");
-        const accountsRaw = readString(args, "accounts") ?? "trading,funding";
-        const requestedAccounts = accountsRaw.split(",").map((s) => s.trim().toLowerCase());
-        const showValuation = readBoolean(args, "showValuation") ?? true;
-        const valuationCcy = readString(args, "valuationCcy") ?? "USDT";
-
-        const wantTrading = requestedAccounts.includes("trading");
-        const wantFunding = requestedAccounts.includes("funding");
-
-        const startTime = Date.now();
-
-        const promises: Promise<{ key: string; data: unknown }>[] = [];
-
-        if (wantTrading) {
-          promises.push(
-            context.client
-              .privateGet(
-                "/api/v5/account/balance",
-                compactObject({ ccy }),
-                privateRateLimit("account_get_balance", 10),
-              )
-              .then((resp) => ({ key: "trading", data: resp.data })),
-          );
-        }
-
-        if (wantFunding) {
-          promises.push(
-            context.client
-              .privateGet(
-                "/api/v5/asset/balances",
-                compactObject({ ccy }),
-                privateRateLimit("account_get_asset_balance", 6),
-              )
-              .then((resp) => ({ key: "funding", data: resp.data })),
-          );
-        }
-
-        if (showValuation) {
-          promises.push(
-            context.client
-              .privateGet(
-                "/api/v5/asset/asset-valuation",
-                { ccy: valuationCcy },
-                privateRateLimit("account_get_asset_valuation", 1),
-              )
-              .then((resp) => ({ key: "valuation", data: resp.data })),
-          );
-        }
-
-        const settled = await Promise.allSettled(promises);
-
-        const result: Record<string, unknown> = {};
-        let partialFailure = false;
-
-        const authErrors: Error[] = [];
-        const requestedSectionErrors: Array<{ key: string; error: Error }> = [];
-
-        for (const outcome of settled) {
-          if (outcome.status === "fulfilled") {
-            const { key, data } = outcome.value;
-            if (key === "trading") {
-              const details = Array.isArray(data) ? data : [];
-              const first = details[0] as Record<string, unknown> | undefined;
-              result.trading = {
-                available: true,
-                totalEq: first?.["totalEq"] ?? "0",
-                adjEq: first?.["adjEq"] ?? "0",
-                details,
-              };
-            } else if (key === "funding") {
-              result.funding = {
-                available: true,
-                details: Array.isArray(data) ? data : [],
-              };
-            } else if (key === "valuation") {
-              const details = Array.isArray(data) ? data : [];
-              const first = details[0] as Record<string, unknown> | undefined;
-              result.valuation = {
-                available: true,
-                valuationCcy,
-                totalBal: first?.["totalBal"] ?? "0",
-                details,
-              };
-            }
-          } else {
-            const reason = outcome.reason as Error;
-            const promiseIndex = settled.indexOf(outcome);
-            let key = "unknown";
-            // Derive key from promise order
-            let idx = 0;
-            if (wantTrading) { if (promiseIndex === idx) key = "trading"; idx++; }
-            if (wantFunding) { if (promiseIndex === idx) key = "funding"; idx++; }
-            if (showValuation) { if (promiseIndex === idx) key = "valuation"; idx++; }
-
-            if (reason instanceof AuthenticationError) {
-              authErrors.push(reason);
-              continue;
-            }
-
-            const errorInfo = {
-              code: reason instanceof OkxApiError ? (reason.code ?? "UNKNOWN") : "UNKNOWN",
-              msg: reason.message,
-            };
-
-            if (key === "trading") {
-              result.trading = { available: false, error: errorInfo };
-              partialFailure = true;
-            } else if (key === "funding") {
-              result.funding = { available: false, error: errorInfo };
-              partialFailure = true;
-            } else if (key === "valuation") {
-              result.valuation = { available: false, error: errorInfo };
-              // valuation failure does NOT set partialFailure
-            }
-
-            if (key === "trading" || key === "funding") {
-              requestedSectionErrors.push({ key, error: reason });
-            }
-          }
-        }
-
-        // Auth errors propagate immediately
-        if (authErrors.length > 0) {
-          throw authErrors[0];
-        }
-
-        // Both requested balance sections failed → throw
-        const requestedBalanceSections = [wantTrading, wantFunding].filter(Boolean).length;
-        if (requestedSectionErrors.length >= requestedBalanceSections && requestedBalanceSections > 0) {
-          throw new OkxApiError("Both balance queries failed", {
-            code: "-30001",
-          });
-        }
-
-        const elapsedMs = Date.now() - startTime;
-        result.meta = {
-          requestedAt: new Date(startTime).toISOString(),
-          elapsedMs,
-          partialFailure,
-        };
-
-        return result;
-      },
+      handler: (rawArgs, context) => buildBalanceAll(rawArgs, context),
     },
   ];
 }

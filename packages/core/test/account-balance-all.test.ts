@@ -295,3 +295,154 @@ describe("account_get_balance_all", () => {
     );
   });
 });
+
+const AGG_ENDPOINT = "/api/v5/aigc/forward/balance-aggregate";
+
+function aggResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    trading: {
+      available: true,
+      totalEq: "49000",
+      adjEq: "",
+      details: [{ ccy: "USDT", eq: "49000", availEq: "5433", frozenBal: "43566", upl: "0" }],
+    },
+    funding: {
+      available: true,
+      details: [{ ccy: "USDT", bal: "0.0000040825541056", availBal: "0.0000040825541056", frozenBal: "" }],
+    },
+    meta: { requestedAt: 1780567576321, elapsedMs: 178, partialFailure: false, site: "OKX_GLOBAL" },
+    ...overrides,
+  };
+}
+
+describe("account_get_balance_all (aggregate-first)", () => {
+  it("uses the aggregate endpoint on success and stamps meta.source=aggregate", async () => {
+    const tool = getBalanceAllTool();
+    const { context, getCalls } = makeContext({ [AGG_ENDPOINT]: [aggResponse()] });
+
+    const result = (await tool.handler({}, context)) as Record<string, unknown>;
+
+    const meta = result.meta as Record<string, unknown>;
+    assert.equal(meta.source, "aggregate");
+    assert.equal(meta.site, "OKX_GLOBAL");
+    assert.equal(typeof meta.requestedAt, "string");
+    assert.equal(meta.requestedAt, new Date(1780567576321).toISOString());
+
+    const trading = result.trading as Record<string, unknown>;
+    assert.equal(trading.available, true);
+    assert.equal(trading.totalEq, "49000");
+
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(endpoints.includes(AGG_ENDPOINT));
+    assert.ok(!endpoints.includes("/api/v5/account/balance"));
+    assert.ok(!endpoints.includes("/api/v5/asset/balances"));
+  });
+
+  it("forwards ccy/accounts/showValuation/valuationCcy to the aggregate endpoint", async () => {
+    const tool = getBalanceAllTool();
+    const { context, getCalls } = makeContext({ [AGG_ENDPOINT]: [aggResponse()] });
+
+    await tool.handler({ ccy: "BTC", accounts: "funding", valuationCcy: "EUR", showValuation: true }, context);
+
+    const call = getCalls().find((c) => c.endpoint === AGG_ENDPOINT);
+    assert.equal(call?.params.ccy, "BTC");
+    assert.equal(call?.params.accounts, "funding");
+    assert.equal(call?.params.valuationCcy, "EUR");
+    assert.equal(call?.params.showValuation, true);
+  });
+
+  it("returns aggregate partialFailure as-is WITHOUT falling back", async () => {
+    const tool = getBalanceAllTool();
+    const { context, getCalls } = makeContext({
+      [AGG_ENDPOINT]: [
+        aggResponse({
+          trading: { available: false, error: { code: -30002, msg: "upstream timeout" } },
+          meta: { requestedAt: 1780567576321, elapsedMs: 178, partialFailure: true, site: "OKX_GLOBAL" },
+        }),
+      ],
+    });
+
+    const result = (await tool.handler({}, context)) as Record<string, unknown>;
+
+    const meta = result.meta as Record<string, unknown>;
+    assert.equal(meta.source, "aggregate");
+    assert.equal(meta.partialFailure, true);
+
+    const trading = result.trading as Record<string, unknown>;
+    assert.equal(trading.available, false);
+    const error = trading.error as Record<string, unknown>;
+    assert.equal(error.code, "-30002"); // Integer code coerced to string
+
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(!endpoints.includes("/api/v5/account/balance"));
+    assert.ok(!endpoints.includes("/api/v5/asset/balances"));
+  });
+
+  it("falls back to parallel queries when the aggregate endpoint errors", async () => {
+    const tool = getBalanceAllTool();
+    const { context, getCalls } = makeContext(
+      {
+        "/api/v5/account/balance": [{ totalEq: "10000", details: [{ ccy: "USDT", eq: "10000" }] }],
+        "/api/v5/asset/balances": [{ ccy: "USDT", bal: "5000" }],
+        "/api/v5/asset/asset-valuation": [{ totalBal: "15000" }],
+      },
+      { [AGG_ENDPOINT]: new OkxApiError("service unavailable", { code: "-30005" }) },
+    );
+
+    const result = (await tool.handler({}, context)) as Record<string, unknown>;
+
+    const meta = result.meta as Record<string, unknown>;
+    assert.equal(meta.source, "fallback");
+
+    const trading = result.trading as Record<string, unknown>;
+    assert.equal(trading.available, true);
+    assert.equal(trading.totalEq, "10000");
+
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(endpoints.includes(AGG_ENDPOINT));
+    assert.ok(endpoints.includes("/api/v5/account/balance"));
+    assert.ok(endpoints.includes("/api/v5/asset/balances"));
+  });
+
+  it("does NOT fall back on AuthenticationError from the aggregate endpoint", async () => {
+    const tool = getBalanceAllTool();
+    const { context, getCalls } = makeContext(
+      {
+        "/api/v5/account/balance": [{ totalEq: "10000" }],
+        "/api/v5/asset/balances": [{ ccy: "USDT", bal: "5000" }],
+      },
+      { [AGG_ENDPOINT]: new AuthenticationError("Not logged in") },
+    );
+
+    await assert.rejects(
+      () => tool.handler({}, context),
+      (err: Error) => {
+        assert.ok(err instanceof AuthenticationError);
+        return true;
+      },
+    );
+
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(!endpoints.includes("/api/v5/account/balance"));
+    assert.ok(!endpoints.includes("/api/v5/asset/balances"));
+  });
+
+  it("preferParallel=true skips the aggregate endpoint entirely", async () => {
+    const tool = getBalanceAllTool();
+    const { context, getCalls } = makeContext({
+      "/api/v5/account/balance": [{ totalEq: "10000" }],
+      "/api/v5/asset/balances": [{ ccy: "USDT", bal: "5000" }],
+      "/api/v5/asset/asset-valuation": [{ totalBal: "15000" }],
+      [AGG_ENDPOINT]: [aggResponse()],
+    });
+
+    const result = (await tool.handler({ preferParallel: true }, context)) as Record<string, unknown>;
+
+    const meta = result.meta as Record<string, unknown>;
+    assert.equal(meta.source, "fallback");
+
+    const endpoints = getCalls().map((c) => c.endpoint);
+    assert.ok(!endpoints.includes(AGG_ENDPOINT));
+    assert.ok(endpoints.includes("/api/v5/account/balance"));
+  });
+});

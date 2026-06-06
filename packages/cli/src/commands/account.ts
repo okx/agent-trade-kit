@@ -264,6 +264,7 @@ export async function cmdAccountBalanceAll(
   opts: {
     accounts?: string;
     noValuation?: boolean;
+    preferParallel?: boolean;
     valuationCcy?: string;
     json: boolean;
   },
@@ -272,6 +273,7 @@ export async function cmdAccountBalanceAll(
     ...(ccy ? { ccy } : {}),
     ...(opts.accounts ? { accounts: opts.accounts } : {}),
     showValuation: !opts.noValuation,
+    ...(opts.preferParallel ? { preferParallel: true } : {}),
     ...(opts.valuationCcy ? { valuationCcy: opts.valuationCcy } : {}),
   })) as unknown as Record<string, unknown>;
 
@@ -287,21 +289,17 @@ export async function cmdAccountBalanceAll(
   if (trading) {
     if (trading.available) {
       outputLine("=== Trading Account ===");
+      outputLine(`Total Equity: ${String(trading["totalEq"] ?? "0")}`);
       const details = (trading.details as Record<string, unknown>[]) ?? [];
-      const first = details[0] as Record<string, unknown> | undefined;
-      if (first) {
-        outputLine(`Total Equity: ${String(first["totalEq"] ?? trading["totalEq"] ?? "0")}`);
-        const innerDetails = (first["details"] as Record<string, unknown>[]) ?? details;
-        const rows = innerDetails
-          .filter((d) => Number(d["eq"] ?? d["bal"] ?? 0) > 0)
-          .map((d) => ({
-            ccy: d["ccy"],
-            equity: d["eq"] ?? d["bal"],
-            available: d["availEq"] ?? d["availBal"],
-            frozen: d["frozenBal"],
-          }));
-        if (rows.length > 0) printTable(rows);
-      }
+      const rows = details
+        .filter((d) => Number(d["eq"] ?? d["bal"] ?? 0) > 0)
+        .map((d) => ({
+          ccy: d["ccy"],
+          equity: d["eq"] ?? d["bal"],
+          available: d["availEq"] ?? d["availBal"],
+          frozen: d["frozenBal"],
+        }));
+      if (rows.length > 0) printTable(rows);
     } else {
       const error = trading.error as Record<string, unknown> | undefined;
       outputLine(`=== Trading Account === [ERROR: ${error?.msg ?? "unavailable"}]`);
@@ -348,6 +346,18 @@ export async function cmdAccountBalanceAll(
       const error = valuation.error as Record<string, unknown> | undefined;
       outputLine(`=== Valuation === [ERROR: ${error?.msg ?? "unavailable"}]`);
     }
+  }
+
+  const source = meta?.source as string | undefined;
+  if (source) {
+    const site = meta?.site as string | undefined;
+    const elapsed = meta?.elapsedMs;
+    let line = `[source: ${source}`;
+    if (site) line += `, site: ${site}`;
+    if (elapsed !== undefined) line += `, ${String(elapsed)}ms`;
+    line += "]";
+    outputLine("");
+    outputLine(line);
   }
 }
 

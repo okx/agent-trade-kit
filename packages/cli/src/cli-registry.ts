@@ -178,8 +178,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "balance-all": {
         toolName: "account_get_balance_all",
-        usage: "okx account balance-all [<ccy>] [--accounts trading,funding] [--no-valuation] [--valuationCcy <ccy>]",
-        description: "One-shot snapshot: trading + funding (+ valuation) in one call",
+        usage: "okx account balance-all [<ccy>] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]",
+        description: "One-shot snapshot: trading + funding (+ valuation) via server aggregate, auto-fallback to parallel",
       },
       "asset-balance": {
         toolName: "account_get_asset_balance",

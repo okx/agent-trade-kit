@@ -15,10 +15,10 @@ afterEach(() => resetOutput());
 
 function fakeBalanceAllResult(overrides: Record<string, unknown> = {}) {
   return {
-    trading: { available: true, totalEq: "10000", adjEq: "9500", details: [{ totalEq: "10000", details: [{ ccy: "USDT", eq: "10000", availEq: "9000", frozenBal: "1000" }] }] },
+    trading: { available: true, totalEq: "10000", adjEq: "9500", details: [{ ccy: "USDT", eq: "10000", availEq: "9000", frozenBal: "1000" }] },
     funding: { available: true, details: [{ ccy: "USDT", bal: "5000", availBal: "5000", frozenBal: "0" }] },
     valuation: { available: true, valuationCcy: "USDT", totalBal: "15000", details: [{ totalBal: "15000", details: { trading: "10000", funding: "5000" } }] },
-    meta: { requestedAt: "2024-01-01T00:00:00.000Z", elapsedMs: 42, partialFailure: false },
+    meta: { requestedAt: "2024-01-01T00:00:00.000Z", elapsedMs: 42, partialFailure: false, source: "aggregate", site: "OKX_GLOBAL" },
     ...overrides,
   };
 }
@@ -143,5 +143,32 @@ describe("cmdAccountBalanceAll routing", () => {
     };
     await cmdAccountBalanceAll(runner, undefined, { json: true });
     assert.ok(!("ccy" in capturedArgs));
+  });
+
+  it("passes preferParallel=true when set (--no-aggregate)", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return fakeBalanceAllResult();
+    };
+    await cmdAccountBalanceAll(runner, undefined, { preferParallel: true, json: true });
+    assert.equal(capturedArgs.preferParallel, true);
+  });
+
+  it("does not pass preferParallel by default", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_tool, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return fakeBalanceAllResult();
+    };
+    await cmdAccountBalanceAll(runner, undefined, { json: true });
+    assert.ok(!("preferParallel" in capturedArgs));
+  });
+
+  it("prints the data source footer in non-json output", async () => {
+    const runner: ToolRunner = async () => fakeBalanceAllResult();
+    await cmdAccountBalanceAll(runner, undefined, { json: false });
+    const combined = out.join("");
+    assert.ok(combined.includes("[source: aggregate"));
   });
 });
