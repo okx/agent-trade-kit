@@ -176,6 +176,103 @@ async function queryAggregate(
   return normalizeAggregate(agg, params, startTime);
 }
 
+/** Canonical sections produced by the parallel fallback. */
+type SectionKey = "trading" | "funding" | "valuation";
+
+/** A balance sub-query tagged with the section it produces. */
+interface BalanceTask {
+  key: SectionKey;
+  run: () => Promise<unknown>;
+}
+
+/** Resolved outcome of a BalanceTask: either `data` (success) or `error`. */
+interface TaskOutcome {
+  key: SectionKey;
+  data?: unknown;
+  error?: Error;
+}
+
+/** Balance sections that count toward partialFailure / "both failed"; valuation is excluded. */
+const REQUESTED_KEYS: ReadonlySet<SectionKey> = new Set(["trading", "funding"]);
+
+/** Build the list of sub-queries to run, each tagged with its section key. */
+function buildBalanceTasks(context: ToolContext, params: BalanceAllParams): BalanceTask[] {
+  const { ccy, requestedAccounts, showValuation, valuationCcy } = params;
+  const tasks: BalanceTask[] = [];
+
+  if (requestedAccounts.includes("trading")) {
+    tasks.push({
+      key: "trading",
+      run: () =>
+        context.client
+          .privateGet(TRADING_ENDPOINT, compactObject({ ccy }), privateRateLimit("account_get_balance", 10))
+          .then((resp) => resp.data),
+    });
+  }
+  if (requestedAccounts.includes("funding")) {
+    tasks.push({
+      key: "funding",
+      run: () =>
+        context.client
+          .privateGet(FUNDING_ENDPOINT, compactObject({ ccy }), privateRateLimit("account_get_asset_balance", 6))
+          .then((resp) => resp.data),
+    });
+  }
+  if (showValuation) {
+    tasks.push({
+      key: "valuation",
+      run: () =>
+        context.client
+          .privateGet(VALUATION_ENDPOINT, { ccy: valuationCcy }, privateRateLimit("account_get_asset_valuation", 1))
+          .then((resp) => resp.data),
+    });
+  }
+
+  return tasks;
+}
+
+/** Run every task to completion, capturing each result/error alongside its key. */
+async function settleBalanceTasks(tasks: BalanceTask[]): Promise<TaskOutcome[]> {
+  return Promise.all(
+    tasks.map(async (task) => {
+      try {
+        return { key: task.key, data: await task.run() };
+      } catch (error) {
+        return { key: task.key, error: error as Error };
+      }
+    }),
+  );
+}
+
+/** Build the populated section for a successful sub-query. */
+function buildSuccessSection(key: SectionKey, data: unknown, valuationCcy: string): Section {
+  const rows = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+  const first = rows[0];
+  if (key === "funding") {
+    return { available: true, details: rows };
+  }
+  if (key === "valuation") {
+    return { available: true, valuationCcy, totalBal: first?.["totalBal"] ?? "0", details: rows };
+  }
+  return {
+    available: true,
+    totalEq: first?.["totalEq"] ?? "0",
+    adjEq: first?.["adjEq"] ?? "0",
+    details: first && Array.isArray(first["details"]) ? first["details"] : [],
+  };
+}
+
+/** Build the error section for a failed sub-query. */
+function buildErrorSection(error: Error): Section {
+  return {
+    available: false,
+    error: {
+      code: error instanceof OkxApiError ? (error.code ?? "UNKNOWN") : "UNKNOWN",
+      msg: error.message,
+    } satisfies SubError,
+  };
+}
+
 /**
  * Fallback path: query trading / funding / valuation directly in parallel.
  * Preserves the original semantics:
@@ -188,126 +285,34 @@ async function queryParallel(
   params: BalanceAllParams,
   startTime: number,
 ): Promise<Section> {
-  const { ccy, requestedAccounts, showValuation, valuationCcy } = params;
-  const wantTrading = requestedAccounts.includes("trading");
-  const wantFunding = requestedAccounts.includes("funding");
+  const tasks = buildBalanceTasks(context, params);
+  const outcomes = await settleBalanceTasks(tasks);
 
-  const promises: Promise<{ key: string; data: unknown }>[] = [];
-
-  if (wantTrading) {
-    promises.push(
-      context.client
-        .privateGet(TRADING_ENDPOINT, compactObject({ ccy }), privateRateLimit("account_get_balance", 10))
-        .then((resp) => ({ key: "trading", data: resp.data })),
-    );
+  // Auth failures propagate immediately (the direct endpoints would fail identically).
+  const authFailure = outcomes.find((o) => o.error instanceof AuthenticationError);
+  if (authFailure?.error) {
+    throw authFailure.error;
   }
-
-  if (wantFunding) {
-    promises.push(
-      context.client
-        .privateGet(FUNDING_ENDPOINT, compactObject({ ccy }), privateRateLimit("account_get_asset_balance", 6))
-        .then((resp) => ({ key: "funding", data: resp.data })),
-    );
-  }
-
-  if (showValuation) {
-    promises.push(
-      context.client
-        .privateGet(VALUATION_ENDPOINT, { ccy: valuationCcy }, privateRateLimit("account_get_asset_valuation", 1))
-        .then((resp) => ({ key: "valuation", data: resp.data })),
-    );
-  }
-
-  const settled = await Promise.allSettled(promises);
 
   const result: Section = {};
-  let partialFailure = false;
-  const authErrors: Error[] = [];
-  const requestedSectionErrors: Array<{ key: string; error: Error }> = [];
-
-  for (const outcome of settled) {
-    if (outcome.status === "fulfilled") {
-      const { key, data } = outcome.value;
-      if (key === "trading") {
-        const rows = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
-        const first = rows[0];
-        const tradingDetails = first && Array.isArray(first["details"]) ? first["details"] : [];
-        result.trading = {
-          available: true,
-          totalEq: first?.["totalEq"] ?? "0",
-          adjEq: first?.["adjEq"] ?? "0",
-          details: tradingDetails,
-        };
-      } else if (key === "funding") {
-        result.funding = {
-          available: true,
-          details: Array.isArray(data) ? data : [],
-        };
-      } else if (key === "valuation") {
-        const rows = Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
-        const first = rows[0];
-        result.valuation = {
-          available: true,
-          valuationCcy,
-          totalBal: first?.["totalBal"] ?? "0",
-          details: rows,
-        };
-      }
-    } else {
-      const reason = outcome.reason as Error;
-      const promiseIndex = settled.indexOf(outcome);
-      let key = "unknown";
-      // Derive key from promise order
-      let idx = 0;
-      if (wantTrading) { if (promiseIndex === idx) key = "trading"; idx++; }
-      if (wantFunding) { if (promiseIndex === idx) key = "funding"; idx++; }
-      if (showValuation) { if (promiseIndex === idx) key = "valuation"; idx++; }
-
-      if (reason instanceof AuthenticationError) {
-        authErrors.push(reason);
-        continue;
-      }
-
-      const errorInfo = {
-        code: reason instanceof OkxApiError ? (reason.code ?? "UNKNOWN") : "UNKNOWN",
-        msg: reason.message,
-      };
-
-      if (key === "trading") {
-        result.trading = { available: false, error: errorInfo };
-        partialFailure = true;
-      } else if (key === "funding") {
-        result.funding = { available: false, error: errorInfo };
-        partialFailure = true;
-      } else if (key === "valuation") {
-        result.valuation = { available: false, error: errorInfo };
-        // valuation failure does NOT set partialFailure
-      }
-
-      if (key === "trading" || key === "funding") {
-        requestedSectionErrors.push({ key, error: reason });
-      }
-    }
+  for (const outcome of outcomes) {
+    result[outcome.key] = outcome.error
+      ? buildErrorSection(outcome.error)
+      : buildSuccessSection(outcome.key, outcome.data, params.valuationCcy);
   }
 
-  // Auth errors propagate immediately
-  if (authErrors.length > 0) {
-    throw authErrors[0];
-  }
-
-  // Both requested balance sections failed -> throw
-  const requestedBalanceSections = [wantTrading, wantFunding].filter(Boolean).length;
-  if (requestedSectionErrors.length >= requestedBalanceSections && requestedBalanceSections > 0) {
-    throw new OkxApiError("Both balance queries failed", {
-      code: "-30001",
-    });
+  // Both requested balance sections (trading/funding) failed -> hard error.
+  const requestedCount = tasks.filter((t) => REQUESTED_KEYS.has(t.key)).length;
+  const requestedFailures = outcomes.filter((o) => o.error && REQUESTED_KEYS.has(o.key)).length;
+  if (requestedCount > 0 && requestedFailures >= requestedCount) {
+    throw new OkxApiError("Both balance queries failed", { code: "-30001" });
   }
 
   const site = typeof context.config?.site === "string" ? context.config.site : undefined;
   result.meta = compactObject({
     requestedAt: new Date(startTime).toISOString(),
     elapsedMs: Date.now() - startTime,
-    partialFailure,
+    partialFailure: requestedFailures > 0,
     site,
     source: "fallback",
   });
