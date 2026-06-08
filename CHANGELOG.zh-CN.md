@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+---
+
+## [1.3.8-beta.4] - 2026-06-08
+
 ### 新增
 
 - **聚合余额工具 `account_get_balance_all`**（OPRS-360）。一次性获取交易账户+资金账户余额及可选跨账户估值快照。优先调用服务端聚合接口（`/api/v5/aigc/forward/balance-aggregate`），不可用时自动回退到直连并发查询（`Promise.allSettled`）；鉴权失败不重试，聚合接口返回 `partialFailure` 时原样返回（不回退）。部分失败语义：每个 section 有 `available` 标记 + `meta.partialFailure`。返回的 `meta` 新增 `source`（`aggregate`|`fallback`）与 `site` 便于观测；`requestedAt` 统一为 ISO 8601 字符串。CLI 命令：`okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` —— `--no-aggregate` 强制走并发路径（例如需要按账户类型的估值拆解或非 USD 计价时）。Skill `okx-cex-portfolio` 同步更新。参考：[TD] 聚合balance接口。
