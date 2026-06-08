@@ -1,0 +1,28 @@
+{
+  "flash": {
+    "enabled": true
+  },
+  "fixed": {
+    "enabled": true,
+    "globalMinApy": 0,
+    "currencyOverrides": {},
+    "terms": "all"
+  },
+  "flexible": {
+    "enabled": true,
+    "globalMinApy": 0.08,
+    "currencies": ["USDT", "USDC"],
+    "currencyOverrides": {}
+  },
+  "currencies": "all",
+  "schedule": {
+    "cron": "0 * * * *",
+    "interval": "1h"
+  },
+  "notify": {
+    "language": "auto",
+    "fallbackToSession": false
+  },
+  "simulatedTrading": false,
+  "verboseLog": false
+}

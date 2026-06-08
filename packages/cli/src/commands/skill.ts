@@ -7,14 +7,20 @@ import {
   type ToolRunner,
   type OkxConfig,
   OkxRestClient,
+  ConfigError,
   downloadSkillZip,
   extractSkillZip,
   readMetaJson,
+  tryReadMetaJson,
   validateSkillMdExists,
   upsertSkillRecord,
   removeSkillRecord,
   readSkillRegistry,
   getSkillRecord,
+  verifySkillSignature,
+  getPublicKey,
+  serverSideVerify,
+  type VerificationResult,
 } from "@agent-tradekit/core";
 import { outputLine, errorLine } from "../formatter.js";
 
@@ -52,6 +58,11 @@ export function npxEnv(): NodeJS.ProcessEnv {
  * escape codes into the test TAP stream.
  */
 export type SkillExec = typeof execFileSync;
+
+/** Resolve the installed content directory for a skill. */
+function getSkillContentDir(name: string): string {
+  return join(homedir(), ".agents", "skills", name);
+}
 
 /** Notice shown after installing a third-party skill. */
 export const THIRD_PARTY_INSTALL_NOTICE =
@@ -132,12 +143,40 @@ export async function cmdSkillCategories(
 // okx skill add <name>
 // ---------------------------------------------------------------------------
 
+/** Injectable dependencies for cmdSkillAdd — used in tests to bypass network I/O. */
+export interface SkillAddDeps {
+  download?: (client: OkxRestClient, name: string, dir: string) => Promise<string>;
+  extract?: (zipPath: string, dest: string) => Promise<string>;
+}
+
+/**
+ * Run a verifySkillSignature call and surface ConfigError as a user-friendly message.
+ * Extracts the ConfigError wrapping so callers can use `const result = await wrapVerify(...)`.
+ */
+async function wrapVerify(fn: () => Promise<VerificationResult>): Promise<VerificationResult> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e instanceof ConfigError) {
+      throw new Error(
+        `Signature verification requires authentication — run \`okx auth login\` first, or use --force to bypass.`,
+      );
+    }
+    throw e;
+  }
+}
+
 export async function cmdSkillAdd(
   name: string,
   config: OkxConfig,
   json: boolean,
+  force = false,
   exec: SkillExec = execFileSync,
+  _deps?: SkillAddDeps,
 ): Promise<void> {
+  const _download = _deps?.download ?? downloadSkillZip;
+  const _extract = _deps?.extract ?? extractSkillZip;
+
   const tmpBase = join(tmpdir(), `okx-skill-${randomUUID()}`);
   mkdirSync(tmpBase, { recursive: true });
 
@@ -145,16 +184,45 @@ export async function cmdSkillAdd(
     // Step 1: Download
     outputLine(`Downloading ${name}...`);
     const client = new OkxRestClient(config);
-    const zipPath = await downloadSkillZip(client, name, tmpBase);
+    const zipPath = await _download(client, name, tmpBase);
 
     // Step 2: Extract
-    const contentDir = await extractSkillZip(zipPath, join(tmpBase, "content"));
+    const contentDir = await _extract(zipPath, join(tmpBase, "content"));
 
     // Step 3: Validate
     const meta = readMetaJson(contentDir);
     validateSkillMdExists(contentDir);
 
-    // Step 4: Install via npx skills add
+    // Step 4: Verify signature (before install to avoid dirty state on failure)
+    outputLine("Verifying signature...");
+    const verifyResult = await wrapVerify(() =>
+      verifySkillSignature(contentDir, meta.signing, {
+        fetchPublicKey: (keyId) => getPublicKey(client, keyId),
+        serverSideVerify: (sName, version, files) => serverSideVerify(client, sName, version, files),
+        skillName: meta.name,
+        skillVersion: meta.version,
+      }),
+    );
+
+    if (verifyResult.status === "failed") {
+      if (!force) {
+        throw new Error(`Signature verification failed: ${verifyResult.error ?? "unknown error"}. Use --force to install anyway.`);
+      }
+      // Always write bypass warning to stderr regardless of --json, so scripted consumers can detect it
+      process.stderr.write(`WARNING: Signature verification failed — ${verifyResult.error ?? "unknown"}. Installing anyway (--force).\n`);
+    } else if (verifyResult.status === "verified_by_server") {
+      if (!json) {
+        outputLine(`  Verified by server (v${verifyResult.serverVersion ?? "?"})`);
+        if (verifyResult.error) outputLine(`  Note: ${verifyResult.error}`);
+      }
+    } else if (!json) {
+      outputLine(`  Signature verified (key: ${verifyResult.publicKeyId}, files: ${verifyResult.filesChecked})`);
+      if (verifyResult.extraFiles?.length) {
+        outputLine(`  Note: ${verifyResult.extraFiles.length} extra unsigned file(s) present`);
+      }
+    }
+
+    // Step 5: Install via npx skills add
     outputLine("Installing to detected agents...");
     try {
       exec(resolveNpx(), ["skills", "add", contentDir, "-y", "-g"], {
@@ -171,12 +239,13 @@ export async function cmdSkillAdd(
       throw e;
     }
 
-    // Step 5: Update registry
-    upsertSkillRecord(meta);
+    // Step 6: Update registry — use "bypassed" when user forced past a failed verification
+    const registryStatus = (verifyResult.status === "failed" && force) ? "bypassed" : verifyResult.status;
+    upsertSkillRecord(meta, undefined, registryStatus);
 
     printSkillInstallResult(meta, json);
   } finally {
-    // Step 6: Cleanup
+    // Step 7: Cleanup
     rmSync(tmpBase, { recursive: true, force: true });
   }
 }
@@ -226,7 +295,7 @@ export function cmdSkillRemove(name: string, json: boolean, exec: SkillExec = ex
     });
   } catch {
     // Fallback: manually remove .agents/skills/<name>/
-    const agentsPath = join(homedir(), ".agents", "skills", name);
+    const agentsPath = getSkillContentDir(name);
     try {
       rmSync(agentsPath, { recursive: true, force: true });
     } catch {
@@ -312,6 +381,80 @@ export function cmdSkillList(json: boolean): void {
   }
   outputLine("");
   outputLine(`${skills.length} skills installed.`);
+}
+
+// ---------------------------------------------------------------------------
+// okx skill verify <name>
+// ---------------------------------------------------------------------------
+
+export async function cmdSkillVerify(
+  name: string,
+  config: OkxConfig,
+  json: boolean,
+): Promise<void> {
+  const record = getSkillRecord(name);
+  if (!record) {
+    errorLine(`Skill "${name}" is not installed.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const contentDir = getSkillContentDir(name);
+  if (!existsSync(contentDir)) {
+    errorLine(`Skill content directory not found: ${contentDir}`);
+    errorLine(`Try reinstalling with: okx skill add ${name}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const meta = tryReadMetaJson(contentDir);
+  const client = new OkxRestClient(config);
+
+  let result: VerificationResult;
+  try {
+    result = await wrapVerify(() =>
+      verifySkillSignature(contentDir, meta?.signing, {
+        fetchPublicKey: (keyId) => getPublicKey(client, keyId),
+        serverSideVerify: (sName, version, files) => serverSideVerify(client, sName, version, files),
+        skillName: name,
+        skillVersion: meta?.version,
+      }),
+    );
+  } catch (e) {
+    errorLine(e instanceof Error ? e.message : String(e));
+    process.exitCode = 1;
+    return;
+  }
+
+  // Persist updated verification status
+  if (meta) {
+    upsertSkillRecord(meta, undefined, result.status);
+  }
+
+  // Set exitCode before the JSON early-return so scripted consumers can detect failure
+  // via exit code even when --json suppresses the human-readable error line.
+  if (result.status === "failed") {
+    process.exitCode = 1;
+  }
+
+  if (json) {
+    outputLine(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (result.status === "verified") {
+    outputLine(`✓ ${name}: signature verified (key: ${result.publicKeyId}, files: ${result.filesChecked})`);
+    if (result.extraFiles?.length) {
+      outputLine(`  Note: ${result.extraFiles.length} extra unsigned file(s) present`);
+    }
+  } else if (result.status === "verified_by_server") {
+    outputLine(`✓ ${name}: verified by server (v${result.serverVersion ?? "?"})`);
+    if (result.error) outputLine(`  Note: ${result.error}`);
+  } else if (result.status === "failed") {
+    errorLine(`✗ ${name}: verification failed — ${result.error ?? "unknown"}`);
+  }
+  // "bypassed" is only set by cmdSkillAdd (--force); verifySkillSignature never returns it.
+  // The empty else is intentional: a future VerificationStatus addition won't silently pass.
 }
 
 // ---------------------------------------------------------------------------

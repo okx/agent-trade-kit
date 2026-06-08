@@ -1,0 +1,16 @@
+{
+  "platform": "claude-code",
+  "scheduler": {
+    "type": "cron",
+    "interval": "1h"
+  },
+  "notify": {
+    "channel": "auto",
+    "fallbackToSession": false,
+    "telegram": {
+      "bot_token_env": "TELEGRAM_BOT_TOKEN",
+      "chat_id_env": "TELEGRAM_CHAT_ID"
+    },
+    "lark_webhook": ""
+  }
+}

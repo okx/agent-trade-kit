@@ -15,6 +15,8 @@ export function registerOptionAlgoTools(): ToolSpec[] {
   return [
     {
       name: "option_place_algo_order",
+      title: "Option Place Algo Order",
+      destructiveHint: false,
       module: "option",
       description:
         "Place OPTION TP/SL algo order (conditional/oco). [CAUTION] Executes real trades. conditional=single TP/SL; oco=TP+SL pair. -1=market.",
@@ -122,6 +124,8 @@ export function registerOptionAlgoTools(): ToolSpec[] {
     },
     {
       name: "option_amend_algo_order",
+      title: "Option Amend Algo Order",
+      idempotentHint: true,
       module: "option",
       description:
         "Amend a pending OPTION algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via option_get_algo_orders first.",
@@ -159,6 +163,8 @@ export function registerOptionAlgoTools(): ToolSpec[] {
     },
     {
       name: "option_cancel_algo_orders",
+      title: "Option Cancel Algo Orders",
+      idempotentHint: true,
       module: "option",
       description:
         "Cancel OPTION algo orders (TP/SL). Each item: {algoId, instId}.",
@@ -203,6 +209,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
     },
     {
       name: "option_get_algo_orders",
+      title: "Option Get Algo Orders",
       module: "option",
       description:
         "Query pending or completed OPTION algo orders (TP/SL, OCO).",

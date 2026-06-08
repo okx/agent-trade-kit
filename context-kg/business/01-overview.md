@@ -10,14 +10,14 @@ The project is a pnpm workspace monorepo containing three packages:
 | Package | Path | Purpose |
 |---------|------|---------|
 | `@okx-trade/core` | `packages/core` | Shared SDK: REST client, tool definitions, config parsing, error types |
-| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~163 tools over stdio (JSON-RPC 2.0) |
+| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~164 tools over stdio (JSON-RPC 2.0) |
 | `@okx-trade/cli` | `packages/cli` | CLI binary (`okx`) for direct terminal use |
 
 **Bundling**: tsup (ESM output). **Testing**: node:test. **Validation**: zod. **Config**: TOML via smol-toml.
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **163 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **164 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
 
 - **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)
@@ -39,7 +39,7 @@ As of the latest registry scan, the server exposes **163 MCP tools** organized i
 
 ## Skills Ecosystem
 
-**9 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
+**10 skill packs** live in the `skills/` directory and are published to the agent-hub marketplace:
 
 - `skills/okx-cex-trade/` — trading operations
 - `skills/okx-cex-market/` — market data queries
@@ -49,6 +49,8 @@ As of the latest registry scan, the server exposes **163 MCP tools** organized i
 - `skills/okx-cex-skill-mp/` — skill marketplace management
 - `skills/okx-cex-smartmoney/` — smart-money signals and trader leaderboard
 - `skills/okx-sentiment-tracker/` — crypto news and market sentiment
+- `skills/okx-cex-auth/` — authentication and session management
+- `skills/earn-hunter/` — automated earn yield scanning and alerts
 
 Each skill pack's `SKILL.md` carries a `metadata.version` that must be synchronized with the package release version on every stable release.
 

@@ -47,6 +47,7 @@ export function registerGridTools(): ToolSpec[] {
   return [
     {
       name: "grid_get_orders",
+      title: "Grid Bot List Orders",
       module: "bot.grid",
       description:
         "List grid bots. status='active' for running; 'history' for stopped.",
@@ -97,6 +98,7 @@ export function registerGridTools(): ToolSpec[] {
     },
     {
       name: "grid_get_order_details",
+      title: "Grid Bot Get Detail",
       module: "bot.grid",
       description: "Get grid bot detail by algo ID. Returns config, status, PnL, and position.",
       isWrite: false,
@@ -127,6 +129,7 @@ export function registerGridTools(): ToolSpec[] {
     },
     {
       name: "grid_get_sub_orders",
+      title: "Grid Bot Get Sub-Orders",
       module: "bot.grid",
       description:
         "Query sub-orders (grid trades) of a bot. type='filled' for executed; 'live' for pending.",
@@ -172,11 +175,13 @@ export function registerGridTools(): ToolSpec[] {
     },
     {
       name: "grid_create_order",
+      title: "Grid Bot Create",
       module: "bot.grid",
       description:
         "Create grid bot (spot, USDT-margined, or coin-margined contract). [CAUTION] Locks funds. " +
         "Spot: quoteSz|baseSz. Contract: direction+lever+sz.",
       isWrite: true,
+      destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
@@ -249,7 +254,9 @@ export function registerGridTools(): ToolSpec[] {
     },
     {
       name: "grid_amend_order",
+      title: "Grid Bot Amend",
       module: "bot.grid",
+      idempotentHint: true,
       description:
         "Amend a running grid bot. [CAUTION] Modifies a running bot. " +
         "Use grid_list_orders to confirm the bot is running and obtain the algoId before calling.\n" +
@@ -400,7 +407,9 @@ export function registerGridTools(): ToolSpec[] {
     },
     {
       name: "grid_stop_order",
+      title: "Grid Bot Stop",
       module: "bot.grid",
+      idempotentHint: true,
       description:
         "[CAUTION] Stop a grid bot or close its remaining open position — real trades, irreversible. " +
         "Workflow: " +

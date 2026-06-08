@@ -5,7 +5,7 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import type { ToolContext } from "../src/tools/types.js";
+import { toMcpTool, type ToolContext, type ToolSpec } from "../src/tools/types.js";
 import { normalizeResponse } from "../src/tools/helpers.js";
 import { registerMarketTools } from "../src/tools/market.js";
 import { registerSpotTradeTools } from "../src/tools/spot-trade.js";
@@ -3608,8 +3608,8 @@ import { registerDcdTools } from "../src/tools/earn/dcd.js";
 describe("earn tools registration", () => {
   const tools = registerEarnTools();
 
-  it("registers exactly 9 earn tools", () => {
-    assert.equal(tools.length, 9);
+  it("registers exactly 10 earn tools", () => {
+    assert.equal(tools.length, 10);
   });
 
   it("all earn tools have module earn.savings", () => {
@@ -4177,6 +4177,58 @@ describe("earn_get_lending_rate_history", () => {
   });
 });
 
+describe("earn_get_fixed_earn_products", () => {
+  const tools = registerEarnTools();
+  const tool = tools.find((t) => t.name === "earn_get_fixed_earn_products")!;
+
+  it("calls /finance/simple-earn-fixed/offers via privateGet", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/finance/simple-earn-fixed/offers");
+    assert.equal(getLastCall()?.method, "GET");
+  });
+
+  it("passes ccy parameter when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ccy: "USDT" }, makeContext(client));
+    assert.equal(getLastCall()?.params.ccy, "USDT");
+  });
+
+  it("strips borrowingOrderQuota from response", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "90D", apr: "0.05", lendQuota: "50000", borrowingOrderQuota: "1000000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data.length, 1);
+    assert.equal(data[0]!["borrowingOrderQuota"], undefined);
+  });
+
+  it("sets soldOut=true when lendQuota is '0'", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "USDT", term: "30D", apr: "0.03", lendQuota: "0", borrowingOrderQuota: "500000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data[0]!["soldOut"], true);
+  });
+
+  it("sets soldOut=false when lendQuota is not '0'", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/finance/simple-earn-fixed/offers": [
+        { ccy: "BTC", term: "60D", apr: "0.04", lendQuota: "10000", borrowingOrderQuota: "200000" },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    assert.equal(data[0]!["soldOut"], false);
+  });
+});
+
 describe("onchain_earn_cancel", () => {
   const tools = registerAllEarnTools();
   const tool = tools.find((t) => t.name === "onchain_earn_cancel")!;
@@ -4288,7 +4340,7 @@ describe("earn tools isWrite classification", () => {
   });
 
   it("read tools have isWrite=false", () => {
-    const readNames = ["earn_get_savings_balance", "earn_get_fixed_order_list", "earn_get_lending_history", "earn_get_lending_rate_history"];
+    const readNames = ["earn_get_savings_balance", "earn_get_fixed_order_list", "earn_get_lending_history", "earn_get_lending_rate_history", "earn_get_fixed_earn_products"];
     for (const name of readNames) {
       const tool = tools.find((t) => t.name === name);
       assert.ok(tool, `${name} should exist`);
@@ -6000,6 +6052,75 @@ describe("smartmoney_search_trader", () => {
     assert.equal(data.length, 2);
     assert.equal(data[0].authorId, "1");
     assert.equal(data[1].nickName, "alice_eth");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// toMcpTool: title propagation & annotation overrides
+// ---------------------------------------------------------------------------
+
+describe("toMcpTool title & annotation overrides", () => {
+  const baseSpec: Omit<ToolSpec, "name" | "title" | "isWrite"> = {
+    module: "market",
+    description: "test",
+    inputSchema: { type: "object", properties: {} },
+    handler: async () => ({}),
+  };
+
+  it("propagates title to Tool.title and annotations.title", () => {
+    const t = toMcpTool({ ...baseSpec, name: "x_get_y", title: "Get Y", isWrite: false } as ToolSpec);
+    assert.equal(t.title, "Get Y");
+    assert.equal(t.annotations?.title, "Get Y");
+  });
+
+  it("defaults destructive/idempotent from isWrite when no override", () => {
+    const r = toMcpTool({ ...baseSpec, name: "x_get_y", title: "Get Y", isWrite: false } as ToolSpec);
+    assert.equal(r.annotations?.readOnlyHint, true);
+    assert.equal(r.annotations?.destructiveHint, false);
+    assert.equal(r.annotations?.idempotentHint, true);
+
+    const w = toMcpTool({ ...baseSpec, name: "x_place", title: "Place", isWrite: true } as ToolSpec);
+    assert.equal(w.annotations?.readOnlyHint, false);
+    assert.equal(w.annotations?.destructiveHint, true);
+    assert.equal(w.annotations?.idempotentHint, false);
+  });
+
+  it("respects destructiveHint override on additive writes", () => {
+    const t = toMcpTool({
+      ...baseSpec,
+      name: "x_place",
+      title: "Place X",
+      isWrite: true,
+      destructiveHint: false,
+    } as ToolSpec);
+    assert.equal(t.annotations?.destructiveHint, false);
+    assert.equal(t.annotations?.idempotentHint, false); // default for write
+  });
+
+  it("respects idempotentHint override on cancel/amend writes", () => {
+    const t = toMcpTool({
+      ...baseSpec,
+      name: "x_cancel",
+      title: "Cancel X",
+      isWrite: true,
+      idempotentHint: true,
+    } as ToolSpec);
+    assert.equal(t.annotations?.destructiveHint, true); // default for write
+    assert.equal(t.annotations?.idempotentHint, true);
+  });
+
+  it("respects both destructive and idempotent overrides combined", () => {
+    const t = toMcpTool({
+      ...baseSpec,
+      name: "x_transfer",
+      title: "Transfer X",
+      isWrite: true,
+      destructiveHint: false,
+      idempotentHint: true,
+    } as ToolSpec);
+    assert.equal(t.annotations?.readOnlyHint, false);
+    assert.equal(t.annotations?.destructiveHint, false);
+    assert.equal(t.annotations?.idempotentHint, true);
   });
 });
 

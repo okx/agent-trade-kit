@@ -28,6 +28,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
   return [
     {
       name: "spot_place_order",
+      title: "Spot Place Order",
+      destructiveHint: false,
       module: "spot",
       description:
         "Place a spot order. Attach TP/SL via tpTriggerPx/slTriggerPx. [CAUTION] Executes real trades.",
@@ -123,6 +125,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_cancel_order",
+      title: "Spot Cancel Order",
+      idempotentHint: true,
       module: "spot",
       description:
         "Cancel an unfilled spot order.",
@@ -159,6 +163,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_amend_order",
+      title: "Spot Amend Order",
+      idempotentHint: true,
       module: "spot",
       description:
         "Amend an unfilled spot order (modify price or size). To modify attached TP/SL, use the corresponding algo amend tool: spot_amend_algo_order (spot), swap_amend_algo_order (swap), futures_amend_algo_order (futures), option_amend_algo_order (option). Use spot_get_algo_orders to find the algoId for spot orders.",
@@ -210,6 +216,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_get_orders",
+      title: "Spot Get Orders",
       module: "spot",
       description:
         "Query spot orders. status: open(active)|history(7d)|archive(3mo).",
@@ -284,6 +291,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_place_algo_order",
+      title: "Spot Place Algo Order",
+      destructiveHint: false,
       module: "spot",
       description:
         "Place a spot algo order. [CAUTION] Executes real trades. " +
@@ -404,6 +413,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_amend_algo_order",
+      title: "Spot Amend Algo Order",
+      idempotentHint: true,
       module: "spot",
       description:
         "Amend a pending spot algo order (modify TP/SL prices or size). Also covers TP/SL orders attached when placing the main order - look up algoId via spot_get_algo_orders first.",
@@ -441,6 +452,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_cancel_algo_order",
+      title: "Spot Cancel Algo Order",
+      idempotentHint: true,
       module: "spot",
       description:
         "Cancel a spot algo order (TP/SL).",
@@ -475,6 +488,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_get_algo_orders",
+      title: "Spot Get Algo Orders",
       module: "spot",
       description:
         "Query spot algo orders (TP/SL) - pending or history.",
@@ -560,6 +574,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_get_fills",
+      title: "Spot Get Fills",
       module: "spot",
       description:
           "Get spot transaction fills. archive=false(3d, default)|true(up to 3mo).",
@@ -624,6 +639,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_batch_orders",
+      title: "Spot Batch Orders",
       module: "spot",
       description:
         "[CAUTION] Batch place/cancel/amend up to 20 spot orders. action: place|cancel|amend.",
@@ -687,6 +703,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_get_order",
+      title: "Spot Get Order",
       module: "spot",
       description:
         "Get details of a single spot order.",
@@ -725,6 +742,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_batch_amend",
+      title: "Spot Batch Amend Orders",
+      idempotentHint: true,
       module: "spot",
       description:
         "[CAUTION] Batch amend up to 20 unfilled spot orders.",
@@ -756,6 +775,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     },
     {
       name: "spot_batch_cancel",
+      title: "Spot Batch Cancel Orders",
+      idempotentHint: true,
       module: "spot",
       description:
         "[CAUTION] Batch cancel up to 20 spot orders.",
@@ -795,6 +816,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
     // Not applicable: posSide (spot has no long/short hedge).
     {
       name: "spot_set_leverage",
+      title: "Spot Set Leverage",
+      idempotentHint: true,
       module: "spot",
       description:
         "Set leverage for SPOT margin trading. Provide exactly ONE of instId (pair-level) or ccy (currency-level cross, requires borrow-enabled account / multi-ccy / portfolio margin). " +

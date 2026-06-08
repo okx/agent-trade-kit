@@ -77,6 +77,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_latest",
+      title: "Get Latest Crypto News",
       module: "news",
       description: "Get crypto news sorted by time. For broad browsing ('what happened recently', 'latest news', 'any big news today'), pass importance='low' to include both high and low importance. Server default (when importance omitted) returns only high-importance news. For coin-specific news, use news_get_by_coin instead.",
       isWrite: false,
@@ -123,6 +124,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_by_coin",
+      title: "Get News by Coin",
       module: "news",
       description: "Get news for specific coins or tokens. Use when user mentions a coin: 'BTC news', 'any SOL updates'. Supports multiple coins (comma-separated). For general browsing without a coin filter, use news_get_latest.",
       isWrite: false,
@@ -167,6 +169,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_search",
+      title: "Search News",
       module: "news",
       description: "Search crypto news by keyword with optional filters. Use when user provides specific search terms: 'SEC ETF news', 'stablecoin regulation'. Keyword is optional - pass sentiment alone to browse by sentiment direction. For coin-only queries prefer news_get_by_coin.",
       isWrite: false,
@@ -225,6 +228,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_detail",
+      title: "Get News Article",
       module: "news",
       description: "Get full article content by news ID (returns title + summary + full original text). Use when user says 'show full article', 'read more', or provides a specific news ID from a previous result.",
       isWrite: false,
@@ -257,6 +261,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_domains",
+      title: "List News Sources",
       module: "news",
       description: "List available news source domains (e.g. coindesk, cointelegraph). Use when user asks what news sources are available or which platforms are covered.",
       isWrite: false,
@@ -281,6 +286,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_coin_sentiment",
+      title: "Get Coin Sentiment",
       module: "news",
       description: "Get sentiment snapshot or time-series trend for coins. Returns bullish/bearish ratios and mention counts. Pass trendPoints for trend data (1h->24 points, 4h->6, 24h->7). Use when user asks about coin sentiment, sentiment trend, or how bullish/bearish a coin is. For ranking all coins by sentiment, use news_get_sentiment_ranking instead.",
       isWrite: false,
@@ -323,6 +329,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_sentiment_ranking",
+      title: "Get Sentiment Ranking",
       module: "news",
       description: "Get coin ranking by social hotness or sentiment direction. Use when user asks which coins are trending, most bullish/bearish coins. Sort by hot (mention count), bullish, or bearish. For sentiment data on a specific coin, use news_get_coin_sentiment instead.",
       isWrite: false,
@@ -364,6 +371,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_list_calendar_regions",
+      title: "List Calendar Regions",
       module: "news",
       description: "List all valid region values for the economic calendar. Returns a string array of snake_case region codes. Call this when economic-calendar returns empty results to verify the region value, or to help the user pick a valid region. Do NOT use to list news source platforms - use news_get_domains instead.",
       isWrite: false,
@@ -373,6 +381,7 @@ export function registerNewsTools(): ToolSpec[] {
 
     {
       name: "news_get_economic_calendar",
+      title: "Get Economic Calendar",
       module: "news",
       description: "Get macro-economic calendar data (GDP, CPI, NFP, interest rate decisions, PMI, etc.). Returns scheduled and released economic events with forecast, previous, and actual values. Use when user asks about economic calendar, macro data, or specific indicators like NFP/CPI/GDP/FOMC. Do NOT use for news articles or sentiment - use news_get_latest or news_search instead.",
       isWrite: false,

@@ -8,7 +8,12 @@ The earn module is split into five sub-modules, each targeting a different OKX e
 ### savings (`earn/savings.ts`)
 - Flexible savings: subscribe/redeem at any time, earn lending yield
 - `earn_get_savings_balance` — current savings positions
-- `earn_subscribe_savings` / `earn_redeem_savings` — move funds in/out
+- `earn_savings_purchase` / `earn_savings_redeem` — move funds in/out
+- `earn_get_lending_rate_history` — lending rate history + fixed-term offers
+- `earn_get_fixed_earn_products` — query fixed-term product pool (APR, term, remaining quota, sold-out status)
+- `earn_get_fixed_order_list` — query user's fixed-term orders by state
+- `earn_fixed_purchase` / `earn_fixed_redeem` — subscribe/redeem fixed-term products
+- `earn_set_lending_rate` / `earn_get_lending_history` — rate management + personal lending records
 - APY shown as current lending rate (changes hourly)
 
 ### dcd (`earn/dcd.ts`)

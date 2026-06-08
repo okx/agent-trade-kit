@@ -14,7 +14,7 @@ import {
 } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join, dirname } from "node:path";
-import { download, downloadText } from "../utils/http.js";
+import { download, downloadText, HttpStatusError } from "../utils/http.js";
 
 import type { AuthLocalStatus } from "./installer-types.js";
 import type { CdnChecksum, CdnSource, InstallResult, RemoveResult } from "../pilot/installer-types.js";
@@ -27,12 +27,85 @@ import { getAuthBinaryPath } from "./binary.js";
 
 export const AUTH_CDN_PATH_PREFIX = "/upgradeapp/tools/oauth";
 
+/**
+ * Fallback CDN directory used when linux-arm64 native binary is absent from CDN.
+ * The linux-x64 binary runs under x86_64 emulation (binfmt_misc / Rosetta).
+ */
+export const LINUX_ARM64_FALLBACK_DIR = "linux-x64";
+
 // ---------------------------------------------------------------------------
 // Binary name
 // ---------------------------------------------------------------------------
 
 export function getAuthBinaryName(): string {
   return platform() === "win32" ? "okx-auth.exe" : "okx-auth";
+}
+
+// ---------------------------------------------------------------------------
+// Platform resolution (with linux-arm64 CDN fallback)
+// ---------------------------------------------------------------------------
+
+/**
+ * Probes CDN to determine whether a native linux-arm64 auth binary exists.
+ * - HTTP 200 from any source → native binary present, return "linux-arm64"
+ * - HTTP 404 from any source → binary absent (authoritative), return fallback + warn
+ * - Network errors only → cannot confirm absence, return "linux-arm64" conservatively
+ * For all non-linux-arm64 platforms, returns native immediately without probing.
+ *
+ * @internal exported for testing
+ */
+export async function _resolveAuthPlatformFromNative(
+  native: string,
+  sources: CdnSource[],
+  timeoutMs: number,
+): Promise<string> {
+  if (native !== "linux-arm64") {
+    return native;
+  }
+
+  const checksumPath = `${AUTH_CDN_PATH_PREFIX}/linux-arm64/checksum.json`;
+  let got404 = false;
+
+  for (const { host, protocol } of sources) {
+    const url = `${protocol}://${host}${checksumPath}`;
+    try {
+      // We only need to confirm HTTP 200; the response body is not used here.
+      await downloadText(url, timeoutMs);
+      return "linux-arm64";
+    } catch (err) {
+      if (err instanceof HttpStatusError && err.statusCode === 404) {
+        // Authoritative: binary not uploaded to CDN yet
+        got404 = true;
+        break;
+      }
+      // Network error / non-404 HTTP error: try next source conservatively
+    }
+  }
+
+  if (got404) {
+    console.warn(
+      "[okx-auth] Native linux-arm64 binary not yet on CDN. " +
+        "Falling back to linux-x64 binary — x86_64 emulation (binfmt_misc/Rosetta) required.",
+    );
+    return LINUX_ARM64_FALLBACK_DIR;
+  }
+
+  // All sources returned network errors: cannot confirm absence, stay native
+  return "linux-arm64";
+}
+
+/**
+ * Resolve the CDN platform directory for the auth binary.
+ * Returns null for unsupported platforms.
+ * For linux-arm64, probes CDN and falls back to linux-x64 if native is absent.
+ */
+export async function resolveAuthPlatformDir(
+  sources: CdnSource[] = CDN_SOURCES,
+  timeoutMs: number = DOWNLOAD_TIMEOUT_MS,
+): Promise<string | null> {
+  const native = getPlatformDir();
+  if (!native) return null;
+  return _resolveAuthPlatformFromNative(native, sources, timeoutMs);
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +139,7 @@ export async function fetchAuthCdnChecksum(
   sources: CdnSource[] = CDN_SOURCES,
   timeoutMs: number = DOWNLOAD_TIMEOUT_MS,
 ): Promise<CdnChecksum | null> {
-  const platformDir = getPlatformDir();
+  const platformDir = await resolveAuthPlatformDir(sources, timeoutMs);
   if (!platformDir) return null;
 
   const checksumPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
@@ -183,6 +256,61 @@ function isLocalUpToDate(
   return localHash !== null && localHash.size === checksum.size && localHash.sha256 === checksum.sha256;
 }
 
+interface InstallAttemptContext {
+  host: string;
+  protocol: string;
+  platformDir: string;
+  checksumPath: string;
+  binaryPath: string;
+  tmpPath: string;
+  resolvedDest: string;
+  localHash: { size: number; sha256: string } | null;
+  onProgress?: (msg: string) => void;
+}
+
+type InstallAttempt =
+  | { kind: "done"; result: InstallResult }
+  | { kind: "next"; err: Error };
+
+/**
+ * Try installing the okx-auth binary from a single CDN source.
+ * Returns `done` with the InstallResult on success / up-to-date,
+ * or `next` with the captured Error when this source should be skipped.
+ */
+async function tryInstallFromOneSource(ctx: InstallAttemptContext): Promise<InstallAttempt> {
+  const { host, protocol, platformDir, checksumPath, binaryPath, tmpPath, resolvedDest, localHash, onProgress } = ctx;
+  try {
+    const checksum = await fetchAndValidateChecksum(
+      host, protocol, checksumPath, platformDir, DOWNLOAD_TIMEOUT_MS, onProgress,
+    );
+
+    if (isLocalUpToDate(localHash, checksum)) {
+      onProgress?.("Already up to date (checksum match)");
+      return { kind: "done", result: { status: "up-to-date", source: host } };
+    }
+
+    await downloadAndVerify(host, protocol, binaryPath, tmpPath, checksum, DOWNLOAD_TIMEOUT_MS, onProgress);
+    atomicReplace(tmpPath, resolvedDest);
+    onProgress?.(`Downloaded and verified from ${host}`);
+    return { kind: "done", result: { status: "installed", source: host } };
+  } catch (err) {
+    try { unlinkSync(tmpPath); } catch { /* ignore */ }
+    const errObj = err instanceof Error ? err : new Error(String(err));
+    onProgress?.(`${host} failed: ${errObj.message}`);
+    return { kind: "next", err: errObj };
+  }
+}
+
+/** Build the final failure result from the per-source errors collected during the install loop. */
+function buildInstallFailureResult(errors: ReadonlyArray<{ host: string; err: Error }>): InstallResult {
+  const formatted = errors.map(({ host, err }) => `${host}: ${err.message}`).join("\n");
+  const allHttpErrors = errors.length > 0 && errors.every(({ err }) => err instanceof HttpStatusError);
+  const prefix = allHttpErrors
+    ? "okx-auth binary not available on CDN for this platform"
+    : "All CDN sources failed";
+  return { status: "failed", error: `${prefix}:\n${formatted}` };
+}
+
 /**
  * Download and install the okx-auth binary.
  * Verifies checksum and performs atomic replacement.
@@ -195,7 +323,10 @@ export async function installAuthBinary(
   const earlyResult = installPreChecks(destPath, sources);
   if (earlyResult) return earlyResult;
 
-  const platformDir = getPlatformDir()!;
+  const platformDir = await resolveAuthPlatformDir(sources);
+  if (!platformDir) {
+    return { status: "failed", error: "Unsupported platform" };
+  }
   const binaryName = getAuthBinaryName();
   const resolvedDest = destPath ?? join(homedir(), ".okx", "bin", binaryName);
   const tmpPath = resolvedDest + ".tmp";
@@ -205,32 +336,17 @@ export async function installAuthBinary(
   const localHash = existsSync(resolvedDest) ? hashFile(resolvedDest) : null;
   const checksumPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/checksum.json`;
   const binaryPath = `${AUTH_CDN_PATH_PREFIX}/${platformDir}/${binaryName}`;
-  const errors: string[] = [];
+  const errors: Array<{ host: string; err: Error }> = [];
 
   for (const { host, protocol } of sources) {
-    try {
-      const checksum = await fetchAndValidateChecksum(
-        host, protocol, checksumPath, platformDir, DOWNLOAD_TIMEOUT_MS, onProgress,
-      );
-
-      if (isLocalUpToDate(localHash, checksum)) {
-        onProgress?.("Already up to date (checksum match)");
-        return { status: "up-to-date", source: host };
-      }
-
-      await downloadAndVerify(host, protocol, binaryPath, tmpPath, checksum, DOWNLOAD_TIMEOUT_MS, onProgress);
-      atomicReplace(tmpPath, resolvedDest);
-      onProgress?.(`Downloaded and verified from ${host}`);
-      return { status: "installed", source: host };
-    } catch (err) {
-      try { unlinkSync(tmpPath); } catch { /* ignore */ }
-      const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`${host}: ${msg}`);
-      onProgress?.(`${host} failed: ${msg}`);
-    }
+    const attempt = await tryInstallFromOneSource({
+      host, protocol, platformDir, checksumPath, binaryPath, tmpPath, resolvedDest, localHash, onProgress,
+    });
+    if (attempt.kind === "done") return attempt.result;
+    errors.push({ host, err: attempt.err });
   }
 
-  return { status: "failed", error: `All CDN sources failed:\n${errors.join("\n")}` };
+  return buildInstallFailureResult(errors);
 }
 
 /**

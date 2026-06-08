@@ -14,32 +14,85 @@
 ### 新增
 
 - **聚合余额工具 `account_get_balance_all`**（OPRS-360）。一次性获取交易账户+资金账户余额及可选跨账户估值快照。优先调用服务端聚合接口（`/api/v5/aigc/forward/balance-aggregate`），不可用时自动回退到直连并发查询（`Promise.allSettled`）；鉴权失败不重试，聚合接口返回 `partialFailure` 时原样返回（不回退）。部分失败语义：每个 section 有 `available` 标记 + `meta.partialFailure`。返回的 `meta` 新增 `source`（`aggregate`|`fallback`）与 `site` 便于观测；`requestedAt` 统一为 ISO 8601 字符串。CLI 命令：`okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` —— `--no-aggregate` 强制走并发路径（例如需要按账户类型的估值拆解或非 USD 计价时）。Skill `okx-cex-portfolio` 同步更新。参考：[TD] 聚合balance接口。
-- **通过环境变量自动支持 HTTP/HTTPS 代理**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 调用（CLI、MCP server、mcp-gateway）将自动通过代理路由。支持 `NO_PROXY` 按主机跳过代理。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需修改配置；当两者同时设置时，`proxy_url` 配置仍优先生效。
+
+---
+
+## [1.3.7] - 2026-06-04
+
+纯 skill 发布：`packages/core·cli·mcp` 代码与 `1.3.6` 完全一致，`@okx_ai/okx-trade-cli@1.3.7` 仅为版本号 bump。所有功能改动都在 earn-hunter skill。
+
+### 新增
+
+- **earn-hunter: 活期赚币（Flexible Earn）监控** —— 监控 Simple Earn 活期借贷利率（默认 USDT/USDC）。当 APY 超过阈值（默认 8%）时推送通知。使用阈值穿越去重模型：每个"高收益期"只通知一次，rate 降到阈值以下后 state 重置，下次回升再通知。激活流程改为三选多选（Flash/Fixed/Flexible），活期有独立的币种和 APY 配置。
+- **earn-hunter: macOS LaunchAgent 自动降级** —— macOS cron daemon（`com.vix.cron`）未运行时，激活流程自动降级为 LaunchAgent（`~/Library/LaunchAgents/com.okx.earn-hunter.plist`）。无需 sudo，重启自动恢复。Pause/Resume/Uninstall 同步支持 `launchagent` 调度类型。
+
+### 修复
+
+- **earn-hunter: cron PATH 问题 + stderr 被吞** —— macOS cron 仅有 `PATH=/usr/bin:/bin`，找不到 node/okx。新增 `resolve_bin` + `env.snapshot` 工具路径解析；激活时写入 `env.snapshot` 记录绝对路径。`2>/dev/null` 改为 stderr 分离到临时文件，node 的 `[UNDICI-EHPA] Warning` 不再污染 JSON 输出。空 `last_error` 告警现在提示"可能是 cron PATH 问题"。
+- **earn-hunter: 单个 feed 失败导致整个扫描中断** —— flash 返回 OKX Code 8116（系统错误）时，fixed 和 flexible 也跟着不执行。现在继续处理成功的 feed；仅所有启用的 feed 全部失败才计入 3 连败告警。
+- **earn-hunter: 服务端瞬时错误重试** —— `retry_cmd` 对 Code 8116 等瞬时错误重试 3 次（间隔 3s）。401 认证错误不重试，直接告警。
+- **earn-hunter: CTA 硬编码 "Claude Code"** —— 通知 CTA 现在根据渠道自适应：session 用交互式文案（"回复申购金额"），TG/Lark 用通用推送文案，不再写死客户端名称。
+- **earn-hunter: 活期 diff cleanup 的 test namespace 豁免错误** —— 移除活期 cleanup 中错误的 `test:` key 豁免（阈值穿越语义不同于 flash/fixed 的 offer 存在性语义）。
+- **earn-hunter: 通知渠道静默默认 session** —— 激活时现在必须让用户选择通知渠道。选择 session 会给出明确警告"离线收不到通知"。
+
+### 变更
+
+- 所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本同步至 `1.3.7`，遵循稳定版 skill 版本同步策略。
+
+---
+
+## [1.3.6] - 2026-06-03
+
+1.3.6 系列首个稳定版。汇总整个 1.3.6 beta 周期累积的全部改动（完整 新增 / 修复 清单见下方 `[1.3.6-beta.1]` 条目）：earn-hunter skill、Ed25519 + SHA-256 skill 签名校验、HTTP/HTTPS 代理自动支持、linux-arm64 auth CDN 回退、`earn_get_fixed_earn_products` 工具，以及 MCP 工具 `title` 暴露。
 
 ### Changed
 
-- **非 ASCII 字符清理完成（第二轮）**（TRDATA-3977，!325）。清除了测试 `describe`/`it` 块名称中仍通过 TAP 输出泄露的剩余 5 个非 ASCII 字符，将计数降至 0，完成 1.3.5-beta.1 中启动的 TRDATA-3977 系列修复。
+- 按稳定版 skill 版本同步策略，所有 skill pack 的 `metadata.version` 同步至 `1.3.6`。
+
+---
+
+## [1.3.6-beta.1] - 2026-05-22
+
+### 新增
+
+- **earn-hunter skill —— OpenClaw 会话内 cron 调度**：OpenClaw 上的 earn-hunter 定时扫描改为在对话内通过会话内 `cron` 工具创建（isolated 会话 + `lightContext`），并经 cron `announce` 投递回会话，不再使用 OS crontab。skill 内不再出现任何 CLI 命令（`openclaw cron` CLI 路径存在权限问题）。`platform.json` 的 `scheduler.type` 在 OpenClaw 上为 `"openclaw-cron"`；Claude Code / Hermes 保持 `"cron"`（OS crontab + curl），Generic 保持 `"manual"`。
+- **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
+- **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
+- **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
+- 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
+
+### 修复
+
+- **每条命令都触发 `EnvHttpProxyAgent` 实验性警告**：undici 代理引导模块在加载时无条件注册 `EnvHttpProxyAgent`，导致 Node 在每条 CLI 命令上都打印 `[UNDICI-EHPA] ExperimentalWarning`——包括 `okx skill list` 这类从不发请求的纯本地命令。现已改为仅在检测到代理环境变量（`HTTPS_PROXY` / `HTTP_PROXY`，大小写均可）时才注册，代理用户的自动代理支持保持不变，其他用户则得到无警告的干净 CLI。
+- **`earn savings fixed-redeem` 文档使用了位置参数而非 `--reqId` 标志**：SKILL.md、cli-registry 和 savings-commands.md 均记录为 `fixed-redeem <reqId>`（位置参数），但 CLI 路由读取的是 `v.reqId`（命名标志）。按文档操作的 Agent 会传入 `undefined` 作为 reqId。现已更正为 `--reqId <reqId>`。
+- **`earn savings rate-history --limit` 文档默认值为 100，但代码实际默认值为 7**：savings-commands.md 之前记录默认值为 100，但 CLI 实现中使用的是 `readNumber(args, "limit") ?? 7`。现已更正为实际默认值 7。
+- **`earn savings rate-history` 和 `fixed-products` CLI 输出使用 `rate` 列但 OKX API 返回 `apr`**：定期产品表格的 `rate` 列始终为空。现已更正为读取 `apr` 字段。
+
+### 变更
+
+- 各工具的 `annotations.destructiveHint` 和 `idempotentHint` 现已严格遵循 MCP spec 语义：24 个 additive 写操作（place_order、transfer、subscribe、redeem）不再被标记为 destructive；37 个 destructive 且幂等的写操作（cancel、amend、close、set_leverage）现已正确标记 `idempotentHint=true`。两个 3-in-1 批处理路由（`swap_batch_orders`、`spot_batch_orders`）保留安全写默认值。
+- **非 ASCII 字符清理第二轮**（TRDATA-3977，!325）。清理了 TAP 输出中 test `describe`/`it` 块名称中残留的 5 个非 ASCII 字符，降为 0。完成 1.3.5-beta.1 中开始的 TRDATA-3977 系列。
 
 ---
 
 ## [1.3.5] - 2026-05-20
 
-`1.3.5-beta.1` 整合发布，外加一次 follow-up 清理。所有 skill 的 `metadata.version` 由 `1.3.3` 同步至 `1.3.5`。
+`1.3.5-beta.1` 整合发布，附加一轮清理。所有 skill 的 `metadata.version` 从 `1.3.3` 同步至 `1.3.5`。
 
 ### 新增
 
-- **配对价差工具**（1.3.5-beta.1，!315）。`market_get_pair_spread`，计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率），支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
+- **配对价差工具**（1.3.5-beta.1，!315）。`market_get_pair_spread`。计算两个标的在回溯窗口内的价差统计（均值/标准差/中位数/最小值/最大值，绝对值和比率）。支持回测模式。CLI 命令：`okx market pair-spread`。无需凭证。
 
 ### 修复
 
-- **CLI 启动性能优化**（1.3.5-beta.1，TRDATA-3954）。`okx` 启动不再阻塞 Node 事件循环。四层修复：`OKX_UPDATE_CHECK=false` 开关、使用用户 npm 镜像、`AbortSignal.timeout(3000)` 超时、失败负缓存 1h TTL。
+- **CLI 启动性能优化**（1.3.5-beta.1，TRDATA-3954）。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 开关；(B1) 使用用户配置的 npm 镜像；(A') `AbortSignal.timeout(3000)`；(B1.5) 失败时写入负缓存（1h TTL）。
 
 ### 变更
 
-- **`grid_stop_order` / `dca_stop_order` 工作流指引**（1.3.5-beta.1，!305）。工具描述记录有残留仓位时的两步关停模式。
-- **Smartmoney V7 漏斗语义文档同步**（1.3.5-beta.1）。design / module / context-kg / skill / eval 文档与 V7 信号漏斗对齐。仅文档变更。
-- **非 ASCII 排版标点清理**（TRDATA-3977）。两轮整理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物，覆盖 CLI 帮助、工具描述和测试。Round 1（1.3.5-beta.1）处理主体表面；Round 2（本次发布）清理 5 个通过 TAP 泄露的残留字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
-- **Skill `metadata.version` 统一 bump 到 `1.3.5`**，覆盖 9 个 skill（`okx-cex-trade`、`okx-cex-market`、`okx-cex-earn`、`okx-cex-bot`、`okx-cex-portfolio`、`okx-cex-skill-mp`、`okx-cex-auth`、`okx-cex-smartmoney`、`okx-sentiment-tracker`）。补齐 `1.3.3` → `1.3.5` 的差（`1.3.4` 稳定版当时未 bump skill）。
+- **`grid_stop_order` / `dca_stop_order` 工作流指引更新**（1.3.5-beta.1，!305）。工具描述新增两步关闭模式文档。
+- **Smartmoney V7 漏斗语义文档同步**（1.3.5-beta.1）。仅文档变更。
+- **非 ASCII 排版标点清理**（TRDATA-3977）。两轮清理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物。第一轮（1.3.5-beta.1）处理主要表面；第二轮（本版本）清理 TAP 输出残留的 5 个字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
+- **Skill `metadata.version` 统一升级至 `1.3.5`**，覆盖全部 9 个 skill。从 `1.3.3` 补齐（`1.3.4` stable 未更新 skill 版本）。
 
 ---
 
