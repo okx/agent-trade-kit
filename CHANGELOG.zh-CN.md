@@ -11,6 +11,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **Pilot 代理缓存 TTL 过期** —— `resolvePilot()` 现在会忽略过期的代理缓存条目。当条目存活时间超过 `min(node.ttl × 1000, 1h)` 时判定为过期。零值或超大 TTL 均上限为 1 小时。`mode=direct` 条目不受影响，永不过期。
+- **Pilot 死亡节点 HTTP 故障转移** —— 通过 Pilot 代理发出的请求若收到非 2xx 响应且响应体不含可解析的 OKX JSON `code`（例如来自已下线 CDN 节点的 HTML 405），现在将被归类为死亡节点故障。REST 客户端调用 `handleNetworkFailure()` 并重试一次（仅限 GET 或标记了 `retryOnNetworkError` 的 POST）。携带有效 OKX JSON 错误码的响应不受影响，直接透传给调用方。
+
 ---
 
 ## [1.3.7] - 2026-06-04

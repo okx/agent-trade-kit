@@ -37,6 +37,35 @@ The `PilotManager` class encapsulates all Pilot state and is the sole entry poin
 - Failed nodes older than **1 hour** are automatically evicted from the `failedNodes` list
 - In long-running processes (e.g., MCP server), a successful re-resolution resets `pilotRetried = false` to allow future recovery
 
+#### Proxy entry TTL expiry
+
+A `mode=proxy` cache entry is considered stale when:
+
+```
+(Date.now() - entry.updatedAt) > min(node.ttl × 1000, 1h)
+```
+
+- `node.ttl` is in seconds; zero or very large values are capped to 1 hour.
+- A stale entry is ignored by `resolvePilot()`, which returns `{ mode: null }` — same as a cache miss — so the caller falls back to a direct connection attempt, then re-resolves via the binary on network failure.
+- **`mode=direct` entries never expire** — direct entries contain no live proxy node that can rot, so they are valid indefinitely.
+
+#### Dead-node HTTP failover
+
+A Pilot-proxied node that appears live (TCP connection succeeds) but is not a valid OKX endpoint will return a non-2xx HTTP response with a non-JSON body (e.g., HTML 405 from a CDN/WAF). The REST client detects this pattern and treats it as a network-level failure:
+
+**Trigger conditions** (all must be true):
+1. Pilot proxy is currently active (`isProxyActive`)
+2. HTTP response is non-2xx (`!response.ok`)
+3. Response body contains no parseable OKX JSON `code` field (`!hasOkxJsonCode(rawText)`)
+4. Not already retried for this request (`!hasRetried`)
+
+**Behavior**: calls `handleNetworkFailure()` (same path as network errors), then retries once for `GET` requests or `POST` requests explicitly marked `retryOnNetworkError=true`. Write-once POST endpoints (orders, transfers) are never auto-retried.
+
+**Non-trigger cases** (no failover):
+- 2xx responses with business error codes (e.g., code `51008`) — surfaced as `OkxApiError` to the caller
+- Non-2xx responses that **do** carry a parseable OKX JSON code (e.g., `401` with `{code: "50111"}`) — surfaced as `OkxApiError` to the caller
+- Direct-mode requests (no Pilot proxy active)
+
 ## Binary Distribution
 
 The `okx-pilot` binary is a platform-native executable distributed via CDN:
