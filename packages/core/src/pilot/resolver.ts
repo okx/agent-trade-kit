@@ -5,6 +5,9 @@ import type { PilotNode, FailedNode } from "./types.js";
 /** Failed nodes older than this are automatically removed (ms). */
 const FAILED_NODE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+/** Maximum proxy cache age (ms). node.ttl × 1000 is capped at this value. */
+const MAX_PROXY_CACHE_AGE_MS = 60 * 60 * 1000; // 1 hour
+
 export interface ResolveResult {
   /** "proxy" | "direct" | null (binary missing/failed, fallback to direct) */
   mode: "proxy" | "direct" | null;
@@ -63,6 +66,10 @@ export function resolvePilot(hostname: string, cachePath?: string): ResolveResul
       return { mode: "direct", node: null };
     }
     if (entry.mode === "proxy" && entry.node) {
+      const effectiveTtlMs = Math.min(entry.node.ttl > 0 ? entry.node.ttl * 1000 : MAX_PROXY_CACHE_AGE_MS, MAX_PROXY_CACHE_AGE_MS);
+      if (Date.now() - entry.updatedAt > effectiveTtlMs) {
+        return { mode: null, node: null };
+      }
       return { mode: "proxy", node: entry.node };
     }
   }
