@@ -1,0 +1,35 @@
+{
+  "issue_iid": 199,
+  "branch": "fix/issue-199-test-timeout",
+  "build_started_at": "2026-06-08T00:00:00Z",
+  "build_duration_ms": 420000,
+  "tasks": [
+    {"id": "add-test-timeout-root", "intent": "Add --test-timeout=30000 to root package.json test and test:coverage scripts", "status": "done"},
+    {"id": "fix-per-package-tsx", "intent": "Replace node --import tsx/esm with node_modules/.bin/tsx in all per-package test scripts (Node 18 compat)", "status": "done"},
+    {"id": "add-test-timeout-packages", "intent": "Add --test-timeout=30000 to all per-package test:unit/test:coverage scripts", "status": "done"},
+    {"id": "hermetic-proxy-bootstrap", "intent": "Add file-scope before/after to neutralise proxy env + restore global dispatcher in undici-proxy-bootstrap.test.ts", "status": "done"},
+    {"id": "abortsignal-fetch", "intent": "Add AbortSignal.timeout(5000) to all 4 fetch() calls in undici-proxy-bootstrap.test.ts", "status": "done"},
+    {"id": "changelog", "intent": "Update CHANGELOG.md and CHANGELOG.zh-CN.md Unreleased Fixed entries", "status": "done"},
+    {"id": "context-kg", "intent": "Update context-kg/quality/01-placeholder.md with test hermeticity rules and tsx convention", "status": "done"}
+  ],
+  "files_changed": [
+    "package.json",
+    "packages/core/package.json",
+    "packages/cli/package.json",
+    "packages/mcp/package.json",
+    "packages/core/test/undici-proxy-bootstrap.test.ts",
+    "CHANGELOG.md",
+    "CHANGELOG.zh-CN.md",
+    "context-kg/quality/01-placeholder.md"
+  ],
+  "tests_added": [],
+  "decisions": [
+    {"why": "Used node_modules/.bin/tsx --test instead of node --import tsx/esm --test to stay Node 18 compatible per okx-trade-mcp-rules skill (Node-18 compat rule)"},
+    {"why": "--test-timeout=30000 (30s) chosen: per issue spec; Node 18.7+ supports this flag"},
+    {"why": "AbortSignal.timeout(5000) on loopback fetch: 5s is ample for 127.0.0.1 connections; fires only when a proxy routes traffic through an unreachable host"},
+    {"why": "File-scope before/after added as a redundant outer safety net; per-describe hooks continue to manage their own scenario-specific env independently"},
+    {"why": "CHANGELOG entries under Fixed (not Added) since this is a CI reliability fix, not a user-facing feature"}
+  ],
+  "skills_used": ["okx-trade-mcp-rules: Keep Engines.node At >=18 (blocker - forbids node --import tsx/esm)"],
+  "agent_version": "bcf9f203e1ad473d2e94307c7c74f0c499e60574"
+}

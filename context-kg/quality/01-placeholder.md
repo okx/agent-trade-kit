@@ -98,3 +98,63 @@ Static analysis (SonarQube) enforces:
 - **P0**: Module registry sync (`docs/module-registry.md`) — registry may list stale tool counts; run `pnpm test:unit` to verify current active tool count (currently 147 via `allToolSpecs()`)
 - **P1**: `packages/cli/src/index.ts` has grown to ~1374 lines (multi-responsibility)
 - **P2**: Token budget across all tool descriptions approaching the 25,000 token ceiling; monitor with each new tool addition
+
+## Test Runner Conventions (as of 2026-06-08, issue #199)
+
+### Node-18-compatible tsx invocation
+
+All `node:test` / coverage invocations must use `node_modules/.bin/tsx --test` (not `node --import tsx/esm --test`). The `--import tsx/esm` loader form requires Node >= 20.6 and breaks the OKG compliance Sonar pipeline which runs `npm ci + npm test` on a Node-18 scanner image (`okbase/sonar-scanner-node18`).
+
+Correct pattern (matches root `test:coverage` and commit `9eb8e707`):
+```
+node_modules/.bin/tsx --test --test-timeout=30000 --test-reporter=spec test/*.test.ts
+c8 --reporter=lcov --reporter=text --src=src node_modules/.bin/tsx --test --test-timeout=30000 test/*.test.ts
+```
+
+Forbidden (Node 20.6+ only):
+```
+node --import tsx/esm --test test/*.test.ts
+```
+
+### Per-test timeout
+
+Every test runner invocation must pass `--test-timeout=30000`. This bounds a hung test to 30 s and surfaces its name in the output, preventing a single blocked I/O call from stalling the entire job to the 3600 s GitLab timeout.
+
+Historical context: the SonarQube CI job intermittently hung to the 3600 s timeout (evidence: jobs 29390764, 29406066, 29259551). Root cause: `undici-proxy-bootstrap.test.ts` made `fetch()` calls with no `AbortSignal`, which could hang indefinitely on runners with a corporate proxy env, combined with no per-test timeout to detect and fail the blocked test.
+
+### Test hermeticity rules for tests making real I/O
+
+Any test file that makes real network calls (even to loopback servers) must:
+
+1. **Add `AbortSignal.timeout(<ms>)` to every `fetch()` call** — prevents a single blocked request from hanging the entire test file.
+2. **Neutralise ambient proxy env vars at file scope** — wrap all tests in a top-level `before`/`after` pair that saves and deletes `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` (and their lowercase variants) before any test runs, then restores them afterward. Per-describe hooks may set the vars they need for their specific scenario.
+3. **Capture and restore the global undici dispatcher** — save via `getGlobalDispatcher()` in the file-scope `before`, restore via `setGlobalDispatcher()` in the file-scope `after`. This ensures leaked dispatchers from a previous test run do not affect subsequent files.
+
+Example file-scope hermeticity header (see `packages/core/test/undici-proxy-bootstrap.test.ts`):
+```typescript
+let _fileScopeDispatcher: Dispatcher;
+let _fileHttpProxy: string | undefined;
+let _fileHttpsProxy: string | undefined;
+let _fileNoProxy: string | undefined;
+let _fileHttpProxyLc: string | undefined;
+let _fileHttpsProxyLc: string | undefined;
+let _fileNoProxyLc: string | undefined;
+before(() => {
+  _fileScopeDispatcher = getGlobalDispatcher();
+  _fileHttpProxy = process.env.HTTP_PROXY;   _fileHttpProxyLc = process.env.http_proxy;
+  _fileHttpsProxy = process.env.HTTPS_PROXY; _fileHttpsProxyLc = process.env.https_proxy;
+  _fileNoProxy = process.env.NO_PROXY;       _fileNoProxyLc = process.env.no_proxy;
+  delete process.env.HTTP_PROXY; delete process.env.http_proxy;
+  delete process.env.HTTPS_PROXY; delete process.env.https_proxy;
+  delete process.env.NO_PROXY; delete process.env.no_proxy;
+});
+after(() => {
+  setGlobalDispatcher(_fileScopeDispatcher);
+  if (_fileHttpProxy !== undefined) { process.env.HTTP_PROXY = _fileHttpProxy; } else { delete process.env.HTTP_PROXY; }
+  if (_fileHttpsProxy !== undefined) { process.env.HTTPS_PROXY = _fileHttpsProxy; } else { delete process.env.HTTPS_PROXY; }
+  if (_fileNoProxy !== undefined) { process.env.NO_PROXY = _fileNoProxy; } else { delete process.env.NO_PROXY; }
+  if (_fileHttpProxyLc !== undefined) { process.env.http_proxy = _fileHttpProxyLc; } else { delete process.env.http_proxy; }
+  if (_fileHttpsProxyLc !== undefined) { process.env.https_proxy = _fileHttpsProxyLc; } else { delete process.env.https_proxy; }
+  if (_fileNoProxyLc !== undefined) { process.env.no_proxy = _fileNoProxyLc; } else { delete process.env.no_proxy; }
+});
+```
