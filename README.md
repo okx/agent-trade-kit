@@ -52,7 +52,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 | `news` | 7 | Crypto news: latest news, by-coin filter, full-text search, article detail, news sources, coin sentiment (snapshot + trend) | [→](docs/modules/news.md) |
 | `smartmoney` | 10 | Smart money analytics: leaderboard ranking, trader performance / positions / position history / order history, top-coin signals, single-asset signal (by coin / by traders), signal history (by coin / by traders) — all read-only, split by entry mode for AI-agent disambiguation | [→](docs/modules/smartmoney.md) |
-| `outcomes` | 0 (wrapper) | OKX Outcomes (YES/NO event contracts, formerly OKX Predictions) — CLI-only wrapper that forwards to the external `okx-outcomes` binary (installed via `install.sh` from `github.com/okx/outcomes`). Browse events, account queries (HMAC), CLOB price/orderbook, dry-run-gated trade placement, and CTF split/merge/redeem | [→](docs/designs/outcomes-wrapper.md) |
+| `outcomes` | 0 (wrapper) | OKX Outcomes (YES/NO event contracts, formerly OKX Predictions) — CLI-only wrapper that forwards to the external `okx-outcomes` binary (installed via `install.sh` from `github.com/okx/outcomes-cli`). Browse events, account queries (OAuth), CLOB price/orderbook, dry-run-gated trade placement, and CTF split/merge/redeem | [→](docs/designs/outcomes-wrapper.md) |
 
 ---
 

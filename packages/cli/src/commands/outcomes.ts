@@ -29,10 +29,10 @@ function printInstallHint(): void {
   errorLine("Error: okx-outcomes binary not found in PATH.");
   errorLine("");
   errorLine("Install (macOS / Linux):");
-  errorLine("  curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh");
+  errorLine("  curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh");
   errorLine("");
   errorLine("Install (Windows): download okx-outcomes.exe from");
-  errorLine("  https://github.com/okx/outcomes/releases");
+  errorLine("  https://github.com/okx/outcomes-cli/releases");
   errorLine("and place it on your PATH.");
   errorLine("");
   errorLine("Or set OKX_OUTCOMES_BIN env var to a custom binary path.");
@@ -79,12 +79,17 @@ function printOutcomesHelp(): void {
     "",
     "  ctf split/merge/redeem          Conditional token operations",
     "",
-    "  account balance/order/orders/positions/closed-positions/trades",
-    "                                  HMAC-auth account queries",
+    "  account balance/order/orders/positions/trades",
+    "                                  Account queries (OAuth sign-in; closed = positions --status closed)",
+    "",
+    "  auth login --manual [--json]    OAuth device-code sign-in (prints URL+code; agent-friendly)",
+    "  auth login [--site global|us]   OAuth sign-in, browser-foreground (user at a terminal)",
+    "  auth refresh | auth status      Verify/refresh session; show sign-in state",
+    "  setup status|region|bind        Step-by-step onboarding (all non-interactive; agent-runnable)",
     "",
     "  wallet show                     Show derived wallet address",
     "  status                          Health check",
-    "  setup                           Interactive .env wizard",
+    "  setup                           Interactive setup wizard (region -> OAuth -> wallet bind)",
     "",
     "Run 'okx outcomes <command> --help' for command-specific help.",
     "",
@@ -92,7 +97,7 @@ function printOutcomesHelp(): void {
     "      (or before the module: 'okx --json outcomes events'). Writing",
     "      'okx outcomes --json events' is not supported.",
     "",
-    "Requires: curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh",
+    "Requires: curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh",
   ];
   for (const line of lines) outputLine(line);
 }

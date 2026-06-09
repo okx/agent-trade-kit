@@ -8,6 +8,36 @@ Common composed flows. The skill should pick the matching workflow based on user
 
 ---
 
+## 0. First-time setup (onboarding) — fully agent-driven
+
+> User: "set me up" / "首次配置" / "sign in" / any authed command fails with not-signed-in.
+
+Three pieces in dependency order: region → OAuth sign-in → wallet binding. **The agent runs
+every command**; the user only acts in a browser (device-code URL) and the OKX app (bind QR).
+No terminal, no `!` prefix.
+
+```
+1. okx outcomes setup status --json             → detect next_step / complete
+2. okx outcomes setup region <global|us>         → (if region not done) agent runs it
+3. okx outcomes auth login --manual --json       → agent runs it; capture {verificationUri,userCode,expiresIn}
+   → relay to user: "Open <verificationUri> on any device, enter code <userCode> (valid ~N min)"
+4. (user authorizes in browser — out-of-band, no terminal)
+5. okx outcomes auth refresh --json              → agent verifies; poll w/ backoff until signed-in
+                                                   (or run once after user says "done")
+6. okx outcomes setup bind --json                → (if eoa not done) agent runs it; relay address + QR/deeplink
+   → user scans in OKX mobile app   (re-display without rotating the wallet: setup bind --keep)
+7. okx outcomes setup status --json              → re-check until complete:true
+8. okx outcomes status --json                    → final health check
+```
+
+> **Agent rules**: all per-step commands above are agent-runnable (device-code `auth login --manual`
+> prints JSON and exits; it does NOT block or read stdin). The user's only actions are browser
+> (authorize the URL+code) and phone (scan the bind QR). **Never** spawn the full interactive
+> `okx outcomes setup` wizard, `okx outcomes shell`, or plain `auth login` (no `--manual`) from an
+> agent — they need a TTY. See [`setup-auth.md`](setup-auth.md).
+
+---
+
 ## 1. Daily brief (briefing of the market state)
 
 > User: "What's happening in outcomes markets today?" / "今日预测市场" / "trending markets"
@@ -56,7 +86,7 @@ Output should answer: "Is this tradable now? What's the spread? How has it moved
 1. okx outcomes wallet show --json                  → wallet address
 2. okx outcomes account balance --json              → spots + points
 3. okx outcomes account positions --json            → open positions (note "Won" rows for redeem)
-4. okx outcomes account closed-positions --json     → recent realized PnL
+4. okx outcomes account positions --status closed --json  → recent realized PnL
 ```
 
 Display:
@@ -169,13 +199,12 @@ If the user holds only the **losing** side: warn that redeem will return 0 xp an
    sh --version
 
 2. Install prebuilt binary from GitHub Releases:
-   curl -fsSL https://raw.githubusercontent.com/okx/outcomes/master/install.sh | sh
+   curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh
 
 3. Verify:
    okx-outcomes --version
 
-4. (One-time) Run setup wizard:
-   okx outcomes setup
+4. (One-time) Complete setup — see workflow 0 (per-step in agent contexts).
 
 5. Test:
    okx outcomes status --json
@@ -187,11 +216,12 @@ Never have the user `cargo install` from source unless they explicitly need a de
 
 ## 7. Recovery — auth errors
 
-> Any HMAC-protected command returns auth failure.
+> Any authenticated command (account / search / status balance) returns auth failure.
 
-1. Re-check env: `cat ~/.env | grep PREDICTIONS_` (mask values when echoing)
-2. Run `okx outcomes setup` to re-write `.env`
-3. Run `okx outcomes status --json` to verify both `balance` and `events` checks pass
-4. Retry the original command
+1. Check session state (no secrets read): `okx outcomes auth status --json` and `okx outcomes setup status --json`
+2. If the OAuth session is expired but present, try `okx outcomes auth refresh --json` (agent-runnable).
+3. If missing, re-run the device-code sign-in (workflow 0 step 3): `okx outcomes auth login --manual --json` → relay the URL+code → user authorizes in a browser → `okx outcomes auth refresh --json` to verify. No terminal needed.
+4. Run `okx outcomes status --json` to verify both `balance` and `events` checks pass
+5. Retry the original command
 
-If `wallet show` fails: `PREDICTIONS_AGENT_PRIVATE_KEY` is the missing piece — guide them through `setup` again, and do **not** ask them to paste the key in chat.
+If `wallet show` or a write fails with `NotAuthenticated`: the signing wallet isn't bound — run `okx outcomes setup bind --json` (agent-runnable), relay the QR/deeplink, and have the user scan it in the OKX app. Do **not** ask them to paste the key in chat.

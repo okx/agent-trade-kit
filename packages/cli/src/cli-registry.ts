@@ -1133,12 +1133,17 @@ export const CLI_REGISTRY: CliRegistry = {
       search: {
         toolName: null,
         usage: "okx outcomes search <keyword> [--limit <n>] [--cursor <c>]",
-        description: "Search events/markets by keyword",
+        description: "Search events/markets by keyword (OAuth)",
       },
       account: {
         toolName: null,
-        usage: "okx outcomes account <balance|order|orders|positions|closed-positions|trades>",
-        description: "HMAC-auth account queries",
+        usage: "okx outcomes account <balance|order|orders|positions|trades> (closed = positions --status closed)",
+        description: "Account queries (OAuth)",
+      },
+      auth: {
+        toolName: null,
+        usage: "okx outcomes auth <login|refresh|status> [--manual] [--site global|us] [--json]",
+        description: "OAuth sign-in / token refresh / session status (login --manual = agent-friendly device-code flow)",
       },
       clob: {
         toolName: null,
@@ -1153,7 +1158,7 @@ export const CLI_REGISTRY: CliRegistry = {
       wallet: {
         toolName: null,
         usage: "okx outcomes wallet show",
-        description: "Show derived wallet address (from PREDICTIONS_AGENT_PRIVATE_KEY)",
+        description: "Show derived wallet address (from the signing key)",
       },
       status: {
         toolName: null,
@@ -1162,8 +1167,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       setup: {
         toolName: null,
-        usage: "okx outcomes setup",
-        description: "Interactive .env wizard for PREDICTIONS_* env vars",
+        usage: "okx outcomes setup [status|region|bind]",
+        description: "Setup wizard (region -> OAuth sign-in -> wallet bind); subcommands: status/region/bind",
       },
       shell: {
         toolName: null,

@@ -127,6 +127,12 @@ describe("handleOutcomesCommand - help output", () => {
     assert.ok(text.includes("status"), "status listed");
     assert.ok(text.includes("install.sh"), "install reference");
     assert.ok(!text.includes(" ws "), "ws should NOT be listed (WS support dropped)");
+    // OAuth-only: help must not advertise HMAC creds or the old .env wizard.
+    assert.ok(!text.includes("HMAC"), "help should not mention HMAC (OAuth-only)");
+    assert.ok(!text.includes(".env wizard"), "help should not mention the .env wizard");
+    assert.ok(text.includes("auth login"), "auth login should be listed");
+    // Install reference points at the real repo (okx/outcomes-cli @ main).
+    assert.ok(text.includes("outcomes-cli/main"), "install URL should target okx/outcomes-cli@main");
   });
 
   it("prints help when action is --help", async () => {
@@ -248,6 +254,30 @@ describe("handleOutcomesCommand - argument forwarding", () => {
     );
     const recorded = JSON.parse(readFileSync(argsFile, "utf-8"));
     assert.deepEqual(recorded, ["events", "--status", "active", "--limit", "10"]);
+  });
+
+  it("forwards new auth / setup subcommands verbatim", async () => {
+    const argsFile = join(tempDir, "argv.json");
+    process.env.MOCK_OUTCOMES_ARGS_FILE = argsFile;
+
+    await handleOutcomesCommand("auth", ["login", "--site", "global"], {});
+    assert.deepEqual(
+      JSON.parse(readFileSync(argsFile, "utf-8")),
+      ["auth", "login", "--site", "global"],
+    );
+
+    // Device-code (--manual) flow: forwarded verbatim so an agent can capture the JSON.
+    await handleOutcomesCommand("auth", ["login", "--manual", "--json"], {});
+    assert.deepEqual(
+      JSON.parse(readFileSync(argsFile, "utf-8")),
+      ["auth", "login", "--manual", "--json"],
+    );
+
+    await handleOutcomesCommand("setup", ["status"], { json: true });
+    assert.deepEqual(
+      JSON.parse(readFileSync(argsFile, "utf-8")),
+      ["setup", "status", "--json"],
+    );
   });
 
   it("appends --json when global json flag is on and not already present", async () => {
