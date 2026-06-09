@@ -23,6 +23,11 @@ stages:
 
 unit-test:
   stage: test
+  # Backstop: a hung/blocked test fails this job at 10m instead of running to the
+  # project's default 1h CI timeout. Job-level guard for hangs; per-test hard
+  # bounds (Node-18-safe) use the `it(name, { timeout }, fn)` option, NOT the
+  # `--test-timeout` CLI flag (Node 20+ only — see CHANGELOG / context-kg).
+  timeout: 10m
   <<: *pnpm-setup
   script:
     - pnpm build
@@ -37,6 +42,8 @@ unit-test:
 
 sonar:
   stage: quality
+  # Backstop above the scanner's own quality-gate wait (sonar.qualitygate.timeout=600s).
+  timeout: 15m
   image: sonarsource/sonar-scanner-cli:latest
   dependencies:
     - unit-test

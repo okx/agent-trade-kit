@@ -21,8 +21,8 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist scripts",
     "postinstall": "node scripts/postinstall.js || exit 0",
-    "test:unit": "node_modules/.bin/tsx --test --test-timeout=30000 --test-reporter=spec test/*.test.ts",
-    "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node_modules/.bin/tsx --test --test-timeout=30000 test/*.test.ts"
+    "test:unit": "node_modules/.bin/tsx --test --test-reporter=spec test/*.test.ts",
+    "test:coverage": "c8 --reporter=lcov --reporter=text --src=src node_modules/.bin/tsx --test test/*.test.ts"
   },
   "engines": {
     "node": ">=18"
