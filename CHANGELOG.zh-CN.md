@@ -15,6 +15,8 @@
 
 - **Pilot 代理缓存 TTL 过期** —— `resolvePilot()` 现在会忽略过期的代理缓存条目。当条目存活时间超过 `min(node.ttl × 1000, 1h)` 时判定为过期。零值或超大 TTL 均上限为 1 小时。`mode=direct` 条目不受影响，永不过期。
 - **Pilot 死亡节点 HTTP 故障转移** —— 通过 Pilot 代理发出的请求若收到非 2xx 响应且响应体不含可解析的 OKX JSON `code`（例如来自已下线 CDN 节点的 HTML 405），现在将被归类为死亡节点故障。REST 客户端调用 `handleNetworkFailure()` 并重试一次（仅限 GET 或标记了 `retryOnNetworkError` 的 POST）。携带有效 OKX JSON 错误码的响应不受影响，直接透传给调用方。
+- **CI: 限制 SonarQube 测试阶段，防止 3600 秒挂起**（issue #199）。为所有 `node --test` / `c8 ... tsx --test` 调用（根目录 `test`、`test:coverage`，各 package 的 `test:unit` 和 `test:coverage` 脚本）添加 `--test-timeout=30000`。挂起的测试现在在 30 秒内失败并在输出中标注名称，而不是将 GitLab 任务拖延到 1 小时超时。各 package 的 `test:unit` 脚本也从 `node --import tsx/esm --test`（仅支持 Node 20.6+）改为 `node_modules/.bin/tsx --test`，以兼容 OKG 合规 Sonar 扫描镜像中的 Node 18。
+- **CI: 使 `undici-proxy-bootstrap.test.ts` 具备隔离性**（issue #199）。为文件中所有四个 `fetch()` 调用添加 `AbortSignal.timeout(5000)`；增加文件级 `before`/`after` 钩子，在所有测试运行前清除环境中的 `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` 变量并捕获/恢复全局 undici dispatcher。该测试现在可在携带企业代理环境变量的 CI runner 上确定性地通过。
 
 ---
 

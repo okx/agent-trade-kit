@@ -17,6 +17,11 @@
  * undici's ProxyAgent uses CONNECT tunneling for HTTP->HTTP proxy by default
  * (proxyTunnel=true). The mock proxy server handles CONNECT via the Node.js
  * 'connect' event (not the regular HTTP request handler).
+ *
+ * Hermeticity: a file-scope before/after pair neutralises any ambient
+ * HTTP_PROXY/HTTPS_PROXY/NO_PROXY and captures/restores the global undici
+ * dispatcher, so this file is safe to run on CI runners that carry a corporate
+ * proxy environment.
  */
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -32,6 +37,72 @@ import {
   hasProxyEnv,
   installEnvProxyDispatcher,
 } from "../src/runtime/undici-proxy-bootstrap.js";
+
+// ---------------------------------------------------------------------------
+// File-scope hermeticity: neutralise ambient proxy env and capture the global
+// dispatcher before any test runs; restore both after all tests complete.
+// This ensures the file is safe regardless of what the CI runner exports.
+// ---------------------------------------------------------------------------
+
+let _fileScopeDispatcher: Dispatcher;
+let _fileHttpProxy: string | undefined;
+let _fileHttpsProxy: string | undefined;
+let _fileNoProxy: string | undefined;
+let _fileHttpProxyLc: string | undefined;
+let _fileHttpsProxyLc: string | undefined;
+let _fileNoProxyLc: string | undefined;
+
+before(() => {
+  _fileScopeDispatcher = getGlobalDispatcher();
+  _fileHttpProxy = process.env.HTTP_PROXY;
+  _fileHttpsProxy = process.env.HTTPS_PROXY;
+  _fileNoProxy = process.env.NO_PROXY;
+  _fileHttpProxyLc = process.env.http_proxy;
+  _fileHttpsProxyLc = process.env.https_proxy;
+  _fileNoProxyLc = process.env.no_proxy;
+  // Clear all proxy env vars at file scope — per-describe before() hooks will
+  // set the values they need.
+  delete process.env.HTTP_PROXY;
+  delete process.env.http_proxy;
+  delete process.env.HTTPS_PROXY;
+  delete process.env.https_proxy;
+  delete process.env.NO_PROXY;
+  delete process.env.no_proxy;
+});
+
+after(() => {
+  setGlobalDispatcher(_fileScopeDispatcher);
+  if (_fileHttpProxy !== undefined) {
+    process.env.HTTP_PROXY = _fileHttpProxy;
+  } else {
+    delete process.env.HTTP_PROXY;
+  }
+  if (_fileHttpsProxy !== undefined) {
+    process.env.HTTPS_PROXY = _fileHttpsProxy;
+  } else {
+    delete process.env.HTTPS_PROXY;
+  }
+  if (_fileNoProxy !== undefined) {
+    process.env.NO_PROXY = _fileNoProxy;
+  } else {
+    delete process.env.NO_PROXY;
+  }
+  if (_fileHttpProxyLc !== undefined) {
+    process.env.http_proxy = _fileHttpProxyLc;
+  } else {
+    delete process.env.http_proxy;
+  }
+  if (_fileHttpsProxyLc !== undefined) {
+    process.env.https_proxy = _fileHttpsProxyLc;
+  } else {
+    delete process.env.https_proxy;
+  }
+  if (_fileNoProxyLc !== undefined) {
+    process.env.no_proxy = _fileNoProxyLc;
+  } else {
+    delete process.env.no_proxy;
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -91,14 +162,14 @@ function stopServer(server: Server): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Scenario 0: gating decision — hasProxyEnv / installEnvProxyDispatcher
+// Scenario 0: gating decision -- hasProxyEnv / installEnvProxyDispatcher
 //
 // These are pure unit tests with injected deps. They never touch the global
 // dispatcher or instantiate the experimental EnvHttpProxyAgent, so they assert
 // the gating logic deterministically and in isolation.
 // ---------------------------------------------------------------------------
 
-describe("undici-proxy-bootstrap: scenario 0 — gating decision", () => {
+describe("undici-proxy-bootstrap: scenario 0 - gating decision", () => {
   it("hasProxyEnv is false when no proxy var is set", () => {
     assert.equal(hasProxyEnv({}), false);
   });
@@ -135,10 +206,10 @@ describe("undici-proxy-bootstrap: scenario 0 — gating decision", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 1: No proxy env → bootstrap registers nothing; direct fetch works
+// Scenario 1: No proxy env -> bootstrap registers nothing; direct fetch works
 // ---------------------------------------------------------------------------
 
-describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
+describe("undici-proxy-bootstrap: scenario 1 - no proxy env", () => {
   let savedDispatcher: Dispatcher;
   let savedHttpsProxy: string | undefined;
   let savedHttpProxy: string | undefined;
@@ -176,7 +247,9 @@ describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
     });
 
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/test`);
+      const res = await fetch(`http://127.0.0.1:${port}/test`, {
+        signal: AbortSignal.timeout(5000),
+      });
       const body = await res.text();
       assert.equal(res.status, 200);
       assert.equal(body, "direct-ok");
@@ -187,14 +260,14 @@ describe("undici-proxy-bootstrap: scenario 1 — no proxy env", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 2: HTTP_PROXY set → requests routed through proxy via CONNECT tunnel
+// Scenario 2: HTTP_PROXY set -> requests routed through proxy via CONNECT tunnel
 //
 // undici ProxyAgent uses CONNECT for all connections by default (proxyTunnel=true).
 // The mock proxy handles CONNECT by opening a tunnel to the actual target and
 // counting the number of CONNECT requests it receives.
 // ---------------------------------------------------------------------------
 
-describe("undici-proxy-bootstrap: scenario 2 — HTTP_PROXY routing via CONNECT", () => {
+describe("undici-proxy-bootstrap: scenario 2 - HTTP_PROXY routing via CONNECT", () => {
   let savedDispatcher: Dispatcher;
   let savedHttpProxy: string | undefined;
   let savedNoProxy: string | undefined;
@@ -216,7 +289,7 @@ describe("undici-proxy-bootstrap: scenario 2 — HTTP_PROXY routing via CONNECT"
     targetServer = target.server;
     targetPort = target.port;
 
-    // CONNECT-tunneling proxy — tunnels to target and counts CONNECTs
+    // CONNECT-tunneling proxy -- tunnels to target and counts CONNECTs
     const proxy = await startConnectProxy();
     proxyServer = proxy.server;
     connectCount = proxy.connectCount;
@@ -247,7 +320,9 @@ describe("undici-proxy-bootstrap: scenario 2 — HTTP_PROXY routing via CONNECT"
 
   it("proxy receives CONNECT and tunnels request to target when HTTP_PROXY is set", async () => {
     const countBefore = connectCount();
-    const res = await fetch(`http://127.0.0.1:${targetPort}/test`);
+    const res = await fetch(`http://127.0.0.1:${targetPort}/test`, {
+      signal: AbortSignal.timeout(5000),
+    });
     const body = await res.text();
     assert.equal(res.status, 200);
     assert.equal(body, "via-target");
@@ -259,13 +334,13 @@ describe("undici-proxy-bootstrap: scenario 2 — HTTP_PROXY routing via CONNECT"
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 3: NO_PROXY set → target host bypasses proxy
+// Scenario 3: NO_PROXY set -> target host bypasses proxy
 //
 // With NO_PROXY=127.0.0.1, requests to 127.0.0.1 skip the proxy entirely.
 // The target responds directly (no CONNECT to the proxy server).
 // ---------------------------------------------------------------------------
 
-describe("undici-proxy-bootstrap: scenario 3 — NO_PROXY bypass", () => {
+describe("undici-proxy-bootstrap: scenario 3 - NO_PROXY bypass", () => {
   let savedDispatcher: Dispatcher;
   let savedHttpProxy: string | undefined;
   let savedNoProxy: string | undefined;
@@ -279,7 +354,7 @@ describe("undici-proxy-bootstrap: scenario 3 — NO_PROXY bypass", () => {
     savedHttpProxy = process.env.HTTP_PROXY;
     savedNoProxy = process.env.NO_PROXY;
 
-    // Fake target — direct response
+    // Fake target -- direct response
     const target = await startHttpServer((_req, res) => {
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("direct-bypass");
@@ -287,7 +362,7 @@ describe("undici-proxy-bootstrap: scenario 3 — NO_PROXY bypass", () => {
     targetServer = target.server;
     targetPort = target.port;
 
-    // Proxy — should NOT receive CONNECT when NO_PROXY matches
+    // Proxy -- should NOT receive CONNECT when NO_PROXY matches
     const proxy = await startConnectProxy();
     proxyServer = proxy.server;
     connectCount = proxy.connectCount;
@@ -317,7 +392,9 @@ describe("undici-proxy-bootstrap: scenario 3 — NO_PROXY bypass", () => {
 
   it("request bypasses proxy and reaches target directly when NO_PROXY matches", async () => {
     const countBefore = connectCount();
-    const res = await fetch(`http://127.0.0.1:${targetPort}/test`);
+    const res = await fetch(`http://127.0.0.1:${targetPort}/test`, {
+      signal: AbortSignal.timeout(5000),
+    });
     const body = await res.text();
     assert.equal(res.status, 200);
     assert.equal(body, "direct-bypass");
@@ -330,14 +407,14 @@ describe("undici-proxy-bootstrap: scenario 3 — NO_PROXY bypass", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 4: HTTPS_PROXY set, HTTP_PROXY unset → HTTP traffic goes direct;
+// Scenario 4: HTTPS_PROXY set, HTTP_PROXY unset -> HTTP traffic goes direct;
 //             EnvHttpProxyAgent correctly differentiates the two vars.
 //
 // undici's EnvHttpProxyAgent routes http:// requests via HTTP_PROXY and
 // https:// requests via HTTPS_PROXY. When only HTTPS_PROXY is set, plain-HTTP
 // requests must reach the target directly (not through the HTTPS_PROXY).
 // This guards against a common misconfiguration where HTTPS_PROXY is set but
-// HTTP_PROXY is not — HTTP traffic must still succeed via direct connection.
+// HTTP_PROXY is not -- HTTP traffic must still succeed via direct connection.
 // ---------------------------------------------------------------------------
 
 describe("undici-proxy-bootstrap: scenario 4 - HTTPS_PROXY set, HTTP_PROXY unset", () => {
@@ -356,7 +433,7 @@ describe("undici-proxy-bootstrap: scenario 4 - HTTPS_PROXY set, HTTP_PROXY unset
     savedHttpProxy = process.env.HTTP_PROXY;
     savedNoProxy = process.env.NO_PROXY;
 
-    // Direct target — plain HTTP server
+    // Direct target -- plain HTTP server
     const target = await startHttpServer((_req, res) => {
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("direct-http-when-only-https-proxy-set");
@@ -364,12 +441,12 @@ describe("undici-proxy-bootstrap: scenario 4 - HTTPS_PROXY set, HTTP_PROXY unset
     targetServer = target.server;
     targetPort = target.port;
 
-    // Proxy — should NOT receive CONNECT for http:// requests when only HTTPS_PROXY is set
+    // Proxy -- should NOT receive CONNECT for http:// requests when only HTTPS_PROXY is set
     const proxy = await startConnectProxy();
     proxyServer = proxy.server;
     connectCount = proxy.connectCount;
 
-    // Set HTTPS_PROXY only — HTTP_PROXY remains unset
+    // Set HTTPS_PROXY only -- HTTP_PROXY remains unset
     process.env.HTTPS_PROXY = `http://127.0.0.1:${proxy.port}`;
     delete process.env.HTTP_PROXY;
     delete process.env.NO_PROXY;
@@ -401,7 +478,9 @@ describe("undici-proxy-bootstrap: scenario 4 - HTTPS_PROXY set, HTTP_PROXY unset
 
   it("HTTP requests go direct when only HTTPS_PROXY is set (EnvHttpProxyAgent differentiates vars)", async () => {
     const countBefore = connectCount();
-    const res = await fetch(`http://127.0.0.1:${targetPort}/test`);
+    const res = await fetch(`http://127.0.0.1:${targetPort}/test`, {
+      signal: AbortSignal.timeout(5000),
+    });
     const body = await res.text();
     assert.equal(res.status, 200);
     assert.equal(body, "direct-http-when-only-https-proxy-set");

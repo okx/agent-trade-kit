@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Pilot proxy cache TTL expiry** — `resolvePilot()` now ignores stale proxy cache entries. An entry is stale when its age exceeds `min(node.ttl × 1000, 1h)`. Zero or oversized TTL values are capped to 1 hour. `mode=direct` entries are unaffected and never expire.
 - **Pilot dead-node HTTP failover** — a Pilot-proxied request that receives a non-2xx response whose body contains no parseable OKX JSON `code` (e.g., HTML 405 from a dead CDN node) is now classified as a dead-node failure. The REST client calls `handleNetworkFailure()` and retries once (GET or `retryOnNetworkError` POST only). Responses that carry a valid OKX JSON error code are not misclassified and surface to the caller unchanged.
+- **CI: bound SonarQube test stage to prevent 3600s hang** (issue #199). Added `--test-timeout=30000` to every `node --test` / `c8 ... tsx --test` invocation (root `test`, `test:coverage`, per-package `test:unit` and `test:coverage` scripts). A hung test now fails within 30 s and is named in output instead of stalling the GitLab job to the 1-hour timeout. Per-package `test:unit` scripts also switched from `node --import tsx/esm --test` (Node 20.6+ only) to `node_modules/.bin/tsx --test` for Node 18 compatibility with the OKG compliance Sonar scanner image.
+- **CI: make `undici-proxy-bootstrap.test.ts` hermetic** (issue #199). Added `AbortSignal.timeout(5000)` to all four `fetch()` calls in the file; added a file-scope `before`/`after` pair that neutralises ambient `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` env vars and captures/restores the global undici dispatcher. The test now passes deterministically on CI runners that carry a corporate proxy environment.
 
 ---
 
