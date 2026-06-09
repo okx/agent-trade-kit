@@ -73,6 +73,7 @@ curl -X POST 'https://open.larksuite.com/open-apis/bot/v2/hook/b9beca3e-ec61-40f
 - Run `pnpm test:unit` — all tests must pass
 - Run `pnpm build && pnpm typecheck` — no errors
 - **新增/修改 MCP tool 时：在 `eval/probes/<module>/` 下补 probe**（见下方 LLM Eval Probe 节）
+- **新增 skill 时：`SKILL.md` frontmatter 含 `metadata.version`（当前稳定版）和 `metadata.homepage`（`https://www.okx.com`）；`metadata.agent.install` 的 CLI 包锁定为 `@okx_ai/okx-trade-cli@<稳定版本号>`**（见下方 Stable Release: Skill Version Sync 节）
 
 ## Post-merge Verification
 
@@ -138,7 +139,25 @@ skills/okx-cex-skill-mp/SKILL.md
 
 每个文件的 frontmatter 中均有 `metadata.version` 字段，在版本 bump commit 中一并更新。所有 skill 统一使用与发布包相同的版本号。
 
-**Beta 版不更新** skill 版本号，仅稳定版发布时同步。
+同时**必须**将每个 skill frontmatter 中 `metadata.agent.install` 锁定的 CLI 包版本同步更新为新的稳定版本号：
+
+```yaml
+install:
+  - id: npm
+    kind: node
+    package: "@okx_ai/okx-trade-cli@<新稳定版本号>"
+```
+
+即 `@okx_ai/okx-trade-cli@1.3.6` 中的版本号要与 `metadata.version` 及发布包版本保持一致。
+
+**Beta 版不更新** skill 版本号及安装包版本号，仅稳定版发布时同步。
+
+## New Skill Metadata (MANDATORY)
+
+新增任何 skill 时，其 `SKILL.md` frontmatter 的 `metadata` 中**必须**包含以下字段：
+
+- `version`: 与当前稳定发布版本号一致（如 `"1.3.6"`）
+- `homepage`: `"https://www.okx.com"`
 
 ## LLM Eval Probe（跨 repo 规范）
 

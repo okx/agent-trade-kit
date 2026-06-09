@@ -61,6 +61,19 @@ import type {
   RequestResult,
 } from "./types.js";
 
+/**
+ * Returns true when the text body contains a parseable OKX JSON code field.
+ * Used to distinguish dead-node non-JSON errors from genuine OKX business errors.
+ */
+function hasOkxJsonCode(text: string): boolean {
+  try {
+    const parsed = JSON.parse(text) as { code?: unknown };
+    return typeof parsed.code === "string" && parsed.code.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 function isDefined(value: unknown): boolean {
   return value !== undefined && value !== null;
 }
@@ -689,6 +702,21 @@ export class OkxRestClient {
     const rawText = await response.text();
     const elapsed = Date.now() - t0;
     const traceId = extractTraceId(response.headers);
+
+    // Dead-node guard: Pilot proxy returned a non-2xx response with no OKX JSON
+    // code (e.g. HTML 405 from a CDN/WAF posing as the endpoint). Treat as a
+    // network-level failure and failover to a fresh node, then retry once.
+    if (
+      this.pilot.isProxyActive &&
+      !response.ok &&
+      !hasOkxJsonCode(rawText) &&
+      !this.pilot.hasRetried
+    ) {
+      const shouldRetry = await this.pilot.handleNetworkFailure();
+      if (shouldRetry && (reqConfig.method === "GET" || reqConfig.retryOnNetworkError)) {
+        return this.request(reqConfig);
+      }
+    }
 
     this.pilot.cacheDirectIfNeeded();
 

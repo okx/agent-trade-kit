@@ -23,14 +23,29 @@ export {
   downloadSkillZip,
   extractSkillZip,
   readMetaJson,
+  tryReadMetaJson,
   validateSkillMdExists,
   readRegistry as readSkillRegistry,
   upsertSkillRecord,
   removeSkillRecord,
   getSkillRecord,
   getRegistryPath as getSkillRegistryPath,
+  getPublicKey,
+  serverSideVerify,
+  verifySkillSignature,
 } from "./skills/index.js";
-export type { SkillMeta, SkillRecord, SkillRegistry, SkillSearchItem, SkillCategory } from "./skills/index.js";
+export type {
+  SkillMeta,
+  SkillRecord,
+  SkillRegistry,
+  SkillSearchItem,
+  SkillCategory,
+  SkillSigning,
+  VerificationStatus,
+  VerificationResult,
+  VerifySkillOpts,
+  ServerVerifyResult,
+} from "./skills/index.js";
 export { safeWriteFile, validateZipEntryPath } from "./utils/safe-file.js";
 export { findDateIdx, formatDisplayTitle, inferExpiryMsFromInstId, extractSeriesId } from "./utils/event-format.js";
 export type { BinaryResult, BinaryRequestOptions } from "./client/types.js";

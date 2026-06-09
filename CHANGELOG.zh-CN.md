@@ -11,21 +11,68 @@
 
 ## [Unreleased]
 
----
-
-## [1.3.6-beta.3] - 2026-06-02
-
 ### 新增
 
 - **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。鉴权采用 **OAuth 登录**（`okx outcomes auth login`）用于鉴权读取，写操作使用 EIP-712 签名私钥（`PREDICTIONS_AGENT_PRIVATE_KEY`，通常由 `okx outcomes setup` 生成并存入 OS keyring）。`auth login --manual` 设备码流（打印 `{verificationUri,userCode}` 后立即退出）配合非交互的 `setup region` / `setup bind`，使 agent 可全程引导首次配置、无需终端。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
 - **`okx-outcomes` skill** 引导 agent 完成首次配置（地区 → OAuth 登录 → 钱包绑定，含非 TTY/agent 接力规则）、事件浏览、OAuth 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。trigger 列表同时保留 `prediction`/`预测` 与 `outcomes` 关键词，承接仍使用旧词的用户。细节文档拆分到 `setup-auth.md` / `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
+
+### 修复
+
+- **Pilot 代理缓存 TTL 过期** —— `resolvePilot()` 现在会忽略过期的代理缓存条目。当条目存活时间超过 `min(node.ttl × 1000, 1h)` 时判定为过期。零值或超大 TTL 均上限为 1 小时。`mode=direct` 条目不受影响，永不过期。
+- **Pilot 死亡节点 HTTP 故障转移** —— 通过 Pilot 代理发出的请求若收到非 2xx 响应且响应体不含可解析的 OKX JSON `code`（例如来自已下线 CDN 节点的 HTML 405），现在将被归类为死亡节点故障。REST 客户端调用 `handleNetworkFailure()` 并重试一次（仅限 GET 或标记了 `retryOnNetworkError` 的 POST）。携带有效 OKX JSON 错误码的响应不受影响，直接透传给调用方。
+- **CI: 消除 SonarQube 测试阶段的不稳定**（issue #199）。将所有 `node:test` 调用从 `node --import tsx/esm --test`（仅支持 Node 20.6+）改为 `node_modules/.bin/tsx --test`，以兼容 OKG 合规 Sonar 扫描镜像中的 Node 18。刻意**不**使用 `--test-timeout` CLI flag：它仅 Node 20+ 支持，Node 18 扫描器会以 `bad option`（exit 9）拒绝，导致覆盖率归零、质量门禁失败。真正修复挂起的是下方的测试隔离，而非超时 flag。作为与 Node 版本无关的兜底，仓库 `unit-test` CI job 现加上 `timeout: 10m`（`sonar` 加 `timeout: 15m`），让卡死的测试在数分钟内失败而非拖到默认 1 小时；如需 per-test 硬上限，使用 Node 18 安全的 `it(name, { timeout }, fn)` 选项。
+- **CI: 使 `undici-proxy-bootstrap.test.ts` 具备隔离性**（issue #199）。为文件中所有四个 `fetch()` 调用添加 `AbortSignal.timeout(5000)`；增加文件级 `before`/`after` 钩子，在所有测试运行前清除环境中的 `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` 变量并捕获/恢复全局 undici dispatcher。该测试现在可在携带企业代理环境变量的 CI runner 上确定性地通过。
+
+---
+
+## [1.3.7] - 2026-06-04
+
+纯 skill 发布：`packages/core·cli·mcp` 代码与 `1.3.6` 完全一致，`@okx_ai/okx-trade-cli@1.3.7` 仅为版本号 bump。所有功能改动都在 earn-hunter skill。
+
+### 新增
+
+- **earn-hunter: 活期赚币（Flexible Earn）监控** —— 监控 Simple Earn 活期借贷利率（默认 USDT/USDC）。当 APY 超过阈值（默认 8%）时推送通知。使用阈值穿越去重模型：每个"高收益期"只通知一次，rate 降到阈值以下后 state 重置，下次回升再通知。激活流程改为三选多选（Flash/Fixed/Flexible），活期有独立的币种和 APY 配置。
+- **earn-hunter: macOS LaunchAgent 自动降级** —— macOS cron daemon（`com.vix.cron`）未运行时，激活流程自动降级为 LaunchAgent（`~/Library/LaunchAgents/com.okx.earn-hunter.plist`）。无需 sudo，重启自动恢复。Pause/Resume/Uninstall 同步支持 `launchagent` 调度类型。
+
+### 修复
+
+- **earn-hunter: cron PATH 问题 + stderr 被吞** —— macOS cron 仅有 `PATH=/usr/bin:/bin`，找不到 node/okx。新增 `resolve_bin` + `env.snapshot` 工具路径解析；激活时写入 `env.snapshot` 记录绝对路径。`2>/dev/null` 改为 stderr 分离到临时文件，node 的 `[UNDICI-EHPA] Warning` 不再污染 JSON 输出。空 `last_error` 告警现在提示"可能是 cron PATH 问题"。
+- **earn-hunter: 单个 feed 失败导致整个扫描中断** —— flash 返回 OKX Code 8116（系统错误）时，fixed 和 flexible 也跟着不执行。现在继续处理成功的 feed；仅所有启用的 feed 全部失败才计入 3 连败告警。
+- **earn-hunter: 服务端瞬时错误重试** —— `retry_cmd` 对 Code 8116 等瞬时错误重试 3 次（间隔 3s）。401 认证错误不重试，直接告警。
+- **earn-hunter: CTA 硬编码 "Claude Code"** —— 通知 CTA 现在根据渠道自适应：session 用交互式文案（"回复申购金额"），TG/Lark 用通用推送文案，不再写死客户端名称。
+- **earn-hunter: 活期 diff cleanup 的 test namespace 豁免错误** —— 移除活期 cleanup 中错误的 `test:` key 豁免（阈值穿越语义不同于 flash/fixed 的 offer 存在性语义）。
+- **earn-hunter: 通知渠道静默默认 session** —— 激活时现在必须让用户选择通知渠道。选择 session 会给出明确警告"离线收不到通知"。
+
+### 变更
+
+- 所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本同步至 `1.3.7`，遵循稳定版 skill 版本同步策略。
+
+---
+
+## [1.3.6] - 2026-06-03
+
+1.3.6 系列首个稳定版。汇总整个 1.3.6 beta 周期累积的全部改动（完整 新增 / 修复 清单见下方 `[1.3.6-beta.1]` 条目）：earn-hunter skill、Ed25519 + SHA-256 skill 签名校验、HTTP/HTTPS 代理自动支持、linux-arm64 auth CDN 回退、`earn_get_fixed_earn_products` 工具，以及 MCP 工具 `title` 暴露。
+
+### Changed
+
+- 按稳定版 skill 版本同步策略，所有 skill pack 的 `metadata.version` 同步至 `1.3.6`。
+
+---
+
+## [1.3.6-beta.1] - 2026-05-22
+
+### 新增
+
+- **earn-hunter skill —— OpenClaw 会话内 cron 调度**：OpenClaw 上的 earn-hunter 定时扫描改为在对话内通过会话内 `cron` 工具创建（isolated 会话 + `lightContext`），并经 cron `announce` 投递回会话，不再使用 OS crontab。skill 内不再出现任何 CLI 命令（`openclaw cron` CLI 路径存在权限问题）。`platform.json` 的 `scheduler.type` 在 OpenClaw 上为 `"openclaw-cron"`；Claude Code / Hermes 保持 `"cron"`（OS crontab + curl），Generic 保持 `"manual"`。
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
+- **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
 - 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
 - `.gitignore` 新增 `.env.bak`，避免本地备份的 env 文件被误提交。
 
 ### 修复
 
+- **每条命令都触发 `EnvHttpProxyAgent` 实验性警告**：undici 代理引导模块在加载时无条件注册 `EnvHttpProxyAgent`，导致 Node 在每条 CLI 命令上都打印 `[UNDICI-EHPA] ExperimentalWarning`——包括 `okx skill list` 这类从不发请求的纯本地命令。现已改为仅在检测到代理环境变量（`HTTPS_PROXY` / `HTTP_PROXY`，大小写均可）时才注册，代理用户的自动代理支持保持不变，其他用户则得到无警告的干净 CLI。
 - **`earn savings fixed-redeem` 文档使用了位置参数而非 `--reqId` 标志**：SKILL.md、cli-registry 和 savings-commands.md 均记录为 `fixed-redeem <reqId>`（位置参数），但 CLI 路由读取的是 `v.reqId`（命名标志）。按文档操作的 Agent 会传入 `undefined` 作为 reqId。现已更正为 `--reqId <reqId>`。
 - **`earn savings rate-history --limit` 文档默认值为 100，但代码实际默认值为 7**：savings-commands.md 之前记录默认值为 100，但 CLI 实现中使用的是 `readNumber(args, "limit") ?? 7`。现已更正为实际默认值 7。
 - **`earn savings rate-history` 和 `fixed-products` CLI 输出使用 `rate` 列但 OKX API 返回 `apr`**：定期产品表格的 `rate` 列始终为空。现已更正为读取 `apr` 字段。
