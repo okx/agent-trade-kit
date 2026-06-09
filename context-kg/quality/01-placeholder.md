@@ -107,8 +107,8 @@ All `node:test` / coverage invocations must use `node_modules/.bin/tsx --test` (
 
 Correct pattern (matches root `test:coverage` and commit `9eb8e707`):
 ```
-node_modules/.bin/tsx --test --test-timeout=30000 --test-reporter=spec test/*.test.ts
-c8 --reporter=lcov --reporter=text --src=src node_modules/.bin/tsx --test --test-timeout=30000 test/*.test.ts
+node_modules/.bin/tsx --test --test-reporter=spec test/*.test.ts
+c8 --reporter=lcov --reporter=text --src=src node_modules/.bin/tsx --test test/*.test.ts
 ```
 
 Forbidden (Node 20.6+ only):
@@ -116,11 +116,13 @@ Forbidden (Node 20.6+ only):
 node --import tsx/esm --test test/*.test.ts
 ```
 
-### Per-test timeout
+### Per-test timeout — do NOT use the `--test-timeout` CLI flag
 
-Every test runner invocation must pass `--test-timeout=30000`. This bounds a hung test to 30 s and surfaces its name in the output, preventing a single blocked I/O call from stalling the entire job to the 3600 s GitLab timeout.
+**Do not pass `--test-timeout=<ms>` to the test runner.** That CLI flag is Node 20+ only; the OKG Sonar scanner runs on Node 18 (`okbase/sonar-scanner-node18`) and rejects it with `bad option: --test-timeout`, exit code 9 — which means **zero tests run, no `coverage/lcov.info` is produced, and the SonarQube quality gate fails on 0% coverage** (regression introduced by MR !350, reverted in this fix). Node 18 has no equivalent global per-test-timeout CLI flag; if a hard per-test bound is ever needed, set the `timeout` option on individual `it()`/`describe()` calls, or wrap the whole command with coreutils `timeout` at the script level (Node-version-agnostic).
 
-Historical context: the SonarQube CI job intermittently hung to the 3600 s timeout (evidence: jobs 29390764, 29406066, 29259551). Root cause: `undici-proxy-bootstrap.test.ts` made `fetch()` calls with no `AbortSignal`, which could hang indefinitely on runners with a corporate proxy env, combined with no per-test timeout to detect and fail the blocked test.
+The actual de-flake mechanism is **test hermeticity** (below), not a timeout flag.
+
+Historical context: the SonarQube CI job intermittently hung to the 3600 s timeout (evidence: jobs 29390764, 29406066, 29259551). Root cause: `undici-proxy-bootstrap.test.ts` made `fetch()` calls with no `AbortSignal`, which could hang indefinitely on runners with a corporate proxy env. The fix is the per-`fetch` `AbortSignal.timeout` + env/dispatcher isolation in the hermeticity rules below.
 
 ### Test hermeticity rules for tests making real I/O
 
