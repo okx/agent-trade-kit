@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.8-beta.5] - 2026-06-10
+
 ### Fixed
 
 - **Pilot proxy cache TTL expiry** — `resolvePilot()` now ignores stale proxy cache entries. An entry is stale when its age exceeds `min(node.ttl × 1000, 1h)`. Zero or oversized TTL values are capped to 1 hour. `mode=direct` entries are unaffected and never expire.
