@@ -102,6 +102,89 @@ describe("resolvePilot", () => {
     const result = resolvePilot("other.okx.com", cachePath);
     assert.equal(result.mode, null);
   });
+
+  // ---------------------------------------------------------------------------
+  // TTL freshness: proxy entries expire; direct entries never expire
+  // ---------------------------------------------------------------------------
+
+  it("returns mode=null when proxy entry is stale (age > node.ttl)", () => {
+    // updatedAt = 2h ago, ttl = 300s (5 min) -> stale
+    const TWO_HOURS_AGO = Date.now() - 2 * 60 * 60 * 1000;
+    const node = { ip: "192.0.2.1", host: "proxy1.com", ttl: 300 };
+    const file: PilotCacheFile = {
+      "www.okx.com": {
+        mode: "proxy", node, failedNodes: [], updatedAt: TWO_HOURS_AGO,
+      },
+    };
+    writeFileSync(cachePath, JSON.stringify(file));
+
+    const result = resolvePilot("www.okx.com", cachePath);
+    assert.equal(result.mode, null);
+    assert.equal(result.node, null);
+  });
+
+  it("returns mode=proxy when proxy entry is fresh (age < node.ttl)", () => {
+    // updatedAt = 1min ago, ttl = 300s (5 min) -> fresh
+    const ONE_MIN_AGO = Date.now() - 60 * 1000;
+    const node = { ip: "192.0.2.1", host: "proxy1.com", ttl: 300 };
+    const file: PilotCacheFile = {
+      "www.okx.com": {
+        mode: "proxy", node, failedNodes: [], updatedAt: ONE_MIN_AGO,
+      },
+    };
+    writeFileSync(cachePath, JSON.stringify(file));
+
+    const result = resolvePilot("www.okx.com", cachePath);
+    assert.equal(result.mode, "proxy");
+    assert.deepEqual(result.node, node);
+  });
+
+  it("returns mode=null when node.ttl=0 and entry exceeds 1h cap", () => {
+    // zero ttl falls back to 1h cap; updatedAt = 61min ago -> stale
+    const SIXTY_ONE_MIN_AGO = Date.now() - 61 * 60 * 1000;
+    const node = { ip: "192.0.2.1", host: "proxy1.com", ttl: 0 };
+    const file: PilotCacheFile = {
+      "www.okx.com": {
+        mode: "proxy", node, failedNodes: [], updatedAt: SIXTY_ONE_MIN_AGO,
+      },
+    };
+    writeFileSync(cachePath, JSON.stringify(file));
+
+    const result = resolvePilot("www.okx.com", cachePath);
+    assert.equal(result.mode, null);
+    assert.equal(result.node, null);
+  });
+
+  it("returns mode=null when node.ttl=7200 (2h) but 1h cap applies and age is 70min", () => {
+    // ttl=7200 > 1h cap -> effective TTL is 1h; 70min > 1h -> stale
+    const SEVENTY_MIN_AGO = Date.now() - 70 * 60 * 1000;
+    const node = { ip: "192.0.2.1", host: "proxy1.com", ttl: 7200 };
+    const file: PilotCacheFile = {
+      "www.okx.com": {
+        mode: "proxy", node, failedNodes: [], updatedAt: SEVENTY_MIN_AGO,
+      },
+    };
+    writeFileSync(cachePath, JSON.stringify(file));
+
+    const result = resolvePilot("www.okx.com", cachePath);
+    assert.equal(result.mode, null);
+    assert.equal(result.node, null);
+  });
+
+  it("direct entry is never expired regardless of age", () => {
+    // direct entries have no proxy node to rot; 3 days old is still valid
+    const THREE_DAYS_AGO = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    const file: PilotCacheFile = {
+      "www.okx.com": {
+        mode: "direct", node: null, failedNodes: [], updatedAt: THREE_DAYS_AGO,
+      },
+    };
+    writeFileSync(cachePath, JSON.stringify(file));
+
+    const result = resolvePilot("www.okx.com", cachePath);
+    assert.equal(result.mode, "direct");
+    assert.equal(result.node, null);
+  });
 });
 
 // ---------------------------------------------------------------------------

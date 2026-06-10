@@ -8,7 +8,7 @@
  *  - OKX API error codes (non-zero sCode, auth codes)
  *  - Graceful degradation: missing/unexpected response fields do not crash
  */
-import { describe, it } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { OkxRestClient } from "../src/client/rest-client.js";
 import {
@@ -75,6 +75,45 @@ function throwingFetch(error: unknown): typeof globalThis.fetch {
     throw error;
   };
 }
+
+// ---------------------------------------------------------------------------
+// File-level Pilot hermeticity guard
+//
+// Prevents any test from accidentally spawning the real ~/.okx/bin/okx-pilot
+// binary or reading the real ~/.okx/pilot-cache.json on the runner.
+//
+// - OKX_PILOT_BINARY_PATH points to a non-existent path so execPilotBinary
+//   returns null instantly (no exec, no timeout).
+// - OKX_PILOT_CACHE_PATH points to a non-existent path so resolvePilot finds
+//   no cache file and falls back to direct mode.
+//
+// The inner beforeEach inside "Pilot dead-node HTTP failover" runs AFTER this
+// outer one and overrides both vars to the mock binary / temp cache, so those
+// tests remain unaffected.
+// ---------------------------------------------------------------------------
+
+let _savedPilotBinaryPath: string | undefined;
+let _savedPilotCachePath: string | undefined;
+
+beforeEach(() => {
+  _savedPilotBinaryPath = process.env.OKX_PILOT_BINARY_PATH;
+  _savedPilotCachePath = process.env.OKX_PILOT_CACHE_PATH;
+  process.env.OKX_PILOT_BINARY_PATH = "/nonexistent/okx-pilot-hermetic";
+  process.env.OKX_PILOT_CACHE_PATH = "/nonexistent/pilot-cache-hermetic.json";
+});
+
+afterEach(() => {
+  if (_savedPilotBinaryPath === undefined) {
+    delete process.env.OKX_PILOT_BINARY_PATH;
+  } else {
+    process.env.OKX_PILOT_BINARY_PATH = _savedPilotBinaryPath;
+  }
+  if (_savedPilotCachePath === undefined) {
+    delete process.env.OKX_PILOT_CACHE_PATH;
+  } else {
+    process.env.OKX_PILOT_CACHE_PATH = _savedPilotCachePath;
+  }
+});
 
 // ---------------------------------------------------------------------------
 // HTTP-level errors
@@ -1190,3 +1229,154 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Pilot dead-node HTTP failover
+// ---------------------------------------------------------------------------
+
+import { mkdtempSync, rmSync, writeFileSync as writeFileSyncPilot } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname as dirnameUtil } from "node:path";
+import type { PilotCacheFile } from "../src/pilot/types.js";
+
+{
+  const __dirnameRestClient = dirnameUtil(fileURLToPath(import.meta.url));
+  const MOCK_BINARY = join(__dirnameRestClient, "fixtures", "mock-doh-binary.mjs");
+
+  let pilotTempDir: string;
+  let pilotCachePath: string;
+
+  function seedProxyCache(): void {
+    const file: PilotCacheFile = {
+      "www.okx.com": {
+        mode: "proxy",
+        node: { ip: "192.0.2.1", host: "proxy1.com", ttl: 300 },
+        failedNodes: [],
+        updatedAt: Date.now(),
+      },
+    };
+    writeFileSyncPilot(pilotCachePath, JSON.stringify(file));
+  }
+
+  describe("OkxRestClient: Pilot dead-node HTTP failover", () => {
+    beforeEach(() => {
+      pilotTempDir = mkdtempSync(join(tmpdir(), "rest-client-pilot-test-"));
+      pilotCachePath = join(pilotTempDir, "pilot-cache.json");
+      process.env.OKX_PILOT_CACHE_PATH = pilotCachePath;
+      process.env.OKX_PILOT_BINARY_PATH = MOCK_BINARY;
+    });
+
+    afterEach(() => {
+      rmSync(pilotTempDir, { recursive: true, force: true });
+      delete process.env.OKX_PILOT_CACHE_PATH;
+      delete process.env.OKX_PILOT_BINARY_PATH;
+    });
+
+    it("proxy mode: 405 HTML triggers failover and retry succeeds (callCount=2)", async () => {
+      seedProxyCache();
+      let callCount = 0;
+      const mockFetch: typeof globalThis.fetch = async () => {
+        const call = callCount++;
+        if (call === 0) {
+          return new Response("<html><body>Method Not Allowed</body></html>", {
+            status: 405,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+        return new Response(JSON.stringify({ code: "0", msg: "", data: [{ instId: "BTC-USDT" }] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+      await withFetch(mockFetch, async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        const result = await client.publicGet("/api/v5/market/ticker");
+        assert.equal(callCount, 2, "should make exactly 2 fetch calls");
+        assert.ok(Array.isArray(result.data));
+      });
+    });
+
+    it("proxy mode: 200 with OKX JSON code 51008 does NOT trigger failover (callCount=1)", async () => {
+      seedProxyCache();
+      let callCount = 0;
+      const mockFetch: typeof globalThis.fetch = async () => {
+        callCount++;
+        return new Response(
+          JSON.stringify({ code: "51008", msg: "Insufficient balance", data: [] }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      };
+      await withFetch(mockFetch, async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "51008",
+        );
+        assert.equal(callCount, 1, "should make exactly 1 fetch call (no failover)");
+      });
+    });
+
+    it("proxy mode: 401 with OKX JSON code does NOT trigger failover (callCount=1)", async () => {
+      seedProxyCache();
+      let callCount = 0;
+      const mockFetch: typeof globalThis.fetch = async () => {
+        callCount++;
+        return new Response(
+          JSON.stringify({ code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] }),
+          { status: 401, headers: { "Content-Type": "application/json" } },
+        );
+      };
+      await withFetch(mockFetch, async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) => err instanceof OkxApiError,
+        );
+        assert.equal(callCount, 1, "should make exactly 1 fetch call (no failover)");
+      });
+    });
+
+    it("direct mode: 405 HTML does NOT trigger failover (callCount=1)", async () => {
+      // No proxy cache -> directUnverified=true, isProxyActive=false
+      let callCount = 0;
+      const mockFetch: typeof globalThis.fetch = async () => {
+        callCount++;
+        return new Response("<html><body>Method Not Allowed</body></html>", {
+          status: 405,
+          headers: { "Content-Type": "text/html" },
+        });
+      };
+      await withFetch(mockFetch, async () => {
+        const client = new OkxRestClient(BASE_CONFIG);
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "405",
+        );
+        assert.equal(callCount, 1, "should make exactly 1 fetch call (no failover in direct mode)");
+      });
+    });
+
+    it("proxy mode: POST without retryOnNetworkError on dead-node does NOT retry (callCount=1)", async () => {
+      // Write-once POST must never auto-retry even when the dead-node guard fires.
+      // The guard refreshes failover state but the retry branch is skipped because
+      // reqConfig.method === "POST" and retryOnNetworkError is not set.
+      seedProxyCache();
+      let callCount = 0;
+      const mockFetch: typeof globalThis.fetch = async () => {
+        callCount++;
+        return new Response("<html><body>Method Not Allowed</body></html>", {
+          status: 405,
+          headers: { "Content-Type": "text/html" },
+        });
+      };
+      await withFetch(mockFetch, async () => {
+        const client = new OkxRestClient(AUTH_CONFIG);
+        await assert.rejects(
+          () => client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+          (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "405",
+        );
+        assert.equal(callCount, 1, "POST without retryOnNetworkError must not auto-retry on dead-node");
+      });
+    });
+  });
+}
