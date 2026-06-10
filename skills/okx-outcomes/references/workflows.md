@@ -24,8 +24,9 @@ short link (tap on phone → OKX app, or paste into a browser). No terminal, no 
 4. (user authorizes in browser — out-of-band, no terminal)
 5. okx outcomes auth refresh --json              → agent verifies; poll w/ backoff until signed-in
                                                    (or run once after user says "done")
-6. okx outcomes setup bind --json                → (if eoa not done) agent runs it; relay address + deeplink short link
-   → user opens link on phone/browser; if it won't open, copy address & bind manually in OKX app
+6. okx outcomes setup bind --json                → (if eoa not done) agent runs it; relay address + short link (deeplink field)
+   → user opens link on phone/browser; if it won't open, copy wallet address & bind manually in OKX app
+                                       (Outcomes → Profile → Settings → API Bind Wallet)
                                        (re-display without rotating the wallet: setup bind --keep)
 7. okx outcomes setup status --json              → re-check until complete:true
 8. okx outcomes status --json                    → final health check
@@ -225,4 +226,4 @@ Never have the user `cargo install` from source unless they explicitly need a de
 4. Run `okx outcomes status --json` to verify both `balance` and `events` checks pass
 5. Retry the original command
 
-If `wallet show` or a write fails with `NotAuthenticated`: the signing wallet isn't bound — run `okx outcomes setup bind --json` (agent-runnable), relay the `deeplink` short link (`https://okx.com/ul/3OauBX?eoa=…&uid=…`), and have the user open it (tap on phone → OKX app, or paste into a browser); if it won't open, have them copy the wallet address and bind manually in the OKX app. Do **not** ask them to paste the key in chat.
+If `wallet show` or a write fails with `NotAuthenticated`: the signing wallet isn't bound — run `okx outcomes setup bind --json` (agent-runnable), relay the **short link** (`deeplink` field, `https://okx.com/ul/3OauBX?eoa=…&uid=…`), and have the user open it (tap on phone → OKX app, or copy into a browser); if the link won't open, have them copy the wallet address and bind it manually in the OKX app (**Outcomes → Profile → Settings → API Bind Wallet**). Do **not** ask them to paste the key in chat.

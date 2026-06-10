@@ -108,16 +108,16 @@ okx outcomes setup bind --json          # generate a fresh signing wallet, then 
 okx outcomes setup bind --keep --json   # reuse the existing wallet (idempotent re-display)
 ```
 
-Prints the `address` and a `deeplink` **short link** of the form
+Prints the `address` and a **short link** (the `deeplink` field of the JSON output) of the form
 `https://okx.com/ul/3OauBX?eoa=<eoa>&uid=<uid>` (the `eoa` is the new wallet's public
 address; `uid` is the signed-in account id — both filled in by the CLI). The private key
 never leaves the keyring. The agent **relays the short link verbatim** (do not shorten or
 wrap it) and tells the user:
 
 1. Tap the link on their phone → it launches the OKX app to approve the binding.
-2. Or paste it into any browser (opens a web fallback).
-3. If it won't open, copy the `address` and bind manually in the OKX app:
-   **Outcomes → Profile → Settings → API Bind Wallet**.
+2. Or copy it into any browser (opens a web fallback).
+3. If the link won't open, copy the wallet `address` shown above and bind it manually in the
+   OKX app: **Outcomes → Profile → Settings → API Bind Wallet**.
 
 The `address` is public — safe to show.
 
@@ -153,7 +153,7 @@ stdout receives each command's output. The whole setup runs from the agent:
 | `setup region <global\|us>` | ✅ yes | non-interactive write |
 | `auth login --manual --json` | ✅ yes | prints device-code JSON + exits; agent relays URL+code |
 | `auth refresh` / `auth status` | ✅ yes | verify session; no stdin, no secrets |
-| `setup bind [--keep] --json` | ✅ yes | prints address + `deeplink` short link; user opens it on phone/browser (or copies the address to bind manually) |
+| `setup bind [--keep] --json` | ✅ yes | prints address + a short link (`deeplink` field); user opens it on phone/browser (or copies the address to bind manually) |
 | plain `auth login` (no `--manual`) | 🚫 needs TTY | interactive/browser-foreground; user-at-terminal only |
 | `setup` (full wizard) / `shell` | 🚫 never spawn | raw-terminal; will hang / EOF-error |
 
