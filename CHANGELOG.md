@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.8-beta.4] - 2026-06-08
+
+### Added
+
+- **Aggregate balance tool `account_get_balance_all`** (OPRS-360). One-shot snapshot of trading + funding balances with optional cross-account valuation. Calls the server-side aggregate endpoint (`/api/v5/aigc/forward/balance-aggregate`) first and automatically falls back to direct parallel queries (`Promise.allSettled`) when it is unavailable; authentication failures are not retried, and an aggregate response reporting `partialFailure` is returned as-is (no fallback). Partial failure semantics: per-section `available` flag + `meta.partialFailure`. Response `meta` now carries `source` (`aggregate`|`fallback`) and `site` for observability; `requestedAt` is always an ISO 8601 string regardless of path. CLI: `okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` — `--no-aggregate` forces the parallel path (e.g. when you need the per-account valuation breakdown or a non-USD valuation currency). Skill `okx-cex-portfolio` updated with new command and workflows. Ref: [TD] 聚合balance接口.
+
+---
+
 ## [1.3.8-beta.3] - 2026-06-05
 
 ### Fixed

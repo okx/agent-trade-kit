@@ -9,6 +9,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
+import { buildBalanceAll } from "./account-balance-all.js";
 
 export function registerAccountTools(): ToolSpec[] {
   return [
@@ -610,6 +611,48 @@ export function registerAccountTools(): ToolSpec[] {
         );
         return normalizeResponse(response);
       },
+    },
+    {
+      name: "account_get_balance_all",
+      title: "Get Aggregate Balance Snapshot",
+      module: "account",
+      description:
+        "One-shot snapshot of all OKX assets: trading-account equity + funding-account balances + optional cross-account valuation. " +
+        "Use when the user asks for total assets / net worth / 总资产 / all balances. " +
+        "Prefer this over calling account_get_balance + account_get_asset_balance separately. " +
+        "Returns {trading, funding, valuation, meta} with per-section error so partial failures don't block the rest.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          ccy: {
+            type: "string",
+            description:
+              "Filter by currency, comma-separated (e.g. BTC,ETH). Omit for all. Applied to trading + funding queries only.",
+          },
+          accounts: {
+            type: "string",
+            description:
+              "Comma-separated accounts to query: 'trading','funding'. Default 'trading,funding'.",
+          },
+          showValuation: {
+            type: "boolean",
+            description:
+              "Include cross-account asset valuation. Default true.",
+          },
+          valuationCcy: {
+            type: "string",
+            description:
+              "Currency for valuation (e.g. USDT, BTC). Default USDT. Only effective when showValuation=true.",
+          },
+          preferParallel: {
+            type: "boolean",
+            description:
+              "Skip the server-side aggregate endpoint and query trading/funding/valuation directly in parallel. Default false. Use when you need the per-account valuation breakdown or a non-USD valuation currency.",
+          },
+        },
+      },
+      handler: (rawArgs, context) => buildBalanceAll(rawArgs, context),
     },
   ];
 }
