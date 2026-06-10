@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import type { ToolRunner } from "@agent-tradekit/core";
-import { cmdSpotPlace } from "../src/commands/spot.js";
+import { cmdSpotPlace, cmdSpotAlgoPlace } from "../src/commands/spot.js";
 import { cmdSwapPlace } from "../src/commands/swap.js";
 import { cmdFuturesPlace } from "../src/commands/futures.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
@@ -200,5 +200,84 @@ describe("cmdFuturesPlace TP/SL passthrough", () => {
     assert.equal(captured!["tpOrdPx"], "-1");
     assert.equal(captured!["slTriggerPx"], undefined);
     assert.equal(captured!["slOrdPx"], undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdSpotAlgoPlace - clOrdId passthrough
+// ---------------------------------------------------------------------------
+
+const fakeAlgoResult = {
+  endpoint: "POST /api/v5/trade/order-algo",
+  requestTime: new Date().toISOString(),
+  data: [{ algoId: "ALGO001", sCode: "0" }],
+};
+
+describe("cmdSpotAlgoPlace clOrdId passthrough", () => {
+  it("passes clOrdId to core when provided (oco ordType)", async () => {
+    let captured: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      captured = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSpotAlgoPlace(runner, {
+      instId: "BTC-USDT",
+      side: "sell",
+      ordType: "oco",
+      sz: "0.001",
+      tpTriggerPx: "105000",
+      tpOrdPx: "-1",
+      slTriggerPx: "95000",
+      slOrdPx: "-1",
+      clOrdId: "my-oco-1",
+      json: false,
+    });
+
+    assert.ok(captured, "runner should have been called");
+    assert.equal(captured!["clOrdId"], "my-oco-1");
+  });
+
+  it("passes clOrdId to core when provided (conditional ordType)", async () => {
+    let captured: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      captured = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSpotAlgoPlace(runner, {
+      instId: "BTC-USDT",
+      side: "sell",
+      ordType: "conditional",
+      sz: "0.001",
+      slTriggerPx: "95000",
+      slOrdPx: "-1",
+      clOrdId: "my-cond-1",
+      json: false,
+    });
+
+    assert.ok(captured, "runner should have been called");
+    assert.equal(captured!["clOrdId"], "my-cond-1");
+  });
+
+  it("does not pass clOrdId when omitted", async () => {
+    let captured: Record<string, unknown> | undefined;
+    const runner: ToolRunner = async (_tool, params) => {
+      captured = params as Record<string, unknown>;
+      return fakeAlgoResult;
+    };
+
+    await cmdSpotAlgoPlace(runner, {
+      instId: "BTC-USDT",
+      side: "sell",
+      ordType: "conditional",
+      sz: "0.001",
+      slTriggerPx: "95000",
+      slOrdPx: "-1",
+      json: false,
+    });
+
+    assert.ok(captured, "runner should have been called");
+    assert.equal(captured!["clOrdId"], undefined);
   });
 });

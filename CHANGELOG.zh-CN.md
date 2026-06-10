@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`spot_place_algo_order`：为 OCO/算法订单添加 `clOrdId` 支持**（issue #200）。`clOrdId` 在工具的 `inputSchema` 和处理器中均缺失，导致下单时（如 OCO 订单）客户订单 ID 被静默丢弃。`swap_place_algo_order` 和 `futures_place_algo_order` 均已正确支持 `clOrdId`，本次修复补齐了现货同名工具的缺口。
+
 ---
 
 ## [1.3.8-beta.5] - 2026-06-10

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`spot_place_algo_order`: add `clOrdId` support for OCO/algo orders** (issue #200). `clOrdId` was missing from both the tool's `inputSchema` and handler, causing it to be silently dropped when placing spot algo orders (e.g. OCO) with a client order ID. `swap_place_algo_order` and `futures_place_algo_order` already exposed `clOrdId` correctly; this fixes the parity gap in the spot equivalent.
+
 ---
 
 ## [1.3.8-beta.5] - 2026-06-10

@@ -3536,6 +3536,41 @@ describe("spot_place_algo_order tag injection", () => {
   });
 });
 
+describe("spot_place_algo_order clOrdId forwarding", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_place_algo_order")!;
+
+  it("forwards clOrdId in POST body when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT",
+        side: "sell",
+        ordType: "oco",
+        sz: "0.01",
+        tpTriggerPx: "105000",
+        tpOrdPx: "-1",
+        slTriggerPx: "95000",
+        slOrdPx: "-1",
+        clOrdId: "test-oco-id",
+      },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.clOrdId, "test-oco-id", "clOrdId should be forwarded to POST body");
+  });
+
+  it("omits clOrdId from POST body when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", side: "sell", ordType: "conditional", sz: "0.01", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.clOrdId, undefined, "clOrdId should be absent when not provided");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // swap_place_move_stop_order — callBack key names (capital B)
 // ---------------------------------------------------------------------------
