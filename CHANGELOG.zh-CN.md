@@ -25,6 +25,28 @@
 
 ---
 
+## [1.3.8-beta.4] - 2026-06-08
+
+### 新增
+
+- **聚合余额工具 `account_get_balance_all`**（OPRS-360）。一次性获取交易账户+资金账户余额及可选跨账户估值快照。优先调用服务端聚合接口（`/api/v5/aigc/forward/balance-aggregate`），不可用时自动回退到直连并发查询（`Promise.allSettled`）；鉴权失败不重试，聚合接口返回 `partialFailure` 时原样返回（不回退）。部分失败语义：每个 section 有 `available` 标记 + `meta.partialFailure`。返回的 `meta` 新增 `source`（`aggregate`|`fallback`）与 `site` 便于观测；`requestedAt` 统一为 ISO 8601 字符串。CLI 命令：`okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` —— `--no-aggregate` 强制走并发路径（例如需要按账户类型的估值拆解或非 USD 计价时）。Skill `okx-cex-portfolio` 同步更新。参考：[TD] 聚合balance接口。
+
+---
+
+## [1.3.8-beta.3] - 2026-06-05
+
+### 修复
+
+- **`okx market filter` 非 `--json` 模式下输出为空**（Bug 1，array-unwrap）。`cmdMarketFilter` 的文本模式路径把 `aigc/mcp` 数组形态的响应当成单个对象处理，导致人类可读表格渲染为空，而 `--json` 正常。现已使用规范的 `(Array.isArray(raw) ? raw[0] : raw)` 模式（与 `cmdMarketOiHistory` 一致）拆包响应，非 `--json` 输出恢复正常。
+- **`okx market indicator` 在结果为空时静默失败**（Bug 2，Plan A）。当某个指标/时间周期组合没有返回任何值时，渲染循环在每个空周期上 `continue` 且不打印任何内容——退出码 0 却无输出。现在循环结束后若未渲染任何内容，CLI 会打印一条明确、可操作的提示（`No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`），不再静默失败。
+
+### 变更
+
+- **`okx market indicator` 在省略 `--params` 时应用默认周期**（Bug 2，Plan B，CLI 层）。对基于周期的指标（如 EMA/MA/WMA/RSI `[14]`、MACD `[12,26,9]`、BB `[20,2]`）省略 `--params` 时，现在会从 `packages/core` 中的默认参数表（单一数据源）应用默认 `paramList`，使 CLI 渲染出数值而非空输出。**这改变了在 CLI 上省略 `--params` 的语义**：之前为空，现在为默认周期值。显式传入 `--params` 仍会覆盖默认值。该变更**仅作用于 CLI 渲染层**——MCP 原始数据路径（`market_filter` / `market_get_indicator`）保持不变。
+- **更正 `market_get_indicator` 的 params 描述**（`indicator.ts:212`）。工具描述之前声称 "Omit to use server defaults"，这对基于周期的指标是错误的（服务端不会应用默认周期）。描述中已删除该不实声明。
+
+---
+
 ## [1.3.7] - 2026-06-04
 
 纯 skill 发布：`packages/core·cli·mcp` 代码与 `1.3.6` 完全一致，`@okx_ai/okx-trade-cli@1.3.7` 仅为版本号 bump。所有功能改动都在 earn-hunter skill。

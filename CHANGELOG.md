@@ -25,6 +25,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.8-beta.4] - 2026-06-08
+
+### Added
+
+- **Aggregate balance tool `account_get_balance_all`** (OPRS-360). One-shot snapshot of trading + funding balances with optional cross-account valuation. Calls the server-side aggregate endpoint (`/api/v5/aigc/forward/balance-aggregate`) first and automatically falls back to direct parallel queries (`Promise.allSettled`) when it is unavailable; authentication failures are not retried, and an aggregate response reporting `partialFailure` is returned as-is (no fallback). Partial failure semantics: per-section `available` flag + `meta.partialFailure`. Response `meta` now carries `source` (`aggregate`|`fallback`) and `site` for observability; `requestedAt` is always an ISO 8601 string regardless of path. CLI: `okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` — `--no-aggregate` forces the parallel path (e.g. when you need the per-account valuation breakdown or a non-USD valuation currency). Skill `okx-cex-portfolio` updated with new command and workflows. Ref: [TD] 聚合balance接口.
+
+---
+
+## [1.3.8-beta.3] - 2026-06-05
+
+### Fixed
+
+- **`okx market filter` empty output in non-`--json` mode** (Bug 1, array-unwrap). The `cmdMarketFilter` text-mode path treated the `aigc/mcp` array-shaped response as a single object, so the human-readable table rendered nothing while `--json` worked. Now unwraps the response with the canonical `(Array.isArray(raw) ? raw[0] : raw)` pattern (matching `cmdMarketOiHistory`), so non-`--json` output is populated.
+- **`okx market indicator` silent failure on empty results** (Bug 2, Plan A). When an indicator/timeframe combination returned no values, the render loop `continue`d on every empty timeframe and printed nothing — exit 0 with no output. The CLI now prints an explicit, actionable hint after the loop when nothing was rendered (`No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`) instead of failing silently.
+
+### Changed
+
+- **`okx market indicator` applies a default period when `--params` is omitted** (Bug 2, Plan B, CLI layer). Omitting `--params` for a period-based indicator (e.g. EMA/MA/WMA/RSI `[14]`, MACD `[12,26,9]`, BB `[20,2]`) now applies a default `paramList` from a table in `packages/core` (single source of truth) so the CLI renders values instead of empty output. **This changes the meaning of omitting `--params` on the CLI**: previously empty, now default-period values. An explicit `--params` still overrides the default. The change is applied **at the CLI render layer only** — the MCP raw-data path (`market_filter` / `market_get_indicator`) is unchanged.
+- **Corrected `market_get_indicator` params description** (`indicator.ts:212`). The tool description previously claimed "Omit to use server defaults", which is factually wrong for period-based indicators (the server does not apply default periods). The description no longer makes that false claim.
+
+---
+
 ## [1.3.7] - 2026-06-04
 
 Skills-only stable release: the `packages/core·cli·mcp` code is unchanged from `1.3.6`; the `@okx_ai/okx-trade-cli@1.3.7` package is a version-only bump. All functional changes are in the earn-hunter skill.
