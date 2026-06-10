@@ -86,8 +86,9 @@ OAuth / API-key flow — do NOT call `okx auth login` for outcomes; outcomes has
 ## Setup & Onboarding
 
 Setup can be completed **entirely from the agent — no terminal required**. The user
-only ever acts in a **browser** (open a URL + enter a code) and the **OKX mobile app**
-(scan a QR); the agent runs every command.
+only ever acts in a **browser** (open a URL + enter a code, and open a bind **short
+link** — which launches the OKX app on a phone, or opens a web fallback in any
+browser); the agent runs every command.
 
 First-time setup has **three pieces, in dependency order**: (1) region, (2) OAuth
 sign-in, (3) EOA wallet binding. Detect progress with:
@@ -101,7 +102,54 @@ Then advance the `next_step`:
 
 1. **Region** — `okx outcomes setup region <global|us>` (non-interactive; agent runs it).
 2. **OAuth sign-in (device-code)** — `okx outcomes auth login --manual --json`. This prints a one-line `{verificationUri, userCode, expiresIn}` envelope and **exits immediately** (it does not block or read stdin). Relay it to the user: *"Open `<verificationUri>` on any device and enter code `<userCode>` (valid ~N min)."* After they authorize in the browser, verify with `okx outcomes auth refresh --json` (writes the session marker on success) — poll a few times with backoff, or run once after the user says they're done.
-3. **Wallet binding** — `okx outcomes setup bind --json` (agent runs it): generates the signing wallet and prints address + QR + deeplink. Relay the QR/deeplink; the user scans it in the OKX mobile app. To re-display without rotating the wallet, use `setup bind --keep` (plain `setup bind` regenerates a fresh wallet every time).
+3. **Wallet binding** — `okx outcomes setup bind --json` (agent runs it): generates the signing wallet and prints `address` + a `deeplink` **short link** of the form `https://okx.com/ul/3OauBX?eoa=<eoa>&uid=<uid>` (the `eoa` is the new wallet's public address and `uid` is the signed-in account id — both filled in by the CLI). **Surface the `deeplink` short link verbatim** (do not shorten or wrap it) and tell the user three things: (a) tapping it on their phone launches the OKX app to approve the binding, (b) they can also paste it into any browser, and (c) if it won't open, copy the `address` and bind manually in the OKX app: **Outcomes → Profile → Settings → API Bind Wallet**. To re-display without rotating the wallet, use `setup bind --keep` (plain `setup bind` regenerates a fresh wallet every time).
+
+   **Surface template** — relay verbatim (Chinese):
+
+   ```
+   我刚为你新生成了一个签名钱包(私钥保存在本地 keyring,永远不会展示)。
+   请在手机上打开下面的短链接,在 OKX App 中批准绑定这个新钱包:
+
+   新钱包地址:<address>
+   绑定链接:<deeplink>
+
+   (也可以把短链接复制到浏览器打开。如果打不开,请在 OKX App 里手动绑定:
+    Outcomes → Profile → Settings → API 绑定钱包,把上面的新钱包地址粘贴进去。)
+
+   ⚠️ 关于这个钱包:
+   • 它只用来给你的交易做签名授权,不是一个充值钱包。
+   • 不要往这个地址转任何币 —— 余额在你的 OKX 账户里,转到这个地址的资金无法使用、大概率找不回。
+   • 地址可以公开(用于绑定),但它背后的私钥永远不要外泄。
+
+   在 App 中批准后告诉我。
+   ```
+
+   English equivalent:
+
+   ```
+   I just generated a fresh signing wallet for you (the private key
+   stays in the local keyring and is never displayed). Open this short
+   link on your phone — it'll launch the OKX app to approve binding
+   this new wallet:
+
+   New wallet address: <address>
+   Binding link:       <deeplink>
+
+   (You can also paste the link into any browser. If it won't open,
+    bind manually in the OKX app: Outcomes → Profile → Settings →
+    API Bind Wallet, and paste the new wallet address above.)
+
+   ⚠️ About this wallet:
+   • It's only used to sign your trade authorizations — it is NOT a deposit wallet.
+   • Do NOT send any crypto/tokens to this address. Your balance lives in your
+     OKX account; funds sent here are unusable and likely unrecoverable.
+   • The address is fine to share (it's used for binding), but the private key
+     behind it must never be exposed.
+
+   Tell me when you've approved it in the app.
+   ```
+
+   The `address` is public — safe to show. The signing key behind it never leaves the local keyring.
 
 Re-run `setup status --json` after each step, then `okx outcomes status` once `complete: true`.
 
@@ -111,8 +159,8 @@ The `okx outcomes` wrapper spawns the binary with inherited stdio, so the agent'
 captured stdout receives each command's output. All per-step setup commands are
 **agent-runnable**:
 
-- ✅ **Agent runs directly**: `setup status`, `setup region`, `auth login --manual --json`, `auth refresh`, `auth status`, `setup bind` (relay the QR; the user scans on their phone).
-- 🙋 **User action is browser/phone only** (never a command): authorize the device-code URL in a browser; scan the bind QR in the OKX app.
+- ✅ **Agent runs directly**: `setup status`, `setup region`, `auth login --manual --json`, `auth refresh`, `auth status`, `setup bind` (relay the bind short link; the user opens it on their phone or pastes it into a browser).
+- 🙋 **User action is browser/phone only** (never a command): authorize the device-code URL in a browser; open the bind short link (tap on phone → OKX app, or paste into a browser); if it won't open, copy the wallet address and bind manually in the OKX app.
 - 🚫 **Never spawn from an agent**: the full interactive `okx outcomes setup` wizard and `okx outcomes shell` REPL — both use raw-terminal input and will hang / EOF-error without a TTY. Use the per-step subcommands above instead.
 
 > The plain `okx outcomes auth login` (no `--manual`) is the interactive/browser-foreground variant for a user at a real terminal; **agents must use `--manual`**.
@@ -192,7 +240,7 @@ okx outcomes clob create-order --asset <assetId> --side buy --price 0.55 --size 
 | `okx outcomes setup region <global\|us>` | none | Set region (step 1) | ✅ yes |
 | `okx outcomes auth login --manual --json` | none | OAuth device-code (step 2): prints `{verificationUri,userCode,expiresIn}` and exits | ✅ yes (relay URL+code to user) |
 | `okx outcomes auth refresh [--json]` | none | Verify/refresh session after the user authorizes (writes session marker) | ✅ yes |
-| `okx outcomes setup bind [--keep] --json` | signing | Bind EOA wallet (step 3): prints address + QR/deeplink; `--keep` reuses existing wallet | ✅ yes (user scans QR on phone) |
+| `okx outcomes setup bind [--keep] --json` | signing | Bind EOA wallet (step 3): prints address + a `deeplink` short link (`https://okx.com/ul/3OauBX?eoa=…&uid=…`); `--keep` reuses existing wallet | ✅ yes (user opens the short link, or copies the address to bind manually) |
 | `okx outcomes auth login --site <global\|us>` | none | Interactive/browser-foreground sign-in (for a user at a real terminal) | 🚫 needs a TTY |
 | `okx outcomes setup` / `okx outcomes shell` | — | Full interactive wizard / REPL | 🚫 needs a TTY |
 
@@ -286,7 +334,7 @@ This module **does not expose any MCP tools** in the current release. Agents inv
 ## Edge Cases
 
 - **`okx-outcomes` not in PATH**: wrapper prints install hint and exits 127. Tell the user to run `curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh`.
-- **Signing wallet missing**: any `clob create-order` / `market-order` / `ctf *` will fail. Run `okx outcomes setup bind --json` (agent-runnable), relay the QR/deeplink, and have the user scan it in the OKX app — never ask for the key in chat.
+- **Signing wallet missing**: any `clob create-order` / `market-order` / `ctf *` will fail. Run `okx outcomes setup bind --json` (agent-runnable), relay the `deeplink` short link (`https://okx.com/ul/3OauBX?eoa=…&uid=…`), and have the user open it (tap on phone → OKX app, or paste into a browser); if it won't open, have them copy the wallet address and bind manually in the OKX app — never ask for the key in chat.
 - **Asset id vs market id mix-up**: the most common error class. `clob price/book/create-order/market-order` need `assetId`; `ctf *` and `account trades --market` need `marketId`. When unsure, run `event-markets <eventId>` first — its output lists both.
 - **`--tif gtd` without `--expiry`**: rejected client-side. Pair them or default to `gtc`.
 - **`--size-type quote` outside `buy + ioc`**: rejected client-side (`create-order`). Tell the user up front that "spend N points" syntax requires buy + IOC.

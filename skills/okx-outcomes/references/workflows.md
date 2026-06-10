@@ -13,8 +13,8 @@ Common composed flows. The skill should pick the matching workflow based on user
 > User: "set me up" / "首次配置" / "sign in" / any authed command fails with not-signed-in.
 
 Three pieces in dependency order: region → OAuth sign-in → wallet binding. **The agent runs
-every command**; the user only acts in a browser (device-code URL) and the OKX app (bind QR).
-No terminal, no `!` prefix.
+every command**; the user only acts in a browser (device-code URL) and by opening the bind
+short link (tap on phone → OKX app, or paste into a browser). No terminal, no `!` prefix.
 
 ```
 1. okx outcomes setup status --json             → detect next_step / complete
@@ -24,15 +24,16 @@ No terminal, no `!` prefix.
 4. (user authorizes in browser — out-of-band, no terminal)
 5. okx outcomes auth refresh --json              → agent verifies; poll w/ backoff until signed-in
                                                    (or run once after user says "done")
-6. okx outcomes setup bind --json                → (if eoa not done) agent runs it; relay address + QR/deeplink
-   → user scans in OKX mobile app   (re-display without rotating the wallet: setup bind --keep)
+6. okx outcomes setup bind --json                → (if eoa not done) agent runs it; relay address + deeplink short link
+   → user opens link on phone/browser; if it won't open, copy address & bind manually in OKX app
+                                       (re-display without rotating the wallet: setup bind --keep)
 7. okx outcomes setup status --json              → re-check until complete:true
 8. okx outcomes status --json                    → final health check
 ```
 
 > **Agent rules**: all per-step commands above are agent-runnable (device-code `auth login --manual`
 > prints JSON and exits; it does NOT block or read stdin). The user's only actions are browser
-> (authorize the URL+code) and phone (scan the bind QR). **Never** spawn the full interactive
+> (authorize the URL+code) and opening the bind short link. **Never** spawn the full interactive
 > `okx outcomes setup` wizard, `okx outcomes shell`, or plain `auth login` (no `--manual`) from an
 > agent — they need a TTY. See [`setup-auth.md`](setup-auth.md).
 
@@ -224,4 +225,4 @@ Never have the user `cargo install` from source unless they explicitly need a de
 4. Run `okx outcomes status --json` to verify both `balance` and `events` checks pass
 5. Retry the original command
 
-If `wallet show` or a write fails with `NotAuthenticated`: the signing wallet isn't bound — run `okx outcomes setup bind --json` (agent-runnable), relay the QR/deeplink, and have the user scan it in the OKX app. Do **not** ask them to paste the key in chat.
+If `wallet show` or a write fails with `NotAuthenticated`: the signing wallet isn't bound — run `okx outcomes setup bind --json` (agent-runnable), relay the `deeplink` short link (`https://okx.com/ul/3OauBX?eoa=…&uid=…`), and have the user open it (tap on phone → OKX app, or paste into a browser); if it won't open, have them copy the wallet address and bind manually in the OKX app. Do **not** ask them to paste the key in chat.

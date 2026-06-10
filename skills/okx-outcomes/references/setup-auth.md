@@ -11,7 +11,8 @@ the OS keyring (secrets; encrypted `~/.okx-outcomes/keyring.enc` fallback).
 
 **Fully agent-driven**: every setup command below is non-interactive and agent-runnable.
 The agent runs all of them; the user only acts in a **browser** (open a device-code URL +
-enter a code) and the **OKX mobile app** (scan the bind QR). No terminal, no `!` prefix.
+enter a code) and by opening the **bind short link** (tap on phone → OKX app, or paste into
+a browser; if it won't open, copy the wallet address and bind manually). No terminal, no `!` prefix.
 
 ---
 
@@ -23,7 +24,8 @@ Region must be set first; OAuth sign-in and wallet binding both depend on it.
 2. **OAuth sign-in** — device-code flow brokered by `okx-auth`; the agent prints a URL +
    code, the user authorizes in a browser, the token is stored in the keyring (never displayed).
 3. **EOA wallet binding** — generates the signing wallet and binds its address to the OKX
-   account via the mobile app (scan QR / open deeplink).
+   account by opening a bind **short link** (tap on phone → OKX app, or paste into any
+   browser); if the link won't open, copy the wallet address and bind manually in the app.
 
 Detect progress at any time:
 
@@ -106,9 +108,18 @@ okx outcomes setup bind --json          # generate a fresh signing wallet, then 
 okx outcomes setup bind --keep --json   # reuse the existing wallet (idempotent re-display)
 ```
 
-Prints the address, an `okx://…/bind-address` deeplink, and a QR code (never the private key —
-that goes to the keyring). The agent relays the QR/deeplink; **the user scans it in the OKX
-mobile app**.
+Prints the `address` and a `deeplink` **short link** of the form
+`https://okx.com/ul/3OauBX?eoa=<eoa>&uid=<uid>` (the `eoa` is the new wallet's public
+address; `uid` is the signed-in account id — both filled in by the CLI). The private key
+never leaves the keyring. The agent **relays the short link verbatim** (do not shorten or
+wrap it) and tells the user:
+
+1. Tap the link on their phone → it launches the OKX app to approve the binding.
+2. Or paste it into any browser (opens a web fallback).
+3. If it won't open, copy the `address` and bind manually in the OKX app:
+   **Outcomes → Profile → Settings → API Bind Wallet**.
+
+The `address` is public — safe to show.
 
 > **Regenerates by default**: plain `setup bind` creates a **new** wallet every run
 > (`wallet: "created" | "regenerated"`). To re-display the binding without rotating the
@@ -116,7 +127,8 @@ mobile app**.
 > `--keep`, or it will orphan the previously bound address.
 
 > `eoa_binding.done == true` means the wallet is configured locally. If an order is later
-> rejected for binding, have the user re-scan (re-run `setup bind --keep` to re-show the QR).
+> rejected for binding, have the user re-open the link (re-run `setup bind --keep` to
+> re-show the short link).
 
 ### setup (full wizard) / shell
 
@@ -141,12 +153,13 @@ stdout receives each command's output. The whole setup runs from the agent:
 | `setup region <global\|us>` | ✅ yes | non-interactive write |
 | `auth login --manual --json` | ✅ yes | prints device-code JSON + exits; agent relays URL+code |
 | `auth refresh` / `auth status` | ✅ yes | verify session; no stdin, no secrets |
-| `setup bind [--keep] --json` | ✅ yes | prints QR/deeplink; user scans in OKX app |
+| `setup bind [--keep] --json` | ✅ yes | prints address + `deeplink` short link; user opens it on phone/browser (or copies the address to bind manually) |
 | plain `auth login` (no `--manual`) | 🚫 needs TTY | interactive/browser-foreground; user-at-terminal only |
 | `setup` (full wizard) / `shell` | 🚫 never spawn | raw-terminal; will hang / EOF-error |
 
-The only human actions are in the **browser** (authorize the device-code URL) and the **OKX
-mobile app** (scan the bind QR). No terminal and no `!` prefix are required.
+The only human actions are in the **browser** (authorize the device-code URL) and opening the
+**bind short link** (tap on phone → OKX app, or paste into a browser; if it won't open, copy
+the wallet address and bind manually in the OKX app). No terminal and no `!` prefix are required.
 
 ---
 
