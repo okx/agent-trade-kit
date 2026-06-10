@@ -229,13 +229,16 @@ describe("cmdMarketIndicator - formatter", () => {
     assert.deepEqual(captured.args["params"], [5, 20]);
   });
 
-  it("omits params when string is empty (no valid numbers)", async () => {
+  it("applies the core default paramList when params string is empty (Plan B)", async () => {
     const { spy, captured } = makeSpy();
     await captureStdout(() =>
       cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false, params: "" })
     );
-    // Empty string splits to [""] which maps to NaN, filtered out → params is undefined (length 0)
-    assert.equal(captured.args["params"], undefined);
+    // Empty string is falsy → params=undefined (ternary short-circuits; the split never runs).
+    // Plan B (CLI layer) then substitutes the core default for period-based
+    // indicators so the server returns values instead of an empty array;
+    // rsi's default paramList is [14] (spec §7.2 / §7.3 item 4).
+    assert.deepEqual(captured.args["params"], [14]);
   });
 
   it("skips timeframes with empty indicator values", async () => {
@@ -257,8 +260,9 @@ describe("cmdMarketIndicator - formatter", () => {
     const output = await captureStdout(() =>
       cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false })
     );
-    // No header line should appear for empty values
-    assert.ok(!output.includes("RSI") || output === "");
+    // Plan A: the hint must be printed (command must never be silent).
+    assert.ok(output.includes("No indicator values returned"), "Plan A hint must be emitted for empty indicator values");
+    assert.ok(!output.includes("RSI"), "header line must not appear when all timeframe values are empty");
   });
 
   it("passes backtestTime to tool call", async () => {

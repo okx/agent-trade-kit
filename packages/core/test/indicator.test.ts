@@ -6,7 +6,14 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { resolveIndicatorCode, INDICATOR_BARS, KNOWN_INDICATORS, registerIndicatorTools } from "../src/tools/indicator.js";
+import {
+  resolveIndicatorCode,
+  INDICATOR_BARS,
+  KNOWN_INDICATORS,
+  registerIndicatorTools,
+  DEFAULT_INDICATOR_PARAMS,
+  getDefaultIndicatorParams,
+} from "../src/tools/indicator.js";
 import { OkxRestClient } from "../src/client/rest-client.js";
 import type { OkxConfig } from "../src/config.js";
 import type { ModuleId } from "../src/constants.js";
@@ -171,6 +178,81 @@ describe("KNOWN_INDICATORS", () => {
 });
 
 // ---------------------------------------------------------------------------
+// DEFAULT_INDICATOR_PARAMS — period-based indicator default paramList (SSoT)
+// ---------------------------------------------------------------------------
+
+describe("DEFAULT_INDICATOR_PARAMS", () => {
+  it("ema/ma/wma/rsi default to [14] (PRD example)", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ema"], [14]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ma"], [14]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["wma"], [14]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["rsi"], [14]);
+  });
+
+  it("macd defaults to [12, 26, 9] (PRD example)", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["macd"], [12, 26, 9]);
+  });
+
+  it("bb defaults to [20, 2] (PRD example)", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["bb"], [20, 2]);
+  });
+
+  it("does not contain non-period indicators (obv, vwap, sar, ad)", () => {
+    for (const name of ["obv", "vwap", "sar", "ad"]) {
+      assert.equal(DEFAULT_INDICATOR_PARAMS[name], undefined, `${name} must not have a default`);
+    }
+  });
+
+  it("every key is a known indicator name (no typos)", () => {
+    const knownNames = new Set(KNOWN_INDICATORS.map((entry) => entry.name));
+    for (const key of Object.keys(DEFAULT_INDICATOR_PARAMS)) {
+      assert.ok(knownNames.has(key), `unknown key "${key}" in DEFAULT_INDICATOR_PARAMS`);
+    }
+  });
+
+  it("every value is a non-empty array of numbers", () => {
+    for (const [key, value] of Object.entries(DEFAULT_INDICATOR_PARAMS)) {
+      assert.ok(Array.isArray(value), `value for ${key} must be an array`);
+      assert.ok(value.length > 0, `value for ${key} must be non-empty`);
+      for (const item of value) {
+        assert.equal(typeof item, "number", `value for ${key} must contain numbers`);
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDefaultIndicatorParams — alias + case resolution helper
+// ---------------------------------------------------------------------------
+
+describe("getDefaultIndicatorParams", () => {
+  it("resolves lowercase period indicators", () => {
+    assert.deepEqual(getDefaultIndicatorParams("ema"), [14]);
+    assert.deepEqual(getDefaultIndicatorParams("macd"), [12, 26, 9]);
+    assert.deepEqual(getDefaultIndicatorParams("bb"), [20, 2]);
+  });
+
+  it("is case-insensitive (uppercase input)", () => {
+    assert.deepEqual(getDefaultIndicatorParams("EMA"), [14]);
+    assert.deepEqual(getDefaultIndicatorParams("RSI"), [14]);
+  });
+
+  it("resolves the boll -> bb alias to [20, 2]", () => {
+    assert.deepEqual(getDefaultIndicatorParams("boll"), [20, 2]);
+    assert.deepEqual(getDefaultIndicatorParams("BOLL"), [20, 2]);
+  });
+
+  it("returns undefined for non-period indicators", () => {
+    assert.equal(getDefaultIndicatorParams("obv"), undefined);
+    assert.equal(getDefaultIndicatorParams("vwap"), undefined);
+  });
+
+  it("returns undefined for unknown names", () => {
+    assert.equal(getDefaultIndicatorParams("not_real_indicator"), undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // registerIndicatorTools — spec shape
 // ---------------------------------------------------------------------------
 
@@ -206,6 +288,18 @@ describe("registerIndicatorTools - tool spec", () => {
 
   it("market_get_indicator: handler is a function", () => {
     assert.equal(typeof getTool("market_get_indicator").handler, "function");
+  });
+
+  it("market_get_indicator: params description no longer claims server defaults", () => {
+    const schema = getTool("market_get_indicator").inputSchema as {
+      properties: { params: { description: string } };
+    };
+    const paramsDescription = schema.properties.params.description;
+    assert.doesNotMatch(
+      paramsDescription,
+      /server defaults/i,
+      "params description must not claim the server applies defaults (false for period indicators)",
+    );
   });
 
   it("market_list_indicators: module is market", () => {
