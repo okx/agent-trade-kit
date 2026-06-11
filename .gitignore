@@ -4,6 +4,7 @@ coverage/
 *.tsbuildinfo
 .env
 .env.local
+.env.bak
 npm-debug.log*
 _tmp_*
 .cursor/

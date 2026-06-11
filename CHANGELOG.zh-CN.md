@@ -11,6 +11,11 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。鉴权采用 **OAuth 登录**（`okx outcomes auth login`）用于鉴权读取，写操作使用 EIP-712 签名私钥（`PREDICTIONS_AGENT_PRIVATE_KEY`，通常由 `okx outcomes setup` 生成并存入 OS keyring）。`auth login --manual` 设备码流（打印 `{verificationUri,userCode}` 后立即退出）配合非交互的 `setup region` / `setup bind`，使 agent 可全程引导首次配置、无需终端。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
+- **`okx-outcomes` skill** 引导 agent 完成首次配置（地区 → OAuth 登录 → 钱包绑定，含非 TTY/agent 接力规则）、事件浏览、OAuth 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。trigger 列表同时保留 `prediction`/`预测` 与 `outcomes` 关键词，承接仍使用旧词的用户。细节文档拆分到 `setup-auth.md` / `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
+
 ### 修复
 
 - **`spot_place_algo_order`：为 OCO/算法订单添加 `clOrdId` 支持**（issue #200）。`clOrdId` 在工具的 `inputSchema` 和处理器中均缺失，导致下单时（如 OCO 订单）客户订单 ID 被静默丢弃。`swap_place_algo_order` 和 `futures_place_algo_order` 均已正确支持 `clOrdId`，本次修复补齐了现货同名工具的缺口。
@@ -95,6 +100,7 @@
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
 - **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
 - 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
+- `.gitignore` 新增 `.env.bak`，避免本地备份的 env 文件被误提交。
 
 ### 修复
 

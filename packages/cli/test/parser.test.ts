@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseCli } from "../src/parser.js";
+import { parseCli, peekFirstPositional } from "../src/parser.js";
 
 // ---------------------------------------------------------------------------
 // parseCli — --no-<flag> boolean negation
@@ -254,6 +254,81 @@ describe("account asset-balance --valuationCcy parser integration", () => {
     assert.throws(
       () => parseCli(["account", "asset-balance", "--valuation-ccy", "BTC"]),
       { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// peekFirstPositional — used by main() to short-circuit pass-through modules
+// (e.g. `outcomes`) before parseCli's strict validation rejects wrapper flags.
+// ---------------------------------------------------------------------------
+describe("peekFirstPositional", () => {
+  it("returns the first bare positional token at index 0", () => {
+    assert.deepEqual(peekFirstPositional(["outcomes", "events"]), {
+      module: "outcomes",
+      idx: 0,
+    });
+  });
+
+  it("skips a string-valued flag and its value", () => {
+    assert.deepEqual(peekFirstPositional(["--profile", "main", "outcomes"]), {
+      module: "outcomes",
+      idx: 2,
+    });
+  });
+
+  it("does not consume the token after a boolean flag", () => {
+    assert.deepEqual(peekFirstPositional(["--json", "outcomes", "events"]), {
+      module: "outcomes",
+      idx: 1,
+    });
+  });
+
+  it("does not consume the token after the boolean short -v", () => {
+    assert.deepEqual(peekFirstPositional(["-v", "outcomes"]), {
+      module: "outcomes",
+      idx: 1,
+    });
+  });
+
+  it("treats --foo=bar as a single token without consuming the next", () => {
+    assert.deepEqual(peekFirstPositional(["--profile=main", "outcomes"]), {
+      module: "outcomes",
+      idx: 1,
+    });
+  });
+
+  it("returns the token immediately after `--`", () => {
+    assert.deepEqual(peekFirstPositional(["--", "outcomes", "clob"]), {
+      module: "outcomes",
+      idx: 1,
+    });
+  });
+
+  it("returns undefined when argv contains only flags", () => {
+    assert.equal(peekFirstPositional(["--help"]), undefined);
+    assert.equal(peekFirstPositional(["--profile", "main"]), undefined);
+  });
+
+  it("returns undefined for empty argv", () => {
+    assert.equal(peekFirstPositional([]), undefined);
+  });
+
+  it("does not eat the next token when the value position is another flag", () => {
+    // `--profile --json outcomes` — `--profile` is string-valued but its
+    // 'value' is itself a flag, so the scanner must not skip past --json.
+    assert.deepEqual(peekFirstPositional(["--profile", "--json", "outcomes"]), {
+      module: "outcomes",
+      idx: 2,
+    });
+  });
+
+  it("finds the outcomes positional even when wrapper flags follow it", () => {
+    // The whole point: --asset is unknown to CLI_OPTIONS but must not affect
+    // module detection — the wrapper handles it after the short-circuit.
+    assert.deepEqual(
+      peekFirstPositional(["outcomes", "clob", "price", "--asset", "101209000", "--json"]),
+      { module: "outcomes", idx: 0 },
     );
   });
 });
