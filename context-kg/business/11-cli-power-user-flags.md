@@ -22,11 +22,15 @@ For `trigger` ordType they are passed inside `attachAlgoOrds`.
 
 | Flag | Type | Applies to |
 |------|------|-----------|
-| `--closeFraction` | string (decimal, e.g. "0.5" = 50%) | algo place: swap/spot/futures — conditional/oco |
+| `--closeFraction` | string, must be `"1"` | algo place: swap/futures only -- conditional/oco ordTypes only |
 
-Mutually exclusive with `--sz` per OKX API specification. OKX server enforces this constraint
-(returns error code 51000 on conflict). No CLI-side validation — same convention as ordType-specific
-required fields in Phase 2.
+**Constraints enforced client-side (issue #200):**
+
+- `closeFraction` and `sz` are mutually exclusive -- exactly one must be provided for `conditional`/`oco` ordTypes; for other ordTypes `sz` is required and `closeFraction` is rejected with a `ValidationError`.
+- Only `"1"` is accepted (system supports full-position close only). Any other value raises `ValidationError`.
+- Only valid for FUTURES/SWAP. Spot orders do NOT support `closeFraction` -- the field is stripped from the request body by the handler even if passed via CLI args.
+- When `closeFraction="1"` and `posSide="net"`, `reduceOnly` must be `true` (`ValidationError` otherwise).
+- Constraints are enforced in `resolveAlgoSzOrCloseFraction()` in `packages/core/src/tools/helpers.ts`. The `buildAlgoConditionalCommonFields()` helper no longer forwards `closeFraction` to ensure spot handlers cannot leak it.
 
 ### SPOT quote currency selection
 

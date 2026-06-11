@@ -345,6 +345,10 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
           stpMode: STP_MODE_SCHEMA,
+          algoClOrdId: {
+            type: "string",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
+          },
           tgtCcy: {
             type: "string",
             enum: ["base_ccy", "quote_ccy"],
@@ -379,6 +383,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           sz: requireString(args, "sz"),
           tgtCcy: readString(args, "tgtCcy"),
           stpMode: readString(args, "stpMode"),
+          algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
@@ -395,7 +400,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio)
+            // NOTE: closeFraction is FUTURES/SWAP only; spot must not forward it (issue #200)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callbackRatio: readString(args, "callbackRatio"),

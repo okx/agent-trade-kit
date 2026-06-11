@@ -16,6 +16,12 @@
 - **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。鉴权采用 **OAuth 登录**（`okx outcomes auth login`）用于鉴权读取，写操作使用 EIP-712 签名私钥（`PREDICTIONS_AGENT_PRIVATE_KEY`，通常由 `okx outcomes setup` 生成并存入 OS keyring）。`auth login --manual` 设备码流（打印 `{verificationUri,userCode}` 后立即退出）配合非交互的 `setup region` / `setup bind`，使 agent 可全程引导首次配置、无需终端。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
 - **`okx-outcomes` skill** 引导 agent 完成首次配置（地区 → OAuth 登录 → 钱包绑定，含非 TTY/agent 接力规则）、事件浏览、OAuth 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。trigger 列表同时保留 `prediction`/`预测` 与 `outcomes` 关键词，承接仍使用旧词的用户。细节文档拆分到 `setup-auth.md` / `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
 
+### 修复
+
+- **`spot_place_algo_order`：为 OCO/算法订单添加 `clOrdId` 支持**（issue #200）。`clOrdId` 在工具的 `inputSchema` 和处理器中均缺失，导致下单时（如 OCO 订单）客户订单 ID 被静默丢弃。`swap_place_algo_order` 和 `futures_place_algo_order` 均已正确支持 `clOrdId`，本次修复补齐了现货同名工具的缺口。
+- **`swap_place_algo_order` / `futures_place_algo_order`：为 conditional/oco 订单增加 `closeFraction` 全部平仓支持**（issue #200）。之前 `sz` 为强制必填字段，导致无法通过 `closeFraction` 下全部平仓的止盈止损单。变更：(1) 对于 `ordType=conditional|oco`，`sz` 与 `closeFraction` 必须且只能提供其中一个；(2) `closeFraction` 只接受 `"1"`（系统仅支持全部平仓）；(3) `closeFraction` 仅适用于 `conditional` 和 `oco` 订单类型；(4) 使用 `closeFraction` 且 `posSide=net` 时，`reduceOnly` 必须为 `true`；(5) 现货订单不支持 `closeFraction`（此前 `buildAlgoConditionalCommonFields` 会静默转发该字段，现已修正）；(6) `closeFraction` 仅适用于止盈止损市价订单——若提供 `tpOrdPx`/`slOrdPx`，必须为 `"-1"`（市价）。
+- **算法下单工具：客户自定义订单 ID 改为以 `algoClOrdId` 发送**（issue #200）。所有调用 `/api/v5/trade/order-algo` 的六个工具（`spot_place_algo_order`、`swap_place_algo_order`、`swap_place_move_stop_order`、`futures_place_algo_order`、`futures_place_move_stop_order`、`option_place_algo_order`）此前以 `clOrdId` 字段发送客户自定义 ID，但该接口的正确参数为 `algoClOrdId`——`clOrdId` 不是策略委托接口的有效参数，会被服务端静默忽略。现在工具的 inputSchema 暴露 `algoClOrdId` 参数；遗留的 `clOrdId` 入参（及 CLI `--clOrdId` flag）仍作为别名接受，并在发送时映射为 `algoClOrdId`。普通订单接口（`/api/v5/trade/order` 等）不受影响——那里 `clOrdId` 本就是正确参数。
+
 ---
 
 ## [1.3.8-beta.5] - 2026-06-10
