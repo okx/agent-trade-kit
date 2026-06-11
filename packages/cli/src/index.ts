@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { ToolRunner } from "@agent-tradekit/core";
 import { handleAuthCommand } from "./commands/auth.js";
+import { handleOutcomesCommand } from "./commands/outcomes.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
@@ -27,7 +28,7 @@ import {
 } from "./commands/news.js";
 import { loadProfileConfig } from "./config/loader.js";
 import { printHelp } from "./help.js";
-import { parseCli, parseTpLevel } from "./parser.js";
+import { parseCli, parseTpLevel, peekFirstPositional } from "./parser.js";
 import type { CliValues } from "./parser.js";
 import {
   cmdMarketTicker,
@@ -54,6 +55,7 @@ import {
 import {
   cmdAccountBalance,
   cmdAccountAssetBalance,
+  cmdAccountBalanceAll,
   cmdAccountPositions,
   cmdAccountBills,
   cmdAccountFees,
@@ -452,7 +454,7 @@ export function handleAccountWriteCommand(
       json,
     });
   unknownSubcommand("account", action, [
-    "audit", "balance", "asset-balance", "positions", "positions-history",
+    "audit", "balance", "balance-all", "asset-balance", "positions", "positions-history",
     "bills", "fees", "config",
     "set-position-mode", "max-size", "max-avail-size", "max-withdrawal", "transfer",
   ]);
@@ -469,6 +471,14 @@ function handleAccountCommand(
     return cmdAccountAudit({ limit: v.limit, tool: v.tool, since: v.since, json });
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "balance") return cmdAccountBalance(run, rest[0], json);
+  if (action === "balance-all")
+    return cmdAccountBalanceAll(run, v.ccy ?? rest[0], {
+      accounts: v.accounts,
+      noValuation: v.valuation === false,
+      preferParallel: v.aggregate === false,
+      valuationCcy: v.valuationCcy,
+      json,
+    });
   if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json, v.valuation, v.valuationCcy);
   if (action === "positions")
     return cmdAccountPositions(run, { instType: v.instType, instId: v.instId, json });
@@ -1886,7 +1896,22 @@ async function main(): Promise<void> {
 
   checkForUpdates("@okx_ai/okx-trade-cli", CLI_VERSION);
 
-  const { values, positionals } = parseCli(process.argv.slice(2));
+  const rawArgv = process.argv.slice(2);
+
+  // `outcomes` is a pass-through to the external okx-outcomes binary, so its
+  // wrapper-binary flags (--asset, --keeper, ...) are intentionally absent from
+  // CLI_OPTIONS. Strict parseArgs would reject them before routing, so peek the
+  // first positional and short-circuit here.
+  const peek = peekFirstPositional(rawArgv);
+  if (peek?.module === "outcomes") {
+    const after = rawArgv.slice(peek.idx + 1);
+    const action = after[0];
+    const rest = after.slice(1);
+    const json = rawArgv.includes("--json") || rawArgv.includes("-j");
+    return handleOutcomesCommand(action, rest, { json });
+  }
+
+  const { values, positionals } = parseCli(rawArgv);
 
   if (values.version) {
     printVersion();

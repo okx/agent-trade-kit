@@ -1,6 +1,10 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { outputLine, printJson, printKv, printTable } from "../formatter.js";
-import { resolveIndicatorCode, KNOWN_INDICATORS } from "@agent-tradekit/core";
+import { output, outputLine, printJson, printKv, printTable } from "../formatter.js";
+import { resolveIndicatorCode, getDefaultIndicatorParams, KNOWN_INDICATORS } from "@agent-tradekit/core";
+
+/** Verbatim safety-net hint (spec §8.2) shown when the indicator render loop prints nothing. */
+const NO_INDICATOR_VALUES_HINT =
+  "No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -267,11 +271,17 @@ export async function cmdMarketIndicator(
     ? opts.params.split(",").map((p) => Number(p.trim())).filter((n) => !Number.isNaN(n))
     : undefined;
 
+  // Plan B (CLI-layer only): when --params is omitted, substitute the core
+  // default paramList for period-based indicators so the server returns values.
+  // Explicit --params always wins. MCP raw-data path is intentionally unchanged.
+  const explicit = params && params.length > 0 ? params : undefined;
+  const effectiveParams = explicit ?? getDefaultIndicatorParams(indicator);
+
   const result = await run("market_get_indicator", {
     instId,
     indicator,
     bar: opts.bar,
-    params: params && params.length > 0 ? params : undefined,
+    params: effectiveParams,
     returnList: opts.list ?? false,
     limit: opts.limit,
     backtestTime: opts.backtestTime,
@@ -281,7 +291,7 @@ export async function cmdMarketIndicator(
   const outerArray = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(outerArray);
 
-  if (!outerArray?.length) { process.stdout.write("No data\n"); return; }
+  if (!outerArray?.length) { outputLine("No data"); return; }
 
   const apiCode = resolveIndicatorCode(indicator);
   const response = outerArray[0];
@@ -290,17 +300,21 @@ export async function cmdMarketIndicator(
   const timeframes = instData?.["timeframes"] as Record<string, unknown> | undefined;
 
   if (!timeframes) {
-    process.stdout.write(JSON.stringify(outerArray, null, 2) + "\n");
+    output(JSON.stringify(outerArray, null, 2) + "\n");
     return;
   }
 
+  // Plan A (safety net): track whether anything rendered; if not, emit a hint
+  // so the command is never silent (non-period indicators or empty results).
+  let printed = false;
   for (const [tf, tfData] of Object.entries(timeframes)) {
     const indicators = (tfData as Record<string, unknown>)?.["indicators"] as Record<string, unknown> | undefined;
     const values = indicators?.[apiCode] as Record<string, unknown>[] | undefined;
     if (!values?.length) continue;
 
-    process.stdout.write(`${instId} | ${apiCode} | ${tf}\n`);
-    process.stdout.write("-".repeat(40) + "\n");
+    printed = true;
+    output(`${instId} | ${apiCode} | ${tf}\n`);
+    output("-".repeat(40) + "\n");
 
     if (opts.list) {
       const tableRows = values.map((entry) => ({
@@ -316,6 +330,8 @@ export async function cmdMarketIndicator(
       });
     }
   }
+
+  if (!printed) outputLine(NO_INDICATOR_VALUES_HINT);
 }
 
 export async function cmdMarketInstrumentsByCategory(
@@ -422,8 +438,9 @@ export async function cmdMarketFilter(
     sortOrder:       opts.sortOrder,
     limit:           opts.limit,
   });
-  const data = getData(result) as Record<string, unknown> | null;
-  if (opts.json) return printJson(data);
+  const raw = getData(result);
+  if (opts.json) return printJson(raw);
+  const data = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown> | null;
   const rows = (data?.["rows"] ?? []) as Record<string, unknown>[];
   const total = data?.["total"] ?? rows.length;
   outputLine(`Total: ${total}`);

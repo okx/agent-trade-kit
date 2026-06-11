@@ -9,6 +9,7 @@ import {
   cmdMarketFilter,
   cmdMarketOiHistory,
   cmdMarketOiChangeFilter,
+  cmdMarketIndicator,
 } from "../src/commands/market.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -158,41 +159,54 @@ describe("cmdMarketOrderbook", () => {
 describe("cmdMarketFilter", () => {
   const baseOpts = { instType: "SPOT", json: false };
 
-  it("outputs 'No results' when rows are empty", async () => {
-    const runner: ToolRunner = async () => fakeResult({ total: 0, rows: [] });
+  it("outputs 'No results' and 'Total: 0' when rows are empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ total: 0, rows: [] }]);
     await cmdMarketFilter(runner, { ...baseOpts });
-    assert.ok(out.join("").includes("No results"));
+    const combined = out.join("");
+    assert.ok(combined.includes("Total: 0"));
+    assert.ok(combined.includes("No results"));
     assert.equal(err.join(""), "");
   });
 
-  it("outputs table with rows for SPOT (no fundingRate column)", async () => {
-    const runner: ToolRunner = async () => fakeResult({
-      total: 1,
+  it("outputs table with rows and correct Total for SPOT (no fundingRate column)", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      total: 3,
       rows: [{ rank: 1, instId: "BTC-USDT", last: "50000", chg24hPct: "2.1", volUsd24h: "1000000000", oiUsd: null, sortVal: "1000000000" }],
-    });
+    }]);
     await cmdMarketFilter(runner, { ...baseOpts });
     const combined = out.join("");
+    assert.ok(combined.includes("Total: 3"));
     assert.ok(combined.includes("BTC-USDT"));
     assert.ok(combined.includes("50000"));
+    assert.ok(!combined.includes("No results"));
+    assert.ok(!combined.includes("fundingRate"));
     assert.equal(err.join(""), "");
   });
 
   it("outputs table with fundingRate column for SWAP", async () => {
-    const runner: ToolRunner = async () => fakeResult({
+    const runner: ToolRunner = async () => fakeResult([{
       total: 1,
       rows: [{ rank: 1, instId: "BTC-USDT-SWAP", last: "50000", chg24hPct: "1.5", volUsd24h: "5000000000", oiUsd: "2000000000", fundingRate: "0.0001", sortVal: "2000000000" }],
-    });
+    }]);
     await cmdMarketFilter(runner, { instType: "SWAP", json: false });
     const combined = out.join("");
     assert.ok(combined.includes("BTC-USDT-SWAP"));
+    assert.ok(combined.includes("fundingRate"));
     assert.ok(combined.includes("0.0001"));
     assert.equal(err.join(""), "");
   });
 
-  it("outputs JSON when json=true", async () => {
-    const runner: ToolRunner = async () => fakeResult({ total: 0, rows: [] });
+  it("outputs JSON unchanged (full getData(result) array) when json=true", async () => {
+    const arrayData = [{
+      total: 1,
+      rows: [{ rank: 1, instId: "BTC-USDT", last: "50000", chg24hPct: "2.1", volUsd24h: "1000000000", oiUsd: null, sortVal: "1000000000" }],
+    }];
+    const runner: ToolRunner = async () => fakeResult(arrayData);
     await cmdMarketFilter(runner, { ...baseOpts, json: true });
-    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+    const printed = findJson(out);
+    assert.doesNotThrow(() => JSON.parse(printed));
+    // --json must serialize the original getData(result) value (the full array), unchanged.
+    assert.deepEqual(JSON.parse(printed), arrayData);
   });
 });
 
@@ -284,5 +298,94 @@ describe("cmdMarketOiChangeFilter", () => {
     const runner: ToolRunner = async () => fakeResult([]);
     await cmdMarketOiChangeFilter(runner, { ...baseOpts, json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdMarketIndicator — Bug 2: Plan A visible-hint guard + Plan B default lookup
+// ---------------------------------------------------------------------------
+
+/** Exact verbatim Plan A hint (spec §8.2, TBC[3]). */
+const PLAN_A_HINT =
+  "No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).";
+
+/** Build a full indicator response envelope the render loop traverses. */
+function indicatorResult(apiCode: string, valuesByTf: Record<string, Array<{ ts: number; values: Record<string, string> }>>) {
+  const timeframes: Record<string, unknown> = {};
+  for (const [tf, entries] of Object.entries(valuesByTf)) {
+    timeframes[tf] = { indicators: { [apiCode]: entries } };
+  }
+  return fakeResult([
+    { data: [{ instId: "BTC-USDT", timeframes }], mode: "live", summary: {}, timestamp: Date.now() },
+  ]);
+}
+
+describe("cmdMarketIndicator", () => {
+  it("Plan A: prints the exact hint (never silent) when every timeframe is empty", async () => {
+    // EMA resolves to apiCode "EMA"; indicators.EMA = [] (empty) for the timeframe.
+    const runner: ToolRunner = async () => indicatorResult("EMA", { "1H": [] });
+    await cmdMarketIndicator(runner, "ema", "BTC-USDT", { json: false });
+    const combined = out.join("");
+    assert.notEqual(combined, "", "indicator command must never be silent");
+    assert.ok(combined.includes(PLAN_A_HINT), "must print the exact Plan A hint");
+    assert.equal(err.join(""), "");
+  });
+
+  it("Plan A: non-period indicator (obv) with empty result prints the hint, no default substituted", async () => {
+    let capturedParams: unknown;
+    const runner: ToolRunner = async (_name, args) => {
+      capturedParams = (args as Record<string, unknown>).params;
+      return indicatorResult("OBV", { "1H": [] });
+    };
+    await cmdMarketIndicator(runner, "obv", "BTC-USDT", { json: false });
+    assert.equal(capturedParams, undefined, "obv has no default — params must stay undefined");
+    assert.ok(out.join("").includes(PLAN_A_HINT));
+    assert.equal(err.join(""), "");
+  });
+
+  it("Plan B routing: omitting --params for ema sends the core default [14] (via named flag, not positional)", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return indicatorResult("EMA", { "1H": [{ ts: 1700000000000, values: { ema: "50000" } }] });
+    };
+    await cmdMarketIndicator(runner, "ema", "BTC-USDT", { json: false });
+    assert.deepEqual(capturedArgs.params, [14], "default paramList [14] must be sent on omit");
+  });
+
+  it("explicit --params wins: --params 2 sends [2] (no regression, no default override)", async () => {
+    let capturedArgs: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return indicatorResult("EMA", { "1H": [{ ts: 1700000000000, values: { ema: "50000" } }] });
+    };
+    await cmdMarketIndicator(runner, "ema", "BTC-USDT", { params: "2", json: false });
+    assert.deepEqual(capturedArgs.params, [2], "explicit --params must win over the default");
+  });
+
+  it("Plan B render: when default yields values, the loop renders them (no hint printed)", async () => {
+    const runner: ToolRunner = async () =>
+      indicatorResult("EMA", { "1H": [{ ts: 1700000000000, values: { ema: "50123.45" } }] });
+    await cmdMarketIndicator(runner, "ema", "BTC-USDT", { json: false });
+    const combined = out.join("");
+    assert.ok(combined.includes("50123.45"), "rendered indicator value must appear");
+    assert.ok(!combined.includes(PLAN_A_HINT), "no hint when values are rendered");
+    assert.equal(err.join(""), "");
+  });
+
+  it("Plan B render --list: renders a table of values when --list is set", async () => {
+    const runner: ToolRunner = async () =>
+      indicatorResult("EMA", {
+        "1H": [
+          { ts: 1700000000000, values: { ema: "50123.45" } },
+          { ts: 1700003600000, values: { ema: "50200.00" } },
+        ],
+      });
+    await cmdMarketIndicator(runner, "ema", "BTC-USDT", { list: true, json: false });
+    const combined = out.join("");
+    assert.ok(combined.includes("50123.45"));
+    assert.ok(combined.includes("50200.00"));
+    assert.ok(!combined.includes(PLAN_A_HINT));
+    assert.equal(err.join(""), "");
   });
 });

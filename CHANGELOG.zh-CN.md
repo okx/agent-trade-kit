@@ -11,6 +11,62 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-06-11
+
+1.3.8 系列首个稳定版。代码与 `1.3.8-beta.7` 完全一致。整合 1.3.8 beta 周期累积的全部变更（完整的新增 / 修复 / 变更列表见下方 `[1.3.8-beta.1]` 至 `[1.3.8-beta.7]` 各条目）：`okx outcomes` CLI 包装器 + `okx-outcomes` skill、聚合余额工具 `account_get_balance_all`、issue #200 算法订单修复（`spot_place_algo_order` 的 `clOrdId`、`closeFraction` 全部平仓、`algoClOrdId` 映射）、Pilot 代理缓存 TTL 过期 + 死节点 HTTP 故障转移、`okx market filter` / `okx market indicator` CLI 输出修复及默认指标周期、CI Sonar 测试去抖动。
+
+### 变更
+
+- 按稳定版 skill 版本同步规则，所有 skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本同步至 `1.3.8`（含此前停留在 `1.3.5` 的 `okx-outcomes`）。
+
+## [1.3.8-beta.7] - 2026-06-11
+
+> 注：下方 `okx outcomes` 相关条目首次发布于 `1.3.8-beta.6`——该版本是从 `feature_okx_prediction` 分支（而非 master）独立发布的。本版本是首个包含这些条目的 master 发布。
+
+### 新增
+
+- **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。鉴权采用 **OAuth 登录**（`okx outcomes auth login`）用于鉴权读取，写操作使用 EIP-712 签名私钥（`PREDICTIONS_AGENT_PRIVATE_KEY`，通常由 `okx outcomes setup` 生成并存入 OS keyring）。`auth login --manual` 设备码流（打印 `{verificationUri,userCode}` 后立即退出）配合非交互的 `setup region` / `setup bind`，使 agent 可全程引导首次配置、无需终端。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
+- **`okx-outcomes` skill** 引导 agent 完成首次配置（地区 → OAuth 登录 → 钱包绑定，含非 TTY/agent 接力规则）、事件浏览、OAuth 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。trigger 列表同时保留 `prediction`/`预测` 与 `outcomes` 关键词，承接仍使用旧词的用户。细节文档拆分到 `setup-auth.md` / `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
+
+### 修复
+
+- **`spot_place_algo_order`：为 OCO/算法订单添加 `clOrdId` 支持**（issue #200）。`clOrdId` 在工具的 `inputSchema` 和处理器中均缺失，导致下单时（如 OCO 订单）客户订单 ID 被静默丢弃。`swap_place_algo_order` 和 `futures_place_algo_order` 均已正确支持 `clOrdId`，本次修复补齐了现货同名工具的缺口。
+- **`swap_place_algo_order` / `futures_place_algo_order`：为 conditional/oco 订单增加 `closeFraction` 全部平仓支持**（issue #200）。之前 `sz` 为强制必填字段，导致无法通过 `closeFraction` 下全部平仓的止盈止损单。变更：(1) 对于 `ordType=conditional|oco`，`sz` 与 `closeFraction` 必须且只能提供其中一个；(2) `closeFraction` 只接受 `"1"`（系统仅支持全部平仓）；(3) `closeFraction` 仅适用于 `conditional` 和 `oco` 订单类型；(4) 使用 `closeFraction` 且 `posSide=net` 时，`reduceOnly` 必须为 `true`；(5) 现货订单不支持 `closeFraction`（此前 `buildAlgoConditionalCommonFields` 会静默转发该字段，现已修正）；(6) `closeFraction` 仅适用于止盈止损市价订单——若提供 `tpOrdPx`/`slOrdPx`，必须为 `"-1"`（市价）。
+- **算法下单工具：客户自定义订单 ID 改为以 `algoClOrdId` 发送**（issue #200）。所有调用 `/api/v5/trade/order-algo` 的六个工具（`spot_place_algo_order`、`swap_place_algo_order`、`swap_place_move_stop_order`、`futures_place_algo_order`、`futures_place_move_stop_order`、`option_place_algo_order`）此前以 `clOrdId` 字段发送客户自定义 ID，但该接口的正确参数为 `algoClOrdId`——`clOrdId` 不是策略委托接口的有效参数，会被服务端静默忽略。现在工具的 inputSchema 暴露 `algoClOrdId` 参数；遗留的 `clOrdId` 入参（及 CLI `--clOrdId` flag）仍作为别名接受，并在发送时映射为 `algoClOrdId`。普通订单接口（`/api/v5/trade/order` 等）不受影响——那里 `clOrdId` 本就是正确参数。
+
+---
+
+## [1.3.8-beta.5] - 2026-06-10
+
+### 修复
+
+- **Pilot 代理缓存 TTL 过期** —— `resolvePilot()` 现在会忽略过期的代理缓存条目。当条目存活时间超过 `min(node.ttl × 1000, 1h)` 时判定为过期。零值或超大 TTL 均上限为 1 小时。`mode=direct` 条目不受影响，永不过期。
+- **Pilot 死亡节点 HTTP 故障转移** —— 通过 Pilot 代理发出的请求若收到非 2xx 响应且响应体不含可解析的 OKX JSON `code`（例如来自已下线 CDN 节点的 HTML 405），现在将被归类为死亡节点故障。REST 客户端调用 `handleNetworkFailure()` 并重试一次（仅限 GET 或标记了 `retryOnNetworkError` 的 POST）。携带有效 OKX JSON 错误码的响应不受影响，直接透传给调用方。
+- **CI: 消除 SonarQube 测试阶段的不稳定**（issue #199）。将所有 `node:test` 调用从 `node --import tsx/esm --test`（仅支持 Node 20.6+）改为 `node_modules/.bin/tsx --test`，以兼容 OKG 合规 Sonar 扫描镜像中的 Node 18。刻意**不**使用 `--test-timeout` CLI flag：它仅 Node 20+ 支持，Node 18 扫描器会以 `bad option`（exit 9）拒绝，导致覆盖率归零、质量门禁失败。真正修复挂起的是下方的测试隔离，而非超时 flag。作为与 Node 版本无关的兜底，仓库 `unit-test` CI job 现加上 `timeout: 10m`（`sonar` 加 `timeout: 15m`），让卡死的测试在数分钟内失败而非拖到默认 1 小时；如需 per-test 硬上限，使用 Node 18 安全的 `it(name, { timeout }, fn)` 选项。
+- **CI: 使 `undici-proxy-bootstrap.test.ts` 具备隔离性**（issue #199）。为文件中所有四个 `fetch()` 调用添加 `AbortSignal.timeout(5000)`；增加文件级 `before`/`after` 钩子，在所有测试运行前清除环境中的 `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` 变量并捕获/恢复全局 undici dispatcher。该测试现在可在携带企业代理环境变量的 CI runner 上确定性地通过。
+
+---
+
+## [1.3.8-beta.4] - 2026-06-08
+
+### 新增
+
+- **聚合余额工具 `account_get_balance_all`**（OPRS-360）。一次性获取交易账户+资金账户余额及可选跨账户估值快照。优先调用服务端聚合接口（`/api/v5/aigc/forward/balance-aggregate`），不可用时自动回退到直连并发查询（`Promise.allSettled`）；鉴权失败不重试，聚合接口返回 `partialFailure` 时原样返回（不回退）。部分失败语义：每个 section 有 `available` 标记 + `meta.partialFailure`。返回的 `meta` 新增 `source`（`aggregate`|`fallback`）与 `site` 便于观测；`requestedAt` 统一为 ISO 8601 字符串。CLI 命令：`okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` —— `--no-aggregate` 强制走并发路径（例如需要按账户类型的估值拆解或非 USD 计价时）。Skill `okx-cex-portfolio` 同步更新。参考：[TD] 聚合balance接口。
+
+---
+
+## [1.3.8-beta.3] - 2026-06-05
+
+### 修复
+
+- **`okx market filter` 非 `--json` 模式下输出为空**（Bug 1，array-unwrap）。`cmdMarketFilter` 的文本模式路径把 `aigc/mcp` 数组形态的响应当成单个对象处理，导致人类可读表格渲染为空，而 `--json` 正常。现已使用规范的 `(Array.isArray(raw) ? raw[0] : raw)` 模式（与 `cmdMarketOiHistory` 一致）拆包响应，非 `--json` 输出恢复正常。
+- **`okx market indicator` 在结果为空时静默失败**（Bug 2，Plan A）。当某个指标/时间周期组合没有返回任何值时，渲染循环在每个空周期上 `continue` 且不打印任何内容——退出码 0 却无输出。现在循环结束后若未渲染任何内容，CLI 会打印一条明确、可操作的提示（`No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`），不再静默失败。
+
+### 变更
+
+- **`okx market indicator` 在省略 `--params` 时应用默认周期**（Bug 2，Plan B，CLI 层）。对基于周期的指标（如 EMA/MA/WMA/RSI `[14]`、MACD `[12,26,9]`、BB `[20,2]`）省略 `--params` 时，现在会从 `packages/core` 中的默认参数表（单一数据源）应用默认 `paramList`，使 CLI 渲染出数值而非空输出。**这改变了在 CLI 上省略 `--params` 的语义**：之前为空，现在为默认周期值。显式传入 `--params` 仍会覆盖默认值。该变更**仅作用于 CLI 渲染层**——MCP 原始数据路径（`market_filter` / `market_get_indicator`）保持不变。
+- **更正 `market_get_indicator` 的 params 描述**（`indicator.ts:212`）。工具描述之前声称 "Omit to use server defaults"，这对基于周期的指标是错误的（服务端不会应用默认周期）。描述中已删除该不实声明。
+
 ---
 
 ## [1.3.7] - 2026-06-04
@@ -56,6 +112,7 @@
 - **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
 - **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
 - 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
+- `.gitignore` 新增 `.env.bak`，避免本地备份的 env 文件被误提交。
 
 ### 修复
 

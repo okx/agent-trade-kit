@@ -80,9 +80,9 @@ export function registerOptionAlgoTools(): ToolSpec[] {
             type: "boolean",
             description: "Ensure order only reduces position",
           },
-          clOrdId: {
+          algoClOrdId: {
             type: "string",
-            description: "Client order ID (max 32 chars)",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
@@ -114,7 +114,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
             slOrdPx: readString(args, "slOrdPx"),
             slTriggerPxType: readString(args, "slTriggerPxType"),
             reduceOnly: reduceOnly !== undefined ? String(reduceOnly) : undefined,
-            clOrdId: readString(args, "clOrdId"),
+            algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
             tag: context.config.sourceTag,
           }),
           privateRateLimit("option_place_algo_order", 20),

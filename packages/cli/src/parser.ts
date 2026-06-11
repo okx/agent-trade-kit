@@ -84,7 +84,9 @@ export interface CliValues {
   quoteCcy?: string;
   archive?: boolean;
   valuation?: boolean;
+  aggregate?: boolean;
   valuationCcy?: string;
+  accounts?: string;
   posMode?: string;
   ccy?: string;
   from?: string;
@@ -337,8 +339,10 @@ export const CLI_OPTIONS = {
   quoteCcy: { type: "string" },
   // account extras
   archive: { type: "boolean", default: false },
-  valuation: { type: "boolean", default: false },
+  valuation: { type: "boolean" },
+  aggregate: { type: "boolean" },
   valuationCcy: { type: "string" },
+  accounts: { type: "string" },
   posMode: { type: "string" },
   ccy: { type: "string" },
   from: { type: "string" },
@@ -569,4 +573,57 @@ export function parseCli(argv: string[]): { values: CliValues; positionals: stri
   }
 
   return { values: values as CliValues, positionals };
+}
+
+/**
+ * Walk argv and return the first positional token (the module name) without
+ * invoking parseCli's strict validation.
+ *
+ * Why: pure pass-through modules (e.g. `outcomes`, which spawns the external
+ * okx-outcomes binary) accept flags that are intentionally not registered in
+ * CLI_OPTIONS. node:util parseArgs rejects them with ERR_PARSE_ARGS_UNKNOWN_OPTION
+ * before routing can run. The caller peeks first; if the module is a passthrough,
+ * it skips parseCli entirely and forwards raw argv.
+ *
+ * Skipping rules:
+ *  - `--foo=bar`           single token, advance once
+ *  - boolean flag          do not consume the next token
+ *  - string-valued flag    consume the next token as its value (if it isn't another flag)
+ *  - `--`                  the very next token is the first positional
+ *
+ * Known trade-off (string-valued flag value collision):
+ *   When a user writes `okx --profile outcomes events`, the string-valued
+ *   `--profile` flag consumes `outcomes` as its value, and this function
+ *   returns module=`events` instead of `outcomes`. Today this is theoretical
+ *   (profile names are conventionally `okx-live` / `okx-demo`, not module
+ *   names) but any future string-valued flag whose value collides with a
+ *   module name would route incorrectly. Document the new flag carefully and
+ *   / or add an explicit collision check here if the collision becomes likely.
+ */
+export function peekFirstPositional(
+  argv: string[],
+): { module: string; idx: number } | undefined {
+  const booleanFlags = new Set<string>();
+  for (const [name, opt] of Object.entries(CLI_OPTIONS)) {
+    const o = opt as { type: string; short?: string };
+    if (o.type === "boolean") {
+      booleanFlags.add(name);
+      if (o.short) booleanFlags.add(o.short);
+    }
+  }
+
+  for (let i = 0; i < argv.length; i++) {
+    const tok = argv[i];
+    if (tok === "--") {
+      const next = argv[i + 1];
+      return next === undefined ? undefined : { module: next, idx: i + 1 };
+    }
+    if (!tok.startsWith("-")) return { module: tok, idx: i };
+    if (tok.includes("=")) continue;
+    const name = tok.replace(/^--?/, "");
+    if (booleanFlags.has(name)) continue;
+    const next = argv[i + 1];
+    if (next !== undefined && !next.startsWith("-")) i++;
+  }
+  return undefined;
 }

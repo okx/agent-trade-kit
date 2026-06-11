@@ -176,6 +176,11 @@ export const CLI_REGISTRY: CliRegistry = {
         usage: "okx account balance [<ccy>]",
         description: "Get trading account balance",
       },
+      "balance-all": {
+        toolName: "account_get_balance_all",
+        usage: "okx account balance-all [<ccy>] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]",
+        description: "One-shot snapshot: trading + funding (+ valuation) via server aggregate, auto-fallback to parallel",
+      },
       "asset-balance": {
         toolName: "account_get_asset_balance",
         usage: "okx account asset-balance [--ccy <ccy>]",
@@ -1113,6 +1118,69 @@ export const CLI_REGISTRY: CliRegistry = {
   upgrade: {
     description: "Upgrade okx CLI and MCP server to the latest stable version",
     usage: "okx upgrade [--check] [--beta] [--force] [--json]",
+  },
+
+  // ── outcomes ───────────────────────────────────────────────────────────────
+  // External binary wrapper - forwards to the okx-outcomes binary (formerly okx-predict).
+  // All toolName=null because outcomes commands are not exposed as MCP tools.
+  outcomes: {
+    description: "OKX Outcomes markets (YES/NO event contracts) via external okx-outcomes binary",
+    commands: {
+      // Note: events / event / event-markets / market / trending / ticker /
+      // candles live UNDER the `data` namespace in the upstream binary.
+      // Calling them as top-level commands prints the binary's help text
+      // instead of returning JSON. Always invoke as `okx outcomes data <cmd>`.
+      data: {
+        toolName: null,
+        usage: "okx outcomes data <events|event|event-markets|market|trending|ticker|candles> [args...]",
+        description: "Public market data namespace: events, event(-markets), market, trending, ticker, candles",
+      },
+      search: {
+        toolName: null,
+        usage: "okx outcomes search <keyword> [--limit <n>] [--cursor <c>]",
+        description: "Search events/markets by keyword (OAuth)",
+      },
+      account: {
+        toolName: null,
+        usage: "okx outcomes account <balance|order|orders|positions|trades> (closed = positions --status closed)",
+        description: "Account queries (OAuth)",
+      },
+      auth: {
+        toolName: null,
+        usage: "okx outcomes auth <login|refresh|status> [--manual] [--site global|us] [--json]",
+        description: "OAuth sign-in / token refresh / session status (login --manual = agent-friendly device-code flow)",
+      },
+      clob: {
+        toolName: null,
+        usage: "okx outcomes clob <price|prices|midpoint|midpoints|spread|spreads|book|books|order|orders|trades|create-order|market-order|cancel-oid|cancel-all|heartbeat>",
+        description: "CLOB market data (--asset) + EIP-712 signed order operations",
+      },
+      ctf: {
+        toolName: null,
+        usage: "okx outcomes ctf <split|merge|redeem> --market <id> [--amount <xp>]",
+        description: "Conditional Token Framework: split xp into YES/NO, merge, redeem",
+      },
+      wallet: {
+        toolName: null,
+        usage: "okx outcomes wallet show",
+        description: "Show derived wallet address (from the signing key)",
+      },
+      status: {
+        toolName: null,
+        usage: "okx outcomes status [--json]",
+        description: "Health check: API + balance reachability",
+      },
+      setup: {
+        toolName: null,
+        usage: "okx outcomes setup [status|region|bind]",
+        description: "Setup wizard (region -> OAuth sign-in -> wallet bind); subcommands: status/region/bind",
+      },
+      shell: {
+        toolName: null,
+        usage: "okx outcomes shell",
+        description: "Interactive REPL (do not invoke from agent context)",
+      },
+    },
   },
 
   // ── list-tools ──────────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
 ---
 name: okx-cex-portfolio
-description: "This skill should be used when the user asks about 'account balance', 'how much USDT do I have', 'my funding account', 'show my positions', 'open positions', 'position P&L', 'unrealized PnL', 'closed positions', 'position history', 'realized PnL', 'account bills', 'transaction history', 'trading fees', 'fee tier', 'account config', 'max order size', 'how much can I buy', 'withdrawable amount', 'transfer funds', 'move USDT to trading account', or 'switch position mode'. Also use for '总资产', 'full balance', 'all assets', 'total holdings', 'net worth', 'how much do I have in total', 'show all my balances', 'all account balances', 'asset overview'. Requires API credentials. Do NOT use for market prices (use okx-cex-market), placing/cancelling orders (use okx-cex-trade), or grid/DCA bots (use okx-cex-bot)."
+description: "This skill should be used when the user asks about 'account balance', 'how much USDT do I have', 'my funding account', 'show my positions', 'open positions', 'position P&L', 'unrealized PnL', 'closed positions', 'position history', 'realized PnL', 'account bills', 'transaction history', 'trading fees', 'fee tier', 'account config', 'max order size', 'how much can I buy', 'withdrawable amount', 'transfer funds', 'move USDT to trading account', or 'switch position mode'. Also use for '总资产', 'full balance', 'all assets', 'total holdings', 'net worth', 'how much do I have in total', 'show all my balances', 'all account balances', 'asset overview', 'aggregated balance', 'asset snapshot', '资产快照'. Requires API credentials. Do NOT use for market prices (use okx-cex-market), placing/cancelling orders (use okx-cex-trade), or grid/DCA bots (use okx-cex-bot)."
 license: MIT
 metadata:
   author: okx
-  version: "1.3.7"
+  version: "1.3.8"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.7"
+        package: "@okx_ai/okx-trade-cli@1.3.8"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -121,6 +121,11 @@ okx --demo account balance                   # 模拟盘
 ## Quickstart
 
 ```bash
+# One-shot full asset snapshot (recommended first command)
+okx account balance-all
+okx account balance-all --no-valuation
+okx account balance-all --valuationCcy BTC
+
 # Trading account balance (all currencies with balance > 0)
 okx account balance
 
@@ -152,24 +157,25 @@ okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 1 | `okx account balance [ccy]` | READ | Trading account equity, available, frozen |
-| 2a | `okx account asset-balance [ccy]` | READ | Funding account balance (per-currency list) |
-| 2b | `okx account asset-balance [ccy] --valuation [--valuationCcy <ccy>]` | READ | Same + total asset valuation across trading/funding/earn; denomination defaults to USDT, override with `--valuationCcy BTC` |
-| 3 | `okx account positions` | READ | Open contract/swap positions |
-| 4 | `okx account positions-history` | READ | Closed positions + realized PnL |
-| 5 | `okx account bills` | READ | Account ledger (deposits, withdrawals, trades) |
-| 6 | `okx account fees --instType <type>` | READ | My trading fee tier (maker/taker) |
-| 7 | `okx account config` | READ | Account level, position mode, UID |
-| 8 | `okx account max-size --instId <id> --tdMode <mode>` | READ | Max buy/sell size at current price |
-| 9 | `okx account max-avail-size --instId <id> --tdMode <mode>` | READ | Available size for next order |
-| 10 | `okx account max-withdrawal [ccy]` | READ | Max withdrawable per currency |
+| 1 | `okx account balance-all [ccy]` | READ | One-shot snapshot: trading + funding (+ valuation) in one call |
+| 2 | `okx account balance [ccy]` | READ | Trading account equity, available, frozen |
+| 3a | `okx account asset-balance [ccy]` | READ | Funding account balance (per-currency list) |
+| 3b | `okx account asset-balance [ccy] --valuation [--valuationCcy <ccy>]` | READ | Same + total asset valuation across trading/funding/earn; denomination defaults to USDT, override with `--valuationCcy BTC` |
+| 4 | `okx account positions` | READ | Open contract/swap positions |
+| 5 | `okx account positions-history` | READ | Closed positions + realized PnL |
+| 6 | `okx account bills` | READ | Account ledger (deposits, withdrawals, trades) |
+| 7 | `okx account fees --instType <type>` | READ | My trading fee tier (maker/taker) |
+| 8 | `okx account config` | READ | Account level, position mode, UID |
+| 9 | `okx account max-size --instId <id> --tdMode <mode>` | READ | Max buy/sell size at current price |
+| 10 | `okx account max-avail-size --instId <id> --tdMode <mode>` | READ | Available size for next order |
+| 11 | `okx account max-withdrawal [ccy]` | READ | Max withdrawable per currency |
 
 ### Write Commands
 
 | # | Command | Type | Description |
 |---|---|---|---|
-| 11 | `okx account set-position-mode <mode>` | WRITE | Switch net/hedge position mode |
-| 12 | `okx account transfer` | WRITE | Transfer funds between accounts |
+| 12 | `okx account set-position-mode <mode>` | WRITE | Switch net/hedge position mode |
+| 13 | `okx account transfer` | WRITE | Transfer funds between accounts |
 
 ## Cross-Skill Workflows
 
@@ -177,9 +183,9 @@ okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 > User: "I want to buy 0.1 BTC — do I have enough USDT?"
 
 ```
-1. okx-cex-portfolio okx account asset-balance --valuation   → total assets in USDT (trading/funding/earn breakdown)
-   → check details.trading (available in trading account)
-   → if trading balance < needed: check details.funding — may need to transfer
+1. okx-cex-portfolio okx account balance-all                 → one-shot trading + funding + valuation snapshot
+   → check trading.details (available in trading account)
+   → if trading balance < needed: check funding.details — may need to transfer
 2. okx-cex-market    okx market ticker BTC-USDT              → check current price
         ↓ user approves
 3. okx-cex-trade     okx spot place --instId BTC-USDT --side buy --ordType market --sz 0.1
@@ -189,13 +195,24 @@ okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 > User: "I want to start a BTC grid bot with 1000 USDT"
 
 ```
-1. okx-cex-portfolio okx account asset-balance --valuation   → total assets in USDT (trading/funding/earn breakdown)
-   → check details.trading ≥ 1000 (funds must be in trading account for grid bot)
-   → if details.funding has the USDT instead: use account transfer first
+1. okx-cex-portfolio okx account balance-all                 → one-shot trading + funding + valuation snapshot
+   → check trading.details ≥ 1000 (funds must be in trading account for grid bot)
+   → if funding.details has the USDT instead: use account transfer first
 2. okx-cex-market    okx market candles BTC-USDT --bar 4H --limit 50  → determine price range
         ↓ user approves
 3. okx-cex-bot       okx bot grid create --instId BTC-USDT --algoOrdType grid \
                        --minPx 90000 --maxPx 100000 --gridNum 10 --quoteSz 1000
+```
+
+### Net worth quick view
+> User: "What's my total balance?" / "总资产多少?"
+
+```
+1. okx-cex-portfolio okx account balance-all                 → returns {trading, funding, valuation, meta}
+   → valuation.totalBal = total net worth in USDT
+   → trading.totalEq = trading account equity
+   → funding.details = per-currency funding balances
+   → meta.partialFailure = true if any section failed (still returns available data)
 ```
 
 ### Review open positions and P&L
@@ -238,6 +255,7 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 
 ### Step 1: Identify account action
 
+- Check all balances at once → `okx account balance-all` (trading + funding + valuation in one call; recommended for "总资产 / net worth / all balances")
 - Check balance → `okx account balance` (trading equity only) or `okx account asset-balance` (funding balances) or `okx account asset-balance --valuation` (total across all accounts in USDT)
 - View open positions → `okx account positions`
 - View closed positions + PnL → `okx account positions-history`
@@ -269,6 +287,32 @@ Before any authenticated command: see [Credential & Profile Check](#credential--
 - After `transfer`: run `okx account balance` and `okx account asset-balance` to confirm balances updated
 
 ## CLI Command Reference
+
+### Balance All — One-Shot Aggregate Snapshot
+
+```bash
+okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>] [--json]
+```
+
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `ccy` | No | - | Filter by currency (comma-separated). Applied to trading + funding queries only. |
+| `--accounts` | No | `trading,funding` | Comma-separated accounts to query |
+| `--no-valuation` | No | - | Skip cross-account valuation (default: valuation included) |
+| `--no-aggregate` | No | - | Force the direct parallel path instead of the server aggregate. Use when you need the per-account valuation breakdown, or a non-USD `--valuationCcy` (the aggregate path denominates valuation in USD). |
+| `--valuationCcy` | No | `USDT` | Denomination currency for valuation |
+
+This command calls a server-side aggregate endpoint first and automatically falls back to direct parallel queries when it is unavailable; the output contract is identical either way.
+
+Returns `{ trading, funding, valuation, meta }`. Each section has `available: boolean`:
+- `trading`: `totalEq`, `adjEq`, `details[]` (per-currency)
+- `funding`: `details[]` (per-currency `ccy`, `bal`, `availBal`, `frozenBal`)
+- `valuation`: `valuationCcy`, `totalBal`, `details[]` (per-account breakdown is only populated on the parallel path; use `--no-aggregate` to force it)
+- `meta`: `requestedAt` (ISO 8601), `elapsedMs`, `partialFailure`, `source` (`aggregate` or `fallback`), `site`
+
+When `--json` is NOT set: prints `[PARTIAL]` banner if `meta.partialFailure=true`, followed by three sections (Trading / Funding / Valuation), then a `[source: ...]` footer showing which path served the data. Failed sections show `[ERROR: <msg>]`.
+
+---
 
 ### Account Balance — Trading Account
 
@@ -446,6 +490,7 @@ Returns: `transId`, `ccy`, `amt`.
 
 | Tool | Description |
 |---|---|
+| `account_get_balance_all` | One-shot snapshot of trading + funding (+ valuation), served by a server-side aggregate endpoint with automatic fallback to parallel queries. Use `showValuation=true` (default) to include cross-account totals; `valuationCcy='USDT'` by default. Set `preferParallel=true` to force the parallel path (per-account valuation breakdown / non-USD valuation). Prefer over calling `account_get_balance` + `account_get_asset_balance` separately. |
 | `account_get_balance` | Trading account balance |
 | `account_get_asset_balance` | Funding account balance. Use `showValuation=true` to include total asset valuation across trading/funding/earn accounts. Use `valuationCcy` (default `"USDT"`) to set the denomination for the valuation total — e.g. `valuationCcy="BTC"` returns the total in BTC. |
 | `account_get_positions` | Open positions |

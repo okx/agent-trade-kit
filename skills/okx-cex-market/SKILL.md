@@ -4,7 +4,7 @@ description: "Use this skill when the user asks for: price of any asset, ticker,
 license: MIT
 metadata:
   author: okx
-  version: "1.3.7"
+  version: "1.3.8"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.7"
+        package: "@okx_ai/okx-trade-cli@1.3.8"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -63,11 +63,11 @@ Market data commands return the same public data regardless of demo/live mode �
 | 12 | `okx market open-interest --instType <type> [--instId <id>]` | Open interest in contracts and base currency |
 | 13 | `okx market instruments-by-category --instCategory <3\|4\|5\|6\|7>` | Discover instruments by asset category: 3=Stock tokens (AAPL/TSLA), 4=Metals (gold/silver), 5=Commodities (oil/gas), 6=Forex (EUR/USD), 7=Bonds |
 | 13† | `okx market stock-tokens` | **Deprecated** — use `instruments-by-category --instCategory 3` instead |
-| 14 | `okx market filter --instType <SPOT\|SWAP\|FUTURES> [--sortBy <field>] [--sortOrder <asc\|desc>] [--limit <n>] [--baseCcy <ccy>] [--quoteCcy <ccy>] [--settleCcy <ccy>] [--instFamily <fam>] [--ctType <linear\|inverse>] [--minLast <n>] [--maxLast <n>] [--minChg24hPct <n>] [--maxChg24hPct <n>] [--minMarketCapUsd <n>] [--maxMarketCapUsd <n>] [--minVolUsd24h <n>] [--maxVolUsd24h <n>] [--minFundingRate <n>] [--maxFundingRate <n>] [--minOiUsd <n>] [--maxOiUsd <n>]` | Screen / rank instruments by multi-dimensional criteria (price, volume, OI, funding rate, market cap) |
+| 14 | `okx market filter --instType <SPOT\|SWAP\|FUTURES> [--sortBy <field>] [--sortOrder <asc\|desc>] [--limit <n>] [--baseCcy <ccy>] [--quoteCcy <ccy>] [--settleCcy <ccy>] [--instFamily <fam>] [--ctType <linear\|inverse>] [--minLast <n>] [--maxLast <n>] [--minChg24hPct <n>] [--maxChg24hPct <n>] [--minMarketCapUsd <n>] [--maxMarketCapUsd <n>] [--minVolUsd24h <n>] [--maxVolUsd24h <n>] [--minFundingRate <n>] [--maxFundingRate <n>] [--minOiUsd <n>] [--maxOiUsd <n>]` | Screen / rank instruments by multi-dimensional criteria (price, volume, OI, funding rate, market cap). Prints `Total: N` + a ranked table of matching instruments (`No results` only when nothing matches). Add `--json` for the raw OKX API v5 response (structurally unchanged). |
 | 15 | `okx market oi-history <instId> [--bar <5m\|15m\|1H\|4H\|1D>] [--limit <n>] [--ts <ms>]` | OI history time series with bar-over-bar delta for a single instrument |
 | 16 | `okx market oi-change --instType <SWAP\|FUTURES> [--bar <5m\|15m\|1H\|4H\|1D>] [--sortBy <field>] [--sortOrder <asc\|desc>] [--limit <n>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]` | Find instruments with largest OI changes (accumulation/distribution scanner) |
 | 17 | `okx market indicator list` | List all supported indicator names and descriptions |
-| 18 | `okx market indicator <indicator> <instId> [--bar] [--params] [--list] [--limit] [--backtest-time]` | Technical indicator values |
+| 18 | `okx market indicator <indicator> <instId> [--bar] [--params] [--list] [--limit] [--backtest-time]` | Technical indicator values. For period-based indicators (ema/ma/wma/rsi/macd/bb/…) the CLI applies a sensible default period when `--params` is omitted (e.g. EMA/RSI → `14`, MACD → `12,26,9`, BB → `20,2`) so values render without you specifying params; explicit `--params` always wins. If no values come back, the CLI prints a visible hint (`try --params …`) — never silent. |
 | 19 | `okx market pair-spread <instIdA> <instIdB> [--bar <5m\|15m>] [--window <window>] [--backtest-time <ms>]` | Spread statistics (abs + ratio: mean/stdDev/median/min/max) over a lookback window; supports backtest mode |
 
 ---
@@ -121,7 +121,8 @@ All commands in this skill are read-only.
 - **indicator `--bar` valid values**: `3m` `5m` `15m` `1H` `4H` `12Hutc` `1Dutc` `3Dutc` `1Wutc` — `1m` is **not supported** for indicators (use `candles` for 1-minute data)
 - **indicator `--limit`**: 1–100 (only used with `returnList`, i.e. when a historical series is requested)
 - **indicator arg order**: indicator name before instId — `okx market indicator rsi BTC-USDT`
-- **indicator `--params`**: comma-separated, no spaces — `--params 5,20`
+- **indicator `--params`**: comma-separated, no spaces — `--params 5,20`. For period-based indicators (ema/ma/wma/rsi/macd/bb/…) omitting `--params` makes the CLI substitute a default period (EMA/MA/WMA/RSI → `14`, MACD → `12,26,9`, BB → `20,2`) so the table is populated instead of empty; pass `--params` explicitly to override the default. (CLI-only convenience — the MCP `market_get_indicator` raw-data path still requires an explicit `paramList`.)
+- **indicator no values returned**: the CLI never prints nothing — if a query yields no values (e.g. a non-period indicator, or a period indicator with no default), it prints a visible hint: `No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`
 - **BTC-only indicators**: `ahr999`, `rainbow` — BTC-USDT only
 - **Unknown indicator name**: returns a `ValidationError` with similar-name suggestions before the API is called — use `market_list_indicators` / `okx market indicator list` to see all valid names
 - **Stock token hours**: US stocks trade Mon–Fri ~09:30–16:00 ET; verify live price before acting

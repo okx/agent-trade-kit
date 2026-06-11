@@ -16,6 +16,7 @@ path:^\.gitlab-ci\.yml$
 path:^scripts/check-eval-probes\.sh$
 path:^memory/
 path:^aTempFiles/
+path:^\.stoli_checkpoint\.json$
 path:^context-kg/
 path:^docs/superpowers/
 path:^eval/
