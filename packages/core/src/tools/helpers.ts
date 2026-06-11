@@ -348,6 +348,44 @@ const CLOSE_FRACTION_VALID_ORD_TYPES = new Set(["conditional", "oco"]);
  *
  * @throws ValidationError on any constraint violation
  */
+function isNonMarketOrdPx(px: string | undefined): boolean {
+  return px !== undefined && px !== "-1";
+}
+
+/** Validates every closeFraction constraint; throws ValidationError on the first violation. */
+function assertCloseFractionConstraints(
+  args: Record<string, unknown>,
+  ordType: string,
+  sz: string | undefined,
+  closeFraction: string,
+): void {
+  if (!CLOSE_FRACTION_VALID_ORD_TYPES.has(ordType)) {
+    throw new ValidationError(
+      `closeFraction is only valid for ordType conditional or oco (got "${ordType}").`,
+    );
+  }
+  if (closeFraction !== "1") {
+    throw new ValidationError(
+      `closeFraction must be "1" (only full-position close is supported). Got "${closeFraction}".`,
+    );
+  }
+  if (sz !== undefined && sz.length > 0) {
+    throw new ValidationError(
+      `Provide sz OR closeFraction, not both. sz="${sz}", closeFraction="${closeFraction}".`,
+    );
+  }
+  if (isNonMarketOrdPx(readString(args, "tpOrdPx")) || isNonMarketOrdPx(readString(args, "slOrdPx"))) {
+    throw new ValidationError(
+      `closeFraction only applies to market TP/SL orders - tpOrdPx/slOrdPx must be "-1" (market) when provided.`,
+    );
+  }
+  if (readString(args, "posSide") === "net" && args["reduceOnly"] !== true) {
+    throw new ValidationError(
+      `When closeFraction is used with posSide="net", reduceOnly must be true.`,
+    );
+  }
+}
+
 export function resolveAlgoSzOrCloseFraction(
   args: Record<string, unknown>,
   ordType: string,
@@ -355,44 +393,14 @@ export function resolveAlgoSzOrCloseFraction(
   const sz = readString(args, "sz");
   const closeFraction = readString(args, "closeFraction");
 
-  const supportsCloseFraction = CLOSE_FRACTION_VALID_ORD_TYPES.has(ordType);
-
   if (closeFraction !== undefined) {
-    if (!supportsCloseFraction) {
-      throw new ValidationError(
-        `closeFraction is only valid for ordType conditional or oco (got "${ordType}").`,
-      );
-    }
-    if (closeFraction !== "1") {
-      throw new ValidationError(
-        `closeFraction must be "1" (only full-position close is supported). Got "${closeFraction}".`,
-      );
-    }
-    if (sz !== undefined && sz.length > 0) {
-      throw new ValidationError(
-        `Provide sz OR closeFraction, not both. sz="${sz}", closeFraction="${closeFraction}".`,
-      );
-    }
-    const tpOrdPx = readString(args, "tpOrdPx");
-    const slOrdPx = readString(args, "slOrdPx");
-    if ((tpOrdPx !== undefined && tpOrdPx !== "-1") || (slOrdPx !== undefined && slOrdPx !== "-1")) {
-      throw new ValidationError(
-        `closeFraction only applies to market TP/SL orders - tpOrdPx/slOrdPx must be "-1" (market) when provided.`,
-      );
-    }
-    const posSide = readString(args, "posSide");
-    const reduceOnly = args["reduceOnly"];
-    if (posSide === "net" && reduceOnly !== true) {
-      throw new ValidationError(
-        `When closeFraction is used with posSide="net", reduceOnly must be true.`,
-      );
-    }
+    assertCloseFractionConstraints(args, ordType, sz, closeFraction);
     return { sz: undefined, closeFraction: "1" };
   }
 
   // closeFraction absent: sz is required
   if (!sz || sz.length === 0) {
-    if (supportsCloseFraction) {
+    if (CLOSE_FRACTION_VALID_ORD_TYPES.has(ordType)) {
       throw new ValidationError(
         `sz or closeFraction is required for ordType "${ordType}".`,
       );
