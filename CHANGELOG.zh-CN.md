@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-06-11
+
+1.3.8 系列首个稳定版。代码与 `1.3.8-beta.7` 完全一致。整合 1.3.8 beta 周期累积的全部变更（完整的新增 / 修复 / 变更列表见下方 `[1.3.8-beta.1]` 至 `[1.3.8-beta.7]` 各条目）：`okx outcomes` CLI 包装器 + `okx-outcomes` skill、聚合余额工具 `account_get_balance_all`、issue #200 算法订单修复（`spot_place_algo_order` 的 `clOrdId`、`closeFraction` 全部平仓、`algoClOrdId` 映射）、Pilot 代理缓存 TTL 过期 + 死节点 HTTP 故障转移、`okx market filter` / `okx market indicator` CLI 输出修复及默认指标周期、CI Sonar 测试去抖动。
+
+### 变更
+
+- 按稳定版 skill 版本同步规则，所有 skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本同步至 `1.3.8`（含此前停留在 `1.3.5` 的 `okx-outcomes`）。
+
 ## [1.3.8-beta.7] - 2026-06-11
 
 > 注：下方 `okx outcomes` 相关条目首次发布于 `1.3.8-beta.6`——该版本是从 `feature_okx_prediction` 分支（而非 master）独立发布的。本版本是首个包含这些条目的 master 发布。

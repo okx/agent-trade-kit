@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-06-11
+
+First stable release of the 1.3.8 line. Code is identical to `1.3.8-beta.7`. Consolidates all changes accumulated during the 1.3.8 beta cycle (see the `[1.3.8-beta.1]` through `[1.3.8-beta.7]` entries below for the full Added / Fixed / Changed lists): `okx outcomes` CLI wrapper + `okx-outcomes` skill, aggregate balance tool `account_get_balance_all`, issue #200 algo-order fixes (`spot_place_algo_order` `clOrdId`, `closeFraction` full-position close, `algoClOrdId` mapping), Pilot proxy cache TTL expiry + dead-node HTTP failover, `okx market filter` / `okx market indicator` CLI output fixes with default indicator periods, and CI Sonar de-flake.
+
+### Changed
+
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version synced to `1.3.8` per the stable-release skill version sync policy (includes `okx-outcomes`, previously pinned at `1.3.5`).
+
 ## [1.3.8-beta.7] - 2026-06-11
 
 > Note: the `okx outcomes` entries below first shipped in `1.3.8-beta.6`, an independent release cut from the `feature_okx_prediction` branch (not from master). This is the first master-based release containing them.
