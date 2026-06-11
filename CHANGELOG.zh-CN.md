@@ -14,6 +14,7 @@
 ### 修复
 
 - **`spot_place_algo_order`：为 OCO/算法订单添加 `clOrdId` 支持**（issue #200）。`clOrdId` 在工具的 `inputSchema` 和处理器中均缺失，导致下单时（如 OCO 订单）客户订单 ID 被静默丢弃。`swap_place_algo_order` 和 `futures_place_algo_order` 均已正确支持 `clOrdId`，本次修复补齐了现货同名工具的缺口。
+- **`swap_place_algo_order` / `futures_place_algo_order`：为 conditional/oco 订单增加 `closeFraction` 全部平仓支持**（issue #200）。之前 `sz` 为强制必填字段，导致无法通过 `closeFraction` 下全部平仓的止盈止损单。变更：(1) 对于 `ordType=conditional|oco`，`sz` 与 `closeFraction` 必须且只能提供其中一个；(2) `closeFraction` 只接受 `"1"`（系统仅支持全部平仓）；(3) `closeFraction` 仅适用于 `conditional` 和 `oco` 订单类型；(4) 使用 `closeFraction` 且 `posSide=net` 时，`reduceOnly` 必须为 `true`；(5) 现货订单不支持 `closeFraction`（此前 `buildAlgoConditionalCommonFields` 会静默转发该字段，现已修正）。
 
 ---
 

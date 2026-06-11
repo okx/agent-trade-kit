@@ -317,9 +317,80 @@ export function buildAlgoConditionalCommonFields(args: Record<string, unknown>):
     slOrdPx: readString(args, "slOrdPx"),
     slTriggerPxType: readString(args, "slTriggerPxType"),
     slTriggerRatio: readString(args, "slTriggerRatio"),
-    closeFraction: readString(args, "closeFraction"),
+    // NOTE: closeFraction intentionally excluded - only valid for FUTURES/SWAP
+    // conditional/oco ordTypes. Spot must not forward this field. The swap/futures
+    // handlers manage closeFraction via resolveAlgoSzOrCloseFraction() (issue #200).
     activePx: readString(args, "activePx"),
   };
+}
+
+/**
+ * Ordinals for conditional/oco ordTypes that support full-position close via
+ * closeFraction instead of an explicit sz.
+ */
+const CLOSE_FRACTION_VALID_ORD_TYPES = new Set(["conditional", "oco"]);
+
+/**
+ * Resolves the sz/closeFraction mutual exclusivity for SWAP/FUTURES algo orders.
+ *
+ * Rules (OKX API spec for POST /api/v5/trade/order-algo, issue #200):
+ * - Exactly one of sz or closeFraction must be provided for conditional/oco ordTypes.
+ * - For all other ordTypes (trigger, chase, iceberg, twap, move_order_stop), sz is required.
+ * - closeFraction must be "1" (system only supports full-position close).
+ * - When closeFraction is provided with posSide="net", reduceOnly must be true.
+ * - closeFraction is FUTURES/SWAP only - callers must not invoke this for spot.
+ *
+ * @returns { sz: string | undefined, closeFraction: string | undefined }
+ * - When sz wins: { sz: value, closeFraction: undefined }
+ * - When closeFraction wins: { sz: undefined, closeFraction: "1" }
+ *
+ * @throws ValidationError on any constraint violation
+ */
+export function resolveAlgoSzOrCloseFraction(
+  args: Record<string, unknown>,
+  ordType: string,
+): { sz: string | undefined; closeFraction: string | undefined } {
+  const sz = readString(args, "sz");
+  const closeFraction = readString(args, "closeFraction");
+
+  const supportsCloseFraction = CLOSE_FRACTION_VALID_ORD_TYPES.has(ordType);
+
+  if (closeFraction !== undefined) {
+    if (!supportsCloseFraction) {
+      throw new ValidationError(
+        `closeFraction is only valid for ordType conditional or oco (got "${ordType}").`,
+      );
+    }
+    if (closeFraction !== "1") {
+      throw new ValidationError(
+        `closeFraction must be "1" (only full-position close is supported). Got "${closeFraction}".`,
+      );
+    }
+    if (sz !== undefined && sz.length > 0) {
+      throw new ValidationError(
+        `Provide sz OR closeFraction, not both. sz="${sz}", closeFraction="${closeFraction}".`,
+      );
+    }
+    const posSide = readString(args, "posSide");
+    const reduceOnly = args["reduceOnly"];
+    if (posSide === "net" && reduceOnly !== true) {
+      throw new ValidationError(
+        `When closeFraction is used with posSide="net", reduceOnly must be true.`,
+      );
+    }
+    return { sz: undefined, closeFraction: "1" };
+  }
+
+  // closeFraction absent: sz is required
+  if (!sz || sz.length === 0) {
+    if (supportsCloseFraction) {
+      throw new ValidationError(
+        `sz or closeFraction is required for ordType "${ordType}".`,
+      );
+    }
+    throw new ValidationError(`Missing required parameter "sz".`);
+  }
+  return { sz, closeFraction: undefined };
 }
 
 export function buildAttachAlgoOrds(

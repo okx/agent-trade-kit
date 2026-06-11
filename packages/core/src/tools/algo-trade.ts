@@ -19,6 +19,7 @@ import {
   readNumber,
   readString,
   requireString,
+  resolveAlgoSzOrCloseFraction,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
@@ -69,7 +70,12 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Number of contracts to close (NOT USDT amount). Use market_get_instruments to get ctVal for conversion.",
+            description: "Number of contracts to close (NOT USDT amount). Use market_get_instruments to get ctVal for conversion. Required unless closeFraction is provided (conditional/oco only).",
+          },
+          closeFraction: {
+            type: "string",
+            enum: ["1"],
+            description: "Close 100% of position (full close). Use instead of sz for conditional/oco ordTypes only. Must be \"1\" (only full-position close is supported). When posSide=net, reduceOnly must also be true.",
           },
           tpTriggerPx: {
             type: "string",
@@ -114,28 +120,33 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           },
           reduceOnly: {
             type: "boolean",
-            description: "Ensure order only reduces position",
+            description: "Ensure order only reduces position. Required when closeFraction is used with posSide=net.",
           },
           clOrdId: {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
         },
-        required: ["instId", "tdMode", "side", "ordType", "sz"],
+        required: ["instId", "tdMode", "side", "ordType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const cxlOnClosePos = args.cxlOnClosePos;
         const ordType = requireString(args, "ordType");
-        const resolved = await resolveQuoteCcySz(
-          requireString(args, "instId"),
-          requireString(args, "sz"),
-          readString(args, "tgtCcy"),
-          "SWAP",
-          context.client,
-          readString(args, "tdMode"),
-        );
+        // Resolve sz vs closeFraction mutual exclusivity (issue #200)
+        const szOrCf = resolveAlgoSzOrCloseFraction(args, ordType);
+        // Only call resolveQuoteCcySz when sz is provided; skip when closeFraction is used
+        const resolved = szOrCf.sz !== undefined
+          ? await resolveQuoteCcySz(
+              requireString(args, "instId"),
+              szOrCf.sz,
+              readString(args, "tgtCcy"),
+              "SWAP",
+              context.client,
+              readString(args, "tdMode"),
+            )
+          : { sz: undefined as string | undefined, tgtCcy: undefined as string | undefined, conversionNote: undefined as string | undefined };
         const base: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           tdMode: requireString(args, "tdMode"),
@@ -143,6 +154,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           posSide: readString(args, "posSide"),
           ordType,
           sz: resolved.sz,
+          closeFraction: szOrCf.closeFraction,
           tgtCcy: resolved.tgtCcy,
           stpMode: readString(args, "stpMode"),
           cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
@@ -164,7 +176,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callBackRatio: readString(args, "callbackRatio"),
@@ -461,7 +473,12 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           },
           sz: {
             type: "string",
-            description: "Number of contracts (NOT USDT amount).",
+            description: "Number of contracts (NOT USDT amount). Required unless closeFraction is provided (conditional/oco only).",
+          },
+          closeFraction: {
+            type: "string",
+            enum: ["1"],
+            description: "Close 100% of position (full close). Use instead of sz for conditional/oco ordTypes only. Must be \"1\" (only full-position close is supported). When posSide=net, reduceOnly must also be true.",
           },
           tpTriggerPx: {
             type: "string",
@@ -506,28 +523,33 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           },
           reduceOnly: {
             type: "boolean",
-            description: "Ensure order only reduces position",
+            description: "Ensure order only reduces position. Required when closeFraction is used with posSide=net.",
           },
           clOrdId: {
             type: "string",
             description: "Client order ID (max 32 chars)",
           },
         },
-        required: ["instId", "tdMode", "side", "ordType", "sz"],
+        required: ["instId", "tdMode", "side", "ordType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const cxlOnClosePos = args.cxlOnClosePos;
         const ordType = requireString(args, "ordType");
-        const resolved = await resolveQuoteCcySz(
-          requireString(args, "instId"),
-          requireString(args, "sz"),
-          readString(args, "tgtCcy"),
-          "FUTURES",
-          context.client,
-          readString(args, "tdMode"),
-        );
+        // Resolve sz vs closeFraction mutual exclusivity (issue #200)
+        const szOrCf = resolveAlgoSzOrCloseFraction(args, ordType);
+        // Only call resolveQuoteCcySz when sz is provided; skip when closeFraction is used
+        const resolved = szOrCf.sz !== undefined
+          ? await resolveQuoteCcySz(
+              requireString(args, "instId"),
+              szOrCf.sz,
+              readString(args, "tgtCcy"),
+              "FUTURES",
+              context.client,
+              readString(args, "tdMode"),
+            )
+          : { sz: undefined as string | undefined, tgtCcy: undefined as string | undefined, conversionNote: undefined as string | undefined };
         const base: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           tdMode: requireString(args, "tdMode"),
@@ -535,6 +557,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           posSide: readString(args, "posSide"),
           ordType,
           sz: resolved.sz,
+          closeFraction: szOrCf.closeFraction,
           tgtCcy: resolved.tgtCcy,
           stpMode: readString(args, "stpMode"),
           cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
@@ -556,7 +579,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callBackRatio: readString(args, "callbackRatio"),

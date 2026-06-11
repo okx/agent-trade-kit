@@ -3572,7 +3572,227 @@ describe("spot_place_algo_order clOrdId forwarding", () => {
 });
 
 // ---------------------------------------------------------------------------
-// swap_place_move_stop_order — callBack key names (capital B)
+// swap_place_algo_order + futures_place_algo_order -- closeFraction (issue #200)
+// sz/closeFraction mutual exclusivity and validation rules
+// ---------------------------------------------------------------------------
+
+describe("swap_place_algo_order closeFraction validation", () => {
+  const tools = registerAlgoTradeTools();
+  const tool = tools.find((t) => t.name === "swap_place_algo_order")!;
+
+  it("accepts sz without closeFraction for conditional ordType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.sz, "1");
+    assert.equal(params.closeFraction, undefined);
+  });
+
+  it("accepts closeFraction=1 without sz for conditional ordType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, "1");
+    assert.equal(params.sz, undefined);
+  });
+
+  it("accepts closeFraction=1 without sz for oco ordType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "oco", closeFraction: "1", tpTriggerPx: "60000", tpOrdPx: "-1", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, "1");
+    assert.equal(params.sz, undefined);
+  });
+
+  it("rejects when both sz and closeFraction provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", closeFraction: "1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /provide sz OR closeFraction/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects when neither sz nor closeFraction provided for conditional", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /sz or closeFraction is required/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction not equal to 1", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "0.5" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /closeFraction must be "1"/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction when ordType is trigger", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "trigger", closeFraction: "1", triggerPx: "50000", orderPx: "-1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /closeFraction is only valid for ordType conditional or oco/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction when ordType is move_order_stop", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "move_order_stop", closeFraction: "1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /closeFraction is only valid for ordType conditional or oco/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction with posSide=net and reduceOnly absent", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", posSide: "net", slTriggerPx: "40000", slOrdPx: "-1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /reduceOnly must be true/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction with posSide=net and reduceOnly=false", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", posSide: "net", reduceOnly: false, slTriggerPx: "40000", slOrdPx: "-1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /reduceOnly must be true/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("accepts closeFraction with posSide=net and reduceOnly=true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", posSide: "net", reduceOnly: true, slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, "1");
+    assert.equal(params.reduceOnly, "true");
+  });
+
+  it("accepts closeFraction with posSide=long (no reduceOnly restriction)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", posSide: "long", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, "1");
+  });
+
+  it("requires sz when ordType is trigger (not closeFraction-eligible)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "trigger" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /missing required parameter "sz"/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("schema does NOT include sz in required array (conditional optional via runtime)", () => {
+    assert.ok(!tool.inputSchema.required?.includes("sz"), "sz should not be in required array");
+  });
+
+  it("schema includes closeFraction property", () => {
+    const props = tool.inputSchema.properties as Record<string, unknown>;
+    assert.ok(props["closeFraction"], "closeFraction property should exist");
+  });
+});
+
+describe("futures_place_algo_order closeFraction validation", () => {
+  const tools = registerFuturesAlgoTools();
+  const tool = tools.find((t) => t.name === "futures_place_algo_order")!;
+
+  it("accepts closeFraction=1 without sz for conditional ordType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-240329", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, "1");
+    assert.equal(params.sz, undefined);
+  });
+
+  it("rejects when both sz and closeFraction provided for futures", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-240329", tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", closeFraction: "1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /provide sz OR closeFraction/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction with posSide=net and no reduceOnly for futures", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-240329", tdMode: "cross", side: "sell", ordType: "oco", closeFraction: "1", posSide: "net" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /reduceOnly must be true/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("schema does NOT include sz in required array", () => {
+    assert.ok(!tool.inputSchema.required?.includes("sz"), "sz should not be in required array for futures");
+  });
+});
+
+describe("spot_place_algo_order closeFraction exclusion (issue #200)", () => {
+  const tools = registerSpotTradeTools();
+  const tool = tools.find((t) => t.name === "spot_place_algo_order")!;
+
+  it("does NOT forward closeFraction field in POST body even when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    // Spot handler accepts closeFraction as a passthrough arg from CLI but must not forward it
+    await tool.handler(
+      { instId: "BTC-USDT", side: "sell", ordType: "conditional", sz: "0.01", slTriggerPx: "40000", slOrdPx: "-1", closeFraction: "1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, undefined, "closeFraction must not be forwarded for spot orders");
+    assert.equal(params.sz, "0.01", "sz should still be forwarded normally");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// swap_place_move_stop_order -- callBack key names (capital B)
 // ---------------------------------------------------------------------------
 
 describe("swap_place_move_stop_order callBack key names", () => {

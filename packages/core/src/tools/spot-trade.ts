@@ -400,7 +400,8 @@ export function registerSpotTradeTools(): ToolSpec[] {
             Object.assign(base, buildIcebergTwapOrdTypeBody(args));
             break;
           default:
-            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio/closeFraction)
+            // conditional / oco / move_order_stop - Phase 1 + Phase 3a (CLI-only ratio)
+            // NOTE: closeFraction is FUTURES/SWAP only; spot must not forward it (issue #200)
             Object.assign(base, compactObject({
               ...buildAlgoConditionalCommonFields(args),
               callbackRatio: readString(args, "callbackRatio"),

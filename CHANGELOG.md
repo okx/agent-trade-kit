@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`spot_place_algo_order`: add `clOrdId` support for OCO/algo orders** (issue #200). `clOrdId` was missing from both the tool's `inputSchema` and handler, causing it to be silently dropped when placing spot algo orders (e.g. OCO) with a client order ID. `swap_place_algo_order` and `futures_place_algo_order` already exposed `clOrdId` correctly; this fixes the parity gap in the spot equivalent.
+- **`swap_place_algo_order` / `futures_place_algo_order`: `closeFraction` full-position-close support for conditional/oco orders** (issue #200). Previously `sz` was unconditionally required, making it impossible to place a full-position-close TP/SL order using `closeFraction`. Now: (1) for `ordType=conditional|oco`, exactly one of `sz` or `closeFraction` must be provided; (2) `closeFraction` must equal `"1"` (only full-position close is supported); (3) `closeFraction` is only valid for `conditional` and `oco` ordTypes - other ordTypes still require `sz`; (4) when `closeFraction` is used with `posSide=net`, `reduceOnly` must be `true`; (5) spot orders do not support `closeFraction` (the field was previously forwarded silently via `buildAlgoConditionalCommonFields` - this is now corrected).
 
 ---
 
