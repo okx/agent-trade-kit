@@ -122,9 +122,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "boolean",
             description: "Ensure order only reduces position. Required when closeFraction is used with posSide=net.",
           },
-          clOrdId: {
+          algoClOrdId: {
             type: "string",
-            description: "Client order ID (max 32 chars)",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
         },
         required: ["instId", "tdMode", "side", "ordType"],
@@ -159,7 +159,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           stpMode: readString(args, "stpMode"),
           cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
           reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
-          clOrdId: readString(args, "clOrdId"),
+          algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
@@ -249,9 +249,9 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "boolean",
             description: "Ensure order only reduces position",
           },
-          clOrdId: {
+          algoClOrdId: {
             type: "string",
-            description: "Client order ID (max 32 chars)",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
         },
         required: ["instId", "tdMode", "side", "sz"],
@@ -273,7 +273,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             activePx: readString(args, "activePx"),
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
-            clOrdId: readString(args, "clOrdId"),
+            algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           }),
           privateRateLimit("swap_place_move_stop_order", 20),
         );
@@ -525,9 +525,9 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "boolean",
             description: "Ensure order only reduces position. Required when closeFraction is used with posSide=net.",
           },
-          clOrdId: {
+          algoClOrdId: {
             type: "string",
-            description: "Client order ID (max 32 chars)",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
         },
         required: ["instId", "tdMode", "side", "ordType"],
@@ -562,7 +562,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           stpMode: readString(args, "stpMode"),
           cxlOnClosePos: typeof cxlOnClosePos === "boolean" ? String(cxlOnClosePos) : undefined,
           reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
-          clOrdId: readString(args, "clOrdId"),
+          algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
@@ -650,9 +650,9 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "boolean",
             description: "Ensure order only reduces position",
           },
-          clOrdId: {
+          algoClOrdId: {
             type: "string",
-            description: "Client order ID (max 32 chars)",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
         },
         required: ["instId", "tdMode", "side", "sz"],
@@ -674,7 +674,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             activePx: readString(args, "activePx"),
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
-            clOrdId: readString(args, "clOrdId"),
+            algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           }),
           privateRateLimit("futures_place_move_stop_order", 20),
         );

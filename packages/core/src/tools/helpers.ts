@@ -337,6 +337,8 @@ const CLOSE_FRACTION_VALID_ORD_TYPES = new Set(["conditional", "oco"]);
  * - Exactly one of sz or closeFraction must be provided for conditional/oco ordTypes.
  * - For all other ordTypes (trigger, chase, iceberg, twap, move_order_stop), sz is required.
  * - closeFraction must be "1" (system only supports full-position close).
+ * - closeFraction only applies to market TP/SL orders - tpOrdPx/slOrdPx, when
+ *   provided, must be "-1" (market).
  * - When closeFraction is provided with posSide="net", reduceOnly must be true.
  * - closeFraction is FUTURES/SWAP only - callers must not invoke this for spot.
  *
@@ -369,6 +371,13 @@ export function resolveAlgoSzOrCloseFraction(
     if (sz !== undefined && sz.length > 0) {
       throw new ValidationError(
         `Provide sz OR closeFraction, not both. sz="${sz}", closeFraction="${closeFraction}".`,
+      );
+    }
+    const tpOrdPx = readString(args, "tpOrdPx");
+    const slOrdPx = readString(args, "slOrdPx");
+    if ((tpOrdPx !== undefined && tpOrdPx !== "-1") || (slOrdPx !== undefined && slOrdPx !== "-1")) {
+      throw new ValidationError(
+        `closeFraction only applies to market TP/SL orders - tpOrdPx/slOrdPx must be "-1" (market) when provided.`,
       );
     }
     const posSide = readString(args, "posSide");

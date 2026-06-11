@@ -3536,11 +3536,11 @@ describe("spot_place_algo_order tag injection", () => {
   });
 });
 
-describe("spot_place_algo_order clOrdId forwarding", () => {
+describe("spot_place_algo_order algoClOrdId forwarding", () => {
   const tools = registerSpotTradeTools();
   const tool = tools.find((t) => t.name === "spot_place_algo_order")!;
 
-  it("forwards clOrdId in POST body when provided", async () => {
+  it("forwards algoClOrdId in POST body when provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       {
@@ -3552,21 +3552,54 @@ describe("spot_place_algo_order clOrdId forwarding", () => {
         tpOrdPx: "-1",
         slTriggerPx: "95000",
         slOrdPx: "-1",
-        clOrdId: "test-oco-id",
+        algoClOrdId: "test-oco-id",
       },
       makeContext(client),
     );
     const params = getLastCall()?.params as Record<string, unknown>;
-    assert.equal(params.clOrdId, "test-oco-id", "clOrdId should be forwarded to POST body");
+    assert.equal(params.algoClOrdId, "test-oco-id", "algoClOrdId should be forwarded to POST body");
+    assert.equal(params.clOrdId, undefined, "clOrdId must not be sent to order-algo (API expects algoClOrdId)");
   });
 
-  it("omits clOrdId from POST body when not provided", async () => {
+  it("maps legacy clOrdId input to algoClOrdId in POST body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT",
+        side: "sell",
+        ordType: "oco",
+        sz: "0.01",
+        tpTriggerPx: "105000",
+        tpOrdPx: "-1",
+        slTriggerPx: "95000",
+        slOrdPx: "-1",
+        clOrdId: "legacy-id",
+      },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoClOrdId, "legacy-id", "legacy clOrdId input should be sent as algoClOrdId");
+    assert.equal(params.clOrdId, undefined, "clOrdId must not be sent to order-algo");
+  });
+
+  it("prefers algoClOrdId over legacy clOrdId when both provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", side: "sell", ordType: "conditional", sz: "0.01", slTriggerPx: "40000", slOrdPx: "-1", algoClOrdId: "new-id", clOrdId: "old-id" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoClOrdId, "new-id");
+  });
+
+  it("omits algoClOrdId from POST body when not provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler(
       { instId: "BTC-USDT", side: "sell", ordType: "conditional", sz: "0.01", slTriggerPx: "40000", slOrdPx: "-1" },
       makeContext(client),
     );
     const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoClOrdId, undefined, "algoClOrdId should be absent when not provided");
     assert.equal(params.clOrdId, undefined, "clOrdId should be absent when not provided");
   });
 });
@@ -3666,6 +3699,49 @@ describe("swap_place_algo_order closeFraction validation", () => {
       ),
       (err: unknown) => err instanceof ValidationError && /closeFraction is only valid for ordType conditional or oco/i.test((err as ValidationError).message),
     );
+  });
+
+  it("maps clOrdId/algoClOrdId input to algoClOrdId in POST body (order-algo API param)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", sz: "1", slTriggerPx: "40000", slOrdPx: "-1", clOrdId: "swap-algo-id" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoClOrdId, "swap-algo-id", "clOrdId input must be sent as algoClOrdId");
+    assert.equal(params.clOrdId, undefined, "clOrdId must not be sent to order-algo");
+  });
+
+  it("rejects closeFraction with non-market tpOrdPx (must be -1)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "oco", closeFraction: "1", tpTriggerPx: "60000", tpOrdPx: "60100", slTriggerPx: "40000", slOrdPx: "-1" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /market TP\/SL orders/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects closeFraction with non-market slOrdPx (must be -1)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler(
+        { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "conditional", closeFraction: "1", slTriggerPx: "40000", slOrdPx: "39000" },
+        makeContext(client),
+      ),
+      (err: unknown) => err instanceof ValidationError && /market TP\/SL orders/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("accepts closeFraction with market tpOrdPx/slOrdPx (-1)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", tdMode: "cross", side: "sell", ordType: "oco", closeFraction: "1", tpTriggerPx: "60000", tpOrdPx: "-1", slTriggerPx: "40000", slOrdPx: "-1" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.closeFraction, "1");
   });
 
   it("rejects closeFraction with posSide=net and reduceOnly absent", async () => {

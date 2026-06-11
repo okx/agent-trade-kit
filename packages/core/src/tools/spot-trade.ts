@@ -345,9 +345,9 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
           stpMode: STP_MODE_SCHEMA,
-          clOrdId: {
+          algoClOrdId: {
             type: "string",
-            description: "Client order ID (max 32 chars)",
+            description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
           tgtCcy: {
             type: "string",
@@ -383,7 +383,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           sz: requireString(args, "sz"),
           tgtCcy: readString(args, "tgtCcy"),
           stpMode: readString(args, "stpMode"),
-          clOrdId: readString(args, "clOrdId"),
+          algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
           tag: context.config.sourceTag,
