@@ -148,6 +148,82 @@ export function resolveIndicatorCode(name: string): string {
 }
 
 /**
+ * Default `paramList` for period-based indicators, keyed by the lowercase
+ * indicator name (matching `KNOWN_INDICATORS[].name`).
+ *
+ * Single source of truth (repo CLAUDE.md: shared business logic lives in
+ * `packages/core`). The CLI imports this when `--params` is omitted so the
+ * server returns values instead of an empty `indicators.<CODE> = []`.
+ *
+ * Values: PRD-authoritative examples (EMA/MA/WMA/RSI `[14]`, MACD `[12,26,9]`,
+ * BB `[20,2]`) plus conventional TA defaults for the remaining period-based
+ * indicators. Non-period indicators (e.g. obv, vwap, sar, ad) intentionally
+ * have NO entry — the Plan A visible hint covers them at the CLI layer.
+ *
+ * NOTE: this table is applied CLI-render-only. The MCP raw-data path
+ * (`indicator.ts` param-assembly below) is intentionally NOT changed.
+ */
+export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = {
+  // Moving Averages — PRD example default is [14]
+  ma: [14],
+  ema: [14],
+  wma: [14],
+  dema: [14],
+  tema: [14],
+  zlema: [14],
+  hma: [14],
+  kama: [14],
+  // Trend
+  macd: [12, 26, 9],
+  adx: [14],
+  aroon: [14],
+  cci: [20],
+  dpo: [20],
+  // Momentum
+  rsi: [14],
+  "stoch-rsi": [14],
+  stoch: [14, 3, 3],
+  roc: [12],
+  mom: [10],
+  ppo: [12, 26, 9],
+  trix: [15],
+  uo: [7, 14, 28],
+  wr: [14],
+  // Volatility
+  bb: [20, 2],
+  bbwidth: [20, 2],
+  bbpct: [20, 2],
+  atr: [14],
+  keltner: [20, 2],
+  donchian: [20],
+  hv: [20],
+  stddev: [20],
+  // Volume
+  mvwap: [20],
+  cmf: [20],
+  mfi: [14],
+  // Custom
+  kdj: [9, 3, 3],
+  supertrend: [10, 3],
+};
+
+/**
+ * Resolve the default `paramList` for an indicator, case-insensitively and
+ * applying the same alias resolution as `resolveIndicatorCode` (e.g. the
+ * `boll` alias maps to `bb`'s default `[20, 2]`).
+ *
+ * Returns `undefined` for non-period indicators and unknown names.
+ */
+export function getDefaultIndicatorParams(name: string): number[] | undefined {
+  const lower = name.toLowerCase();
+  const direct = DEFAULT_INDICATOR_PARAMS[lower];
+  if (direct !== undefined) return direct;
+  // Resolve aliases (e.g. boll -> BB) back to a default-table key.
+  const code = resolveIndicatorCode(lower);
+  return DEFAULT_INDICATOR_PARAMS[code.toLowerCase()];
+}
+
+/**
  * Validate that the indicator name is in the KNOWN_INDICATORS list.
  * Throws ValidationError with suggestions when an unknown name is given.
  */
@@ -209,7 +285,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           params: {
             type: "array",
             items: { type: "number" },
-            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). Omit to use server defaults.",
+            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). For period-based indicators a parameter is required; the CLI applies a sensible default when omitted.",
           },
           returnList: {
             type: "boolean",

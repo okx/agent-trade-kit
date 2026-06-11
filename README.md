@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **163 tools across 11 modules (17 sub-modules)** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news → smart money signals |
+| **164 tools across 11 modules (17 sub-modules)** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news → smart money signals |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |

@@ -16,12 +16,38 @@
 - **`okx outcomes` CLI 包装器**用于 OKX Outcomes Markets（YES/NO 事件合约；旧称 OKX 预测市场 / OKX Predictions）。透传所有子命令到外部 `okx-outcomes` Rust 二进制，通过 `curl -fsSL https://raw.githubusercontent.com/okx/outcomes-cli/main/install.sh | sh` 安装（macOS/Linux；Windows 用户从同一 GitHub Releases 下载 `okx-outcomes.exe` 放进 `PATH`）。包含 `PATH` 自动发现 + `OKX_OUTCOMES_BIN` 覆写、友好的安装提示、精简的 `--help`。本模块为 CLI-only（不注册 MCP tool）—— 详见 `docs/designs/outcomes-wrapper.md`。鉴权采用 **OAuth 登录**（`okx outcomes auth login`）用于鉴权读取，写操作使用 EIP-712 签名私钥（`PREDICTIONS_AGENT_PRIVATE_KEY`，通常由 `okx outcomes setup` 生成并存入 OS keyring）。`auth login --manual` 设备码流（打印 `{verificationUri,userCode}` 后立即退出）配合非交互的 `setup region` / `setup bind`，使 agent 可全程引导首次配置、无需终端。WebSocket（`ws *`）与 `clob cancel-client-order-id` 子命令故意不在 wrapper 中暴露。
 - **`okx-outcomes` skill** 引导 agent 完成首次配置（地区 → OAuth 登录 → 钱包绑定，含非 TTY/agent 接力规则）、事件浏览、OAuth 鉴权账户查询、CLOB 价格与盘口查询，以及通过 dry-run 二段确认的下单 / CTF 拆分合并赎回流程。trigger 列表同时保留 `prediction`/`预测` 与 `outcomes` 关键词，承接仍使用旧词的用户。细节文档拆分到 `setup-auth.md` / `data-commands.md` / `account-commands.md` / `clob-commands.md` / `ctf-commands.md` / `workflows.md`。
 
+---
+
+## [1.3.8-beta.5] - 2026-06-10
+
 ### 修复
 
 - **Pilot 代理缓存 TTL 过期** —— `resolvePilot()` 现在会忽略过期的代理缓存条目。当条目存活时间超过 `min(node.ttl × 1000, 1h)` 时判定为过期。零值或超大 TTL 均上限为 1 小时。`mode=direct` 条目不受影响，永不过期。
 - **Pilot 死亡节点 HTTP 故障转移** —— 通过 Pilot 代理发出的请求若收到非 2xx 响应且响应体不含可解析的 OKX JSON `code`（例如来自已下线 CDN 节点的 HTML 405），现在将被归类为死亡节点故障。REST 客户端调用 `handleNetworkFailure()` 并重试一次（仅限 GET 或标记了 `retryOnNetworkError` 的 POST）。携带有效 OKX JSON 错误码的响应不受影响，直接透传给调用方。
 - **CI: 消除 SonarQube 测试阶段的不稳定**（issue #199）。将所有 `node:test` 调用从 `node --import tsx/esm --test`（仅支持 Node 20.6+）改为 `node_modules/.bin/tsx --test`，以兼容 OKG 合规 Sonar 扫描镜像中的 Node 18。刻意**不**使用 `--test-timeout` CLI flag：它仅 Node 20+ 支持，Node 18 扫描器会以 `bad option`（exit 9）拒绝，导致覆盖率归零、质量门禁失败。真正修复挂起的是下方的测试隔离，而非超时 flag。作为与 Node 版本无关的兜底，仓库 `unit-test` CI job 现加上 `timeout: 10m`（`sonar` 加 `timeout: 15m`），让卡死的测试在数分钟内失败而非拖到默认 1 小时；如需 per-test 硬上限，使用 Node 18 安全的 `it(name, { timeout }, fn)` 选项。
 - **CI: 使 `undici-proxy-bootstrap.test.ts` 具备隔离性**（issue #199）。为文件中所有四个 `fetch()` 调用添加 `AbortSignal.timeout(5000)`；增加文件级 `before`/`after` 钩子，在所有测试运行前清除环境中的 `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` 变量并捕获/恢复全局 undici dispatcher。该测试现在可在携带企业代理环境变量的 CI runner 上确定性地通过。
+
+---
+
+## [1.3.8-beta.4] - 2026-06-08
+
+### 新增
+
+- **聚合余额工具 `account_get_balance_all`**（OPRS-360）。一次性获取交易账户+资金账户余额及可选跨账户估值快照。优先调用服务端聚合接口（`/api/v5/aigc/forward/balance-aggregate`），不可用时自动回退到直连并发查询（`Promise.allSettled`）；鉴权失败不重试，聚合接口返回 `partialFailure` 时原样返回（不回退）。部分失败语义：每个 section 有 `available` 标记 + `meta.partialFailure`。返回的 `meta` 新增 `source`（`aggregate`|`fallback`）与 `site` 便于观测；`requestedAt` 统一为 ISO 8601 字符串。CLI 命令：`okx account balance-all [ccy] [--accounts trading,funding] [--no-valuation] [--no-aggregate] [--valuationCcy <ccy>]` —— `--no-aggregate` 强制走并发路径（例如需要按账户类型的估值拆解或非 USD 计价时）。Skill `okx-cex-portfolio` 同步更新。参考：[TD] 聚合balance接口。
+
+---
+
+## [1.3.8-beta.3] - 2026-06-05
+
+### 修复
+
+- **`okx market filter` 非 `--json` 模式下输出为空**（Bug 1，array-unwrap）。`cmdMarketFilter` 的文本模式路径把 `aigc/mcp` 数组形态的响应当成单个对象处理，导致人类可读表格渲染为空，而 `--json` 正常。现已使用规范的 `(Array.isArray(raw) ? raw[0] : raw)` 模式（与 `cmdMarketOiHistory` 一致）拆包响应，非 `--json` 输出恢复正常。
+- **`okx market indicator` 在结果为空时静默失败**（Bug 2，Plan A）。当某个指标/时间周期组合没有返回任何值时，渲染循环在每个空周期上 `continue` 且不打印任何内容——退出码 0 却无输出。现在循环结束后若未渲染任何内容，CLI 会打印一条明确、可操作的提示（`No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`），不再静默失败。
+
+### 变更
+
+- **`okx market indicator` 在省略 `--params` 时应用默认周期**（Bug 2，Plan B，CLI 层）。对基于周期的指标（如 EMA/MA/WMA/RSI `[14]`、MACD `[12,26,9]`、BB `[20,2]`）省略 `--params` 时，现在会从 `packages/core` 中的默认参数表（单一数据源）应用默认 `paramList`，使 CLI 渲染出数值而非空输出。**这改变了在 CLI 上省略 `--params` 的语义**：之前为空，现在为默认周期值。显式传入 `--params` 仍会覆盖默认值。该变更**仅作用于 CLI 渲染层**——MCP 原始数据路径（`market_filter` / `market_get_indicator`）保持不变。
+- **更正 `market_get_indicator` 的 params 描述**（`indicator.ts:212`）。工具描述之前声称 "Omit to use server defaults"，这对基于周期的指标是错误的（服务端不会应用默认周期）。描述中已删除该不实声明。
 
 ---
 

@@ -55,6 +55,7 @@ import {
 import {
   cmdAccountBalance,
   cmdAccountAssetBalance,
+  cmdAccountBalanceAll,
   cmdAccountPositions,
   cmdAccountBills,
   cmdAccountFees,
@@ -453,7 +454,7 @@ export function handleAccountWriteCommand(
       json,
     });
   unknownSubcommand("account", action, [
-    "audit", "balance", "asset-balance", "positions", "positions-history",
+    "audit", "balance", "balance-all", "asset-balance", "positions", "positions-history",
     "bills", "fees", "config",
     "set-position-mode", "max-size", "max-avail-size", "max-withdrawal", "transfer",
   ]);
@@ -470,6 +471,14 @@ function handleAccountCommand(
     return cmdAccountAudit({ limit: v.limit, tool: v.tool, since: v.since, json });
   const limit = v.limit !== undefined ? Number(v.limit) : undefined;
   if (action === "balance") return cmdAccountBalance(run, rest[0], json);
+  if (action === "balance-all")
+    return cmdAccountBalanceAll(run, v.ccy ?? rest[0], {
+      accounts: v.accounts,
+      noValuation: v.valuation === false,
+      preferParallel: v.aggregate === false,
+      valuationCcy: v.valuationCcy,
+      json,
+    });
   if (action === "asset-balance") return cmdAccountAssetBalance(run, v.ccy, json, v.valuation, v.valuationCcy);
   if (action === "positions")
     return cmdAccountPositions(run, { instType: v.instType, instId: v.instId, json });
