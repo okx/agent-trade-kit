@@ -38,7 +38,7 @@ not all probed yet. Current state on `feat/eval-probes-comprehensive`:
 
 | Status | Modules |
 |--------|---------|
-| ✅ Probed | market, spot, swap, futures, option, account, event, news, smartmoney, skills, bot.grid, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.flash |
+| ✅ Probed | market, spot, swap, futures, option, account, event, news, smartmoney, skills, bot.grid, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.flash, outcomes |
 | ⏳ Deferred | `earn.autoearn` (placeholder dir only — no probes yet), `earn.fixed` (no dir yet) |
 
 When adding a probe for a deferred module, drop the `.gitkeep` placeholder
