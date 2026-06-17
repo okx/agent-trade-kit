@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+## [1.3.9-beta.1] - 2026-06-17
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
+### 新增
+
+- [TRDATA-4187] 新增 35 个 `okx outcomes` eval probe，分 5 个阶段交付（`eval/probes/outcomes/`），用于验证 LLM 驱动的工具调用在真实行为下的正确性。
+
 ## [1.3.8] - 2026-06-11
 
 1.3.8 系列首个稳定版。代码与 `1.3.8-beta.7` 完全一致。整合 1.3.8 beta 周期累积的全部变更（完整的新增 / 修复 / 变更列表见下方 `[1.3.8-beta.1]` 至 `[1.3.8-beta.7]` 各条目）：`okx outcomes` CLI 包装器 + `okx-outcomes` skill、聚合余额工具 `account_get_balance_all`、issue #200 算法订单修复（`spot_place_algo_order` 的 `clOrdId`、`closeFraction` 全部平仓、`algoClOrdId` 映射）、Pilot 代理缓存 TTL 过期 + 死节点 HTTP 故障转移、`okx market filter` / `okx market indicator` CLI 输出修复及默认指标周期、CI Sonar 测试去抖动。
