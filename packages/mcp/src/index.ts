@@ -31,8 +31,8 @@ Options:
 
   --profile <name>     Profile to load from ${configFilePath()}
                        Falls back to default_profile in config, then "default"
-  --site <site>        OKX site to connect to: global, eea, us (default: global)
-                       global -> www.okx.com, eea -> eea.okx.com, us -> app.okx.com
+  --site <site>        OKX site to connect to: global, eea, us, tr (default: global)
+                       global -> www.okx.com, eea -> eea.okx.com, us -> app.okx.com, tr -> tr.okx.com
   --read-only          Expose only read/query tools and disable write operations
   --demo               Enable simulated trading (injects x-simulated-trading: 1)
   --live               Force live trading mode (overrides profile demo=true; mutually exclusive with --demo)
@@ -47,7 +47,7 @@ Credentials (priority: env vars > ${configFilePath()} > none):
   OKX_PASSPHRASE       OKX passphrase
 
 Other Environment Variables:
-  OKX_SITE             OKX site: global, eea, us (overridden by --site flag)
+  OKX_SITE             OKX site: global, eea, us, tr (overridden by --site flag)
   OKX_API_BASE_URL     Optional API base URL override (overrides --site mapping)
   OKX_TIMEOUT_MS       Optional request timeout in milliseconds (default: 15000)
 `;

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `tr` site (Turkey) in the site registry — both API base URL and web URL are `https://tr.okx.com`. Selectable via `--site tr`, `OKX_SITE=tr`, `site = "tr"` in config.toml, or option `4` in the interactive `okx config init` wizard.
+
 ## [1.3.9-beta.1] - 2026-06-17
 
 Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
