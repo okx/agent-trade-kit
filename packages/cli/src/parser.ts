@@ -65,6 +65,7 @@ export interface CliValues {
   callbackSpread?: string;
   activePx?: string;
   algoOrdType?: string;
+  groupId?: string;
   gridNum?: string;
   maxPx?: string;
   minPx?: string;
@@ -319,6 +320,7 @@ export const CLI_OPTIONS = {
   activePx: { type: "string" },
   // grid bot
   algoOrdType: { type: "string" },
+  groupId: { type: "string" },
   gridNum: { type: "string" },
   maxPx: { type: "string" },
   minPx: { type: "string" },

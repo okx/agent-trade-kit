@@ -1214,6 +1214,10 @@ export function handleBotGridCommand(
       algoOrdType: v.algoOrdType!,
       algoId: v.algoId!,
       type: v.live ? "live" : "filled",
+      groupId: v.groupId,
+      after: v.after,
+      before: v.before,
+      limit: v.limit,
       json,
     });
   if (subAction === "create")

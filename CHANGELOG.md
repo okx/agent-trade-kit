@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - New `tr` site (Turkey) in the site registry — both API base URL and web URL are `https://tr.okx.com`. Selectable via `--site tr`, `OKX_SITE=tr`, `site = "tr"` in config.toml, or option `4` in the interactive `okx config init` wizard.
+- `okx bot grid sub-orders` now accepts `--groupId`, `--after`, `--before`, and `--limit`, restoring parity with the `grid_get_sub_orders` MCP tool (which already supported pagination/filtering). Previously the CLI dropped these, so only the first 100 records were reachable.
 
 ### Fixed
 

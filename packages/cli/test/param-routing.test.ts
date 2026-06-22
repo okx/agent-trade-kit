@@ -804,6 +804,40 @@ describe("handleBotGridCommand - parameter routing", () => {
         assert.equal(captured.args["tpRatio"],     "0.12");
         assert.equal(captured.args["slRatio"],     "0.08");
     });
+
+    // sub-orders: pagination/filter params must reach grid_get_sub_orders.
+    // Regression guard for CLI↔MCP parity — the tool already accepted
+    // groupId/after/before/limit but the CLI dropped them.
+    it("sub-orders: algoOrdType and algoId come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoOrdType: "grid", algoId: "GRID_SUB_001",
+        }), ["sub-orders"], false);
+        assert.equal(captured.tool, "grid_get_sub_orders");
+        assert.equal(captured.args["algoOrdType"], "grid");
+        assert.equal(captured.args["algoId"], "GRID_SUB_001");
+        assert.equal(captured.args["type"], "filled");
+    });
+
+    it("sub-orders: --live maps to type=live", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoOrdType: "grid", algoId: "GRID_SUB_001", live: true,
+        }), ["sub-orders"], false);
+        assert.equal(captured.args["type"], "live");
+    });
+
+    it("sub-orders: groupId/after/before/limit come from v (named flags)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoOrdType: "grid", algoId: "GRID_SUB_001",
+            groupId: "G123", after: "200", before: "100", limit: "50",
+        }), ["sub-orders"], false);
+        assert.equal(captured.args["groupId"], "G123");
+        assert.equal(captured.args["after"],   "200");
+        assert.equal(captured.args["before"],  "100");
+        assert.equal(captured.args["limit"],   "50");
+    });
 });
 
 // ===========================================================================

@@ -14,6 +14,7 @@
 ### 新增
 
 - 站点注册表新增 `tr`（土耳其）站点，API base URL 与 web URL 均为 `https://tr.okx.com`。可通过 `--site tr`、`OKX_SITE=tr`、config.toml 中 `site = "tr"`，或交互式 `okx config init` 向导中的选项 `4` 选用。
+- `okx bot grid sub-orders` 新增 `--groupId`、`--after`、`--before`、`--limit` 参数，与 `grid_get_sub_orders` MCP tool 对齐（该 tool 早已支持分页/过滤）。此前 CLI 丢弃了这些参数，导致只能取到前 100 条记录。
 
 ### 修复
 

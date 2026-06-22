@@ -786,7 +786,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "sub-orders": {
             toolName: "grid_get_sub_orders",
-            usage: "okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--live]",
+            usage: "okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--live] [--groupId <id>] [--after <id>] [--before <id>] [--limit <n>]",
             description: "List sub-orders of a grid bot (filled or live)",
           },
           create: {
