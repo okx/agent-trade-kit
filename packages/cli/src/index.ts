@@ -27,6 +27,7 @@ import {
   cmdNewsListCalendarRegions,
 } from "./commands/news.js";
 import { loadProfileConfig } from "./config/loader.js";
+import type { LoadProfileOptions } from "./config/loader.js";
 import { printHelp } from "./help.js";
 import { parseCli, parseTpLevel, peekFirstPositional } from "./parser.js";
 import type { CliValues } from "./parser.js";
@@ -1848,11 +1849,31 @@ export function wrapRunnerWithLogger(baseRunner: ToolRunner, logger: TradeLogger
   };
 }
 
+/**
+ * Build the options object passed to loadProfileConfig from parsed CLI values.
+ *
+ * Centralised so every dispatch path forwards the same fields — in particular
+ * `site: v.site`, whose omission silently disabled the --site flag (see the
+ * issue #78 class of named-flag-routing regressions). Unit-tested in
+ * site-flag-routing.test.ts.
+ */
+export function buildLoadProfileOptions(v: CliValues): LoadProfileOptions {
+  return {
+    profile: v.profile,
+    site: v.site,
+    demo: v.demo,
+    live: v.live,
+    verbose: v.verbose,
+    userAgent: `okx-trade-cli/${CLI_VERSION}`,
+    sourceTag: "CLI",
+  };
+}
+
 // Extracted to reduce cognitive complexity of main()
 async function runDiagnose(v: ReturnType<typeof parseCli>["values"]): Promise<void> {
   let config: Awaited<ReturnType<typeof loadProfileConfig>> | undefined;
   try {
-    config = await loadProfileConfig({ profile: v.profile, site: v.site, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+    config = await loadProfileConfig(buildLoadProfileOptions(v));
   } catch {
     // Config parse failed - diagnose will detect and report it
   }
@@ -1930,7 +1951,7 @@ async function main(): Promise<void> {
   const mgmt = routeManagementCommand(module, action, rest, json, v);
   if (mgmt !== undefined) return mgmt === true ? undefined : mgmt;
 
-  const config = await loadProfileConfig({ profile: v.profile, site: v.site, demo: v.demo, live: v.live, verbose: v.verbose, userAgent: `okx-trade-cli/${CLI_VERSION}`, sourceTag: "CLI" });
+  const config = await loadProfileConfig(buildLoadProfileOptions(v));
   setEnvContext({ demo: config.demo, profile: v.profile ?? "default" });
   setJsonEnvEnabled(v.env ?? false);
 
