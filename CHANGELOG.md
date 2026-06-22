@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New `tr` site (Turkey) in the site registry — both API base URL and web URL are `https://tr.okx.com`. Selectable via `--site tr`, `OKX_SITE=tr`, `site = "tr"` in config.toml, or option `4` in the interactive `okx config init` wizard.
 
+### Fixed
+
+- CLI `--site` flag was silently dropped before reaching config resolution, so `--site eea|us|tr` had no effect (requests always hit `www.okx.com`); only `OKX_SITE` env var or config.toml `site` worked. The flag is now wired through to `loadConfig` on both the main command and `diagnose` paths.
+
 ## [1.3.9-beta.1] - 2026-06-17
 
 Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).

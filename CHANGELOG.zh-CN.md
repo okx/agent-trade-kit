@@ -15,6 +15,10 @@
 
 - 站点注册表新增 `tr`（土耳其）站点，API base URL 与 web URL 均为 `https://tr.okx.com`。可通过 `--site tr`、`OKX_SITE=tr`、config.toml 中 `site = "tr"`，或交互式 `okx config init` 向导中的选项 `4` 选用。
 
+### 修复
+
+- CLI `--site` flag 在到达 config 解析前被丢弃，导致 `--site eea|us|tr` 不生效（请求始终打到 `www.okx.com`），此前只有 `OKX_SITE` 环境变量或 config.toml 的 `site` 字段可用。现已在主命令路径与 `diagnose` 路径中正确将该 flag 透传给 `loadConfig`。
+
 ## [1.3.9-beta.1] - 2026-06-17
 
 Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
