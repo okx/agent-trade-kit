@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.3.9-beta.2] - 2026-06-24
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
 ### 新增
 
 - 站点注册表新增 `tr`（土耳其）站点，API base URL 与 web URL 均为 `https://tr.okx.com`。可通过 `--site tr`、`OKX_SITE=tr`、config.toml 中 `site = "tr"`，或交互式 `okx config init` 向导中的选项 `4` 选用。
