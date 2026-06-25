@@ -819,7 +819,16 @@ describe("handleBotGridCommand - parameter routing", () => {
         assert.equal(captured.args["type"], "filled");
     });
 
-    it("sub-orders: --live maps to type=live", async () => {
+    it("sub-orders: --pending maps to type=live", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoOrdType: "grid", algoId: "GRID_SUB_001", pending: true,
+        }), ["sub-orders"], false);
+        assert.equal(captured.args["type"], "live");
+    });
+
+    // Backward-compat: --live remains a deprecated alias for --pending.
+    it("sub-orders: --live (deprecated alias) still maps to type=live", async () => {
         const {spy, captured} = makeSpy();
         await handleBotGridCommand(spy, vals({
             algoOrdType: "grid", algoId: "GRID_SUB_001", live: true,

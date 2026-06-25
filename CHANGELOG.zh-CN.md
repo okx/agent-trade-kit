@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- `okx bot grid sub-orders` 改用 `--pending` 查询未成交（挂单）子单，替代原本被复用的 `--live` 标志。`--live` 同时还是全局「强制实盘模式」开关（与 `--demo` 互斥），导致模拟盘下无法查询挂单子单。为向后兼容保留 `--live` 作为已废弃别名，但推荐使用 `--pending`（实盘、模拟盘均可用）。
+
 ## [1.3.9-beta.2] - 2026-06-24
 
 Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。

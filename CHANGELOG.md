@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `okx bot grid sub-orders` now uses `--pending` to query open/pending sub-orders, replacing the overloaded `--live` flag. `--live` doubled as the global "force live trading mode" switch (mutually exclusive with `--demo`), so pending sub-orders could not be queried in demo mode. `--live` is retained as a deprecated alias for backward compatibility, but prefer `--pending` (which works in both live and demo modes).
+
 ## [1.3.9-beta.2] - 2026-06-24
 
 Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).

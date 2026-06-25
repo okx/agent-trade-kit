@@ -1213,7 +1213,10 @@ export function handleBotGridCommand(
     return cmdGridSubOrders(run, {
       algoOrdType: v.algoOrdType!,
       algoId: v.algoId!,
-      type: v.live ? "live" : "filled",
+      // --pending selects open/pending sub-orders. --live is a deprecated alias
+      // kept for backward compatibility; prefer --pending (works in demo mode,
+      // whereas --live is mutually exclusive with --demo).
+      type: v.pending || v.live ? "live" : "filled",
       groupId: v.groupId,
       after: v.after,
       before: v.before,
