@@ -65,6 +65,7 @@ export interface CliValues {
   callbackSpread?: string;
   activePx?: string;
   algoOrdType?: string;
+  groupId?: string;
   gridNum?: string;
   maxPx?: string;
   minPx?: string;
@@ -79,6 +80,7 @@ export interface CliValues {
   stopType?: string;
   topUpAmt?: string;
   live?: boolean;
+  pending?: boolean;
   instType?: string;
   instCategory?: string;
   quoteCcy?: string;
@@ -319,6 +321,7 @@ export const CLI_OPTIONS = {
   activePx: { type: "string" },
   // grid bot
   algoOrdType: { type: "string" },
+  groupId: { type: "string" },
   gridNum: { type: "string" },
   maxPx: { type: "string" },
   minPx: { type: "string" },
@@ -333,6 +336,9 @@ export const CLI_OPTIONS = {
   stopType: { type: "string" },
   topUpAmt: { type: "string" },
   live: { type: "boolean", default: false },
+  // grid sub-orders pending filter (separate from global --live trading mode,
+  // which is mutually exclusive with --demo and so unusable in demo mode)
+  pending: { type: "boolean", default: false },
   // market extras
   instType: { type: "string" },
   instCategory: { type: "string" },

@@ -30,6 +30,11 @@ export const OKX_SITES = {
     apiBaseUrl: "https://us.okx.com",
     webUrl: "https://app.okx.com",
   },
+  tr: {
+    label: "TR",
+    apiBaseUrl: "https://tr.okx.com",
+    webUrl: "https://tr.okx.com",
+  },
 } as const satisfies Record<string, OkxSite>;
 
 export type SiteId = keyof typeof OKX_SITES;
