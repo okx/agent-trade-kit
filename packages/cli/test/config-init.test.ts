@@ -28,6 +28,10 @@ describe("parseSiteKey", () => {
     assert.equal(parseSiteKey("3"), "us");
   });
 
+  it('returns "tr" for input "4"', () => {
+    assert.equal(parseSiteKey("4"), "tr");
+  });
+
   it('returns "global" for unrecognised input', () => {
     assert.equal(parseSiteKey("99"), "global");
   });

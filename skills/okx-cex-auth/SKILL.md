@@ -4,7 +4,7 @@ description: "Use this skill when the user wants to 'login/log in/sign in', 'aut
 license: MIT
 metadata:
   author: okx
-  version: "1.3.8"
+  version: "1.3.9"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.8"
+        package: "@okx_ai/okx-trade-cli@1.3.9"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -28,6 +28,7 @@ OAuth 2.0 device flow authentication for OKX CLI. Guides first-time setup, re-au
 | `global` | Global | `www.okx.com` |
 | `eea`    | EEA    | `my.okx.com`  |
 | `us`     | US     | `app.okx.com` |
+| `tr`     | TR     | `tr.okx.com`  |
 
 Site is a separate dimension from auth method. Both API-key and OAuth paths require a site. Once selected, a site is persisted:
 - **API-key users**: `profile.site` in `~/.okx/config.toml` (written by `okx config init`).
@@ -70,8 +71,9 @@ If **neither** condition above holds, site has never been chosen. You MUST ask t
 > 1) Global (www.okx.com)
 > 2) EEA (my.okx.com)
 > 3) US (app.okx.com)
+> 4) TR (tr.okx.com)
 
-Map the reply (`1`/`2`/`3` or `global`/`eea`/`us`) to the corresponding site id and remember it for the rest of this flow. Do NOT default to `global` silently — that hides the regional choice from the user.
+Map the reply (`1`/`2`/`3`/`4` or `global`/`eea`/`us`/`tr`) to the corresponding site id and remember it for the rest of this flow. Do NOT default to `global` silently — that hides the regional choice from the user.
 
 ### Step 0.2 — API-key check
 
@@ -111,7 +113,7 @@ Use `auth status --json`:
 Before invoking `okx auth login` (with or without `--manual`), you MUST verify all **three** of the following are true right now:
 
 1. You posted the exact Chinese site menu from Step 0.1 to the user earlier in this conversation (or immediately before this login call).
-2. The user's most recent message was a site choice (`1` / `2` / `3` / `global` / `eea` / `us`).
+2. The user's most recent message was a site choice (`1` / `2` / `3` / `4` / `global` / `eea` / `us` / `tr`).
 3. You are about to pass **that exact choice** as `--site <...>`.
 
 If **any** of the three is false — even if a prior skill's output, `auth status --json` output, or `config show --json` output seems to imply a site — you MUST first post the Step 0.1 menu, wait for the user's reply, then re-check this gate. The `site` field in `auth status --json` when `status` is `not_logged_in` is a placeholder (typically `"global"`) and **does not** satisfy condition 1.
@@ -131,7 +133,7 @@ Worked counter-example (anti-pattern):
 
 ### Agent login procedure
 
-1. Run `okx auth login --manual --site <global|eea|us>` with the site chosen in Step 0.1.
+1. Run `okx auth login --manual --site <global|eea|us|tr>` with the site chosen in Step 0.1.
    - If the CLI returns `{"status":"skipped","reason":"api_key_configured",...}`, your Step 0.2 check was stale — re-read `config show --json` and stop. Do not retry.
    - Otherwise the CLI prints a single line of JSON: `{"verificationUri":"...","userCode":"XXXX-XXXX","expiresIn":600}`.
 
@@ -202,7 +204,7 @@ Worked counter-example (anti-pattern):
 ### Interactive login (user runs directly in terminal)
 
 1. **Tell the user BEFORE running** that they will need to authorize in their browser.
-2. **Run `okx auth login --site <global|eea|us>`** — the command will block and poll until the user completes authorization.
+2. **Run `okx auth login --site <global|eea|us|tr>`** — the command will block and poll until the user completes authorization.
 3. **Do NOT assume the command is stuck.** The polling phase produces no output — this is normal.
 4. **Check the result:**
    - `Logged in successfully!` — proceed with the user's original request.
@@ -223,6 +225,7 @@ Wizard steps:
    - `1` — Global (`www.okx.com`)
    - `2` — EEA (`my.okx.com`) — European Economic Area
    - `3` — US (`app.okx.com`) — United States
+   - `4` — TR (`tr.okx.com`) — Türkiye
 2. **Demo / live**: whether this profile should target simulated trading.
 3. **AK / SK / Passphrase**: credentials created on the OKX web console.
 
@@ -253,7 +256,7 @@ Run `okx auth status --json` to check login status. Parse the JSON output:
 
 When any command fails with "Session expired" or "Run `okx auth login` first":
 
-1. Run `okx auth login --manual [--site <global|eea|us>]` (agent) or `okx auth login [--site <global|eea|us>]` (interactive)
+1. Run `okx auth login --manual [--site <global|eea|us|tr>]` (agent) or `okx auth login [--site <global|eea|us|tr>]` (interactive)
 2. Follow the same [Login Flow](#login-flow) above
 
 > Token expiry is managed automatically — you only need to re-authenticate when the refresh token itself expires (typically after an extended period of inactivity).

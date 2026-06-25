@@ -11,6 +11,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.9] - 2026-06-25
+
+First stable release of the 1.3.9 line. Consolidates all changes accumulated during the 1.3.9 beta cycle (see the `[1.3.9-beta.1]` through `[1.3.9-beta.3]` entries below for the full lists): new `tr` (Turkey) site, `okx bot grid sub-orders` pagination parity (`--groupId`/`--after`/`--before`/`--limit`) and the `--pending` flag for querying open sub-orders in both live and demo modes, a fix for the silently-dropped CLI `--site` flag, and 35 new `okx outcomes` eval probes.
+
+### Added
+
+- New `tr` (Turkey) site in the site registry (`https://tr.okx.com`), selectable via `--site tr`, `OKX_SITE=tr`, `site = "tr"` in config.toml, or option `4` in the interactive `okx config init` wizard.
+- `okx bot grid sub-orders` now accepts `--groupId`, `--after`, `--before`, and `--limit`, restoring parity with the `grid_get_sub_orders` MCP tool.
+- (TRDATA-4187) 35 `okx outcomes` eval probes (`eval/probes/outcomes/`), validating LLM-driven tool invocation against live behavior.
+
+### Changed
+
+- `okx bot grid sub-orders` now uses `--pending` to query open/pending sub-orders (works in both live and demo modes), replacing the overloaded `--live` flag. `--live` is retained as a deprecated alias for backward compatibility.
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version synced to `1.3.9` per the stable-release skill version sync policy.
+
+### Fixed
+
+- CLI `--site` flag was silently dropped before reaching config resolution, so `--site eea|us|tr` had no effect (requests always hit `www.okx.com`). The flag is now wired through to `loadConfig` on both the main command and `diagnose` paths.
+
+## [1.3.9-beta.3] - 2026-06-25
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
+
+### Changed
+
+- `okx bot grid sub-orders` now uses `--pending` to query open/pending sub-orders, replacing the overloaded `--live` flag. `--live` doubled as the global "force live trading mode" switch (mutually exclusive with `--demo`), so pending sub-orders could not be queried in demo mode. `--live` is retained as a deprecated alias for backward compatibility, but prefer `--pending` (which works in both live and demo modes).
+
+## [1.3.9-beta.2] - 2026-06-24
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
+
+### Added
+
+- New `tr` site (Turkey) in the site registry — both API base URL and web URL are `https://tr.okx.com`. Selectable via `--site tr`, `OKX_SITE=tr`, `site = "tr"` in config.toml, or option `4` in the interactive `okx config init` wizard.
+- `okx bot grid sub-orders` now accepts `--groupId`, `--after`, `--before`, and `--limit`, restoring parity with the `grid_get_sub_orders` MCP tool (which already supported pagination/filtering). Previously the CLI dropped these, so only the first 100 records were reachable.
+
+### Fixed
+
+- CLI `--site` flag was silently dropped before reaching config resolution, so `--site eea|us|tr` had no effect (requests always hit `www.okx.com`); only `OKX_SITE` env var or config.toml `site` worked. The flag is now wired through to `loadConfig` on both the main command and `diagnose` paths.
+
+## [1.3.9-beta.1] - 2026-06-17
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
+
+### Added
+
+- (TRDATA-4187) Add 35 `okx outcomes` eval probes delivered across 5 phases (`eval/probes/outcomes/`), validating LLM-driven tool invocation against live behavior.
+
 ## [1.3.8] - 2026-06-11
 
 First stable release of the 1.3.8 line. Code is identical to `1.3.8-beta.7`. Consolidates all changes accumulated during the 1.3.8 beta cycle (see the `[1.3.8-beta.1]` through `[1.3.8-beta.7]` entries below for the full Added / Fixed / Changed lists): `okx outcomes` CLI wrapper + `okx-outcomes` skill, aggregate balance tool `account_get_balance_all`, issue #200 algo-order fixes (`spot_place_algo_order` `clOrdId`, `closeFraction` full-position close, `algoClOrdId` mapping), Pilot proxy cache TTL expiry + dead-node HTTP failover, `okx market filter` / `okx market indicator` CLI output fixes with default indicator periods, and CI Sonar de-flake.

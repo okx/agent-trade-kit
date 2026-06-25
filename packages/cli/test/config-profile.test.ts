@@ -84,6 +84,10 @@ describe("parseSiteKey (extended)", () => {
     assert.equal(parseSiteKey("us"), "us");
   });
 
+  it('accepts "tr" string directly', () => {
+    assert.equal(parseSiteKey("tr"), "tr");
+  });
+
   it('accepts "Global" case-insensitively', () => {
     assert.equal(parseSiteKey("Global"), "global");
   });
@@ -107,6 +111,10 @@ describe("parseSiteKey (extended)", () => {
 
   it('still maps "3" to "us"', () => {
     assert.equal(parseSiteKey("3"), "us");
+  });
+
+  it('maps "4" to "tr"', () => {
+    assert.equal(parseSiteKey("4"), "tr");
   });
 });
 

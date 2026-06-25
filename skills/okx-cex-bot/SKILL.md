@@ -4,7 +4,7 @@ description: Manage Grid bots (spot/contract/coin-margined) and DCA Martingale b
 license: MIT
 metadata:
   author: okx
-  version: "1.3.8"
+  version: "1.3.9"
   homepage: "https://www.okx.com"
   agent:
     emoji: "🤖"
@@ -13,7 +13,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.8"
+        package: "@okx_ai/okx-trade-cli@1.3.9"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -264,13 +264,17 @@ Returns: bot config, current PnL (`pnlRatio`), grid range, number of grids, stat
 ### Grid Bot — Sub-Orders
 
 ```bash
-okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--live] [--json]
+okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--pending] [--groupId <id>] [--after <id>] [--before <id>] [--limit <n>] [--json]
 ```
 
 | Flag | Effect |
 |---|---|
 | *(default)* | Filled sub-orders (executed grid trades) |
-| `--live` | Pending grid orders currently on the book |
+| `--pending` | Pending grid orders currently on the book. (Works in demo mode. `--live` is a deprecated alias and cannot be combined with `--demo`.) |
+| `--groupId` | Filter to one buy-sell pair (shared groupId) |
+| `--after` | Pagination cursor — records older than this id |
+| `--before` | Pagination cursor — records newer than this id |
+| `--limit` | Max records to return (default 100) |
 
 ---
 

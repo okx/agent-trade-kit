@@ -106,6 +106,12 @@ describe("loadConfig - site from CLI arg", () => {
     assert.equal(config.baseUrl, OKX_SITES.us.apiBaseUrl);
   });
 
+  it("maps tr site to correct baseUrl", async () => {
+    const config = await loadConfig({ ...BASE_CLI, site: "tr" });
+    assert.equal(config.site, "tr");
+    assert.equal(config.baseUrl, OKX_SITES.tr.apiBaseUrl);
+  });
+
   it("maps global site to correct baseUrl", async () => {
     const config = await loadConfig({ ...BASE_CLI, site: "global" });
     assert.equal(config.baseUrl, OKX_SITES.global.apiBaseUrl);
