@@ -11,6 +11,35 @@
 
 ## [Unreleased]
 
+## [1.3.9-beta.3] - 2026-06-25
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
+### Changed
+
+- `okx bot grid sub-orders` 改用 `--pending` 查询未成交（挂单）子单，替代原本被复用的 `--live` 标志。`--live` 同时还是全局「强制实盘模式」开关（与 `--demo` 互斥），导致模拟盘下无法查询挂单子单。为向后兼容保留 `--live` 作为已废弃别名，但推荐使用 `--pending`（实盘、模拟盘均可用）。
+
+## [1.3.9-beta.2] - 2026-06-24
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
+### 新增
+
+- 站点注册表新增 `tr`（土耳其）站点，API base URL 与 web URL 均为 `https://tr.okx.com`。可通过 `--site tr`、`OKX_SITE=tr`、config.toml 中 `site = "tr"`，或交互式 `okx config init` 向导中的选项 `4` 选用。
+- `okx bot grid sub-orders` 新增 `--groupId`、`--after`、`--before`、`--limit` 参数，与 `grid_get_sub_orders` MCP tool 对齐（该 tool 早已支持分页/过滤）。此前 CLI 丢弃了这些参数，导致只能取到前 100 条记录。
+
+### 修复
+
+- CLI `--site` flag 在到达 config 解析前被丢弃，导致 `--site eea|us|tr` 不生效（请求始终打到 `www.okx.com`），此前只有 `OKX_SITE` 环境变量或 config.toml 的 `site` 字段可用。现已在主命令路径与 `diagnose` 路径中正确将该 flag 透传给 `loadConfig`。
+
+## [1.3.9-beta.1] - 2026-06-17
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
+### 新增
+
+- [TRDATA-4187] 新增 35 个 `okx outcomes` eval probe，分 5 个阶段交付（`eval/probes/outcomes/`），用于验证 LLM 驱动的工具调用在真实行为下的正确性。
+
 ## [1.3.8] - 2026-06-11
 
 1.3.8 系列首个稳定版。代码与 `1.3.8-beta.7` 完全一致。整合 1.3.8 beta 周期累积的全部变更（完整的新增 / 修复 / 变更列表见下方 `[1.3.8-beta.1]` 至 `[1.3.8-beta.7]` 各条目）：`okx outcomes` CLI 包装器 + `okx-outcomes` skill、聚合余额工具 `account_get_balance_all`、issue #200 算法订单修复（`spot_place_algo_order` 的 `clOrdId`、`closeFraction` 全部平仓、`algoClOrdId` 映射）、Pilot 代理缓存 TTL 过期 + 死节点 HTTP 故障转移、`okx market filter` / `okx market indicator` CLI 输出修复及默认指标周期、CI Sonar 测试去抖动。

@@ -786,8 +786,8 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "sub-orders": {
             toolName: "grid_get_sub_orders",
-            usage: "okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--live]",
-            description: "List sub-orders of a grid bot (filled or live)",
+            usage: "okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--pending] [--groupId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List sub-orders of a grid bot (default filled; --pending for open orders)",
           },
           create: {
             toolName: "grid_create_order",

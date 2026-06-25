@@ -82,6 +82,10 @@ export async function cmdGridSubOrders(
     algoOrdType: string;
     algoId: string;
     type: "filled" | "live";
+    groupId?: string;
+    after?: string;
+    before?: string;
+    limit?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -89,6 +93,10 @@ export async function cmdGridSubOrders(
     algoOrdType: opts.algoOrdType,
     algoId: opts.algoId,
     type: opts.type,
+    groupId: opts.groupId,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
   });
   const orders = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(orders);

@@ -92,11 +92,12 @@ export function cmdConfigSet(key: string, value: string): void {
 
 export type SiteKey = SiteId;
 
-/** Maps raw user input ("1"/"2"/"3", site names like "global"/"eea"/"us", or empty) to a site key. */
+/** Maps raw user input ("1"/"2"/"3"/"4", site names like "global"/"eea"/"us"/"tr", or empty) to a site key. */
 export function parseSiteKey(raw: string): SiteKey {
   const lower = raw.toLowerCase();
   if (lower === "eea" || raw === "2") return "eea";
   if (lower === "us" || raw === "3") return "us";
+  if (lower === "tr" || raw === "4") return "tr";
   if (lower === "global" || raw === "1") return "global";
   return "global";
 }
@@ -216,6 +217,7 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
     outputLine("  1) Global (www.okx.com)  [default]");
     outputLine("  2) EEA   (my.okx.com)");
     outputLine("  3) US    (app.okx.com)");
+    outputLine("  4) TR    (tr.okx.com)");
     const siteRaw = (await prompt(rl, t.sitePrompt)).trim();
     const siteKey = parseSiteKey(siteRaw);
 
@@ -263,7 +265,7 @@ export async function cmdConfigInit(lang: Lang = "en"): Promise<void> {
 
 /**
  * Non-interactive profile creation / update.
- * Usage: okx config add-profile AK=xxx SK=yyy PP=zzz [site=global|eea|us] [demo=true|false] [name=xxx] [--force]
+ * Usage: okx config add-profile AK=xxx SK=yyy PP=zzz [site=global|eea|us|tr] [demo=true|false] [name=xxx] [--force]
  */
 export function cmdConfigAddProfile(kvPairs: string[], force: boolean): void {
   // Parse key=value pairs (split on first '=' only to handle values containing '=')
@@ -287,7 +289,7 @@ export function cmdConfigAddProfile(kvPairs: string[], force: boolean): void {
   if (!pp) missing.push("PP");
   if (missing.length > 0) {
     errorLine(`Error: missing required parameter(s): ${missing.join(", ")}`);
-    errorLine("Usage: okx config add-profile AK=<key> SK=<secret> PP=<passphrase> [site=global|eea|us] [demo=true|false] [name=<name>] [--force]");
+    errorLine("Usage: okx config add-profile AK=<key> SK=<secret> PP=<passphrase> [site=global|eea|us|tr] [demo=true|false] [name=<name>] [--force]");
     process.exitCode = 1;
     return;
   }

@@ -157,7 +157,7 @@ okx bot grid orders --algoOrdType grid --history
 okx bot grid orders --algoOrdType grid --instId BTC-USDT
 okx bot grid details --algoOrdType grid --algoId <algoId>
 okx bot grid sub-orders --algoOrdType grid --algoId <algoId>          # filled trades
-okx bot grid sub-orders --algoOrdType grid --algoId <algoId> --live   # live orders
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId> --pending # open orders (--live: deprecated alias)
 
 # Create spot grid — invest in quote currency (USDT)
 okx bot grid create --instId BTC-USDT --algoOrdType grid \
@@ -469,7 +469,7 @@ okx bot grid orders --algoOrdType grid --history
 okx bot grid orders --algoOrdType grid --instId BTC-USDT
 okx bot grid details --algoOrdType grid --algoId <algoId>
 okx bot grid sub-orders --algoOrdType grid --algoId <algoId>          # 已成交子订单
-okx bot grid sub-orders --algoOrdType grid --algoId <algoId> --live   # 挂单中子订单
+okx bot grid sub-orders --algoOrdType grid --algoId <algoId> --pending # 挂单中子订单（--live 为已废弃别名）
 
 # 创建现货网格 — 用计价货币（USDT）投入
 okx bot grid create --instId BTC-USDT --algoOrdType grid \

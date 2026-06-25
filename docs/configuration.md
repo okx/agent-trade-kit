@@ -57,7 +57,7 @@ demo = true
 >
 > **Live key:** [Create API Key (Live Trading)](https://www.okx.com/account/my-api?go-live-trading=1)
 >
-> EEA users: replace `www.okx.com` with `my.okx.com` · US users: use `app.okx.com`
+> EEA users: replace `www.okx.com` with `my.okx.com` · US users: use `app.okx.com` · TR users: use `tr.okx.com`
 
 **Required API permissions:** Read + Trade. Withdraw permission is not required or recommended.
 
@@ -70,12 +70,13 @@ OKX operates independent regional sites. Users must use the API of the site wher
 | `global` (default) | `www.okx.com` | `https://www.okx.com` |
 | `eea` | `my.okx.com` | `https://eea.okx.com` |
 | `us` | `app.okx.com` | `https://app.okx.com` |
+| `tr` | `tr.okx.com` | `https://tr.okx.com` |
 
 Set the site in your profile:
 
 ```toml
 [profiles.main]
-site = "global"          # global | eea | us  (default: global)
+site = "global"          # global | eea | us | tr  (default: global)
 api_key = "your-api-key"
 secret_key = "your-secret-key"
 passphrase = "your-passphrase"
@@ -456,7 +457,7 @@ demo = true
 >
 > **实盘 Key：** [创建 API Key（实盘）](https://www.okx.com/zh-hans/account/my-api?go-live-trading=1)
 >
-> EEA 用户：将 `www.okx.com` 替换为 `my.okx.com`；US 用户：使用 `app.okx.com`
+> EEA 用户：将 `www.okx.com` 替换为 `my.okx.com`；US 用户：使用 `app.okx.com`；TR 用户：使用 `tr.okx.com`
 
 **所需 API 权限：** 读取 + 交易。无需也不建议开启提币权限。
 
@@ -469,12 +470,13 @@ OKX 运营多个独立的区域站点，用户需要使用其账号所在站点�
 | `global`（默认） | `www.okx.com` | `https://www.okx.com` |
 | `eea` | `my.okx.com` | `https://eea.okx.com` |
 | `us` | `app.okx.com` | `https://app.okx.com` |
+| `tr` | `tr.okx.com` | `https://tr.okx.com` |
 
 在 Profile 中指定站点：
 
 ```toml
 [profiles.main]
-site = "global"          # global | eea | us（默认：global）
+site = "global"          # global | eea | us | tr（默认：global）
 api_key = "your-api-key"
 secret_key = "your-secret-key"
 passphrase = "your-passphrase"

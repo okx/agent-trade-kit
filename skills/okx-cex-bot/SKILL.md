@@ -264,13 +264,17 @@ Returns: bot config, current PnL (`pnlRatio`), grid range, number of grids, stat
 ### Grid Bot — Sub-Orders
 
 ```bash
-okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--live] [--json]
+okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--pending] [--groupId <id>] [--after <id>] [--before <id>] [--limit <n>] [--json]
 ```
 
 | Flag | Effect |
 |---|---|
 | *(default)* | Filled sub-orders (executed grid trades) |
-| `--live` | Pending grid orders currently on the book |
+| `--pending` | Pending grid orders currently on the book. (Works in demo mode. `--live` is a deprecated alias and cannot be combined with `--demo`.) |
+| `--groupId` | Filter to one buy-sell pair (shared groupId) |
+| `--after` | Pagination cursor — records older than this id |
+| `--before` | Pagination cursor — records newer than this id |
+| `--limit` | Max records to return (default 100) |
 
 ---
 

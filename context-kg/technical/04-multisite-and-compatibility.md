@@ -1,7 +1,7 @@
-<!-- triggers: site, global, eea, us, compatibility, region, 51155, 51734, smoke-test, okcoin, endpoint restriction, multi-site -->
+<!-- triggers: site, global, eea, us, tr, compatibility, region, 51155, 51734, smoke-test, okcoin, endpoint restriction, multi-site -->
 # Multi-Site Support & Compatibility
 
-## Three Regional Sites
+## Regional Sites
 
 OKX operates separate regulatory environments with distinct API domains:
 
@@ -10,6 +10,7 @@ OKX operates separate regulatory environments with distinct API domains:
 | `global` | `https://www.okx.com` | Global (default) | Full feature set |
 | `eea` | `https://eea.okx.com` | EU / EEA | Reduced instrument/feature set |
 | `us` | `https://app.okx.com` | United States | Further restrictions apply |
+| `tr` | `https://tr.okx.com` | Türkiye | Newly added; compatibility pending smoke test |
 
 The base URLs are defined in `packages/core/src/constants.ts` under `OKX_SITES`. Each site has a distinct subdomain under `okx.com`.
 
@@ -43,7 +44,7 @@ The smoke test:
 1. Uses environment variable credentials (demo mode)
 2. Calls `market_get_ticker`, `account_get_balance`, and a few other non-write tools
 3. Verifies the response structure matches the expected schema
-4. Runs against all three sites (global, eea, us) if credentials are available
+4. Runs against all sites (global, eea, us, tr) if credentials are available
 
 ## Adding a New Tool with Site Restrictions
 
