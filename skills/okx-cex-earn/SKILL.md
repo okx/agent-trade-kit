@@ -4,7 +4,7 @@ description: "Manages OKX Simple Earn (flexible savings/lending), Flash Earn, On
 license: MIT
 metadata:
   author: okx
-  version: "1.3.8"
+  version: "1.3.9"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.3.8"
+        package: "@okx_ai/okx-trade-cli@1.3.9"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
