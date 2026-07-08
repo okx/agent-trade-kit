@@ -816,7 +816,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "close-position": {
             toolName: "grid_close_position",
-            usage: "okx bot grid close-position --algoId <id> --mktClose [--sz <size>] [--px <price>]",
+            usage: "okx bot grid close-position --algoId <id> [--mktClose] [--no-mktClose] [--sz <size>] [--px <price>]",
             description: "Close remaining open position after bot stopped with stopType=2",
           },
         },

@@ -81,7 +81,6 @@ export interface CliValues {
   topUpAmt?: string;
   // grid position management
   mktClose?: boolean;
-  sourceAlgoId?: string;
   live?: boolean;
   pending?: boolean;
   instType?: string;
@@ -340,7 +339,6 @@ export const CLI_OPTIONS = {
   topUpAmt: { type: "string" },
   // grid position management
   mktClose: { type: "boolean", default: false },
-  sourceAlgoId: { type: "string" },
   live: { type: "boolean", default: false },
   // grid sub-orders pending filter (separate from global --live trading mode,
   // which is mutually exclusive with --demo and so unusable in demo mode)

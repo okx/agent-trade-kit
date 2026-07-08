@@ -86,6 +86,31 @@ describe("parseCli", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// parseCli — grid position management options (grid_close_position CLI parity)
+// sourceAlgoId was added to CLI_OPTIONS/CliValues speculatively but never
+// wired to any command or ToolSpec; it must be removed rather than kept as a
+// dead, silently-accepted flag (review of MR !359, suggestion #2).
+// ---------------------------------------------------------------------------
+describe("grid position management options", () => {
+  it("--mktClose sets mktClose to true", () => {
+    const { values } = parseCli(["bot", "grid", "close-position", "--algoId", "G001", "--mktClose"]);
+    assert.equal(values.mktClose, true);
+  });
+
+  it("--no-mktClose sets mktClose to false", () => {
+    const { values } = parseCli(["bot", "grid", "close-position", "--algoId", "G001", "--no-mktClose"]);
+    assert.equal(values.mktClose, false);
+  });
+
+  it("--sourceAlgoId is rejected as unknown option (dead flag removed, not silently accepted)", () => {
+    assert.throws(
+      () => parseCli(["bot", "grid", "close-position", "--sourceAlgoId", "A123"]),
+      { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" },
+    );
+  });
+});
+
 describe("dcd options", () => {
   it("--quoteId sets quoteId", () => {
     const { values } = parseCli(["earn", "dcd", "buy", "--quoteId", "qtbcDCD-QUOTE123"]);

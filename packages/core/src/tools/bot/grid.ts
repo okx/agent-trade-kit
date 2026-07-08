@@ -464,7 +464,7 @@ export function registerGridTools(): ToolSpec[] {
       title: "Grid Bot Get Positions",
       module: "bot.grid",
       description:
-        "Get open contract-grid positions for a running bot. Returns liquidation price, margin ratio, and unrealized PnL.",
+        "Get open contract-grid positions for an active or recently-stopped contract-grid bot. Returns liquidation price, margin ratio, and unrealized PnL.",
       isWrite: false,
       inputSchema: {
         type: "object",
