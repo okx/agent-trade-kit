@@ -2482,8 +2482,8 @@ describe("grid tools module field", () => {
     }
   });
 
-  it("registers exactly 6 grid tools", () => {
-    assert.equal(tools.length, 6);
+  it("registers exactly 9 grid tools", () => {
+    assert.equal(tools.length, 9);
   });
 });
 
