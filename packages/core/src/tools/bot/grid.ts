@@ -459,5 +459,113 @@ export function registerGridTools(): ToolSpec[] {
         return normalizeWrite(response);
       },
     },
+    {
+      name: "grid_get_positions",
+      title: "Grid Bot Get Positions",
+      module: "bot.grid",
+      description:
+        "Get open contract-grid positions for a running bot. Returns liquidation price, margin ratio, and unrealized PnL.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Grid bot algo order ID" },
+          algoOrdType: {
+            type: "string",
+            enum: ["contract_grid"],
+            description: "Must be contract_grid",
+          },
+        },
+        required: ["algoId", "algoOrdType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/tradingBot/grid/positions",
+          {
+            algoId: requireString(args, "algoId"),
+            algoOrdType: requireString(args, "algoOrdType"),
+          },
+          privateRateLimit("grid_get_positions", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "grid_get_liquidate_price",
+      title: "Grid Bot Get Liquidation Price",
+      module: "bot.grid",
+      description:
+        "Estimate the liquidation price for a contract-grid bot given margin parameters. " +
+        "Use before creating to understand liquidation risk.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "Instrument ID, e.g. BTC-USDT-SWAP" },
+          sz: { type: "string", description: "Margin size in USDT (or base coin for CoinM)" },
+          lever: { type: "string", description: "Leverage, e.g. '5'" },
+          direction: {
+            type: "string",
+            enum: ["long", "short", "neutral"],
+            description: "Bot direction (optional for neutral bots)",
+          },
+          basePos: { type: "boolean", description: "Whether the base position is opened" },
+        },
+        required: ["instId", "sz", "lever"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/tradingBot/grid/liquidate-price",
+          compactObject({
+            instId: requireString(args, "instId"),
+            sz: requireString(args, "sz"),
+            lever: requireString(args, "lever"),
+            direction: readString(args, "direction"),
+            basePos: readBoolean(args, "basePos"),
+          }),
+          privateRateLimit("grid_get_liquidate_price", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "grid_close_position",
+      title: "Grid Bot Close Position",
+      module: "bot.grid",
+      description:
+        "[CAUTION] Close the remaining open position of a contract-grid bot that was stopped with stopType='2'. " +
+        "Use mktClose=true for an immediate market close, or mktClose=false to place a limit close order (provide sz and px).",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Grid bot algo order ID" },
+          mktClose: {
+            type: "boolean",
+            description: "true=market close immediately; false=limit close (requires sz and px)",
+          },
+          sz: { type: "string", description: "Close size (required when mktClose=false)" },
+          px: { type: "string", description: "Limit price (required when mktClose=false)" },
+        },
+        required: ["algoId", "mktClose"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const mktClose = readBoolean(args, "mktClose") ?? true;
+        const response = await context.client.privatePost(
+          "/api/v5/tradingBot/grid/close-position",
+          compactObject({
+            algoId: requireString(args, "algoId"),
+            mktClose,
+            sz: readString(args, "sz"),
+            px: readString(args, "px"),
+          }),
+          privateRateLimit("grid_close_position", 20),
+        );
+        return normalizeWrite(response);
+      },
+    },
   ];
 }

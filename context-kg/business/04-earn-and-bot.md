@@ -61,6 +61,9 @@ The bot module exposes two automated strategy types. Like earn, it uses `bot.all
 - `grid_get_sub_orders` — list sub-orders (grid trades) of a bot
 - `grid_amend_order` — amend a running grid bot without stopping it (write); supports price-range mode (maxPx/minPx/gridNum), TP/SL mode (instId + tpTriggerPx/slTriggerPx/tpRatio/slRatio), or both combined in one call
 - `grid_stop_order` — terminate a grid bot (write); stopType `"1"` closes all positions (default), `"2"` keeps positions open
+- `grid_get_positions` — get open contract-grid positions (liqPx, mgnRatio, upl); contract_grid only (read)
+- `grid_get_liquidate_price` — estimate liquidation price given instId, sz, and lever (read)
+- `grid_close_position` — close remaining position after stopType=`"2"` stop (write); mktClose=true for market, false for limit (provide sz and px)
 
 **Bot state field** (returned by `grid_get_order_details` and `dca_get_order_details`):
 - `running` — strategy is active

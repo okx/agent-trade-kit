@@ -23,6 +23,9 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | `grid_get_sub_orders` | List sub-orders (filled or live) within a grid bot |
 | `grid_create_order` | Create a new grid bot (spot or contract) |
 | `grid_stop_order` | Stop a running grid bot |
+| `grid_get_positions` | Get open contract-grid positions (liquidation price, margin ratio, unrealized PnL) |
+| `grid_get_liquidate_price` | Estimate liquidation price for a contract-grid bot |
+| `grid_close_position` | Close remaining open position after bot stopped with `stopType='2'` |
 
 ### Grid strategy types
 
@@ -146,6 +149,9 @@ okx bot dca stop --algoId <id>
 | `grid_get_sub_orders` | 列出机器人子订单（已成交或挂单） |
 | `grid_create_order` | 创建网格机器人（现货或合约） |
 | `grid_stop_order` | 停止运行中的机器人 |
+| `grid_get_positions` | 查询合约网格持仓（强平价、保证金率、未实现盈亏） |
+| `grid_get_liquidate_price` | 估算合约网格机器人的强平价 |
+| `grid_close_position` | 关闭以 `stopType='2'` 停止的机器人的剩余持仓 |
 
 ### 网格策略类型
 

@@ -224,6 +224,80 @@ export async function cmdGridStop(
   emitWriteResult(data?.[0], "Grid bot stopped", "algoId");
 }
 
+export async function cmdGridPositions(
+  run: ToolRunner,
+  opts: { algoId: string; algoOrdType: string; json: boolean },
+): Promise<void> {
+  const result = await run("grid_get_positions", {
+    algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
+  });
+  const positions = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(positions);
+  if (!positions.length) { outputLine("No positions"); return; }
+  printTable(
+    positions.map((p) => ({
+      algoId:    p["algoId"],
+      instId:    p["instId"],
+      pos:       p["pos"],
+      posSide:   p["posSide"],
+      liqPx:     p["liqPx"],
+      mgnRatio:  p["mgnRatio"],
+      upl:       p["upl"],
+    })),
+  );
+}
+
+export async function cmdGridLiquidatePrice(
+  run: ToolRunner,
+  opts: {
+    instId: string;
+    sz: string;
+    lever: string;
+    direction?: string;
+    basePos?: boolean;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("grid_get_liquidate_price", {
+    instId: opts.instId,
+    sz: opts.sz,
+    lever: opts.lever,
+    direction: opts.direction,
+    basePos: opts.basePos,
+  });
+  const data = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(data);
+  const item = data[0];
+  if (!item) { outputLine("No data"); return; }
+  printKv({
+    instId:    item["instId"],
+    liqPx:     item["liqPx"],
+    direction: item["direction"],
+  });
+}
+
+export async function cmdGridClosePosition(
+  run: ToolRunner,
+  opts: {
+    algoId: string;
+    mktClose: boolean;
+    sz?: string;
+    px?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("grid_close_position", {
+    algoId: opts.algoId,
+    mktClose: opts.mktClose,
+    sz: opts.sz,
+    px: opts.px,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  emitWriteResult(data?.[0], "Grid position closed", "algoId");
+}
+
 // ---------------------------------------------------------------------------
 // DCA (Spot & Contract) commands
 // ---------------------------------------------------------------------------

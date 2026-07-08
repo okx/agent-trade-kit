@@ -100,6 +100,9 @@ Resolution:
 | `okx bot grid create` | WRITE | Create a grid bot (spot or contract) |
 | `okx bot grid amend` | WRITE | Amend price range, grid count, or TP/SL of a running grid bot |
 | `okx bot grid stop` | WRITE | Stop a grid bot |
+| `okx bot grid positions` | READ | Query open contract-grid positions (liquidation price, margin ratio, unrealized PnL) |
+| `okx bot grid liquidate-price` | READ | Estimate liquidation price for a contract-grid bot |
+| `okx bot grid close-position` | WRITE | Close remaining position after bot stopped with stopType=2 |
 | `okx bot grid orders` | READ | List active or history grid bots |
 | `okx bot grid details` | READ | Grid bot details + PnL |
 | `okx bot grid sub-orders` | READ | Individual grid fills or pending orders |
@@ -233,6 +236,37 @@ okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> \
 |---|---|---|
 | `1` (default) | Sells all base assets back to quote | Market-closes all open positions |
 | `2` | Keeps base assets as-is | Cancels grid orders, leaves position open |
+
+---
+
+### Grid Bot — Positions
+
+```bash
+okx bot grid positions --algoId <id> --algoOrdType contract_grid [--json]
+```
+
+Returns open contract-grid positions: liquidation price (`liqPx`), margin ratio (`mgnRatio`), and unrealized PnL (`upl`). Only applicable to `contract_grid` bots.
+
+---
+
+### Grid Bot — Liquidation Price
+
+```bash
+okx bot grid liquidate-price --instId <id> --sz <margin> --lever <leverage> \
+  [--direction <long|short|neutral>] [--json]
+```
+
+Estimates the liquidation price for a contract-grid bot. Use before creating a bot to assess liquidation risk.
+
+---
+
+### Grid Bot — Close Position
+
+```bash
+okx bot grid close-position --algoId <id> --mktClose [--sz <size>] [--px <price>] [--json]
+```
+
+Closes the remaining open position of a contract-grid bot that was stopped with `stopType='2'`. Use `--mktClose` for a market close (immediate), or `--no-mktClose --sz <size> --px <price>` for a limit close order.
 
 ---
 

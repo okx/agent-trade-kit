@@ -182,6 +182,9 @@ import {
   cmdGridCreate,
   cmdGridAmend,
   cmdGridStop,
+  cmdGridPositions,
+  cmdGridLiquidatePrice,
+  cmdGridClosePosition,
   cmdDcaCreate,
   cmdDcaStop,
   cmdDcaOrders,
@@ -1266,7 +1269,30 @@ export function handleBotGridCommand(
       stopType: v.stopType,
       json,
     });
-  unknownSubcommand("bot grid", subAction, ["orders", "details", "sub-orders", "create", "amend", "stop"]);
+  if (subAction === "positions")
+    return cmdGridPositions(run, {
+      algoId: v.algoId!,
+      algoOrdType: v.algoOrdType!,
+      json,
+    });
+  if (subAction === "liquidate-price")
+    return cmdGridLiquidatePrice(run, {
+      instId: v.instId!,
+      sz: v.sz!,
+      lever: v.lever!,
+      direction: v.direction,
+      basePos: v.basePos,
+      json,
+    });
+  if (subAction === "close-position")
+    return cmdGridClosePosition(run, {
+      algoId: v.algoId!,
+      mktClose: v.mktClose ?? false,
+      sz: v.sz,
+      px: v.px,
+      json,
+    });
+  unknownSubcommand("bot grid", subAction, ["orders", "details", "sub-orders", "create", "amend", "stop", "positions", "liquidate-price", "close-position"]);
 }
 
 export function handleBotDcaCommand(
