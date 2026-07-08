@@ -1282,6 +1282,11 @@ export function handleBotGridCommand(
       lever: v.lever!,
       direction: v.direction,
       basePos: v.basePos,
+      maxPx: v.maxPx,
+      minPx: v.minPx,
+      gridNum: v.gridNum,
+      runType: v.runType,
+      triggerStrategy: v.triggerStrategy,
       json,
     });
   if (subAction === "close-position")

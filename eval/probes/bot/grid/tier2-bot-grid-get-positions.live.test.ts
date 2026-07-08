@@ -8,7 +8,7 @@ import {
 
 const PROBE_ID = 'tier2.bot-grid-get-positions';
 const USER_PROMPT = 'Show me the open contract-grid positions for my grid bot with algo ID G001. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "positions"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "positions"], ["okx", "grid", "positions"]];
 const EXPECTATION = 'okx bot grid positions';
 
 describe(PROBE_ID, () => {

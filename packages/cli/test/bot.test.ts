@@ -605,6 +605,40 @@ describe("cmdGridLiquidatePrice", () => {
     await cmdGridLiquidatePrice(runner, { instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
+
+  it("passes optional grid-shape/trigger params when provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
+      maxPx: "105000", minPx: "85000", gridNum: "20", runType: "2", triggerStrategy: "price",
+      json: false,
+    });
+    assert.equal(captured["maxPx"], "105000");
+    assert.equal(captured["minPx"], "85000");
+    assert.equal(captured["gridNum"], "20");
+    assert.equal(captured["runType"], "2");
+    assert.equal(captured["triggerStrategy"], "price");
+  });
+
+  it("does not include optional grid-shape/trigger params when not provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
+    });
+    assert.equal(captured["maxPx"], undefined);
+    assert.equal(captured["minPx"], undefined);
+    assert.equal(captured["gridNum"], undefined);
+    assert.equal(captured["runType"], undefined);
+    assert.equal(captured["triggerStrategy"], undefined);
+  });
 });
 
 // ---------------------------------------------------------------------------

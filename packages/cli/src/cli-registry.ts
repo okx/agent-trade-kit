@@ -811,7 +811,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "liquidate-price": {
             toolName: "grid_get_liquidate_price",
-            usage: "okx bot grid liquidate-price --instId <id> --sz <margin> --lever <leverage> [--direction <long|short|neutral>]",
+            usage: "okx bot grid liquidate-price --instId <id> --sz <margin> --lever <leverage> [--direction <long|short|neutral>] [--maxPx <px>] [--minPx <px>] [--gridNum <n>] [--runType <1|2>] [--triggerStrategy <instant|price|rsi|webhook>]",
             description: "Estimate liquidation price for a contract-grid bot",
           },
           "close-position": {

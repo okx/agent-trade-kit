@@ -5,7 +5,7 @@ Unregistered modules will be rejected during review.
 
 **Token Budget:** 25,000 tokens | **Current Usage:** ~48,197 tokens | **Over budget:** ~23,197 tokens | **Tools:** 167 (104 read / 63 write)
 
-> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 101 工具, ~24,995 tokens (under budget)。
+> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 104 工具, ~25,477 tokens (over budget)。
 
 ## Registered Modules
 
@@ -20,7 +20,7 @@ Unregistered modules will be rejected during review.
 | account | ✅ approved | 15 | 13 | 2 | ~3,240 | _(founding module)_ | @Jasmine.Li | — |
 | event | ✅ approved | 9 | 6 | 3 | ~2,607 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
 | news | ✅ approved | 9 | 9 | 0 | ~3,352 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
-| bot.grid | ✅ approved | 9 | 6 | 3 | ~2,700 | _(founding module)_ | @Jasmine.Li | — |
+| bot.grid | ✅ approved | 9 | 5 | 4 | ~2,700 | _(founding module)_ | @Jasmine.Li | — |
 | earn.savings | ✅ approved | 10 | 5 | 5 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,341 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |

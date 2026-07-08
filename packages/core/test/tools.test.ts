@@ -3450,6 +3450,59 @@ describe("grid_amend_order - validation", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Grid — grid_get_liquidate_price (optional grid-shape / trigger params)
+// ---------------------------------------------------------------------------
+
+describe("grid_get_liquidate_price - optional params", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_get_liquidate_price")!;
+
+  it("declares maxPx/minPx/gridNum/runType/triggerStrategy in inputSchema", () => {
+    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, unknown>;
+    for (const key of ["maxPx", "minPx", "gridNum", "runType", "triggerStrategy"]) {
+      assert.ok(props[key], `inputSchema should declare ${key}`);
+    }
+  });
+
+  it("forwards maxPx/minPx/gridNum/runType/triggerStrategy when provided", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        sz: "100",
+        lever: "5",
+        maxPx: "105000",
+        minPx: "85000",
+        gridNum: "20",
+        runType: "2",
+        triggerStrategy: "price",
+      },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.maxPx, "105000");
+    assert.equal(params.minPx, "85000");
+    assert.equal(params.gridNum, "20");
+    assert.equal(params.runType, "2");
+    assert.equal(params.triggerStrategy, "price");
+  });
+
+  it("omits optional grid-shape/trigger params when not provided", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT-SWAP", sz: "100", lever: "5" },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.maxPx, undefined);
+    assert.equal(params.minPx, undefined);
+    assert.equal(params.gridNum, undefined);
+    assert.equal(params.runType, undefined);
+    assert.equal(params.triggerStrategy, undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Grid & DCA tools — algoId description regression (prevents error 51000/50016)
 // ---------------------------------------------------------------------------
 

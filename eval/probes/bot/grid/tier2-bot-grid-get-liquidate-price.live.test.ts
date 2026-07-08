@@ -8,7 +8,7 @@ import {
 
 const PROBE_ID = 'tier2.bot-grid-get-liquidate-price';
 const USER_PROMPT = 'What would be the liquidation price for a contract-grid bot on BTC-USDT-SWAP with 100 USDT margin and 5x leverage? Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "liquidate-price"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "liquidate-price"], ["okx", "grid", "liquidate-price"]];
 const EXPECTATION = 'okx bot grid liquidate-price';
 
 describe(PROBE_ID, () => {

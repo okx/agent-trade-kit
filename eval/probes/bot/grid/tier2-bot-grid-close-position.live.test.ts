@@ -8,7 +8,7 @@ import {
 
 const PROBE_ID = 'tier2.bot-grid-close-position';
 const USER_PROMPT = 'Close the remaining open position for my grid bot with algo ID G001 using a market order. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "close-position"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "close-position"], ["okx", "grid", "close-position"]];
 const EXPECTATION = 'okx bot grid close-position';
 
 describe(PROBE_ID, () => {

@@ -497,7 +497,8 @@ export function registerGridTools(): ToolSpec[] {
       module: "bot.grid",
       description:
         "Estimate the liquidation price for a contract-grid bot given margin parameters. " +
-        "Use before creating to understand liquidation risk.",
+        "Use before creating to understand liquidation risk. " +
+        "Optionally model the intended grid shape (maxPx/minPx/gridNum/runType) or entry trigger (triggerStrategy) for a more precise estimate.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -511,6 +512,19 @@ export function registerGridTools(): ToolSpec[] {
             description: "Bot direction (optional for neutral bots)",
           },
           basePos: { type: "boolean", description: "Whether the base position is opened" },
+          maxPx: { type: "string", description: "Upper price of the intended grid range" },
+          minPx: { type: "string", description: "Lower price of the intended grid range" },
+          gridNum: { type: "string", description: "Number of grids in the intended range" },
+          runType: {
+            type: "string",
+            enum: ["1", "2"],
+            description: "1=arithmetic (default); 2=geometric",
+          },
+          triggerStrategy: {
+            type: "string",
+            enum: ["instant", "price", "rsi", "webhook"],
+            description: "Entry trigger strategy for the intended bot",
+          },
         },
         required: ["instId", "sz", "lever"],
       },
@@ -524,6 +538,11 @@ export function registerGridTools(): ToolSpec[] {
             lever: requireString(args, "lever"),
             direction: readString(args, "direction"),
             basePos: readBoolean(args, "basePos"),
+            maxPx: readString(args, "maxPx"),
+            minPx: readString(args, "minPx"),
+            gridNum: readString(args, "gridNum"),
+            runType: readString(args, "runType"),
+            triggerStrategy: readString(args, "triggerStrategy"),
           }),
           privateRateLimit("grid_get_liquidate_price", 20),
         );
@@ -536,6 +555,7 @@ export function registerGridTools(): ToolSpec[] {
       module: "bot.grid",
       description:
         "[CAUTION] Close the remaining open position of a contract-grid bot that was stopped with stopType='2'. " +
+        "Use grid_get_positions first to confirm the position exists and check its size before closing. " +
         "Use mktClose=true for an immediate market close, or mktClose=false to place a limit close order (provide sz and px).",
       isWrite: true,
       inputSchema: {

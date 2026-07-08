@@ -14,7 +14,7 @@
 ### 新增
 
 - `grid_get_positions` MCP 工具及 `okx bot grid positions` CLI 命令：查询合约网格机器人的持仓信息（强平价、保证金率、未实现盈亏）。
-- `grid_get_liquidate_price` MCP 工具及 `okx bot grid liquidate-price` CLI 命令：根据保证金参数估算合约网格机器人的强平价。
+- `grid_get_liquidate_price` MCP 工具及 `okx bot grid liquidate-price` CLI 命令：根据保证金参数估算合约网格机器人的强平价（必填 instId/sz/lever；可选 direction/basePos/maxPx/minPx/gridNum/runType/triggerStrategy）。
 - `grid_close_position` MCP 工具及 `okx bot grid close-position` CLI 命令：关闭以 `stopType='2'` 停止的合约网格机器人的剩余持仓。
 
 ## [1.3.9] - 2026-06-25

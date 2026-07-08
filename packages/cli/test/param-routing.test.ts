@@ -847,6 +847,35 @@ describe("handleBotGridCommand - parameter routing", () => {
         assert.equal(captured.args["before"],  "100");
         assert.equal(captured.args["limit"],   "50");
     });
+
+    // liquidate-price: grid-shape/trigger params must reach grid_get_liquidate_price.
+    // Regression guard for spec-coverage gap — the issue spec (#205) documents
+    // maxPx/minPx/gridNum/runType/triggerStrategy as optional params, but the
+    // first pass only wired direction/basePos.
+    it("liquidate-price: instId/sz/lever come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
+        }), ["liquidate-price"], false);
+        assert.equal(captured.tool, "grid_get_liquidate_price");
+        assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
+        assert.equal(captured.args["sz"], "100");
+        assert.equal(captured.args["lever"], "5");
+    });
+
+    it("liquidate-price: maxPx/minPx/gridNum/runType/triggerStrategy come from v (named flags)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
+            maxPx: "105000", minPx: "85000", gridNum: "20",
+            runType: "2", triggerStrategy: "price",
+        }), ["liquidate-price"], false);
+        assert.equal(captured.args["maxPx"], "105000");
+        assert.equal(captured.args["minPx"], "85000");
+        assert.equal(captured.args["gridNum"], "20");
+        assert.equal(captured.args["runType"], "2");
+        assert.equal(captured.args["triggerStrategy"], "price");
+    });
 });
 
 // ===========================================================================

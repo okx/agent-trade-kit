@@ -253,10 +253,11 @@ Returns open contract-grid positions: liquidation price (`liqPx`), margin ratio 
 
 ```bash
 okx bot grid liquidate-price --instId <id> --sz <margin> --lever <leverage> \
-  [--direction <long|short|neutral>] [--json]
+  [--direction <long|short|neutral>] [--maxPx <px>] [--minPx <px>] [--gridNum <n>] \
+  [--runType <1|2>] [--triggerStrategy <instant|price|rsi|webhook>] [--json]
 ```
 
-Estimates the liquidation price for a contract-grid bot. Use before creating a bot to assess liquidation risk.
+Estimates the liquidation price for a contract-grid bot. Use before creating a bot to assess liquidation risk. `maxPx`/`minPx`/`gridNum` model the intended grid range, `runType` (1=arithmetic, 2=geometric) and `triggerStrategy` model the intended entry — all optional refinements on top of the required `instId`/`sz`/`lever`.
 
 ---
 

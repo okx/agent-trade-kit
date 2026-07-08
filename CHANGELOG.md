@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `grid_get_positions` MCP tool and `okx bot grid positions` CLI command: query open contract-grid positions (liquidation price, margin ratio, unrealized PnL).
-- `grid_get_liquidate_price` MCP tool and `okx bot grid liquidate-price` CLI command: estimate liquidation price for a contract-grid bot given margin parameters.
+- `grid_get_liquidate_price` MCP tool and `okx bot grid liquidate-price` CLI command: estimate liquidation price for a contract-grid bot given margin parameters (instId/sz/lever required; direction/basePos/maxPx/minPx/gridNum/runType/triggerStrategy optional).
 - `grid_close_position` MCP tool and `okx bot grid close-position` CLI command: close the remaining open position of a contract-grid bot stopped with `stopType='2'`.
 
 ## [1.3.9] - 2026-06-25

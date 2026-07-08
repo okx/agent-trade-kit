@@ -256,6 +256,11 @@ export async function cmdGridLiquidatePrice(
     lever: string;
     direction?: string;
     basePos?: boolean;
+    maxPx?: string;
+    minPx?: string;
+    gridNum?: string;
+    runType?: string;
+    triggerStrategy?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -265,6 +270,11 @@ export async function cmdGridLiquidatePrice(
     lever: opts.lever,
     direction: opts.direction,
     basePos: opts.basePos,
+    maxPx: opts.maxPx,
+    minPx: opts.minPx,
+    gridNum: opts.gridNum,
+    runType: opts.runType,
+    triggerStrategy: opts.triggerStrategy,
   });
   const data = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(data);
