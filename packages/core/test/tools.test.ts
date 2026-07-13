@@ -3450,27 +3450,28 @@ describe("grid_amend_order - validation", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Grid — grid_get_liquidate_price (optional grid-shape / trigger params)
+// Grid — grid_get_liquidate_price (required grid-shape config)
 // ---------------------------------------------------------------------------
 
-describe("grid_get_liquidate_price - optional params", () => {
+describe("grid_get_liquidate_price - required config", () => {
   const tools = registerGridTools();
   const tool = tools.find((t) => t.name === "grid_get_liquidate_price")!;
 
-  it("declares maxPx/minPx/gridNum/runType/triggerStrategy in inputSchema", () => {
-    const props = (tool.inputSchema as Record<string, unknown>).properties as Record<string, unknown>;
-    for (const key of ["maxPx", "minPx", "gridNum", "runType", "triggerStrategy"]) {
-      assert.ok(props[key], `inputSchema should declare ${key}`);
+  it("declares maxPx/minPx/gridNum/direction as required (backend enforces them)", () => {
+    const required = (tool.inputSchema as Record<string, unknown>).required as string[];
+    for (const key of ["instId", "sz", "lever", "maxPx", "minPx", "gridNum", "direction"]) {
+      assert.ok(required.includes(key), `inputSchema.required should include ${key}`);
     }
   });
 
-  it("forwards maxPx/minPx/gridNum/runType/triggerStrategy when provided", async () => {
+  it("forwards the full config and passes runType/triggerStrategy through", async () => {
     const { client, getCalls } = makeMockClient();
     await tool.handler(
       {
         instId: "BTC-USDT-SWAP",
         sz: "100",
         lever: "5",
+        direction: "long",
         maxPx: "105000",
         minPx: "85000",
         gridNum: "20",
@@ -3483,22 +3484,39 @@ describe("grid_get_liquidate_price - optional params", () => {
     assert.equal(params.maxPx, "105000");
     assert.equal(params.minPx, "85000");
     assert.equal(params.gridNum, "20");
+    assert.equal(params.direction, "long");
     assert.equal(params.runType, "2");
     assert.equal(params.triggerStrategy, "price");
   });
 
-  it("omits optional grid-shape/trigger params when not provided", async () => {
+  it("defaults runType to '1' when not provided", async () => {
     const { client, getCalls } = makeMockClient();
     await tool.handler(
-      { instId: "BTC-USDT-SWAP", sz: "100", lever: "5" },
+      {
+        instId: "BTC-USDT-SWAP",
+        sz: "100",
+        lever: "5",
+        direction: "neutral",
+        maxPx: "105000",
+        minPx: "85000",
+        gridNum: "20",
+      },
       makeContext(client),
     );
-    const params = getCalls()[0]!.params;
-    assert.equal(params.maxPx, undefined);
-    assert.equal(params.minPx, undefined);
-    assert.equal(params.gridNum, undefined);
-    assert.equal(params.runType, undefined);
-    assert.equal(params.triggerStrategy, undefined);
+    assert.equal(getCalls()[0]!.params.runType, "1");
+  });
+
+  it("fails fast listing every missing grid-shape param, without calling the API", async () => {
+    const { client, getCalls } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT-SWAP", sz: "100", lever: "5" }, makeContext(client)),
+      (err: Error) =>
+        err.message.includes("maxPx") &&
+        err.message.includes("minPx") &&
+        err.message.includes("gridNum") &&
+        err.message.includes("direction"),
+    );
+    assert.equal(getCalls().length, 0);
   });
 });
 

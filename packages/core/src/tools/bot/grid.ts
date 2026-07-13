@@ -496,9 +496,9 @@ export function registerGridTools(): ToolSpec[] {
       title: "Grid Bot Get Liquidation Price",
       module: "bot.grid",
       description:
-        "Estimate the liquidation price for a contract-grid bot given margin parameters. " +
-        "Use before creating to understand liquidation risk. " +
-        "Optionally model the intended grid shape (maxPx/minPx/gridNum/runType) or entry trigger (triggerStrategy) for a more precise estimate.",
+        "Estimate the liquidation price for a contract-grid bot before creating it. Contract grid only. " +
+        "Requires the full intended config: instId, sz (margin), lever, the grid range (maxPx, minPx, gridNum) " +
+        "and direction. runType defaults to arithmetic ('1'); triggerStrategy is optional.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -509,12 +509,12 @@ export function registerGridTools(): ToolSpec[] {
           direction: {
             type: "string",
             enum: ["long", "short", "neutral"],
-            description: "Bot direction (optional for neutral bots)",
+            description: "Bot direction (pass 'neutral' for a neutral bot)",
           },
           basePos: { type: "boolean", description: "Whether the base position is opened" },
-          maxPx: { type: "string", description: "Upper price of the intended grid range" },
-          minPx: { type: "string", description: "Lower price of the intended grid range" },
-          gridNum: { type: "string", description: "Number of grids in the intended range" },
+          maxPx: { type: "string", description: "Upper price of the grid range" },
+          minPx: { type: "string", description: "Lower price of the grid range" },
+          gridNum: { type: "string", description: "Number of grids" },
           runType: {
             type: "string",
             enum: ["1", "2"],
@@ -526,10 +526,23 @@ export function registerGridTools(): ToolSpec[] {
             description: "Entry trigger strategy for the intended bot",
           },
         },
-        required: ["instId", "sz", "lever"],
+        required: ["instId", "sz", "lever", "maxPx", "minPx", "gridNum", "direction"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        // The endpoint requires the full intended config and rejects a partial one
+        // with a vague HTTP 400 (one missing param at a time) — fail fast with the
+        // complete list instead.
+        const missing = ["maxPx", "minPx", "gridNum", "direction"].filter(
+          (key) => readString(args, key) === undefined,
+        );
+        if (missing.length > 0) {
+          throw new OkxApiError(
+            `Missing required parameter(s): ${missing.join(", ")}. A liquidation-price estimate needs the ` +
+              "full intended config — instId, sz, lever, maxPx, minPx, gridNum and direction.",
+            { code: "", endpoint: "grid_get_liquidate_price" },
+          );
+        }
         const response = await context.client.privateGet(
           "/api/v5/tradingBot/grid/liquidate-price",
           compactObject({
@@ -541,7 +554,7 @@ export function registerGridTools(): ToolSpec[] {
             maxPx: readString(args, "maxPx"),
             minPx: readString(args, "minPx"),
             gridNum: readString(args, "gridNum"),
-            runType: readString(args, "runType"),
+            runType: readString(args, "runType") ?? "1",
             triggerStrategy: readString(args, "triggerStrategy"),
           }),
           privateRateLimit("grid_get_liquidate_price", 20),

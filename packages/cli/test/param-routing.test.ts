@@ -849,9 +849,10 @@ describe("handleBotGridCommand - parameter routing", () => {
     });
 
     // liquidate-price: grid-shape/trigger params must reach grid_get_liquidate_price.
-    // Regression guard for spec-coverage gap — the issue spec (#205) documents
-    // maxPx/minPx/gridNum/runType/triggerStrategy as optional params, but the
-    // first pass only wired direction/basePos.
+    // Regression guard for the param-routing gap — the first pass only wired
+    // direction/basePos, dropping maxPx/minPx/gridNum/runType/triggerStrategy.
+    // (The backend requires maxPx/minPx/gridNum/direction; the tool handler
+    // enforces that — here we only assert the CLI forwards them from named flags.)
     it("liquidate-price: instId/sz/lever come from v", async () => {
         const {spy, captured} = makeSpy();
         await handleBotGridCommand(spy, vals({
