@@ -331,7 +331,11 @@ export const CLI_OPTIONS = {
   quoteSz: { type: "string" },
   baseSz: { type: "string" },
   direction: { type: "string" },
-  basePos: { type: "boolean", default: true },
+  // No parser default: a global default:true would bleed into `liquidate-price`
+  // (forcing basePos=true, wrong for neutral bots). `grid_create_order`'s handler
+  // already applies the `?? true` default, so create is unaffected; liquidate-price
+  // can now omit basePos. Use --basePos / --no-basePos to set it explicitly.
+  basePos: { type: "boolean" },
   tpRatio: { type: "string" },
   slRatio: { type: "string" },
   algoClOrdId: { type: "string" },

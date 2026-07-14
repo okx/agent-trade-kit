@@ -8,7 +8,7 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 
 | Sub-module | Tools | Description |
 |------------|-------|-------------|
-| `bot.grid` | 5 | Spot Grid, Contract Grid, Moon Grid strategies |
+| `bot.grid` | 9 | Spot Grid, Contract Grid, Moon Grid strategies |
 | `bot.dca` | 5 | Contract DCA (Martingale) strategies |
 
 **Module aliases:**
@@ -22,6 +22,7 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | `grid_get_order_details` | Get details of a specific grid bot |
 | `grid_get_sub_orders` | List sub-orders (filled or live) within a grid bot |
 | `grid_create_order` | Create a new grid bot (spot or contract) |
+| `grid_amend_order` | Amend a running grid bot without stopping it (price range and/or TP/SL) |
 | `grid_stop_order` | Stop a running grid bot |
 | `grid_get_positions` | Get open contract-grid positions (liquidation price, margin ratio, unrealized PnL) |
 | `grid_get_liquidate_price` | Estimate liquidation price for a contract-grid bot |
@@ -134,7 +135,7 @@ okx bot dca stop --algoId <id>
 
 | 子模块 | 工具数 | 说明 |
 |--------|--------|------|
-| `bot.grid` | 5 | 现货网格、合约网格、Moon Grid 策略 |
+| `bot.grid` | 9 | 现货网格、合约网格、Moon Grid 策略 |
 | `bot.dca` | 5 | 合约 DCA（马丁格尔）策略 |
 
 **模块别名：**
@@ -148,6 +149,7 @@ okx bot dca stop --algoId <id>
 | `grid_get_order_details` | 查询指定机器人的详情 |
 | `grid_get_sub_orders` | 列出机器人子订单（已成交或挂单） |
 | `grid_create_order` | 创建网格机器人（现货或合约） |
+| `grid_amend_order` | 修改运行中的网格机器人而不停止（价格区间和/或止盈止损） |
 | `grid_stop_order` | 停止运行中的机器人 |
 | `grid_get_positions` | 查询合约网格持仓（强平价、保证金率、未实现盈亏） |
 | `grid_get_liquidate_price` | 估算合约网格机器人的强平价 |

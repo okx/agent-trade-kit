@@ -12,9 +12,14 @@ describe("parseCli", () => {
       assert.equal(values.basePos, false);
     });
 
-    it("basePos defaults to true when --basePos is absent", () => {
+    it("basePos is undefined when neither flag is given (no parser default; create's handler applies the true default, so liquidate-price can omit it)", () => {
       const { values } = parseCli(["bot", "grid", "create"]);
-      assert.equal(values.basePos, true);
+      assert.equal(values.basePos, undefined);
+    });
+
+    it("liquidate-price can omit basePos (not forced to true by a parser default)", () => {
+      const { values } = parseCli(["bot", "grid", "liquidate-price"]);
+      assert.equal(values.basePos, undefined);
     });
 
     it("--basePos sets basePos to true explicitly", () => {
