@@ -7,6 +7,9 @@ import {
   cmdGridCreate,
   cmdGridAmend,
   cmdGridStop,
+  cmdGridPositions,
+  cmdGridLiquidatePrice,
+  cmdGridClosePosition,
   cmdDcaOrders,
   cmdDcaDetails,
   cmdDcaCreate,
@@ -522,5 +525,174 @@ describe("cmdDcaSubOrders", () => {
     const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
     await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", cycleId: "c001", json: false });
     assert.equal(captured["cycleId"], "c001");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdGridPositions
+// ---------------------------------------------------------------------------
+describe("cmdGridPositions", () => {
+  it("passes algoId and algoOrdType to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "G001", liqPx: "38000", mgnRatio: "0.15", upl: "100" }]);
+    };
+    await cmdGridPositions(spy, { algoId: "G001", algoOrdType: "contract_grid", json: false });
+    assert.equal(captured["algoId"], "G001");
+    assert.equal(captured["algoOrdType"], "contract_grid");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () =>
+      fakeResult([{ algoId: "G001", liqPx: "38000", mgnRatio: "0.15", upl: "100" }]);
+    await cmdGridPositions(runner, { algoId: "G001", algoOrdType: "contract_grid", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+
+  it("outputs 'No positions' when data is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdGridPositions(runner, { algoId: "G001", algoOrdType: "contract_grid", json: false });
+    assert.ok(out.join("").includes("No positions"));
+    assert.equal(err.join(""), "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdGridLiquidatePrice
+// ---------------------------------------------------------------------------
+describe("cmdGridLiquidatePrice", () => {
+  it("passes required params to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
+    });
+    assert.equal(captured["instId"], "BTC-USDT-SWAP");
+    assert.equal(captured["sz"], "100");
+    assert.equal(captured["lever"], "5");
+  });
+
+  it("passes optional direction param when provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", direction: "long", json: false,
+    });
+    assert.equal(captured["direction"], "long");
+  });
+
+  it("does not include direction when not provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
+    });
+    assert.equal(captured["direction"], undefined);
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ liqPx: "38000" }]);
+    await cmdGridLiquidatePrice(runner, { instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+
+  it("passes optional grid-shape/trigger params when provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
+      maxPx: "105000", minPx: "85000", gridNum: "20", runType: "2", triggerStrategy: "price",
+      json: false,
+    });
+    assert.equal(captured["maxPx"], "105000");
+    assert.equal(captured["minPx"], "85000");
+    assert.equal(captured["gridNum"], "20");
+    assert.equal(captured["runType"], "2");
+    assert.equal(captured["triggerStrategy"], "price");
+  });
+
+  it("does not include optional grid-shape/trigger params when not provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ liqPx: "38000" }]);
+    };
+    await cmdGridLiquidatePrice(spy, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
+    });
+    assert.equal(captured["maxPx"], undefined);
+    assert.equal(captured["minPx"], undefined);
+    assert.equal(captured["gridNum"], undefined);
+    assert.equal(captured["runType"], undefined);
+    assert.equal(captured["triggerStrategy"], undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdGridClosePosition
+// ---------------------------------------------------------------------------
+describe("cmdGridClosePosition", () => {
+  it("passes algoId and mktClose=true to runner", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "G001", sCode: "0", sMsg: "" }]);
+    };
+    await cmdGridClosePosition(spy, { algoId: "G001", mktClose: true, json: false });
+    assert.equal(captured["algoId"], "G001");
+    assert.equal(captured["mktClose"], true);
+  });
+
+  it("does NOT drop mktClose=false (AC-3 boundary)", async () => {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "G001", sCode: "0", sMsg: "" }]);
+    };
+    await cmdGridClosePosition(spy, {
+      algoId: "G001", mktClose: false, sz: "10", px: "50000", json: false,
+    });
+    assert.strictEqual(captured["mktClose"], false);
+    assert.equal(captured["sz"], "10");
+    assert.equal(captured["px"], "50000");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () =>
+      fakeResult([{ algoId: "G001", sCode: "0", sMsg: "" }]);
+    await cmdGridClosePosition(runner, { algoId: "G001", mktClose: true, json: false });
+    assert.ok(out.join("").includes("Grid position closed"));
+    assert.ok(out.join("").includes("G001"));
+    assert.ok(out.join("").includes("OK"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs error to stderr when sCode is non-zero", async () => {
+    const runner: ToolRunner = async () =>
+      fakeResult([{ algoId: "", sCode: "51042", sMsg: "Position not found" }]);
+    await cmdGridClosePosition(runner, { algoId: "G001", mktClose: true, json: false });
+    assert.ok(err.join("").includes("Position not found"));
+    assert.ok(err.join("").includes("51042"));
+    assert.equal(out.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () =>
+      fakeResult([{ algoId: "G001", sCode: "0" }]);
+    await cmdGridClosePosition(runner, { algoId: "G001", mktClose: true, json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });

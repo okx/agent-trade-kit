@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `grid_get_positions` MCP tool and `okx bot grid positions` CLI command: query open contract-grid positions (liquidation price, margin ratio, unrealized PnL).
+- `grid_get_liquidate_price` MCP tool and `okx bot grid liquidate-price` CLI command: estimate liquidation price for a contract-grid bot before creating it (requires the full intended config — instId/sz/lever/maxPx/minPx/gridNum/direction; runType defaults to '1', triggerStrategy optional; a partial call fails fast listing the missing params instead of hitting a cascade of backend 400s).
+- `grid_close_position` MCP tool and `okx bot grid close-position` CLI command: close the remaining open position of a contract-grid bot stopped with `stopType='2'`. The close mode is required with no default (fund-moving) — pass `mktClose=true` / `--mktClose` for a market close, or `mktClose=false` / `--no-mktClose --sz --px` for a limit close; omitting it is rejected on both the MCP and CLI entry points.
+
 ## [1.3.9] - 2026-06-25
 
 First stable release of the 1.3.9 line. Consolidates all changes accumulated during the 1.3.9 beta cycle (see the `[1.3.9-beta.1]` through `[1.3.9-beta.3]` entries below for the full lists): new `tr` (Turkey) site, `okx bot grid sub-orders` pagination parity (`--groupId`/`--after`/`--before`/`--limit`) and the `--pending` flag for querying open sub-orders in both live and demo modes, a fix for the silently-dropped CLI `--site` flag, and 35 new `okx outcomes` eval probes.

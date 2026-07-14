@@ -847,6 +847,70 @@ describe("handleBotGridCommand - parameter routing", () => {
         assert.equal(captured.args["before"],  "100");
         assert.equal(captured.args["limit"],   "50");
     });
+
+    // liquidate-price: grid-shape/trigger params must reach grid_get_liquidate_price.
+    // Regression guard for the param-routing gap — the first pass only wired
+    // direction/basePos, dropping maxPx/minPx/gridNum/runType/triggerStrategy.
+    // (The backend requires maxPx/minPx/gridNum/direction; the tool handler
+    // enforces that — here we only assert the CLI forwards them from named flags.)
+    it("liquidate-price: instId/sz/lever come from v", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
+        }), ["liquidate-price"], false);
+        assert.equal(captured.tool, "grid_get_liquidate_price");
+        assert.equal(captured.args["instId"], "BTC-USDT-SWAP");
+        assert.equal(captured.args["sz"], "100");
+        assert.equal(captured.args["lever"], "5");
+    });
+
+    it("liquidate-price: maxPx/minPx/gridNum/runType/triggerStrategy come from v (named flags)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
+            maxPx: "105000", minPx: "85000", gridNum: "20",
+            runType: "2", triggerStrategy: "price",
+        }), ["liquidate-price"], false);
+        assert.equal(captured.args["maxPx"], "105000");
+        assert.equal(captured.args["minPx"], "85000");
+        assert.equal(captured.args["gridNum"], "20");
+        assert.equal(captured.args["runType"], "2");
+        assert.equal(captured.args["triggerStrategy"], "price");
+    });
+
+    // close-position: fund-moving write. algoId/mktClose/sz/px must reach
+    // grid_close_position from named flags (v.xxx), not positionals.
+    // mktClose is fail-closed (no default): the falsy `false` must survive
+    // routing (regression guard for the #78 --instId→rest[0] class of bug),
+    // and omitting the close mode entirely must be rejected before any call.
+    it("close-position: algoId/mktClose/sz/px come from v (named flags)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "G001", mktClose: true, sz: "10", px: "50000",
+        }), ["close-position"], false);
+        assert.equal(captured.tool, "grid_close_position");
+        assert.equal(captured.args["algoId"], "G001");
+        assert.equal(captured.args["mktClose"], true);
+        assert.equal(captured.args["sz"], "10");
+        assert.equal(captured.args["px"], "50000");
+    });
+
+    it("close-position: mktClose=false is forwarded, not dropped", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "G001", mktClose: false, sz: "10", px: "50000",
+        }), ["close-position"], false);
+        assert.equal(captured.tool, "grid_close_position");
+        assert.strictEqual(captured.args["mktClose"], false);
+    });
+
+    it("close-position: omitting the close mode is rejected before calling the tool (fail-closed)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({ algoId: "G001" }), ["close-position"], false);
+        assert.equal(captured.tool, "", "runner must not be called when mktClose is omitted");
+        assert.equal(process.exitCode, 1);
+        process.exitCode = 0; // reset so it doesn't leak to the test runner's exit status
+    });
 });
 
 // ===========================================================================

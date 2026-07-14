@@ -79,6 +79,8 @@ export interface CliValues {
   algoClOrdId?: string;
   stopType?: string;
   topUpAmt?: string;
+  // grid position management
+  mktClose?: boolean;
   live?: boolean;
   pending?: boolean;
   instType?: string;
@@ -329,12 +331,19 @@ export const CLI_OPTIONS = {
   quoteSz: { type: "string" },
   baseSz: { type: "string" },
   direction: { type: "string" },
-  basePos: { type: "boolean", default: true },
+  // No parser default: a global default:true would bleed into `liquidate-price`
+  // (forcing basePos=true, wrong for neutral bots). `grid_create_order`'s handler
+  // already applies the `?? true` default, so create is unaffected; liquidate-price
+  // can now omit basePos. Use --basePos / --no-basePos to set it explicitly.
+  basePos: { type: "boolean" },
   tpRatio: { type: "string" },
   slRatio: { type: "string" },
   algoClOrdId: { type: "string" },
   stopType: { type: "string" },
   topUpAmt: { type: "string" },
+  // grid position management
+  // Fund-moving: no default — close-position requires an explicit --mktClose/--no-mktClose.
+  mktClose: { type: "boolean" },
   live: { type: "boolean", default: false },
   // grid sub-orders pending filter (separate from global --live trading mode,
   // which is mutually exclusive with --demo and so unusable in demo mode)

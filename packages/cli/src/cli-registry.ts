@@ -804,6 +804,21 @@ export const CLI_REGISTRY: CliRegistry = {
             usage: "okx bot grid stop --algoId <id> --algoOrdType <type> --instId <id> [--stopType <1|2>]",
             description: "Stop a running grid bot order",
           },
+          positions: {
+            toolName: "grid_get_positions",
+            usage: "okx bot grid positions --algoId <id> --algoOrdType contract_grid",
+            description: "Get open contract-grid positions (liquidation price, margin ratio, unrealized PnL)",
+          },
+          "liquidate-price": {
+            toolName: "grid_get_liquidate_price",
+            usage: "okx bot grid liquidate-price --instId <id> --sz <margin> --lever <leverage> --maxPx <px> --minPx <px> --gridNum <n> --direction <long|short|neutral> [--runType <1|2>] [--triggerStrategy <instant|price|rsi|webhook>]",
+            description: "Estimate liquidation price for a contract-grid bot",
+          },
+          "close-position": {
+            toolName: "grid_close_position",
+            usage: "okx bot grid close-position --algoId <id> (--mktClose | --no-mktClose) [--sz <size>] [--px <price>]",
+            description: "Close remaining open position after bot stopped with stopType=2 (close mode is required: --mktClose for market, --no-mktClose --sz --px for limit)",
+          },
         },
       },
       dca: {

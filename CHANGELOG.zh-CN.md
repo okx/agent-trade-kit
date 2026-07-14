@@ -11,6 +11,12 @@
 
 ## [Unreleased]
 
+### 新增
+
+- `grid_get_positions` MCP 工具及 `okx bot grid positions` CLI 命令：查询合约网格机器人的持仓信息（强平价、保证金率、未实现盈亏）。
+- `grid_get_liquidate_price` MCP 工具及 `okx bot grid liquidate-price` CLI 命令：建仓前估算合约网格机器人的强平价（需提供完整的目标配置——instId/sz/lever/maxPx/minPx/gridNum/direction；runType 默认 '1'，triggerStrategy 可选；参数不全时本地一次性列出缺失项 fail-fast，而非触发后端连环 400）。
+- `grid_close_position` MCP 工具及 `okx bot grid close-position` CLI 命令：关闭以 `stopType='2'` 停止的合约网格机器人的剩余持仓。
+
 ## [1.3.9] - 2026-06-25
 
 1.3.9 系列首个稳定版，聚合 1.3.9 beta 周期内累计的全部改动（完整条目见下方 `[1.3.9-beta.1]` 至 `[1.3.9-beta.3]`）：新增 `tr`（土耳其）站点、`okx bot grid sub-orders` 分页参数对齐（`--groupId`/`--after`/`--before`/`--limit`）及新增 `--pending` 标志（实盘、模拟盘均可查询挂单子单）、修复被静默丢弃的 CLI `--site` flag，以及 35 个新增的 `okx outcomes` eval probe。

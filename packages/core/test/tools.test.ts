@@ -2482,8 +2482,8 @@ describe("grid tools module field", () => {
     }
   });
 
-  it("registers exactly 6 grid tools", () => {
-    assert.equal(tools.length, 6);
+  it("registers exactly 9 grid tools", () => {
+    assert.equal(tools.length, 9);
   });
 });
 
@@ -3446,6 +3446,173 @@ describe("grid_amend_order - validation", () => {
       },
     );
     assert.equal(callCount, 2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid — grid_get_liquidate_price (required grid-shape config)
+// ---------------------------------------------------------------------------
+
+describe("grid_get_liquidate_price - required config", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_get_liquidate_price")!;
+
+  it("declares maxPx/minPx/gridNum/direction as required (backend enforces them)", () => {
+    const required = (tool.inputSchema as Record<string, unknown>).required as string[];
+    for (const key of ["instId", "sz", "lever", "maxPx", "minPx", "gridNum", "direction"]) {
+      assert.ok(required.includes(key), `inputSchema.required should include ${key}`);
+    }
+  });
+
+  it("forwards the full config and passes runType/triggerStrategy through", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        sz: "100",
+        lever: "5",
+        direction: "long",
+        maxPx: "105000",
+        minPx: "85000",
+        gridNum: "20",
+        runType: "2",
+        triggerStrategy: "price",
+      },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.equal(params.maxPx, "105000");
+    assert.equal(params.minPx, "85000");
+    assert.equal(params.gridNum, "20");
+    assert.equal(params.direction, "long");
+    assert.equal(params.runType, "2");
+    assert.equal(params.triggerStrategy, "price");
+  });
+
+  it("defaults runType to '1' when not provided", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      {
+        instId: "BTC-USDT-SWAP",
+        sz: "100",
+        lever: "5",
+        direction: "neutral",
+        maxPx: "105000",
+        minPx: "85000",
+        gridNum: "20",
+      },
+      makeContext(client),
+    );
+    assert.equal(getCalls()[0]!.params.runType, "1");
+  });
+
+  it("fails fast listing every missing grid-shape param, without calling the API", async () => {
+    const { client, getCalls } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT-SWAP", sz: "100", lever: "5" }, makeContext(client)),
+      (err: Error) =>
+        err.message.includes("maxPx") &&
+        err.message.includes("minPx") &&
+        err.message.includes("gridNum") &&
+        err.message.includes("direction"),
+    );
+    assert.equal(getCalls().length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid — grid_get_positions (read)
+// ---------------------------------------------------------------------------
+
+describe("grid_get_positions - handler", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_get_positions")!;
+
+  it("declares algoId/algoOrdType as required and restricts algoOrdType to contract_grid", () => {
+    const schema = tool.inputSchema as Record<string, unknown>;
+    const required = schema.required as string[];
+    for (const key of ["algoId", "algoOrdType"]) {
+      assert.ok(required.includes(key), `inputSchema.required should include ${key}`);
+    }
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    assert.deepEqual(props["algoOrdType"]["enum"], ["contract_grid"]);
+  });
+
+  it("forwards algoId + algoOrdType to GET /grid/positions", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "G001", algoOrdType: "contract_grid" },
+      makeContext(client),
+    );
+    const call = getCalls()[0]!;
+    assert.equal(call.method, "GET");
+    assert.equal(call.endpoint, "/api/v5/tradingBot/grid/positions");
+    assert.equal(call.params.algoId, "G001");
+    assert.equal(call.params.algoOrdType, "contract_grid");
+  });
+
+  it("fails fast when algoId is missing, without calling the API", async () => {
+    const { client, getCalls } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoOrdType: "contract_grid" }, makeContext(client)),
+      (err: Error) => err.message.includes("algoId"),
+    );
+    assert.equal(getCalls().length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grid — grid_close_position (write, fund-moving: mktClose required, no default)
+// ---------------------------------------------------------------------------
+
+describe("grid_close_position - handler", () => {
+  const tools = registerGridTools();
+  const tool = tools.find((t) => t.name === "grid_close_position")!;
+
+  it("declares algoId/mktClose as required", () => {
+    const required = (tool.inputSchema as Record<string, unknown>).required as string[];
+    for (const key of ["algoId", "mktClose"]) {
+      assert.ok(required.includes(key), `inputSchema.required should include ${key}`);
+    }
+  });
+
+  it("forwards a market close (mktClose=true) to POST /grid/close-position", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ algoId: "G001", mktClose: true }, makeContext(client));
+    const call = getCalls()[0]!;
+    assert.equal(call.method, "POST");
+    assert.equal(call.endpoint, "/api/v5/tradingBot/grid/close-position");
+    assert.equal(call.params.algoId, "G001");
+    assert.equal(call.params.mktClose, true);
+  });
+
+  it("keeps mktClose=false (compactObject must not drop the falsy value)", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler(
+      { algoId: "G001", mktClose: false, sz: "10", px: "50000" },
+      makeContext(client),
+    );
+    const params = getCalls()[0]!.params;
+    assert.strictEqual(params.mktClose, false);
+    assert.equal(params.sz, "10");
+    assert.equal(params.px, "50000");
+  });
+
+  it("omits sz/px when not provided (compactObject strips undefined)", async () => {
+    const { client, getCalls } = makeMockClient();
+    await tool.handler({ algoId: "G001", mktClose: true }, makeContext(client));
+    const params = getCalls()[0]!.params;
+    assert.ok(!("sz" in params), "sz should be omitted when not provided");
+    assert.ok(!("px" in params), "px should be omitted when not provided");
+  });
+
+  it("fails closed: rejects when mktClose is omitted, without calling the API", async () => {
+    const { client, getCalls } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "G001" }, makeContext(client)),
+      (err: Error) => err.message.includes("mktClose"),
+    );
+    assert.equal(getCalls().length, 0);
   });
 });
 
