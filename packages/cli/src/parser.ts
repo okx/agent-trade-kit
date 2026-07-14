@@ -338,7 +338,8 @@ export const CLI_OPTIONS = {
   stopType: { type: "string" },
   topUpAmt: { type: "string" },
   // grid position management
-  mktClose: { type: "boolean", default: false },
+  // Fund-moving: no default — close-position requires an explicit --mktClose/--no-mktClose.
+  mktClose: { type: "boolean" },
   live: { type: "boolean", default: false },
   // grid sub-orders pending filter (separate from global --live trading mode,
   // which is mutually exclusive with --demo and so unusable in demo mode)

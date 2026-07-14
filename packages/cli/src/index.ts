@@ -1289,14 +1289,21 @@ export function handleBotGridCommand(
       triggerStrategy: v.triggerStrategy,
       json,
     });
-  if (subAction === "close-position")
+  if (subAction === "close-position") {
+    // Fund-moving: require an explicit close mode instead of defaulting.
+    if (v.mktClose === undefined) {
+      errorLine("Missing required --mktClose/--no-mktClose: okx bot grid close-position --algoId <id> (--mktClose | --no-mktClose [--sz <size>] [--px <price>])");
+      process.exitCode = 1;
+      return;
+    }
     return cmdGridClosePosition(run, {
       algoId: v.algoId!,
-      mktClose: v.mktClose ?? false,
+      mktClose: v.mktClose,
       sz: v.sz,
       px: v.px,
       json,
     });
+  }
   unknownSubcommand("bot grid", subAction, ["orders", "details", "sub-orders", "create", "amend", "stop", "positions", "liquidate-price", "close-position"]);
 }
 

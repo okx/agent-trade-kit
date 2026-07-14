@@ -6,6 +6,7 @@ import {
   readBoolean,
   readNumber,
   readString,
+  requireBoolean,
   requireString,
 } from "../helpers.js";
 import { privateRateLimit } from "../common.js";
@@ -577,7 +578,8 @@ export function registerGridTools(): ToolSpec[] {
           algoId: { type: "string", description: "Grid bot algo order ID" },
           mktClose: {
             type: "boolean",
-            description: "true=market close immediately; false=limit close (requires sz and px)",
+            description:
+              "Required, no default (fund-moving): true=market close immediately; false=limit close (requires sz and px).",
           },
           sz: { type: "string", description: "Close size (required when mktClose=false)" },
           px: { type: "string", description: "Limit price (required when mktClose=false)" },
@@ -586,7 +588,9 @@ export function registerGridTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const mktClose = readBoolean(args, "mktClose") ?? true;
+        // Fund-moving write: no implicit default — the caller must state the
+        // close mode explicitly (mirrors the CLI, which requires --mktClose/--no-mktClose).
+        const mktClose = requireBoolean(args, "mktClose");
         const response = await context.client.privatePost(
           "/api/v5/tradingBot/grid/close-position",
           compactObject({

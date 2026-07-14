@@ -10,7 +10,7 @@ The project is a pnpm workspace monorepo containing three packages:
 | Package | Path | Purpose |
 |---------|------|---------|
 | `@okx-trade/core` | `packages/core` | Shared SDK: REST client, tool definitions, config parsing, error types |
-| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~164 tools over stdio (JSON-RPC 2.0) |
+| `@okx-trade/mcp` | `packages/mcp` | MCP server exposing ~167 tools over stdio (JSON-RPC 2.0) |
 | `@okx-trade/cli` | `packages/cli` | CLI binary (`okx`) for direct terminal use |
 
 **Bundling**: tsup (ESM output). **Testing**: node:test. **Validation**: zod. **Config**: TOML via smol-toml.

@@ -877,6 +877,40 @@ describe("handleBotGridCommand - parameter routing", () => {
         assert.equal(captured.args["runType"], "2");
         assert.equal(captured.args["triggerStrategy"], "price");
     });
+
+    // close-position: fund-moving write. algoId/mktClose/sz/px must reach
+    // grid_close_position from named flags (v.xxx), not positionals.
+    // mktClose is fail-closed (no default): the falsy `false` must survive
+    // routing (regression guard for the #78 --instId→rest[0] class of bug),
+    // and omitting the close mode entirely must be rejected before any call.
+    it("close-position: algoId/mktClose/sz/px come from v (named flags)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "G001", mktClose: true, sz: "10", px: "50000",
+        }), ["close-position"], false);
+        assert.equal(captured.tool, "grid_close_position");
+        assert.equal(captured.args["algoId"], "G001");
+        assert.equal(captured.args["mktClose"], true);
+        assert.equal(captured.args["sz"], "10");
+        assert.equal(captured.args["px"], "50000");
+    });
+
+    it("close-position: mktClose=false is forwarded, not dropped", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({
+            algoId: "G001", mktClose: false, sz: "10", px: "50000",
+        }), ["close-position"], false);
+        assert.equal(captured.tool, "grid_close_position");
+        assert.strictEqual(captured.args["mktClose"], false);
+    });
+
+    it("close-position: omitting the close mode is rejected before calling the tool (fail-closed)", async () => {
+        const {spy, captured} = makeSpy();
+        await handleBotGridCommand(spy, vals({ algoId: "G001" }), ["close-position"], false);
+        assert.equal(captured.tool, "", "runner must not be called when mktClose is omitted");
+        assert.equal(process.exitCode, 1);
+        process.exitCode = 0; // reset so it doesn't leak to the test runner's exit status
+    });
 });
 
 // ===========================================================================

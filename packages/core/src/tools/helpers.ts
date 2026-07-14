@@ -78,6 +78,17 @@ export function requireString(
   return value;
 }
 
+export function requireBoolean(
+  args: Record<string, unknown>,
+  key: string,
+): boolean {
+  const value = readBoolean(args, key);
+  if (value === undefined) {
+    throw new ValidationError(`Missing required parameter "${key}".`);
+  }
+  return value;
+}
+
 export function assertEnum(
   value: string | undefined,
   key: string,

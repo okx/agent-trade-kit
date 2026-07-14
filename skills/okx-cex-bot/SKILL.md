@@ -264,10 +264,10 @@ Estimates the liquidation price for a contract-grid bot. Use before creating a b
 ### Grid Bot — Close Position
 
 ```bash
-okx bot grid close-position --algoId <id> --mktClose [--sz <size>] [--px <price>] [--json]
+okx bot grid close-position --algoId <id> (--mktClose | --no-mktClose) [--sz <size>] [--px <price>] [--json]
 ```
 
-Closes the remaining open position of a contract-grid bot that was stopped with `stopType='2'`. Use `--mktClose` for a market close (immediate), or `--no-mktClose --sz <size> --px <price>` for a limit close order.
+Closes the remaining open position of a contract-grid bot that was stopped with `stopType='2'`. The close mode is **required** (no default, because it moves funds): pass `--mktClose` for a market close (immediate), or `--no-mktClose --sz <size> --px <price>` for a limit close order. Omitting both is rejected.
 
 ---
 
