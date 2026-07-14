@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.10-beta.1] - 2026-07-14
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
+
 ### Added
 
 - `grid_get_positions` MCP tool and `okx bot grid positions` CLI command: query open contract-grid positions (liquidation price, margin ratio, unrealized PnL).

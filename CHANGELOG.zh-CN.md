@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.3.10-beta.1] - 2026-07-14
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
 ### 新增
 
 - `grid_get_positions` MCP 工具及 `okx bot grid positions` CLI 命令：查询合约网格机器人的持仓信息（强平价、保证金率、未实现盈亏）。
