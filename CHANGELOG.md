@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`): language is now passed as `acceptLanguage` query parameter (underscore format, e.g. `zh_CN`) instead of the `Accept-Language` request header. The upstream orbit API stopped reading the header; Chinese users were always receiving English content. The public `language` enum (`zh-CN` / `en-US`) is unchanged.
+
 ## [1.3.10-beta.1] - 2026-07-14
 
 Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).

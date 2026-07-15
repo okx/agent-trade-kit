@@ -168,7 +168,7 @@ describe("news tools registration", () => {
 });
 
 describe("news_get_latest", () => {
-  it("should pre-fill sortBy=latest and default Accept-Language to en-US when language omitted", async () => {
+  it("should pre-fill sortBy=latest and default acceptLanguage=en_US when language omitted", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -182,11 +182,12 @@ describe("news_get_latest", () => {
     // the server applies its own default (high-only). The D_IMPORTANCE description
     // instructs AI agents to pass 'low' explicitly when the user wants broad browsing.
     assert.equal(call.params["importance"], undefined);
-    assert.equal(call.headers?.["Accept-Language"], "en-US");
+    assert.equal(call.params["acceptLanguage"], "en_US");
+    assert.equal(call.headers?.["Accept-Language"], undefined);
     assert.equal(call.params["limit"], 10);
   });
 
-  it("should send Accept-Language header when language=zh-CN", async () => {
+  it("should send acceptLanguage=zh_CN query param when language=zh-CN", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -194,10 +195,11 @@ describe("news_get_latest", () => {
 
     await tool.handler({ language: "zh-CN" }, ctx);
     const call = getLastCall()!;
-    assert.equal(call.headers?.["Accept-Language"], "zh-CN");
+    assert.equal(call.params["acceptLanguage"], "zh_CN");
+    assert.equal(call.headers?.["Accept-Language"], undefined);
   });
 
-  it("langHeader normalises legacy zh_CN to zh-CN", async () => {
+  it("acceptLanguage normalises legacy zh_CN input to zh_CN query param", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -205,10 +207,10 @@ describe("news_get_latest", () => {
 
     await tool.handler({ language: "zh_CN" }, ctx);
     const call = getLastCall()!;
-    assert.equal(call.headers?.["Accept-Language"], "zh-CN");
+    assert.equal(call.params["acceptLanguage"], "zh_CN");
   });
 
-  it("langHeader normalises legacy en_US to en-US", async () => {
+  it("acceptLanguage normalises legacy en_US input to en_US query param", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -216,7 +218,7 @@ describe("news_get_latest", () => {
 
     await tool.handler({ language: "en_US" }, ctx);
     const call = getLastCall()!;
-    assert.equal(call.headers?.["Accept-Language"], "en-US");
+    assert.equal(call.params["acceptLanguage"], "en_US");
   });
 
   it("should pass importance when specified", async () => {
@@ -302,6 +304,18 @@ describe("news_get_by_coin", () => {
     assert.equal(call.params["importance"], "high");
     assert.equal(call.params["sortBy"], "latest");
   });
+
+  it("should send acceptLanguage=zh_CN query param when language=zh-CN", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_by_coin")!;
+
+    await tool.handler({ coins: "BTC", language: "zh-CN" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.params["acceptLanguage"], "zh_CN");
+    assert.equal(call.headers?.["Accept-Language"], undefined);
+  });
 });
 
 describe("news_search", () => {
@@ -341,6 +355,18 @@ describe("news_search", () => {
     assert.equal(call.params["sentiment"], "bullish");
     assert.equal(call.params["importance"], "high");
   });
+
+  it("should send acceptLanguage=zh_CN query param when language=zh-CN", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_search")!;
+
+    await tool.handler({ keyword: "SEC", language: "zh-CN" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.params["acceptLanguage"], "zh_CN");
+    assert.equal(call.headers?.["Accept-Language"], undefined);
+  });
 });
 
 describe("news_get_detail", () => {
@@ -354,6 +380,19 @@ describe("news_get_detail", () => {
     const call = getLastCall()!;
     assert.equal(call.endpoint, "/api/v5/orbit/news-detail");
     assert.equal(call.params["id"], "70837884992672");
+  });
+
+  it("should send acceptLanguage=zh_CN query param when language=zh-CN", async () => {
+    const { client, getLastCall } = makeMockClient();
+    const ctx = makeContext(client);
+    const tools = registerNewsTools();
+    const tool = tools.find((t) => t.name === "news_get_detail")!;
+
+    await tool.handler({ id: "70837884992672", language: "zh-CN" }, ctx);
+    const call = getLastCall()!;
+    assert.equal(call.params["id"], "70837884992672");
+    assert.equal(call.params["acceptLanguage"], "zh_CN");
+    assert.equal(call.headers?.["Accept-Language"], undefined);
   });
 });
 
