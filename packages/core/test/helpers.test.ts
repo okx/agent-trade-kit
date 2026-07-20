@@ -168,7 +168,7 @@ describe("compactObject", () => {
   });
 });
 
-import { buildAttachAlgoOrds } from "../src/tools/helpers.js";
+import { buildAttachAlgoOrds, resolveOrderTag, normalizeResponse } from "../src/tools/helpers.js";
 
 describe("buildAttachAlgoOrds", () => {
   it("returns undefined when all TP/SL fields are absent", () => {
@@ -207,5 +207,64 @@ describe("buildAttachAlgoOrds", () => {
   it("ignores non-tpsl fields in source", () => {
     const result = buildAttachAlgoOrds({ instId: "BTC-USDT", tpTriggerPx: "50000" });
     assert.deepEqual(result, [{ tpTriggerPx: "50000" }]);
+  });
+});
+
+describe("resolveOrderTag", () => {
+  it("returns sourceTag when no aiBuilderCode in args", () => {
+    const result = resolveOrderTag({}, "MCP");
+    assert.deepEqual(result, { tag: "MCP" });
+  });
+
+  it("returns sourceTag when aiBuilderCode is empty string", () => {
+    const result = resolveOrderTag({ aiBuilderCode: "" }, "MCP");
+    assert.deepEqual(result, { tag: "MCP" });
+  });
+
+  it("returns aiBuilderCode when valid alphanumeric code provided", () => {
+    const result = resolveOrderTag({ aiBuilderCode: "ABC123" }, "MCP");
+    assert.deepEqual(result, { tag: "ABC123" });
+  });
+
+  it("returns aiBuilderCode when code is exactly 16 chars", () => {
+    const code = "ABCDEFGHIJ123456";
+    const result = resolveOrderTag({ aiBuilderCode: code }, "MCP");
+    assert.deepEqual(result, { tag: code });
+  });
+
+  it("returns sourceTag with warning when code contains hyphen", () => {
+    const result = resolveOrderTag({ aiBuilderCode: "abc-def" }, "MCP");
+    assert.equal(result.tag, "MCP");
+    assert.ok(typeof result.warning === "string" && result.warning.length > 0);
+  });
+
+  it("returns sourceTag with warning when code exceeds 16 chars", () => {
+    const result = resolveOrderTag({ aiBuilderCode: "ABCDEFGHIJ1234567" }, "MCP");
+    assert.equal(result.tag, "MCP");
+    assert.ok(typeof result.warning === "string" && result.warning.length > 0);
+  });
+});
+
+describe("normalizeResponse", () => {
+  const baseResponse = {
+    endpoint: "POST /api/v5/trade/order",
+    requestTime: "2024-01-01T00:00:00Z",
+    data: [{ ordId: "123" }],
+  };
+
+  it("returns response fields without warnings key when no opts given", () => {
+    const result = normalizeResponse(baseResponse);
+    assert.ok(!("warnings" in result));
+    assert.equal(result.endpoint, baseResponse.endpoint);
+  });
+
+  it("includes warnings array in result when opts.warnings provided", () => {
+    const result = normalizeResponse(baseResponse, { warnings: ["bad code"] });
+    assert.deepEqual(result.warnings, ["bad code"]);
+  });
+
+  it("does not add warnings key when opts.warnings is empty array", () => {
+    const result = normalizeResponse(baseResponse, { warnings: [] });
+    assert.ok(!("warnings" in result));
   });
 });

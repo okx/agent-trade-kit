@@ -8,6 +8,7 @@ import {
   readString,
   requireBoolean,
   requireString,
+  resolveOrderTag,
 } from "../helpers.js";
 import { privateRateLimit } from "../common.js";
 import { OkxApiError } from "../../utils/errors.js";
@@ -215,12 +216,17 @@ export function registerGridTools(): ToolSpec[] {
           tpRatio: { type: "string", description: "TP ratio e.g. 0.1=10%. Contract only" },
           slRatio: { type: "string", description: "SL ratio e.g. 0.1=10%. Contract only" },
           algoClOrdId: { type: "string", description: "User-defined ID. Alphanumeric, max 32, unique per user" },
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "algoOrdType", "maxPx", "minPx", "gridNum"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoOrdType = requireString(args, "algoOrdType");
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         const body: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           algoOrdType,
@@ -238,7 +244,7 @@ export function registerGridTools(): ToolSpec[] {
           tpRatio: readString(args, "tpRatio"),
           slRatio: readString(args, "slRatio"),
           algoClOrdId: readString(args, "algoClOrdId"),
-          tag: context.config.sourceTag,
+          tag,
         });
         if (algoOrdType === "contract_grid") {
           requireString(args, "direction");
@@ -250,7 +256,11 @@ export function registerGridTools(): ToolSpec[] {
           body,
           privateRateLimit("grid_create_order", 20),
         );
-        return normalizeWrite(response);
+        const result = normalizeWrite(response);
+        if (warning) {
+          result.warnings = [warning];
+        }
+        return result;
       },
     },
     {

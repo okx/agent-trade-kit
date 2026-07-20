@@ -28,6 +28,7 @@ import {
   readNumber,
   readString,
   requireString,
+  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit, CURSOR_PROPS, TIME_RANGE_PROPS, readPaginationParams } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
@@ -445,6 +446,10 @@ export function registerEventContractTools(): ToolSpec[] {
             type: "string",
             description: "Event contract price (0.01-0.99). Required when ordType=limit. Do NOT use for market orders.",
           },
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "side", "outcome", "sz"],
       },
@@ -454,6 +459,7 @@ export function registerEventContractTools(): ToolSpec[] {
         // speedBump is required by the exchange for all non-post_only event contract orders.
         const speedBump = ordType !== "post_only" ? "1" : undefined;
         const instId = requireString(args, "instId");
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -465,7 +471,7 @@ export function registerEventContractTools(): ToolSpec[] {
             sz: requireString(args, "sz"),
             px: readString(args, "px"),
             speedBump,
-            tag: context.config.sourceTag,
+            tag,
           }),
           privateRateLimit("event_place_order", 60),
         );
@@ -492,6 +498,9 @@ export function registerEventContractTools(): ToolSpec[] {
         // Add note for market orders explaining sz semantics
         if (ordType === "market") {
           result["orderNote"] = "Market order: sz is a quote currency amount. The exchange converts it to contracts based on best available price.";
+        }
+        if (warning) {
+          result["warnings"] = [warning];
         }
         return result;
       },

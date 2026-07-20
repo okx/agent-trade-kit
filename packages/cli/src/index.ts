@@ -566,6 +566,7 @@ export function handleSpotAlgoCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -667,6 +668,7 @@ export function handleSpotCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -755,6 +757,7 @@ export function handleSwapAlgoCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -853,6 +856,7 @@ export function handleSwapCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -906,6 +910,7 @@ export function handleOptionAlgoCommand(
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
       clOrdId: v.clOrdId,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "amend")
@@ -973,6 +978,7 @@ export function handleOptionCommand(
       slOrdPx: v.slOrdPx,
       slTriggerPxType: v.slTriggerPxType,
       stpMode: v.stpMode,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (action === "cancel")
@@ -1060,6 +1066,7 @@ export function handleFuturesAlgoCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -1150,6 +1157,7 @@ export function handleFuturesCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -1245,6 +1253,7 @@ export function handleBotGridCommand(
       tpRatio: v.tpRatio,
       slRatio: v.slRatio,
       algoClOrdId: v.algoClOrdId,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "amend")

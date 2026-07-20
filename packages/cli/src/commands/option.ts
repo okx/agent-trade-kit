@@ -192,6 +192,7 @@ export async function cmdOptionPlace(
     slOrdPx?: string;
     slTriggerPxType?: string;
     stpMode?: string;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -213,6 +214,7 @@ export async function cmdOptionPlace(
     slOrdPx: opts.slOrdPx,
     slTriggerPxType: opts.slTriggerPxType,
     stpMode: opts.stpMode,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -287,6 +289,7 @@ export async function cmdOptionAlgoPlace(
     slOrdPx?: string;
     reduceOnly?: boolean;
     clOrdId?: string;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -303,6 +306,7 @@ export async function cmdOptionAlgoPlace(
     slOrdPx: opts.slOrdPx,
     reduceOnly: opts.reduceOnly,
     clOrdId: opts.clOrdId,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

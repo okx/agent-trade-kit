@@ -20,6 +20,7 @@ import {
   readString,
   requireString,
   resolveAlgoSzOrCloseFraction,
+  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
@@ -126,6 +127,10 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "tdMode", "side", "ordType"],
       },
@@ -134,6 +139,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
         const reduceOnly = args.reduceOnly;
         const cxlOnClosePos = args.cxlOnClosePos;
         const ordType = requireString(args, "ordType");
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         // Resolve sz vs closeFraction mutual exclusivity (issue #200)
         const szOrCf = resolveAlgoSzOrCloseFraction(args, ordType);
         // Only call resolveQuoteCcySz when sz is provided; skip when closeFraction is used
@@ -162,7 +168,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
-          tag: context.config.sourceTag,
+          tag,
         });
         switch (ordType) {
                     case "trigger":
@@ -189,7 +195,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           base,
           privateRateLimit("swap_place_algo_order", 20),
         );
-        const result = normalizeResponse(response);
+        const result = normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
         if (resolved.conversionNote) {
           result._conversion = resolved.conversionNote;
         }
@@ -253,12 +259,17 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             type: "string",
             description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "tdMode", "side", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
           compactObject({
@@ -274,10 +285,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
+            tag,
           }),
           privateRateLimit("swap_place_move_stop_order", 20),
         );
-        return normalizeResponse(response);
+        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
       },
     },
     {
@@ -529,6 +541,10 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "tdMode", "side", "ordType"],
       },
@@ -537,6 +553,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
         const reduceOnly = args.reduceOnly;
         const cxlOnClosePos = args.cxlOnClosePos;
         const ordType = requireString(args, "ordType");
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         // Resolve sz vs closeFraction mutual exclusivity (issue #200)
         const szOrCf = resolveAlgoSzOrCloseFraction(args, ordType);
         // Only call resolveQuoteCcySz when sz is provided; skip when closeFraction is used
@@ -565,7 +582,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
-          tag: context.config.sourceTag,
+          tag,
         });
         switch (ordType) {
                     case "trigger":
@@ -592,7 +609,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           base,
           privateRateLimit("futures_place_algo_order", 20),
         );
-        const result = normalizeResponse(response);
+        const result = normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
         if (resolved.conversionNote) {
           result._conversion = resolved.conversionNote;
         }
@@ -654,12 +671,17 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             type: "string",
             description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "tdMode", "side", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
           compactObject({
@@ -675,10 +697,11 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
             reduceOnly:
               typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
+            tag,
           }),
           privateRateLimit("futures_place_move_stop_order", 20),
         );
-        return normalizeResponse(response);
+        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
       },
     },
     {

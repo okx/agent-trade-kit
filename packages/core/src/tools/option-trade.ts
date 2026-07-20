@@ -12,6 +12,7 @@ import {
   readNumber,
   readString,
   requireString,
+  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
@@ -88,6 +89,10 @@ export function registerOptionTools(): ToolSpec[] {
           },
           slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
           stpMode: STP_MODE_SCHEMA,
+          aiBuilderCode: {
+            type: "string",
+            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
+          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
@@ -95,6 +100,7 @@ export function registerOptionTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
+        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -116,12 +122,12 @@ export function registerOptionTools(): ToolSpec[] {
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(args, "clOrdId"),
             stpMode: readString(args, "stpMode"),
-            tag: context.config.sourceTag,
+            tag,
             attachAlgoOrds,
           }),
           privateRateLimit("option_place_order", 60),
         );
-        return normalizeResponse(response);
+        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
       },
     },
     {

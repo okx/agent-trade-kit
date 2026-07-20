@@ -11,7 +11,13 @@
 
 ## [Unreleased]
 
+### 新增
+
+- 所有 16 个下单工具新增可选参数 `aiBuilderCode`（`spot_place_order`、`spot_place_algo_order`、`spot_batch_orders`、`swap_place_order`、`swap_batch_orders`、`swap_place_algo_order`、`swap_place_move_stop_order`、`futures_place_order`、`futures_batch_orders`、`futures_place_algo_order`、`futures_place_move_stop_order`、`option_place_order`、`option_place_algo_order`、`event_place_order`、`grid_create_order`、`dca_create_order`），CLI 对应 `--ai-builder-code` 标志。合法值（1–16 位字母数字）会覆盖默认的 `MCP`/`CLI` 来源标签，写入 OKX 订单 `tag` 字段。非法值静默回退到默认标签并在响应中返回 `warnings` 字段。
+
 ### 修复
+
+- `swap_place_move_stop_order` 和 `futures_place_move_stop_order` 之前未在 OKX API 请求体中发送 `tag` 字段，现已修复。
 
 - 新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`）：语言参数改为通过 query 参数 `acceptLanguage`（下划线格式，如 `zh_CN`）传递，不再使用 `Accept-Language` 请求头。上游 orbit API 已停止解析该请求头，导致中文用户始终收到英文内容。对外暴露的 `language` 枚举（`zh-CN` / `en-US`）保持不变。
 

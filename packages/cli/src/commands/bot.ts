@@ -135,6 +135,7 @@ export async function cmdGridCreate(
     tpRatio?: string;
     slRatio?: string;
     algoClOrdId?: string;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -156,6 +157,7 @@ export async function cmdGridCreate(
     tpRatio: opts.tpRatio,
     slRatio: opts.slRatio,
     algoClOrdId: opts.algoClOrdId,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

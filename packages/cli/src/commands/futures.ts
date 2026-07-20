@@ -113,6 +113,7 @@ export async function cmdFuturesPlace(
     pxAmendType?: string;
     // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
     tpLevels?: Record<string, unknown>[];
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -137,6 +138,7 @@ export async function cmdFuturesPlace(
     stpMode: opts.stpMode,
     pxAmendType: opts.pxAmendType,
     tpLevels: opts.tpLevels,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -334,6 +336,7 @@ export async function cmdFuturesAlgoPlace(
     pxAmendType?: string;
     // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
     tpLevels?: Record<string, unknown>[];
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -377,6 +380,7 @@ export async function cmdFuturesAlgoPlace(
     closeFraction: opts.closeFraction,
     pxAmendType: opts.pxAmendType,
     tpLevels: opts.tpLevels,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

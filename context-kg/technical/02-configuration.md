@@ -127,7 +127,7 @@ interface OkxConfig {
   readOnly: boolean;
   demo: boolean;
   site: SiteId;           // "global" | "eea" | "us"
-  sourceTag: string;      // injected into order placements (default: "MCP")
+  sourceTag: string;      // injected into order placements (default: "MCP"); overridable per-order via aiBuilderCode
   proxyUrl?: string;
   userAgent?: string;     // custom User-Agent header for REST requests
   verbose: boolean;

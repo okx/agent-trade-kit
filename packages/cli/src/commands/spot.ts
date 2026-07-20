@@ -72,6 +72,7 @@ export async function cmdSpotPlace(
     pxAmendType?: string;
     // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
     tpLevels?: Record<string, unknown>[];
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -96,8 +97,11 @@ export async function cmdSpotPlace(
     banAmend: opts.banAmend,
     pxAmendType: opts.pxAmendType,
     tpLevels: opts.tpLevels,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
+  const warnings = (result as unknown as Record<string, unknown>).warnings as string[] | undefined;
+  if (warnings?.length) warnings.forEach((w) => errorLine(`Warning: ${w}`));
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Order placed", "ordId");
 }
@@ -158,6 +162,7 @@ export async function cmdSpotAlgoPlace(
     pxAmendType?: string;
     // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
     tpLevels?: Record<string, unknown>[];
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -198,8 +203,11 @@ export async function cmdSpotAlgoPlace(
     closeFraction: opts.closeFraction,
     pxAmendType: opts.pxAmendType,
     tpLevels: opts.tpLevels,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
+  const warnings = (result as unknown as Record<string, unknown>).warnings as string[] | undefined;
+  if (warnings?.length) warnings.forEach((w) => errorLine(`Warning: ${w}`));
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Algo order placed", "algoId");
 }
