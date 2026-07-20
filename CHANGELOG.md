@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- News tools' `language` argument now accepts only the canonical enum values `zh-CN` / `en-US`. The previously-tolerated legacy underscore forms (`zh_CN` / `en_US`) are no longer treated specially and fall back to `en_US` (English) — they were never part of the public schema `enum` and were rejected client-side by strict MCP clients anyway. The public enum and the upstream `acceptLanguage` wire value (underscore `zh_CN` / `en_US`) are unchanged.
+
 ## [1.4.0-beta.1] - 2026-07-17
 
 Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
