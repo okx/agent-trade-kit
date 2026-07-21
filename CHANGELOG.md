@@ -11,9 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-21
+
+First stable release of the 1.4.0 line. Consolidates all changes accumulated during the 1.3.10 / 1.4.0 beta cycle (see the `[1.3.10-beta.1]` and `[1.4.0-beta.1]` entries below for the original lists): three new contract-grid tools (positions / liquidation-price estimate / close-position) and a fix + hardening of the news tools' `language` handling.
+
+### Added
+
+- `grid_get_positions` MCP tool and `okx bot grid positions` CLI command: query open contract-grid positions (liquidation price, margin ratio, unrealized PnL).
+- `grid_get_liquidate_price` MCP tool and `okx bot grid liquidate-price` CLI command: estimate liquidation price for a contract-grid bot before creating it (requires the full intended config — instId/sz/lever/maxPx/minPx/gridNum/direction; runType defaults to '1', triggerStrategy optional; a partial call fails fast listing the missing params instead of hitting a cascade of backend 400s).
+- `grid_close_position` MCP tool and `okx bot grid close-position` CLI command: close the remaining open position of a contract-grid bot stopped with `stopType='2'`. The close mode is required with no default (fund-moving) — pass `mktClose=true` / `--mktClose` for a market close, or `mktClose=false` / `--no-mktClose --sz --px` for a limit close; omitting it is rejected on both the MCP and CLI entry points.
+
 ### Changed
 
 - News tools' `language` argument now accepts only the canonical enum values `zh-CN` / `en-US`. The previously-tolerated legacy underscore forms (`zh_CN` / `en_US`) are no longer treated specially and fall back to `en_US` (English) — they were never part of the public schema `enum` and were rejected client-side by strict MCP clients anyway. The public enum and the upstream `acceptLanguage` wire value (underscore `zh_CN` / `en_US`) are unchanged.
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version synced to `1.4.0` per the stable-release skill version sync policy.
+
+### Fixed
+
+- News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`): language is now passed as `acceptLanguage` query parameter (underscore format, e.g. `zh_CN`) instead of the `Accept-Language` request header. The upstream orbit API stopped reading the header; Chinese users were always receiving English content. The public `language` enum (`zh-CN` / `en-US`) is unchanged.
 
 ## [1.4.0-beta.1] - 2026-07-17
 
