@@ -226,7 +226,11 @@ export function registerGridTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoOrdType = requireString(args, "algoOrdType");
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const body: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           algoOrdType,
@@ -256,11 +260,7 @@ export function registerGridTools(): ToolSpec[] {
           body,
           privateRateLimit("grid_create_order", 20),
         );
-        const result = normalizeWrite(response);
-        if (warning) {
-          result.warnings = [warning];
-        }
-        return result;
+        return normalizeWrite(response);
       },
     },
     {

@@ -136,12 +136,13 @@ const AI_BUILDER_CODE_PATTERN = /^[A-Za-z0-9]{1,16}$/;
 /**
  * Resolves the OKX tag field for an order. If aiBuilderCode is provided and
  * valid (1-16 alphanumeric chars), it overrides the default sourceTag. Invalid
- * codes fall back silently to sourceTag and return a warning.
+ * codes cause the order to be rejected client-side; callers must check for
+ * `'error' in result` and return the error without calling the OKX API.
  */
 export function resolveOrderTag(
   args: Record<string, unknown>,
   sourceTag: string,
-): { tag: string; warning?: string } {
+): { tag: string } | { error: string } {
   const code = args["aiBuilderCode"];
   if (code === undefined || code === null || code === "") {
     return { tag: sourceTag };
@@ -150,8 +151,7 @@ export function resolveOrderTag(
     return { tag: code };
   }
   return {
-    tag: sourceTag,
-    warning: `aiBuilderCode "${code}" is invalid (must be 1–16 alphanumeric chars); using default tag "${sourceTag}"`,
+    error: `aiBuilderCode "${code}" is invalid (must be 1–16 alphanumeric chars)`,
   };
 }
 

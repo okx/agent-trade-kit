@@ -56,9 +56,31 @@ function makeSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<st
   return { spy, captured };
 }
 
+function makeErrorSpy(errorMsg: string): ToolRunner {
+  return async () => ({ isError: true, error: errorMsg });
+}
+
 function vals(overrides: Partial<CliValues>): CliValues {
   return overrides as CliValues;
 }
+
+// ===========================================================================
+// fail-fast: invalid aiBuilderCode → isError → process.exitCode = 1
+// ===========================================================================
+
+describe("handleSpotCommand - invalid aiBuilderCode fail-fast", () => {
+  it("place: sets process.exitCode=1 and does not throw when spy returns isError", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad-code!" is invalid (must be 1–16 alphanumeric chars)');
+    await handleSpotCommand(
+      errorSpy,
+      "place",
+      [],
+      vals({ instId: "BTC-USDT", side: "buy", ordType: "market", sz: "0.01", aiBuilderCode: "bad-code!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
+  });
+});
 
 // ===========================================================================
 // spot place-order

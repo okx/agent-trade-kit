@@ -104,7 +104,11 @@ export function registerSwapTradeTools(): ToolSpec[] {
         if (!Array.isArray(orders) || orders.length === 0) {
           throw new Error("orders must be a non-empty array.");
         }
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const endpointMap: Record<string, string> = {
           place: "/api/v5/trade/batch-orders",
           cancel: "/api/v5/trade/cancel-batch-orders",
@@ -137,7 +141,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
           body,
           privateRateLimit("swap_batch_orders", 60),
         );
-        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        return normalizeResponse(response);
       },
     },
   ];

@@ -459,7 +459,11 @@ export function registerEventContractTools(): ToolSpec[] {
         // speedBump is required by the exchange for all non-post_only event contract orders.
         const speedBump = ordType !== "post_only" ? "1" : undefined;
         const instId = requireString(args, "instId");
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -498,9 +502,6 @@ export function registerEventContractTools(): ToolSpec[] {
         // Add note for market orders explaining sz semantics
         if (ordType === "market") {
           result["orderNote"] = "Market order: sz is a quote currency amount. The exchange converts it to contracts based on best available price.";
-        }
-        if (warning) {
-          result["warnings"] = [warning];
         }
         return result;
       },

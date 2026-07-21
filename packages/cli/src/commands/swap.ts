@@ -122,6 +122,11 @@ export async function cmdSwapPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
+  if ((result as Record<string, unknown>).isError) {
+    errorLine((result as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Order placed", "ordId");
@@ -232,6 +237,11 @@ export async function cmdSwapAlgoPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
+  if ((result as Record<string, unknown>).isError) {
+    errorLine((result as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Algo order placed", "algoId");

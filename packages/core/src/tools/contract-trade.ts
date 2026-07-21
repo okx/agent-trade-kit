@@ -114,7 +114,11 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -144,7 +148,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           }),
           privateRateLimit(n("place_order"), 60),
         );
-        const result = normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        const result = normalizeResponse(response);
         if (resolved.conversionNote) {
           result._conversion = resolved.conversionNote;
         }
@@ -396,7 +400,11 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const autoCxl = args.autoCxl;
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/close-position",
           compactObject({
@@ -409,7 +417,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           }),
           privateRateLimit(n("close_position"), 20),
         );
-        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        return normalizeResponse(response);
       },
     },
 

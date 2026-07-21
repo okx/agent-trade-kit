@@ -232,16 +232,18 @@ describe("resolveOrderTag", () => {
     assert.deepEqual(result, { tag: code });
   });
 
-  it("returns sourceTag with warning when code contains hyphen", () => {
+  it("returns error (no tag) when code contains hyphen", () => {
     const result = resolveOrderTag({ aiBuilderCode: "abc-def" }, "MCP");
-    assert.equal(result.tag, "MCP");
-    assert.ok(typeof result.warning === "string" && result.warning.length > 0);
+    assert.ok("error" in result);
+    assert.ok(!("tag" in result));
+    assert.ok(typeof (result as { error: string }).error === "string" && (result as { error: string }).error.length > 0);
   });
 
-  it("returns sourceTag with warning when code exceeds 16 chars", () => {
+  it("returns error (no tag) when code exceeds 16 chars", () => {
     const result = resolveOrderTag({ aiBuilderCode: "ABCDEFGHIJ1234567" }, "MCP");
-    assert.equal(result.tag, "MCP");
-    assert.ok(typeof result.warning === "string" && result.warning.length > 0);
+    assert.ok("error" in result);
+    assert.ok(!("tag" in result));
+    assert.ok(typeof (result as { error: string }).error === "string" && (result as { error: string }).error.length > 0);
   });
 });
 

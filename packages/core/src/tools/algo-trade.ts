@@ -139,7 +139,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
         const reduceOnly = args.reduceOnly;
         const cxlOnClosePos = args.cxlOnClosePos;
         const ordType = requireString(args, "ordType");
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         // Resolve sz vs closeFraction mutual exclusivity (issue #200)
         const szOrCf = resolveAlgoSzOrCloseFraction(args, ordType);
         // Only call resolveQuoteCcySz when sz is provided; skip when closeFraction is used
@@ -195,7 +199,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           base,
           privateRateLimit("swap_place_algo_order", 20),
         );
-        const result = normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        const result = normalizeResponse(response);
         if (resolved.conversionNote) {
           result._conversion = resolved.conversionNote;
         }
@@ -269,7 +273,11 @@ export function registerAlgoTradeTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
           compactObject({
@@ -289,7 +297,7 @@ export function registerAlgoTradeTools(): ToolSpec[] {
           }),
           privateRateLimit("swap_place_move_stop_order", 20),
         );
-        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        return normalizeResponse(response);
       },
     },
     {
@@ -553,7 +561,11 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
         const reduceOnly = args.reduceOnly;
         const cxlOnClosePos = args.cxlOnClosePos;
         const ordType = requireString(args, "ordType");
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         // Resolve sz vs closeFraction mutual exclusivity (issue #200)
         const szOrCf = resolveAlgoSzOrCloseFraction(args, ordType);
         // Only call resolveQuoteCcySz when sz is provided; skip when closeFraction is used
@@ -609,7 +621,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           base,
           privateRateLimit("futures_place_algo_order", 20),
         );
-        const result = normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        const result = normalizeResponse(response);
         if (resolved.conversionNote) {
           result._conversion = resolved.conversionNote;
         }
@@ -681,7 +693,11 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/order-algo",
           compactObject({
@@ -701,7 +717,7 @@ export function registerFuturesAlgoTools(): ToolSpec[] {
           }),
           privateRateLimit("futures_place_move_stop_order", 20),
         );
-        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        return normalizeResponse(response);
       },
     },
     {

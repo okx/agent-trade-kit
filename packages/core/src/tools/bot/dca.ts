@@ -160,7 +160,11 @@ export function registerDcaTools(): ToolSpec[] {
           ? allowReinvestRaw === true || allowReinvestRaw === "true"
           : undefined;
 
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const response = await context.client.privatePost(
           `${BASE}/create`,
           compactObject({
@@ -186,11 +190,7 @@ export function registerDcaTools(): ToolSpec[] {
           }),
           privateRateLimit("dca_create_order", 20),
         );
-        const result = normalizeWrite(response);
-        if (warning) {
-          result.warnings = [warning];
-        }
-        return result;
+        return normalizeWrite(response);
       },
     },
     {

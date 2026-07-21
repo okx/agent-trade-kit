@@ -94,7 +94,11 @@ export function registerFuturesTools(): ToolSpec[] {
         if (!Array.isArray(orders) || orders.length === 0) {
           throw new Error("orders must be a non-empty array.");
         }
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const body = orders.map((order: unknown) => {
           const o = asRecord(order);
           const attachAlgoOrds = buildAttachAlgoOrds(o);
@@ -118,7 +122,7 @@ export function registerFuturesTools(): ToolSpec[] {
           body,
           privateRateLimit("futures_batch_orders", 60),
         );
-        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        return normalizeResponse(response);
       },
     },
   ];

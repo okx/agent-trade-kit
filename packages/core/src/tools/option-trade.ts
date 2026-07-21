@@ -100,7 +100,11 @@ export function registerOptionTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
-        const { tag, warning } = resolveOrderTag(args, context.config.sourceTag);
+        const tagResult = resolveOrderTag(args, context.config.sourceTag);
+        if ("error" in tagResult) {
+          return { isError: true, error: tagResult.error };
+        }
+        const { tag } = tagResult;
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -127,7 +131,7 @@ export function registerOptionTools(): ToolSpec[] {
           }),
           privateRateLimit("option_place_order", 60),
         );
-        return normalizeResponse(response, warning ? { warnings: [warning] } : undefined);
+        return normalizeResponse(response);
       },
     },
     {
