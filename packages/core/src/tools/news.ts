@@ -47,9 +47,14 @@ const CALENDAR_REGIONS = [
 
 const NEWS_LANGUAGE = ["en-US", "zh-CN"] as const;
 
-/** Map language input to acceptLanguage query param value (underscore format required by upstream). */
+/**
+ * Map the public `language` enum to the upstream acceptLanguage query value (underscore format
+ * required by upstream). Only the canonical enum value `zh-CN` yields Chinese; anything else —
+ * including the legacy underscore `zh_CN` and an omitted value — falls back to `en_US`. The
+ * underscore variant is intentionally no longer accepted (it is not part of the public schema).
+ */
 function acceptLanguage(lang: string | undefined): string {
-  if (lang === "zh-CN" || lang === "zh_CN") return "zh_CN";
+  if (lang === "zh-CN") return "zh_CN";
   return "en_US";
 }
 

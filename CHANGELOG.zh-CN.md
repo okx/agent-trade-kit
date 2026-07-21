@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.4.0-beta.1] - 2026-07-17
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
 ### 修复
 
 - 新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`）：语言参数改为通过 query 参数 `acceptLanguage`（下划线格式，如 `zh_CN`）传递，不再使用 `Accept-Language` 请求头。上游 orbit API 已停止解析该请求头，导致中文用户始终收到英文内容。对外暴露的 `language` 枚举（`zh-CN` / `en-US`）保持不变。

@@ -199,7 +199,7 @@ describe("news_get_latest", () => {
     assert.equal(call.headers?.["Accept-Language"], undefined);
   });
 
-  it("acceptLanguage normalises legacy zh_CN input to zh_CN query param", async () => {
+  it("no longer treats legacy underscore zh_CN as Chinese (falls back to en_US)", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
@@ -207,10 +207,11 @@ describe("news_get_latest", () => {
 
     await tool.handler({ language: "zh_CN" }, ctx);
     const call = getLastCall()!;
-    assert.equal(call.params["acceptLanguage"], "zh_CN");
+    // Only the canonical enum value `zh-CN` yields Chinese; the underscore variant is not accepted.
+    assert.equal(call.params["acceptLanguage"], "en_US");
   });
 
-  it("acceptLanguage normalises legacy en_US input to en_US query param", async () => {
+  it("treats any non-`zh-CN` value (incl. underscore en_US) as en_US", async () => {
     const { client, getLastCall } = makeMockClient();
     const ctx = makeContext(client);
     const tools = registerNewsTools();
