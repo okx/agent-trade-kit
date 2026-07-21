@@ -3,9 +3,11 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~47,715 tokens | **Over budget:** ~22,715 tokens | **Tools:** 164 (102 read / 62 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~48,628 tokens | **Over budget:** ~23,628 tokens | **Tools:** 167 (104 read / 63 write)
 
-> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 101 工具, ~24,995 tokens (under budget)。
+> Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 104 工具, ~25,477 tokens (over budget)。
+>
+> ⚠️ 本次仅重算了 bot.grid（真实脚本值 ~3,131，此前手动维护的 ~2,705 已漂移）。其余模块的 Token Est. 列与真实脚本输出存在系统性偏离（如 smartmoney、news），Total/readOnly 亦待全表 regenerate — 见 #206。
 
 ## Registered Modules
 
@@ -20,7 +22,7 @@ Unregistered modules will be rejected during review.
 | account | ✅ approved | 15 | 13 | 2 | ~3,240 | _(founding module)_ | @Jasmine.Li | — |
 | event | ✅ approved | 9 | 6 | 3 | ~2,607 | [event](modules/event.md) | @Jasmine.Li | 2026-03-30 |
 | news | ✅ approved | 9 | 9 | 0 | ~3,352 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
-| bot.grid | ✅ approved | 6 | 3 | 3 | ~2,218 | _(founding module)_ | @Jasmine.Li | — |
+| bot.grid | ✅ approved | 9 | 5 | 4 | ~3,131 | _(founding module)_ | @Jasmine.Li | — |
 | earn.savings | ✅ approved | 10 | 5 | 5 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 5 | 3 | 2 | ~1,341 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |
@@ -29,7 +31,7 @@ Unregistered modules will be rejected during review.
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
 | outcomes (wrapper) | ✅ approved (CLI-only) | 0 | 0 | 0 | 0 | [outcomes-wrapper](designs/outcomes-wrapper.md) | @Dehang.Chi | 2026-06-02 |
-| **Total** | | **164** | **102** | **62** | **~47,715** | | | |
+| **Total** | | **167** | **104** | **63** | **~48,628** | | | |
 
 > **CLI-only wrapper modules** (e.g. `outcomes`) expose CLI subcommands by spawning an external binary but register no MCP tools. They consume zero MCP token budget and are out of scope for the drift / eval-probe checks.
 

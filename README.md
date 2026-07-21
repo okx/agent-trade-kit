@@ -29,7 +29,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 
 | Feature | Description |
 |---------|-------------|
-| **164 tools across 11 modules (17 sub-modules)** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news → smart money signals |
+| **167 tools across 11 modules (17 sub-modules)** | Full trading lifecycle: market data → orders → algo orders → account management → earn → trading bots → event contracts → news → smart money signals |
 | **Algo orders built-in** | Conditional, OCO take-profit/stop-loss, trailing stop |
 | **Safety controls** | `--read-only` flag, per-module filtering, built-in rate limiter |
 | **Zero infrastructure** | Local stdio process, no server or database required |
@@ -49,7 +49,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
 | `event` | 9 | Event contract trading: browse, series, events, markets (query); place, amend, cancel, orders, fills (private). Semantic outcome values: UP/YES/DOWN/NO | [→](docs/modules/event.md) |
 | `earn` | 24 | Simple Earn: balance, purchase, redeem, lending rate, **fixed-term products query**, **fixed-term orders** (10). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). **Flash Earn** (1). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`, `earn.flash`. Included in `all`. | [→](docs/modules/earn.md) |
-| `bot` | 10 | Trading bots: Grid (5) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
+| `bot` | 14 | Trading bots: Grid (9) and DCA — Spot & Contract (5). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
 | `news` | 7 | Crypto news: latest news, by-coin filter, full-text search, article detail, news sources, coin sentiment (snapshot + trend) | [→](docs/modules/news.md) |
 | `smartmoney` | 10 | Smart money analytics: leaderboard ranking, trader performance / positions / position history / order history, top-coin signals, single-asset signal (by coin / by traders), signal history (by coin / by traders) — all read-only, split by entry mode for AI-agent disambiguation | [→](docs/modules/smartmoney.md) |
 | `outcomes` | 0 (wrapper) | OKX Outcomes (YES/NO event contracts, formerly OKX Predictions) — CLI-only wrapper that forwards to the external `okx-outcomes` binary (installed via `install.sh` from `github.com/okx/outcomes-cli`). Browse events, account queries (OAuth), CLOB price/orderbook, dry-run-gated trade placement, and CTF split/merge/redeem | [→](docs/designs/outcomes-wrapper.md) |

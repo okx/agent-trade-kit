@@ -12,9 +12,14 @@ describe("parseCli", () => {
       assert.equal(values.basePos, false);
     });
 
-    it("basePos defaults to true when --basePos is absent", () => {
+    it("basePos is undefined when neither flag is given (no parser default; create's handler applies the true default, so liquidate-price can omit it)", () => {
       const { values } = parseCli(["bot", "grid", "create"]);
-      assert.equal(values.basePos, true);
+      assert.equal(values.basePos, undefined);
+    });
+
+    it("liquidate-price can omit basePos (not forced to true by a parser default)", () => {
+      const { values } = parseCli(["bot", "grid", "liquidate-price"]);
+      assert.equal(values.basePos, undefined);
     });
 
     it("--basePos sets basePos to true explicitly", () => {
@@ -83,6 +88,31 @@ describe("parseCli", () => {
       const { values } = parseCli(["onchain-earn", "orders", "--state", "1"]);
       assert.equal(values.state, "1");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseCli — grid position management options (grid_close_position CLI parity)
+// sourceAlgoId was added to CLI_OPTIONS/CliValues speculatively but never
+// wired to any command or ToolSpec; it must be removed rather than kept as a
+// dead, silently-accepted flag (review of MR !359, suggestion #2).
+// ---------------------------------------------------------------------------
+describe("grid position management options", () => {
+  it("--mktClose sets mktClose to true", () => {
+    const { values } = parseCli(["bot", "grid", "close-position", "--algoId", "G001", "--mktClose"]);
+    assert.equal(values.mktClose, true);
+  });
+
+  it("--no-mktClose sets mktClose to false", () => {
+    const { values } = parseCli(["bot", "grid", "close-position", "--algoId", "G001", "--no-mktClose"]);
+    assert.equal(values.mktClose, false);
+  });
+
+  it("--sourceAlgoId is rejected as unknown option (dead flag removed, not silently accepted)", () => {
+    assert.throws(
+      () => parseCli(["bot", "grid", "close-position", "--sourceAlgoId", "A123"]),
+      { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" },
+    );
   });
 });
 

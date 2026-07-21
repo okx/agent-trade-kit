@@ -11,6 +11,43 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-21
+
+1.4.0 系列首个稳定版。合并 1.3.10 / 1.4.0 beta 周期内累积的全部变更（原始明细见下方 `[1.3.10-beta.1]` 与 `[1.4.0-beta.1]` 条目）：新增 3 个合约网格工具（持仓 / 强平价估算 / 平仓），以及新闻工具 `language` 处理的修复与收紧。
+
+### 新增
+
+- `grid_get_positions` MCP 工具及 `okx bot grid positions` CLI 命令：查询合约网格机器人的持仓信息（强平价、保证金率、未实现盈亏）。
+- `grid_get_liquidate_price` MCP 工具及 `okx bot grid liquidate-price` CLI 命令：建仓前估算合约网格机器人的强平价（需提供完整的目标配置——instId/sz/lever/maxPx/minPx/gridNum/direction；runType 默认 '1'，triggerStrategy 可选；参数不全时本地一次性列出缺失项 fail-fast，而非触发后端连环 400）。
+- `grid_close_position` MCP 工具及 `okx bot grid close-position` CLI 命令：关闭以 `stopType='2'` 停止的合约网格机器人的剩余持仓。平仓方式必填且无默认值（涉及资金变动）——市价平仓传 `mktClose=true` / `--mktClose`，限价平仓传 `mktClose=false` / `--no-mktClose --sz --px`；MCP 与 CLI 入口均会拒绝缺省该参数的调用。
+
+### 变更
+
+- 新闻工具的 `language` 参数现在仅接受规范枚举值 `zh-CN` / `en-US`。此前被容忍的下划线旧格式（`zh_CN` / `en_US`）不再特殊处理，会回退为 `en_US`（英文）——它们从未属于对外 schema `enum`，严格的 MCP 客户端本就会在客户端拒绝。对外枚举及上游 `acceptLanguage` 线上取值（下划线 `zh_CN` / `en_US`）保持不变。
+- 所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本按稳定版 skill 版本同步策略同步至 `1.4.0`。
+
+### 修复
+
+- 新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`）：语言参数改为通过 query 参数 `acceptLanguage`（下划线格式，如 `zh_CN`）传递，不再使用 `Accept-Language` 请求头。上游 orbit API 已停止解析该请求头，导致中文用户始终收到英文内容。对外暴露的 `language` 枚举（`zh-CN` / `en-US`）保持不变。
+
+## [1.4.0-beta.1] - 2026-07-17
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
+### 修复
+
+- 新闻工具（`news_get_latest`、`news_get_by_coin`、`news_search`、`news_get_detail`）：语言参数改为通过 query 参数 `acceptLanguage`（下划线格式，如 `zh_CN`）传递，不再使用 `Accept-Language` 请求头。上游 orbit API 已停止解析该请求头，导致中文用户始终收到英文内容。对外暴露的 `language` 枚举（`zh-CN` / `en-US`）保持不变。
+
+## [1.3.10-beta.1] - 2026-07-14
+
+Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新（仅稳定版同步）。
+
+### 新增
+
+- `grid_get_positions` MCP 工具及 `okx bot grid positions` CLI 命令：查询合约网格机器人的持仓信息（强平价、保证金率、未实现盈亏）。
+- `grid_get_liquidate_price` MCP 工具及 `okx bot grid liquidate-price` CLI 命令：建仓前估算合约网格机器人的强平价（需提供完整的目标配置——instId/sz/lever/maxPx/minPx/gridNum/direction；runType 默认 '1'，triggerStrategy 可选；参数不全时本地一次性列出缺失项 fail-fast，而非触发后端连环 400）。
+- `grid_close_position` MCP 工具及 `okx bot grid close-position` CLI 命令：关闭以 `stopType='2'` 停止的合约网格机器人的剩余持仓。
+
 ## [1.3.9] - 2026-06-25
 
 1.3.9 系列首个稳定版，聚合 1.3.9 beta 周期内累计的全部改动（完整条目见下方 `[1.3.9-beta.1]` 至 `[1.3.9-beta.3]`）：新增 `tr`（土耳其）站点、`okx bot grid sub-orders` 分页参数对齐（`--groupId`/`--after`/`--before`/`--limit`）及新增 `--pending` 标志（实盘、模拟盘均可查询挂单子单）、修复被静默丢弃的 CLI `--site` flag，以及 35 个新增的 `okx outcomes` eval probe。

@@ -6,6 +6,7 @@ import {
   readBoolean,
   readNumber,
   readString,
+  requireBoolean,
   requireString,
 } from "../helpers.js";
 import { privateRateLimit } from "../common.js";
@@ -455,6 +456,150 @@ export function registerGridTools(): ToolSpec[] {
           })],
           privateRateLimit("grid_stop_order", 20),
           true, // retryOnNetworkError: safe to retry - already-stopped returns an error but does not harm state
+        );
+        return normalizeWrite(response);
+      },
+    },
+    {
+      name: "grid_get_positions",
+      title: "Grid Bot Get Positions",
+      module: "bot.grid",
+      description:
+        "Get open contract-grid positions for an active or recently-stopped contract-grid bot. Returns liquidation price, margin ratio, and unrealized PnL.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Grid bot algo order ID" },
+          algoOrdType: {
+            type: "string",
+            enum: ["contract_grid"],
+            description: "Must be contract_grid",
+          },
+        },
+        required: ["algoId", "algoOrdType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const response = await context.client.privateGet(
+          "/api/v5/tradingBot/grid/positions",
+          {
+            algoId: requireString(args, "algoId"),
+            algoOrdType: requireString(args, "algoOrdType"),
+          },
+          privateRateLimit("grid_get_positions", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "grid_get_liquidate_price",
+      title: "Grid Bot Get Liquidation Price",
+      module: "bot.grid",
+      description:
+        "Estimate the liquidation price for a contract-grid bot before creating it. Contract grid only. " +
+        "Requires the full intended config: instId, sz (margin), lever, the grid range (maxPx, minPx, gridNum) " +
+        "and direction. runType defaults to arithmetic ('1'); triggerStrategy is optional.",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          instId: { type: "string", description: "Instrument ID, e.g. BTC-USDT-SWAP" },
+          sz: { type: "string", description: "Margin size in USDT (or base coin for CoinM)" },
+          lever: { type: "string", description: "Leverage, e.g. '5'" },
+          direction: {
+            type: "string",
+            enum: ["long", "short", "neutral"],
+            description: "Bot direction (pass 'neutral' for a neutral bot)",
+          },
+          basePos: { type: "boolean", description: "Whether the base position is opened" },
+          maxPx: { type: "string", description: "Upper price of the grid range" },
+          minPx: { type: "string", description: "Lower price of the grid range" },
+          gridNum: { type: "string", description: "Number of grids" },
+          runType: {
+            type: "string",
+            enum: ["1", "2"],
+            description: "1=arithmetic (default); 2=geometric",
+          },
+          triggerStrategy: {
+            type: "string",
+            enum: ["instant", "price", "rsi", "webhook"],
+            description: "Entry trigger strategy for the intended bot",
+          },
+        },
+        required: ["instId", "sz", "lever", "maxPx", "minPx", "gridNum", "direction"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        // The endpoint requires the full intended config and rejects a partial one
+        // with a vague HTTP 400 (one missing param at a time) — fail fast with the
+        // complete list instead.
+        const missing = ["maxPx", "minPx", "gridNum", "direction"].filter(
+          (key) => readString(args, key) === undefined,
+        );
+        if (missing.length > 0) {
+          throw new OkxApiError(
+            `Missing required parameter(s): ${missing.join(", ")}. A liquidation-price estimate needs the ` +
+              "full intended config — instId, sz, lever, maxPx, minPx, gridNum and direction.",
+            { code: "", endpoint: "grid_get_liquidate_price" },
+          );
+        }
+        const response = await context.client.privateGet(
+          "/api/v5/tradingBot/grid/liquidate-price",
+          compactObject({
+            instId: requireString(args, "instId"),
+            sz: requireString(args, "sz"),
+            lever: requireString(args, "lever"),
+            direction: readString(args, "direction"),
+            basePos: readBoolean(args, "basePos"),
+            maxPx: readString(args, "maxPx"),
+            minPx: readString(args, "minPx"),
+            gridNum: readString(args, "gridNum"),
+            runType: readString(args, "runType") ?? "1",
+            triggerStrategy: readString(args, "triggerStrategy"),
+          }),
+          privateRateLimit("grid_get_liquidate_price", 20),
+        );
+        return normalizeResponse(response);
+      },
+    },
+    {
+      name: "grid_close_position",
+      title: "Grid Bot Close Position",
+      module: "bot.grid",
+      description:
+        "[CAUTION] Close the remaining open position of a contract-grid bot that was stopped with stopType='2'. " +
+        "Use grid_get_positions first to confirm the position exists and check its size before closing. " +
+        "Use mktClose=true for an immediate market close, or mktClose=false to place a limit close order (provide sz and px).",
+      isWrite: true,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Grid bot algo order ID" },
+          mktClose: {
+            type: "boolean",
+            description:
+              "Required, no default (fund-moving): true=market close immediately; false=limit close (requires sz and px).",
+          },
+          sz: { type: "string", description: "Close size (required when mktClose=false)" },
+          px: { type: "string", description: "Limit price (required when mktClose=false)" },
+        },
+        required: ["algoId", "mktClose"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        // Fund-moving write: no implicit default — the caller must state the
+        // close mode explicitly (mirrors the CLI, which requires --mktClose/--no-mktClose).
+        const mktClose = requireBoolean(args, "mktClose");
+        const response = await context.client.privatePost(
+          "/api/v5/tradingBot/grid/close-position",
+          compactObject({
+            algoId: requireString(args, "algoId"),
+            mktClose,
+            sz: readString(args, "sz"),
+            px: readString(args, "px"),
+          }),
+          privateRateLimit("grid_close_position", 20),
         );
         return normalizeWrite(response);
       },

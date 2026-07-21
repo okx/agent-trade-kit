@@ -47,10 +47,15 @@ const CALENDAR_REGIONS = [
 
 const NEWS_LANGUAGE = ["en-US", "zh-CN"] as const;
 
-/** Map language input to Accept-Language header. Update branches here when NEWS_LANGUAGE grows. */
-function langHeader(lang: string | undefined): Record<string, string> {
-  if (lang === "zh-CN" || lang === "zh_CN") return { "Accept-Language": "zh-CN" };
-  return { "Accept-Language": "en-US" };
+/**
+ * Map the public `language` enum to the upstream acceptLanguage query value (underscore format
+ * required by upstream). Only the canonical enum value `zh-CN` yields Chinese; anything else —
+ * including the legacy underscore `zh_CN` and an omitted value — falls back to `en_US`. The
+ * underscore variant is intentionally no longer accepted (it is not part of the public schema).
+ */
+function acceptLanguage(lang: string | undefined): string {
+  if (lang === "zh-CN") return "zh_CN";
+  return "en_US";
 }
 
 const NEWS_DETAIL_LVL = ["brief", "summary", "full"] as const;
@@ -114,9 +119,9 @@ export function registerNewsTools(): ToolSpec[] {
             detailLvl: readString(args, "detailLvl"),
             limit: readNumber(args, "limit") ?? 10,
             cursor: readString(args, "after"),
+            acceptLanguage: acceptLanguage(readString(args, "language")),
           }),
           publicRateLimit("news_get_latest", 20),
-          langHeader(readString(args, "language")),
         );
         return normalizeResponse(response);
       },
@@ -159,9 +164,9 @@ export function registerNewsTools(): ToolSpec[] {
             end: readNumber(args, "end"),
             detailLvl: readString(args, "detailLvl"),
             limit: readNumber(args, "limit") ?? 10,
+            acceptLanguage: acceptLanguage(readString(args, "language")),
           }),
           publicRateLimit("news_get_by_coin", 20),
-          langHeader(readString(args, "language")),
         );
         return normalizeResponse(response);
       },
@@ -218,9 +223,9 @@ export function registerNewsTools(): ToolSpec[] {
             detailLvl: readString(args, "detailLvl"),
             limit: readNumber(args, "limit") ?? 10,
             cursor: readString(args, "after"),
+            acceptLanguage: acceptLanguage(readString(args, "language")),
           }),
           publicRateLimit("news_search", 20),
-          langHeader(readString(args, "language")),
         );
         return normalizeResponse(response);
       },
@@ -251,9 +256,8 @@ export function registerNewsTools(): ToolSpec[] {
         }
         const response = await context.client.privateGet(
           NEWS_DETAIL,
-          { id },
+          { id, acceptLanguage: acceptLanguage(readString(args, "language")) },
           publicRateLimit("news_get_detail", 20),
-          langHeader(readString(args, "language")),
         );
         return normalizeResponse(response);
       },
