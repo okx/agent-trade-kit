@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-07-21
+
 ### Fixed
 
 - `okx bot grid liquidate-price` human-readable output now correctly displays `instId` (backfilled from opts), `direction` (backfilled from opts), and the liquidation price mapped from the real API fields (`longLiqPx` / `shortLiqPx`). Previously all three fields printed as `undefined` because the display layer was reading `item.instId`, `item.liqPx`, and `item.direction`, none of which exist in the API response. For `long` direction the displayed `liqPx` comes from `longLiqPx`; for `short` it comes from `shortLiqPx`; for `neutral` (or no direction) both `longLiqPx` and `shortLiqPx` are shown. `--json` output was already correct and is unchanged.

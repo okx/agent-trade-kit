@@ -4,7 +4,7 @@ description: "Smart Money analytics on OKX: leaderboard traders, position tracki
 license: MIT
 metadata:
   author: okx
-  version: "1.4.0"
+  version: "1.4.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.0"
+        package: "@okx_ai/okx-trade-cli@1.4.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---

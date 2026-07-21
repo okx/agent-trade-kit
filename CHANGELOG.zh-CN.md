@@ -11,6 +11,8 @@
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-07-21
+
 ### 修复
 
 - `okx bot grid liquidate-price` 人类可读输出现在能正确显示 `instId`（从 opts 回填）、`direction`（从 opts 回填）以及从真实 API 字段（`longLiqPx` / `shortLiqPx`）映射的强平价。此前三个字段均显示为 `undefined`，原因是显示层读取了 API 响应中不存在的 `item.instId`、`item.liqPx`、`item.direction`。`long` 方向的 `liqPx` 取自 `longLiqPx`，`short` 方向取自 `shortLiqPx`，`neutral`（或未指定方向）则同时展示 `longLiqPx` 和 `shortLiqPx`。`--json` 输出原本正确，本次不变。
