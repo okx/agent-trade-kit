@@ -280,11 +280,13 @@ export async function cmdGridLiquidatePrice(
   if (opts.json) return printJson(data);
   const item = data[0];
   if (!item) { outputLine("No data"); return; }
-  printKv({
-    instId:    item["instId"],
-    liqPx:     item["liqPx"],
-    direction: item["direction"],
-  });
+  if (opts.direction === "long") {
+    printKv({ instId: opts.instId, direction: opts.direction, liqPx: item["longLiqPx"] });
+  } else if (opts.direction === "short") {
+    printKv({ instId: opts.instId, direction: opts.direction, liqPx: item["shortLiqPx"] });
+  } else {
+    printKv({ instId: opts.instId, direction: opts.direction, longLiqPx: item["longLiqPx"], shortLiqPx: item["shortLiqPx"] });
+  }
 }
 
 export async function cmdGridClosePosition(
