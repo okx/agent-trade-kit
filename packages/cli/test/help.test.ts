@@ -555,6 +555,11 @@ describe('printHelp("market", "indicator") - indicator subgroup detail', () => {
     assert.ok(out.includes("list"), "should mention list command");
     assert.ok(out.includes("<instId>"), "should show instId placeholder for query");
   });
+
+  it("help output contains --list flag for discoverability (ALGO-44118)", () => {
+    const out = captureStdout(() => printHelp("market", "indicator"));
+    assert.ok(out.includes("--list"), "should include --list flag in indicator help output");
+  });
 });
 
 // ---------------------------------------------------------------------------

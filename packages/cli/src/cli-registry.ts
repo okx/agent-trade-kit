@@ -159,8 +159,8 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "<indicator> <instId>": {
             toolName: "market_get_indicator",
-            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--limit <1-100>] [--backtest-time <ts>] [--params <json>]",
-            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). NOTE: 1m is not supported for indicators.",
+            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--list] [--limit <1-100>] [--backtest-time <ts>] [--params <json>]",
+            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators.",
           },
         },
       },
