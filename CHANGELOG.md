@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-07-23
+
+### Fixed
+
+- `okx market indicator <indicator> <instId> --help` now shows `[--list]` in the usage line (placed before `[--limit]`), and the description explains that the command returns the latest value by default; use `--list` + `--limit` for a historical series. Previously `--list` was absent from the help output, causing users to believe `--limit` alone controlled the number of returned values (ALGO-44118).
+
 ## [1.4.1] - 2026-07-21
 
 ### Fixed
