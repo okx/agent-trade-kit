@@ -329,6 +329,18 @@ describe("handleSpotCommand batch - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], undefined);
   });
+
+  it("batch place: invalid aiBuilderCode sets process.exitCode=1", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+    await handleSpotCommand(
+      errorSpy,
+      "batch",
+      [],
+      vals({ action: "place", orders: '[{"instId":"BTC-USDT","side":"buy","ordType":"market","sz":"0.01"}]', aiBuilderCode: "bad!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
+  });
 });
 
 // ===========================================================================
@@ -347,6 +359,18 @@ describe("handleSwapCommand batch - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
+
+  it("batch place: invalid aiBuilderCode sets process.exitCode=1", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+    await handleSwapCommand(
+      errorSpy,
+      "batch",
+      [],
+      vals({ action: "place", orders: '[{"instId":"BTC-USDT-SWAP","side":"buy","ordType":"market","sz":"1","tdMode":"cross"}]', aiBuilderCode: "bad!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
+  });
 });
 
 // ===========================================================================
@@ -364,6 +388,18 @@ describe("handleFuturesCommand batch - aiBuilderCode routing", () => {
       false,
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
+  });
+
+  it("batch place: invalid aiBuilderCode sets process.exitCode=1", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+    await handleFuturesCommand(
+      errorSpy,
+      "batch",
+      [],
+      vals({ action: "place", orders: '[{"instId":"BTC-USDT-240329","side":"buy","ordType":"market","sz":"1","tdMode":"cross"}]', aiBuilderCode: "bad!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
   });
 });
 
@@ -410,6 +446,17 @@ describe("handleSwapAlgoCommand trail - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
+
+  it("trail: invalid aiBuilderCode sets process.exitCode=1", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+    await handleSwapAlgoCommand(
+      errorSpy,
+      "trail",
+      vals({ instId: "BTC-USDT-SWAP", side: "sell", sz: "1", tdMode: "cross", callbackRatio: "0.05", aiBuilderCode: "bad!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
+  });
 });
 
 // ===========================================================================
@@ -426,6 +473,17 @@ describe("handleFuturesAlgoCommand trail - aiBuilderCode routing", () => {
       false,
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
+  });
+
+  it("trail: invalid aiBuilderCode sets process.exitCode=1", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+    await handleFuturesAlgoCommand(
+      errorSpy,
+      "trail",
+      vals({ instId: "BTC-USDT-240329", side: "sell", sz: "1", tdMode: "cross", callbackRatio: "0.05", aiBuilderCode: "bad!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
   });
 });
 
@@ -518,5 +576,17 @@ describe("handleFuturesCommand close - aiBuilderCode routing", () => {
       false,
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
+  });
+
+  it("close: invalid aiBuilderCode sets process.exitCode=1", async () => {
+    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+    await handleFuturesCommand(
+      errorSpy,
+      "close",
+      [],
+      vals({ instId: "BTC-USDT-240329", mgnMode: "cross", aiBuilderCode: "bad!" }),
+      false,
+    );
+    assert.equal(process.exitCode, 1);
   });
 });

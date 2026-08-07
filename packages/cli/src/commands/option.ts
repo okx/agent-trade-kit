@@ -216,8 +216,8 @@ export async function cmdOptionPlace(
     stpMode: opts.stpMode,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as Record<string, unknown>).isError) {
-    errorLine((result as Record<string, unknown>).error as string);
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
     process.exitCode = 1;
     return;
   }
@@ -313,8 +313,8 @@ export async function cmdOptionAlgoPlace(
     clOrdId: opts.clOrdId,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as Record<string, unknown>).isError) {
-    errorLine((result as Record<string, unknown>).error as string);
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
     process.exitCode = 1;
     return;
   }
