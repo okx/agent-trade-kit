@@ -566,7 +566,7 @@ describe("cmdGridLiquidatePrice", () => {
     let captured: Record<string, unknown> = {};
     const spy: ToolRunner = async (_name, args) => {
       captured = args as Record<string, unknown>;
-      return fakeResult([{ liqPx: "38000" }]);
+      return fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
     };
     await cmdGridLiquidatePrice(spy, {
       instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
@@ -580,7 +580,7 @@ describe("cmdGridLiquidatePrice", () => {
     let captured: Record<string, unknown> = {};
     const spy: ToolRunner = async (_name, args) => {
       captured = args as Record<string, unknown>;
-      return fakeResult([{ liqPx: "38000" }]);
+      return fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
     };
     await cmdGridLiquidatePrice(spy, {
       instId: "BTC-USDT-SWAP", sz: "100", lever: "5", direction: "long", json: false,
@@ -592,7 +592,7 @@ describe("cmdGridLiquidatePrice", () => {
     let captured: Record<string, unknown> = {};
     const spy: ToolRunner = async (_name, args) => {
       captured = args as Record<string, unknown>;
-      return fakeResult([{ liqPx: "38000" }]);
+      return fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
     };
     await cmdGridLiquidatePrice(spy, {
       instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
@@ -601,7 +601,7 @@ describe("cmdGridLiquidatePrice", () => {
   });
 
   it("outputs JSON when json=true", async () => {
-    const runner: ToolRunner = async () => fakeResult([{ liqPx: "38000" }]);
+    const runner: ToolRunner = async () => fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
     await cmdGridLiquidatePrice(runner, { instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
@@ -610,7 +610,7 @@ describe("cmdGridLiquidatePrice", () => {
     let captured: Record<string, unknown> = {};
     const spy: ToolRunner = async (_name, args) => {
       captured = args as Record<string, unknown>;
-      return fakeResult([{ liqPx: "38000" }]);
+      return fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
     };
     await cmdGridLiquidatePrice(spy, {
       instId: "BTC-USDT-SWAP", sz: "100", lever: "5",
@@ -628,7 +628,7 @@ describe("cmdGridLiquidatePrice", () => {
     let captured: Record<string, unknown> = {};
     const spy: ToolRunner = async (_name, args) => {
       captured = args as Record<string, unknown>;
-      return fakeResult([{ liqPx: "38000" }]);
+      return fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
     };
     await cmdGridLiquidatePrice(spy, {
       instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
@@ -638,6 +638,50 @@ describe("cmdGridLiquidatePrice", () => {
     assert.equal(captured["gridNum"], undefined);
     assert.equal(captured["runType"], undefined);
     assert.equal(captured["triggerStrategy"], undefined);
+  });
+
+  it("human-readable: long direction shows instId, direction, and liqPx from longLiqPx", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "" }]);
+    await cmdGridLiquidatePrice(runner, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", direction: "long", json: false,
+    });
+    const combined = out.join("");
+    assert.ok(combined.includes("instId"), `expected instId in output: ${combined}`);
+    assert.ok(combined.includes("long"), `expected direction=long in output: ${combined}`);
+    assert.ok(combined.includes("41258.7"), `expected liqPx=41258.7 in output: ${combined}`);
+  });
+
+  it("human-readable: short direction shows instId, direction, and liqPx from shortLiqPx", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ longLiqPx: "", shortLiqPx: "90897" }]);
+    await cmdGridLiquidatePrice(runner, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", direction: "short", json: false,
+    });
+    const combined = out.join("");
+    assert.ok(combined.includes("instId"), `expected instId in output: ${combined}`);
+    assert.ok(combined.includes("short"), `expected direction=short in output: ${combined}`);
+    assert.ok(combined.includes("90897"), `expected liqPx=90897 in output: ${combined}`);
+  });
+
+  it("human-readable: neutral direction shows instId, direction, longLiqPx, and shortLiqPx", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ longLiqPx: "41258.7", shortLiqPx: "90897" }]);
+    await cmdGridLiquidatePrice(runner, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", direction: "neutral", json: false,
+    });
+    const combined = out.join("");
+    assert.ok(combined.includes("instId"), `expected instId in output: ${combined}`);
+    assert.ok(combined.includes("neutral"), `expected direction=neutral in output: ${combined}`);
+    assert.ok(combined.includes("longLiqPx"), `expected longLiqPx key in output: ${combined}`);
+    assert.ok(combined.includes("shortLiqPx"), `expected shortLiqPx key in output: ${combined}`);
+    assert.ok(combined.includes("41258.7"), `expected longLiqPx=41258.7 in output: ${combined}`);
+    assert.ok(combined.includes("90897"), `expected shortLiqPx=90897 in output: ${combined}`);
+  });
+
+  it("human-readable: prints No data when response is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdGridLiquidatePrice(runner, {
+      instId: "BTC-USDT-SWAP", sz: "100", lever: "5", json: false,
+    });
+    assert.ok(out.join("").includes("No data"), `expected "No data" in output: ${out.join("")}`);
   });
 });
 

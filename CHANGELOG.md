@@ -20,6 +20,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `swap_place_move_stop_order` and `futures_place_move_stop_order` were not sending the `tag` field in the OKX API request body; they now correctly include it.
 
+## [1.4.2] - 2026-07-23
+
+### Fixed
+
+- `okx market indicator <indicator> <instId> --help` now shows `[--list]` in the usage line (placed before `[--limit]`), and the description explains that the command returns the latest value by default; use `--list` + `--limit` for a historical series. Previously `--list` was absent from the help output, causing users to believe `--limit` alone controlled the number of returned values (ALGO-44118).
+
+## [1.4.1] - 2026-07-21
+
+### Fixed
+
+- `okx bot grid liquidate-price` human-readable output now correctly displays `instId` (backfilled from opts), `direction` (backfilled from opts), and the liquidation price mapped from the real API fields (`longLiqPx` / `shortLiqPx`). Previously all three fields printed as `undefined` because the display layer was reading `item.instId`, `item.liqPx`, and `item.direction`, none of which exist in the API response. For `long` direction the displayed `liqPx` comes from `longLiqPx`; for `short` it comes from `shortLiqPx`; for `neutral` (or no direction) both `longLiqPx` and `shortLiqPx` are shown. `--json` output was already correct and is unchanged.
+
+## [1.4.0] - 2026-07-21
+
+First stable release of the 1.4.0 line. Consolidates all changes accumulated during the 1.3.10 / 1.4.0 beta cycle (see the `[1.3.10-beta.1]` and `[1.4.0-beta.1]` entries below for the original lists): three new contract-grid tools (positions / liquidation-price estimate / close-position) and a fix + hardening of the news tools' `language` handling.
+
+### Added
+
+- `grid_get_positions` MCP tool and `okx bot grid positions` CLI command: query open contract-grid positions (liquidation price, margin ratio, unrealized PnL).
+- `grid_get_liquidate_price` MCP tool and `okx bot grid liquidate-price` CLI command: estimate liquidation price for a contract-grid bot before creating it (requires the full intended config — instId/sz/lever/maxPx/minPx/gridNum/direction; runType defaults to '1', triggerStrategy optional; a partial call fails fast listing the missing params instead of hitting a cascade of backend 400s).
+- `grid_close_position` MCP tool and `okx bot grid close-position` CLI command: close the remaining open position of a contract-grid bot stopped with `stopType='2'`. The close mode is required with no default (fund-moving) — pass `mktClose=true` / `--mktClose` for a market close, or `mktClose=false` / `--no-mktClose --sz --px` for a limit close; omitting it is rejected on both the MCP and CLI entry points.
+
+### Changed
+
+- News tools' `language` argument now accepts only the canonical enum values `zh-CN` / `en-US`. The previously-tolerated legacy underscore forms (`zh_CN` / `en_US`) are no longer treated specially and fall back to `en_US` (English) — they were never part of the public schema `enum` and were rejected client-side by strict MCP clients anyway. The public enum and the upstream `acceptLanguage` wire value (underscore `zh_CN` / `en_US`) are unchanged.
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version synced to `1.4.0` per the stable-release skill version sync policy.
+
+### Fixed
+
+- News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`): language is now passed as `acceptLanguage` query parameter (underscore format, e.g. `zh_CN`) instead of the `Accept-Language` request header. The upstream orbit API stopped reading the header; Chinese users were always receiving English content. The public `language` enum (`zh-CN` / `en-US`) is unchanged.
+
+## [1.4.0-beta.1] - 2026-07-17
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only per CLAUDE.md).
+
+### Fixed
+
 - News tools (`news_get_latest`, `news_get_by_coin`, `news_search`, `news_get_detail`): language is now passed as `acceptLanguage` query parameter (underscore format, e.g. `zh_CN`) instead of the `Accept-Language` request header. The upstream orbit API stopped reading the header; Chinese users were always receiving English content. The public `language` enum (`zh-CN` / `en-US`) is unchanged.
 
 ## [1.3.10-beta.1] - 2026-07-14
