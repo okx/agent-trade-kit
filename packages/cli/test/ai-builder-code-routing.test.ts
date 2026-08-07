@@ -109,7 +109,7 @@ describe("handleSpotCommand - invalid aiBuilderCode fail-fast", () => {
 // ===========================================================================
 
 describe("handleSpotCommand - aiBuilderCode routing", () => {
-  it("place: aiBuilderCode is forwarded when --ai-builder-code provided", async () => {
+  it("place: aiBuilderCode is forwarded when --aiBuilderCode provided", async () => {
     const { spy, captured } = makeSpy();
     await handleSpotCommand(
       spy,
@@ -156,7 +156,7 @@ describe("handleSpotAlgoCommand - aiBuilderCode routing", () => {
 // ===========================================================================
 
 describe("handleSwapCommand - aiBuilderCode routing", () => {
-  it("place: aiBuilderCode is forwarded when --ai-builder-code provided", async () => {
+  it("place: aiBuilderCode is forwarded when --aiBuilderCode provided", async () => {
     const { spy, captured } = makeSpy();
     await handleSwapCommand(
       spy,

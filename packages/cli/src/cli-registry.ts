@@ -269,7 +269,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "spot_place_order",
-        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]\n                [--tgtCcy <base_ccy|quote_ccy>] [--clOrdId <id>]\n                [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                [--stpMode <cancel_maker|cancel_taker|cancel_both>]\n                power-user (CLI-only): [--tradeQuoteCcy <USDT|USDC|BTC>] [--banAmend] [--pxAmendType <0|1>]\n                power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit; mutually exclusive with --tpTriggerPx/--tpOrdPx)",
+        usage: "okx spot place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--px <price>] [--tdMode <cash|cross|isolated>]\n                [--tgtCcy <base_ccy|quote_ccy>] [--clOrdId <id>]\n                [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                [--stpMode <cancel_maker|cancel_taker|cancel_both>]\n                power-user (CLI-only): [--tradeQuoteCcy <USDT|USDC|BTC>] [--banAmend] [--pxAmendType <0|1>]\n                power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit; mutually exclusive with --tpTriggerPx/--tpOrdPx)\n                [--aiBuilderCode <code>]",
         description: "Place a new spot order (supports attached TP/SL)",
       },
       amend: {
@@ -285,7 +285,7 @@ export const CLI_REGISTRY: CliRegistry = {
       batch: {
         toolName: "spot_batch_orders",
         alternateTools: ["spot_batch_amend", "spot_batch_cancel"],
-        usage: "okx spot batch --action <place|amend|cancel> --orders '<json>'",
+        usage: "okx spot batch --action <place|amend|cancel> --orders '<json>' [--aiBuilderCode <code>] (for --action place)",
         description: "Batch place, amend, or cancel spot orders",
       },
       leverage: {
@@ -305,12 +305,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "spot_place_algo_order",
-            usage: "okx spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                    [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                    [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                    [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--tdMode <cash|cross|isolated>]\n                    trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                    chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                    iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]\n                    power-user (CLI-only): [--tpTriggerRatio <ratio>] [--slTriggerRatio <ratio>] [--closeFraction <frac>] [--pxAmendType <0|1>]\n                    power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit)",
+            usage: "okx spot algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                    [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                    [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                    [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--tdMode <cash|cross|isolated>]\n                    trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                    chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                    iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]\n                    power-user (CLI-only): [--tpTriggerRatio <ratio>] [--slTriggerRatio <ratio>] [--closeFraction <frac>] [--pxAmendType <0|1>]\n                    power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit)\n                    [--aiBuilderCode <code>]",
             description: "Place a spot algo order (TP/SL, pending order, chase, iceberg, twap)",
           },
           trail: {
             toolName: "spot_place_algo_order",
-            usage: "okx spot algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                    [--activePx <price>] [--tdMode <cash|cross|isolated>]",
+            usage: "okx spot algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                    [--activePx <price>] [--tdMode <cash|cross|isolated>] [--aiBuilderCode <code>]",
             description: "Place a trailing stop algo order for spot",
           },
           amend: {
@@ -354,7 +354,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "swap_place_order",
-        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>]\n               [--tdMode <cross|isolated>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n               [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n               [--stpMode <cancel_maker|cancel_taker|cancel_both>]\n               power-user (CLI-only): [--pxAmendType <0|1>]\n               power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit; mutually exclusive with --tpTriggerPx/--tpOrdPx)",
+        usage: "okx swap place --instId <id> --side <buy|sell> --ordType <type> --sz <n> [--posSide <side>] [--px <price>]\n               [--tdMode <cross|isolated>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n               [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n               [--stpMode <cancel_maker|cancel_taker|cancel_both>]\n               power-user (CLI-only): [--pxAmendType <0|1>]\n               power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit; mutually exclusive with --tpTriggerPx/--tpOrdPx)\n               [--aiBuilderCode <code>]",
         description: "Place a new perpetual swap order (supports attached TP/SL)",
       },
       cancel: {
@@ -370,7 +370,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       close: {
         toolName: "swap_close_position",
-        usage: "okx swap close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl]",
+        usage: "okx swap close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl] [--aiBuilderCode <code>]",
         description: "Close a swap position",
       },
       leverage: {
@@ -386,7 +386,7 @@ export const CLI_REGISTRY: CliRegistry = {
       batch: {
         toolName: "swap_batch_orders",
         alternateTools: ["swap_batch_amend", "swap_batch_cancel"],
-        usage: "okx swap batch --action <place|amend|cancel> --orders '<json>'",
+        usage: "okx swap batch --action <place|amend|cancel> --orders '<json>' [--aiBuilderCode <code>] (for --action place)",
         description: "Batch place, amend, or cancel swap orders",
       },
     },
@@ -401,12 +401,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           trail: {
             toolName: "swap_place_move_stop_order",
-            usage: "okx swap algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                   [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            usage: "okx swap algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                   [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly] [--aiBuilderCode <code>]",
             description: "Place a trailing stop algo order for perpetual swap",
           },
           place: {
             toolName: "swap_place_algo_order",
-            usage: "okx swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]\n                   trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                   chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                   iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]\n                   power-user (CLI-only): [--tpTriggerRatio <ratio>] [--slTriggerRatio <ratio>] [--closeFraction <frac>] [--pxAmendType <0|1>]\n                   power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit)",
+            usage: "okx swap algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]\n                   trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                   chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                   iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]\n                   power-user (CLI-only): [--tpTriggerRatio <ratio>] [--slTriggerRatio <ratio>] [--closeFraction <frac>] [--pxAmendType <0|1>]\n                   power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit)\n                   [--aiBuilderCode <code>]",
             description: "Place a swap algo order (TP/SL, pending order, chase, iceberg, twap)",
           },
           amend: {
@@ -445,7 +445,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "futures_place_order",
-        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tgtCcy <base_ccy|quote_ccy|margin>] [--clOrdId <id>]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                 [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                 [--stpMode <cancel_maker|cancel_taker|cancel_both>]\n                 power-user (CLI-only): [--pxAmendType <0|1>]\n                 power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit; mutually exclusive with --tpTriggerPx/--tpOrdPx)",
+        usage: "okx futures place --instId <id> --side <buy|sell> --ordType <type> --sz <n>\n                 [--tdMode <cross|isolated>] [--posSide <net|long|short>] [--px <price>] [--reduceOnly]\n                 [--tgtCcy <base_ccy|quote_ccy|margin>] [--clOrdId <id>]\n                 [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                 [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                 [--stpMode <cancel_maker|cancel_taker|cancel_both>]\n                 power-user (CLI-only): [--pxAmendType <0|1>]\n                 power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit; mutually exclusive with --tpTriggerPx/--tpOrdPx)\n                 [--aiBuilderCode <code>]",
         description: "Place a new futures order (supports attached TP/SL)",
       },
       cancel: {
@@ -465,7 +465,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       close: {
         toolName: "futures_close_position",
-        usage: "okx futures close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl]",
+        usage: "okx futures close --instId <id> --mgnMode <cross|isolated> [--posSide <net|long|short>] [--autoCxl] [--aiBuilderCode <code>]",
         description: "Close a futures position",
       },
       "get-leverage": {
@@ -481,7 +481,7 @@ export const CLI_REGISTRY: CliRegistry = {
       batch: {
         toolName: "futures_batch_orders",
         alternateTools: ["futures_batch_amend", "futures_batch_cancel"],
-        usage: "okx futures batch --action <place|amend|cancel> --orders '<json>'",
+        usage: "okx futures batch --action <place|amend|cancel> --orders '<json>' [--aiBuilderCode <code>] (for --action place)",
         description: "Batch place, amend, or cancel futures orders",
       },
     },
@@ -496,12 +496,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           trail: {
             toolName: "futures_place_move_stop_order",
-            usage: "okx futures algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                   [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]",
+            usage: "okx futures algo trail --instId <id> --side <buy|sell> --sz <n> --callbackRatio <ratio>\n                   [--activePx <price>] [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly] [--aiBuilderCode <code>]",
             description: "Place a trailing stop algo order for futures",
           },
           place: {
             toolName: "futures_place_algo_order",
-            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]\n                   trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                   chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                   iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]\n                   power-user (CLI-only): [--tpTriggerRatio <ratio>] [--slTriggerRatio <ratio>] [--closeFraction <frac>] [--pxAmendType <0|1>]\n                   power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit)",
+            usage: "okx futures algo place --instId <id> --side <buy|sell> --sz <n> [--ordType <conditional|oco|move_order_stop|trigger|chase|iceberg|twap>]\n                   [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--cxlOnClosePos]\n                   [--posSide <net|long|short>] [--tdMode <cross|isolated>] [--reduceOnly]\n                   trigger: [--triggerPx <price>] [--orderPx <price|-1>] [--advanceOrdType <fok|ioc>] [--triggerPxType <last|index|mark>]\n                   chase:   [--chaseType <distance|ratio>] [--chaseVal <n>] [--maxChaseType <distance|ratio>] [--maxChaseVal <n>]\n                   iceberg/twap: [--pxVar <n>|--pxSpread <n>] [--szLimit <n>] [--pxLimit <price>] [--timeInterval <secs>]\n                   power-user (CLI-only): [--tpTriggerRatio <ratio>] [--slTriggerRatio <ratio>] [--closeFraction <frac>] [--pxAmendType <0|1>]\n                   power-user (CLI-only): [--tpLevel \"px:78000,sz:0.5,kind:limit\"] [--tpLevel \"px:81000,sz:0.5\"] (repeatable; split multi-tier take-profit)\n                   [--aiBuilderCode <code>]",
             description: "Place a futures algo order (take-profit/stop-loss)",
           },
           amend: {
@@ -555,7 +555,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       place: {
         toolName: "option_place_order",
-        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n               [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n               [--stpMode <cancel_maker|cancel_taker|cancel_both>]",
+        usage: "okx option place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --ordType <type> --sz <n>\n               [--px <price>] [--tgtCcy <base_ccy|quote_ccy|margin>] [--reduceOnly] [--clOrdId <id>]\n               [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpOrdKind <condition|limit>] [--tpTriggerPxType <last|index|mark>]\n               [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n               [--stpMode <cancel_maker|cancel_taker|cancel_both>] [--aiBuilderCode <code>]",
         description: "Place a new option order",
       },
       cancel: {
@@ -585,7 +585,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           place: {
             toolName: "option_place_algo_order",
-            usage: "okx option algo place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --sz <n>\n                   [--ordType <conditional|oco>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--reduceOnly] [--clOrdId <id>]",
+            usage: "okx option algo place --instId <id> --tdMode <cash|cross|isolated> --side <buy|sell> --sz <n>\n                   [--ordType <conditional|oco>] [--tpTriggerPx <price>] [--tpOrdPx <price|-1>] [--tpTriggerPxType <last|index|mark>]\n                   [--slTriggerPx <price>] [--slOrdPx <price|-1>] [--slTriggerPxType <last|index|mark>]\n                   [--reduceOnly] [--clOrdId <id>] [--aiBuilderCode <code>]",
             description: "Place an option algo order (take-profit/stop-loss)",
           },
           amend: {
@@ -791,7 +791,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "grid_create_order",
-            usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]\n                   [--tpTriggerPx <px>] [--slTriggerPx <px>] [--tpRatio <n>] [--slRatio <n>] [--algoClOrdId <id>]",
+            usage: "okx bot grid create --instId <id> --algoOrdType <grid|contract_grid> --maxPx <px> --minPx <px> --gridNum <n>\n                   [--runType <1|2>] [--quoteSz <n>] [--baseSz <n>]\n                   [--direction <long|short|neutral>] [--lever <n>] [--sz <n>] [--basePos] [--no-basePos]\n                   [--tpTriggerPx <px>] [--slTriggerPx <px>] [--tpRatio <n>] [--slRatio <n>] [--algoClOrdId <id>]\n                   [--aiBuilderCode <code>]",
             description: "Create a new grid bot order (contract grid opens base position by default)",
           },
           amend: {
@@ -841,7 +841,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "dca_create_order",
-            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi",
+            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi\n                 [--aiBuilderCode <code>]",
             description: "Create a DCA (Martingale) bot (spot or contract)",
           },
           stop: {
