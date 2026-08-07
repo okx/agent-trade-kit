@@ -140,8 +140,8 @@ export async function cmdFuturesPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as Record<string, unknown>).isError) {
-    errorLine((result as Record<string, unknown>).error as string);
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
     process.exitCode = 1;
     return;
   }
@@ -211,14 +211,20 @@ export async function cmdFuturesAmend(
 
 export async function cmdFuturesClose(
   run: ToolRunner,
-  opts: { instId: string; mgnMode: string; posSide?: string; autoCxl?: boolean; json: boolean },
+  opts: { instId: string; mgnMode: string; posSide?: string; autoCxl?: boolean; aiBuilderCode?: string; json: boolean },
 ): Promise<void> {
   const result = await run("futures_close_position", {
     instId: opts.instId,
     mgnMode: opts.mgnMode,
     posSide: opts.posSide,
     autoCxl: opts.autoCxl,
+    aiBuilderCode: opts.aiBuilderCode,
   });
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   const r = data?.[0];
@@ -260,7 +266,7 @@ export async function cmdFuturesGetLeverage(
 
 export async function cmdFuturesBatch(
   run: ToolRunner,
-  opts: { action: string; orders: string; json: boolean },
+  opts: { action: string; orders: string; aiBuilderCode?: string; json: boolean },
 ): Promise<void> {
   let parsed: unknown;
   try {
@@ -288,7 +294,15 @@ export async function cmdFuturesBatch(
     return;
   }
 
-  const result = await run(tool, { orders: parsed });
+  const isPlace = tool === "futures_batch_orders";
+  const result = await run(tool, isPlace
+    ? { orders: parsed, aiBuilderCode: opts.aiBuilderCode }
+    : { orders: parsed });
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitBatchResults(data ?? []);
@@ -387,8 +401,8 @@ export async function cmdFuturesAlgoPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as Record<string, unknown>).isError) {
-    errorLine((result as Record<string, unknown>).error as string);
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
     process.exitCode = 1;
     return;
   }
@@ -409,6 +423,7 @@ export async function cmdFuturesAlgoTrailPlace(
     posSide?: string;
     tdMode: string;
     reduceOnly?: boolean;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -422,7 +437,13 @@ export async function cmdFuturesAlgoTrailPlace(
     activePx: opts.activePx,
     posSide: opts.posSide,
     reduceOnly: opts.reduceOnly,
+    aiBuilderCode: opts.aiBuilderCode,
   });
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Trailing stop placed", "algoId");

@@ -99,8 +99,8 @@ export async function cmdSpotPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as Record<string, unknown>).isError) {
-    errorLine((result as Record<string, unknown>).error as string);
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
     process.exitCode = 1;
     return;
   }
@@ -208,8 +208,8 @@ export async function cmdSpotAlgoPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as Record<string, unknown>).isError) {
-    errorLine((result as Record<string, unknown>).error as string);
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
     process.exitCode = 1;
     return;
   }
@@ -358,6 +358,7 @@ export async function cmdSpotAlgoTrailPlace(
     callbackSpread?: string;
     activePx?: string;
     tdMode?: string;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -370,7 +371,13 @@ export async function cmdSpotAlgoTrailPlace(
     callbackRatio: opts.callbackRatio,
     callbackSpread: opts.callbackSpread,
     activePx: opts.activePx,
+    aiBuilderCode: opts.aiBuilderCode,
   });
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Trailing stop placed", "algoId");
@@ -378,7 +385,7 @@ export async function cmdSpotAlgoTrailPlace(
 
 export async function cmdSpotBatch(
   run: ToolRunner,
-  opts: { action: string; orders: string; json: boolean },
+  opts: { action: string; orders: string; aiBuilderCode?: string; json: boolean },
 ): Promise<void> {
   let parsed: unknown;
   try {
@@ -406,7 +413,15 @@ export async function cmdSpotBatch(
     return;
   }
 
-  const result = await run(tool, tool === "spot_batch_orders" ? { action: opts.action, orders: parsed } : { orders: parsed });
+  const isPlace = tool === "spot_batch_orders";
+  const result = await run(tool, isPlace
+    ? { action: opts.action, orders: parsed, aiBuilderCode: opts.aiBuilderCode }
+    : { orders: parsed });
+  if ((result as unknown as Record<string, unknown>).isError) {
+    errorLine((result as unknown as Record<string, unknown>).error as string);
+    process.exitCode = 1;
+    return;
+  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitBatchResults(data ?? []);

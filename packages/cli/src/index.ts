@@ -522,6 +522,7 @@ export function handleSpotAlgoCommand(
       callbackSpread: v.callbackSpread,
       activePx: v.activePx,
       tdMode: v.tdMode,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "place") {
@@ -677,7 +678,7 @@ export function handleSpotCommand(
   if (action === "algo")
     return handleSpotAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
-    return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, json });
+    return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, aiBuilderCode: v.aiBuilderCode, json });
   if (action === "leverage")
     return cmdSpotSetLeverage(run, {
       instId: v.instId,
@@ -710,6 +711,7 @@ export function handleSwapAlgoCommand(
       posSide: v.posSide,
       tdMode: v.tdMode ?? "cross",
       reduceOnly: v.reduceOnly,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "place") {
@@ -828,6 +830,7 @@ export function handleSwapCommand(
       mgnMode: v.mgnMode!,
       posSide: v.posSide,
       autoCxl: v.autoCxl,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (action === "place") {
@@ -882,7 +885,7 @@ export function handleSwapCommand(
   if (action === "algo")
     return handleSwapAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
-    return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
+    return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, aiBuilderCode: v.aiBuilderCode, json });
   unknownSubcommand("swap", action, [
     "positions", "orders", "get", "fills", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
@@ -1019,6 +1022,7 @@ export function handleFuturesAlgoCommand(
       posSide: v.posSide,
       tdMode: v.tdMode ?? "cross",
       reduceOnly: v.reduceOnly,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "place") {
@@ -1178,6 +1182,7 @@ export function handleFuturesCommand(
       mgnMode: v.mgnMode!,
       posSide: v.posSide,
       autoCxl: v.autoCxl,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (action === "leverage")
@@ -1189,7 +1194,7 @@ export function handleFuturesCommand(
       json,
     });
   if (action === "batch")
-    return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, json });
+    return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, aiBuilderCode: v.aiBuilderCode, json });
   if (action === "algo")
     return handleFuturesAlgoCommand(run, rest[0], v, json);
   unknownSubcommand("futures", action, [
@@ -1356,6 +1361,7 @@ export function handleBotDcaCommand(
       algoClOrdId: v.algoClOrdId,
       reserveFunds: v.reserveFunds,
       tradeQuoteCcy: v.tradeQuoteCcy,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "stop")
