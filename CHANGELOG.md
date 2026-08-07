@@ -16,10 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional `aiBuilderCode` parameter on all 16 order-placement tools (`spot_place_order`, `spot_place_algo_order`, `spot_batch_orders`, `swap_place_order`, `swap_batch_orders`, `swap_place_algo_order`, `swap_place_move_stop_order`, `futures_place_order`, `futures_batch_orders`, `futures_place_algo_order`, `futures_place_move_stop_order`, `option_place_order`, `option_place_algo_order`, `event_place_order`, `grid_create_order`, `dca_create_order`) and corresponding CLI `--aiBuilderCode` flag. When provided and valid (1–16 alphanumeric chars), overrides the default `MCP`/`CLI` source tag in the OKX order `tag` field for per-order attribution. Invalid codes cause the order to be rejected client-side; a structured error is returned and the CLI exits with code 1.
 - CLI `--aiBuilderCode` routing now covers all remaining order-placement paths: `spot/swap/futures batch --action place`, `spot/swap/futures algo trail`, `bot dca create`, `swap/futures close` — completing full CLI coverage (ALGO-44006).
 
-### Fixed
-
-- `swap_place_move_stop_order` and `futures_place_move_stop_order` were not sending the `tag` field in the OKX API request body; they now correctly include it.
-
 ## [1.4.2] - 2026-07-23
 
 ### Fixed

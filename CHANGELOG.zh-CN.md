@@ -16,10 +16,6 @@
 - 所有 16 个下单工具新增可选参数 `aiBuilderCode`（`spot_place_order`、`spot_place_algo_order`、`spot_batch_orders`、`swap_place_order`、`swap_batch_orders`、`swap_place_algo_order`、`swap_place_move_stop_order`、`futures_place_order`、`futures_batch_orders`、`futures_place_algo_order`、`futures_place_move_stop_order`、`option_place_order`、`option_place_algo_order`、`event_place_order`、`grid_create_order`、`dca_create_order`），CLI 对应 `--aiBuilderCode` 标志。合法值（1–16 位字母数字）会覆盖默认的 `MCP`/`CLI` 来源标签，写入 OKX 订单 `tag` 字段。非法值会在客户端直接拒绝订单，返回结构化错误，CLI 以退出码 1 终止。
 - CLI `--aiBuilderCode` 路由现已覆盖所有剩余下单路径：`spot/swap/futures batch --action place`、`spot/swap/futures algo trail`、`bot dca create`、`swap/futures close`，完成完整 CLI 覆盖（ALGO-44006）。
 
-### 修复
-
-- `swap_place_move_stop_order` 和 `futures_place_move_stop_order` 之前未在 OKX API 请求体中发送 `tag` 字段，现已修复。
-
 ## [1.4.2] - 2026-07-23
 
 ### 修复
