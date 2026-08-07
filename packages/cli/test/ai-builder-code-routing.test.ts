@@ -5,6 +5,10 @@
  */
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { allToolSpecs, type OkxConfig, type OkxRestClient, type ToolRunner } from "@agent-tradekit/core";
 import {
   handleSpotCommand,
@@ -20,9 +24,13 @@ import {
   handleEventCommand,
   createCliToolRunner,
   resolveCliAiBuilderCode,
+  validateCliAiBuilderCodeUsage,
 } from "../src/index.js";
 import type { CliValues } from "../src/index.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dist = join(__dirname, "../dist/index.js");
 
 beforeEach(() => setOutput({ out: () => {}, err: () => {} }));
 afterEach(() => {
@@ -143,6 +151,112 @@ describe("resolveCliAiBuilderCode", () => {
       () => resolveCliAiBuilderCode({ aiBuilderCode: "" }, "CLI"),
       /aiBuilderCode "" is invalid/,
     );
+  });
+});
+
+describe("validateCliAiBuilderCodeUsage", () => {
+  it("allows commands that advertise aiBuilderCode", () => {
+    assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("spot", "place", [], vals({ aiBuilderCode: "MYBOT" })));
+    assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("swap", "algo", ["trail"], vals({ aiBuilderCode: "MYBOT" })));
+    assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("bot", "dca", ["create"], vals({ aiBuilderCode: "MYBOT" })));
+  });
+
+  it("allows batch commands only for --action place", () => {
+    assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("spot", "batch", [], vals({ action: "place", aiBuilderCode: "MYBOT" })));
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("spot", "batch", [], vals({ action: "amend", aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is only supported for okx spot batch when --action place/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("swap", "batch", [], vals({ action: "cancel", aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is only supported for okx swap batch when --action place/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("futures", "batch", [], vals({ action: "amend", aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is only supported for okx futures batch when --action place/,
+    );
+  });
+
+  it("rejects commands that do not advertise aiBuilderCode", () => {
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("spot", "cancel", ["BTC-USDT"], vals({ aiBuilderCode: "bad!" })),
+      /--aiBuilderCode is not supported for okx spot cancel/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("list-tools", undefined, [], vals({ aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is not supported for okx list-tools/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("setup", "extra", [], vals({ aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is not supported for okx setup/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("market", "indicator", ["rsi", "BTC-USDT"], vals({ aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is not supported for okx market indicator <indicator> <instId>/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("spot", "not-a-command", [], vals({ aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is not supported for okx spot not-a-command/,
+    );
+    assert.throws(
+      () => validateCliAiBuilderCodeUsage("not-a-module", undefined, [], vals({ aiBuilderCode: "MYBOT" })),
+      /--aiBuilderCode is not supported for okx not-a-module/,
+    );
+  });
+});
+
+describe("CLI main - aiBuilderCode usage validation", () => {
+  it("rejects unsupported non-batch commands before config load", () => {
+    if (!existsSync(dist)) return;
+
+    assert.throws(
+      () => execFileSync("node", [dist, "spot", "cancel", "BTC-USDT", "--ordId", "1", "--aiBuilderCode", "MYBOT"], {
+        timeout: 10_000,
+        encoding: "utf-8",
+      }),
+      (error: unknown) => {
+        const err = error as { status?: number; stdout?: string; stderr?: string };
+        const output = (err.stdout ?? "") + (err.stderr ?? "");
+        assert.equal(err.status, 1);
+        assert.match(output, /Error: --aiBuilderCode is not supported for okx spot cancel/);
+        return true;
+      },
+    );
+  });
+
+  it("rejects batch --aiBuilderCode unless --action place", () => {
+    if (!existsSync(dist)) return;
+
+    const cases = [
+      ["spot", "amend", '[{"instId":"BTC-USDT","ordId":"1","newSz":"0.02"}]', /okx spot batch/],
+      ["spot", "cancel", '[{"instId":"BTC-USDT","ordId":"1"}]', /okx spot batch/],
+      ["swap", "amend", '[{"instId":"BTC-USDT-SWAP","ordId":"1","newSz":"2"}]', /okx swap batch/],
+      ["swap", "cancel", '[{"instId":"BTC-USDT-SWAP","ordId":"1"}]', /okx swap batch/],
+      ["futures", "amend", '[{"instId":"BTC-USDT-240329","ordId":"1","newSz":"2"}]', /okx futures batch/],
+      ["futures", "cancel", '[{"instId":"BTC-USDT-240329","ordId":"1"}]', /okx futures batch/],
+    ] as const;
+
+    for (const [moduleName, action, orders, pathPattern] of cases) {
+      assert.throws(
+        () => execFileSync(
+          "node",
+          [dist, moduleName, "batch", "--action", action, "--orders", orders, "--aiBuilderCode", "MYBOT"],
+          {
+            timeout: 10_000,
+            encoding: "utf-8",
+          },
+        ),
+        (error: unknown) => {
+          const err = error as { status?: number; stdout?: string; stderr?: string };
+          const output = (err.stdout ?? "") + (err.stderr ?? "");
+          assert.equal(err.status, 1);
+          assert.match(output, /--aiBuilderCode is only supported for/);
+          assert.match(output, pathPattern);
+          assert.match(output, /when --action place/);
+          return true;
+        },
+      );
+    }
   });
 });
 

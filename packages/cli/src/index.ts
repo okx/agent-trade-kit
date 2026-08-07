@@ -13,6 +13,8 @@ const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "d
 import { unknownSubcommand } from "./unknown-command.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
+import { CLI_REGISTRY } from "./cli-registry.js";
+import type { CliCommandEntry, CliModuleEntry } from "./cli-registry.js";
 import {
   cmdNewsLatest,
   cmdNewsImportant,
@@ -1889,6 +1891,73 @@ function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxCon
 
 const AI_BUILDER_CODE_PATTERN = /^[A-Za-z0-9]{1,16}$/;
 const AI_BUILDER_CODE_ARG = "aiBuilderCode";
+const AI_BUILDER_CODE_BATCH_PATHS = new Set(["okx spot batch", "okx swap batch", "okx futures batch"]);
+
+class CliUsageError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "CliUsageError";
+  }
+}
+
+function findPlaceholderCommand(commands: Record<string, CliCommandEntry> | undefined): [string, CliCommandEntry] | undefined {
+  return Object.entries(commands ?? {}).find(([name]) => name.startsWith("<"));
+}
+
+function hasRawLongOption(argv: string[], name: string): boolean {
+  const option = `--${name}`;
+  for (const token of argv) {
+    if (token === "--") return false;
+    if (token === option || token.startsWith(`${option}=`)) return true;
+  }
+  return false;
+}
+
+function findCliRegistryUsagePath(positionals: string[]): { path: string; usage?: string } | undefined {
+  const [moduleName, ...segments] = positionals;
+  if (!moduleName) return undefined;
+
+  const moduleEntry = CLI_REGISTRY[moduleName];
+  if (!moduleEntry) return { path: `okx ${moduleName}` };
+  let current: CliModuleEntry = moduleEntry;
+  let path = `okx ${moduleName}`;
+  if (segments.length === 0) return current.usage ? { path, usage: current.usage } : { path };
+
+  for (const segment of segments) {
+    const command = current.commands?.[segment];
+    if (command) return { path: `${path} ${segment}`, usage: command.usage };
+
+    const subgroup = current.subgroups?.[segment];
+    if (!subgroup) {
+      const placeholderCommand = findPlaceholderCommand(current.commands);
+      if (placeholderCommand) return { path: `${path} ${placeholderCommand[0]}`, usage: placeholderCommand[1].usage };
+      return current.usage ? { path, usage: current.usage } : { path: `${path} ${segment}` };
+    }
+    current = subgroup;
+    path = `${path} ${segment}`;
+  }
+
+  return current.usage ? { path, usage: current.usage } : { path };
+}
+
+export function validateCliAiBuilderCodeUsage(
+  moduleName: string | undefined,
+  action: string | undefined,
+  rest: string[],
+  values: Pick<CliValues, "aiBuilderCode" | "action">,
+): void {
+  if (values.aiBuilderCode === undefined || values.aiBuilderCode === null) return;
+
+  const match = findCliRegistryUsagePath([moduleName, action, ...rest].filter((part): part is string => part !== undefined));
+  if (!match) return;
+
+  if (!match.usage?.includes("--aiBuilderCode")) {
+    throw new CliUsageError(`--aiBuilderCode is not supported for ${match.path}`);
+  }
+  if (AI_BUILDER_CODE_BATCH_PATHS.has(match.path) && values.action !== "place") {
+    throw new CliUsageError(`--aiBuilderCode is only supported for ${match.path} when --action place`);
+  }
+}
 
 function resolveCliToolDispatch(toolName: string, args: ToolArgs): { toolName: string; args: ToolArgs } {
   if (toolName === "swap_place_move_stop_order") {
@@ -1914,7 +1983,7 @@ export function resolveCliAiBuilderCode(
   if (typeof code === "string" && AI_BUILDER_CODE_PATTERN.test(code)) {
     return { args: nextArgs, sourceTag: code };
   }
-  throw new Error(`aiBuilderCode "${String(code)}" is invalid (must be 1-16 alphanumeric chars)`);
+  throw new CliUsageError(`aiBuilderCode "${String(code)}" is invalid (must be 1-16 alphanumeric chars)`);
 }
 
 export function createCliToolRunner(client: OkxRestClient, config: OkxConfig): ToolRunner {
@@ -2033,6 +2102,9 @@ async function main(): Promise<void> {
   // first positional and short-circuit here.
   const peek = peekFirstPositional(rawArgv);
   if (peek?.module === "outcomes") {
+    if (hasRawLongOption(rawArgv, AI_BUILDER_CODE_ARG)) {
+      throw new CliUsageError("--aiBuilderCode is not supported for okx outcomes");
+    }
     const after = rawArgv.slice(peek.idx + 1);
     const action = after[0];
     const rest = after.slice(1);
@@ -2055,6 +2127,8 @@ async function main(): Promise<void> {
   const [module, action, ...rest] = positionals;
   const v = values;
   const json = v.json ?? false;
+
+  validateCliAiBuilderCodeUsage(module, action, rest, v);
 
   const mgmt = routeManagementCommand(module, action, rest, json, v);
   if (mgmt !== undefined) return mgmt === true ? undefined : mgmt;
@@ -2089,6 +2163,13 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
+  if (error instanceof CliUsageError) {
+    errorLine(`Error: ${error.message}`);
+    errorLine(`Version: @okx_ai/okx-trade-cli@${CLI_VERSION}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const payload = toToolErrorPayload(error);
   errorLine(`Error: ${payload.message}`);
   if (payload.code) errorLine(`Code: ${payload.code}`);
