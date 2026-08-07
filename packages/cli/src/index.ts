@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
-import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
-import type { ToolRunner } from "@agent-tradekit/core";
+import { OkxRestClient, toToolErrorPayload, checkForUpdates, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
+import type { OkxConfig, ToolArgs, ToolResult, ToolRunner } from "@agent-tradekit/core";
 import { handleAuthCommand } from "./commands/auth.js";
 import { handleOutcomesCommand } from "./commands/outcomes.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
@@ -1834,6 +1834,7 @@ export function handleEventCommand(
       sz: (v.sz ?? rest[3])!,
       px: v.px,
       ordType: v.ordType,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     }),
     amend: () => cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json }),
@@ -1884,6 +1885,53 @@ function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxCon
     authLabel = "\u2713";
   }
   errorLine(`[verbose] config: profile=${profile ?? "default"} site=${config.site} base=${config.baseUrl} auth=${authLabel} demo=${config.demo ? "on" : "off"} modules=${config.modules.join(",")}`);
+}
+
+const AI_BUILDER_CODE_PATTERN = /^[A-Za-z0-9]{1,16}$/;
+const AI_BUILDER_CODE_ARG = "aiBuilderCode";
+
+function resolveCliToolDispatch(toolName: string, args: ToolArgs): { toolName: string; args: ToolArgs } {
+  if (toolName === "swap_place_move_stop_order") {
+    return { toolName: "swap_place_algo_order", args: { ...args, ordType: "move_order_stop" } };
+  }
+  if (toolName === "futures_place_move_stop_order") {
+    return { toolName: "futures_place_algo_order", args: { ...args, ordType: "move_order_stop" } };
+  }
+  return { toolName, args };
+}
+
+export function resolveCliAiBuilderCode(
+  args: ToolArgs,
+  sourceTag: string,
+): { args: ToolArgs; sourceTag: string } {
+  const code = args[AI_BUILDER_CODE_ARG];
+  const nextArgs = { ...args };
+  delete nextArgs[AI_BUILDER_CODE_ARG];
+
+  if (code === undefined || code === null) {
+    return { args: nextArgs, sourceTag };
+  }
+  if (typeof code === "string" && AI_BUILDER_CODE_PATTERN.test(code)) {
+    return { args: nextArgs, sourceTag: code };
+  }
+  throw new Error(`aiBuilderCode "${String(code)}" is invalid (must be 1-16 alphanumeric chars)`);
+}
+
+export function createCliToolRunner(client: OkxRestClient, config: OkxConfig): ToolRunner {
+  const toolMap = new Map(allToolSpecs().map((tool) => [tool.name, tool]));
+
+  return async (toolName: string, args: ToolArgs): Promise<ToolResult> => {
+    const resolved = resolveCliAiBuilderCode(args, config.sourceTag);
+    const dispatch = resolveCliToolDispatch(toolName, resolved.args);
+    const tool = toolMap.get(dispatch.toolName);
+    if (!tool) throw new Error(`Unknown tool: ${toolName}`);
+
+    const result = await tool.handler(dispatch.args, {
+      config: { ...config, sourceTag: resolved.sourceTag, readOnly: false },
+      client,
+    });
+    return result as ToolResult;
+  };
 }
 
 /** Wrap a ToolRunner with audit logging via TradeLogger. */
@@ -2016,7 +2064,7 @@ async function main(): Promise<void> {
   setJsonEnvEnabled(v.env ?? false);
 
   const client = new OkxRestClient(config);
-  const baseRunner = createToolRunner(client, config);
+  const baseRunner = createCliToolRunner(client, config);
   const logger = new TradeLogger(v.verbose ? "debug" : "info");
   const run = wrapRunnerWithLogger(baseRunner, logger, v.verbose ?? false);
 

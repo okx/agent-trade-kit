@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Optional `--aiBuilderCode <code>` flag for supported order-placement commands: spot/swap/futures/option/event place, spot/swap/futures algo place and trail, spot/swap/futures batch place, swap/futures close, and bot grid/DCA create. Valid values are 1-16 alphanumeric chars and override the OKX order `tag` for attribution; invalid values are rejected before the order is submitted and the CLI exits with code 1 (ALGO-44006).
+
+### Fixed
+
+- `okx event place` now forwards `--aiBuilderCode` to the order request path.
+- `okx swap algo trail` and `okx futures algo trail` now include the configured order tag in the OKX API request body.
+
 ## [1.4.2] - 2026-07-23
 
 ### Fixed
@@ -1679,16 +1690,3 @@ Promise.all([
 - **Rate limiter**: client-side token bucket per tool
 - **Config**: TOML profile system at `~/.okx/config.toml`
 - **Error hierarchy**: `ConfigError`, `ValidationError`, `AuthenticationError`, `RateLimitError`, `OkxApiError`, `NetworkError` with structured MCP error payloads
-
----
-
-## [Unreleased]
-
-### Added
-
-- Optional `aiBuilderCode` parameter on all 16 order-placement tools (`spot_place_order`, `spot_place_algo_order`, `spot_batch_orders`, `swap_place_order`, `swap_batch_orders`, `swap_place_algo_order`, `swap_place_move_stop_order`, `futures_place_order`, `futures_batch_orders`, `futures_place_algo_order`, `futures_place_move_stop_order`, `option_place_order`, `option_place_algo_order`, `event_place_order`, `grid_create_order`, `dca_create_order`) and corresponding CLI `--aiBuilderCode` flag. When provided and valid (1–16 alphanumeric chars), overrides the default `MCP`/`CLI` source tag in the OKX order `tag` field for per-order attribution. Invalid codes cause the order to be rejected client-side; a structured error is returned and the CLI exits with code 1.
-- CLI `--aiBuilderCode` routing now covers all remaining order-placement paths: `spot/swap/futures batch --action place`, `spot/swap/futures algo trail`, `bot dca create`, `swap/futures close` — completing full CLI coverage (ALGO-44006).
-
-### Fixed
-
-- `swap_place_move_stop_order` and `futures_place_move_stop_order` were not sending the `tag` field in the OKX API request body; they now correctly include it.

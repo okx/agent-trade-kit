@@ -6,7 +6,6 @@ import {
   readNumber,
   readString,
   requireString,
-  resolveOrderTag,
 } from "../helpers.js";
 import { privateRateLimit } from "../common.js";
 import { OkxApiError } from "../../utils/errors.js";
@@ -131,10 +130,6 @@ export function registerDcaTools(): ToolSpec[] {
           // Backend expects boolean, but kept as string for backward compatibility with older clients.
           reserveFunds: { type: "string", description: "'true' or 'false', default 'true'" },
           tradeQuoteCcy: { type: "string" },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "algoOrdType", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
       },
@@ -160,11 +155,6 @@ export function registerDcaTools(): ToolSpec[] {
           ? allowReinvestRaw === true || allowReinvestRaw === "true"
           : undefined;
 
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const response = await context.client.privatePost(
           `${BASE}/create`,
           compactObject({
@@ -183,7 +173,7 @@ export function registerDcaTools(): ToolSpec[] {
             slMode: readString(args, "slMode"),
             allowReinvest,
             triggerParams: [triggerParam],
-            tag,
+            tag: context.config.sourceTag,
             algoClOrdId: readString(args, "algoClOrdId"),
             reserveFunds: readString(args, "reserveFunds"),
             tradeQuoteCcy: readString(args, "tradeQuoteCcy"),

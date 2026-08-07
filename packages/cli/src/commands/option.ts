@@ -216,11 +216,6 @@ export async function cmdOptionPlace(
     stpMode: opts.stpMode,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Order placed", "ordId");
@@ -313,11 +308,6 @@ export async function cmdOptionAlgoPlace(
     clOrdId: opts.clOrdId,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Algo order placed", "algoId");

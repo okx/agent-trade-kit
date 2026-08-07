@@ -159,11 +159,6 @@ export async function cmdGridCreate(
     algoClOrdId: opts.algoClOrdId,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Grid bot created", "algoId");
@@ -377,11 +372,6 @@ export async function cmdDcaCreate(
     tradeQuoteCcy: opts.tradeQuoteCcy,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "DCA bot created", "algoId");

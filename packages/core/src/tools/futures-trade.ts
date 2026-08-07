@@ -6,7 +6,6 @@ import {
   normalizeResponse,
   readString,
   requireString,
-  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { buildContractTradeTools } from "./contract-trade.js";
@@ -81,10 +80,6 @@ export function registerFuturesTools(): ToolSpec[] {
               "Array (max 20): {instId,tdMode,side,ordType,sz,px?,posSide?,reduceOnly?,clOrdId?,tpTriggerPx?,tpOrdPx?,slTriggerPx?,slOrdPx?}",
             items: { type: "object" },
           },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Applies to all placed orders in the batch.",
-          },
         },
         required: ["orders"],
       },
@@ -94,11 +89,6 @@ export function registerFuturesTools(): ToolSpec[] {
         if (!Array.isArray(orders) || orders.length === 0) {
           throw new Error("orders must be a non-empty array.");
         }
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const body = orders.map((order: unknown) => {
           const o = asRecord(order);
           const attachAlgoOrds = buildAttachAlgoOrds(o);
@@ -113,7 +103,7 @@ export function registerFuturesTools(): ToolSpec[] {
             posSide: readString(o, "posSide"),
             reduceOnly: typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
             clOrdId: readString(o, "clOrdId"),
-            tag,
+            tag: context.config.sourceTag,
             attachAlgoOrds,
           });
         });

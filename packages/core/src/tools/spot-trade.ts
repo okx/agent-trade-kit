@@ -20,7 +20,6 @@ import {
   readNumber,
   readString,
   requireString,
-  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { ValidationError } from "../utils/errors.js";
@@ -93,10 +92,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
           },
           slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
           stpMode: STP_MODE_SCHEMA,
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
@@ -104,11 +99,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const attachAlgoOrds = buildAttachAlgoOrds(args);
         const banAmend = args.banAmend;
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -125,7 +115,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
             tradeQuoteCcy: readString(args, "tradeQuoteCcy"),
             banAmend: typeof banAmend === "boolean" ? String(banAmend) : undefined,
             pxAmendType: readString(args, "pxAmendType"),
-            tag,
+            tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
           privateRateLimit("spot_place_order", 60),
@@ -379,21 +369,12 @@ export function registerSpotTradeTools(): ToolSpec[] {
           ...TRIGGER_FLAGS_SCHEMA,
           ...CHASE_FLAGS_SCHEMA,
           ...ICEBERG_TWAP_FLAGS_SCHEMA,
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "side", "ordType", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const ordType = requireString(args, "ordType");
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const base: Record<string, unknown> = compactObject({
           instId: requireString(args, "instId"),
           tdMode: readString(args, "tdMode") ?? "cash",
@@ -405,7 +386,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
           algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
           // Phase 3a+c CLI power-user flags (issue #182, CLI-only no MCP/skill exposure)
           pxAmendType: readString(args, "pxAmendType"),
-          tag,
+          tag: context.config.sourceTag,
         });
         switch (ordType) {
                     case "trigger":
@@ -684,10 +665,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
               type: "object",
             },
           },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Applies to all placed orders in the batch.",
-          },
         },
         required: ["action", "orders"],
       },
@@ -699,11 +676,6 @@ export function registerSpotTradeTools(): ToolSpec[] {
         if (!Array.isArray(orders) || orders.length === 0) {
           throw new Error("orders must be a non-empty array.");
         }
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const endpointMap: Record<string, string> = {
           place: "/api/v5/trade/batch-orders",
           cancel: "/api/v5/trade/cancel-batch-orders",
@@ -722,7 +694,7 @@ export function registerSpotTradeTools(): ToolSpec[] {
                   sz: requireString(o, "sz"),
                   px: readString(o, "px"),
                   clOrdId: readString(o, "clOrdId"),
-                  tag,
+                  tag: context.config.sourceTag,
                   attachAlgoOrds,
                 });
               })

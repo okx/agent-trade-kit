@@ -28,7 +28,6 @@ import {
   readNumber,
   readString,
   requireString,
-  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit, CURSOR_PROPS, TIME_RANGE_PROPS, readPaginationParams } from "./common.js";
 import { OkxApiError } from "../utils/errors.js";
@@ -446,10 +445,6 @@ export function registerEventContractTools(): ToolSpec[] {
             type: "string",
             description: "Event contract price (0.01-0.99). Required when ordType=limit. Do NOT use for market orders.",
           },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "side", "outcome", "sz"],
       },
@@ -459,11 +454,6 @@ export function registerEventContractTools(): ToolSpec[] {
         // speedBump is required by the exchange for all non-post_only event contract orders.
         const speedBump = ordType !== "post_only" ? "1" : undefined;
         const instId = requireString(args, "instId");
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/order",
           compactObject({
@@ -475,7 +465,7 @@ export function registerEventContractTools(): ToolSpec[] {
             sz: requireString(args, "sz"),
             px: readString(args, "px"),
             speedBump,
-            tag,
+            tag: context.config.sourceTag,
           }),
           privateRateLimit("event_place_order", 60),
         );

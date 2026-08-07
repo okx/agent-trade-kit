@@ -116,42 +116,15 @@ export function compactObject(
   return next;
 }
 
-export function normalizeResponse(
-  response: { endpoint: string; requestTime: string; data: unknown },
-  opts?: { warnings?: string[] },
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {
+export function normalizeResponse(response: {
+  endpoint: string;
+  requestTime: string;
+  data: unknown;
+}): Record<string, unknown> {
+  return {
     endpoint: response.endpoint,
     requestTime: response.requestTime,
     data: response.data,
-  };
-  if (opts?.warnings && opts.warnings.length > 0) {
-    result.warnings = opts.warnings;
-  }
-  return result;
-}
-
-const AI_BUILDER_CODE_PATTERN = /^[A-Za-z0-9]{1,16}$/;
-
-/**
- * Resolves the OKX tag field for an order. If aiBuilderCode is provided and
- * valid (1-16 alphanumeric chars), it overrides the default sourceTag. Invalid
- * codes cause the order to be rejected client-side; callers must check for
- * `'error' in result` and return the error without calling the OKX API.
- */
-export function resolveOrderTag(
-  args: Record<string, unknown>,
-  sourceTag: string,
-): { tag: string } | { error: string } {
-  const code = args["aiBuilderCode"];
-  if (code === undefined || code === null || code === "") {
-    return { tag: sourceTag };
-  }
-  if (typeof code === "string" && AI_BUILDER_CODE_PATTERN.test(code)) {
-    return { tag: code };
-  }
-  return {
-    error: `aiBuilderCode "${code}" is invalid (must be 1–16 alphanumeric chars)`,
   };
 }
 

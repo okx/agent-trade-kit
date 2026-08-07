@@ -7,7 +7,6 @@ import {
   normalizeResponse,
   readString,
   requireString,
-  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { buildContractTradeTools } from "./contract-trade.js";
@@ -89,10 +88,6 @@ export function registerSwapTradeTools(): ToolSpec[] {
               "Max 20. place:{instId,tdMode,side,ordType,sz,...}; cancel:{instId,ordId|clOrdId}; amend:{instId,ordId|clOrdId,newSz?,newPx?}.",
             items: { type: "object" },
           },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Applies to all placed orders in the batch.",
-          },
         },
         required: ["action", "orders"],
       },
@@ -104,11 +99,6 @@ export function registerSwapTradeTools(): ToolSpec[] {
         if (!Array.isArray(orders) || orders.length === 0) {
           throw new Error("orders must be a non-empty array.");
         }
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const endpointMap: Record<string, string> = {
           place: "/api/v5/trade/batch-orders",
           cancel: "/api/v5/trade/cancel-batch-orders",
@@ -131,7 +121,7 @@ export function registerSwapTradeTools(): ToolSpec[] {
                   reduceOnly:
                     typeof reduceOnly === "boolean" ? String(reduceOnly) : undefined,
                   clOrdId: readString(o, "clOrdId"),
-                  tag,
+                  tag: context.config.sourceTag,
                   attachAlgoOrds,
                 });
               })

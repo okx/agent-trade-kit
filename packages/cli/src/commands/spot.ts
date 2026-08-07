@@ -99,11 +99,6 @@ export async function cmdSpotPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Order placed", "ordId");
@@ -208,11 +203,6 @@ export async function cmdSpotAlgoPlace(
     tpLevels: opts.tpLevels,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Algo order placed", "algoId");
@@ -373,11 +363,6 @@ export async function cmdSpotAlgoTrailPlace(
     activePx: opts.activePx,
     aiBuilderCode: opts.aiBuilderCode,
   });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitWriteResult(data?.[0], "Trailing stop placed", "algoId");
@@ -417,11 +402,6 @@ export async function cmdSpotBatch(
   const result = await run(tool, isPlace
     ? { action: opts.action, orders: parsed, aiBuilderCode: opts.aiBuilderCode }
     : { orders: parsed });
-  if ((result as unknown as Record<string, unknown>).isError) {
-    errorLine((result as unknown as Record<string, unknown>).error as string);
-    process.exitCode = 1;
-    return;
-  }
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
   emitBatchResults(data ?? []);

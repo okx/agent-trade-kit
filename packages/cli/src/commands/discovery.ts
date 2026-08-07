@@ -66,25 +66,39 @@ export interface DiscoveryOutput {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function extractParameters(toolName: string | null, specMap: Map<string, ToolSpec>): DiscoveryParameter[] {
-  if (toolName == null) return [];
-  const spec = specMap.get(toolName);
-  if (!spec?.inputSchema) return [];
+const AI_BUILDER_CODE_PARAMETER: DiscoveryParameter = {
+  name: "aiBuilderCode",
+  type: "string",
+  required: false,
+  description: "Optional AI builder attribution code for order-placement actions (1-16 alphanumeric chars).",
+};
 
-  const schema = spec.inputSchema as {
-    properties?: Record<string, { type?: string; description?: string }>;
-    required?: string[];
-  };
+function extractParameters(entry: CliCommandEntry, specMap: Map<string, ToolSpec>): DiscoveryParameter[] {
+  const parameters: DiscoveryParameter[] = [];
+  if (entry.toolName != null) {
+    const spec = specMap.get(entry.toolName);
+    if (spec?.inputSchema) {
+      const schema = spec.inputSchema as {
+        properties?: Record<string, { type?: string; description?: string }>;
+        required?: string[];
+      };
 
-  if (!schema.properties) return [];
+      if (schema.properties) {
+        const required = new Set(schema.required ?? []);
+        parameters.push(...Object.entries(schema.properties).map(([name, prop]) => ({
+          name,
+          type: prop.type ?? "string",
+          required: required.has(name),
+          description: prop.description,
+        })));
+      }
+    }
+  }
 
-  const required = new Set(schema.required ?? []);
-  return Object.entries(schema.properties).map(([name, prop]) => ({
-    name,
-    type: prop.type ?? "string",
-    required: required.has(name),
-    description: prop.description,
-  }));
+  if (entry.usage.includes("--aiBuilderCode") && !parameters.some((param) => param.name === "aiBuilderCode")) {
+    parameters.push(AI_BUILDER_CODE_PARAMETER);
+  }
+  return parameters;
 }
 
 function collectCommands(
@@ -99,7 +113,7 @@ function collectCommands(
       path: `${modulePath} ${cmdName}`,
       toolName: entry.toolName,
       description: resolveCommandDescription(entry, specMap, ""),
-      parameters: extractParameters(entry.toolName, specMap),
+      parameters: extractParameters(entry, specMap),
     });
   }
 

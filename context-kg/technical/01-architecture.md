@@ -83,7 +83,7 @@ The CLI (`packages/cli/src/index.ts`) uses a `ToolRunner` abstraction that mirro
 - **`packages/cli/src/parser.ts`**: parses argv into `{ command, subcommand, flags, rest }`
 - **`packages/cli/src/commands/*.ts`**: one file per module — maps subcommand strings to tool calls
 - **`packages/cli/src/formatter.ts`**: formats tool results as tables or JSON (controlled by `--json` flag)
-- **`createToolRunner(config)`**: factory that returns a runner wrapping the core tool handlers
+- **`createCliToolRunner(client, config)`**: factory that returns a runner wrapping the core tool handlers
 
 The CLI does NOT call OKX API directly — it calls the same tool handlers as the MCP server.
 

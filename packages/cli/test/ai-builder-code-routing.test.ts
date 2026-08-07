@@ -5,7 +5,7 @@
  */
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import type { ToolRunner } from "@agent-tradekit/core";
+import { allToolSpecs, type OkxConfig, type OkxRestClient, type ToolRunner } from "@agent-tradekit/core";
 import {
   handleSpotCommand,
   handleSpotAlgoCommand,
@@ -17,6 +17,9 @@ import {
   handleOptionAlgoCommand,
   handleBotGridCommand,
   handleBotDcaCommand,
+  handleEventCommand,
+  createCliToolRunner,
+  resolveCliAiBuilderCode,
 } from "../src/index.js";
 import type { CliValues } from "../src/index.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
@@ -78,29 +81,152 @@ function makeSpy(): { spy: ToolRunner; captured: { tool: string; args: Record<st
   return { spy, captured };
 }
 
-function makeErrorSpy(errorMsg: string): ToolRunner {
-  return async () => ({ isError: true, error: errorMsg });
-}
-
 function vals(overrides: Partial<CliValues>): CliValues {
   return overrides as CliValues;
 }
 
-// ===========================================================================
-// fail-fast: invalid aiBuilderCode → isError → process.exitCode = 1
-// ===========================================================================
+function makeCliRunnerRecorder(): {
+  run: ToolRunner;
+  calls: Array<{ endpoint: string; body: unknown }>;
+} {
+  const calls: Array<{ endpoint: string; body: unknown }> = [];
+  const client = {
+    privatePost: async (endpoint: string, body: unknown) => {
+      calls.push({ endpoint, body });
+      return {
+        endpoint,
+        requestTime: "2026-08-07T00:00:00.000Z",
+        data: [{ sCode: "0", sMsg: "" }],
+      };
+    },
+  } as unknown as OkxRestClient;
+  const config: OkxConfig = {
+    hasAuth: true,
+    profile: "default",
+    baseUrl: "https://www.okx.com",
+    timeoutMs: 30000,
+    modules: ["spot", "swap", "futures", "option", "event", "bot.grid", "bot.dca"],
+    readOnly: false,
+    demo: true,
+    site: "global",
+    sourceTag: "CLI",
+    verbose: false,
+  };
 
-describe("handleSpotCommand - invalid aiBuilderCode fail-fast", () => {
-  it("place: sets process.exitCode=1 and does not throw when spy returns isError", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad-code!" is invalid (must be 1–16 alphanumeric chars)');
-    await handleSpotCommand(
-      errorSpy,
-      "place",
-      [],
-      vals({ instId: "BTC-USDT", side: "buy", ordType: "market", sz: "0.01", aiBuilderCode: "bad-code!" }),
-      false,
+  return { run: createCliToolRunner(client, config), calls };
+}
+
+describe("resolveCliAiBuilderCode", () => {
+  it("uses aiBuilderCode as the source tag and strips it before tool dispatch", () => {
+    const result = resolveCliAiBuilderCode({ instId: "BTC-USDT", aiBuilderCode: "MYBOT" }, "CLI");
+
+    assert.equal(result.sourceTag, "MYBOT");
+    assert.deepEqual(result.args, { instId: "BTC-USDT" });
+  });
+
+  it("keeps the default source tag when aiBuilderCode is not provided", () => {
+    const result = resolveCliAiBuilderCode({ instId: "BTC-USDT" }, "CLI");
+
+    assert.equal(result.sourceTag, "CLI");
+    assert.deepEqual(result.args, { instId: "BTC-USDT" });
+  });
+
+  it("rejects invalid aiBuilderCode values", () => {
+    assert.throws(
+      () => resolveCliAiBuilderCode({ aiBuilderCode: "bad-code!" }, "CLI"),
+      /aiBuilderCode "bad-code!" is invalid/,
     );
-    assert.equal(process.exitCode, 1);
+  });
+
+  it("rejects empty aiBuilderCode values", () => {
+    assert.throws(
+      () => resolveCliAiBuilderCode({ aiBuilderCode: "" }, "CLI"),
+      /aiBuilderCode "" is invalid/,
+    );
+  });
+});
+
+describe("createCliToolRunner", () => {
+  it("applies aiBuilderCode as the order tag and strips the CLI-only arg", async () => {
+    const { run, calls } = makeCliRunnerRecorder();
+
+    await run("spot_place_order", {
+      instId: "BTC-USDT",
+      tdMode: "cash",
+      side: "buy",
+      ordType: "market",
+      sz: "0.01",
+      aiBuilderCode: "MYBOT",
+    });
+
+    assert.equal((calls[0]!.body as Record<string, unknown>)["tag"], "MYBOT");
+    assert.equal((calls[0]!.body as Record<string, unknown>)["aiBuilderCode"], undefined);
+  });
+
+  it("applies aiBuilderCode to swap move-stop trail requests", async () => {
+    const { run, calls } = makeCliRunnerRecorder();
+
+    await run("swap_place_move_stop_order", {
+      instId: "BTC-USDT-SWAP",
+      tdMode: "cross",
+      side: "sell",
+      sz: "1",
+      callbackRatio: "0.05",
+      aiBuilderCode: "MYBOT",
+    });
+
+    assert.equal((calls[0]!.body as Record<string, unknown>)["tag"], "MYBOT");
+    assert.equal((calls[0]!.body as Record<string, unknown>)["ordType"], "move_order_stop");
+    assert.equal((calls[0]!.body as Record<string, unknown>)["aiBuilderCode"], undefined);
+  });
+
+  it("applies aiBuilderCode to futures move-stop trail requests", async () => {
+    const { run, calls } = makeCliRunnerRecorder();
+
+    await run("futures_place_move_stop_order", {
+      instId: "BTC-USDT-240329",
+      tdMode: "cross",
+      side: "sell",
+      sz: "1",
+      callbackRatio: "0.05",
+      aiBuilderCode: "MYBOT",
+    });
+
+    assert.equal((calls[0]!.body as Record<string, unknown>)["tag"], "MYBOT");
+    assert.equal((calls[0]!.body as Record<string, unknown>)["ordType"], "move_order_stop");
+    assert.equal((calls[0]!.body as Record<string, unknown>)["aiBuilderCode"], undefined);
+  });
+});
+
+describe("core ToolSpec schemas", () => {
+  it("do not expose aiBuilderCode as a core tool parameter", () => {
+    const changedTools = [
+      "spot_place_order",
+      "spot_place_algo_order",
+      "spot_batch_orders",
+      "swap_place_order",
+      "swap_batch_orders",
+      "swap_place_algo_order",
+      "swap_place_move_stop_order",
+      "swap_close_position",
+      "futures_place_order",
+      "futures_batch_orders",
+      "futures_place_algo_order",
+      "futures_place_move_stop_order",
+      "futures_close_position",
+      "option_place_order",
+      "option_place_algo_order",
+      "event_place_order",
+      "grid_create_order",
+      "dca_create_order",
+    ];
+    const specs = new Map(allToolSpecs().map((spec) => [spec.name, spec]));
+
+    for (const toolName of changedTools) {
+      const schema = specs.get(toolName)?.inputSchema as { properties?: Record<string, unknown> } | undefined;
+      assert.ok(schema, `${toolName} should exist`);
+      assert.ok(!schema.properties?.["aiBuilderCode"], `${toolName} should not expose aiBuilderCode`);
+    }
   });
 });
 
@@ -318,7 +444,7 @@ describe("handleSpotCommand batch - aiBuilderCode routing", () => {
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
 
-  it("batch place: aiBuilderCode is NOT forwarded on amend", async () => {
+  it("batch amend: aiBuilderCode is not forwarded", async () => {
     const { spy, captured } = makeSpy();
     await handleSpotCommand(
       spy,
@@ -330,16 +456,16 @@ describe("handleSpotCommand batch - aiBuilderCode routing", () => {
     assert.equal(captured.args["aiBuilderCode"], undefined);
   });
 
-  it("batch place: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+  it("batch cancel: aiBuilderCode is not forwarded", async () => {
+    const { spy, captured } = makeSpy();
     await handleSpotCommand(
-      errorSpy,
+      spy,
       "batch",
       [],
-      vals({ action: "place", orders: '[{"instId":"BTC-USDT","side":"buy","ordType":"market","sz":"0.01"}]', aiBuilderCode: "bad!" }),
+      vals({ action: "cancel", orders: '[{"instId":"BTC-USDT","ordId":"123"}]', aiBuilderCode: "MYBOT" }),
       false,
     );
-    assert.equal(process.exitCode, 1);
+    assert.equal(captured.args["aiBuilderCode"], undefined);
   });
 });
 
@@ -360,16 +486,28 @@ describe("handleSwapCommand batch - aiBuilderCode routing", () => {
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
 
-  it("batch place: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+  it("batch amend: aiBuilderCode is not forwarded", async () => {
+    const { spy, captured } = makeSpy();
     await handleSwapCommand(
-      errorSpy,
+      spy,
       "batch",
       [],
-      vals({ action: "place", orders: '[{"instId":"BTC-USDT-SWAP","side":"buy","ordType":"market","sz":"1","tdMode":"cross"}]', aiBuilderCode: "bad!" }),
+      vals({ action: "amend", orders: '[{"instId":"BTC-USDT-SWAP","ordId":"123","newSz":"2"}]', aiBuilderCode: "MYBOT" }),
       false,
     );
-    assert.equal(process.exitCode, 1);
+    assert.equal(captured.args["aiBuilderCode"], undefined);
+  });
+
+  it("batch cancel: aiBuilderCode is not forwarded", async () => {
+    const { spy, captured } = makeSpy();
+    await handleSwapCommand(
+      spy,
+      "batch",
+      [],
+      vals({ action: "cancel", orders: '[{"instId":"BTC-USDT-SWAP","ordId":"123"}]', aiBuilderCode: "MYBOT" }),
+      false,
+    );
+    assert.equal(captured.args["aiBuilderCode"], undefined);
   });
 });
 
@@ -390,16 +528,28 @@ describe("handleFuturesCommand batch - aiBuilderCode routing", () => {
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
 
-  it("batch place: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
+  it("batch amend: aiBuilderCode is not forwarded", async () => {
+    const { spy, captured } = makeSpy();
     await handleFuturesCommand(
-      errorSpy,
+      spy,
       "batch",
       [],
-      vals({ action: "place", orders: '[{"instId":"BTC-USDT-240329","side":"buy","ordType":"market","sz":"1","tdMode":"cross"}]', aiBuilderCode: "bad!" }),
+      vals({ action: "amend", orders: '[{"instId":"BTC-USDT-240329","ordId":"123","newSz":"2"}]', aiBuilderCode: "MYBOT" }),
       false,
     );
-    assert.equal(process.exitCode, 1);
+    assert.equal(captured.args["aiBuilderCode"], undefined);
+  });
+
+  it("batch cancel: aiBuilderCode is not forwarded", async () => {
+    const { spy, captured } = makeSpy();
+    await handleFuturesCommand(
+      spy,
+      "batch",
+      [],
+      vals({ action: "cancel", orders: '[{"instId":"BTC-USDT-240329","ordId":"123"}]', aiBuilderCode: "MYBOT" }),
+      false,
+    );
+    assert.equal(captured.args["aiBuilderCode"], undefined);
   });
 });
 
@@ -418,17 +568,6 @@ describe("handleSpotAlgoCommand trail - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
-
-  it("trail: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
-    await handleSpotAlgoCommand(
-      errorSpy,
-      "trail",
-      vals({ instId: "BTC-USDT", side: "sell", sz: "0.01", callbackRatio: "0.05", aiBuilderCode: "bad!" }),
-      false,
-    );
-    assert.equal(process.exitCode, 1);
-  });
 });
 
 // ===========================================================================
@@ -446,17 +585,6 @@ describe("handleSwapAlgoCommand trail - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
-
-  it("trail: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
-    await handleSwapAlgoCommand(
-      errorSpy,
-      "trail",
-      vals({ instId: "BTC-USDT-SWAP", side: "sell", sz: "1", tdMode: "cross", callbackRatio: "0.05", aiBuilderCode: "bad!" }),
-      false,
-    );
-    assert.equal(process.exitCode, 1);
-  });
 });
 
 // ===========================================================================
@@ -473,17 +601,6 @@ describe("handleFuturesAlgoCommand trail - aiBuilderCode routing", () => {
       false,
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
-  });
-
-  it("trail: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
-    await handleFuturesAlgoCommand(
-      errorSpy,
-      "trail",
-      vals({ instId: "BTC-USDT-240329", side: "sell", sz: "1", tdMode: "cross", callbackRatio: "0.05", aiBuilderCode: "bad!" }),
-      false,
-    );
-    assert.equal(process.exitCode, 1);
   });
 });
 
@@ -510,25 +627,6 @@ describe("handleBotDcaCommand create - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
-
-  it("create: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
-    await handleBotDcaCommand(
-      errorSpy,
-      "create",
-      vals({
-        instId: "BTC-USDT",
-        algoOrdType: "dca",
-        direction: "long",
-        initOrdAmt: "100",
-        maxSafetyOrds: "5",
-        tpPct: "0.05",
-        aiBuilderCode: "bad!",
-      }),
-      false,
-    );
-    assert.equal(process.exitCode, 1);
-  });
 });
 
 // ===========================================================================
@@ -546,18 +644,6 @@ describe("handleSwapCommand close - aiBuilderCode routing", () => {
       false,
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
-  });
-
-  it("close: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
-    await handleSwapCommand(
-      errorSpy,
-      "close",
-      [],
-      vals({ instId: "BTC-USDT-SWAP", mgnMode: "cross", aiBuilderCode: "bad!" }),
-      false,
-    );
-    assert.equal(process.exitCode, 1);
   });
 });
 
@@ -577,16 +663,39 @@ describe("handleFuturesCommand close - aiBuilderCode routing", () => {
     );
     assert.equal(captured.args["aiBuilderCode"], "MYBOT");
   });
+});
 
-  it("close: invalid aiBuilderCode sets process.exitCode=1", async () => {
-    const errorSpy = makeErrorSpy('aiBuilderCode "bad!" is invalid');
-    await handleFuturesCommand(
-      errorSpy,
-      "close",
+describe("handleEventCommand - aiBuilderCode routing", () => {
+  it("place: aiBuilderCode is forwarded when provided", async () => {
+    const { spy, captured } = makeSpy();
+    await handleEventCommand(
+      spy,
+      "place",
       [],
-      vals({ instId: "BTC-USDT-240329", mgnMode: "cross", aiBuilderCode: "bad!" }),
-      false,
+      vals({ instId: "BTC-USDT-20260101-50000-C", side: "buy", outcome: "yes", sz: "1", aiBuilderCode: "MYBOT" }),
+      true,
     );
+
+    assert.equal(captured.tool, "event_place_order");
+    assert.equal(captured.args["aiBuilderCode"], "MYBOT");
+  });
+
+  it("place: sets process.exitCode=1 when the runner rejects invalid aiBuilderCode", async () => {
+    let callCount = 0;
+    const throwingRunner: ToolRunner = async () => {
+      callCount += 1;
+      throw new Error('aiBuilderCode "bad!" is invalid');
+    };
+
+    await handleEventCommand(
+      throwingRunner,
+      "place",
+      [],
+      vals({ instId: "BTC-ABOVE-DAILY-200101-1600-70000", side: "buy", outcome: "yes", sz: "1", aiBuilderCode: "bad!" }),
+      true,
+    );
+
     assert.equal(process.exitCode, 1);
+    assert.equal(callCount, 1);
   });
 });

@@ -7,7 +7,6 @@ import {
   readNumber,
   readString,
   requireString,
-  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
@@ -85,21 +84,12 @@ export function registerOptionAlgoTools(): ToolSpec[] {
             type: "string",
             description: "Client-assigned algo order ID (1-32 alphanumeric chars). Legacy alias clOrdId is also accepted.",
           },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const reduceOnly = readBoolean(args, "reduceOnly");
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -125,7 +115,7 @@ export function registerOptionAlgoTools(): ToolSpec[] {
             slTriggerPxType: readString(args, "slTriggerPxType"),
             reduceOnly: reduceOnly !== undefined ? String(reduceOnly) : undefined,
             algoClOrdId: readString(args, "algoClOrdId") ?? readString(args, "clOrdId"),
-            tag,
+            tag: context.config.sourceTag,
           }),
           privateRateLimit("option_place_algo_order", 20),
         );

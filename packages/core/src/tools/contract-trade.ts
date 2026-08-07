@@ -19,7 +19,6 @@ import {
   readNumber,
   readString,
   requireString,
-  resolveOrderTag,
 } from "./helpers.js";
 import { privateRateLimit } from "./common.js";
 import { resolveQuoteCcySz } from "./tgtccy-conversion.js";
@@ -103,10 +102,6 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
           slOrdPx: { type: "string", description: "SL order price; -1=market" },
           slTriggerPxType: SL_TRIGGER_PX_TYPE_SCHEMA,
           stpMode: STP_MODE_SCHEMA,
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "tdMode", "side", "ordType", "sz"],
       },
@@ -114,11 +109,6 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
         const args = asRecord(rawArgs);
         const reduceOnly = args.reduceOnly;
         const attachAlgoOrds = buildAttachAlgoOrds(args);
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const resolved = await resolveQuoteCcySz(
           requireString(args, "instId"),
           requireString(args, "sz"),
@@ -143,7 +133,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             stpMode: readString(args, "stpMode"),
             // Phase 3c CLI power-user flag (issue #182, CLI-only no MCP/skill exposure)
             pxAmendType: readString(args, "pxAmendType"),
-            tag,
+            tag: context.config.sourceTag,
             attachAlgoOrds,
           }),
           privateRateLimit(n("place_order"), 60),
@@ -390,21 +380,12 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             description: "Cancel pending orders for this instrument on close",
           },
           clOrdId: { type: "string", description: "Client order ID for close order" },
-          aiBuilderCode: {
-            type: "string",
-            description: "Optional AI builder attribution code (1–16 alphanumeric chars). Overrides the default source tag.",
-          },
         },
         required: ["instId", "mgnMode"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const autoCxl = args.autoCxl;
-        const tagResult = resolveOrderTag(args, context.config.sourceTag);
-        if ("error" in tagResult) {
-          return { isError: true, error: tagResult.error };
-        }
-        const { tag } = tagResult;
         const response = await context.client.privatePost(
           "/api/v5/trade/close-position",
           compactObject({
@@ -413,7 +394,7 @@ export function buildContractTradeTools(cfg: ContractConfig): ToolSpec[] {
             posSide: readString(args, "posSide"),
             autoCxl: typeof autoCxl === "boolean" ? String(autoCxl) : undefined,
             clOrdId: readString(args, "clOrdId"),
-            tag,
+            tag: context.config.sourceTag,
           }),
           privateRateLimit(n("close_position"), 20),
         );
