@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3-beta.1] - 2026-08-10
+
+Beta release of the current `github-main` snapshot. There are no user-facing functional changes since `1.4.2`; this prerelease validates the next `1.4.3` release line.
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only policy).
+
 ## [1.4.2] - 2026-07-23
 
 ### Fixed
