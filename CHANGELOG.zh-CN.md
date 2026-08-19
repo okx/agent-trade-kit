@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.4.3-beta.3] - 2026-08-20
+
+Beta 版本：按仅稳定版同步的规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新。
+
 ### Fixed
 
 - 修正 MCP `--site` help 文本及文档中 US 站点的 API 域名：由 `app.okx.com`（网页/注册域名）改为 `us.okx.com`（API 域名），与代码中的 `OKX_SITES` 及 OKX 区域 API 域名要求一致。实际行为本就正确（`constants.ts` 用的是 `us.okx.com`），仅 help/文档字符串写错。

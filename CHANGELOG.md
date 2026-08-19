@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3-beta.3] - 2026-08-20
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only policy).
+
 ### Fixed
 
 - Corrected the US site API base URL shown in the MCP `--site` help text and in the docs from `app.okx.com` (the web/registration domain) to `us.okx.com` (the API domain), matching `OKX_SITES` in code and OKX's regional API-domain requirements. Behavior was already correct (`constants.ts` used `us.okx.com`); only the help/docs strings were wrong.
