@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Corrected the US site API base URL shown in the MCP `--site` help text and in the docs from `app.okx.com` (the web/registration domain) to `us.okx.com` (the API domain), matching `OKX_SITES` in code and OKX's regional API-domain requirements. Behavior was already correct (`constants.ts` used `us.okx.com`); only the help/docs strings were wrong.
 - OAuth-authenticated requests now route to the site the OAuth token was issued for. Previously, when no site was set explicitly (`--site` / `OKX_SITE` / toml `site`), all requests fell back to `global` (`www.okx.com`) regardless of where the OAuth session was logged in — so a token issued on a non-global site (e.g. EEA) got a 401 on private endpoints like `account balance`. The site is read from the OAuth session (`okx-auth status`) and used as a fallback between toml `site` and the `global` default; it is never persisted. API-key mode and users who set a site explicitly are unaffected.
 
 ### Changed

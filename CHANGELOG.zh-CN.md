@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- 修正 MCP `--site` help 文本及文档中 US 站点的 API 域名：由 `app.okx.com`（网页/注册域名）改为 `us.okx.com`（API 域名），与代码中的 `OKX_SITES` 及 OKX 区域 API 域名要求一致。实际行为本就正确（`constants.ts` 用的是 `us.okx.com`），仅 help/文档字符串写错。
 - OAuth 认证的请求现在会路由到 OAuth token 签发所属的站点。此前，当未显式设置站点（`--site` / `OKX_SITE` / toml `site`）时，无论 OAuth 会话登录在哪个站点，所有请求都会回落到 `global`（`www.okx.com`）——因此在非 global 站点（如 EEA）签发的 token 访问 `account balance` 等私有接口时会返回 401。现在站点从 OAuth 会话（`okx-auth status`）读取，作为 toml `site` 与默认 `global` 之间的一层回落；该值不会被持久化。API key 模式以及已显式指定站点的用户不受影响。
 
 ### Changed

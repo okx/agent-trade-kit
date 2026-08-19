@@ -865,6 +865,16 @@ describe("loadConfig - OAuth fallback", () => {
     assert.equal(config.site, "global");
   });
 
+  it("falls back to global (no crash) when the auth binary exits non-zero", async () => {
+    // e.g. refresh-failed (exit 3): execAuthStatus() returns null, so oauthSite
+    // stays undefined and site resolution silently falls through to global.
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    process.env.MOCK_AUTH_EXIT = "3";
+    const config = await loadConfig(BASE_CLI);
+    assert.equal(config.site, "global");
+    assert.equal(config.hasAuth, false);
+  });
+
   it("emits site source to stderr under verbose on the auto-route path", async () => {
     mockAuthStatus({ status: "logged_in", site: "eea" });
     const stderr = await captureStderr(async () => {

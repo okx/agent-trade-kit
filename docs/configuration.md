@@ -69,7 +69,7 @@ OKX operates independent regional sites. Users must use the API of the site wher
 |------|----------|-------------|
 | `global` (default) | `www.okx.com` | `https://www.okx.com` |
 | `eea` | `my.okx.com` | `https://eea.okx.com` |
-| `us` | `app.okx.com` | `https://app.okx.com` |
+| `us` | `app.okx.com` | `https://us.okx.com` |
 | `tr` | `tr.okx.com` | `https://tr.okx.com` |
 
 Set the site in your profile:
@@ -471,7 +471,7 @@ OKX 运营多个独立的区域站点，用户需要使用其账号所在站点�
 |------|----------|-------------|
 | `global`（默认） | `www.okx.com` | `https://www.okx.com` |
 | `eea` | `my.okx.com` | `https://eea.okx.com` |
-| `us` | `app.okx.com` | `https://app.okx.com` |
+| `us` | `app.okx.com` | `https://us.okx.com` |
 | `tr` | `tr.okx.com` | `https://tr.okx.com` |
 
 在 Profile 中指定站点：

@@ -5,7 +5,7 @@ based on smoke-test results against live / demo accounts (read-only mode).
 
 | | Global | EEA | US | TR |
 |---|:---:|:---:|:---:|:---:|
-| API base URL | `www.okx.com` | `eea.okx.com` | `app.okx.com` | `tr.okx.com` |
+| API base URL | `www.okx.com` | `eea.okx.com` | `us.okx.com` | `tr.okx.com` |
 | Simulated trading (`x-simulated-trading: 1`) | Yes | Yes | Yes | Not yet tested |
 | Public market endpoints | All pass | All pass | All pass | Not yet tested |
 | Private read endpoints | All pass | See below | All pass | Not yet tested |
@@ -18,7 +18,7 @@ based on smoke-test results against live / demo accounts (read-only mode).
 |---|:---:|---|
 | `swap_get_leverage` | `404` | `/api/v5/account/leverage-info` not available on EEA |
 
-### US (`app.okx.com`)
+### US (`us.okx.com`)
 
 | Endpoint | Status | Note |
 |---|:---:|---|
@@ -54,7 +54,7 @@ pnpm tsx scripts/smoke-test/run.ts --profile eu-demo --read-only
 
 | | Global | EEA | US | TR |
 |---|:---:|:---:|:---:|:---:|
-| API 域名 | `www.okx.com` | `eea.okx.com` | `app.okx.com` | `tr.okx.com` |
+| API 域名 | `www.okx.com` | `eea.okx.com` | `us.okx.com` | `tr.okx.com` |
 | 模拟盘（`x-simulated-trading: 1`）| 支持 | 支持 | 支持 | 待测试 |
 | 公开行情接口 | 全部通过 | 全部通过 | 全部通过 | 待测试 |
 | 私有只读接口 | 全部通过 | 见下方 | 全部通过 | 待测试 |
@@ -67,7 +67,7 @@ pnpm tsx scripts/smoke-test/run.ts --profile eu-demo --read-only
 |---|:---:|---|
 | `swap_get_leverage` | `404` | EEA 站不提供 `/api/v5/account/leverage-info` |
 
-### US（`app.okx.com`）
+### US（`us.okx.com`）
 
 | 接口 | 状态 | 说明 |
 |---|:---:|---|
