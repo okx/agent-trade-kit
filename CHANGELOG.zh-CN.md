@@ -11,6 +11,15 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- OAuth 认证的请求现在会路由到 OAuth token 签发所属的站点。此前，当未显式设置站点（`--site` / `OKX_SITE` / toml `site`）时，无论 OAuth 会话登录在哪个站点，所有请求都会回落到 `global`（`www.okx.com`）——因此在非 global 站点（如 EEA）签发的 token 访问 `account balance` 等私有接口时会返回 401。现在站点从 OAuth 会话（`okx-auth status`）读取，作为 toml `site` 与默认 `global` 之间的一层回落；该值不会被持久化。API key 模式以及已显式指定站点的用户不受影响。
+
+### Changed
+
+- 对于未显式指定站点的 OAuth 用户，**所有**请求（包括公开行情数据）现在会路由到 OAuth 登录站点，而不再是 `global`。公开数据集是按区域区分的（例如非 global 站点暴露的交易品种略少），因此返回结果可能与此前不同。如需保持原有行为，请传入 `--site global`（或设置 `OKX_SITE=global` / toml `site = "global"`）。当显式设置的站点与 OAuth 登录站点冲突时，CLI 会在 stderr 打印警告，并按显式站点执行。
+- `--site ""` / `OKX_SITE=""`（空字符串）现在会被忽略并回落到下一优先级，而不再抛出 "Unknown site" 错误。
+
 ## [1.4.2] - 2026-07-23
 
 ### 修复

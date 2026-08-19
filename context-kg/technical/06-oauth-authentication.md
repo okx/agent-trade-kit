@@ -37,6 +37,10 @@ The SDK selects an auth method **per request** in `applyAuth()`:
 
 This priority is intentional: API key credentials are explicit and deterministic, so they always win when present.
 
+### OAuth session site → request routing
+
+Because an OAuth token is issued per-site (`okx auth login --site <x>`) and only works against that site's API host, the OAuth session's site also feeds **site resolution** at config load time. In `loadCredentials()`, when running in OAuth mode (`!hasApiKey`), the `site` from `okx-auth status` is surfaced as `oauthSite` and passed to `resolveSite()`, where it sits between toml `site` and the `"global"` default (see `02-configuration.md` → Site System for the full priority). This means an OAuth user who logged in on e.g. EEA is routed to `eea.okx.com` by default instead of 401ing against `global`. The site is only read (never persisted); only adopted when `status === "logged_in"` and the value is a known `SITE_ID` (unknown values warn and fall back). An explicit site that conflicts with the OAuth login site is honored, with a warning to stderr.
+
 ## Token Retrieval — Platform-Specific Channel
 
 The token is **never** written to stdout. Stdout/stderr remain free for human-readable diagnostics, and the access token is delivered out-of-band over a per-invocation channel that the OS process tree cannot snoop. `execAuthToken()` in `packages/core/src/auth/binary.ts` dispatches on `process.platform`:

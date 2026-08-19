@@ -79,7 +79,7 @@ function parseModuleList(rawModules?: string): ModuleId[] {
   return Array.from(deduped);
 }
 
-async function loadCredentials(toml: OkxProfile): Promise<{ apiKey?: string; secretKey?: string; passphrase?: string; hasAuth: boolean }> {
+async function loadCredentials(toml: OkxProfile): Promise<{ apiKey?: string; secretKey?: string; passphrase?: string; hasAuth: boolean; oauthSite?: SiteId }> {
   const apiKey = process.env.OKX_API_KEY?.trim() ?? toml.api_key;
   const secretKey = process.env.OKX_SECRET_KEY?.trim() ?? toml.secret_key;
   const passphrase = process.env.OKX_PASSPHRASE?.trim() ?? toml.passphrase;
@@ -93,25 +93,77 @@ async function loadCredentials(toml: OkxProfile): Promise<{ apiKey?: string; sec
   }
 
   // hasAuth = true if either OAuth tokens (via okx-auth binary) or API key exists
-  // Auth mode is determined dynamically by rest-client at request time
+  // Auth mode is determined dynamically by rest-client at request time.
+  //
+  // When authenticating via OAuth, the token is issued per-site (okx-auth login
+  // --site <x>) and only works against that site's API host. We surface the
+  // session's site so resolveSite() can route requests to the correct host by
+  // default, instead of the blind "global" fallback. Source of truth is the
+  // okx-auth binary; we only read it, never persist it.
   let hasOAuth = false;
+  let oauthSite: SiteId | undefined;
   if (!hasApiKey) {
     const status = await execAuthStatus();
     hasOAuth = status?.status === "logged_in";
+    if (hasOAuth && status?.site) {
+      if (SITE_IDS.includes(status.site as SiteId)) {
+        oauthSite = status.site as SiteId;
+      } else {
+        // Unrecognized site from the binary: warn rather than silently ignoring
+        // it, so a future binary value-set change is not masked. We only drop the
+        // OAuth site here; normal site resolution (explicit value, else global)
+        // still applies, so avoid claiming a specific fallback target.
+        process.stderr.write(
+          `[okx] warning: OAuth login site "${status.site}" is not recognized; ` +
+          `ignoring it and continuing normal site resolution. Update the CLI if this persists.\n`,
+        );
+      }
+    }
   }
   const hasAuth = hasOAuth || hasApiKey;
 
-  return { apiKey, secretKey, passphrase, hasAuth };
+  return { apiKey, secretKey, passphrase, hasAuth, oauthSite };
 }
 
-function resolveSite(cliSite?: string, tomlSite?: string): SiteId {
-  const rawSite = cliSite?.trim() ?? process.env.OKX_SITE?.trim() ?? tomlSite ?? "global";
+function resolveSite(cliSite?: string, tomlSite?: string, oauthSite?: SiteId, verbose = false): SiteId {
+  // `explicit` = a site the user actively specified (cli / env / toml). Each
+  // string source is trimmed and an empty/whitespace value (`--site ""`,
+  // `OKX_SITE=""`, toml `site = ""`) is normalized to `undefined` so it is
+  // skipped rather than treated as an explicit selection; the `??` chain then
+  // falls through to the next source (and ultimately to `oauthSite`/`"global"`).
+  //
+  // `toml.site` comes from an unchecked TOML parse, so guard its type: any
+  // non-string value (e.g. `site = 123`, `site = 0`, `site = false`) is passed
+  // through unchanged so the SITE_IDS check below rejects it with a clean
+  // "Unknown site" ConfigError, instead of a TypeError (from `.trim()`) or being
+  // silently dropped by a truthiness test.
+  const tomlSiteValue = typeof tomlSite === "string" ? (tomlSite.trim() || undefined) : tomlSite;
+  const explicit = (cliSite?.trim() || undefined) ?? (process.env.OKX_SITE?.trim() || undefined) ?? tomlSiteValue;
+  // Priority: explicit > OAuth session site > "global".
+  const rawSite = explicit ?? oauthSite ?? "global";
+
+  // Validate before any warning so a typo/unknown site (e.g. "EEA") produces a
+  // clear "Unknown site" error rather than a misleading conflict warning.
   if (!SITE_IDS.includes(rawSite as SiteId)) {
     throw new ConfigError(
       `Unknown site "${rawSite}".`,
       `Use one of: ${SITE_IDS.join(", ")}.`,
     );
   }
+
+  // Warn only when the user explicitly picked a site that conflicts with the
+  // OAuth session's site — that combination will 401 on private requests. Do
+  // NOT warn on the normal auto-route path (no explicit site, OAuth site used),
+  // which is exactly the behavior this fallback is meant to provide silently.
+  if (explicit !== undefined && oauthSite !== undefined && explicit !== oauthSite) {
+    process.stderr.write(
+      `[okx] warning: requested site "${explicit}" differs from your OAuth login site "${oauthSite}"; ` +
+      `private requests may return 401. Drop --site/OKX_SITE/toml site to use the login site.\n`,
+    );
+  } else if (verbose && explicit === undefined && oauthSite !== undefined) {
+    process.stderr.write(`[verbose] site=${oauthSite} (from OAuth login)\n`);
+  }
+
   return rawSite as SiteId;
 }
 
@@ -136,7 +188,8 @@ function resolveBaseUrl(site: SiteId, tomlBaseUrl?: string): string {
  *   1. cli.site arg
  *   2. OKX_SITE env var
  *   3. toml profile site field
- *   4. default: "global"
+ *   4. OAuth session site (the site the OAuth token was issued for)
+ *   5. default: "global"
  *
  * Base URL priority (highest to lowest):
  *   1. OKX_API_BASE_URL env var  (explicit override - advanced users)
@@ -162,11 +215,11 @@ export async function loadConfig(cli: CliOptions): Promise<OkxConfig> {
   const config = readFullConfig();
   const profileName = cli.profile ?? config.default_profile ?? "default";
   const toml = config.profiles?.[profileName] ?? {};
-  const creds = await loadCredentials(toml);
+  const { oauthSite, ...creds } = await loadCredentials(toml);
 
   const demo = resolveDemo(cli, toml);
 
-  const site = resolveSite(cli.site, toml.site);
+  const site = resolveSite(cli.site, toml.site, oauthSite, cli.verbose ?? false);
   const baseUrl = resolveBaseUrl(site, toml.base_url);
 
   const rawTimeout = process.env.OKX_TIMEOUT_MS
