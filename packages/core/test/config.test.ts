@@ -746,4 +746,202 @@ describe("loadConfig - OAuth fallback", () => {
     const config = await loadConfig(BASE_CLI);
     assert.equal(config.hasAuth, true);
   });
+
+  // --- OAuth session site auto-routing ---------------------------------------
+
+  const MOCK_BIN = join(fileURLToPath(new URL(".", import.meta.url)), "fixtures", "mock-auth-binary.mjs");
+
+  /** Configure the mock binary to report a given `status --json` payload. */
+  function mockAuthStatus(payload: Record<string, unknown>): void {
+    process.env.OKX_AUTH_BIN = MOCK_BIN;
+    process.env.MOCK_AUTH_EXIT = "0";
+    process.env.MOCK_AUTH_STATUS_JSON = JSON.stringify(payload);
+  }
+
+  /** Capture everything written to process.stderr while `fn` runs. */
+  async function captureStderr(fn: () => Promise<void>): Promise<string> {
+    const original = process.stderr.write.bind(process.stderr);
+    let buf = "";
+    // @ts-expect-error - test stub with a narrower signature than the overloaded write()
+    process.stderr.write = (chunk: string | Uint8Array): boolean => {
+      buf += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf-8");
+      return true;
+    };
+    try {
+      await fn();
+    } finally {
+      process.stderr.write = original;
+    }
+    return buf;
+  }
+
+  it("routes to OAuth login site when no site is explicitly specified", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const config = await loadConfig(BASE_CLI);
+    assert.equal(config.site, "eea");
+    assert.equal(config.baseUrl, OKX_SITES.eea.apiBaseUrl);
+  });
+
+  it("does NOT warn on the auto-route path (no explicit site + OAuth site)", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig(BASE_CLI);
+      assert.equal(config.site, "eea");
+    });
+    assert.equal(stderr, "", "auto-route path must be silent");
+  });
+
+  it("cli.site overrides OAuth site and warns on conflict", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig({ ...BASE_CLI, site: "global" });
+      assert.equal(config.site, "global");
+      assert.equal(config.baseUrl, OKX_SITES.global.apiBaseUrl);
+    });
+    assert.match(stderr, /requested site "global" differs from your OAuth login site "eea"/);
+  });
+
+  it("OKX_SITE overrides OAuth site and warns on conflict", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    process.env.OKX_SITE = "us";
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig(BASE_CLI);
+      assert.equal(config.site, "us");
+    });
+    assert.match(stderr, /requested site "us" differs from your OAuth login site "eea"/);
+  });
+
+  it("toml.site overrides OAuth site and warns on conflict", async () => {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), '[profiles.default]\nsite = "us"\n', "utf-8");
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig(BASE_CLI);
+      assert.equal(config.site, "us");
+    });
+    assert.match(stderr, /requested site "us" differs from your OAuth login site "eea"/);
+  });
+
+  it("empty toml site is ignored and falls back to OAuth site", async () => {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), '[profiles.default]\nsite = ""\n', "utf-8");
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig(BASE_CLI);
+      assert.equal(config.site, "eea");
+    });
+    assert.equal(stderr, "", "empty toml site must not be treated as an explicit conflict");
+  });
+
+  it("auto-routes silently when OAuth site equals the global default", async () => {
+    mockAuthStatus({ status: "logged_in", site: "global" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig(BASE_CLI);
+      assert.equal(config.site, "global");
+      assert.equal(config.baseUrl, OKX_SITES.global.apiBaseUrl);
+    });
+    assert.equal(stderr, "");
+  });
+
+  it("does NOT warn when explicit site matches OAuth site", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig({ ...BASE_CLI, site: "eea" });
+      assert.equal(config.site, "eea");
+    });
+    assert.equal(stderr, "");
+  });
+
+  it("falls back to global and warns when OAuth site is not a known site", async () => {
+    mockAuthStatus({ status: "logged_in", site: "EEA" }); // wrong case → unrecognized
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig(BASE_CLI);
+      assert.equal(config.site, "global");
+    });
+    assert.match(stderr, /OAuth login site "EEA" is not recognized/);
+  });
+
+  it("ignores OAuth site when status is not logged_in", async () => {
+    mockAuthStatus({ status: "not_logged_in", site: "eea" });
+    const config = await loadConfig(BASE_CLI);
+    assert.equal(config.site, "global");
+  });
+
+  it("falls back to global (no crash) when the auth binary exits non-zero", async () => {
+    // e.g. refresh-failed (exit 3): execAuthStatus() returns null, so oauthSite
+    // stays undefined and site resolution silently falls through to global.
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    process.env.MOCK_AUTH_EXIT = "3";
+    const config = await loadConfig(BASE_CLI);
+    assert.equal(config.site, "global");
+    assert.equal(config.hasAuth, false);
+  });
+
+  it("emits site source to stderr under verbose on the auto-route path", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig({ ...BASE_CLI, verbose: true });
+      assert.equal(config.site, "eea");
+    });
+    assert.match(stderr, /site=eea \(from OAuth login\)/);
+  });
+
+  it("empty --site is ignored and falls back to OAuth site", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig({ ...BASE_CLI, site: "" });
+      assert.equal(config.site, "eea");
+    });
+    assert.equal(stderr, "");
+  });
+
+  it("empty OKX_SITE is ignored and falls back to OAuth site", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    process.env.OKX_SITE = "";
+    const config = await loadConfig(BASE_CLI);
+    assert.equal(config.site, "eea");
+  });
+
+  it("empty --site passes through to OKX_SITE", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    process.env.OKX_SITE = "us";
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig({ ...BASE_CLI, site: "" });
+      assert.equal(config.site, "us");
+    });
+    // us (from env) conflicts with eea (OAuth) → warns, honors env
+    assert.match(stderr, /requested site "us" differs from your OAuth login site "eea"/);
+  });
+
+  it("throws Unknown site for an invalid explicit site without a conflict warning", async () => {
+    mockAuthStatus({ status: "logged_in", site: "eea" });
+    const stderr = await captureStderr(async () => {
+      await assert.rejects(
+        () => loadConfig({ ...BASE_CLI, site: "bogus" }),
+        (err: unknown) => err instanceof ConfigError && /Unknown site "bogus"/.test((err as ConfigError).message),
+      );
+    });
+    assert.doesNotMatch(stderr, /differs from your OAuth login site/);
+  });
+
+  for (const raw of ["123", "0", "false"]) {
+    it(`throws a clean Unknown site error for a non-string toml site (site = ${raw})`, async () => {
+      // Even falsy non-string values must surface as a ConfigError, not be
+      // silently dropped or throw a TypeError from .trim().
+      writeFileSync(join(tmpHome, ".okx", "config.toml"), `[profiles.default]\nsite = ${raw}\n`, "utf-8");
+      await assert.rejects(
+        () => loadConfig(BASE_CLI),
+        (err: unknown) => err instanceof ConfigError && /Unknown site/.test((err as ConfigError).message),
+      );
+    });
+  }
+
+  it("uses the explicit site (not global) when OAuth site is unrecognized", async () => {
+    mockAuthStatus({ status: "logged_in", site: "EEA" }); // unrecognized (wrong case)
+    const stderr = await captureStderr(async () => {
+      const config = await loadConfig({ ...BASE_CLI, site: "us" });
+      assert.equal(config.site, "us");
+    });
+    assert.match(stderr, /OAuth login site "EEA" is not recognized/);
+    // With no valid oauthSite there is no conflict to report against.
+    assert.doesNotMatch(stderr, /differs from your OAuth login site/);
+  });
 });

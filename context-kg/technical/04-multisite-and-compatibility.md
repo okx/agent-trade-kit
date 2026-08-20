@@ -9,7 +9,7 @@ OKX operates separate regulatory environments with distinct API domains:
 |---------|-------------|-------------------|-------|
 | `global` | `https://www.okx.com` | Global (default) | Full feature set |
 | `eea` | `https://eea.okx.com` | EU / EEA | Reduced instrument/feature set |
-| `us` | `https://app.okx.com` | United States | Further restrictions apply |
+| `us` | `https://us.okx.com` | United States | Further restrictions apply |
 | `tr` | `https://tr.okx.com` | Türkiye | Newly added; compatibility pending smoke test |
 
 The base URLs are defined in `packages/core/src/constants.ts` under `OKX_SITES`. Each site has a distinct subdomain under `okx.com`.

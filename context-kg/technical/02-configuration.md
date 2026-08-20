@@ -37,15 +37,18 @@ When using environment variables, no toml file is required. This is the recommen
 
 ## Site System (Multi-Region)
 
-Three OKX regional API endpoints are supported, configured via `site` parameter:
+Four OKX regional API endpoints are supported, configured via `site` parameter:
 
 | Site ID | Base URL | Region |
 |---------|----------|--------|
 | `global` (default) | `https://www.okx.com` | Global (most users) |
 | `eea` | `https://eea.okx.com` | EU / EEA regulated |
-| `us` | `https://app.okx.com` | US regulated |
+| `us` | `https://us.okx.com` | US regulated |
+| `tr` | `https://tr.okx.com` | Türkiye |
 
 The `site` value is resolved in `packages/core/src/constants.ts`. EEA and US have endpoint restrictions — see `docs/site-compatibility.md` for the full compatibility matrix.
+
+Site resolution priority (in `resolveSite`, `packages/core/src/config.ts`): `--site` flag > `OKX_SITE` env > toml `site` > **OAuth session site** > `"global"`. The OAuth session site is read from `okx-auth status` (`AuthStatusResult.site`) and used only when the user did not set a site explicitly — so an OAuth token issued on a non-global site (e.g. EEA) routes to the correct host by default instead of 401ing against `global`. It is read at load time, never persisted. When an explicit site conflicts with the OAuth login site, a warning is written to stderr and the explicit site is honored.
 
 ## Module Filter
 
@@ -126,7 +129,7 @@ interface OkxConfig {
   modules: ModuleId[];    // resolved module list (post-expansion)
   readOnly: boolean;
   demo: boolean;
-  site: SiteId;           // "global" | "eea" | "us"
+  site: SiteId;           // "global" | "eea" | "us" | "tr"
   sourceTag: string;      // injected into order placements (default: "MCP")
   proxyUrl?: string;
   userAgent?: string;     // custom User-Agent header for REST requests
