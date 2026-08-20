@@ -69,7 +69,7 @@ OKX operates independent regional sites. Users must use the API of the site wher
 |------|----------|-------------|
 | `global` (default) | `www.okx.com` | `https://www.okx.com` |
 | `eea` | `my.okx.com` | `https://eea.okx.com` |
-| `us` | `app.okx.com` | `https://app.okx.com` |
+| `us` | `app.okx.com` | `https://us.okx.com` |
 | `tr` | `tr.okx.com` | `https://tr.okx.com` |
 
 Set the site in your profile:
@@ -92,7 +92,9 @@ agent-tradekit-mcp --site eea
 OKX_SITE=us agent-tradekit-mcp
 ```
 
-Priority: `--site` flag > `OKX_SITE` env var > `site` in toml > default `global`
+Priority: `--site` flag > `OKX_SITE` env var > `site` in toml > OAuth login site > default `global`
+
+> **OAuth login site:** When you authenticate via OAuth (`okx auth login --site <x>`), the token is issued for that specific site. If you do not set a site explicitly (flag / env / toml), requests are automatically routed to your OAuth login site instead of `global`. If you *do* set a site that conflicts with your login site, the CLI warns and honors your explicit choice (private requests may then return 401). To force the global dataset, pass `--site global` explicitly.
 
 > **Note:** `OKX_API_BASE_URL` / `base_url` in toml still override the site mapping entirely — useful for testing against a custom endpoint.
 
@@ -469,7 +471,7 @@ OKX 运营多个独立的区域站点，用户需要使用其账号所在站点�
 |------|----------|-------------|
 | `global`（默认） | `www.okx.com` | `https://www.okx.com` |
 | `eea` | `my.okx.com` | `https://eea.okx.com` |
-| `us` | `app.okx.com` | `https://app.okx.com` |
+| `us` | `app.okx.com` | `https://us.okx.com` |
 | `tr` | `tr.okx.com` | `https://tr.okx.com` |
 
 在 Profile 中指定站点：
@@ -492,7 +494,9 @@ agent-tradekit-mcp --site eea
 OKX_SITE=us agent-tradekit-mcp
 ```
 
-优先级：`--site` 参数 > `OKX_SITE` 环境变量 > toml 中的 `site` > 默认 `global`
+优先级：`--site` 参数 > `OKX_SITE` 环境变量 > toml 中的 `site` > OAuth 登录站点 > 默认 `global`
+
+> **OAuth 登录站点：** 通过 OAuth 登录（`okx auth login --site <x>`）时，token 是按该站点签发的。如果你没有显式指定站点（参数 / 环境变量 / toml），请求会自动路由到你的 OAuth 登录站点，而不是 `global`。如果你显式指定了一个与登录站点不一致的站点，CLI 会打印警告并按你的显式选择执行（此时私有请求可能返回 401）。如需强制使用全球数据集，请显式传入 `--site global`。
 
 > **注意：** `OKX_API_BASE_URL` 环境变量 / toml 中的 `base_url` 仍然优先级最高，会完全覆盖站点映射——适合高级用户或自定义测试场景。
 

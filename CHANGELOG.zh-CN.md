@@ -11,6 +11,35 @@
 
 ## [Unreleased]
 
+## [1.4.3] - 2026-08-20
+
+1.4.3 系列首个稳定版。代码与 `1.4.3-beta.3` 完全一致：OAuth 会话现在会将请求路由到 token 签发所属站点，站点优先级能够一致处理空值与冲突的显式配置，同时修正文档中的 US API 域名。
+
+### 变更
+
+- 对于未显式指定站点的 OAuth 用户，**所有**请求（包括公开行情数据）现在会路由到 OAuth 登录站点，而不再是 `global`。公开数据集按区域区分，因此返回结果可能与此前不同。如需保持原有行为，请传入 `--site global`（或设置 `OKX_SITE=global` / toml `site = "global"`）。当显式设置的站点与 OAuth 登录站点冲突时，CLI 会在 stderr 打印警告，并按显式站点执行。
+- `--site ""` / `OKX_SITE=""`（空字符串）现在会被忽略并回落到下一优先级，而不再抛出 "Unknown site" 错误。
+- 按稳定版 skill 版本同步策略，所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均同步至 `1.4.3`。
+
+### 修复
+
+- 修正 MCP `--site` help 文本及文档中 US 站点的 API 域名：由 `app.okx.com`（网页/注册域名）改为 `us.okx.com`（API 域名），与代码中的 `OKX_SITES` 及 OKX 区域 API 域名要求一致。实际行为本就正确，仅 help/文档字符串写错。
+- OAuth 认证的请求现在会路由到 OAuth token 签发所属的站点。此前，当未显式设置站点时，所有请求都会回落到 `global`，无论 OAuth 会话登录在哪个站点，因此非 global 站点签发的 token 访问私有接口时可能返回 401。现在 OAuth 会话站点作为 toml `site` 与默认 `global` 之间的一层回落，且不会被持久化。API key 模式以及已显式指定站点的用户不受影响。
+
+## [1.4.3-beta.3] - 2026-08-20
+
+Beta 版本：按仅稳定版同步的规则，skill 的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均不更新。
+
+### Fixed
+
+- 修正 MCP `--site` help 文本及文档中 US 站点的 API 域名：由 `app.okx.com`（网页/注册域名）改为 `us.okx.com`（API 域名），与代码中的 `OKX_SITES` 及 OKX 区域 API 域名要求一致。实际行为本就正确（`constants.ts` 用的是 `us.okx.com`），仅 help/文档字符串写错。
+- OAuth 认证的请求现在会路由到 OAuth token 签发所属的站点。此前，当未显式设置站点（`--site` / `OKX_SITE` / toml `site`）时，无论 OAuth 会话登录在哪个站点，所有请求都会回落到 `global`（`www.okx.com`）——因此在非 global 站点（如 EEA）签发的 token 访问 `account balance` 等私有接口时会返回 401。现在站点从 OAuth 会话（`okx-auth status`）读取，作为 toml `site` 与默认 `global` 之间的一层回落；该值不会被持久化。API key 模式以及已显式指定站点的用户不受影响。
+
+### Changed
+
+- 对于未显式指定站点的 OAuth 用户，**所有**请求（包括公开行情数据）现在会路由到 OAuth 登录站点，而不再是 `global`。公开数据集是按区域区分的（例如非 global 站点暴露的交易品种略少），因此返回结果可能与此前不同。如需保持原有行为，请传入 `--site global`（或设置 `OKX_SITE=global` / toml `site = "global"`）。当显式设置的站点与 OAuth 登录站点冲突时，CLI 会在 stderr 打印警告，并按显式站点执行。
+- `--site ""` / `OKX_SITE=""`（空字符串）现在会被忽略并回落到下一优先级，而不再抛出 "Unknown site" 错误。
+
 ## [1.4.3-beta.1] - 2026-08-10
 
 基于当前 `github-main` 代码快照发布 Beta 版本。与 `1.4.2` 相比没有面向用户的功能变化；此预发布版本用于验证后续 `1.4.3` 版本线。
