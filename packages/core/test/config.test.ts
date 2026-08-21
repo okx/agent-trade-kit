@@ -39,6 +39,12 @@ function saveEnv(): SavedEnv {
     saved[key] = process.env[key];
     delete process.env[key];
   }
+  // Hermetic default: point OKX_AUTH_BIN at a nonexistent path so execAuthStatus()
+  // resolves to "not logged in" instead of picking up a real okx-auth session on
+  // the test machine — otherwise site resolution becomes non-deterministic (a
+  // machine logged into e.g. `eea` would break the `global` default assertions).
+  // Tests that need an OAuth session override this with the mock binary.
+  process.env.OKX_AUTH_BIN = "/nonexistent/path/okx-auth-test";
   return saved;
 }
 
