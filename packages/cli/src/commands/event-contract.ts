@@ -372,7 +372,7 @@ export async function cmdEventFills(
 
 async function handleExpiredContractFallback(
   run: ToolRunner,
-  opts: { instId: string; side: string; outcome: string; sz: string; px?: string; ordType?: string },
+  opts: { instId: string; side: string; outcome: string; sz: string; px?: string; ordType?: string; aiBuilderCode?: string },
 ): Promise<void> {
   process.stdout.write(
     `Order failed: Contract ${opts.instId} has expired.\n` +
@@ -395,9 +395,10 @@ async function handleExpiredContractFallback(
       const nextInstId  = String(next["instId"]);
       const pxFlag      = opts.px      ? ` --px ${opts.px}`           : "";
       const ordTypeFlag = opts.ordType ? ` --ordType ${opts.ordType}` : "";
+      const aiBuilderCodeFlag = opts.aiBuilderCode ? ` --aiBuilderCode ${opts.aiBuilderCode}` : "";
       process.stdout.write(
         `\nTo place the same order on the next contract:\n` +
-        `  okx event place ${nextInstId} ${opts.side} ${opts.outcome} ${opts.sz}${pxFlag}${ordTypeFlag}\n`,
+        `  okx event place ${nextInstId} ${opts.side} ${opts.outcome} ${opts.sz}${pxFlag}${ordTypeFlag}${aiBuilderCodeFlag}\n`,
       );
     } else {
       process.stdout.write(`No active contracts found in this series.\n`);
@@ -437,6 +438,7 @@ export async function cmdEventPlace(
     sz: string;
     px?: string;
     ordType?: string;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -459,16 +461,20 @@ export async function cmdEventPlace(
       sz: opts.sz,
       px: opts.px,
       ordType: opts.ordType,
+      aiBuilderCode: opts.aiBuilderCode,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const expiryMs = inferExpiryMsFromInstId(opts.instId);
     const isExpired = expiryMs !== null && expiryMs < Date.now();
-    if (isExpired) {
+    if (msg.includes("aiBuilderCode")) {
+      handlePlaceCliError(msg, opts.instId);
+    } else if (isExpired) {
       await handleExpiredContractFallback(run, opts);
     } else {
       handlePlaceCliError(msg, opts.instId);
     }
+    process.exitCode = 1;
     return;
   }
 

@@ -480,4 +480,46 @@ describe("CLI main() — outcomes passthrough", () => {
       rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  it("rejects --aiBuilderCode before forwarding outcomes args", () => {
+    if (!existsSync(dist)) return;
+    const cases = [
+      ["outcomes", "status", "--aiBuilderCode", "MYBOT"],
+      ["--aiBuilderCode", "MYBOT", "outcomes", "status"],
+      ["outcomes", "status", "--aiBuilderCode=MYBOT"],
+    ];
+
+    for (const args of cases) {
+      const tmp = mkdtempSync(join(tmpdir(), "okx-outcomes-ai-builder-code-"));
+      const argsFile = join(tmp, "argv.json");
+      try {
+        assert.throws(
+          () => execFileSync(
+            "node",
+            [dist, ...args],
+            {
+              timeout: 10_000,
+              encoding: "utf-8",
+              env: {
+                ...process.env,
+                OKX_OUTCOMES_BIN: MOCK_BINARY,
+                MOCK_OUTCOMES_ARGS_FILE: argsFile,
+                MOCK_OUTCOMES_EXIT: "0",
+              },
+            },
+          ),
+          (error: unknown) => {
+            const err = error as { status?: number; stdout?: string; stderr?: string };
+            const output = (err.stdout ?? "") + (err.stderr ?? "");
+            assert.equal(err.status, 1);
+            assert.match(output, /Error: --aiBuilderCode is not supported for okx outcomes/);
+            assert.ok(!existsSync(argsFile), "outcomes binary should not be invoked");
+            return true;
+          },
+        );
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    }
+  });
 });

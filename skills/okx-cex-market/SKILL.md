@@ -4,7 +4,7 @@ description: "Use this skill when the user asks for: price of any asset, ticker,
 license: MIT
 metadata:
   author: okx
-  version: "1.4.3"
+  version: "1.4.4"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.3"
+        package: "@okx_ai/okx-trade-cli@1.4.4"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
