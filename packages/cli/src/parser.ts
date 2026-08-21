@@ -239,6 +239,8 @@ export interface CliValues {
   settleCcy?: string;
   ts?: string;
   minAbsOiDeltaPct?: string;
+  // AI builder attribution (ALGO-44006)
+  aiBuilderCode?: string;
   // diagnostics (diagnose-specific flags)
   verbose?: boolean;
   mcp?: boolean;   // diagnose --mcp: run MCP server checks only
@@ -504,6 +506,8 @@ export const CLI_OPTIONS = {
   settleCcy:        { type: "string" },
   ts:               { type: "string" },
   minAbsOiDeltaPct: { type: "string" },
+  // AI builder attribution (ALGO-44006)
+  aiBuilderCode: { type: "string" },
   // diagnostics - cli/mcp/all/output are diagnose-specific; verbose is shared
   verbose: { type: "boolean", default: false },
   mcp: { type: "boolean", default: false }, // diagnose --mcp only: MCP server checks

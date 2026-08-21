@@ -444,12 +444,14 @@ describe("cmdEventPlace", () => {
       side: "buy",
       outcome: "YES",
       sz: "10",
+      aiBuilderCode: "MYBOT",
       json: false,
     });
     const text = joined();
     assert.ok(text.includes("has expired"), "should mention expired");
     assert.ok(text.includes("next available"), "should suggest next contracts");
     assert.ok(text.includes("BTC-ABOVE-DAILY-990201-1600-70000"), "should show fallback contract");
+    assert.ok(text.includes("--aiBuilderCode MYBOT"), "same-order retry should preserve aiBuilderCode");
   });
 
   it("handles generic error for non-expired contract", async () => {

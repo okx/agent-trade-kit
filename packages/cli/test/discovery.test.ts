@@ -4,7 +4,20 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { CLI_REGISTRY, type CliModuleEntry } from "../src/cli-registry.js";
 import { getDiscoveryOutput } from "../src/commands/discovery.js";
+
+function collectAiBuilderUsagePaths(modulePath: string, mod: CliModuleEntry, paths: string[] = []): string[] {
+  for (const [cmdName, entry] of Object.entries(mod.commands ?? {})) {
+    if (entry.usage.includes("--aiBuilderCode")) {
+      paths.push(`${modulePath} ${cmdName}`);
+    }
+  }
+  for (const [sgName, subgroup] of Object.entries(mod.subgroups ?? {})) {
+    collectAiBuilderUsagePaths(`${modulePath} ${sgName}`, subgroup, paths);
+  }
+  return paths;
+}
 
 describe("getDiscoveryOutput() - agent discovery JSON", () => {
   it("returns an object with version, modules, totalTools", () => {
@@ -61,5 +74,32 @@ describe("getDiscoveryOutput() - agent discovery JSON", () => {
     const instIdParam = tickerCmd!.parameters.find((p) => p.name === "instId");
     assert.ok(instIdParam, "ticker should have instId parameter");
     assert.equal(instIdParam!.required, true, "instId should be required");
+  });
+
+  it("includes aiBuilderCode for CLI commands that advertise the flag", () => {
+    const result = getDiscoveryOutput();
+    const expectedPaths = Object.entries(CLI_REGISTRY)
+      .flatMap(([moduleKey, moduleEntry]) => collectAiBuilderUsagePaths(`okx ${moduleKey}`, moduleEntry))
+      .sort();
+    const actualPaths = result.modules
+      .flatMap((m) => m.commands)
+      .filter((c) => c.parameters.some((p) => p.name === "aiBuilderCode" && p.required === false))
+      .map((c) => c.path)
+      .sort();
+
+    assert.deepEqual(actualPaths, expectedPaths);
+  });
+
+  it("describes aiBuilderCode as an order-placement attribution parameter", () => {
+    const result = getDiscoveryOutput();
+    const params = result.modules
+      .flatMap((m) => m.commands)
+      .flatMap((c) => c.parameters)
+      .filter((p) => p.name === "aiBuilderCode");
+
+    assert.ok(params.length > 0, "should expose aiBuilderCode on at least one command");
+    for (const param of params) {
+      assert.match(param.description ?? "", /order-placement actions/);
+    }
   });
 });

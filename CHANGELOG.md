@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `--aiBuilderCode <code>` flag for supported order-placement commands: spot/swap/futures/option/event place, spot/swap/futures algo place and trail, spot/swap/futures batch place, swap/futures close, and bot grid/DCA create. Valid values are 1-16 alphanumeric chars and override the OKX order `tag` for attribution; invalid values are rejected before the order is submitted and the CLI exits with code 1 (ALGO-44006).
+
+### Fixed
+
+- `okx event place` now forwards `--aiBuilderCode` to the order request path.
+- `okx swap algo trail` and `okx futures algo trail` now include the configured order tag in the OKX API request body.
+
 ## [1.4.3] - 2026-08-20
 
 First stable release of the 1.4.3 line. Code is identical to `1.4.3-beta.3`: OAuth sessions now route requests to the site where the token was issued, site precedence handles empty and conflicting overrides consistently, and the documented US API domain is corrected.

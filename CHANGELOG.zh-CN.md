@@ -11,6 +11,15 @@
 
 ## [Unreleased]
 
+### 新增
+
+- 支持在下单相关命令使用可选标志 `--aiBuilderCode <code>`：spot/swap/futures/option/event place、spot/swap/futures algo place 与 trail、spot/swap/futures batch place、swap/futures close，以及 bot grid/DCA create。合法值为 1-16 位字母数字，会覆盖 OKX 订单 `tag` 用于归因；非法值会在提交订单前被拒绝，CLI 以退出码 1 终止（ALGO-44006）。
+
+### 修复
+
+- `okx event place` 现在会把 `--aiBuilderCode` 透传到下单请求路径。
+- `okx swap algo trail` 和 `okx futures algo trail` 现在会在 OKX API 请求体中带上配置的订单 tag。
+
 ## [1.4.3] - 2026-08-20
 
 1.4.3 系列首个稳定版。代码与 `1.4.3-beta.3` 完全一致：OAuth 会话现在会将请求路由到 token 签发所属站点，站点优先级能够一致处理空值与冲突的显式配置，同时修正文档中的 US API 域名。

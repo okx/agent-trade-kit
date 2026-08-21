@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
-import { OkxRestClient, toToolErrorPayload, checkForUpdates, createToolRunner, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
-import type { ToolRunner } from "@agent-tradekit/core";
+import { OkxRestClient, toToolErrorPayload, checkForUpdates, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
+import type { OkxConfig, ToolArgs, ToolResult, ToolRunner } from "@agent-tradekit/core";
 import { handleAuthCommand } from "./commands/auth.js";
 import { handleOutcomesCommand } from "./commands/outcomes.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
@@ -13,6 +13,8 @@ const GIT_HASH: string = typeof __GIT_HASH__ !== "undefined" ? __GIT_HASH__ : "d
 import { unknownSubcommand } from "./unknown-command.js";
 import { cmdUpgrade } from "./commands/upgrade.js";
 import { cmdListTools } from "./commands/discovery.js";
+import { CLI_REGISTRY } from "./cli-registry.js";
+import type { CliCommandEntry, CliModuleEntry } from "./cli-registry.js";
 import {
   cmdNewsLatest,
   cmdNewsImportant,
@@ -522,6 +524,7 @@ export function handleSpotAlgoCommand(
       callbackSpread: v.callbackSpread,
       activePx: v.activePx,
       tdMode: v.tdMode,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "place") {
@@ -566,6 +569,7 @@ export function handleSpotAlgoCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -667,6 +671,7 @@ export function handleSpotCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -675,7 +680,7 @@ export function handleSpotCommand(
   if (action === "algo")
     return handleSpotAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
-    return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, json });
+    return cmdSpotBatch(run, { action: v.action!, orders: v.orders!, aiBuilderCode: v.aiBuilderCode, json });
   if (action === "leverage")
     return cmdSpotSetLeverage(run, {
       instId: v.instId,
@@ -708,6 +713,7 @@ export function handleSwapAlgoCommand(
       posSide: v.posSide,
       tdMode: v.tdMode ?? "cross",
       reduceOnly: v.reduceOnly,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "place") {
@@ -755,6 +761,7 @@ export function handleSwapAlgoCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -825,6 +832,7 @@ export function handleSwapCommand(
       mgnMode: v.mgnMode!,
       posSide: v.posSide,
       autoCxl: v.autoCxl,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (action === "place") {
@@ -853,6 +861,7 @@ export function handleSwapCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -878,7 +887,7 @@ export function handleSwapCommand(
   if (action === "algo")
     return handleSwapAlgoCommand(run, rest[0], v, json);
   if (action === "batch")
-    return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, json });
+    return cmdSwapBatch(run, { action: v.action!, orders: v.orders!, aiBuilderCode: v.aiBuilderCode, json });
   unknownSubcommand("swap", action, [
     "positions", "orders", "get", "fills", "get-leverage",
     "place", "cancel", "amend", "close", "leverage",
@@ -906,6 +915,7 @@ export function handleOptionAlgoCommand(
       slOrdPx: v.slOrdPx,
       reduceOnly: v.reduceOnly,
       clOrdId: v.clOrdId,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "amend")
@@ -973,6 +983,7 @@ export function handleOptionCommand(
       slOrdPx: v.slOrdPx,
       slTriggerPxType: v.slTriggerPxType,
       stpMode: v.stpMode,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (action === "cancel")
@@ -1013,6 +1024,7 @@ export function handleFuturesAlgoCommand(
       posSide: v.posSide,
       tdMode: v.tdMode ?? "cross",
       reduceOnly: v.reduceOnly,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "place") {
@@ -1060,6 +1072,7 @@ export function handleFuturesAlgoCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -1150,6 +1163,7 @@ export function handleFuturesCommand(
       pxAmendType: v.pxAmendType,
       // Phase 3b CLI power-user flag (issue #183, CLI-only no MCP/skill exposure)
       tpLevels: v.tpLevel?.map(parseTpLevel),
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   }
@@ -1170,6 +1184,7 @@ export function handleFuturesCommand(
       mgnMode: v.mgnMode!,
       posSide: v.posSide,
       autoCxl: v.autoCxl,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (action === "leverage")
@@ -1181,7 +1196,7 @@ export function handleFuturesCommand(
       json,
     });
   if (action === "batch")
-    return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, json });
+    return cmdFuturesBatch(run, { action: v.action!, orders: v.orders!, aiBuilderCode: v.aiBuilderCode, json });
   if (action === "algo")
     return handleFuturesAlgoCommand(run, rest[0], v, json);
   unknownSubcommand("futures", action, [
@@ -1245,6 +1260,7 @@ export function handleBotGridCommand(
       tpRatio: v.tpRatio,
       slRatio: v.slRatio,
       algoClOrdId: v.algoClOrdId,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "amend")
@@ -1347,6 +1363,7 @@ export function handleBotDcaCommand(
       algoClOrdId: v.algoClOrdId,
       reserveFunds: v.reserveFunds,
       tradeQuoteCcy: v.tradeQuoteCcy,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     });
   if (subAction === "stop")
@@ -1819,6 +1836,7 @@ export function handleEventCommand(
       sz: (v.sz ?? rest[3])!,
       px: v.px,
       ordType: v.ordType,
+      aiBuilderCode: v.aiBuilderCode,
       json,
     }),
     amend: () => cmdEventAmend(run, { instId: (v.instId ?? rest[0])!, ordId: (v.ordId ?? rest[1])!, px: v.px, sz: v.sz, json }),
@@ -1869,6 +1887,120 @@ function printVerboseConfigSummary(config: import("@agent-tradekit/core").OkxCon
     authLabel = "\u2713";
   }
   errorLine(`[verbose] config: profile=${profile ?? "default"} site=${config.site} base=${config.baseUrl} auth=${authLabel} demo=${config.demo ? "on" : "off"} modules=${config.modules.join(",")}`);
+}
+
+const AI_BUILDER_CODE_PATTERN = /^[A-Za-z0-9]{1,16}$/;
+const AI_BUILDER_CODE_ARG = "aiBuilderCode";
+const AI_BUILDER_CODE_BATCH_PATHS = new Set(["okx spot batch", "okx swap batch", "okx futures batch"]);
+
+class CliUsageError extends Error {
+  public constructor(message: string) {
+    super(message);
+    this.name = "CliUsageError";
+  }
+}
+
+function findPlaceholderCommand(commands: Record<string, CliCommandEntry> | undefined): [string, CliCommandEntry] | undefined {
+  return Object.entries(commands ?? {}).find(([name]) => name.startsWith("<"));
+}
+
+function hasRawLongOption(argv: string[], name: string): boolean {
+  const option = `--${name}`;
+  for (const token of argv) {
+    if (token === "--") return false;
+    if (token === option || token.startsWith(`${option}=`)) return true;
+  }
+  return false;
+}
+
+function findCliRegistryUsagePath(positionals: string[]): { path: string; usage?: string } | undefined {
+  const [moduleName, ...segments] = positionals;
+  if (!moduleName) return undefined;
+
+  const moduleEntry = CLI_REGISTRY[moduleName];
+  if (!moduleEntry) return { path: `okx ${moduleName}` };
+  let current: CliModuleEntry = moduleEntry;
+  let path = `okx ${moduleName}`;
+  if (segments.length === 0) return current.usage ? { path, usage: current.usage } : { path };
+
+  for (const segment of segments) {
+    const command = current.commands?.[segment];
+    if (command) return { path: `${path} ${segment}`, usage: command.usage };
+
+    const subgroup = current.subgroups?.[segment];
+    if (!subgroup) {
+      const placeholderCommand = findPlaceholderCommand(current.commands);
+      if (placeholderCommand) return { path: `${path} ${placeholderCommand[0]}`, usage: placeholderCommand[1].usage };
+      return current.usage ? { path, usage: current.usage } : { path: `${path} ${segment}` };
+    }
+    current = subgroup;
+    path = `${path} ${segment}`;
+  }
+
+  return current.usage ? { path, usage: current.usage } : { path };
+}
+
+export function validateCliAiBuilderCodeUsage(
+  moduleName: string | undefined,
+  action: string | undefined,
+  rest: string[],
+  values: Pick<CliValues, "aiBuilderCode" | "action">,
+): void {
+  if (values.aiBuilderCode === undefined || values.aiBuilderCode === null) return;
+
+  const match = findCliRegistryUsagePath([moduleName, action, ...rest].filter((part): part is string => part !== undefined));
+  if (!match) return;
+
+  if (!match.usage?.includes("--aiBuilderCode")) {
+    throw new CliUsageError(`--aiBuilderCode is not supported for ${match.path}`);
+  }
+  if (AI_BUILDER_CODE_BATCH_PATHS.has(match.path) && values.action !== "place") {
+    throw new CliUsageError(`--aiBuilderCode is only supported for ${match.path} when --action place`);
+  }
+}
+
+function resolveCliToolDispatch(toolName: string, args: ToolArgs): { toolName: string; args: ToolArgs } {
+  if (toolName === "swap_place_move_stop_order") {
+    return { toolName: "swap_place_algo_order", args: { ...args, ordType: "move_order_stop" } };
+  }
+  if (toolName === "futures_place_move_stop_order") {
+    return { toolName: "futures_place_algo_order", args: { ...args, ordType: "move_order_stop" } };
+  }
+  return { toolName, args };
+}
+
+export function resolveCliAiBuilderCode(
+  args: ToolArgs,
+  sourceTag: string,
+): { args: ToolArgs; sourceTag: string } {
+  const code = args[AI_BUILDER_CODE_ARG];
+  const nextArgs = { ...args };
+  delete nextArgs[AI_BUILDER_CODE_ARG];
+
+  if (code === undefined || code === null) {
+    return { args: nextArgs, sourceTag };
+  }
+  if (typeof code === "string" && AI_BUILDER_CODE_PATTERN.test(code)) {
+    return { args: nextArgs, sourceTag: code };
+  }
+  throw new CliUsageError(`aiBuilderCode "${String(code)}" is invalid (must be 1-16 alphanumeric chars)`);
+}
+
+export function createCliToolRunner(client: OkxRestClient, config: OkxConfig): ToolRunner {
+  const toolMap = new Map(allToolSpecs().map((tool) => [tool.name, tool]));
+
+  return async (toolName: string, args: ToolArgs): Promise<ToolResult> => {
+    const resolved = resolveCliAiBuilderCode(args, config.sourceTag);
+    const dispatch = resolveCliToolDispatch(toolName, resolved.args);
+    const tool = toolMap.get(dispatch.toolName);
+    if (!tool) throw new Error(`Unknown tool: ${toolName}`);
+
+    const result = await tool.handler(dispatch.args, {
+      config: { ...config, sourceTag: resolved.sourceTag, readOnly: false },
+      client,
+    });
+    return result as ToolResult;
+  };
 }
 
 /** Wrap a ToolRunner with audit logging via TradeLogger. */
@@ -1970,6 +2102,9 @@ async function main(): Promise<void> {
   // first positional and short-circuit here.
   const peek = peekFirstPositional(rawArgv);
   if (peek?.module === "outcomes") {
+    if (hasRawLongOption(rawArgv, AI_BUILDER_CODE_ARG)) {
+      throw new CliUsageError("--aiBuilderCode is not supported for okx outcomes");
+    }
     const after = rawArgv.slice(peek.idx + 1);
     const action = after[0];
     const rest = after.slice(1);
@@ -1993,6 +2128,8 @@ async function main(): Promise<void> {
   const v = values;
   const json = v.json ?? false;
 
+  validateCliAiBuilderCodeUsage(module, action, rest, v);
+
   const mgmt = routeManagementCommand(module, action, rest, json, v);
   if (mgmt !== undefined) return mgmt === true ? undefined : mgmt;
 
@@ -2001,7 +2138,7 @@ async function main(): Promise<void> {
   setJsonEnvEnabled(v.env ?? false);
 
   const client = new OkxRestClient(config);
-  const baseRunner = createToolRunner(client, config);
+  const baseRunner = createCliToolRunner(client, config);
   const logger = new TradeLogger(v.verbose ? "debug" : "info");
   const run = wrapRunnerWithLogger(baseRunner, logger, v.verbose ?? false);
 
@@ -2026,6 +2163,13 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
+  if (error instanceof CliUsageError) {
+    errorLine(`Error: ${error.message}`);
+    errorLine(`Version: @okx_ai/okx-trade-cli@${CLI_VERSION}`);
+    process.exitCode = 1;
+    return;
+  }
+
   const payload = toToolErrorPayload(error);
   errorLine(`Error: ${payload.message}`);
   if (payload.code) errorLine(`Code: ${payload.code}`);
