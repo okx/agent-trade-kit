@@ -20,6 +20,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `okx event place` now forwards `--aiBuilderCode` to the order request path.
 - `okx swap algo trail` and `okx futures algo trail` now include the configured order tag in the OKX API request body.
 
+## [1.4.3] - 2026-08-20
+
+First stable release of the 1.4.3 line. Code is identical to `1.4.3-beta.3`: OAuth sessions now route requests to the site where the token was issued, site precedence handles empty and conflicting overrides consistently, and the documented US API domain is corrected.
+
+### Changed
+
+- For OAuth users who do not specify a site explicitly, **all** requests (including public market data) now route to the OAuth login site rather than `global`. Public datasets are region-specific, so responses may differ from before. To keep the previous behavior, pass `--site global` (or set `OKX_SITE=global` / toml `site = "global"`). When an explicitly-set site conflicts with the OAuth login site, the CLI prints a warning to stderr and honors the explicit site.
+- `--site ""` / `OKX_SITE=""` (empty string) are now ignored and fall through to the next priority level, instead of raising an "Unknown site" error.
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version are synced to `1.4.3` per the stable-release skill version sync policy.
+
+### Fixed
+
+- Corrected the US site API base URL shown in the MCP `--site` help text and in the docs from `app.okx.com` (the web/registration domain) to `us.okx.com` (the API domain), matching `OKX_SITES` in code and OKX's regional API-domain requirements. Behavior was already correct; only the help/docs strings were wrong.
+- OAuth-authenticated requests now route to the site the OAuth token was issued for. Previously, when no site was set explicitly, all requests fell back to `global` regardless of where the OAuth session was logged in, so a token issued on a non-global site could receive a 401 on private endpoints. The OAuth session site is used as a fallback between toml `site` and the `global` default; it is never persisted. API-key mode and users who set a site explicitly are unaffected.
+
+## [1.4.3-beta.3] - 2026-08-20
+
+Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` install version are intentionally NOT bumped (stable-release-only policy).
+
+### Fixed
+
+- Corrected the US site API base URL shown in the MCP `--site` help text and in the docs from `app.okx.com` (the web/registration domain) to `us.okx.com` (the API domain), matching `OKX_SITES` in code and OKX's regional API-domain requirements. Behavior was already correct (`constants.ts` used `us.okx.com`); only the help/docs strings were wrong.
+- OAuth-authenticated requests now route to the site the OAuth token was issued for. Previously, when no site was set explicitly (`--site` / `OKX_SITE` / toml `site`), all requests fell back to `global` (`www.okx.com`) regardless of where the OAuth session was logged in — so a token issued on a non-global site (e.g. EEA) got a 401 on private endpoints like `account balance`. The site is read from the OAuth session (`okx-auth status`) and used as a fallback between toml `site` and the `global` default; it is never persisted. API-key mode and users who set a site explicitly are unaffected.
+
+### Changed
+
+- For OAuth users who do not specify a site explicitly, **all** requests (including public market data) now route to the OAuth login site rather than `global`. Public datasets are region-specific (e.g. a non-global site exposes a slightly smaller instrument set), so responses may differ from before. To keep the previous behavior, pass `--site global` (or set `OKX_SITE=global` / toml `site = "global"`). When an explicitly-set site conflicts with the OAuth login site, the CLI prints a warning to stderr and honors the explicit site.
+- `--site ""` / `OKX_SITE=""` (empty string) are now ignored and fall through to the next priority level, instead of raising an "Unknown site" error.
+
 ## [1.4.2] - 2026-07-23
 
 ### Fixed
