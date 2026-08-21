@@ -11,9 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-08-21
+
+This stable release adds per-order AI Builder attribution across the supported CLI order-placement paths, including regular, algo, batch, close-position, event-contract, and bot creation requests.
+
 ### Added
 
 - Optional `--aiBuilderCode <code>` flag for supported order-placement commands: spot/swap/futures/option/event place, spot/swap/futures algo place and trail, spot/swap/futures batch place, swap/futures close, and bot grid/DCA create. Valid values are 1-16 alphanumeric chars and override the OKX order `tag` for attribution; invalid values are rejected before the order is submitted and the CLI exits with code 1 (ALGO-44006).
+
+### Changed
+
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version are synced to `1.4.4` per the stable-release skill version sync policy.
 
 ### Fixed
 

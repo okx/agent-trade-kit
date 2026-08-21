@@ -4,7 +4,7 @@ description: "Automatically monitors OKX Flash Earn, Fixed Earn and Flexible Ear
 license: MIT
 metadata:
   author: okx
-  version: "1.4.3"
+  version: "1.4.4"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: okx-cli
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.3"
+        package: "@okx_ai/okx-trade-cli@1.4.4"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---

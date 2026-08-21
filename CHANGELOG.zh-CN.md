@@ -11,9 +11,17 @@
 
 ## [Unreleased]
 
+## [1.4.4] - 2026-08-21
+
+本稳定版为所有受支持的 CLI 下单路径新增逐单 AI Builder 归因，覆盖普通单、策略单、批量单、平仓、事件合约以及 Bot 创建请求。
+
 ### 新增
 
 - 支持在下单相关命令使用可选标志 `--aiBuilderCode <code>`：spot/swap/futures/option/event place、spot/swap/futures algo place 与 trail、spot/swap/futures batch place、swap/futures close，以及 bot grid/DCA create。合法值为 1-16 位字母数字，会覆盖 OKX 订单 `tag` 用于归因；非法值会在提交订单前被拒绝，CLI 以退出码 1 终止（ALGO-44006）。
+
+### 变更
+
+- 按稳定版 skill 版本同步策略，所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均同步至 `1.4.4`。
 
 ### 修复
 
