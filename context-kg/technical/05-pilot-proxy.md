@@ -140,6 +140,26 @@ With `--verbose`, the REST client (via `PilotManager`) emits lifecycle events to
 | `packages/core/src/pilot/installer-types.ts` | Types: `PilotLocalStatus`, `InstallResult`, `RemoveResult`, `CdnSource` |
 | `packages/core/src/pilot/types.ts` | Core types: `PilotNode`, `FailedNode`, `PilotCacheEntry` |
 
+## Same-source `fetch` requirement
+
+`OkxRestClient` imports both `fetch` and `ProxyAgent` from the project's `undici` dependency
+(`^6.0.0`). They **must** come from the same undici instance so the dispatcher `onError` handler
+interface is consistent. On Node 26+, the Node built-in `globalThis.fetch` is backed by an
+internal undici v8 copy; feeding a v6 `ProxyAgent` as the dispatcher to that fetch raises
+`UND_ERR_INVALID_ARG: invalid onError method` before any network I/O.
+
+**Rule**: never use `globalThis.fetch` (or bare `fetch`) in any code path that accepts a
+`ProxyAgent` dispatcher. Always import `fetch` explicitly from `undici`:
+
+```ts
+import { fetch, ProxyAgent } from "undici";
+```
+
+The same rule applies to `update-check.ts` — that module calls `fetch()` when
+`HTTPS_PROXY`/`HTTP_PROXY` is set; the global undici dispatcher registered by
+`undici-proxy-bootstrap.ts` is an `EnvHttpProxyAgent` from undici v6, so it has
+the same interface requirement.
+
 ## Interaction with Custom Proxy (`proxyUrl`)
 
 The SDK supports three proxy mechanisms; they interact with Pilot differently:

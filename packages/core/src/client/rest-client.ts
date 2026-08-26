@@ -1,4 +1,4 @@
-import { ProxyAgent } from "undici";
+import { fetch as undiciFetch, ProxyAgent } from "undici";
 import { PilotManager } from "../pilot/manager.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
@@ -132,9 +132,17 @@ export class OkxRestClient {
   private cachedAccessToken?: string;
   private cachedAccessTokenAt = 0;
   private readonly pilot: PilotManager;
+  /** Fetch implementation: defaults to undici's fetch so ProxyAgent and fetch
+   *  share the same undici instance and dispatcher interface version. Tests may
+   *  inject a mock via the optional second constructor argument.
+   *  Typed as `typeof globalThis.fetch` to satisfy TypeScript's Response type
+   *  (undici v6 Response is missing `bytes()` vs the global Response). The cast
+   *  is safe: undici's Response implements all methods used in this class. */
+  private readonly _fetchFn: typeof globalThis.fetch;
 
-  public constructor(config: OkxConfig) {
+  public constructor(config: OkxConfig, _fetch?: typeof globalThis.fetch) {
     this.config = config;
+    this._fetchFn = _fetch ?? (undiciFetch as unknown as typeof globalThis.fetch);
     this.rateLimiter = new RateLimiter(30_000, config.verbose);
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
@@ -517,12 +525,12 @@ export class OkxRestClient {
     const t0 = Date.now();
     let response: Response;
     try {
-      response = await fetch(url, {
+      response = await this._fetchFn(url, {
         method: "GET",
         headers,
         signal: AbortSignal.timeout(this.config.timeoutMs),
         dispatcher: this.dispatcher ?? conn.dispatcher,
-      } as RequestInit);
+      } as unknown as RequestInit);
     } catch (error) {
       try { await this.pilot.handleNetworkFailure(); } catch {}
       throw new NetworkError(`Failed to call OKX endpoint GET ${path}.`, `GET ${path}`, error);
@@ -568,7 +576,7 @@ export class OkxRestClient {
         signal: AbortSignal.timeout(this.config.timeoutMs),
         dispatcher: this.dispatcher ?? conn.dispatcher,
       };
-      return await fetch(`${conn.baseUrl}${path}`, fetchOptions as RequestInit);
+      return await this._fetchFn(`${conn.baseUrl}${path}`, fetchOptions as unknown as RequestInit);
     } catch (error) {
       if (this.config.verbose) {
         vlog(`\u2717 NetworkError after ${Date.now() - t0}ms: ${error instanceof Error ? error.message : String(error)}`);
@@ -694,7 +702,7 @@ export class OkxRestClient {
         signal: AbortSignal.timeout(this.config.timeoutMs),
         dispatcher: this.dispatcher ?? conn.dispatcher,
       };
-      response = await fetch(url, fetchOptions as RequestInit);
+      response = await this._fetchFn(url, fetchOptions as unknown as RequestInit);
     } catch (error) {
       return await this.handleRequestNetworkError<TData>(error, reqConfig, requestPath, t0);
     }
