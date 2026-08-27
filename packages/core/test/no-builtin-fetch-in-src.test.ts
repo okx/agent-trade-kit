@@ -10,12 +10,13 @@
  * (the same undici instance the dispatchers come from), never the global one.
  *
  * This test freezes that rule: no `.ts` file under any package's `src/` may
- * reference the bare global `fetch(` identifier. Callers must use the
+ * reference the built-in global fetch — neither the bare `fetch(` identifier
+ * nor an explicit `globalThis.fetch(` / `global.fetch(`. Callers must use the
  * undici-sourced fetch (imported as `undiciFetch`) or an injected wrapper
  * (`_fetchFn` / `_fetchImpl`). Without this guard a future `await fetch(url)`
- * added anywhere in src would reintroduce the bug and pass CI on every Node
- * version (a dispatcher-less built-in fetch does not crash — it just quietly
- * skips the proxy), so no existing test would catch it.
+ * (or `globalThis.fetch(url)`) added anywhere in src would reintroduce the bug
+ * and pass CI on every Node version (a dispatcher-less built-in fetch does not
+ * crash — it just quietly skips the proxy), so no existing test would catch it.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -40,15 +41,23 @@ function walk(dir: string): string[] {
 }
 
 /**
- * Match a bare global `fetch(` call: the token `fetch` immediately followed by
- * `(`, where the char before `fetch` is NOT part of a longer identifier or a
- * property access. This intentionally does NOT match:
- *   - `undiciFetch(`  (preceding char is a letter → part of identifier)
- *   - `_fetchFn(` / `_fetchImpl(` (preceding `_`/letter → part of identifier)
- *   - `client.fetch(` (property access via `.`)
- *   - `import { fetch as undiciFetch }` (no `(` after `fetch`)
+ * Bare global `fetch(` call: the token `fetch` immediately followed by `(`,
+ * where the char before `fetch` is NOT part of a longer identifier or a
+ * property access. Does NOT match `undiciFetch(`, `_fetchFn(`, `_fetchImpl(`,
+ * `client.fetch(`, or `import { fetch as undiciFetch }` (no `(` after `fetch`).
  */
 const BARE_FETCH = /(^|[^A-Za-z0-9_.])fetch\s*\(/;
+/**
+ * Explicit global-object fetch call: `globalThis.fetch(` / `global.fetch(`.
+ * BARE_FETCH deliberately excludes anything preceded by `.` (to allow
+ * `client.fetch(`), which would otherwise let these built-in-fetch spellings
+ * slip through — they reintroduce the exact bug this guard prevents.
+ */
+const GLOBAL_FETCH = /\bglobal(?:This)?\s*\.\s*fetch\s*\(/;
+
+function isOffending(codeLine: string): boolean {
+  return BARE_FETCH.test(codeLine) || GLOBAL_FETCH.test(codeLine);
+}
 
 function stripped(line: string): string {
   const t = line.trim();
@@ -57,14 +66,32 @@ function stripped(line: string): string {
 }
 
 describe("architecture guard: no built-in global fetch in production src", () => {
-  it("every src/*.ts uses undici fetch, never the bare global fetch", () => {
+  it("the matcher flags built-in fetch spellings but not the sanctioned ones", () => {
+    // Positive — must be caught (built-in fetch, reintroduces the bug):
+    for (const s of ["await fetch(url)", "return fetch(u)", "globalThis.fetch(u)", "global.fetch(u)", "  globalThis . fetch (u)"]) {
+      assert.ok(isOffending(s), `should flag: ${s}`);
+    }
+    // Negative — must NOT be caught (sanctioned indirections / non-calls):
+    for (const s of [
+      "await undiciFetch(url)",
+      "this._fetchFn(url)",
+      "await _fetchImpl(url)",
+      "client.fetch(url)",
+      'import { fetch as undiciFetch } from "undici";',
+      "type F = typeof globalThis.fetch;", // a type ref, not a call
+    ]) {
+      assert.ok(!isOffending(s), `should NOT flag: ${s}`);
+    }
+  });
+
+  it("every src/*.ts uses undici fetch, never the built-in global fetch", () => {
     assert.ok(SRC_DIRS.length > 0, "no src dirs found — check REPO_ROOT resolution");
     const offenders: string[] = [];
     for (const dir of SRC_DIRS) {
       for (const file of walk(dir)) {
         const lines = readFileSync(file, "utf8").split("\n");
         lines.forEach((line, i) => {
-          if (BARE_FETCH.test(stripped(line))) {
+          if (isOffending(stripped(line))) {
             offenders.push(`${file.replace(REPO_ROOT, "")}:${i + 1}: ${line.trim()}`);
           }
         });
@@ -73,7 +100,7 @@ describe("architecture guard: no built-in global fetch in production src", () =>
     assert.equal(
       offenders.length,
       0,
-      "Bare built-in fetch( found in production src — must use undici fetch " +
+      "Built-in global fetch found in production src — must use undici fetch " +
         "(import { fetch as undiciFetch } from \"undici\") so the dispatcher " +
         "and fetch share one undici version (Node 26 compat, ALGO-45373):\n" +
         offenders.join("\n"),
