@@ -20,6 +20,7 @@ import { writeFileSync, mkdirSync, unlinkSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { cmdUpgrade } from "../src/commands/upgrade.js";
+import { _setFetchImpl, _resetFetchImpl } from "@agent-tradekit/core";
 
 // ---------------------------------------------------------------------------
 // Constants matching upgrade.ts internals
@@ -63,6 +64,11 @@ interface CaptureResult {
 }
 
 async function captureOutput(fn: () => Promise<void>): Promise<CaptureResult> {
+  // Yield to the event loop before patching so the Node.js test runner can
+  // flush any deferred TAP output from the previous test before we start
+  // capturing (same fix as diagnose.test.ts in commit 2e3bcbdb).
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
   const stdoutChunks: string[] = [];
   const stderrChunks: string[] = [];
 
@@ -103,32 +109,37 @@ async function captureOutput(fn: () => Promise<void>): Promise<CaptureResult> {
 // Fetch mock helpers
 // ---------------------------------------------------------------------------
 
-/** Mocks globalThis.fetch to return a specific stable version from /latest. */
-function mockFetchLatest(version: string): typeof globalThis.fetch {
-  return async (_url: string | URL | Request) => {
-    return new Response(JSON.stringify({ version }), {
+// These helpers return an `any`-typed function compatible with _setFetchImpl.
+// update-check.ts now uses undici fetch (_fetchImpl) internally, so we must
+// inject mocks via _setFetchImpl rather than globalThis.fetch.
+
+type AnyFetch = Parameters<typeof _setFetchImpl>[0];
+
+/** Returns a mock that responds to /latest with the given version. */
+function mockFetchLatest(version: string): AnyFetch {
+  return async (_url: string | URL) =>
+    new Response(JSON.stringify({ version }), {
       status: 200,
       headers: { "content-type": "application/json" },
-    });
-  };
+    }) as unknown as Awaited<ReturnType<AnyFetch>>;
 }
 
 /**
- * Mocks globalThis.fetch to return full package metadata (dist-tags).
+ * Returns a mock for full package metadata (dist-tags).
  * Used when --beta calls fetchDistTags (fetches the root package URL).
  */
-function mockFetchDistTags(latest: string, next: string): typeof globalThis.fetch {
-  return async (_url: string | URL | Request) => {
-    return new Response(JSON.stringify({ "dist-tags": { latest, next } }), {
+function mockFetchDistTags(latest: string, next: string): AnyFetch {
+  return async (_url: string | URL) =>
+    new Response(JSON.stringify({ "dist-tags": { latest, next } }), {
       status: 200,
       headers: { "content-type": "application/json" },
-    });
-  };
+    }) as unknown as Awaited<ReturnType<AnyFetch>>;
 }
 
-/** Mocks globalThis.fetch to simulate a registry failure (HTTP 500). */
-function mockFetchFailure(): typeof globalThis.fetch {
-  return async () => new Response(null, { status: 500 });
+/** Returns a mock that simulates a registry failure (HTTP 500). */
+function mockFetchFailure(): AnyFetch {
+  return async () =>
+    new Response(null, { status: 500 }) as unknown as Awaited<ReturnType<AnyFetch>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,14 +147,8 @@ function mockFetchFailure(): typeof globalThis.fetch {
 // ---------------------------------------------------------------------------
 
 describe("cmdUpgrade", () => {
-  let savedFetch: typeof globalThis.fetch;
-
-  beforeEach(() => {
-    savedFetch = globalThis.fetch;
-  });
-
   afterEach(() => {
-    globalThis.fetch = savedFetch;
+    _resetFetchImpl();
   });
 
   // -------------------------------------------------------------------------
@@ -180,9 +185,9 @@ describe("cmdUpgrade", () => {
     it("returns silently (no stderr, no stdout) when no flags and cache is fresh", async () => {
       writeFreshCache();
       // If fetch were called, it would throw — proving it was NOT called
-      globalThis.fetch = async () => {
+      _setFetchImpl(async () => {
         throw new Error("fetch must not be called during throttle");
-      };
+      });
 
       const { stdout, stderr } = await captureOutput(() =>
         cmdUpgrade("1.2.8-beta.2", {}, false),
@@ -194,9 +199,9 @@ describe("cmdUpgrade", () => {
 
     it("emits JSON up-to-date shape when --json and cache is fresh", async () => {
       writeFreshCache();
-      globalThis.fetch = async () => {
+      _setFetchImpl(async () => {
         throw new Error("fetch must not be called during throttle");
-      };
+      });
 
       const { stdout, stderr } = await captureOutput(() =>
         cmdUpgrade("1.2.8-beta.2", {}, true),
@@ -219,13 +224,13 @@ describe("cmdUpgrade", () => {
     it("proceeds to fetch when cache is older than 12 h", async () => {
       writeStaleCache();
       let fetchCalled = false;
-      globalThis.fetch = async (_url: string | URL | Request) => {
+      _setFetchImpl(async (_url) => {
         fetchCalled = true;
         return new Response(JSON.stringify({ version: "1.2.8" }), {
           status: 200,
           headers: { "content-type": "application/json" },
-        });
-      };
+        }) as unknown as Awaited<ReturnType<AnyFetch>>;
+      });
 
       await captureOutput(() => cmdUpgrade("1.2.8", { check: true }, true));
 
@@ -240,7 +245,7 @@ describe("cmdUpgrade", () => {
   describe("--check flag", () => {
     it("reports update-available when newer stable version exists", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.9");
+      _setFetchImpl(mockFetchLatest("1.2.9"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.8", { check: true }, true),
@@ -255,7 +260,7 @@ describe("cmdUpgrade", () => {
 
     it("reports up-to-date when already on latest", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.8");
+      _setFetchImpl(mockFetchLatest("1.2.8"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.8", { check: true }, true),
@@ -268,7 +273,7 @@ describe("cmdUpgrade", () => {
 
     it("does NOT write the cache file when --check only", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.9");
+      _setFetchImpl(mockFetchLatest("1.2.9"));
 
       await captureOutput(() => cmdUpgrade("1.2.8", { check: true }, false));
 
@@ -277,7 +282,7 @@ describe("cmdUpgrade", () => {
 
     it("prints human-readable update hint to stderr (non-json)", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.9");
+      _setFetchImpl(mockFetchLatest("1.2.9"));
 
       const { stderr } = await captureOutput(() =>
         cmdUpgrade("1.2.8", { check: true }, false),
@@ -295,7 +300,7 @@ describe("cmdUpgrade", () => {
   describe("prerelease current version comparison", () => {
     it("treats 1.2.8-beta.2 as up-to-date against stable 1.2.8", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.8");
+      _setFetchImpl(mockFetchLatest("1.2.8"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.8-beta.2", { check: true }, true),
@@ -308,7 +313,7 @@ describe("cmdUpgrade", () => {
 
     it("detects upgrade when on 1.2.8-beta.2 and stable 1.2.9 is available", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.9");
+      _setFetchImpl(mockFetchLatest("1.2.9"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.8-beta.2", { check: true }, true),
@@ -322,7 +327,7 @@ describe("cmdUpgrade", () => {
 
     it("detects no upgrade needed when on stable 1.2.7 and registry also has 1.2.7", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.7");
+      _setFetchImpl(mockFetchLatest("1.2.7"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.7", { check: true }, true),
@@ -340,7 +345,7 @@ describe("cmdUpgrade", () => {
   describe("--beta flag", () => {
     it("uses dist-tags.next as the comparison target", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchDistTags("1.2.8", "1.3.0-beta.1");
+      _setFetchImpl(mockFetchDistTags("1.2.8", "1.3.0-beta.1"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.7", { beta: true, check: true }, true),
@@ -353,11 +358,11 @@ describe("cmdUpgrade", () => {
 
     it("falls back to dist-tags.latest when next is absent", async () => {
       deleteCacheFile();
-      globalThis.fetch = async () =>
+      _setFetchImpl(async () =>
         new Response(JSON.stringify({ "dist-tags": { latest: "1.2.8" } }), {
           status: 200,
           headers: { "content-type": "application/json" },
-        });
+        }) as unknown as Awaited<ReturnType<AnyFetch>>);
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.7", { beta: true, check: true }, true),
@@ -375,7 +380,7 @@ describe("cmdUpgrade", () => {
   describe("fetch failure", () => {
     it("sets status error and exitCode 1 when registry returns HTTP 500", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchFailure();
+      _setFetchImpl(mockFetchFailure());
 
       const { stdout, exitCode } = await captureOutput(() =>
         cmdUpgrade("1.2.8", { check: true }, true),
@@ -388,7 +393,7 @@ describe("cmdUpgrade", () => {
 
     it("prints error to stderr in non-json mode when fetch fails", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchFailure();
+      _setFetchImpl(mockFetchFailure());
 
       const { stderr, exitCode } = await captureOutput(() =>
         cmdUpgrade("1.2.8", { check: true }, false),
@@ -406,7 +411,7 @@ describe("cmdUpgrade", () => {
   describe("UpgradeResult shape", () => {
     it("always contains currentVersion, latestVersion, status, updated fields", async () => {
       deleteCacheFile();
-      globalThis.fetch = mockFetchLatest("1.2.9");
+      _setFetchImpl(mockFetchLatest("1.2.9"));
 
       const { stdout } = await captureOutput(() =>
         cmdUpgrade("1.2.8", { check: true }, true),
