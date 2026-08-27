@@ -13,7 +13,7 @@
 
 ### 修复
 
-- **Node 26 代理兼容性**（ALGO-45373）：在 Node 26+ 上使用代理配置（`proxy_url` / `HTTPS_PROXY`）的请求不再抛出 `UND_ERR_INVALID_ARG: invalid onError method`。根本原因：`OkxRestClient` 从项目依赖的 undici v6 导入 `ProxyAgent`，但调用 Node 内置 `fetch`（Node 26 中由 undici v8 支持），导致 dispatcher 接口版本不匹配。修复：`rest-client.ts` 和 `update-check.ts` 现在从与 `ProxyAgent` 相同的 undici 包导入 `fetch`，确保 dispatcher 与 fetch 实现始终使用同一 undici 版本。Node 18 / Node 20 不受影响。Node 26 已加入 CI 测试矩阵。
+- **Node 26 代理兼容性**（ALGO-45373）：在 Node 26+ 上使用代理配置（`proxy_url` / `HTTPS_PROXY`）的请求不再抛出 `UND_ERR_INVALID_ARG: invalid onError method`。根本原因：`OkxRestClient` 从项目依赖的 undici v6 导入 `ProxyAgent`，但调用 Node 内置 `fetch`（Node 26 中由 undici v8 支持），导致 dispatcher 接口版本不匹配。修复：`rest-client.ts` 和 `update-check.ts` 现在各自从与 `ProxyAgent` 相同的 undici v6 包导入 `fetch`，确保 dispatcher 与 fetch 实现始终使用同一 undici 版本。`update-check.ts` 的请求因此也会在 Node 26 上设置 `HTTPS_PROXY`/`HTTP_PROXY` 时通过代理。Node 18 / Node 20 不受影响。Node 26 已加入 CI 测试矩阵。
 
 ## [1.4.4] - 2026-08-21
 
