@@ -20,7 +20,7 @@ import { writeFileSync, mkdirSync, unlinkSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { cmdUpgrade } from "../src/commands/upgrade.js";
-import { _setFetchImpl, _resetFetchImpl } from "@agent-tradekit/core";
+import { _setFetchImpl, _resetFetchImpl } from "@agent-tradekit/core/testing";
 
 // ---------------------------------------------------------------------------
 // Constants matching upgrade.ts internals
@@ -75,12 +75,12 @@ async function captureOutput(fn: () => Promise<void>): Promise<CaptureResult> {
   const origStdout = process.stdout.write.bind(process.stdout);
   const origStderr = process.stderr.write.bind(process.stderr);
 
-  process.stdout.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+  process.stdout.write = ((chunk: string | Uint8Array, ..._rest: unknown[]) => {
     stdoutChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
     return true;
   }) as typeof process.stdout.write;
 
-  process.stderr.write = ((chunk: string | Uint8Array, ...rest: unknown[]) => {
+  process.stderr.write = ((chunk: string | Uint8Array, ..._rest: unknown[]) => {
     stderrChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
     return true;
   }) as typeof process.stderr.write;
@@ -109,7 +109,7 @@ async function captureOutput(fn: () => Promise<void>): Promise<CaptureResult> {
 // Fetch mock helpers
 // ---------------------------------------------------------------------------
 
-// These helpers return an `any`-typed function compatible with _setFetchImpl.
+// These helpers return a function typed to the full undici fetch signature (AnyFetch = Parameters<typeof _setFetchImpl>[0]), compatible with _setFetchImpl.
 // update-check.ts now uses undici fetch (_fetchImpl) internally, so we must
 // inject mocks via _setFetchImpl rather than globalThis.fetch.
 
