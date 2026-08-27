@@ -1,17 +1,17 @@
-// eval/probes/outcomes/tier2-outcomes-search.live.test.ts
-// Auto-generated trace-based probe. Asserts that the agent invoked the
-// expected `okx` CLI command via the `exec` tool. Tool-call intent +
-// parameters is what we measure; upstream API auth/401 errors are not.
+// eval/probes/event/tier2-event-inscope-updown.live.test.ts
+// Positive scope probe: agent SHOULD invoke event browse / event events for an
+// in-scope UP/DOWN query. Guards against over-disambiguation that would break
+// the in-scope product.
 import { describe, it } from 'vitest';
 import {
   runAgent, recordResult, getModels, getRunsPerModel,
   findToolCall, summarizeToolCalls,
 } from '@eval/shared/eval-helpers.js';
 
-const PROBE_ID = 'tier2.outcomes-search';
-const USER_PROMPT = 'Search for prediction events about Bitcoin. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx outcomes setup. Just run the okx outcomes search command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "outcomes", "search"]];
-const EXPECTATION = 'okx outcomes search';
+const PROBE_ID = 'tier2.event-inscope-updown';
+const USER_PROMPT = 'What BTC up/down event contracts are available to trade right now on OKX? I want to bet on direction in the next 15 minutes.';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "event", "browse"], ["okx", "event", "events"], ["okx", "event", "markets"]];
+const EXPECTATION = 'okx event browse / events / markets (in-scope up/down query)';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -33,14 +33,13 @@ describe(PROBE_ID, () => {
           const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
           if (!call) {
             status = 'fail';
-            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+            failure_reason = `agent did not invoke expected CLI for in-scope up/down query: ${EXPECTATION}`;
           } else {
-            evidence.matched_call = { name: call.name, command: call.input.command };
+            evidence.matched_call = { name: call.name, command: call.input?.command };
             status = 'pass';
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-
           failure_reason = msg;
           evidence.error = msg;
         }

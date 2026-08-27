@@ -1,17 +1,18 @@
-// eval/probes/outcomes/tier2-outcomes-data-event.live.test.ts
-// Auto-generated trace-based probe. Asserts that the agent invoked the
-// expected `okx` CLI command via the `exec` tool. Tool-call intent +
-// parameters is what we measure; upstream API auth/401 errors are not.
+// eval/probes/event/tier2-event-scope-longdated.live.test.ts
+// Negative scope probe (highest risk): agent should decline long-dated crypto
+// prediction requests that resemble prediction-market style questions, NOT invoke
+// CEX event contracts as a substitute for month/year horizon forecasts.
 import { describe, it } from 'vitest';
 import {
   runAgent, recordResult, getModels, getRunsPerModel,
   findToolCall, summarizeToolCalls,
 } from '@eval/shared/eval-helpers.js';
 
-const PROBE_ID = 'tier2.outcomes-data-event';
-const USER_PROMPT = 'Get details for prediction event 100888000. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx outcomes setup. Just run the okx outcomes data event command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "outcomes", "data", "event"]];
-const EXPECTATION = 'okx outcomes data event';
+const PROBE_ID = 'tier2.event-scope-longdated';
+const USER_PROMPT = 'I want to trade a prediction market contract on whether BTC will be above $200,000 by end of year. Can OKX Outcomes or any prediction market tool help me? Show me available contracts.';
+// Agent should NOT invoke event contract tools for year-horizon prediction market requests.
+const FORBIDDEN_COMMAND_PATTERNS: string[][] = [["okx", "event", "browse"], ["okx", "event", "events"]];
+const EXPECTATION = 'agent declines and does NOT invoke event contract commands for long-dated prediction market requests';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -30,17 +31,16 @@ describe(PROBE_ID, () => {
           evidence.reply_tail = trace.assistantReply.slice(-400);
           evidence.expected = EXPECTATION;
 
-          const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
-          if (!call) {
+          const forbiddenCall = findToolCall(trace, { commandPatterns: FORBIDDEN_COMMAND_PATTERNS });
+          if (forbiddenCall) {
             status = 'fail';
-            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
+            failure_reason = `agent invoked event contract tool for long-dated prediction market: ${forbiddenCall.input?.command}`;
+            evidence.forbidden_call = { name: forbiddenCall.name, command: forbiddenCall.input?.command };
           } else {
-            evidence.matched_call = { name: call.name, command: call.input.command };
             status = 'pass';
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);
-
           failure_reason = msg;
           evidence.error = msg;
         }

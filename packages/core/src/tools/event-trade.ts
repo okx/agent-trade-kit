@@ -76,7 +76,7 @@ export function registerEventContractTools(): ToolSpec[] {
       name: "event_browse",
       title: "Event Contracts Browse Active",
       module: "event",
-      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Returns only in-progress contracts (floorStrike set). If a live quote field px is present, it is the event contract price (0.01-0.99), not the underlying asset price; it reflects the market-implied probability when actively trading. Grouped by settlement type and underlying. Do NOT use for querying contracts within a specific series - use event_get_markets with seriesId instead.",
+      description: "Browse currently active (in-progress) event contracts. Call when user asks what event contracts are available to trade. Returns only in-progress contracts (floorStrike set). If a live quote field px is present, it is the event contract price (0.01-0.99), not the underlying asset price; it reflects the market-implied probability when actively trading. Grouped by settlement type and underlying. Do NOT use for querying contracts within a specific series - use event_get_markets with seriesId instead. Scope: OKX CEX event contracts (crypto price UP/DOWN and price-above YES/NO) only — NOT for prediction markets, election contracts, or any non-price event derivatives.",
       isWrite: false,
       inputSchema: {
         type: "object",
