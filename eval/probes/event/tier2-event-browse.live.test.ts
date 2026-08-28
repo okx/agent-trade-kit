@@ -35,7 +35,7 @@ describe(PROBE_ID, () => {
             status = 'fail';
             failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
-            evidence.matched_call = { name: call.name, command: call.input.command };
+            evidence.matched_call = { name: call.name, command: call.input?.command };
             status = 'pass';
           }
         } catch (e: unknown) {

@@ -11,17 +11,17 @@
 
 ## [Unreleased]
 
-### 移除（Removed）
+### 新增
 
-- 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器 — 预测市场（YES/NO 事件合约）功能已从本包移除（ALGO-45589）。
-- 删除 `skills/okx-outcomes/` skill pack — OKX Outcomes skill 不再发布。
-- 删除 `eval/probes/outcomes/` 下的 35 个 eval probe。
-
-### 新增（Added）
-
-- `event_browse` 工具描述新增明确的产品边界说明：仅适用于 OKX CEX 事件合约（加密价格涨跌 UP/DOWN 和价格目标 YES/NO），不适用于预测市场或选举合约。
-- `skills/okx-cex-trade/references/event-workflows.md` 新增规则 14：AI agent 必须拒绝预测市场替代请求，不得以 CEX 事件合约代替（覆盖规则 11）。
+- `event_browse` 工具描述新增明确的产品边界说明：仅适用于 OKX CEX 事件合约，与其他预测市场是不同的产品。
+- `skills/okx-cex-trade/references/event-workflows.md` 新增规则 14：AI agent 不得跨产品替代；若用户目标不在 `okx event browse` / `series` 返回结果中，应明确告知而非提供"最接近"替代（覆盖规则 11）。
 - 3 个新 eval probe 用于事件合约产品边界消歧：`tier2-event-scope-nonprice`、`tier2-event-scope-longdated`（否定场景）、`tier2-event-inscope-updown`（正向守护）。
+
+### 移除
+
+- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器（ALGO-45589）。There is no replacement — 预测市场功能已从本包移除。升级后运行 `okx outcomes` 将返回 "Unknown command"。
+- **BREAKING** 删除 `skills/okx-outcomes/` skill pack。There is no replacement。
+- 删除 `eval/probes/outcomes/` 下的 35 个 eval probe。
 
 ## [1.4.4] - 2026-08-21
 
