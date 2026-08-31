@@ -139,7 +139,7 @@ okx account asset-balance
 okx account positions
 
 # Positions for one product only — always narrow when the user named a product
-okx account positions --instType SWAP     # or FUTURES / OPTION / MARGIN
+okx account positions --instType SWAP     # SWAP | FUTURES | OPTION | MARGIN | EVENTS
 
 # Closed position history with realized PnL
 okx account positions-history
@@ -164,7 +164,7 @@ okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 | 2 | `okx account balance [ccy]` | READ | Trading account equity, available, frozen |
 | 3a | `okx account asset-balance [ccy]` | READ | Funding account balance (per-currency list) |
 | 3b | `okx account asset-balance [ccy] --valuation [--valuationCcy <ccy>]` | READ | Same + total asset valuation across trading/funding/earn; denomination defaults to USDT, override with `--valuationCcy BTC` |
-| 4 | `okx account positions [--instType <type>] [--instId <id>]` | READ | Open contract/swap positions. **When the user names a product** ("my swap positions", "futures positions", "option positions"), pass `--instType SWAP\|FUTURES\|OPTION\|MARGIN` — or use that product's own command (`okx swap positions`, `okx futures positions`, `okx option positions`). Only omit the filter when the user genuinely wants everything: an unfiltered list is larger and leaves the product filtering to the model, which is where mistakes happen |
+| 4 | `okx account positions [--instType <type>] [--instId <id>]` | READ | Open contract/swap positions. **When the user names a product** ("my swap positions", "futures positions", "option positions"), pass `--instType <type>` (`SWAP` \| `FUTURES` \| `OPTION` \| `MARGIN` \| `EVENTS`) — or use that product's own command (`okx swap positions`, `okx futures positions`, `okx option positions`). Only omit the filter when the user genuinely wants everything: an unfiltered list is larger and leaves the product filtering to the model, which is where mistakes happen |
 | 5 | `okx account positions-history` | READ | Closed positions + realized PnL |
 | 6 | `okx account bills` | READ | Account ledger (deposits, withdrawals, trades) |
 | 7 | `okx account fees --instType <type>` | READ | My trading fee tier (maker/taker) |

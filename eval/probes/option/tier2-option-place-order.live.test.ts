@@ -16,11 +16,22 @@ const PROBE_ID = 'tier2.option-place-order';
 // valid instId every time and then stopping before `place`, so the earlier
 // prompt was measuring the discovery chain, not this command.
 //
-// Prompt is deliberately structurally equivalent to the spot / swap place
-// probes: name the subcommand, require the command to be reported, and require
-// one execution even when it errors. instId is prefix-matched (`BTC-USD-`) like
-// the futures probe, because option expiries roll weekly/monthly and a
-// hardcoded one would rot.
+// Prompt follows the spot / swap probes in naming the subcommand and requiring
+// the command to be reported. It goes further than they do in two respects, on
+// purpose: it requires one execution even when the call errors, and it grants a
+// bounded discovery step. Those two are what the 0/3 run needed — spot and swap
+// hand the agent an instId, this cannot. So this is NOT prompt-for-prompt equal
+// to spot / swap; see the table in the futures probe for the remaining spread.
+//
+// instId is prefix-matched (`BTC-USD-`) like the futures probe, because option
+// expiries roll weekly/monthly and a hardcoded one would rot. `-C` is asserted
+// separately: for an option, call-vs-put *is* the direction, and eval/README
+// asks write probes to catch right-tool/wrong-direction.
+//
+// The discovery command is spelled out with `--uly` because it is mandatory
+// (cli-registry.ts:548) and `okx option --help` is banned here — an agent left
+// to guess the flag would burn its one allowed attempt and could stop before
+// `place`, which is the exact failure this rewrite exists to remove.
 const USER_PROMPT =
   'Place a limit buy order for 1 contract of a near-expiry BTC call option ' +
   '(BTC-USD-YYMMDD-<strike>-C format) at a low premium using the okx option place subcommand. ' +
@@ -28,9 +39,9 @@ const USER_PROMPT =
   'permission error, still run it once and report it. ' +
   'Skip any auth check — assume credentials are configured. ' +
   'Do NOT run okx auth login or okx config init or okx --help / okx option --help. ' +
-  'You may run okx option instruments once to pick a valid instrument ID.';
+  'To pick a valid instrument ID you may run okx option instruments --uly BTC-USD first.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [
-  ["okx", "option", "place", "BTC-USD-", "buy"],
+  ["okx", "option", "place", "BTC-USD-", "-C", "buy"],
 ];
 const EXPECTATION = 'okx option place BTC-USD-<expiry>-<strike>-C buy';
 
