@@ -1,6 +1,6 @@
 ---
 name: okx-cex-market
-description: "Use this skill when the user asks for: price of any asset, ticker, order book, candles, OHLCV, funding rate, open interest, OI change scanner, market screener (top movers, high-volume, newly listed), mark price, index price, recent trades, instrument list, stock tokens, metals prices (gold, XAU, XAG), commodities (oil, OIL), forex rates (EUR/USD, EURUSDT), bond instruments, non-crypto assets, or any technical indicator query (RSI, MACD, EMA, Bollinger Bands, KDJ, SuperTrend, AHR999, BTC rainbow, and 70+ more). All commands are read-only and do NOT require API credentials. Do NOT use for account balance/positions (okx-cex-portfolio), placing/cancelling orders (okx-cex-trade), or bots (okx-cex-bot). Do NOT use when the user wants to TRADE a directional view as an event contract ("I want to trade that view", "bet on …") — that is okx-cex-trade. Merely ASKING which way an asset is moving is a market-data question and belongs here."
+description: "Use this skill when the user asks for: price of any asset, ticker, order book, candles, OHLCV, funding rate, open interest, OI change scanner, market screener (top movers, high-volume, newly listed), mark price, index price, recent trades, instrument list, stock tokens, metals prices (gold, XAU, XAG), commodities (oil, OIL), forex rates (EUR/USD, EURUSDT), bond instruments, non-crypto assets, or any technical indicator query (RSI, MACD, EMA, Bollinger Bands, KDJ, SuperTrend, AHR999, BTC rainbow, and 70+ more). All commands are read-only and do NOT require API credentials. Do NOT use for account balance/positions (okx-cex-portfolio), placing/cancelling orders (okx-cex-trade), or bots (okx-cex-bot). Do NOT use when the user wants to TRADE a directional view as an event contract — that is okx-cex-trade. Merely ASKING which way an asset is moving is a market-data question and belongs here."
 license: MIT
 metadata:
   author: okx
@@ -95,7 +95,7 @@ Market data commands return the same public data regardless of demo/live mode �
 |---|---|
 | Which way an asset is moving — "is BTC going up", "what's the 15m trend" | **Answer here** with candles / indicators |
 | Direction *and* whether they can trade it | Answer the data half here, then name `okx-cex-trade` for the trade half |
-| To trade an event contract — "buy YES/NO on …", "bet on …" | **Route to `okx-cex-trade`**, serve nothing here |
+| To trade an event contract — "buy YES/NO on …" | **Route to `okx-cex-trade`**, serve nothing here |
 
 Never substitute another product for an event contract — not a perp, not a futures position,
 not market data presented as the contract they asked for. If you cannot load
