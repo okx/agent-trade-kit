@@ -28,6 +28,7 @@ Public market data for OKX: prices, order books, candles, funding rates, open in
 - Account balance / positions → `okx-cex-portfolio`
 - Place / cancel orders → `okx-cex-trade`
 - **Trading a directional view as an event contract** → `okx-cex-trade`
+- Market sentiment / most bullish-bearish coins → `okx-sentiment-tracker`
 - Grid / DCA bots → `okx-cex-bot`
 
 ## Preflight
@@ -82,6 +83,7 @@ Market data commands return the same public data regardless of demo/live mode �
 | Price, candles, order book, recent trades | `{baseDir}/references/price-data-commands.md` |
 | Technical indicators (RSI, MACD, EMA, BB, KDJ, SuperTrend, AHR999, Rainbow, etc.) | `{baseDir}/references/indicator-commands.md` |
 | Funding rate, mark price, open interest, price limit, index ticker | `{baseDir}/references/derivatives-commands.md` |
+| Market sentiment; "most bullish / bearish coins"; social hotness or attention ranking | **Not answered here** → `okx-sentiment-tracker` (`okx news sentiment-rank`) |
 | Screen / rank instruments; find top movers, high-OI, high-volume contracts | Use `okx market filter` directly |
 | OI history time series for a single instrument | Use `okx market oi-history` directly |
 | OI change scanner; find contracts with large OI shifts | Use `okx market oi-change` directly |
