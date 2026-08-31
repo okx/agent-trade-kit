@@ -27,7 +27,7 @@ Public market data for OKX: prices, order books, candles, funding rates, open in
 - Market data / indicators → `okx-cex-market` (this skill)
 - Account balance / positions → `okx-cex-portfolio`
 - Place / cancel orders → `okx-cex-trade`
-- **Trading a directional view as an event contract** → `okx-cex-trade` (see below)
+- **Trading a directional view as an event contract** → `okx-cex-trade` (see "Event contracts are not served by this skill" under Step 1)
 - Grid / DCA bots → `okx-cex-bot`
 
 ## Preflight
@@ -89,27 +89,36 @@ Market data commands return the same public data regardless of demo/live mode �
 | List instruments, discover stock tokens, metals/commodities/forex/bonds, find option instIds | `{baseDir}/references/instrument-commands.md` |
 | Multi-step or cross-skill workflows; MCP tool names | `{baseDir}/references/workflows.md` |
 
-**Route out of this skill — event contracts.** The test is **trading intent**, not the
-words "up" or "down":
+**Event contracts are not served by this skill.** This paragraph is about event contracts
+only. It does not change how any other question in this file is routed — everything in the
+table above, including pairs-trade sizing and screeners, stays here as written.
 
-| User wants | Skill |
+| User wants | What to do |
 |---|---|
-| To *know* the direction — "is X going up or down", "what's the 15m trend", "which way is X moving" | **Stays here.** Answer with candles / indicators |
-| To *take a position on* the direction as a contract — "I want to trade that view", "bet on …", "buy an event contract on …" | **Leave.** Use `okx-cex-trade` |
+| To *know* the direction — "is X going up or down", "what's the 15m trend", "which way is X moving" | **Stays here.** Answer with candles / indicators, reporting the values (the compliance notice at the top of this file still applies) |
+| **Both** — the direction *and* whether they can trade it. "what's the 15m trend, I might take a position" | **Answer the data half here first**, then add one line that event contracts are handled by `okx-cex-trade`. Do not drop the data question |
+| To *take a position* on it as an event contract — "buy YES/NO on …", "buy an event contract on …", "bet on …" | **Not this skill.** See below |
 
-A bare directional question is a data question — do not push it away. Only leave when the
-user asks to *trade* the view.
+Why it cannot be served here: every `okx event` read command is authenticated
+(`event browse`, `series`, `markets`), and this is the credential-free skill — they will
+fail without a configured profile. Event contracts also carry price semantics (the price
+is a probability, 0.01–0.99), settlement rules and per-order confirmation steps that live
+in `okx-cex-trade`.
 
-When you do leave: **load the `okx-cex-trade` skill first**, then start from `okx event
-browse`. Do not try to serve it from this skill — not with `okx market instruments
---instType EVENTS`, not with `okx market tickers`, and not by offering a perpetual or
-futures position instead. Event contracts are a separate instrument class with their own
-commands, price semantics and confirmation rules, all of which live in `okx-cex-trade`.
+So point the user at `okx-cex-trade` and stop there. **If you cannot load that skill, say
+so** — that is the correct answer, not a workaround. Never substitute another product: not
+a perpetual or futures position, and not market-data output presented as if it were the
+event contract they asked for. Whatever you do show must be what a command actually
+returned; never offer the nearest thing you found as though it were what was asked for
+(`../okx-cex-trade/references/event-workflows.md`, Key Rule 14).
 
-Two rules from there that matter even before you get there: tradable scope is exactly what
-`okx event browse` / `series` returns for that call — if the user's target isn't in the
-response, say so rather than offering the closest thing you did find; and never substitute
-one product for another (`../okx-cex-trade/references/event-workflows.md`, Key Rule 14).
+One thing that *is* fine here: `okx market instruments --instType EVENTS` is public and
+needs no credentials, so use it when the user only wants to know **which** event
+instruments are listed. It answers "what exists", not "how do I trade it" — for the latter,
+route as above.
+
+Once you have routed, stop: the remaining steps of this Operation Flow do not apply to
+event-contract requests.
 
 ### Step 2 — Run commands immediately
 
