@@ -9,7 +9,11 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.event-inscope-updown';
-const USER_PROMPT = 'What BTC up/down event contracts are available to trade right now on OKX? I want to bet on direction in the next 15 minutes.';
+// The auth-skip clause is not optional here: issue #213 §8.2 specifies it for
+// this probe, and D9 makes a failure of this positive probe release-blocking.
+// Without it an agent can divert into an auth branch and fail for a reason
+// unrelated to the scope fence under test.
+const USER_PROMPT = 'Will BTC go up or down in the next 15 minutes? I want to trade that view on OKX event contracts. Skip any auth check — assume credentials are configured.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "event", "browse"], ["okx", "event", "events"], ["okx", "event", "markets"]];
 const EXPECTATION = 'okx event browse / events / markets (in-scope up/down query)';
 
