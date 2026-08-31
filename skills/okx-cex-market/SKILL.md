@@ -99,8 +99,7 @@ Market data commands return the same public data regardless of demo/live mode �
 
 Never substitute another product for an event contract — not a perp, not a futures position,
 not market data presented as the contract they asked for. If you cannot load
-`okx-cex-trade`, say so and stop. `okx market instruments --instType EVENTS` is public and
-stays here: it lists which event instruments exist, not how to trade them.
+`okx-cex-trade`, say so and stop.
 
 ### Step 2 — Run commands immediately
 
