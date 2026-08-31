@@ -19,8 +19,8 @@
 
 ### 移除
 
-- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器（ALGO-45589）。There is no replacement — 预测市场功能已从本包移除。升级后运行 `okx outcomes` 将返回 "Unknown command"。
-- **BREAKING** 删除 `skills/okx-outcomes/` skill pack。There is no replacement。
+- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器（ALGO-45589）。**无替代方案** —— 预测市场功能已从本包移除。升级后运行 `okx outcomes` 将返回 "Unknown command"。外部 `okx-outcomes` 二进制分发与 OKX Outcomes 后端 API 由相关团队另行关停。
+- **BREAKING** 删除 `skills/okx-outcomes/` skill pack。**无替代方案**。
 - 删除 `eval/probes/outcomes/` 下的 35 个 eval probe。
 
 ## [1.4.4] - 2026-08-21

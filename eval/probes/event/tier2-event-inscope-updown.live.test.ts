@@ -27,7 +27,7 @@ describe(PROBE_ID, () => {
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
           evidence.tool_calls = summarizeToolCalls(trace);
-          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.reply_tail = trace.assistantReply.slice(-800);
           evidence.expected = EXPECTATION;
 
           const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });

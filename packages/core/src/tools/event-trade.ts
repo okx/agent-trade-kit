@@ -1,5 +1,9 @@
 /**
- * Event Contract tools - binary outcome prediction markets.
+ * Event Contract tools - binary outcome contracts on exchange-listed price targets.
+ *
+ * These are a distinct product from other prediction markets: scope is exactly
+ * what the series/markets endpoints return. Do not describe them as, or
+ * substitute them for, a general prediction market.
  *
  * Three product types (settlement.method field in series response):
  *   - price_up_down:    BTC/ETH price UP (rises in period) or DOWN (falls in period)

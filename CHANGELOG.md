@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **BREAKING** `okx outcomes` CLI command group and its external `okx-outcomes` binary wrapper removed (ALGO-45589). There is no replacement — the prediction market functionality has been removed from this package. Running `okx outcomes` after upgrade returns "Unknown command".
+- **BREAKING** `okx outcomes` CLI command group and its external `okx-outcomes` binary wrapper removed (ALGO-45589). There is no replacement — the prediction market functionality has been removed from this package. Running `okx outcomes` after upgrade returns "Unknown command". The external `okx-outcomes` binary distribution and the OKX Outcomes backend API are being shut down separately by their respective teams.
 - **BREAKING** `skills/okx-outcomes/` skill pack removed. There is no replacement.
 - 35 eval probes under `eval/probes/outcomes/` removed.
 
