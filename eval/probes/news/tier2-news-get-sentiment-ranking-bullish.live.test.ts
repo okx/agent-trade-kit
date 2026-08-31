@@ -9,7 +9,15 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.news-get-sentiment-ranking-bullish';
-const USER_PROMPT = 'Find the most bullish cryptocurrencies right now. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+// "most bullish coins" alone is genuinely ambiguous: it reads as either the
+// biggest price gainers (a price screener, okx market filter) or the coins with
+// the most bullish news/social sentiment (this tool). Four rounds of eval had the
+// agent pick the price reading and answer with `okx market filter --sortBy
+// chg24hPct` — a defensible answer that this probe scored as a failure.
+//
+// The prompt now names the sentiment dimension, so only one reading survives.
+// The price reading has its own probe: eval/probes/market/tier2-market-filter-gainers.
+const USER_PROMPT = 'Which coins have the most bullish news sentiment right now? Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "news", "sentiment-rank", "bullish"]];
 const EXPECTATION = 'okx news sentiment-rank with bullish sort';
 
