@@ -14,11 +14,31 @@ import {
 // stays valid across roll-forwards. If you need to test a specific expiry,
 // override EXPECTED_COMMAND_PATTERNS in your run.
 const PROBE_ID = 'tier2.futures-place-order';
+// This one passed 3/3 on 2026-08-31 with a weaker prompt, but it was the only
+// passing place probe that neither named the subcommand nor required the command
+// to be reported — the same gap that sank the option probe. Aligned here.
+//
+// The four place prompts are still not equal, and the remaining spread is
+// deliberate rather than fixed, so record it:
+//
+//   probe    | names subcmd | report cmd | run-even-if-error | discovery step
+//   spot     | yes          | yes        | no                | instId given
+//   swap     | yes          | yes        | no                | instId given
+//   futures  | yes          | yes        | yes               | market instruments
+//   option   | yes          | yes        | yes               | option instruments --uly
+//
+// spot / swap are left as the unmodified control for the next run: they were
+// already 3/3, and if futures or option moves we want to be able to tell a
+// template change from run-to-run noise. Revisit once that run lands — either
+// backport run-even-if-error to spot / swap, or drop it here.
 const USER_PROMPT =
   'Place a limit buy order for 1 contract of a near-month BTC-USD quarterly futures contract ' +
-  '(BTC-USD-YYMMDD format) at price 1 in demo/dry-run mode. ' +
+  '(BTC-USD-YYMMDD format) at price 1 in demo/dry-run mode using the okx futures place subcommand. ' +
+  'Report the exact command you ran. Even if the command returns an authentication or ' +
+  'permission error, still run it once and report it. ' +
   'Skip any auth check — assume credentials are configured. ' +
-  'Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+  'Do NOT run okx auth login or okx config init or okx --help / okx futures --help. ' +
+  'You may run okx market instruments once to pick a valid instrument ID.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [
   ["okx", "futures", "place", "BTC-USD-", "buy"],
 ];

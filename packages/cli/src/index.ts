@@ -2,7 +2,6 @@ import { createRequire } from "node:module";
 import { OkxRestClient, toToolErrorPayload, checkForUpdates, allToolSpecs, TradeLogger } from "@agent-tradekit/core";
 import type { OkxConfig, ToolArgs, ToolResult, ToolRunner } from "@agent-tradekit/core";
 import { handleAuthCommand } from "./commands/auth.js";
-import { handleOutcomesCommand } from "./commands/outcomes.js";
 import { cmdDiagnose } from "./commands/diagnose.js";
 
 declare const __GIT_HASH__: string;
@@ -31,7 +30,7 @@ import {
 import { loadProfileConfig } from "./config/loader.js";
 import type { LoadProfileOptions } from "./config/loader.js";
 import { printHelp } from "./help.js";
-import { parseCli, parseTpLevel, peekFirstPositional } from "./parser.js";
+import { parseCli, parseTpLevel } from "./parser.js";
 import type { CliValues } from "./parser.js";
 import {
   cmdMarketTicker,
@@ -1904,15 +1903,6 @@ function findPlaceholderCommand(commands: Record<string, CliCommandEntry> | unde
   return Object.entries(commands ?? {}).find(([name]) => name.startsWith("<"));
 }
 
-function hasRawLongOption(argv: string[], name: string): boolean {
-  const option = `--${name}`;
-  for (const token of argv) {
-    if (token === "--") return false;
-    if (token === option || token.startsWith(`${option}=`)) return true;
-  }
-  return false;
-}
-
 function findCliRegistryUsagePath(positionals: string[]): { path: string; usage?: string } | undefined {
   const [moduleName, ...segments] = positionals;
   if (!moduleName) return undefined;
@@ -2095,22 +2085,6 @@ async function main(): Promise<void> {
   checkForUpdates("@okx_ai/okx-trade-cli", CLI_VERSION);
 
   const rawArgv = process.argv.slice(2);
-
-  // `outcomes` is a pass-through to the external okx-outcomes binary, so its
-  // wrapper-binary flags (--asset, --keeper, ...) are intentionally absent from
-  // CLI_OPTIONS. Strict parseArgs would reject them before routing, so peek the
-  // first positional and short-circuit here.
-  const peek = peekFirstPositional(rawArgv);
-  if (peek?.module === "outcomes") {
-    if (hasRawLongOption(rawArgv, AI_BUILDER_CODE_ARG)) {
-      throw new CliUsageError("--aiBuilderCode is not supported for okx outcomes");
-    }
-    const after = rawArgv.slice(peek.idx + 1);
-    const action = after[0];
-    const rest = after.slice(1);
-    const json = rawArgv.includes("--json") || rawArgv.includes("-j");
-    return handleOutcomesCommand(action, rest, { json });
-  }
 
   const { values, positionals } = parseCli(rawArgv);
 

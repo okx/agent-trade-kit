@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `event_browse` tool description now includes an explicit scope sentence clarifying it covers OKX CEX event contracts only — a distinct product from other prediction markets.
+- Rule 14 in `skills/okx-cex-trade/references/event-workflows.md`: AI agents must never substitute across products; if the user's target is absent from `okx event browse` / `series`, say so rather than offering a closest match (overrides Rule 11).
+- 3 new eval probes for event scope disambiguation: `tier2-event-scope-nonprice`, `tier2-event-scope-longdated` (negative), `tier2-event-inscope-updown` (positive guard).
+
+### Removed
+
+- **BREAKING** `okx outcomes` CLI command group and its external `okx-outcomes` binary wrapper removed (ALGO-45589). There is no replacement — the prediction market functionality has been removed from this package. Running `okx outcomes` after upgrade returns "Unknown command". The external `okx-outcomes` binary distribution and the OKX Outcomes backend API are being shut down separately by their respective teams.
+- **BREAKING** `skills/okx-outcomes/` skill pack removed. There is no replacement.
+- 35 eval probes under `eval/probes/outcomes/` removed.
+
 ## [1.4.4] - 2026-08-21
 
 This stable release adds per-order AI Builder attribution across the supported CLI order-placement paths, including regular, algo, batch, close-position, event-contract, and bot creation requests.

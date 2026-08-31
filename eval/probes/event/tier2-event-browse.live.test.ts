@@ -9,7 +9,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.event-browse';
-const USER_PROMPT = 'Use the OKX CLI event tools (okx event browse / okx event events) to list active prediction market events. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Use the OKX CLI event tools (okx event browse / okx event events) to list active event contracts. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "event", "browse"], ["okx", "event", "events"]];
 const EXPECTATION = 'okx event browse / events';
 
@@ -27,7 +27,7 @@ describe(PROBE_ID, () => {
         try {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
           evidence.tool_calls = summarizeToolCalls(trace);
-          evidence.reply_tail = trace.assistantReply.slice(-400);
+          evidence.reply_tail = trace.assistantReply.slice(-800);
           evidence.expected = EXPECTATION;
 
           const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
@@ -35,7 +35,7 @@ describe(PROBE_ID, () => {
             status = 'fail';
             failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
-            evidence.matched_call = { name: call.name, command: call.input.command };
+            evidence.matched_call = { name: call.name, command: call.input?.command };
             status = 'pass';
           }
         } catch (e: unknown) {
