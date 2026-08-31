@@ -14,11 +14,20 @@ import {
 // stays valid across roll-forwards. If you need to test a specific expiry,
 // override EXPECTED_COMMAND_PATTERNS in your run.
 const PROBE_ID = 'tier2.futures-place-order';
+// Prompt kept structurally equivalent to the spot / swap / option place probes.
+// This one passed 3/3 on 2026-08-31 with a weaker prompt, but it was the only
+// passing one that neither named the subcommand nor required the command to be
+// reported — the same gap that made the option probe fail. Aligning it removes
+// prompt strength as a confounder when comparing which product the agent gets
+// right.
 const USER_PROMPT =
   'Place a limit buy order for 1 contract of a near-month BTC-USD quarterly futures contract ' +
-  '(BTC-USD-YYMMDD format) at price 1 in demo/dry-run mode. ' +
+  '(BTC-USD-YYMMDD format) at price 1 using the okx futures place subcommand. ' +
+  'Report the exact command you ran. Even if the command returns an authentication or ' +
+  'permission error, still run it once and report it. ' +
   'Skip any auth check — assume credentials are configured. ' +
-  'Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+  'Do NOT run okx auth login or okx config init or okx --help / okx futures --help. ' +
+  'You may run okx market instruments once to pick a valid instrument ID.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [
   ["okx", "futures", "place", "BTC-USD-", "buy"],
 ];

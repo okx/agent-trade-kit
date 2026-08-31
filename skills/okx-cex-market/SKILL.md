@@ -1,6 +1,6 @@
 ---
 name: okx-cex-market
-description: "Use this skill when the user asks for: price of any asset, ticker, order book, candles, OHLCV, funding rate, open interest, OI change scanner, market screener (top movers, high-volume, newly listed), mark price, index price, recent trades, instrument list, stock tokens, metals prices (gold, XAU, XAG), commodities (oil, OIL), forex rates (EUR/USD, EURUSDT), bond instruments, non-crypto assets, or any technical indicator query (RSI, MACD, EMA, Bollinger Bands, KDJ, SuperTrend, AHR999, BTC rainbow, and 70+ more). All commands are read-only and do NOT require API credentials. Do NOT use for account balance/positions (okx-cex-portfolio), placing/cancelling orders (okx-cex-trade), or bots (okx-cex-bot)."
+description: "Use this skill when the user asks for: price of any asset, ticker, order book, candles, OHLCV, funding rate, open interest, OI change scanner, market screener (top movers, high-volume, newly listed), mark price, index price, recent trades, instrument list, stock tokens, metals prices (gold, XAU, XAG), commodities (oil, OIL), forex rates (EUR/USD, EURUSDT), bond instruments, non-crypto assets, or any technical indicator query (RSI, MACD, EMA, Bollinger Bands, KDJ, SuperTrend, AHR999, BTC rainbow, and 70+ more). All commands are read-only and do NOT require API credentials. Do NOT use for account balance/positions (okx-cex-portfolio), placing/cancelling orders (okx-cex-trade), or bots (okx-cex-bot). Also do NOT use for event contracts or 'will X go up or down in the next <period>' direction trading — that is okx-cex-trade via 'okx event browse', not market data."
 license: MIT
 metadata:
   author: okx
@@ -87,6 +87,15 @@ Market data commands return the same public data regardless of demo/live mode �
 | Pair spread statistics; mean-reversion / pairs-trade sizing | Use `okx market pair-spread` directly |
 | List instruments, discover stock tokens, metals/commodities/forex/bonds, find option instIds | `{baseDir}/references/instrument-commands.md` |
 | Multi-step or cross-skill workflows; MCP tool names | `{baseDir}/references/workflows.md` |
+
+**Route out of this skill — event contracts.** When the user wants to *trade a view on
+direction over a period* rather than read data — "will BTC go up or down in the next 15
+minutes", "buy YES/NO on …", "event contract", "bet on …" — that is **not** market data.
+Stop here and use **okx-cex-trade**, starting from `okx event browse`. Do not answer it
+with `okx market instruments --instType EVENT`, `okx market tickers`, or by proposing a
+perpetual/futures position as a stand-in: event contracts are a separate instrument class
+with their own commands, and substituting another product is an explicit product-boundary
+violation (see Rule 14 in `okx-cex-trade/references/event-workflows.md`).
 
 ### Step 2 — Run commands immediately
 

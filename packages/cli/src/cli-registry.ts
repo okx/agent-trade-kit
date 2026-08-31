@@ -1063,7 +1063,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       "sentiment-rank": {
         toolName: "news_get_sentiment_ranking",
-        usage: "okx news sentiment-rank [--period 24h] [--sort-by 0] [--limit 20]",
+        usage: "okx news sentiment-rank [--period 1h|4h|24h] [--sort-by hot|bullish|bearish] [--limit 20]",
+        description: "Rank coins by social hotness (hot, default) or sentiment direction (bullish / bearish)",
       },
       "economic-calendar": {
         toolName: "news_get_economic_calendar",
