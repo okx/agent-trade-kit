@@ -25,7 +25,7 @@ As of the latest registry scan, the server exposes **167 MCP tools** organized i
 - **futures** — dated futures trading
 - **option** — options trading
 - **account** — balance, positions, leverage, account config
-- **event** — event contracts (binary prediction markets)
+- **event** — event contracts (binary outcome contracts on listed price targets)
 - **news** — crypto news, sentiment analysis, and coin trend tracking
 - **earn.savings** — simple earn (flexible savings, fixed-term, lending)
 - **earn.onchain** — on-chain earn (staking and DeFi products)

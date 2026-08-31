@@ -856,7 +856,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── event ──────────────────────────────────────────────────────────────────
   event: {
-    description: "Event contracts - binary prediction markets (YES/NO, UP/DOWN)",
+    description: "Event contracts - binary outcome contracts (YES/NO, UP/DOWN)",
     commands: {
       browse: {
         toolName: "event_browse",

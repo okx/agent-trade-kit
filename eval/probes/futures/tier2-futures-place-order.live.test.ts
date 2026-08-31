@@ -33,7 +33,7 @@ const PROBE_ID = 'tier2.futures-place-order';
 // backport run-even-if-error to spot / swap, or drop it here.
 const USER_PROMPT =
   'Place a limit buy order for 1 contract of a near-month BTC-USD quarterly futures contract ' +
-  '(BTC-USD-YYMMDD format) at price 1 using the okx futures place subcommand. ' +
+  '(BTC-USD-YYMMDD format) at price 1 in demo/dry-run mode using the okx futures place subcommand. ' +
   'Report the exact command you ran. Even if the command returns an authentication or ' +
   'permission error, still run it once and report it. ' +
   'Skip any auth check — assume credentials are configured. ' +

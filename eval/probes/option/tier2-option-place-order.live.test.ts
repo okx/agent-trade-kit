@@ -34,7 +34,7 @@ const PROBE_ID = 'tier2.option-place-order';
 // `place`, which is the exact failure this rewrite exists to remove.
 const USER_PROMPT =
   'Place a limit buy order for 1 contract of a near-expiry BTC call option ' +
-  '(BTC-USD-YYMMDD-<strike>-C format) at a low premium using the okx option place subcommand. ' +
+  '(BTC-USD-YYMMDD-<strike>-C format) at a low premium in demo/dry-run mode using the okx option place subcommand. ' +
   'Report the exact command you ran. Even if the command returns an authentication or ' +
   'permission error, still run it once and report it. ' +
   'Skip any auth check — assume credentials are configured. ' +
