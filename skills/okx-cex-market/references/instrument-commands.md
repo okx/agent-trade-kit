@@ -3,14 +3,16 @@
 ## instruments — List Tradeable Instruments
 
 ```bash
-okx market instruments --instType <type> [--instId <id>] [--json]
+okx market instruments --instType <type> [--instId <id>] [--uly <uly>] [--instFamily <fam>] [--seriesId <id>] [--json]
 ```
 
 | Param | Required | Default | Description |
 |---|---|---|---|
-| `--instType` | Yes | - | `SPOT` `SWAP` `FUTURES` `OPTION` |
+| `--instType` | Yes | - | `SPOT` `SWAP` `FUTURES` `OPTION` `EVENTS` |
 | `--instId` | No | - | Filter to a single instrument |
 | `--uly` | Cond. | - | Required for `OPTION` (e.g., `--uly BTC-USD`) |
+| `--instFamily` | Cond. | - | Alternative to `--uly` for `OPTION` (e.g., `--instFamily BTC-USD`) |
+| `--seriesId` | Cond. | - | Required for `EVENTS` (e.g., `--seriesId BTC-ABOVE-DAILY`) |
 
 Returns: `instId` · `ctVal` · `lotSz` · `minSz` · `tickSz` · `state`. Displays up to 50 rows.
 
@@ -18,9 +20,13 @@ Returns: `instId` · `ctVal` · `lotSz` · `minSz` · `tickSz` · `state`. Displ
 okx market instruments --instType SPOT
 okx market instruments --instType SWAP --instId BTC-USDT-SWAP --json
 okx market instruments --instType OPTION --uly BTC-USD
+okx market instruments --instType OPTION --instFamily BTC-USD
+okx market instruments --instType EVENTS --seriesId BTC-ABOVE-DAILY
 ```
 
-> **OPTION instruments cannot be listed without `--uly`**. If the underlying is unknown, use `open-interest --instType OPTION` first to discover active instIds, then query instruments with the known underlying.
+> **OPTION instruments cannot be listed without `--uly` or `--instFamily`**. If the underlying is unknown, use `open-interest --instType OPTION` first to discover active instIds, then query instruments with the known underlying.
+
+> **EVENTS instruments cannot be listed without `--seriesId`**. Use `okx event series` to discover valid series IDs (e.g. `BTC-ABOVE-DAILY`, `ETH-ABOVE-DAILY`).
 
 ---
 

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`okx market instruments` OPTION/EVENTS params silently dropped** (ALGO-45742): `--uly`, `--instFamily`, and `--seriesId` were accepted by the CLI parser but never forwarded to the OKX API, causing HTTP 400 errors for `--instType OPTION` and `--instType EVENTS`. All three params are now passed through the CLI dispatch chain. `seriesId` is also added to the `market_get_instruments` MCP tool's `inputSchema`.
+
 ### Added
 
 - `event_browse` tool description now includes an explicit scope sentence clarifying it covers OKX CEX event contracts only — a distinct product from other prediction markets.

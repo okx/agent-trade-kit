@@ -79,7 +79,7 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       instruments: {
         toolName: "market_get_instruments",
-        usage: "okx market instruments --instType <type> [--instId <id>]",
+        usage: "okx market instruments --instType <type> [--instId <id>] [--uly <uly>] [--instFamily <fam>] [--seriesId <id>]",
         description: "List tradable instruments of a given type",
       },
       "funding-rate": {

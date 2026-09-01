@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`okx market instruments` OPTION/EVENTS 参数被静默丢弃**（ALGO-45742）：CLI 解析器已接受 `--uly`、`--instFamily`、`--seriesId` 参数，但从未转发到 OKX API，导致 `--instType OPTION` 和 `--instType EVENTS` 场景下返回 HTTP 400 错误。三个参数现已正确透传至 CLI 调度链。`seriesId` 同步添加到 `market_get_instruments` MCP 工具的 `inputSchema`。
+
 ### 新增
 
 - `event_browse` 工具描述新增明确的产品边界说明：仅适用于 OKX CEX 事件合约，与其他预测市场是不同的产品。
