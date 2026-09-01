@@ -341,10 +341,8 @@ function jsonFetch(body: unknown): typeof globalThis.fetch {
     });
 }
 
-async function withFetch(mock: typeof globalThis.fetch, fn: () => Promise<void>): Promise<void> {
-  const saved = globalThis.fetch;
-  globalThis.fetch = mock;
-  try { await fn(); } finally { globalThis.fetch = saved; }
+async function withFetch(mock: typeof globalThis.fetch, fn: (mock: typeof globalThis.fetch) => Promise<void>): Promise<void> {
+  await fn(mock);
 }
 
 const MOCK_RESPONSE = {
@@ -361,8 +359,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client });
     });
     const body = captured as Record<string, unknown>;
@@ -375,8 +373,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client });
     });
     const body = captured as Record<string, unknown>;
@@ -388,8 +386,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi", bar: "4H" }, { config: BASE_CONFIG, client });
     });
     assert.deepEqual((captured as Record<string, unknown>)["timeframes"], ["4H"]);
@@ -400,8 +398,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "ma", params: [5, 20] }, { config: BASE_CONFIG, client });
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
@@ -414,8 +412,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi", params: [] }, { config: BASE_CONFIG, client });
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
@@ -428,8 +426,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi", returnList: true, limit: 20 }, { config: BASE_CONFIG, client });
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
@@ -443,8 +441,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi", returnList: false }, { config: BASE_CONFIG, client });
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
@@ -457,8 +455,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi", backtestTime: 1700000000000 }, { config: BASE_CONFIG, client });
     });
     assert.equal((captured as Record<string, unknown>)["backtestTime"], 1700000000000);
@@ -469,8 +467,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client });
     });
     assert.equal((captured as Record<string, unknown>)["backtestTime"], undefined);
@@ -481,8 +479,8 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "boll" }, { config: BASE_CONFIG, client });
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
@@ -495,16 +493,16 @@ describe("market_get_indicator handler - request body", () => {
     await withFetch(async (input) => {
       capturedUrl = input.toString();
       return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client });
     });
     assert.ok(capturedUrl.includes("/api/v5/aigc/mcp/indicators"), `URL should contain indicator path, got: ${capturedUrl}`);
   });
 
   it("throws ValidationError when instId is missing", async () => {
-    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       const { ValidationError } = await import("../src/utils/errors.js");
       await assert.rejects(
         () => tool.handler({ indicator: "rsi" }, { config: BASE_CONFIG, client }),
@@ -514,8 +512,8 @@ describe("market_get_indicator handler - request body", () => {
   });
 
   it("throws ValidationError when indicator is missing", async () => {
-    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       const { ValidationError } = await import("../src/utils/errors.js");
       await assert.rejects(
         () => tool.handler({ instId: "BTC-USDT" }, { config: BASE_CONFIG, client }),
@@ -531,8 +529,8 @@ describe("market_get_indicator handler - request body", () => {
 
 describe("OkxRestClient.publicPost - unauthenticated POST", () => {
   it("completes successfully without credentials", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       const result = await client.publicPost("/api/v5/aigc/mcp/indicators", { instId: "BTC-USDT" });
       assert.ok(result.data !== undefined);
     });
@@ -543,8 +541,8 @@ describe("OkxRestClient.publicPost - unauthenticated POST", () => {
     await withFetch(async (input, init) => {
       captured.req = new Request(input, init);
       return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await client.publicPost("/api/v5/aigc/mcp/indicators", { instId: "BTC-USDT" });
     });
     assert.equal(captured.req?.headers.get("OK-ACCESS-KEY"), null);
@@ -555,8 +553,8 @@ describe("OkxRestClient.publicPost - unauthenticated POST", () => {
     await withFetch(async (input, init) => {
       captured.req = new Request(input, init);
       return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await client.publicPost("/api/v5/aigc/mcp/indicators", { instId: "BTC-USDT" });
     });
     assert.equal(captured.req?.method, "POST");
@@ -567,8 +565,8 @@ describe("OkxRestClient.publicPost - unauthenticated POST", () => {
     await withFetch(async (input, init) => {
       captured.req = new Request(input, init);
       return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient({ ...BASE_CONFIG, demo: true });
+    }, async (mock) => {
+      const client = new OkxRestClient({ ...BASE_CONFIG, demo: true }, mock);
       await client.publicPost("/api/v5/aigc/mcp/indicators", { instId: "BTC-USDT" });
     });
     assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
@@ -579,8 +577,8 @@ describe("OkxRestClient.publicPost - unauthenticated POST", () => {
     await withFetch(async (input, init) => {
       captured.req = new Request(input, init);
       return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await client.publicPost("/api/v5/aigc/mcp/indicators", { instId: "BTC-USDT" });
     });
     assert.equal(captured.req?.headers.get("x-simulated-trading"), null);
@@ -595,8 +593,8 @@ describe("market_get_indicator - indicator name validation", () => {
   const tool = registerIndicatorTools()[0]!;
 
   it("rejects unknown indicator name", async () => {
-    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       const { ValidationError } = await import("../src/utils/errors.js");
       await assert.rejects(
         () => tool.handler({ instId: "BTC-USDT", indicator: "not_real_indicator" }, { config: BASE_CONFIG, client }),
@@ -610,23 +608,23 @@ describe("market_get_indicator - indicator name validation", () => {
   });
 
   it("accepts valid indicator name 'rsi'", async () => {
-    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       // should not throw
       await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client });
     });
   });
 
   it("accepts alias 'boll' (maps to BB)", async () => {
-    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "boll" }, { config: BASE_CONFIG, client });
     });
   });
 
   it("suggests similar names for partial matches", async () => {
-    await withFetch(jsonFetch(MOCK_RESPONSE), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
       const { ValidationError } = await import("../src/utils/errors.js");
       await assert.rejects(
         () => tool.handler({ instId: "BTC-USDT", indicator: "mac" }, { config: BASE_CONFIG, client }),

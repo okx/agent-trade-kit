@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING** `skills/okx-outcomes/` skill pack removed. There is no replacement.
 - 35 eval probes under `eval/probes/outcomes/` removed.
 
+### Fixed
+
+- **Node 26 proxy compatibility** (ALGO-45373): proxy-configured requests (`proxy_url` / `HTTPS_PROXY`) no longer throw `UND_ERR_INVALID_ARG: invalid onError method` on Node 26+. Root cause: `OkxRestClient` imported `ProxyAgent` from the project's undici v6 but called Node's built-in `fetch` (backed by undici v8 in Node 26), causing a dispatcher interface version mismatch. Fix: `rest-client.ts` and `update-check.ts` now each import `fetch` from the same undici v6 package as `ProxyAgent`, ensuring the dispatcher and fetch implementation always share the same undici version. `update-check.ts` requests therefore also go through the proxy when `HTTPS_PROXY`/`HTTP_PROXY` is set on Node 26. Node 18 / Node 20 are unaffected. Node 26 is added to the CI test matrix.
+
 ## [1.4.4] - 2026-08-21
 
 This stable release adds per-order AI Builder attribution across the supported CLI order-placement paths, including regular, algo, batch, close-position, event-contract, and bot creation requests.

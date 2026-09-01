@@ -31,6 +31,7 @@ import {
   EnvHttpProxyAgent,
   setGlobalDispatcher,
   getGlobalDispatcher,
+  fetch as undiciFetch,
   type Dispatcher,
 } from "undici";
 import {
@@ -320,7 +321,7 @@ describe("undici-proxy-bootstrap: scenario 2 - HTTP_PROXY routing via CONNECT", 
 
   it("proxy receives CONNECT and tunnels request to target when HTTP_PROXY is set", async () => {
     const countBefore = connectCount();
-    const res = await fetch(`http://127.0.0.1:${targetPort}/test`, {
+    const res = await undiciFetch(`http://127.0.0.1:${targetPort}/test`, {
       signal: AbortSignal.timeout(5000),
     });
     const body = await res.text();
@@ -392,7 +393,7 @@ describe("undici-proxy-bootstrap: scenario 3 - NO_PROXY bypass", () => {
 
   it("request bypasses proxy and reaches target directly when NO_PROXY matches", async () => {
     const countBefore = connectCount();
-    const res = await fetch(`http://127.0.0.1:${targetPort}/test`, {
+    const res = await undiciFetch(`http://127.0.0.1:${targetPort}/test`, {
       signal: AbortSignal.timeout(5000),
     });
     const body = await res.text();
@@ -478,7 +479,7 @@ describe("undici-proxy-bootstrap: scenario 4 - HTTPS_PROXY set, HTTP_PROXY unset
 
   it("HTTP requests go direct when only HTTPS_PROXY is set (EnvHttpProxyAgent differentiates vars)", async () => {
     const countBefore = connectCount();
-    const res = await fetch(`http://127.0.0.1:${targetPort}/test`, {
+    const res = await undiciFetch(`http://127.0.0.1:${targetPort}/test`, {
       signal: AbortSignal.timeout(5000),
     });
     const body = await res.text();

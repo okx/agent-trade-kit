@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { isNewerVersion, resolveNpmRegistry, buildNpmrcCandidates } from "../src/utils/update-check.js";
+import {
+  isNewerVersion,
+  resolveNpmRegistry,
+  buildNpmrcCandidates,
+  _setFetchImpl,
+  _resetFetchImpl,
+} from "../src/utils/update-check.js";
 
 // ---------------------------------------------------------------------------
 // isNewerVersion tests (existing suite preserved)
@@ -151,11 +157,9 @@ function writeUpdateCache(entry: Record<string, unknown>): void {
 
 describe("checkForUpdates - kill switch (B0)", () => {
   let savedEnv: string | undefined;
-  let savedFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
     savedEnv = process.env.OKX_UPDATE_CHECK;
-    savedFetch = globalThis.fetch;
   });
 
   afterEach(() => {
@@ -164,7 +168,7 @@ describe("checkForUpdates - kill switch (B0)", () => {
     } else {
       delete process.env.OKX_UPDATE_CHECK;
     }
-    globalThis.fetch = savedFetch;
+    _resetFetchImpl();
   });
 
   it("returns immediately and never calls fetch when OKX_UPDATE_CHECK=false", async () => {
@@ -174,10 +178,10 @@ describe("checkForUpdates - kill switch (B0)", () => {
     clearUpdateCache();
 
     let fetchCalled = false;
-    globalThis.fetch = async () => {
+    _setFetchImpl(async () => {
       fetchCalled = true;
-      return new Response("{}", { status: 200 });
-    };
+      return new Response("{}", { status: 200 }) as unknown as Awaited<ReturnType<typeof fetch>>;
+    });
 
     checkForUpdates("test-pkg", "1.0.0");
     await new Promise((r) => setTimeout(r, 50));
@@ -192,13 +196,13 @@ describe("checkForUpdates - kill switch (B0)", () => {
     clearUpdateCache();
 
     let fetchCalled = false;
-    globalThis.fetch = async () => {
+    _setFetchImpl(async () => {
       fetchCalled = true;
       return new Response(JSON.stringify({ version: "1.0.1" }), {
         status: 200,
         headers: { "content-type": "application/json" },
-      });
-    };
+      }) as unknown as Awaited<ReturnType<typeof fetch>>;
+    });
 
     checkForUpdates("test-pkg-b0-0", "1.0.0");
     await new Promise((r) => setTimeout(r, 50));
@@ -213,13 +217,13 @@ describe("checkForUpdates - kill switch (B0)", () => {
     clearUpdateCache();
 
     let fetchCalled = false;
-    globalThis.fetch = async () => {
+    _setFetchImpl(async () => {
       fetchCalled = true;
       return new Response(JSON.stringify({ version: "1.0.1" }), {
         status: 200,
         headers: { "content-type": "application/json" },
-      });
-    };
+      }) as unknown as Awaited<ReturnType<typeof fetch>>;
+    });
 
     checkForUpdates("test-pkg-b0-unset", "1.0.0");
     await new Promise((r) => setTimeout(r, 50));
@@ -229,15 +233,12 @@ describe("checkForUpdates - kill switch (B0)", () => {
 });
 
 describe("checkForUpdates - negative cache (B1.5)", () => {
-  let savedFetch: typeof globalThis.fetch;
-
   beforeEach(() => {
-    savedFetch = globalThis.fetch;
     delete process.env.OKX_UPDATE_CHECK;
   });
 
   afterEach(() => {
-    globalThis.fetch = savedFetch;
+    _resetFetchImpl();
   });
 
   it("writes negative cache entry when fetch returns failure (HTTP 500)", async () => {
@@ -246,7 +247,7 @@ describe("checkForUpdates - negative cache (B1.5)", () => {
     clearUpdateCache();
     const PKG = "test-neg-cache-pkg";
 
-    globalThis.fetch = async () => new Response(null, { status: 500 });
+    _setFetchImpl(async () => new Response(null, { status: 500 }) as unknown as Awaited<ReturnType<typeof fetch>>);
 
     checkForUpdates(PKG, "1.0.0");
     await new Promise((r) => setTimeout(r, 200));
@@ -267,10 +268,10 @@ describe("checkForUpdates - negative cache (B1.5)", () => {
     writeUpdateCache({ [PKG]: { latestVersion: null, checkedAt: Date.now(), failed: true } });
 
     let fetchCalled = false;
-    globalThis.fetch = async () => {
+    _setFetchImpl(async () => {
       fetchCalled = true;
-      return new Response("{}", { status: 200 });
-    };
+      return new Response("{}", { status: 200 }) as unknown as Awaited<ReturnType<typeof fetch>>;
+    });
 
     checkForUpdates(PKG, "1.0.0");
     await new Promise((r) => setTimeout(r, 50));
@@ -286,13 +287,13 @@ describe("checkForUpdates - negative cache (B1.5)", () => {
     writeUpdateCache({ [PKG]: { latestVersion: null, checkedAt: staleTime, failed: true } });
 
     let fetchCalled = false;
-    globalThis.fetch = async () => {
+    _setFetchImpl(async () => {
       fetchCalled = true;
       return new Response(JSON.stringify({ version: "1.0.1" }), {
         status: 200,
         headers: { "content-type": "application/json" },
-      });
-    };
+      }) as unknown as Awaited<ReturnType<typeof fetch>>;
+    });
 
     checkForUpdates(PKG, "1.0.0");
     await new Promise((r) => setTimeout(r, 100));
@@ -307,10 +308,10 @@ describe("checkForUpdates - negative cache (B1.5)", () => {
     writeUpdateCache({ [PKG]: { latestVersion: "1.0.1", checkedAt: Date.now() } });
 
     let fetchCalled = false;
-    globalThis.fetch = async () => {
+    _setFetchImpl(async () => {
       fetchCalled = true;
-      return new Response("{}", { status: 200 });
-    };
+      return new Response("{}", { status: 200 }) as unknown as Awaited<ReturnType<typeof fetch>>;
+    });
 
     checkForUpdates(PKG, "1.0.0");
     await new Promise((r) => setTimeout(r, 50));
@@ -332,7 +333,7 @@ describe("checkForUpdates - negative cache (B1.5)", () => {
     }) as typeof process.stderr.write;
 
     try {
-      globalThis.fetch = async () => new Response("{}", { status: 200 });
+      _setFetchImpl(async () => new Response("{}", { status: 200 }) as unknown as Awaited<ReturnType<typeof fetch>>);
       checkForUpdates(PKG, "1.0.0");
       await new Promise((r) => setTimeout(r, 50));
     } finally {
