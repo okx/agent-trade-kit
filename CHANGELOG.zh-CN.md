@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-09-01
+
+本稳定版删除已停止维护的 OKX Outcomes 集成，并强化 CEX 事件合约、行情、情绪和持仓查询之间的产品边界路由。
+
 ### 修复
 
 - **`config show`、`config init`、`config add-profile`、`config list-profile`、`config use` 在旧版 `config.toml` 上崩溃**（[#212]）：当 `~/.okx/config.toml` 存在但缺少 `[profiles]` 段（旧版本写入的格式）时，`readFullConfig()` 返回 `{ profiles: undefined }`，导致五个命令抛出 `TypeError: Cannot convert undefined or null to object`。现在 `readFullConfig()` 在唯一的读取点将缺失的 `profiles` 规范化为 `{}`，不再要求每个调用方自行防御。
@@ -24,6 +28,15 @@
 - `event_browse` 工具描述新增明确的产品边界说明：仅适用于 OKX CEX 事件合约，与其他预测市场是不同的产品。
 - `skills/okx-cex-trade/references/event-workflows.md` 新增规则 14：AI agent 不得跨产品替代；若用户目标不在 `okx event browse` / `series` 返回结果中，应明确告知而非提供"最接近"替代（覆盖规则 11）。
 - 3 个新 eval probe 用于事件合约产品边界消歧：`tier2-event-scope-nonprice`、`tier2-event-scope-longdated`（否定场景）、`tier2-event-inscope-updown`（正向守护）。
+
+### 变更
+
+- Skill 路由指引现在能更准确地区分价格方向分析、情绪排行、按产品筛选持仓和事件合约交易，减少跨产品替代与范围过宽的持仓查询。
+- 按稳定版 skill 版本同步策略，所有现存 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均同步至 `1.4.5`。
+
+### 修复
+
+- `okx news sentiment-rank` 帮助信息现在会列出 `--period` 与 `--sort-by` 的合法取值，不再使用数字占位值。
 
 ### 移除
 

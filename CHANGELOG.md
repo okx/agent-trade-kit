@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-09-01
+
+This stable release removes the discontinued OKX Outcomes integration and strengthens product-boundary routing between CEX event contracts, market data, sentiment, and portfolio queries.
+
 ### Fixed
 
 - **`config show`, `config init`, `config add-profile`, `config list-profile`, `config use` crash on legacy `config.toml`** ([#212]): when `~/.okx/config.toml` exists but lacks a `[profiles]` section (written by older versions), `readFullConfig()` returned `{ profiles: undefined }`, causing `TypeError: Cannot convert undefined or null to object` in five commands. `readFullConfig()` now normalizes missing `profiles` to `{}` at the single read-point instead of requiring every consumer to guard against `undefined`.
@@ -24,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `event_browse` tool description now includes an explicit scope sentence clarifying it covers OKX CEX event contracts only — a distinct product from other prediction markets.
 - Rule 14 in `skills/okx-cex-trade/references/event-workflows.md`: AI agents must never substitute across products; if the user's target is absent from `okx event browse` / `series`, say so rather than offering a closest match (overrides Rule 11).
 - 3 new eval probes for event scope disambiguation: `tier2-event-scope-nonprice`, `tier2-event-scope-longdated` (negative), `tier2-event-inscope-updown` (positive guard).
+
+### Changed
+
+- Skill routing guidance now distinguishes price-direction analysis, sentiment rankings, product-filtered positions, and event-contract trading more precisely, reducing cross-product substitutions and overly broad position queries.
+- All remaining skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version are synced to `1.4.5` per the stable-release skill version sync policy.
+
+### Fixed
+
+- `okx news sentiment-rank` help now documents the accepted `--period` and `--sort-by` values instead of numeric placeholders.
 
 ### Removed
 
