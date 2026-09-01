@@ -4,7 +4,7 @@ description: "This skill should be used when the user asks about 'account balanc
 license: MIT
 metadata:
   author: okx
-  version: "1.4.4"
+  version: "1.4.5"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.4"
+        package: "@okx_ai/okx-trade-cli@1.4.5"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -135,8 +135,11 @@ okx account balance USDT
 # Funding account balance
 okx account asset-balance
 
-# All open positions
+# All open positions, every product
 okx account positions
+
+# Positions for one product only — always narrow when the user named a product
+okx account positions --instType SWAP     # SWAP | FUTURES | OPTION | MARGIN | EVENTS
 
 # Closed position history with realized PnL
 okx account positions-history
@@ -161,7 +164,7 @@ okx account transfer --ccy USDT --amt 100 --from 6 --to 18
 | 2 | `okx account balance [ccy]` | READ | Trading account equity, available, frozen |
 | 3a | `okx account asset-balance [ccy]` | READ | Funding account balance (per-currency list) |
 | 3b | `okx account asset-balance [ccy] --valuation [--valuationCcy <ccy>]` | READ | Same + total asset valuation across trading/funding/earn; denomination defaults to USDT, override with `--valuationCcy BTC` |
-| 4 | `okx account positions` | READ | Open contract/swap positions |
+| 4 | `okx account positions [--instType <type>] [--instId <id>]` | READ | Open contract/swap positions. **When the user names a product** ("my swap positions", "futures positions", "option positions"), pass `--instType <type>` (`SWAP` \| `FUTURES` \| `OPTION` \| `MARGIN` \| `EVENTS`) — or use that product's own command (`okx swap positions`, `okx futures positions`, `okx option positions`). Only omit the filter when the user genuinely wants everything: an unfiltered list is larger and leaves the product filtering to the model, which is where mistakes happen |
 | 5 | `okx account positions-history` | READ | Closed positions + realized PnL |
 | 6 | `okx account bills` | READ | Account ledger (deposits, withdrawals, trades) |
 | 7 | `okx account fees --instType <type>` | READ | My trading fee tier (maker/taker) |

@@ -52,7 +52,6 @@ OKX Agent Trade Kit 通过 [Model Context Protocol](https://modelcontextprotocol
 | `bot` | 14 | 交易机器人：网格 (9)、DCA — 现货 & 合约 (5)。子模块：`bot.grid`、`bot.dca` | [→](docs/modules/bot.md) |
 | `news` | 7 | 加密资讯：最新新闻、按币种查询、全文搜索、文章详情、来源列表、币种情绪（快照 + 趋势） | [→](docs/modules/news.md) |
 | `smartmoney` | 10 | 聪明钱分析：排行榜筛选、交易员业绩 / 当前持仓 / 历史平仓 / 订单流水、热门币种信号、单币信号（pool filter / authorIds 双入口）、单币信号时间序列（双入口）—— 全部只读，按入口维度拆分以便 AI agent 选对工具 | [→](docs/modules/smartmoney.md) |
-| `outcomes` | 0 (wrapper) | OKX Outcomes（YES/NO 事件合约，原 OKX 预测市场）—— CLI-only 包装器，透传到外部 `okx-outcomes` 二进制（通过 `github.com/okx/outcomes-cli` 的 `install.sh` 安装）。事件浏览、OAuth 鉴权账户查询、CLOB 价格 / 盘口、dry-run 二段确认下单、CTF 拆分 / 合并 / 赎回 | [→](docs/designs/outcomes-wrapper.md) |
 
 ---
 
@@ -120,7 +119,6 @@ okx account balance
 | [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | 交易机器人：网格、DCA（现货 & 合约） | 是 |
 | [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | 赚币：简单赚币、链上质押、双币赢、自动赚币 | 是 |
 | [`okx-cex-smartmoney`](skills/okx-cex-smartmoney/SKILL.md) | 聪明钱：交易员排行榜、共识信号、持仓分析 | 是 |
-| [`okx-outcomes`](skills/okx-outcomes/SKILL.md) | OKX Outcomes：YES/NO 事件合约、CLOB 下单、CTF 拆分 / 合并 / 赎回（需通过 `install.sh` 安装 `okx-outcomes` 二进制） | 是 |
 
 **[Skills 说明文档 →](skills/README.zh-CN.md)**
 

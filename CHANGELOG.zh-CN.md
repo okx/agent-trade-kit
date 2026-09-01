@@ -11,6 +11,29 @@
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-09-01
+
+本稳定版删除已停止维护的 OKX Outcomes 集成，并强化 CEX 事件合约、行情、情绪和持仓查询之间的产品边界路由。
+
+### 新增
+
+- `event_browse` 现在明确说明仅覆盖 OKX CEX 事件合约，该产品与其他预测市场不同。
+- 事件合约工作流指引现在禁止跨产品替代：若用户目标不在 `okx event browse` / `series` 返回结果中，应说明该目标不可用，而不是提供“最接近”的替代。
+
+### 变更
+
+- Skill 路由指引现在能更准确地区分价格方向分析、情绪排行、按产品筛选持仓和事件合约交易，减少跨产品替代与范围过宽的持仓查询。
+- 所有现存 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均同步至 `1.4.5`。
+
+### 修复
+
+- `okx news sentiment-rank` 帮助信息现在会列出 `--period` 与 `--sort-by` 的合法取值，不再使用数字占位值。
+
+### 移除
+
+- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部二进制包装器。本包不提供替代方案；升级后运行 `okx outcomes` 将返回 "Unknown command"。
+- **BREAKING** 删除 `skills/okx-outcomes/` skill 包。本包不提供替代方案。
+
 ## [1.4.4] - 2026-08-21
 
 本稳定版为所有受支持的 CLI 下单路径新增逐单 AI Builder 归因，覆盖普通单、策略单、批量单、平仓、事件合约以及 Bot 创建请求。

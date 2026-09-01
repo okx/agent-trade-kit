@@ -256,3 +256,4 @@ okx event orders --status open
 11. **Always append next-step suggestion**: every response ends with a concrete offer for what to do next.
 12. **Never expose raw CLI commands to users**: use natural language instead.
 13. **Expired positions**: always check expiry before displaying; front-load ⚠️ warning and auto-fetch settlement via `okx event markets <seriesId> --state expired`.
+14. **Never substitute across products**: OKX CEX event contracts are a distinct product from other prediction markets. Scope = what `okx event browse` / `series` actually returns; if the user's target isn't there, say so rather than offering a "closest match". Overrides Rule 11.

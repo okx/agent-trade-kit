@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.5] - 2026-09-01
+
+This stable release removes the discontinued OKX Outcomes integration and strengthens product-boundary routing between CEX event contracts, market data, sentiment, and portfolio queries.
+
+### Added
+
+- `event_browse` now explicitly states that it covers OKX CEX event contracts only, a distinct product from other prediction markets.
+- Event-contract workflow guidance now prevents cross-product substitution: if the user's target is absent from `okx event browse` / `series`, report that it is unavailable instead of offering a closest match.
+
+### Changed
+
+- Skill routing guidance now distinguishes price-direction analysis, sentiment rankings, product-filtered positions, and event-contract trading more precisely, reducing cross-product substitutions and overly broad position queries.
+- All remaining skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version are synced to `1.4.5`.
+
+### Fixed
+
+- `okx news sentiment-rank` help now documents the accepted `--period` and `--sort-by` values instead of numeric placeholders.
+
+### Removed
+
+- **BREAKING** Removed the `okx outcomes` CLI command group and its external binary wrapper. There is no replacement in this package; running `okx outcomes` after upgrade returns "Unknown command".
+- **BREAKING** Removed the `skills/okx-outcomes/` skill pack. There is no replacement.
+
 ## [1.4.4] - 2026-08-21
 
 This stable release adds per-order AI Builder attribution across the supported CLI order-placement paths, including regular, algo, batch, close-position, event-contract, and bot creation requests.
