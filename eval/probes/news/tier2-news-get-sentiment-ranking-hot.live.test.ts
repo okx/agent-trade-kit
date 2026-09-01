@@ -10,7 +10,14 @@ import {
 
 const PROBE_ID = 'tier2.news-get-sentiment-ranking-hot';
 const USER_PROMPT = 'Find the top 10 most discussed cryptocurrencies in the last 24 hours. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "news", "sentiment-rank", "hot"]];
+// `hot` is the documented default (news.ts:351, and the corrected usage string in
+// cli-registry), so a correct agent may pass `--sort-by hot` explicitly or omit
+// the flag entirely. Both are the hot ranking; accept either. The bullish probe
+// needs no such allowance because bullish is never the default.
+const EXPECTED_COMMAND_PATTERNS: string[][] = [
+  ["okx", "news", "sentiment-rank", "hot"],
+  ["okx", "news", "sentiment-rank"],
+];
 const EXPECTATION = 'okx news sentiment-rank with hot sort';
 
 describe(PROBE_ID, () => {

@@ -11,6 +11,18 @@
 
 ## [Unreleased]
 
+### 新增
+
+- `event_browse` 工具描述新增明确的产品边界说明：仅适用于 OKX CEX 事件合约，与其他预测市场是不同的产品。
+- `skills/okx-cex-trade/references/event-workflows.md` 新增规则 14：AI agent 不得跨产品替代；若用户目标不在 `okx event browse` / `series` 返回结果中，应明确告知而非提供"最接近"替代（覆盖规则 11）。
+- 3 个新 eval probe 用于事件合约产品边界消歧：`tier2-event-scope-nonprice`、`tier2-event-scope-longdated`（否定场景）、`tier2-event-inscope-updown`（正向守护）。
+
+### 移除
+
+- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器（ALGO-45589）。**无替代方案** —— 预测市场功能已从本包移除。升级后运行 `okx outcomes` 将返回 "Unknown command"。外部 `okx-outcomes` 二进制分发与 OKX Outcomes 后端 API 由相关团队另行关停。
+- **BREAKING** 删除 `skills/okx-outcomes/` skill pack。**无替代方案**。
+- 删除 `eval/probes/outcomes/` 下的 35 个 eval probe。
+
 ### 修复
 
 - **Node 26 代理兼容性**（ALGO-45373）：在 Node 26+ 上使用代理配置（`proxy_url` / `HTTPS_PROXY`）的请求不再抛出 `UND_ERR_INVALID_ARG: invalid onError method`。根本原因：`OkxRestClient` 从项目依赖的 undici v6 导入 `ProxyAgent`，但调用 Node 内置 `fetch`（Node 26 中由 undici v8 支持），导致 dispatcher 接口版本不匹配。修复：`rest-client.ts` 和 `update-check.ts` 现在各自从与 `ProxyAgent` 相同的 undici v6 包导入 `fetch`，确保 dispatcher 与 fetch 实现始终使用同一 undici 版本。`update-check.ts` 的请求因此也会在 Node 26 上设置 `HTTPS_PROXY`/`HTTP_PROXY` 时通过代理。Node 18 / Node 20 不受影响。Node 26 已加入 CI 测试矩阵。

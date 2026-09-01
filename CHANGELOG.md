@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `event_browse` tool description now includes an explicit scope sentence clarifying it covers OKX CEX event contracts only — a distinct product from other prediction markets.
+- Rule 14 in `skills/okx-cex-trade/references/event-workflows.md`: AI agents must never substitute across products; if the user's target is absent from `okx event browse` / `series`, say so rather than offering a closest match (overrides Rule 11).
+- 3 new eval probes for event scope disambiguation: `tier2-event-scope-nonprice`, `tier2-event-scope-longdated` (negative), `tier2-event-inscope-updown` (positive guard).
+
+### Removed
+
+- **BREAKING** `okx outcomes` CLI command group and its external `okx-outcomes` binary wrapper removed (ALGO-45589). There is no replacement — the prediction market functionality has been removed from this package. Running `okx outcomes` after upgrade returns "Unknown command". The external `okx-outcomes` binary distribution and the OKX Outcomes backend API are being shut down separately by their respective teams.
+- **BREAKING** `skills/okx-outcomes/` skill pack removed. There is no replacement.
+- 35 eval probes under `eval/probes/outcomes/` removed.
+
 ### Fixed
 
 - **Node 26 proxy compatibility** (ALGO-45373): proxy-configured requests (`proxy_url` / `HTTPS_PROXY`) no longer throw `UND_ERR_INVALID_ARG: invalid onError method` on Node 26+. Root cause: `OkxRestClient` imported `ProxyAgent` from the project's undici v6 but called Node's built-in `fetch` (backed by undici v8 in Node 26), causing a dispatcher interface version mismatch. Fix: `rest-client.ts` and `update-check.ts` now each import `fetch` from the same undici v6 package as `ProxyAgent`, ensuring the dispatcher and fetch implementation always share the same undici version. `update-check.ts` requests therefore also go through the proxy when `HTTPS_PROXY`/`HTTP_PROXY` is set on Node 26. Node 18 / Node 20 are unaffected. Node 26 is added to the CI test matrix.

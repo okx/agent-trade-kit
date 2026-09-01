@@ -10,10 +10,21 @@ import {
 
 const PROBE_ID = 'tier2.swap-get-positions';
 const USER_PROMPT = 'Check my current perpetual swap positions. Report any open positions or confirm there are none. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-// Accept either the SWAP-filtered call or the unfiltered account positions list
-// (the agent often relies on the result-side instType field instead of the flag).
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "swap", "positions"], ["okx", "account", "positions"]];
-const EXPECTATION = 'okx swap positions / okx account positions (any instType)';
+// What this asserts: the product must be named, either by the module command or
+// by --instType. A bare `okx account positions` is not accepted, because it
+// leaves the SWAP/FUTURES/OPTION split to the model rather than the API.
+//
+// Note it does NOT assert that swap_get_positions specifically was exercised:
+// `okx account positions --instType SWAP` routes to account_get_positions
+// (cli-registry.ts:190), not swap_get_positions (:336). Narrowing by product is
+// the property worth enforcing here; requiring the module tool would be a
+// stricter probe than the skill guidance asks for.
+//
+// Kept identical in strictness to tier2-futures-get-positions — before
+// 2026-08-31 the two disagreed, so the same agent behaviour passed here and
+// failed there.
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "swap", "positions"], ["okx", "account", "positions", "SWAP"]];
+const EXPECTATION = 'okx swap positions / okx account positions --instType SWAP';
 
 describe(PROBE_ID, () => {
   const models = getModels();
