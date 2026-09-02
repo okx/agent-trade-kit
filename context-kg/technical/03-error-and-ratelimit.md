@@ -21,11 +21,16 @@ OKX API errors always include a numeric `code` field. The `OKX_CODE_BEHAVIORS` t
 - **Retryable codes** (e.g., `50001` — service unavailable): the client will retry up to N times with exponential backoff
 - **Non-retryable codes** (e.g., `50011` — rate limit exceeded from API side): throw `RateLimitError` immediately
 - **Auth codes** (e.g., `50111`, `50113`): throw `AuthenticationError` — retrying won't help
+- **Permanent parameter errors** (e.g., `50014`, `50015`): `retry: false` with a specific non-retry suggestion, instead of the generic retry hint
+
+This table is consulted on both response shapes `processResponse` handles: a non-zero business `code` on an HTTP 200, and an OKX-specific `code` on a non-2xx HTTP status (`!response.ok`). The latter falls back to the classic `"Retry later or verify endpoint parameters."` suggestion when the code has no table entry, rather than surfacing `suggestion: undefined`.
 
 Common OKX error codes to know:
 - `50000` — Success (not an error)
 - `50001` — System busy (retryable)
 - `50011` — Too many requests (OKX-side rate limit)
+- `50014` — Required parameter is missing (e.g. `seriesId` for EVENTS instruments)
+- `50015` — One of two mutually-alternative required parameters is missing (e.g. `uly`/`instFamily` for OPTION instruments)
 - `50102` — Timestamp mismatch (clock skew > 30s)
 - `50111` — Invalid API key
 - `51155` — Feature not supported in this region (EEA/US restriction)
