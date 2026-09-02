@@ -14,6 +14,7 @@
 ### 修复
 
 - **`okx market instruments` OPTION/EVENTS 参数被静默丢弃**（ALGO-45742）：CLI 解析器已接受 `--uly`、`--instFamily`、`--seriesId` 参数，但从未转发到 OKX API，导致 `--instType OPTION` 和 `--instType EVENTS` 场景下返回 HTTP 400 错误。三个参数现已正确透传至 CLI 调度链。`seriesId` 同步添加到 `market_get_instruments` MCP 工具的 `inputSchema`。
+- **永久性参数错误被误导性地提示"稍后重试"**（ALGO-45742，issue #214 修复方案第 3 项）：当 OKX 返回的 HTTP 错误携带具体业务错误码时（如 `50014` "Parameter X can not be empty"、`50015` "Either parameter X or Y is required"），之前一律给出通用的 `"Retry later or verify endpoint parameters."` 提示，对这类永久性客户端错误具有误导性。这些错误码现已返回准确的、不建议重试的提示；未在映射表中的错误码仍会回退到原有的通用提示，而不是被静默丢弃。
 
 ### 新增
 
