@@ -218,6 +218,25 @@ describe("OkxRestClient: HTTP-level errors", () => {
       },
     );
   });
+
+  it("still carries a generic retry suggestion for a permanent-4xx code that has no table entry", async () => {
+    // Regression guard: a specific-but-unmapped code (most OKX codes aren't in
+    // OKX_CODE_BEHAVIORS) must not lose the suggestion entirely just because it
+    // is routed through the code table - it should fall back to the same text
+    // this class of error always carried, not to `suggestion: undefined`.
+    await withFetch(
+      jsonFetch({ code: "51000", msg: "Parameter error", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "51000" &&
+            err.suggestion === "Retry later or verify endpoint parameters.",
+        );
+      },
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -314,6 +314,13 @@ export class OkxRestClient {
 
   private throwOkxError(
     code: string, msg: string | undefined, reqConfig: RequestConfig, traceId: string | undefined,
+    // Only the !response.ok call site passes this - it restores the generic
+    // "Retry later or verify endpoint parameters." suggestion this class of
+    // error used to always carry, for codes with no table entry. The
+    // response.ok===true call site deliberately omits it: "no suggestion for
+    // an unmapped business code" is existing, tested behavior there
+    // (see "OkxApiError for unknown code has no suggestion" in rest-client.test.ts).
+    fallbackSuggestion?: string,
   ): never {
     // Some upstream endpoints (e.g. /orbit/public/*) return code != 0 with an empty `msg`.
     // The previous fallback "OKX API request failed." dropped the upstream code from the
@@ -334,7 +341,7 @@ export class OkxRestClient {
     }
 
     const behavior = OKX_CODE_BEHAVIORS[code];
-    const suggestion = behavior?.suggestion?.replace("{site}", this.config.site);
+    const suggestion = behavior?.suggestion?.replace("{site}", this.config.site) ?? fallbackSuggestion;
 
     if (code === "50011" || code === "50061") {
       throw new RateLimitError(message, suggestion, endpoint, traceId);
@@ -385,10 +392,15 @@ export class OkxRestClient {
       // A specific OKX business code (anything other than the generic "0"/"1"
       // wrapper) means the body identifies exactly what went wrong - route it
       // through the same code table used for HTTP-200-with-error-code responses
-      // so permanent errors (e.g. missing required params) don't get the
-      // generic "Retry later" suggestion meant for transient failures.
+      // so a mapped, permanent error (e.g. missing required params) gets its
+      // accurate non-retry suggestion instead of a blanket "Retry later".
+      // Pass the old generic text as fallback so a code with no table entry
+      // still gets *some* actionable suggestion, same as before this change.
       if (parsed.code && parsed.code !== "0" && parsed.code !== "1") {
-        this.throwOkxError(parsed.code, parsed.msg, reqConfig, traceId);
+        this.throwOkxError(
+          parsed.code, parsed.msg, reqConfig, traceId,
+          "Retry later or verify endpoint parameters.",
+        );
       }
       throw new OkxApiError(
         `HTTP ${response.status} from OKX: ${parsed.msg ?? "Unknown error"}`,
