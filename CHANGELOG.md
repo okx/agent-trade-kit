@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`okx market instruments` OPTION/EVENTS params silently dropped** (ALGO-45742): `--uly`, `--instFamily`, and `--seriesId` were accepted by the CLI parser but never forwarded to the OKX API, causing HTTP 400 errors for `--instType OPTION` and `--instType EVENTS`. All three params are now passed through the CLI dispatch chain. `seriesId` is also added to the `market_get_instruments` MCP tool's `inputSchema`.
+- **Misleading "Retry later" suggestion on permanent parameter errors** (ALGO-45742, issue #214 fix-plan item 3): an OKX HTTP error carrying a specific business code (e.g. `50014` "Parameter X can not be empty", `50015` "Either parameter X or Y is required") used to always get the generic `"Retry later or verify endpoint parameters."` suggestion, which is misleading for a permanent client error. These codes now surface an accurate, non-retry suggestion; codes with no table entry still fall back to the original generic suggestion (not silently dropped).
+
 ### Added
 
 - `event_browse` tool description now includes an explicit scope sentence clarifying it covers OKX CEX event contracts only — a distinct product from other prediction markets.

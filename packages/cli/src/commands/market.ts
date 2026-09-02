@@ -12,9 +12,9 @@ function getData(result: unknown): unknown {
 
 export async function cmdMarketInstruments(
   run: ToolRunner,
-  opts: { instType: string; instId?: string; json: boolean; demo?: boolean },
+  opts: { instType: string; instId?: string; uly?: string; instFamily?: string; seriesId?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_instruments", { instType: opts.instType, instId: opts.instId, demo: opts.demo ?? false });
+  const result = await run("market_get_instruments", { instType: opts.instType, instId: opts.instId, uly: opts.uly, instFamily: opts.instFamily, seriesId: opts.seriesId, demo: opts.demo ?? false });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(

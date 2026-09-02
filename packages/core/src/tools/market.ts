@@ -214,6 +214,10 @@ export function registerMarketTools(): ToolSpec[] {
             type: "string",
             description: "e.g. BTC-USD",
           },
+          seriesId: {
+            type: "string",
+            description: "Required for EVENTS type, e.g. BTC-ABOVE-DAILY",
+          },
           ...DEMO_PROPERTY,
         },
         required: ["instType"],
@@ -227,6 +231,7 @@ export function registerMarketTools(): ToolSpec[] {
             instId: readString(args, "instId"),
             uly: readString(args, "uly"),
             instFamily: readString(args, "instFamily"),
+            seriesId: readString(args, "seriesId"),
           }),
           publicRateLimit("market_get_instruments", 20),
           readBoolean(args, "demo") ?? false,

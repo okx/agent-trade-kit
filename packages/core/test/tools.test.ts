@@ -258,6 +258,27 @@ describe("market_get_instruments", () => {
     await tool.handler({ instType: "SWAP" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/public/instruments");
   });
+
+  it("forwards uly, instFamily, and seriesId to the request params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instType: "OPTION", uly: "BTC-USD", instFamily: "BTC-USD", seriesId: "BTC-ABOVE-DAILY" },
+      makeContext(client),
+    );
+    const params = getLastCall()?.params;
+    assert.equal(params?.["uly"], "BTC-USD", "uly must be forwarded");
+    assert.equal(params?.["instFamily"], "BTC-USD", "instFamily must be forwarded");
+    assert.equal(params?.["seriesId"], "BTC-ABOVE-DAILY", "seriesId must be forwarded");
+  });
+
+  it("omits uly, instFamily, and seriesId from params when not provided (compactObject)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instType: "SWAP" }, makeContext(client));
+    const params = getLastCall()?.params ?? {};
+    assert.equal("uly" in params, false, "uly must be stripped when undefined");
+    assert.equal("instFamily" in params, false, "instFamily must be stripped when undefined");
+    assert.equal("seriesId" in params, false, "seriesId must be stripped when undefined");
+  });
 });
 
 describe("market_get_mark_price", () => {
