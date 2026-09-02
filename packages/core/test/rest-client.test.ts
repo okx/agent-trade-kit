@@ -186,6 +186,38 @@ describe("OkxRestClient: HTTP-level errors", () => {
       );
     });
   });
+
+  it("does NOT suggest retry for a permanent parameter error surfaced as HTTP 400 (code 50014)", async () => {
+    await withFetch(
+      jsonFetch({ code: "50014", msg: "Parameter seriesId can not be empty", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/public/instruments"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "50014" &&
+            err.message === "Parameter seriesId can not be empty" &&
+            typeof err.suggestion === "string" &&
+            !err.suggestion.includes("Retry later"),
+        );
+      },
+    );
+  });
+
+  it("still falls back to the generic HTTP-status suggestion when the body carries no specific OKX code", async () => {
+    await withFetch(
+      jsonFetch({ code: "1", msg: "Bad Request", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "400" &&
+            err.suggestion === "Retry later or verify endpoint parameters.",
+        );
+      },
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1290,9 +1322,13 @@ import type { PilotCacheFile } from "../src/pilot/types.js";
         );
       };
       await withFetch(mockFetch, async (client) => {
+        // Code 50111 identifies an auth failure regardless of HTTP status -
+        // it is routed through the same code table as a 200-with-error-code
+        // response, so it surfaces as AuthenticationError, not a generic
+        // OkxApiError (see rest-client.ts processResponse's !response.ok branch).
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
-          (err: unknown) => err instanceof OkxApiError,
+          (err: unknown) => err instanceof AuthenticationError,
         );
         assert.equal(callCount, 1, "should make exactly 1 fetch call (no failover)");
       });

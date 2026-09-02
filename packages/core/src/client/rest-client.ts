@@ -48,6 +48,9 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
   "51021": { retry: false, suggestion: "Instrument does not exist. Check instId." },
   "51022": { retry: false, suggestion: "Instrument not available for trading." },
   "51027": { retry: false, suggestion: "Contract has expired." },
+
+  // Request parameters invalid -> permanent, do not retry
+  "50014": { retry: false, suggestion: "Missing or invalid required parameter. Check the request against this endpoint's required/conditional parameters - do not retry without correcting the payload." },
 };
 import { RateLimiter } from "../utils/rate-limiter.js";
 import type { OkxConfig } from "../config.js";
@@ -379,6 +382,14 @@ export class OkxRestClient {
 
     if (!response.ok) {
       this.logResponse(response.status, rawText.length, elapsed, traceId, parsed.code ?? "-", parsed.msg);
+      // A specific OKX business code (anything other than the generic "0"/"1"
+      // wrapper) means the body identifies exactly what went wrong - route it
+      // through the same code table used for HTTP-200-with-error-code responses
+      // so permanent errors (e.g. missing required params) don't get the
+      // generic "Retry later" suggestion meant for transient failures.
+      if (parsed.code && parsed.code !== "0" && parsed.code !== "1") {
+        this.throwOkxError(parsed.code, parsed.msg, reqConfig, traceId);
+      }
       throw new OkxApiError(
         `HTTP ${response.status} from OKX: ${parsed.msg ?? "Unknown error"}`,
         {
