@@ -204,6 +204,26 @@ describe("OkxRestClient: HTTP-level errors", () => {
     );
   });
 
+  it("does NOT suggest retry for an either/or required-parameter error surfaced as HTTP 400 (code 50015)", async () => {
+    // Same shape as issue #214's OPTION repro: HTTP 400 from OKX: Either
+    // parameter uly or instFamily is required. Distinct from 50014 above -
+    // 50014 is a single missing param, 50015 is an either/or requirement.
+    await withFetch(
+      jsonFetch({ code: "50015", msg: "Either parameter uly or instFamily is required", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/public/instruments"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "50015" &&
+            err.message === "Either parameter uly or instFamily is required" &&
+            typeof err.suggestion === "string" &&
+            !err.suggestion.includes("Retry later"),
+        );
+      },
+    );
+  });
+
   it("still falls back to the generic HTTP-status suggestion when the body carries no specific OKX code", async () => {
     await withFetch(
       jsonFetch({ code: "1", msg: "Bad Request", data: [] }, 400),

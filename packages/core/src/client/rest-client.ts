@@ -51,6 +51,7 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
 
   // Request parameters invalid -> permanent, do not retry
   "50014": { retry: false, suggestion: "Missing or invalid required parameter. Check the request against this endpoint's required/conditional parameters - do not retry without correcting the payload." },
+  "50015": { retry: false, suggestion: "One of two mutually-alternative required parameters is missing. Check the request against this endpoint's required/conditional parameters - do not retry without correcting the payload." },
 };
 import { RateLimiter } from "../utils/rate-limiter.js";
 import type { OkxConfig } from "../config.js";
