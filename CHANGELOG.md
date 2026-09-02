@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`config show`, `config init`, `config add-profile`, `config list-profile`, `config use` crash on legacy `config.toml`** ([#212]): when `~/.okx/config.toml` exists but lacks a `[profiles]` section (written by older versions), `readFullConfig()` returned `{ profiles: undefined }`, causing `TypeError: Cannot convert undefined or null to object` in five commands. `readFullConfig()` now normalizes missing `profiles` to `{}` at the single read-point instead of requiring every consumer to guard against `undefined`.
+- **`config show` text mode shows no-profiles hint on empty config** ([#212]): when `profiles` is empty (new install or legacy config), text mode now prints `"No profiles found. Run: okx config add-profile ..."` — identical to `config list-profile`'s existing behavior. JSON mode is unchanged.
+
 - **`okx market instruments` OPTION/EVENTS params silently dropped** (ALGO-45742): `--uly`, `--instFamily`, and `--seriesId` were accepted by the CLI parser but never forwarded to the OKX API, causing HTTP 400 errors for `--instType OPTION` and `--instType EVENTS`. All three params are now passed through the CLI dispatch chain. `seriesId` is also added to the `market_get_instruments` MCP tool's `inputSchema`.
 - **Misleading "Retry later" suggestion on permanent parameter errors** (ALGO-45742, issue #214 fix-plan item 3): an OKX HTTP error carrying a specific business code (e.g. `50014` "Parameter X can not be empty", `50015` "Either parameter X or Y is required") used to always get the generic `"Retry later or verify endpoint parameters."` suggestion, which is misleading for a permanent client error. These codes now surface an accurate, non-retry suggestion; codes with no table entry still fall back to the original generic suggestion (not silently dropped).
 

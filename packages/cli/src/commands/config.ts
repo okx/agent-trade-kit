@@ -76,6 +76,9 @@ export function cmdConfigShow(json: boolean): void {
     }, 2);
     outputLine("");
   }
+  if (Object.entries(config.profiles).length === 0) {
+    outputLine("No profiles found. Run: okx config add-profile AK=<key> SK=<secret> PP=<passphrase>");
+  }
 }
 
 export function cmdConfigSet(key: string, value: string): void {

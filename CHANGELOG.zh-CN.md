@@ -13,6 +13,9 @@
 
 ### 修复
 
+- **`config show`、`config init`、`config add-profile`、`config list-profile`、`config use` 在旧版 `config.toml` 上崩溃**（[#212]）：当 `~/.okx/config.toml` 存在但缺少 `[profiles]` 段（旧版本写入的格式）时，`readFullConfig()` 返回 `{ profiles: undefined }`，导致五个命令抛出 `TypeError: Cannot convert undefined or null to object`。现在 `readFullConfig()` 在唯一的读取点将缺失的 `profiles` 规范化为 `{}`，不再要求每个调用方自行防御。
+- **`config show` 文本模式在空 profiles 时显示提示信息**（[#212]）：当 `profiles` 为空（全新安装或旧版配置）时，文本模式现在会打印 `"No profiles found. Run: okx config add-profile ..."`，与 `config list-profile` 的现有行为保持一致。JSON 模式不受影响。
+
 - **`okx market instruments` OPTION/EVENTS 参数被静默丢弃**（ALGO-45742）：CLI 解析器已接受 `--uly`、`--instFamily`、`--seriesId` 参数，但从未转发到 OKX API，导致 `--instType OPTION` 和 `--instType EVENTS` 场景下返回 HTTP 400 错误。三个参数现已正确透传至 CLI 调度链。`seriesId` 同步添加到 `market_get_instruments` MCP 工具的 `inputSchema`。
 - **永久性参数错误被误导性地提示"稍后重试"**（ALGO-45742，issue #214 修复方案第 3 项）：当 OKX 返回的 HTTP 错误携带具体业务错误码时（如 `50014` "Parameter X can not be empty"、`50015` "Either parameter X or Y is required"），之前一律给出通用的 `"Retry later or verify endpoint parameters."` 提示，对这类永久性客户端错误具有误导性。这些错误码现已返回准确的、不建议重试的提示；未在映射表中的错误码仍会回退到原有的通用提示，而不是被静默丢弃。
 
