@@ -35,7 +35,9 @@ export function readFullConfig(): OkxTomlConfig {
   if (!existsSync(path)) return { profiles: {} };
   const raw = readFileSync(path, "utf-8");
   try {
-    return parse(raw) as unknown as OkxTomlConfig;
+    const parsed = parse(raw) as unknown as OkxTomlConfig;
+    parsed.profiles ??= {};
+    return parsed;
   } catch (err) {
     throw new ConfigError(
       `Failed to parse ${path}: ${err instanceof Error ? err.message : String(err)}`,

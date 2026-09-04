@@ -13,8 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`okx market instruments` OPTION/EVENTS params silently dropped** (ALGO-45742): `--uly`, `--instFamily`, and `--seriesId` were accepted by the CLI parser but never forwarded to the OKX API, causing HTTP 400 errors for `--instType OPTION` and `--instType EVENTS`. All three params are now passed through the CLI dispatch chain. `seriesId` is also added to the `market_get_instruments` MCP tool's `inputSchema`.
-- **Misleading "Retry later" suggestion on permanent parameter errors** (ALGO-45742, issue #214 fix-plan item 3): an OKX HTTP error carrying a specific business code (e.g. `50014` "Parameter X can not be empty", `50015` "Either parameter X or Y is required") used to always get the generic `"Retry later or verify endpoint parameters."` suggestion, which is misleading for a permanent client error. These codes now surface an accurate, non-retry suggestion; codes with no table entry still fall back to the original generic suggestion (not silently dropped).
+- **`config show`, `config init`, `config add-profile`, `config list-profile`, `config use` crash on legacy `config.toml`** ([#212]): when `~/.okx/config.toml` exists but lacks a `[profiles]` section (written by older versions), `readFullConfig()` returned `{ profiles: undefined }`, causing `TypeError: Cannot convert undefined or null to object` in five commands. `readFullConfig()` now normalizes missing `profiles` to `{}` at the single read-point instead of requiring every consumer to guard against `undefined`.
+- **`config show` text mode shows no-profiles hint on empty config** ([#212]): when `profiles` is empty (new install or legacy config), text mode now prints `"No profiles found. Run: okx config add-profile ..."` — identical to `config list-profile`'s existing behavior. JSON mode is unchanged.
+
+- **`okx market instruments` OPTION/EVENTS params silently dropped**: `--uly`, `--instFamily`, and `--seriesId` were accepted by the CLI parser but never forwarded to the OKX API, causing HTTP 400 errors for `--instType OPTION` and `--instType EVENTS`. All three params are now passed through the CLI dispatch chain. `seriesId` is also added to the `market_get_instruments` MCP tool's `inputSchema`.
+- **Misleading "Retry later" suggestion on permanent parameter errors** (issue #214 fix-plan item 3): an OKX HTTP error carrying a specific business code (e.g. `50014` "Parameter X can not be empty", `50015` "Either parameter X or Y is required") used to always get the generic `"Retry later or verify endpoint parameters."` suggestion, which is misleading for a permanent client error. These codes now surface an accurate, non-retry suggestion; codes with no table entry still fall back to the original generic suggestion (not silently dropped).
 
 ### Added
 
@@ -24,13 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- **BREAKING** `okx outcomes` CLI command group and its external `okx-outcomes` binary wrapper removed (ALGO-45589). There is no replacement — the prediction market functionality has been removed from this package. Running `okx outcomes` after upgrade returns "Unknown command". The external `okx-outcomes` binary distribution and the OKX Outcomes backend API are being shut down separately by their respective teams.
+- **BREAKING** `okx outcomes` CLI command group and its external `okx-outcomes` binary wrapper removed. There is no replacement — the prediction market functionality has been removed from this package. Running `okx outcomes` after upgrade returns "Unknown command". The external `okx-outcomes` binary distribution and the OKX Outcomes backend API are being shut down separately by their respective teams.
 - **BREAKING** `skills/okx-outcomes/` skill pack removed. There is no replacement.
 - 35 eval probes under `eval/probes/outcomes/` removed.
 
 ### Fixed
 
-- **Node 26 proxy compatibility** (ALGO-45373): proxy-configured requests (`proxy_url` / `HTTPS_PROXY`) no longer throw `UND_ERR_INVALID_ARG: invalid onError method` on Node 26+. Root cause: `OkxRestClient` imported `ProxyAgent` from the project's undici v6 but called Node's built-in `fetch` (backed by undici v8 in Node 26), causing a dispatcher interface version mismatch. Fix: `rest-client.ts` and `update-check.ts` now each import `fetch` from the same undici v6 package as `ProxyAgent`, ensuring the dispatcher and fetch implementation always share the same undici version. `update-check.ts` requests therefore also go through the proxy when `HTTPS_PROXY`/`HTTP_PROXY` is set on Node 26. Node 18 / Node 20 are unaffected. Node 26 is added to the CI test matrix.
+- **Node 26 proxy compatibility**: proxy-configured requests (`proxy_url` / `HTTPS_PROXY`) no longer throw `UND_ERR_INVALID_ARG: invalid onError method` on Node 26+. Root cause: `OkxRestClient` imported `ProxyAgent` from the project's undici v6 but called Node's built-in `fetch` (backed by undici v8 in Node 26), causing a dispatcher interface version mismatch. Fix: `rest-client.ts` and `update-check.ts` now each import `fetch` from the same undici v6 package as `ProxyAgent`, ensuring the dispatcher and fetch implementation always share the same undici version. `update-check.ts` requests therefore also go through the proxy when `HTTPS_PROXY`/`HTTP_PROXY` is set on Node 26. Node 18 / Node 20 are unaffected. Node 26 is added to the CI test matrix.
 
 ## [1.4.4] - 2026-08-21
 
@@ -38,7 +41,7 @@ This stable release adds per-order AI Builder attribution across the supported C
 
 ### Added
 
-- Optional `--aiBuilderCode <code>` flag for supported order-placement commands: spot/swap/futures/option/event place, spot/swap/futures algo place and trail, spot/swap/futures batch place, swap/futures close, and bot grid/DCA create. Valid values are 1-16 alphanumeric chars and override the OKX order `tag` for attribution; invalid values are rejected before the order is submitted and the CLI exits with code 1 (ALGO-44006).
+- Optional `--aiBuilderCode <code>` flag for supported order-placement commands: spot/swap/futures/option/event place, spot/swap/futures algo place and trail, spot/swap/futures batch place, swap/futures close, and bot grid/DCA create. Valid values are 1-16 alphanumeric chars and override the OKX order `tag` for attribution; invalid values are rejected before the order is submitted and the CLI exits with code 1.
 
 ### Changed
 
@@ -82,7 +85,7 @@ Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` in
 
 ### Fixed
 
-- `okx market indicator <indicator> <instId> --help` now shows `[--list]` in the usage line (placed before `[--limit]`), and the description explains that the command returns the latest value by default; use `--list` + `--limit` for a historical series. Previously `--list` was absent from the help output, causing users to believe `--limit` alone controlled the number of returned values (ALGO-44118).
+- `okx market indicator <indicator> <instId> --help` now shows `[--list]` in the usage line (placed before `[--limit]`), and the description explains that the command returns the latest value by default; use `--list` + `--limit` for a historical series. Previously `--list` was absent from the help output, causing users to believe `--limit` alone controlled the number of returned values.
 
 ## [1.4.1] - 2026-07-21
 
@@ -135,7 +138,7 @@ First stable release of the 1.3.9 line. Consolidates all changes accumulated dur
 
 - New `tr` (Turkey) site in the site registry (`https://tr.okx.com`), selectable via `--site tr`, `OKX_SITE=tr`, `site = "tr"` in config.toml, or option `4` in the interactive `okx config init` wizard.
 - `okx bot grid sub-orders` now accepts `--groupId`, `--after`, `--before`, and `--limit`, restoring parity with the `grid_get_sub_orders` MCP tool.
-- [TRDATA-4187] 35 `okx outcomes` eval probes (`eval/probes/outcomes/`), validating LLM-driven tool invocation against live behavior.
+- 35 `okx outcomes` eval probes (`eval/probes/outcomes/`), validating LLM-driven tool invocation against live behavior.
 
 ### Changed
 
@@ -173,7 +176,7 @@ Beta release: skill `metadata.version` and the pinned `@okx_ai/okx-trade-cli` in
 
 ### Added
 
-- [TRDATA-4187] Add 35 `okx outcomes` eval probes delivered across 5 phases (`eval/probes/outcomes/`), validating LLM-driven tool invocation against live behavior.
+- Add 35 `okx outcomes` eval probes delivered across 5 phases (`eval/probes/outcomes/`), validating LLM-driven tool invocation against live behavior.
 
 ## [1.3.8] - 2026-06-11
 
@@ -273,7 +276,7 @@ First stable release of the 1.3.6 line. Consolidates all changes accumulated dur
 
 - **earn-hunter skill — OpenClaw in-session cron scheduling**: on OpenClaw, the earn-hunter scheduled scan is now set up inside the conversation via the in-session `cron` agent tool (isolated session + `lightContext`) and delivered back to the chat via cron `announce`, instead of OS crontab. No CLI commands are emitted (the `openclaw cron` CLI path has permission issues). `platform.json` `scheduler.type` is `"openclaw-cron"` on OpenClaw; Claude Code / Hermes keep `"cron"` (OS crontab + curl) and Generic stays `"manual"`.
 - **`earn_get_fixed_earn_products` MCP tool** and `okx earn savings fixed-products` CLI command for querying Simple Earn Fixed-term product pool with APR, term, remaining quota, and sold-out status
-- **Automatic HTTP/HTTPS proxy support via environment variables** (TRDATA-4023). Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
+- **Automatic HTTP/HTTPS proxy support via environment variables**. Set `HTTPS_PROXY` or `HTTP_PROXY` env vars and all undici-backed fetch calls (CLI, MCP server, mcp-gateway) are automatically routed through the proxy. `NO_PROXY` is honored for per-host bypass. Implemented via `EnvHttpProxyAgent` global undici dispatcher in `packages/core/src/runtime/undici-proxy-bootstrap.ts`. No configuration change needed; per-request `proxy_url` config still takes precedence when both are set.
 - **Skill signature verification**: `okx skill add` now verifies Ed25519 signature and SHA-256 file integrity before installing a skill, with server-side fallback when local verification cannot proceed. Use `--force` to bypass on verification failure. New command `okx skill verify <name>` re-verifies an installed skill on demand and persists the result to the local registry. New SDK exports: `verifySkillSignature`, `getPublicKey`, `serverSideVerify`, `tryReadMetaJson`, `VerificationResult`, `VerificationStatus`.
 - All 163 MCP tools now expose a human-readable `title` at both top-level (`Tool.title`, per MCP spec 2025-06-18) and inside `annotations.title` for backward compatibility, so clients like MCP Inspector render readable labels instead of snake_case names.
 - `.env.bak` added to `.gitignore` so local backup env files are never committed.
@@ -281,7 +284,7 @@ First stable release of the 1.3.6 line. Consolidates all changes accumulated dur
 ### Fixed
 
 - **`EnvHttpProxyAgent` experimental warning on every command**: the undici proxy bootstrap registered `EnvHttpProxyAgent` unconditionally at load time, which made Node emit a `[UNDICI-EHPA] ExperimentalWarning` on every CLI command — including local-only ones like `okx skill list` that never make a request. Registration is now gated on the presence of a proxy env var (`HTTPS_PROXY` / `HTTP_PROXY`, upper- or lower-case), so proxy users keep automatic proxy support while everyone else gets a clean, warning-free CLI.
-- **linux-arm64: `okx auth status` and `okx auth logout` failed with "All CDN sources failed (HTTP 404)"** (TRDATA-4135). Added a probe-based CDN fallback in `resolveAuthPlatformDir()`: when running on linux-arm64 and CDN returns HTTP 404 for the native `linux-arm64/checksum.json`, the auth installer transparently falls back to the `linux-x64` binary and emits a warning that x86_64 emulation is required. Once a native linux-arm64 binary is uploaded to CDN, the fallback self-deactivates (probe returns HTTP 200 first).
+- **linux-arm64: `okx auth status` and `okx auth logout` failed with "All CDN sources failed (HTTP 404)"**. Added a probe-based CDN fallback in `resolveAuthPlatformDir()`: when running on linux-arm64 and CDN returns HTTP 404 for the native `linux-arm64/checksum.json`, the auth installer transparently falls back to the `linux-x64` binary and emits a warning that x86_64 emulation is required. Once a native linux-arm64 binary is uploaded to CDN, the fallback self-deactivates (probe returns HTTP 200 first).
 - **`earn savings fixed-redeem` documentation used positional arg instead of `--reqId` flag**: SKILL.md, cli-registry, and savings-commands.md all documented `fixed-redeem <reqId>` (positional), but the CLI router reads `v.reqId` (named flag). Agents following the docs would pass `undefined` as reqId. Now correctly documented as `--reqId <reqId>`.
 - **`earn savings rate-history --limit` documentation default was 100, actual code default is 7**: savings-commands.md previously documented the default as 100, but the CLI implementation uses `readNumber(args, "limit") ?? 7`. Now corrected to match the actual default of 7.
 - **`earn savings rate-history` and `fixed-products` CLI output used `rate` column but OKX API returns `apr`**: fixed-term offers table always showed empty `rate` column. Now correctly reads `apr` field.
@@ -289,7 +292,7 @@ First stable release of the 1.3.6 line. Consolidates all changes accumulated dur
 ### Changed
 
 - Per-tool `annotations.destructiveHint` and `idempotentHint` are now accurate to MCP spec semantics: 24 additive writes (place_order, transfer, subscribe, redeem) are no longer marked destructive, and 37 destructive idempotent writes (cancel, amend, close, set_leverage) are now marked idempotent. Two 3-in-1 batch routers (`swap_batch_orders`, `spot_batch_orders`) keep the safe write defaults.
-- **Non-ASCII cleanup completed -- round 2** (TRDATA-3977, !325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the TRDATA-3977 series begun in 1.3.5-beta.1.
+- **Non-ASCII cleanup completed -- round 2** (!325). Cleared the remaining 5 residual non-ASCII characters still leaking via TAP output in test `describe`/`it` block names, reducing the count to 0. Completes the series begun in 1.3.5-beta.1.
 
 ---
 
@@ -303,13 +306,13 @@ Stable rollup of `1.3.5-beta.1` plus a follow-up cleanup. All skill `metadata.ve
 
 ### Fixed
 
-- **CLI startup performance** (1.3.5-beta.1, TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror; (A') fetch uses `AbortSignal.timeout(3000)`; (B1.5) failed fetches write a negative-cache entry (1 h TTL).
+- **CLI startup performance** (1.3.5-beta.1). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror; (A') fetch uses `AbortSignal.timeout(3000)`; (B1.5) failed fetches write a negative-cache entry (1 h TTL).
 
 ### Changed
 
 - **`grid_stop_order` / `dca_stop_order` workflow guidance** (1.3.5-beta.1, !305). Tool descriptions now document the two-step close pattern for bots with residual positions.
 - **Smartmoney V7 funnel semantics doc sync** (1.3.5-beta.1). Aligned design / module / context-kg / skill / eval docs with the shipped V7 signal funnel. Docs only.
-- **Non-ASCII typographic punctuation cleanup** (TRDATA-3977). Two-round sweep replacing em-dash, en-dash, right-arrow, ellipsis with ASCII equivalents across CLI help, tool descriptions, and tests. Round 1 (1.3.5-beta.1) handled the primary surface; round 2 (this release) cleaned 5 residual chars leaking through TAP. No functional change; addresses OKG SonarQube TAP lexer compatibility.
+- **Non-ASCII typographic punctuation cleanup**. Two-round sweep replacing em-dash, en-dash, right-arrow, ellipsis with ASCII equivalents across CLI help, tool descriptions, and tests. Round 1 (1.3.5-beta.1) handled the primary surface; round 2 (this release) cleaned 5 residual chars leaking through TAP. No functional change; addresses OKG SonarQube TAP lexer compatibility.
 - **Skill `metadata.version` bumped to `1.3.5`** across all 9 skills (`okx-cex-trade`, `okx-cex-market`, `okx-cex-earn`, `okx-cex-bot`, `okx-cex-portfolio`, `okx-cex-skill-mp`, `okx-cex-auth`, `okx-cex-smartmoney`, `okx-sentiment-tracker`). Catches up `1.3.3` → `1.3.5` (skill versions were not bumped in `1.3.4` stable).
 
 ---
@@ -322,13 +325,13 @@ Stable rollup of `1.3.5-beta.1` plus a follow-up cleanup. All skill `metadata.ve
 
 ### Fixed
 
-- **CLI startup performance** (TRDATA-3954). `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror (`npm_config_registry` env or `.npmrc` walk) instead of hardcoding `registry.npmjs.org`; (A') fetch uses `AbortSignal.timeout(3000)` whose internal unref'd timer prevents infinite event-loop hang; (B1.5) failed fetches write a negative-cache entry (1 h TTL) so repeated cold-starts on unreachable networks skip the fetch entirely.
+- **CLI startup performance**. `okx` no longer pins the Node.js event loop on startup. Four layers: (B0) `OKX_UPDATE_CHECK=false` kill switch; (B1) update checks use the user's configured npm mirror (`npm_config_registry` env or `.npmrc` walk) instead of hardcoding `registry.npmjs.org`; (A') fetch uses `AbortSignal.timeout(3000)` whose internal unref'd timer prevents infinite event-loop hang; (B1.5) failed fetches write a negative-cache entry (1 h TTL) so repeated cold-starts on unreachable networks skip the fetch entirely.
 
 ### Changed
 
 - **`grid_stop_order` / `dca_stop_order` workflow guidance** (!305). Tool descriptions now document the two-step close pattern for bots with residual positions: stopping with `stopType="2"` puts the bot into `no_close_position` (strategy paused, position still open); calling stop again with `stopType="1"` then closes the remaining position. Applies to both grid and DCA (contract and spot variants). Empirically verified on OKX demo API.
 - **Smartmoney V7 funnel semantics doc sync.** Aligned `docs/designs/smartmoney.md`, `docs/modules/smartmoney.md`, `context-kg/business/06-leaderboard-smartmoney-api.md`, `skills/okx-cex-smartmoney/references/signal-commands.md`, and `eval/README.md` with the shipped V7 signal funnel. Docs only.
-- Replaced non-ASCII typographic punctuation (em-dash, en-dash, right-arrow, ellipsis) with ASCII equivalents in CLI help text, tool descriptions, and CLI output placeholders (TRDATA-3977, #190). No functional change; addresses OKG SonarQube TAP lexer compatibility.
+- Replaced non-ASCII typographic punctuation (em-dash, en-dash, right-arrow, ellipsis) with ASCII equivalents in CLI help text, tool descriptions, and CLI output placeholders (#190). No functional change; addresses OKG SonarQube TAP lexer compatibility.
 
 > Note: `market_get_pair_spread` was historically tagged in `1.3.4-beta.2` but was deliberately excluded from the `v1.3.4` stable release tag (which is anchored at `cd99d487`, the `1.3.4-beta.1` bump commit). It ships in `1.3.5-beta.1` instead.
 
@@ -628,7 +631,7 @@ Promise.all([
 
 #### Breaking Changes
 
-- **`grid_stop_order` MCP tool: `stopType` values `"3"`, `"5"`, and `"6"` explicitly removed** (ALGO-37613) — These values are no longer valid for grid bot stop operations and must not be used. The valid set is now `["1","2"]` only: `"1"` closes all positions immediately (default clean exit), `"2"` stops the strategy without selling. Callers passing `"3"`, `"5"`, or `"6"` will fail schema validation. **Migration**: replace any usage of `"3"/"5"/"6"` with `"1"` (immediate close) or `"2"` (keep positions) based on the desired exit behaviour.
+- **`grid_stop_order` MCP tool: `stopType` values `"3"`, `"5"`, and `"6"` explicitly removed** — These values are no longer valid for grid bot stop operations and must not be used. The valid set is now `["1","2"]` only: `"1"` closes all positions immediately (default clean exit), `"2"` stops the strategy without selling. Callers passing `"3"`, `"5"`, or `"6"` will fail schema validation. **Migration**: replace any usage of `"3"/"5"/"6"` with `"1"` (immediate close) or `"2"` (keep positions) based on the desired exit behaviour.
 
 ### Fixed
 

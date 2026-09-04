@@ -1,5 +1,5 @@
 /**
- * Tests for indicator --list flag discoverability in CLI registry (ALGO-44118).
+ * Tests for indicator --list flag discoverability in CLI registry.
  *
  * Verifies that the CLI registry usage and description for `<indicator> <instId>`
  * correctly surface the --list flag, so users know a series requires --list + --limit.
@@ -18,7 +18,7 @@ function getIndicatorCommand() {
   return cmd;
 }
 
-describe("indicator command discoverability - CLI registry (ALGO-44118)", () => {
+describe("indicator command discoverability - CLI registry", () => {
   it("usage contains [--list]", () => {
     const cmd = getIndicatorCommand();
     assert.ok(

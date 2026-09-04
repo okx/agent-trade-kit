@@ -951,3 +951,50 @@ describe("loadConfig - OAuth fallback", () => {
     assert.doesNotMatch(stderr, /differs from your OAuth login site/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// readFullConfig - legacy config (no [profiles] table)
+// ---------------------------------------------------------------------------
+
+describe("readFullConfig - legacy config (no [profiles] table)", () => {
+  let savedHome: string | undefined;
+  let tmpHome: string;
+
+  beforeEach(() => {
+    savedHome = process.env.HOME;
+    tmpHome = mkdtempSync(join(tmpdir(), "okx-cfg-legacy-test-"));
+    mkdirSync(join(tmpHome, ".okx"));
+    process.env.HOME = tmpHome;
+  });
+
+  afterEach(() => {
+    if (savedHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = savedHome;
+    }
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  function writeToml(content: string): void {
+    writeFileSync(join(tmpHome, ".okx", "config.toml"), content, "utf-8");
+  }
+
+  it("returns profiles:{} when [profiles] table is missing", () => {
+    writeToml('default_profile = "default"\n');
+    const config = readFullConfig();
+    assert.deepEqual(config.profiles, {});
+  });
+
+  it("does not throw on legacy config without [profiles]", () => {
+    writeToml('default_profile = "default"\n');
+    assert.doesNotThrow(() => readFullConfig());
+  });
+
+  it("parses default_profile when present alongside missing [profiles]", () => {
+    writeToml('default_profile = "myprofile"\n');
+    const config = readFullConfig();
+    assert.equal(config.default_profile, "myprofile");
+    assert.deepEqual(config.profiles, {});
+  });
+});

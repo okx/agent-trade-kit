@@ -13,8 +13,11 @@
 
 ### 修复
 
-- **`okx market instruments` OPTION/EVENTS 参数被静默丢弃**（ALGO-45742）：CLI 解析器已接受 `--uly`、`--instFamily`、`--seriesId` 参数，但从未转发到 OKX API，导致 `--instType OPTION` 和 `--instType EVENTS` 场景下返回 HTTP 400 错误。三个参数现已正确透传至 CLI 调度链。`seriesId` 同步添加到 `market_get_instruments` MCP 工具的 `inputSchema`。
-- **永久性参数错误被误导性地提示"稍后重试"**（ALGO-45742，issue #214 修复方案第 3 项）：当 OKX 返回的 HTTP 错误携带具体业务错误码时（如 `50014` "Parameter X can not be empty"、`50015` "Either parameter X or Y is required"），之前一律给出通用的 `"Retry later or verify endpoint parameters."` 提示，对这类永久性客户端错误具有误导性。这些错误码现已返回准确的、不建议重试的提示；未在映射表中的错误码仍会回退到原有的通用提示，而不是被静默丢弃。
+- **`config show`、`config init`、`config add-profile`、`config list-profile`、`config use` 在旧版 `config.toml` 上崩溃**（[#212]）：当 `~/.okx/config.toml` 存在但缺少 `[profiles]` 段（旧版本写入的格式）时，`readFullConfig()` 返回 `{ profiles: undefined }`，导致五个命令抛出 `TypeError: Cannot convert undefined or null to object`。现在 `readFullConfig()` 在唯一的读取点将缺失的 `profiles` 规范化为 `{}`，不再要求每个调用方自行防御。
+- **`config show` 文本模式在空 profiles 时显示提示信息**（[#212]）：当 `profiles` 为空（全新安装或旧版配置）时，文本模式现在会打印 `"No profiles found. Run: okx config add-profile ..."`，与 `config list-profile` 的现有行为保持一致。JSON 模式不受影响。
+
+- **`okx market instruments` OPTION/EVENTS 参数被静默丢弃**：CLI 解析器已接受 `--uly`、`--instFamily`、`--seriesId` 参数，但从未转发到 OKX API，导致 `--instType OPTION` 和 `--instType EVENTS` 场景下返回 HTTP 400 错误。三个参数现已正确透传至 CLI 调度链。`seriesId` 同步添加到 `market_get_instruments` MCP 工具的 `inputSchema`。
+- **永久性参数错误被误导性地提示"稍后重试"**（issue #214 修复方案第 3 项）：当 OKX 返回的 HTTP 错误携带具体业务错误码时（如 `50014` "Parameter X can not be empty"、`50015` "Either parameter X or Y is required"），之前一律给出通用的 `"Retry later or verify endpoint parameters."` 提示，对这类永久性客户端错误具有误导性。这些错误码现已返回准确的、不建议重试的提示；未在映射表中的错误码仍会回退到原有的通用提示，而不是被静默丢弃。
 
 ### 新增
 
@@ -24,13 +27,13 @@
 
 ### 移除
 
-- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器（ALGO-45589）。**无替代方案** —— 预测市场功能已从本包移除。升级后运行 `okx outcomes` 将返回 "Unknown command"。外部 `okx-outcomes` 二进制分发与 OKX Outcomes 后端 API 由相关团队另行关停。
+- **BREAKING** 删除 `okx outcomes` CLI 命令组及其外部 `okx-outcomes` 二进制包装器。**无替代方案** —— 预测市场功能已从本包移除。升级后运行 `okx outcomes` 将返回 "Unknown command"。外部 `okx-outcomes` 二进制分发与 OKX Outcomes 后端 API 由相关团队另行关停。
 - **BREAKING** 删除 `skills/okx-outcomes/` skill pack。**无替代方案**。
 - 删除 `eval/probes/outcomes/` 下的 35 个 eval probe。
 
 ### 修复
 
-- **Node 26 代理兼容性**（ALGO-45373）：在 Node 26+ 上使用代理配置（`proxy_url` / `HTTPS_PROXY`）的请求不再抛出 `UND_ERR_INVALID_ARG: invalid onError method`。根本原因：`OkxRestClient` 从项目依赖的 undici v6 导入 `ProxyAgent`，但调用 Node 内置 `fetch`（Node 26 中由 undici v8 支持），导致 dispatcher 接口版本不匹配。修复：`rest-client.ts` 和 `update-check.ts` 现在各自从与 `ProxyAgent` 相同的 undici v6 包导入 `fetch`，确保 dispatcher 与 fetch 实现始终使用同一 undici 版本。`update-check.ts` 的请求因此也会在 Node 26 上设置 `HTTPS_PROXY`/`HTTP_PROXY` 时通过代理。Node 18 / Node 20 不受影响。Node 26 已加入 CI 测试矩阵。
+- **Node 26 代理兼容性**：在 Node 26+ 上使用代理配置（`proxy_url` / `HTTPS_PROXY`）的请求不再抛出 `UND_ERR_INVALID_ARG: invalid onError method`。根本原因：`OkxRestClient` 从项目依赖的 undici v6 导入 `ProxyAgent`，但调用 Node 内置 `fetch`（Node 26 中由 undici v8 支持），导致 dispatcher 接口版本不匹配。修复：`rest-client.ts` 和 `update-check.ts` 现在各自从与 `ProxyAgent` 相同的 undici v6 包导入 `fetch`，确保 dispatcher 与 fetch 实现始终使用同一 undici 版本。`update-check.ts` 的请求因此也会在 Node 26 上设置 `HTTPS_PROXY`/`HTTP_PROXY` 时通过代理。Node 18 / Node 20 不受影响。Node 26 已加入 CI 测试矩阵。
 
 ## [1.4.4] - 2026-08-21
 
@@ -38,7 +41,7 @@
 
 ### 新增
 
-- 支持在下单相关命令使用可选标志 `--aiBuilderCode <code>`：spot/swap/futures/option/event place、spot/swap/futures algo place 与 trail、spot/swap/futures batch place、swap/futures close，以及 bot grid/DCA create。合法值为 1-16 位字母数字，会覆盖 OKX 订单 `tag` 用于归因；非法值会在提交订单前被拒绝，CLI 以退出码 1 终止（ALGO-44006）。
+- 支持在下单相关命令使用可选标志 `--aiBuilderCode <code>`：spot/swap/futures/option/event place、spot/swap/futures algo place 与 trail、spot/swap/futures batch place、swap/futures close，以及 bot grid/DCA create。合法值为 1-16 位字母数字，会覆盖 OKX 订单 `tag` 用于归因；非法值会在提交订单前被拒绝，CLI 以退出码 1 终止。
 
 ### 变更
 
@@ -82,7 +85,7 @@ Beta 版本：按仅稳定版同步的规则，skill 的 `metadata.version` 及�
 
 ### 修复
 
-- `okx market indicator <indicator> <instId> --help` 现在在用法行中显示 `[--list]`（置于 `[--limit]` 之前），并在说明中解释该命令默认返回最新一条数据；如需获取历史序列，请使用 `--list` + `--limit`。此前 `--list` 未出现在帮助输出中，导致用户误认为单独使用 `--limit` 即可控制返回数量（ALGO-44118）。
+- `okx market indicator <indicator> <instId> --help` 现在在用法行中显示 `[--list]`（置于 `[--limit]` 之前），并在说明中解释该命令默认返回最新一条数据；如需获取历史序列，请使用 `--list` + `--limit`。此前 `--list` 未出现在帮助输出中，导致用户误认为单独使用 `--limit` 即可控制返回数量。
 
 ## [1.4.1] - 2026-07-21
 
@@ -135,7 +138,7 @@ Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `
 
 - 站点注册表新增 `tr`（土耳其）站点（`https://tr.okx.com`），可通过 `--site tr`、`OKX_SITE=tr`、config.toml 中 `site = "tr"`，或交互式 `okx config init` 向导中的选项 `4` 选用。
 - `okx bot grid sub-orders` 新增 `--groupId`、`--after`、`--before`、`--limit` 参数，与 `grid_get_sub_orders` MCP tool 对齐。
-- [TRDATA-4187] 新增 35 个 `okx outcomes` eval probe（`eval/probes/outcomes/`），验证 LLM 驱动的工具调用与线上真实行为一致。
+- 新增 35 个 `okx outcomes` eval probe（`eval/probes/outcomes/`），验证 LLM 驱动的工具调用与线上真实行为一致。
 
 ### Changed
 
@@ -173,7 +176,7 @@ Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `
 
 ### 新增
 
-- [TRDATA-4187] 新增 35 个 `okx outcomes` eval probe，分 5 个阶段交付（`eval/probes/outcomes/`），用于验证 LLM 驱动的工具调用在真实行为下的正确性。
+- 新增 35 个 `okx outcomes` eval probe，分 5 个阶段交付（`eval/probes/outcomes/`），用于验证 LLM 驱动的工具调用在真实行为下的正确性。
 
 ## [1.3.8] - 2026-06-11
 
@@ -273,7 +276,7 @@ Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `
 
 - **earn-hunter skill —— OpenClaw 会话内 cron 调度**：OpenClaw 上的 earn-hunter 定时扫描改为在对话内通过会话内 `cron` 工具创建（isolated 会话 + `lightContext`），并经 cron `announce` 投递回会话，不再使用 OS crontab。skill 内不再出现任何 CLI 命令（`openclaw cron` CLI 路径存在权限问题）。`platform.json` 的 `scheduler.type` 在 OpenClaw 上为 `"openclaw-cron"`；Claude Code / Hermes 保持 `"cron"`（OS crontab + curl），Generic 保持 `"manual"`。
 - **`earn_get_fixed_earn_products` MCP 工具**及 `okx earn savings fixed-products` CLI 命令，用于查询简单赚币定期产品池（年化利率、期限、剩余额度、是否售罄）
-- **自动 HTTP/HTTPS 代理支持**（TRDATA-4023）。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
+- **自动 HTTP/HTTPS 代理支持**。设置 `HTTPS_PROXY` 或 `HTTP_PROXY` 环境变量后，所有基于 undici 的 fetch 请求（CLI、MCP Server、mcp-gateway）会自动通过代理路由。支持 `NO_PROXY` 按主机名旁路。通过 `packages/core/src/runtime/undici-proxy-bootstrap.ts` 中的 `EnvHttpProxyAgent` 全局 undici dispatcher 实现。无需配置变更；已有的 `proxy_url` 配置在同时存在时仍优先。
 - **Skill 签名验证**：`okx skill add` 安装前自动进行 Ed25519 签名 + SHA-256 文件完整性校验，支持服务端降级验证。验证失败时使用 `--force` 可强制安装。新增命令 `okx skill verify <name>` 可对已安装 Skill 随时重新验证并将结果持久化到本地注册表。新增 SDK 导出：`verifySkillSignature`、`getPublicKey`、`serverSideVerify`、`tryReadMetaJson`、`VerificationResult`、`VerificationStatus`。
 - 全部 163 个 MCP 工具现已在顶层（`Tool.title`，遵循 MCP spec 2025-06-18）和 `annotations.title`（向后兼容）同时暴露人类可读的 `title`，MCP Inspector 等客户端可直接展示可读名称，而不再显示 snake_case 工具名。
 - `.gitignore` 新增 `.env.bak`，避免本地备份的 env 文件被误提交。
@@ -288,7 +291,7 @@ Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `
 ### 变更
 
 - 各工具的 `annotations.destructiveHint` 和 `idempotentHint` 现已严格遵循 MCP spec 语义：24 个 additive 写操作（place_order、transfer、subscribe、redeem）不再被标记为 destructive；37 个 destructive 且幂等的写操作（cancel、amend、close、set_leverage）现已正确标记 `idempotentHint=true`。两个 3-in-1 批处理路由（`swap_batch_orders`、`spot_batch_orders`）保留安全写默认值。
-- **非 ASCII 字符清理第二轮**（TRDATA-3977，!325）。清理了 TAP 输出中 test `describe`/`it` 块名称中残留的 5 个非 ASCII 字符，降为 0。完成 1.3.5-beta.1 中开始的 TRDATA-3977 系列。
+- **非 ASCII 字符清理第二轮**（!325）。清理了 TAP 输出中 test `describe`/`it` 块名称中残留的 5 个非 ASCII 字符，降为 0。完成 1.3.5-beta.1 中开始的系列。
 
 ---
 
@@ -302,13 +305,13 @@ Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `
 
 ### 修复
 
-- **CLI 启动性能优化**（1.3.5-beta.1，TRDATA-3954）。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 开关；(B1) 使用用户配置的 npm 镜像；(A') `AbortSignal.timeout(3000)`；(B1.5) 失败时写入负缓存（1h TTL）。
+- **CLI 启动性能优化**（1.3.5-beta.1）。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 开关；(B1) 使用用户配置的 npm 镜像；(A') `AbortSignal.timeout(3000)`；(B1.5) 失败时写入负缓存（1h TTL）。
 
 ### 变更
 
 - **`grid_stop_order` / `dca_stop_order` 工作流指引更新**（1.3.5-beta.1，!305）。工具描述新增两步关闭模式文档。
 - **Smartmoney V7 漏斗语义文档同步**（1.3.5-beta.1）。仅文档变更。
-- **非 ASCII 排版标点清理**（TRDATA-3977）。两轮清理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物。第一轮（1.3.5-beta.1）处理主要表面；第二轮（本版本）清理 TAP 输出残留的 5 个字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
+- **非 ASCII 排版标点清理**。两轮清理，将 em-dash、en-dash、right-arrow、ellipsis 替换为 ASCII 等价物。第一轮（1.3.5-beta.1）处理主要表面；第二轮（本版本）清理 TAP 输出残留的 5 个字符。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
 - **Skill `metadata.version` 统一升级至 `1.3.5`**，覆盖全部 9 个 skill。从 `1.3.3` 补齐（`1.3.4` stable 未更新 skill 版本）。
 
 ---
@@ -321,13 +324,13 @@ Beta 版本：按 CLAUDE.md 规则，skill 的 `metadata.version` 及锁定的 `
 
 ### 修复
 
-- **CLI 启动性能优化** (TRDATA-3954)。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 环境变量开关，可完全禁用更新检查；(B1) 更新检查使用用户配置的 npm 镜像（`npm_config_registry` 环境变量或 `.npmrc` 文件），不再硬编码 `registry.npmjs.org`；(A') 使用 `AbortSignal.timeout(3000)` 发起 fetch，其内部使用 unref'd 计时器，不会阻止进程退出；(B1.5) fetch 失败时写入负缓存条目（1 小时 TTL），避免在不可达网络下每次冷启动都重复发起请求。
+- **CLI 启动性能优化**。`okx` CLI 启动时不再因网络超时阻塞进程退出。四层修复：(B0) `OKX_UPDATE_CHECK=false` 环境变量开关，可完全禁用更新检查；(B1) 更新检查使用用户配置的 npm 镜像（`npm_config_registry` 环境变量或 `.npmrc` 文件），不再硬编码 `registry.npmjs.org`；(A') 使用 `AbortSignal.timeout(3000)` 发起 fetch，其内部使用 unref'd 计时器，不会阻止进程退出；(B1.5) fetch 失败时写入负缓存条目（1 小时 TTL），避免在不可达网络下每次冷启动都重复发起请求。
 
 ### 变更
 
 - **`grid_stop_order` / `dca_stop_order` 工作流指引更新** (!305)。工具描述现在记录了有残留仓位的 bot 关闭的两步模式：使用 `stopType="2"` 停止后 bot 进入 `no_close_position` 状态（策略暂停，仓位仍开放）；再次调用 stop 并传 `stopType="1"` 才会关闭剩余仓位。适用于 grid 和 DCA（合约和现货变种）。已在 OKX demo API 上实测验证。
 - **Smartmoney V7 漏斗语义文档同步。** 同步 `docs/designs/smartmoney.md`、`docs/modules/smartmoney.md`、`context-kg/business/06-leaderboard-smartmoney-api.md`、`skills/okx-cex-smartmoney/references/signal-commands.md`、`eval/README.md` 与 V7 信号漏斗保持一致。仅文档变更。
-- 将 CLI 帮助文本、工具描述和 CLI 输出占位符中的非 ASCII 排版标点（em-dash、en-dash、right-arrow、ellipsis）替换为 ASCII 等价物 (TRDATA-3977, #190)。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
+- 将 CLI 帮助文本、工具描述和 CLI 输出占位符中的非 ASCII 排版标点（em-dash、en-dash、right-arrow、ellipsis）替换为 ASCII 等价物 (#190)。无功能变化；解决 OKG SonarQube TAP lexer 兼容性。
 
 > 说明：`market_get_pair_spread` 曾出现在 `1.3.4-beta.2` 中，但已**不在 `v1.3.4` 稳定版 tag 内**（tag 锚定在 `cd99d487`，即 `1.3.4-beta.1` 那次 bump commit）。改由 `1.3.5-beta.1` 发布。
 
@@ -626,7 +629,7 @@ Promise.all([
 
 #### 破坏性变更
 
-- **`grid_stop_order` MCP 工具：`stopType` 值 `"3"`、`"5"`、`"6"` 已明确删除**（ALGO-37613）— 这些值对网格机器人停止操作不再有效，禁止继续使用。有效集合缩减为 `["1","2"]`：`"1"` 立即平仓退出（默认），`"2"` 停止策略但不平仓。传入 `"3"`/`"5"`/`"6"` 的调用方将在 schema 校验阶段失败。**迁移方案**：根据期望的退出行为，将 `"3"/"5"/"6"` 替换为 `"1"`（立即平仓）或 `"2"`（保留持仓）。
+- **`grid_stop_order` MCP 工具：`stopType` 值 `"3"`、`"5"`、`"6"` 已明确删除**— 这些值对网格机器人停止操作不再有效，禁止继续使用。有效集合缩减为 `["1","2"]`：`"1"` 立即平仓退出（默认），`"2"` 停止策略但不平仓。传入 `"3"`/`"5"`/`"6"` 的调用方将在 schema 校验阶段失败。**迁移方案**：根据期望的退出行为，将 `"3"/"5"/"6"` 替换为 `"1"`（立即平仓）或 `"2"`（保留持仓）。
 
 ### 修复
 

@@ -1,5 +1,5 @@
 /**
- * Architectural regression guard for the Node 26 proxy fix (ALGO-45373 / #211).
+ * Architectural regression guard for the Node 26 proxy fix (#211).
  *
  * Root cause of the original bug: production code called Node's *built-in*
  * global `fetch` while passing a `dispatcher` (ProxyAgent / Agent /
@@ -102,7 +102,7 @@ describe("architecture guard: no built-in global fetch in production src", () =>
       0,
       "Built-in global fetch found in production src — must use undici fetch " +
         "(import { fetch as undiciFetch } from \"undici\") so the dispatcher " +
-        "and fetch share one undici version (Node 26 compat, ALGO-45373):\n" +
+        "and fetch share one undici version (Node 26 compat):\n" +
         offenders.join("\n"),
     );
   });
