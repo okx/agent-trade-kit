@@ -1,5 +1,5 @@
 /**
- * CLI routing tests for --aiBuilderCode flag (ALGO-44006).
+ * CLI routing tests for --aiBuilderCode flag.
  * Verifies that aiBuilderCode is correctly passed from --aiBuilderCode CLI
  * flag to the underlying ToolRunner for all order-placement paths.
  */

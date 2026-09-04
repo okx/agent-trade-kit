@@ -7,7 +7,7 @@
  * consumers of the package cannot reach them and mutate the global fetch impl
  * at runtime. Import from "@agent-tradekit/core/testing" in tests only.
  *
- * See ALGO-45373 (#211) review: the `_` prefix communicates intent but does
+ * See #211 review: the `_` prefix communicates intent but does
  * not enforce the boundary — this subpath does.
  */
 export { _setFetchImpl, _resetFetchImpl } from "./utils/update-check.js";

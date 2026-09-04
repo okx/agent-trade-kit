@@ -1,5 +1,5 @@
 /**
- * Routing tests for market instruments conditional params (issue ALGO-45742).
+ * Routing tests for market instruments conditional params.
  *
  * Root cause: handleMarketPublicCommand called cmdMarketInstruments without
  * forwarding --uly, --instFamily, --seriesId, causing HTTP 400 from OKX for
