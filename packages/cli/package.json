@@ -1,6 +1,6 @@
 {
   "name": "@okx_ai/okx-trade-cli",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "OKX CLI - Command line tool for OKX exchange",
   "type": "module",
   "license": "MIT",

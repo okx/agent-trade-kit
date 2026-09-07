@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.6] - 2026-09-07
+
+Stable maintenance release that synchronizes the published CLI, MCP, and skill-pack versions.
+
+### Changed
+
+- All skill packs' `metadata.version` and pinned `@okx_ai/okx-trade-cli` install version are synced to `1.4.6` per the stable-release skill version sync policy.
+
 ## [1.4.5] - 2026-09-01
 
 This stable release removes the discontinued OKX Outcomes integration and strengthens product-boundary routing between CEX event contracts, market data, sentiment, and portfolio queries.

@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+## [1.4.6] - 2026-09-07
+
+稳定维护版本：同步已发布的 CLI、MCP 和 skill 包版本。
+
+### Changed
+
+- 按稳定版 skill 版本同步策略，所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均同步至 `1.4.6`。
+
 ## [1.4.5] - 2026-09-01
 
 本稳定版删除已停止维护的 OKX Outcomes 集成，并强化 CEX 事件合约、行情、情绪和持仓查询之间的产品边界路由。
