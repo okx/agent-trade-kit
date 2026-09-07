@@ -11,6 +11,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`market indicator`、`market oi-history`、`market oi-change`、`market candles` 无效 `--bar` 现在在本地拦截** ([#216])：之前无效的 `--bar` 值（如 indicator 的 `1D`、OI 接口的 `5H`）会被静默转发到 AIGC 端点，导致固定的 HTTP 400 / code 902 且没有有用的错误提示。现在 CLI/MCP handler 在发起网络请求前会校验 `bar` 是否在允许的枚举范围内（大小写不敏感），校验失败抛出 `ValidationError` 并列出字段名和合法值。小写 bar 值（如 `1h`、`1d`）被视为合法。
+- **AIGC 端点错误码 41001/41020/41030/50029/51000 现在提供准确的操作建议** ([#216])：新增 `withAigcErrors` 包装器（对应 DCD 的 `withDcdErrors` 模式），将这些之前回退为"稍后重试"的错误码转换为具体提示（pair-spread 的 instId/bar 问题、Bean Validation 失败、无效参数格式）。
+
 ## [1.4.6] - 2026-09-07
 
 稳定维护版本：同步已发布的 CLI、MCP 和 skill 包版本。

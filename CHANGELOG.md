@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`market indicator`, `market oi-history`, `market oi-change`, `market candles` invalid `--bar` now caught locally** ([#216]): previously an invalid `--bar` value (e.g. `1D` for indicator, `5H` for OI endpoints) was silently forwarded to the AIGC endpoint, causing a deterministic HTTP 400 / code 902 with no useful hint. The CLI/MCP handler now validates `bar` against the allowed enum (case-insensitively) before making any network request and throws a `ValidationError` that names the field and lists the allowed values. Lowercase bar values (e.g. `1h`, `1d`) are accepted as valid.
+- **AIGC endpoint error codes 41001/41020/41030/50029/51000 now surface accurate suggestions** ([#216]): a new `withAigcErrors` wrapper (mirroring the `withDcdErrors` DCD pattern) translates these codes — previously falling back to "Retry later" — into specific hints (pair-spread instrument/bar issues, Bean Validation failures, invalid parameter format).
+
 ## [1.4.6] - 2026-09-07
 
 Stable maintenance release that synchronizes the published CLI, MCP, and skill-pack versions.

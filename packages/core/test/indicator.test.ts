@@ -586,6 +586,56 @@ describe("OkxRestClient.publicPost - unauthenticated POST", () => {
 });
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Bar validation (caseInsensitive)
+// ---------------------------------------------------------------------------
+
+describe("market_get_indicator - bar validation", () => {
+  const tool = registerIndicatorTools()[0]!;
+
+  it("throws ValidationError for invalid bar value '1D' (not in INDICATOR_BARS)", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      const { ValidationError } = await import("../src/utils/errors.js");
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "rsi", bar: "1D" }, { config: BASE_CONFIG, client }),
+        (err) => {
+          assert.ok(err instanceof ValidationError);
+          assert.match((err as Error).message, /bar/);
+          return true;
+        },
+      );
+    });
+  });
+
+  it("accepts lowercase valid bar '1h' (case-insensitive match for '1H')", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await assert.doesNotReject(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "rsi", bar: "1h" }, { config: BASE_CONFIG, client }),
+      );
+    });
+  });
+
+  it("accepts uppercase valid bar '4H' exactly", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await assert.doesNotReject(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "rsi", bar: "4H" }, { config: BASE_CONFIG, client }),
+      );
+    });
+  });
+
+  it("accepts missing bar (uses default 1H, no error)", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await assert.doesNotReject(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client }),
+      );
+    });
+  });
+});
+
 // Indicator name validation
 // ---------------------------------------------------------------------------
 

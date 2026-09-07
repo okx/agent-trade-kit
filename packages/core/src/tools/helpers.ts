@@ -93,11 +93,15 @@ export function assertEnum(
   value: string | undefined,
   key: string,
   values: readonly string[],
+  options?: { caseInsensitive?: boolean },
 ): void {
   if (value === undefined) {
     return;
   }
-  if (!values.includes(value)) {
+  const match = options?.caseInsensitive
+    ? values.some((v) => v.toLowerCase() === value.toLowerCase())
+    : values.includes(value);
+  if (!match) {
     throw new ValidationError(
       `Parameter "${key}" must be one of: ${values.join(", ")}.`,
     );

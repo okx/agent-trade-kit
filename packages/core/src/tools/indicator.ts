@@ -1,6 +1,7 @@
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,
+  assertEnum,
   compactObject,
   normalizeResponse,
   readBoolean,
@@ -10,6 +11,7 @@ import {
 } from "./helpers.js";
 import { ValidationError } from "../utils/errors.js";
 import { publicRateLimit } from "./common.js";
+import { withAigcErrors } from "./aigc-errors.js";
 
 // Valid timeframes accepted by the indicator API
 export const INDICATOR_BARS = [
@@ -310,6 +312,7 @@ export function registerIndicatorTools(): ToolSpec[] {
         const indicator = requireString(args, "indicator");
         validateIndicatorName(indicator);
         const bar = readString(args, "bar") ?? "1H";
+        assertEnum(bar, "bar", INDICATOR_BARS, { caseInsensitive: true });
         const params = readNumberArray(args, "params");
         const returnList = readBoolean(args, "returnList") ?? false;
         const limit = readNumber(args, "limit") ?? 10;
@@ -329,12 +332,14 @@ export function registerIndicatorTools(): ToolSpec[] {
           backtestTime,
         });
 
-        const response = await context.client.publicPost(
-          "/api/v5/aigc/mcp/indicators",
-          body,
-          publicRateLimit("market_get_indicator", 5),
-        );
-        return normalizeResponse(response);
+        return withAigcErrors(async () => {
+          const response = await context.client.publicPost(
+            "/api/v5/aigc/mcp/indicators",
+            body,
+            publicRateLimit("market_get_indicator", 5),
+          );
+          return normalizeResponse(response);
+        });
       },
     },
     {

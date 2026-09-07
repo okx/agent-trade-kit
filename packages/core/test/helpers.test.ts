@@ -145,6 +145,26 @@ describe("assertEnum", () => {
   it("does not throw for undefined (optional field)", () => {
     assert.doesNotThrow(() => assertEnum(undefined, "side", ["buy", "sell"] as const));
   });
+
+  it("caseInsensitive: accepts lowercase match", () => {
+    assert.doesNotThrow(() => assertEnum("1h", "bar", ["1H", "4H"] as const, { caseInsensitive: true }));
+  });
+
+  it("caseInsensitive: accepts uppercase match when enum is lowercase", () => {
+    assert.doesNotThrow(() => assertEnum("5M", "bar", ["5m", "15m"] as const, { caseInsensitive: true }));
+  });
+
+  it("caseInsensitive: rejects value not in list", () => {
+    assert.throws(() => assertEnum("5H", "bar", ["1H", "4H"] as const, { caseInsensitive: true }), ValidationError);
+  });
+
+  it("caseInsensitive: does not throw for undefined", () => {
+    assert.doesNotThrow(() => assertEnum(undefined, "bar", ["1H", "4H"] as const, { caseInsensitive: true }));
+  });
+
+  it("without caseInsensitive: rejects lowercase when enum is uppercase (existing behavior unchanged)", () => {
+    assert.throws(() => assertEnum("1h", "bar", ["1H", "4H"] as const), ValidationError);
+  });
 });
 
 describe("compactObject", () => {

@@ -36,6 +36,19 @@ Common OKX error codes to know:
 - `51155` — Feature not supported in this region (EEA/US restriction)
 - `51734` — Instrument not available in current account mode
 
+## Module-Level Error Code Overrides
+
+Some modules add their own error code tables on top of `OKX_CODE_BEHAVIORS`, following a convention established by `earn/dcd.ts`:
+
+| Pattern | Location | Error codes |
+|---------|----------|-------------|
+| `DCD_CODE_BEHAVIORS` + `withDcdErrors` | `packages/core/src/tools/earn/dcd.ts` | DCD-specific codes (`50001`, `50002`, `50016`, `51000`, `52905`, etc.) |
+| `AIGC_CODE_BEHAVIORS` + `withAigcErrors` | `packages/core/src/tools/aigc-errors.ts` | AIGC/pair-spread codes: `41001` (invalid instId), `41020` (same instruments), `41030` (unsupported bar), `50029` (Bean Validation), `51000` (invalid parameter) |
+
+Handlers that call AIGC endpoints (`market_get_indicator`, `market_get_oi_history`, `market_filter_oi_change`, `market_filter`, `market_get_pair_spread`) are wrapped in `withAigcErrors()`. This ensures that codes like `50029` and `51000` — which are **not** in the global `OKX_CODE_BEHAVIORS` — surface a specific hint instead of the generic fallback.
+
+Note: `50001` appears in both `OKX_CODE_BEHAVIORS` (global) and `DCD_CODE_BEHAVIORS` (module-level). Module-level overrides take precedence within the wrapped handler; the global table is consulted for all other codes.
+
 ## toToolErrorPayload
 
 When a tool handler throws, the MCP server catches the error and serializes it via `toToolErrorPayload(error)` (defined in `packages/core/src/utils/errors.ts`):
