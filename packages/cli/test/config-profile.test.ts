@@ -18,6 +18,7 @@ import {
   maskSecret,
   cmdConfigAddProfile,
   cmdConfigListProfile,
+  cmdConfigShow,
   cmdConfigUse,
 } from "../src/commands/config.js";
 
@@ -392,6 +393,47 @@ describe("config profile commands (with tmp HOME)", () => {
     const err = await captureStderr(() => cmdConfigUse("nonexistent"));
     assert.ok(err.includes("nonexistent") || err.includes("not found") || err.includes("does not exist"), "should report missing profile");
     assert.equal(process.exitCode, 1);
+    process.exitCode = origCode;
+  });
+
+  // -----------------------------------------------------------------------
+  // cmdConfigShow — legacy config (no [profiles] table)
+  // -----------------------------------------------------------------------
+  it("cmdConfigShow - text mode does not throw on legacy config and shows hint", async () => {
+    // Write a legacy config file with no [profiles] section
+    const cfgDir = path.join(tmpDir, ".okx");
+    fs.mkdirSync(cfgDir, { recursive: true });
+    fs.writeFileSync(path.join(cfgDir, "config.toml"), 'default_profile = "default"\n', "utf-8");
+
+    const out = await captureStdout(() => cmdConfigShow(false));
+    assert.ok(out.includes("No profiles found"), "text mode should show 'No profiles found' hint");
+    assert.ok(out.includes("add-profile"), "hint should mention add-profile command");
+  });
+
+  it("cmdConfigShow - JSON mode does not add hint on legacy config", async () => {
+    const cfgDir = path.join(tmpDir, ".okx");
+    fs.mkdirSync(cfgDir, { recursive: true });
+    fs.writeFileSync(path.join(cfgDir, "config.toml"), 'default_profile = "default"\n', "utf-8");
+
+    const out = await captureStdout(() => cmdConfigShow(true));
+    assert.ok(!out.includes("No profiles found"), "JSON mode should not include hint text");
+    // JSON output should be valid JSON with profiles as empty object
+    const parsed = JSON.parse(out);
+    assert.deepStrictEqual(parsed.profiles, {});
+  });
+
+  it("cmdConfigAddProfile - succeeds on legacy config", async () => {
+    const origCode = process.exitCode;
+    // Write a legacy config file with no [profiles] section
+    const cfgDir = path.join(tmpDir, ".okx");
+    fs.mkdirSync(cfgDir, { recursive: true });
+    fs.writeFileSync(path.join(cfgDir, "config.toml"), 'default_profile = "old"\n', "utf-8");
+
+    await captureStdout(() =>
+      cmdConfigAddProfile(["AK=ak1", "SK=sk1", "PP=pp1", "name=newprofile"], false)
+    );
+    const content = fs.readFileSync(path.join(cfgDir, "config.toml"), "utf-8");
+    assert.ok(content.includes("newprofile"), "profile should be added to legacy config");
     process.exitCode = origCode;
   });
 });

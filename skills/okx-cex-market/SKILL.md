@@ -4,7 +4,7 @@ description: "Use this skill when the user asks for: price of any asset, ticker,
 license: MIT
 metadata:
   author: okx
-  version: "1.4.5"
+  version: "1.4.6"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.5"
+        package: "@okx_ai/okx-trade-cli@1.4.6"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -53,7 +53,7 @@ Market data commands return the same public data regardless of demo/live mode �
 |---|---|---|
 | 1 | `okx market ticker <instId>` | Last price, 24h high/low/vol/change% |
 | 2 | `okx market tickers <instType>` | All tickers for SPOT / SWAP / FUTURES / OPTION |
-| 3 | `okx market instruments --instType <type> [--instId <id>]` | List instruments (instId, ctVal, lotSz, minSz, tickSz, state) |
+| 3 | `okx market instruments --instType <type> [--instId <id>] [--uly <uly>] [--instFamily <fam>] [--seriesId <id>]` | List instruments (instId, ctVal, lotSz, minSz, tickSz, state); OPTION requires `--uly` or `--instFamily`; EVENTS requires `--seriesId` |
 | 4 | `okx market orderbook <instId> [--sz <n>]` | Order book asks/bids (default top 5 per side, max 400) |
 | 5 | `okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before <ts>]` | OHLCV candles (default `--bar 1m`); auto-routes to historical endpoint for data back to 2021; `--after` paginates back in time, `--before` paginates forward |
 | 6 | `okx market index-candles <instId> [--bar <bar>] [--limit <n>] [--history]` | Index OHLCV (use `BTC-USD` not `BTC-USDT`) |
@@ -115,7 +115,8 @@ All commands in this skill are read-only.
 ## Edge Cases
 
 - **instId format**: SPOT `BTC-USDT` · SWAP `BTC-USDT-SWAP` · FUTURES `BTC-USDT-250328` · OPTION `BTC-USD-250328-95000-C` · Index `BTC-USD` · Stock token `TSLA-USDT-SWAP` · Metals/Commodities/Forex/Bonds: use `instruments-by-category` to discover valid instIds first
-- **OPTION listing**: `instruments --instType OPTION` requires `--uly BTC-USD`; if unknown, run `open-interest --instType OPTION` first to discover active instIds
+- **OPTION listing**: `instruments --instType OPTION` requires `--uly BTC-USD` or `--instFamily BTC-USD`; if unknown, run `open-interest --instType OPTION` first to discover active instIds
+- **EVENTS listing**: `instruments --instType EVENTS` requires `--seriesId` (e.g. `--seriesId BTC-ABOVE-DAILY`); run `okx event series` first to discover valid series IDs
 - **funding-rate / price-limit**: SWAP only · mark-price: SWAP / FUTURES / OPTION only
 - **candles `--bar`**: uppercase — `1H` not `1h`; use `--after <ts>` to paginate back into historical data (back to 2021); index-candles supports `--history` for extended history
 - **⚠️ Large historical range**: before fetching with `--after`/`--before`, estimate candle count = `time_range_ms / bar_interval_ms`. If estimate > 500, tell the user the estimated count and ask for confirmation before proceeding. This prevents silently filling the context window.

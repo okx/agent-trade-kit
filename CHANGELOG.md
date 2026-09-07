@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.6] - 2026-09-07
+
+### Fixed
+
+- Node 26 proxy compatibility: requests using `proxy_url` or `HTTPS_PROXY` now use a matching undici `fetch` and `ProxyAgent`; update checks use the configured proxy as well.
+- `okx market instruments` now forwards `--uly`, `--instFamily`, and `--seriesId`; the MCP tool also accepts `seriesId`.
+- Legacy `config.toml` files without a `[profiles]` table no longer cause profile commands to throw.
+- Parameter errors with mapped OKX business codes now show actionable guidance instead of a misleading retry suggestion; unmapped codes retain the generic fallback.
+
+### Changed
+
+- Published CLI, MCP, and skill-pack metadata versions are synchronized to `1.4.6`.
+
 ## [1.4.5] - 2026-09-01
 
 This stable release removes the discontinued OKX Outcomes integration and strengthens product-boundary routing between CEX event contracts, market data, sentiment, and portfolio queries.

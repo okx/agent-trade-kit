@@ -11,6 +11,19 @@
 
 ## [Unreleased]
 
+## [1.4.6] - 2026-09-07
+
+### 修复
+
+- Node 26 代理兼容性：配置 `proxy_url` 或 `HTTPS_PROXY` 时，请求将使用匹配版本的 undici `fetch` 和 `ProxyAgent`；更新检查也会使用已配置的代理。
+- `okx market instruments` 现在会透传 `--uly`、`--instFamily` 和 `--seriesId`；MCP 工具也支持 `seriesId`。
+- 缺少 `[profiles]` 表的旧版 `config.toml` 不再导致 profile 相关命令抛出异常。
+- 带有已映射 OKX 业务码的参数错误现在会给出可执行的指引，不再误提示重试；未映射错误码仍保留通用兜底提示。
+
+### 变更
+
+- 已发布的 CLI、MCP 和 skill 包 metadata 版本同步至 `1.4.6`。
+
 ## [1.4.5] - 2026-09-01
 
 本稳定版删除已停止维护的 OKX Outcomes 集成，并强化 CEX 事件合约、行情、情绪和持仓查询之间的产品边界路由。

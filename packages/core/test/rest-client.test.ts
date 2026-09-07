@@ -1,7 +1,8 @@
 /**
  * Unit tests for OkxRestClient error handling and graceful degradation.
  *
- * All tests mock globalThis.fetch — no real network calls are made.
+ * All tests inject a mock fetch via the OkxRestClient constructor (_fetch arg).
+ * No real network calls are made and globalThis.fetch is never patched.
  *
  * Coverage:
  *  - HTTP-level errors (network failure, timeout, 4xx/5xx)
@@ -37,18 +38,18 @@ const BASE_CONFIG: OkxConfig = {
   verbose: false,
 };
 
-/** Mock globalThis.fetch for the duration of a single test. */
+/**
+ * Create an OkxRestClient with a mock fetch injected via the constructor.
+ * This replaces the previous globalThis.fetch-patching strategy so tests
+ * are compatible with the fix that imports fetch from undici directly.
+ */
 async function withFetch(
   mock: typeof globalThis.fetch,
-  fn: () => Promise<void>,
+  fn: (client: OkxRestClient) => Promise<void>,
+  config: OkxConfig = BASE_CONFIG,
 ): Promise<void> {
-  const saved = globalThis.fetch;
-  globalThis.fetch = mock;
-  try {
-    await fn();
-  } finally {
-    globalThis.fetch = saved;
-  }
+  const client = new OkxRestClient(config, mock);
+  await fn(client);
 }
 
 /** Build a mock fetch that returns a JSON body with the given HTTP status. */
@@ -121,8 +122,7 @@ afterEach(() => {
 
 describe("OkxRestClient: HTTP-level errors", () => {
   it("wraps fetch TypeError (connection refused) as NetworkError", async () => {
-    await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(throwingFetch(new TypeError("fetch failed")), async (client) => {
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err) => err instanceof NetworkError,
@@ -132,8 +132,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
 
   it("wraps AbortError (request timeout) as NetworkError", async () => {
     const abortErr = new DOMException("signal timed out", "TimeoutError");
-    await withFetch(throwingFetch(abortErr), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(throwingFetch(abortErr), async (client) => {
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err) => err instanceof NetworkError,
@@ -144,8 +143,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
   it("throws OkxApiError for HTTP 500 with JSON body", async () => {
     await withFetch(
       jsonFetch({ code: "1", msg: "Internal Server Error", data: [] }, 500),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -156,8 +154,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
   });
 
   it("throws OkxApiError for HTTP 500 with non-JSON body", async () => {
-    await withFetch(textFetch("upstream timeout", 500), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(textFetch("upstream timeout", 500), async (client) => {
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err: unknown) =>
@@ -169,8 +166,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
   it("throws OkxApiError for HTTP 429 (rate limited by server)", async () => {
     await withFetch(
       jsonFetch({ code: "429", msg: "Too Many Requests", data: [] }, 429),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -181,8 +177,7 @@ describe("OkxRestClient: HTTP-level errors", () => {
   });
 
   it("OkxApiError carries endpoint path", async () => {
-    await withFetch(jsonFetch({ code: "1", msg: "error" }, 503), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({ code: "1", msg: "error" }, 503), async (client) => {
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err: unknown) =>
@@ -190,6 +185,77 @@ describe("OkxRestClient: HTTP-level errors", () => {
           err.endpoint?.includes("/api/v5/market/ticker") === true,
       );
     });
+  });
+
+  it("does NOT suggest retry for a permanent parameter error surfaced as HTTP 400 (code 50014)", async () => {
+    await withFetch(
+      jsonFetch({ code: "50014", msg: "Parameter seriesId can not be empty", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/public/instruments"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "50014" &&
+            err.message === "Parameter seriesId can not be empty" &&
+            typeof err.suggestion === "string" &&
+            !err.suggestion.includes("Retry later"),
+        );
+      },
+    );
+  });
+
+  it("does NOT suggest retry for an either/or required-parameter error surfaced as HTTP 400 (code 50015)", async () => {
+    // Same shape as issue #214's OPTION repro: HTTP 400 from OKX: Either
+    // parameter uly or instFamily is required. Distinct from 50014 above -
+    // 50014 is a single missing param, 50015 is an either/or requirement.
+    await withFetch(
+      jsonFetch({ code: "50015", msg: "Either parameter uly or instFamily is required", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/public/instruments"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "50015" &&
+            err.message === "Either parameter uly or instFamily is required" &&
+            typeof err.suggestion === "string" &&
+            !err.suggestion.includes("Retry later"),
+        );
+      },
+    );
+  });
+
+  it("still falls back to the generic HTTP-status suggestion when the body carries no specific OKX code", async () => {
+    await withFetch(
+      jsonFetch({ code: "1", msg: "Bad Request", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "400" &&
+            err.suggestion === "Retry later or verify endpoint parameters.",
+        );
+      },
+    );
+  });
+
+  it("still carries a generic retry suggestion for a permanent-4xx code that has no table entry", async () => {
+    // Regression guard: a specific-but-unmapped code (most OKX codes aren't in
+    // OKX_CODE_BEHAVIORS) must not lose the suggestion entirely just because it
+    // is routed through the code table - it should fall back to the same text
+    // this class of error always carried, not to `suggestion: undefined`.
+    await withFetch(
+      jsonFetch({ code: "51000", msg: "Parameter error", data: [] }, 400),
+      async (client) => {
+        await assert.rejects(
+          () => client.publicGet("/api/v5/market/ticker"),
+          (err: unknown) =>
+            err instanceof OkxApiError &&
+            err.code === "51000" &&
+            err.suggestion === "Retry later or verify endpoint parameters.",
+        );
+      },
+    );
   });
 });
 
@@ -201,8 +267,7 @@ describe("OkxRestClient: OKX API error codes", () => {
   it("throws OkxApiError for non-zero sCode", async () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -215,8 +280,7 @@ describe("OkxRestClient: OKX API error codes", () => {
   it("OkxApiError message matches OKX msg field", async () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -230,8 +294,7 @@ describe("OkxRestClient: OKX API error codes", () => {
   it("throws AuthenticationError for sCode 50111", async () => {
     await withFetch(
       jsonFetch({ code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err) => err instanceof AuthenticationError,
@@ -243,8 +306,7 @@ describe("OkxRestClient: OKX API error codes", () => {
   it("throws AuthenticationError for sCode 50112", async () => {
     await withFetch(
       jsonFetch({ code: "50112", msg: "Invalid OK-ACCESS-SIGN", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err) => err instanceof AuthenticationError,
@@ -256,8 +318,7 @@ describe("OkxRestClient: OKX API error codes", () => {
   it("throws AuthenticationError for sCode 50113", async () => {
     await withFetch(
       jsonFetch({ code: "50113", msg: "Invalid OK-ACCESS-PASSPHRASE", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err) => err instanceof AuthenticationError,
@@ -268,8 +329,7 @@ describe("OkxRestClient: OKX API error codes", () => {
 
   it("returns data successfully for sCode 0", async () => {
     const payload = [{ instId: "BTC-USDT", last: "50000" }];
-    await withFetch(jsonFetch({ code: "0", msg: "", data: payload }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: payload }), async (client) => {
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.deepEqual(result.data, payload);
     });
@@ -284,8 +344,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("throws RateLimitError for sCode 50011", async () => {
     await withFetch(
       jsonFetch({ code: "50011", msg: "Requests too frequent", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) => err instanceof RateLimitError,
@@ -297,8 +356,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("RateLimitError for 50011 carries suggestion", async () => {
     await withFetch(
       jsonFetch({ code: "50011", msg: "Requests too frequent", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -313,8 +371,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("throws RateLimitError for sCode 50061", async () => {
     await withFetch(
       jsonFetch({ code: "50061", msg: "Too many connections", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) => err instanceof RateLimitError,
@@ -326,8 +383,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("OkxApiError for region restriction (51155) carries 'Do not retry' suggestion", async () => {
     await withFetch(
       jsonFetch({ code: "51155", msg: "Requests from restricted location", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -343,8 +399,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("OkxApiError for system busy (50013) carries retry suggestion", async () => {
     await withFetch(
       jsonFetch({ code: "50013", msg: "System busy", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -360,8 +415,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("OkxApiError for insufficient balance (51008) carries suggestion", async () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "Insufficient margin balance", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -377,8 +431,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("OkxApiError for unknown code has no suggestion", async () => {
     await withFetch(
       jsonFetch({ code: "99999", msg: "Unknown error", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -396,8 +449,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("OkxApiError fallback message includes code when msg is empty", async () => {
     await withFetch(
       jsonFetch({ code: "51000", msg: "", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/orbit/public/position-current"),
           (err: unknown) =>
@@ -412,8 +464,7 @@ describe("OkxRestClient: OKX error code behaviors", () => {
   it("OkxApiError fallback message includes code when msg is missing", async () => {
     await withFetch(
       jsonFetch({ code: "51000", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/orbit/public/position-current"),
           (err: unknown) =>
@@ -437,8 +488,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
     // when responseCode is undefined, so the request succeeds.
     await withFetch(
       jsonFetch({ msg: "", data: [{ instId: "BTC-USDT" }] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.ok(result.data !== undefined);
       },
@@ -446,16 +496,14 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
   });
 
   it("returns null data when `data` field is absent (code=0)", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "" }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "" }), async (client) => {
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.equal(result.data, null);
     });
   });
 
   it("returns null data when response is an empty JSON object", async () => {
-    await withFetch(jsonFetch({}), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({}), async (client) => {
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.equal(result.data, null);
     });
@@ -470,8 +518,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
         newField: "future_expansion",
         nested: { a: 1, b: [1, 2, 3] },
       }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.ok(Array.isArray(result.data));
       },
@@ -479,8 +526,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
   });
 
   it("does not crash when `data` is an empty array", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.deepEqual(result.data, []);
     });
@@ -489,8 +535,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
   it("does not crash when `data` is null", async () => {
     await withFetch(
       jsonFetch({ code: "0", msg: "", data: null }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.equal(result.data, null);
       },
@@ -499,8 +544,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
 
   it("throws NetworkError (not crash) when response body is plain text with HTTP 200", async () => {
     // Non-JSON body with 200 status — parse fails but does not crash the server.
-    await withFetch(textFetch("OK", 200), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(textFetch("OK", 200), async (client) => {
       await assert.rejects(
         () => client.publicGet("/api/v5/market/ticker"),
         (err) => err instanceof NetworkError,
@@ -509,8 +553,7 @@ describe("OkxRestClient: graceful degradation (missing/unexpected fields)", () =
   });
 
   it("result always includes endpoint and requestTime fields", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
       const result = await client.publicGet("/api/v5/market/ticker");
       assert.ok(typeof result.endpoint === "string" && result.endpoint.length > 0);
       assert.ok(typeof result.requestTime === "string" && result.requestTime.length > 0);
@@ -530,8 +573,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         200,
         { "x-trace-id": "abc123def456" },
       ),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -548,8 +590,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         200,
         { "x-request-id": "req-999" },
       ),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -566,8 +607,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         200,
         { "x-trace-id": "trace-first", "x-request-id": "req-second" },
       ),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -580,8 +620,7 @@ describe("OkxRestClient: trace ID extraction", () => {
   it("traceId is undefined when no trace header present", async () => {
     await withFetch(
       jsonFetch({ code: "51008", msg: "error", data: [] }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -598,8 +637,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         500,
         { "x-trace-id": "http-err-trace" },
       ),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) =>
@@ -616,8 +654,7 @@ describe("OkxRestClient: trace ID extraction", () => {
         200,
         { "x-trace-id": "auth-trace-42" },
       ),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/account/balance"),
           (err: unknown) =>
@@ -646,18 +683,19 @@ function capturingFetch(capture: { req?: Request }): typeof globalThis.fetch {
 describe("OkxRestClient: User-Agent header", () => {
   it("sets User-Agent when userAgent is configured", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient({ ...BASE_CONFIG, userAgent: "okx-trade-mcp/1.0.2" });
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/ticker"),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker"); },
+      { ...BASE_CONFIG, userAgent: "okx-trade-mcp/1.0.2" },
     );
     assert.equal(captured.req?.headers.get("User-Agent"), "okx-trade-mcp/1.0.2");
   });
 
   it("does not set User-Agent when userAgent is not configured", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/ticker"),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker"); },
     );
     assert.equal(captured.req?.headers.get("User-Agent"), null);
   });
@@ -684,54 +722,60 @@ const DEMO_CONFIG: OkxConfig = { ...AUTH_CONFIG, demo: true };
 describe("OkxRestClient: x-simulated-trading header", () => {
   it("publicGet follows config.demo when simulatedTrading not specified", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(DEMO_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/ticker"),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker"); },
+      DEMO_CONFIG,
     );
     assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
   });
 
   it("publicGet sets x-simulated-trading when simulatedTrading=true (explicit demo market data)", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(DEMO_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/ticker", undefined, undefined, true),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker", undefined, undefined, true); },
+      DEMO_CONFIG,
     );
     assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
   });
 
   it("publicGet does NOT set x-simulated-trading when simulatedTrading=false, overriding config.demo", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(DEMO_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/ticker", undefined, undefined, false),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker", undefined, undefined, false); },
+      DEMO_CONFIG,
     );
     assert.equal(captured.req?.headers.get("x-simulated-trading"), null);
   });
 
   it("privateGet sets x-simulated-trading when config.demo=true", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(DEMO_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.privateGet("/api/v5/account/balance"),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.privateGet("/api/v5/account/balance"); },
+      DEMO_CONFIG,
     );
     assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
   });
 
   it("privatePost sets x-simulated-trading when config.demo=true", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(DEMO_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }); },
+      DEMO_CONFIG,
     );
     assert.equal(captured.req?.headers.get("x-simulated-trading"), "1");
   });
 
   it("privateGet does NOT set x-simulated-trading when config.demo=false", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(AUTH_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.privateGet("/api/v5/account/balance"),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.privateGet("/api/v5/account/balance"); },
+      AUTH_CONFIG,
     );
     assert.equal(captured.req?.headers.get("x-simulated-trading"), null);
   });
@@ -739,41 +783,42 @@ describe("OkxRestClient: x-simulated-trading header", () => {
 
 describe("OkxRestClient: privateGet / privatePost", () => {
   it("privateGet completes successfully with auth credentials", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(AUTH_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
       const result = await client.privateGet("/api/v5/account/balance");
       assert.ok(result.data !== undefined);
-    });
+    }, AUTH_CONFIG);
   });
 
   it("privatePost completes successfully with auth credentials", async () => {
     await withFetch(
       jsonFetch({ code: "0", msg: "", data: [{ ordId: "123" }] }),
-      async () => {
-        const client = new OkxRestClient(AUTH_CONFIG);
+      async (client) => {
         const result = await client.privatePost("/api/v5/trade/order", {
           instId: "BTC-USDT",
           side: "buy",
         });
         assert.ok(result.data !== undefined);
       },
+      AUTH_CONFIG,
     );
   });
 
   it("privateGet sets OK-ACCESS-KEY header", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(AUTH_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.privateGet("/api/v5/account/balance"),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.privateGet("/api/v5/account/balance"); },
+      AUTH_CONFIG,
     );
     assert.equal(captured.req?.headers.get("OK-ACCESS-KEY"), "test-api-key");
   });
 
   it("privatePost sets OK-ACCESS-PASSPHRASE header", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(AUTH_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }); },
+      AUTH_CONFIG,
     );
     assert.equal(captured.req?.headers.get("OK-ACCESS-PASSPHRASE"), "test-passphrase");
   });
@@ -784,8 +829,7 @@ describe("OkxRestClient: privateGet / privatePost", () => {
     const origBin = process.env.OKX_AUTH_BIN;
     process.env.OKX_AUTH_BIN = "/nonexistent/okx-auth";
     try {
-      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-        const client = new OkxRestClient(BASE_CONFIG); // no auth
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
         await assert.rejects(
           () => client.privateGet("/api/v5/account/balance"),
           (err: unknown) => err instanceof ConfigError,
@@ -820,33 +864,29 @@ function capturingFetchInit(capture: { init?: Record<string, unknown> }): typeof
 describe("OkxRestClient: proxy dispatcher", () => {
   it("passes dispatcher to fetch when proxyUrl is configured", async () => {
     const captured: { init?: Record<string, unknown> } = {};
-    const client = new OkxRestClient({
-      ...BASE_CONFIG,
-      proxyUrl: "http://127.0.0.1:7890",
-    });
-    await withFetch(capturingFetchInit(captured), () =>
-      client.publicGet("/api/v5/market/ticker"),
+    await withFetch(
+      capturingFetchInit(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker"); },
+      { ...BASE_CONFIG, proxyUrl: "http://127.0.0.1:7890" },
     );
     assert.ok(captured.init?.dispatcher !== undefined, "dispatcher should be set");
   });
 
   it("does not pass dispatcher when proxyUrl is not configured", async () => {
     const captured: { init?: Record<string, unknown> } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
-    await withFetch(capturingFetchInit(captured), () =>
-      client.publicGet("/api/v5/market/ticker"),
+    await withFetch(
+      capturingFetchInit(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker"); },
     );
     assert.equal(captured.init?.dispatcher, undefined, "dispatcher should not be set");
   });
 
   it("passes dispatcher on privatePost as well", async () => {
     const captured: { init?: Record<string, unknown> } = {};
-    const client = new OkxRestClient({
-      ...AUTH_CONFIG,
-      proxyUrl: "http://proxy.example.com:8080",
-    });
-    await withFetch(capturingFetchInit(captured), () =>
-      client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
+    await withFetch(
+      capturingFetchInit(captured),
+      async (client) => { await client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }); },
+      { ...AUTH_CONFIG, proxyUrl: "http://proxy.example.com:8080" },
     );
     assert.ok(captured.init?.dispatcher !== undefined, "dispatcher should be set on POST");
   });
@@ -859,20 +899,22 @@ describe("OkxRestClient: proxy dispatcher", () => {
 describe("OkxRestClient: query string building", () => {
   it("omits '?' when query object is empty", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/ticker", {}),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => { await client.publicGet("/api/v5/market/ticker", {}); },
     );
     assert.ok(!captured.req?.url.includes("?"), "URL should not contain '?'");
   });
 
   it("joins array query values with commas", async () => {
     const captured: { req?: Request } = {};
-    const client = new OkxRestClient(BASE_CONFIG);
-    await withFetch(capturingFetch(captured), () =>
-      client.publicGet("/api/v5/market/tickers", {
-        instId: ["BTC-USDT", "ETH-USDT"] as unknown as string,
-      }),
+    await withFetch(
+      capturingFetch(captured),
+      async (client) => {
+        await client.publicGet("/api/v5/market/tickers", {
+          instId: ["BTC-USDT", "ETH-USDT"] as unknown as string,
+        });
+      },
     );
     const url = new URL(captured.req?.url ?? "");
     assert.equal(url.searchParams.get("instId"), "BTC-USDT,ETH-USDT");
@@ -903,32 +945,29 @@ describe("OkxRestClient: verbose mode", () => {
   const VERBOSE_CONFIG: OkxConfig = { ...BASE_CONFIG, verbose: true };
 
   it("writes request and response info to stderr when verbose=true", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(VERBOSE_CONFIG);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
       const output = await captureStderr(() => client.publicGet("/api/v5/market/ticker", { instId: "BTC-USDT" }));
       assert.ok(output.includes("[verbose]"), "should contain [verbose] prefix");
       assert.ok(output.includes("/api/v5/market/ticker"), "should contain request path");
       assert.ok(output.includes("200"), "should contain response status");
-    });
+    }, VERBOSE_CONFIG);
   });
 
   it("does not write to stderr when verbose=false", async () => {
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient({ ...BASE_CONFIG, verbose: false });
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
       const output = await captureStderr(() => client.publicGet("/api/v5/market/ticker"));
       assert.equal(output, "", "should not produce verbose output");
-    });
+    }, { ...BASE_CONFIG, verbose: false });
   });
 
   it("logs network errors to stderr when verbose=true", async () => {
-    await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
-      const client = new OkxRestClient(VERBOSE_CONFIG);
+    await withFetch(throwingFetch(new TypeError("fetch failed")), async (client) => {
       const output = await captureStderr(async () => {
         try { await client.publicGet("/api/v5/market/ticker"); } catch { /* expected */ }
       });
       assert.ok(output.includes("NetworkError"), "should contain NetworkError");
       assert.ok(output.includes("fetch failed"), "should contain error cause");
-    });
+    }, VERBOSE_CONFIG);
   });
 
   it("masks API key in verbose output", async () => {
@@ -940,24 +979,23 @@ describe("OkxRestClient: verbose mode", () => {
       secretKey: "test-secret",
       passphrase: "test-pass",
     };
-    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-      const client = new OkxRestClient(authVerboseConfig);
+    await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
       const output = await captureStderr(() => client.privateGet("/api/v5/account/balance"));
       assert.ok(output.includes("abc***nop"), "should contain masked key");
       assert.ok(!output.includes("abcdefghijklmnop"), "should NOT contain full key");
-    });
+    }, authVerboseConfig);
   });
 
   it("logs OKX API error details when verbose=true", async () => {
     await withFetch(
       jsonFetch({ code: "50111", msg: "Invalid OK-ACCESS-KEY", data: [] }),
-      async () => {
-        const client = new OkxRestClient(VERBOSE_CONFIG);
+      async (client) => {
         const output = await captureStderr(async () => {
           try { await client.publicGet("/api/v5/account/balance"); } catch { /* expected */ }
         });
         assert.ok(output.includes("50111"), "should contain error code");
       },
+      VERBOSE_CONFIG,
     );
   });
 
@@ -988,8 +1026,7 @@ function binaryFetch(data: Buffer, status = 200, contentType = "application/octe
 describe("OkxRestClient: publicGetBinary", () => {
   it("returns buffer on successful binary response", async () => {
     const payload = Buffer.from("zip-content");
-    await withFetch(binaryFetch(payload), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(binaryFetch(payload), async (client) => {
       const result = await client.publicGetBinary("/api/v5/skill/file", { token: "abc" });
       assert.ok(result.data.equals(payload));
       assert.equal(result.contentType, "application/octet-stream");
@@ -998,8 +1035,7 @@ describe("OkxRestClient: publicGetBinary", () => {
   });
 
   it("throws NetworkError when fetch throws (connection failure)", async () => {
-    await withFetch(throwingFetch(new TypeError("fetch failed")), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(throwingFetch(new TypeError("fetch failed")), async (client) => {
       await assert.rejects(
         () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
         NetworkError,
@@ -1008,8 +1044,7 @@ describe("OkxRestClient: publicGetBinary", () => {
   });
 
   it("throws OkxApiError for non-OK HTTP status with plain body", async () => {
-    await withFetch(binaryFetch(Buffer.from("not found"), 404, "text/plain"), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(binaryFetch(Buffer.from("not found"), 404, "text/plain"), async (client) => {
       await assert.rejects(
         () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
         OkxApiError,
@@ -1023,8 +1058,7 @@ describe("OkxRestClient: publicGetBinary", () => {
         status: 400,
         headers: { "Content-Type": "application/json" },
       }),
-      async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      async (client) => {
         await assert.rejects(
           () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
           (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "70003",
@@ -1034,8 +1068,7 @@ describe("OkxRestClient: publicGetBinary", () => {
   });
 
   it("throws OkxApiError when Content-Type is not octet-stream", async () => {
-    await withFetch(binaryFetch(Buffer.from("hello"), 200, "text/html"), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(binaryFetch(Buffer.from("hello"), 200, "text/html"), async (client) => {
       await assert.rejects(
         () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }),
         (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "UNEXPECTED_CONTENT_TYPE",
@@ -1045,8 +1078,7 @@ describe("OkxRestClient: publicGetBinary", () => {
 
   it("throws OkxApiError when response exceeds maxBytes limit", async () => {
     const big = Buffer.alloc(10);
-    await withFetch(binaryFetch(big), async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    await withFetch(binaryFetch(big), async (client) => {
       await assert.rejects(
         () => client.publicGetBinary("/api/v5/skill/file", { token: "abc" }, { maxBytes: 5 }),
         (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "RESPONSE_TOO_LARGE",
@@ -1060,8 +1092,7 @@ describe("OkxRestClient: publicGetBinary", () => {
     await withFetch(async (url) => {
       capturedUrl = url as string;
       return new Response(payload, { status: 200, headers: { "Content-Type": "application/octet-stream" } });
-    }, async () => {
-      const client = new OkxRestClient(BASE_CONFIG);
+    }, async (client) => {
       await client.publicGetBinary("/api/v5/skill/file", { token: "my-token" });
       assert.ok(capturedUrl.includes("token=my-token"));
     });
@@ -1116,11 +1147,12 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
       process.env.MOCK_AUTH_TOKEN = "oauth-test-token-abc";
 
       const captured: { req?: Request } = {};
-      const client = new OkxRestClient(OAUTH_CONFIG);
-      await withFetch(capturingFetch(captured), () =>
-        client.privateGet("/api/v5/account/balance"),
+      await withFetch(
+        capturingFetch(captured),
+        async (client) => { await client.privateGet("/api/v5/account/balance"); },
+        OAUTH_CONFIG,
       );
-      assert.equal(captured.req?.headers.get("Authorization"), "Bearer oauth-test-token-abc");
+      assert.equal(captured.req?.headers.get("Authorization"), `Bearer ${process.env.MOCK_AUTH_TOKEN}`);
       assert.equal(captured.req?.headers.get("OK-ACCESS-KEY"), null, "should NOT have HMAC key");
     } finally {
       restoreOAuthEnv();
@@ -1134,20 +1166,21 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
       process.env.MOCK_AUTH_EXIT = "0";
       process.env.MOCK_AUTH_TOKEN = "cached-token-xyz";
 
-      const client = new OkxRestClient(OAUTH_CONFIG);
+      // Single client — both requests must share the same cached token
+      const capturedReqs: Request[] = [];
+      const multiCaptureFetch: typeof globalThis.fetch = async (input, init) => {
+        capturedReqs.push(new Request(input, init));
+        return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      };
 
-      const captured1: { req?: Request } = {};
-      await withFetch(capturingFetch(captured1), () =>
-        client.privateGet("/api/v5/account/balance"),
-      );
+      const client = new OkxRestClient(OAUTH_CONFIG, multiCaptureFetch);
+      await client.privateGet("/api/v5/account/balance");
+      await client.privateGet("/api/v5/account/positions");
 
-      const captured2: { req?: Request } = {};
-      await withFetch(capturingFetch(captured2), () =>
-        client.privateGet("/api/v5/account/positions"),
-      );
-
-      assert.equal(captured1.req?.headers.get("Authorization"), "Bearer cached-token-xyz");
-      assert.equal(captured2.req?.headers.get("Authorization"), "Bearer cached-token-xyz");
+      assert.equal(capturedReqs[0]?.headers.get("Authorization"), "Bearer cached-token-xyz");
+      assert.equal(capturedReqs[1]?.headers.get("Authorization"), "Bearer cached-token-xyz");
     } finally {
       restoreOAuthEnv();
     }
@@ -1163,25 +1196,30 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
       process.env.MOCK_AUTH_EXIT = "0";
       process.env.MOCK_AUTH_TOKEN = "token-first";
 
-      const client = new OkxRestClient(OAUTH_CONFIG);
+      // Single client — first request uses "token-first", second request
+      // after TTL expiry uses "token-refreshed" (re-calls the binary)
+      let lastAuth: string | null = null;
+      const tokenCaptureFetch: typeof globalThis.fetch = async (input, init) => {
+        const req = new Request(input, init);
+        lastAuth = req.headers.get("Authorization");
+        return new Response(JSON.stringify({ code: "0", msg: "", data: [] }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const client = new OkxRestClient(OAUTH_CONFIG, tokenCaptureFetch);
 
       // First request — caches "token-first"
-      const captured1: { req?: Request } = {};
-      await withFetch(capturingFetch(captured1), () =>
-        client.privateGet("/api/v5/account/balance"),
-      );
-      assert.equal(captured1.req?.headers.get("Authorization"), "Bearer token-first");
+      await client.privateGet("/api/v5/account/balance");
+      assert.equal(lastAuth, "Bearer token-first");
 
       // Advance time past the 60s TTL and swap mock token
       fakeNow += 61_000;
       process.env.MOCK_AUTH_TOKEN = "token-refreshed";
 
       // Second request — cache expired, binary called again
-      const captured2: { req?: Request } = {};
-      await withFetch(capturingFetch(captured2), () =>
-        client.privateGet("/api/v5/account/positions"),
-      );
-      assert.equal(captured2.req?.headers.get("Authorization"), "Bearer token-refreshed");
+      await client.privateGet("/api/v5/account/positions");
+      assert.equal(lastAuth, "Bearer token-refreshed");
     } finally {
       Date.now = realDateNow;
       restoreOAuthEnv();
@@ -1196,15 +1234,14 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
       delete process.env.MOCK_AUTH_TOKEN;
 
       const { ConfigError } = await import("../src/utils/errors.js");
-      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-        const client = new OkxRestClient(OAUTH_CONFIG);
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
         await assert.rejects(
           () => client.privateGet("/api/v5/account/balance"),
           (err: unknown) =>
             err instanceof ConfigError &&
             err.message.includes("No credentials"),
         );
-      });
+      }, OAUTH_CONFIG);
     } finally {
       restoreOAuthEnv();
     }
@@ -1217,13 +1254,12 @@ describe("OkxRestClient: OAuth Bearer token auth", () => {
       process.env.MOCK_AUTH_EXIT = "1"; // UNAUTHORIZED_CALLER
       delete process.env.MOCK_AUTH_TOKEN;
 
-      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async () => {
-        const client = new OkxRestClient(OAUTH_CONFIG);
+      await withFetch(jsonFetch({ code: "0", msg: "", data: [] }), async (client) => {
         await assert.rejects(
           () => client.privateGet("/api/v5/account/balance"),
           (err: unknown) => err instanceof AuthenticationError,
         );
-      });
+      }, OAUTH_CONFIG);
     } finally {
       restoreOAuthEnv();
     }
@@ -1288,8 +1324,7 @@ import type { PilotCacheFile } from "../src/pilot/types.js";
           headers: { "Content-Type": "application/json" },
         });
       };
-      await withFetch(mockFetch, async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      await withFetch(mockFetch, async (client) => {
         const result = await client.publicGet("/api/v5/market/ticker");
         assert.equal(callCount, 2, "should make exactly 2 fetch calls");
         assert.ok(Array.isArray(result.data));
@@ -1306,8 +1341,7 @@ import type { PilotCacheFile } from "../src/pilot/types.js";
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       };
-      await withFetch(mockFetch, async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      await withFetch(mockFetch, async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "51008",
@@ -1326,11 +1360,14 @@ import type { PilotCacheFile } from "../src/pilot/types.js";
           { status: 401, headers: { "Content-Type": "application/json" } },
         );
       };
-      await withFetch(mockFetch, async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      await withFetch(mockFetch, async (client) => {
+        // Code 50111 identifies an auth failure regardless of HTTP status -
+        // it is routed through the same code table as a 200-with-error-code
+        // response, so it surfaces as AuthenticationError, not a generic
+        // OkxApiError (see rest-client.ts processResponse's !response.ok branch).
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
-          (err: unknown) => err instanceof OkxApiError,
+          (err: unknown) => err instanceof AuthenticationError,
         );
         assert.equal(callCount, 1, "should make exactly 1 fetch call (no failover)");
       });
@@ -1346,8 +1383,7 @@ import type { PilotCacheFile } from "../src/pilot/types.js";
           headers: { "Content-Type": "text/html" },
         });
       };
-      await withFetch(mockFetch, async () => {
-        const client = new OkxRestClient(BASE_CONFIG);
+      await withFetch(mockFetch, async (client) => {
         await assert.rejects(
           () => client.publicGet("/api/v5/market/ticker"),
           (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "405",
@@ -1369,14 +1405,13 @@ import type { PilotCacheFile } from "../src/pilot/types.js";
           headers: { "Content-Type": "text/html" },
         });
       };
-      await withFetch(mockFetch, async () => {
-        const client = new OkxRestClient(AUTH_CONFIG);
+      await withFetch(mockFetch, async (client) => {
         await assert.rejects(
           () => client.privatePost("/api/v5/trade/order", { instId: "BTC-USDT" }),
           (err: unknown) => err instanceof OkxApiError && (err as OkxApiError).code === "405",
         );
         assert.equal(callCount, 1, "POST without retryOnNetworkError must not auto-retry on dead-node");
-      });
+      }, AUTH_CONFIG);
     });
   });
 }

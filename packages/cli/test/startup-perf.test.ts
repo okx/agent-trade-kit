@@ -1,5 +1,5 @@
 /**
- * Regression test for TRDATA-3954: CLI startup must be fast even when the
+ * Regression test: CLI startup must be fast even when the
  * npm registry is configured to an unreachable host.
  *
  * Tests B0 (OKX_UPDATE_CHECK=false kill switch) which guarantees fast startup

@@ -1,6 +1,13 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { fetch as undiciFetch } from "undici";
+
+// Swappable at test time so unit tests can intercept fetch without mocking the
+// undici module (which is bound at import time before tests run).
+let _fetchImpl: typeof undiciFetch = undiciFetch;
+/** @internal — tests only */ export function _setFetchImpl(fn: typeof undiciFetch): void { _fetchImpl = fn; }
+/** @internal — tests only */ export function _resetFetchImpl(): void { _fetchImpl = undiciFetch; }
 
 const CACHE_FILE = join(homedir(), ".okx", "update-check.json");
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -122,10 +129,10 @@ async function fetchFromRegistry(packageName: string, suffix = ""): Promise<Resp
   const registry = resolveNpmRegistry();
   const url = `${registry}${encodeURIComponent(packageName)}${suffix}`;
   try {
-    return await fetch(url, {
+    return await _fetchImpl(url, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: { accept: "application/json" },
-    });
+    }) as unknown as Response;
   } catch {
     return null;
   }

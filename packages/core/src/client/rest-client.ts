@@ -1,4 +1,4 @@
-import { ProxyAgent } from "undici";
+import { fetch as undiciFetch, ProxyAgent } from "undici";
 import { PilotManager } from "../pilot/manager.js";
 import { getNow, signOkxPayload } from "../utils/signature.js";
 import {
@@ -48,6 +48,10 @@ const OKX_CODE_BEHAVIORS: Record<string, CodeBehavior> = {
   "51021": { retry: false, suggestion: "Instrument does not exist. Check instId." },
   "51022": { retry: false, suggestion: "Instrument not available for trading." },
   "51027": { retry: false, suggestion: "Contract has expired." },
+
+  // Request parameters invalid -> permanent, do not retry
+  "50014": { retry: false, suggestion: "Missing or invalid required parameter. Check the request against this endpoint's required/conditional parameters - do not retry without correcting the payload." },
+  "50015": { retry: false, suggestion: "One of two mutually-alternative required parameters is missing. Check the request against this endpoint's required/conditional parameters - do not retry without correcting the payload." },
 };
 import { RateLimiter } from "../utils/rate-limiter.js";
 import type { OkxConfig } from "../config.js";
@@ -132,9 +136,17 @@ export class OkxRestClient {
   private cachedAccessToken?: string;
   private cachedAccessTokenAt = 0;
   private readonly pilot: PilotManager;
+  /** Fetch implementation: defaults to undici's fetch so ProxyAgent and fetch
+   *  share the same undici instance and dispatcher interface version. Tests may
+   *  inject a mock via the optional second constructor argument.
+   *  Typed as `typeof globalThis.fetch` to satisfy TypeScript's Response type
+   *  (undici v6 Response is missing `bytes()` vs the global Response). The cast
+   *  is safe: undici's Response implements all methods used in this class. */
+  private readonly _fetchFn: typeof globalThis.fetch;
 
-  public constructor(config: OkxConfig) {
+  public constructor(config: OkxConfig, _fetch?: typeof globalThis.fetch) {
     this.config = config;
+    this._fetchFn = _fetch ?? (undiciFetch as unknown as typeof globalThis.fetch);
     this.rateLimiter = new RateLimiter(30_000, config.verbose);
     if (config.proxyUrl) {
       this.dispatcher = new ProxyAgent(config.proxyUrl);
@@ -303,6 +315,13 @@ export class OkxRestClient {
 
   private throwOkxError(
     code: string, msg: string | undefined, reqConfig: RequestConfig, traceId: string | undefined,
+    // Only the !response.ok call site passes this - it restores the generic
+    // "Retry later or verify endpoint parameters." suggestion this class of
+    // error used to always carry, for codes with no table entry. The
+    // response.ok===true call site deliberately omits it: "no suggestion for
+    // an unmapped business code" is existing, tested behavior there
+    // (see "OkxApiError for unknown code has no suggestion" in rest-client.test.ts).
+    fallbackSuggestion?: string,
   ): never {
     // Some upstream endpoints (e.g. /orbit/public/*) return code != 0 with an empty `msg`.
     // The previous fallback "OKX API request failed." dropped the upstream code from the
@@ -323,7 +342,7 @@ export class OkxRestClient {
     }
 
     const behavior = OKX_CODE_BEHAVIORS[code];
-    const suggestion = behavior?.suggestion?.replace("{site}", this.config.site);
+    const suggestion = behavior?.suggestion?.replace("{site}", this.config.site) ?? fallbackSuggestion;
 
     if (code === "50011" || code === "50061") {
       throw new RateLimitError(message, suggestion, endpoint, traceId);
@@ -371,6 +390,19 @@ export class OkxRestClient {
 
     if (!response.ok) {
       this.logResponse(response.status, rawText.length, elapsed, traceId, parsed.code ?? "-", parsed.msg);
+      // A specific OKX business code (anything other than the generic "0"/"1"
+      // wrapper) means the body identifies exactly what went wrong - route it
+      // through the same code table used for HTTP-200-with-error-code responses
+      // so a mapped, permanent error (e.g. missing required params) gets its
+      // accurate non-retry suggestion instead of a blanket "Retry later".
+      // Pass the old generic text as fallback so a code with no table entry
+      // still gets *some* actionable suggestion, same as before this change.
+      if (parsed.code && parsed.code !== "0" && parsed.code !== "1") {
+        this.throwOkxError(
+          parsed.code, parsed.msg, reqConfig, traceId,
+          "Retry later or verify endpoint parameters.",
+        );
+      }
       throw new OkxApiError(
         `HTTP ${response.status} from OKX: ${parsed.msg ?? "Unknown error"}`,
         {
@@ -517,12 +549,12 @@ export class OkxRestClient {
     const t0 = Date.now();
     let response: Response;
     try {
-      response = await fetch(url, {
+      response = await this._fetchFn(url, {
         method: "GET",
         headers,
         signal: AbortSignal.timeout(this.config.timeoutMs),
         dispatcher: this.dispatcher ?? conn.dispatcher,
-      } as RequestInit);
+      } as unknown as RequestInit);
     } catch (error) {
       try { await this.pilot.handleNetworkFailure(); } catch {}
       throw new NetworkError(`Failed to call OKX endpoint GET ${path}.`, `GET ${path}`, error);
@@ -568,7 +600,7 @@ export class OkxRestClient {
         signal: AbortSignal.timeout(this.config.timeoutMs),
         dispatcher: this.dispatcher ?? conn.dispatcher,
       };
-      return await fetch(`${conn.baseUrl}${path}`, fetchOptions as RequestInit);
+      return await this._fetchFn(`${conn.baseUrl}${path}`, fetchOptions as unknown as RequestInit);
     } catch (error) {
       if (this.config.verbose) {
         vlog(`\u2717 NetworkError after ${Date.now() - t0}ms: ${error instanceof Error ? error.message : String(error)}`);
@@ -694,7 +726,7 @@ export class OkxRestClient {
         signal: AbortSignal.timeout(this.config.timeoutMs),
         dispatcher: this.dispatcher ?? conn.dispatcher,
       };
-      response = await fetch(url, fetchOptions as RequestInit);
+      response = await this._fetchFn(url, fetchOptions as unknown as RequestInit);
     } catch (error) {
       return await this.handleRequestNetworkError<TData>(error, reqConfig, requestPath, t0);
     }

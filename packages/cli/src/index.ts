@@ -295,7 +295,7 @@ export function handleMarketPublicCommand(
   if (action === "ticker") return cmdMarketTicker(run, rest[0], json, v.demo);
   if (action === "tickers") return cmdMarketTickers(run, rest[0], json, v.demo);
   if (action === "instruments")
-    return cmdMarketInstruments(run, { instType: v.instType!, instId: v.instId, json, demo: v.demo });
+    return cmdMarketInstruments(run, { instType: v.instType!, instId: v.instId, uly: v.uly, instFamily: v.instFamily, seriesId: v.seriesId, json, demo: v.demo });
   if (action === "mark-price")
     return cmdMarketMarkPrice(run, { instType: v.instType!, instId: v.instId, json, demo: v.demo });
   if (action === "index-ticker")

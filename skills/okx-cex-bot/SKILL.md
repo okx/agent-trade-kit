@@ -4,7 +4,7 @@ description: Manage Grid bots (spot/contract/coin-margined) and DCA Martingale b
 license: MIT
 metadata:
   author: okx
-  version: "1.4.5"
+  version: "1.4.6"
   homepage: "https://www.okx.com"
   agent:
     emoji: "🤖"
@@ -13,7 +13,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.5"
+        package: "@okx_ai/okx-trade-cli@1.4.6"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---

@@ -2,7 +2,7 @@
 export interface PilotNode {
   /** Proxy node IP address (e.g. "47.242.161.22") */
   ip: string;
-  /** Proxy hostname for Host header / TLS SNI */
+  /** Proxy hostname for Host header / TLS SNI. */
   host: string;
   /** Cache TTL in seconds */
   ttl: number;
