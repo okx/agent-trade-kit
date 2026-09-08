@@ -113,3 +113,53 @@ describe("market_filter_oi_change - bar validation", () => {
     );
   });
 });
+
+describe("market_get_pair_spread - bar validation", () => {
+  const tool = getTool("market_get_pair_spread");
+
+  it("throws ValidationError for invalid bar '20m' without making a network request", async () => {
+    let fetchCalled = false;
+    const trackFetch: typeof globalThis.fetch = async (...args) => {
+      fetchCalled = true;
+      return jsonFetch(MOCK_RESPONSE)(...args);
+    };
+    const client = new OkxRestClient(BASE_CONFIG, trackFetch);
+    await assert.rejects(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "20m" }, { config: BASE_CONFIG, client }),
+      (err) => {
+        assert.ok(err instanceof ValidationError);
+        assert.match((err as Error).message, /bar/);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false, "fetch must not be called when validation fails");
+  });
+
+  it("accepts valid bar '5m'", async () => {
+    const client = new OkxRestClient(BASE_CONFIG, jsonFetch(MOCK_RESPONSE));
+    await assert.doesNotReject(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "5m" }, { config: BASE_CONFIG, client }),
+    );
+  });
+
+  it("accepts valid bar '15m'", async () => {
+    const client = new OkxRestClient(BASE_CONFIG, jsonFetch(MOCK_RESPONSE));
+    await assert.doesNotReject(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "15m" }, { config: BASE_CONFIG, client }),
+    );
+  });
+
+  it("accepts uppercase '5M' (case-insensitive for pair_spread)", async () => {
+    const client = new OkxRestClient(BASE_CONFIG, jsonFetch(MOCK_RESPONSE));
+    await assert.doesNotReject(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "5M" }, { config: BASE_CONFIG, client }),
+    );
+  });
+
+  it("accepts missing bar (undefined is allowed)", async () => {
+    const client = new OkxRestClient(BASE_CONFIG, jsonFetch(MOCK_RESPONSE));
+    await assert.doesNotReject(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT" }, { config: BASE_CONFIG, client }),
+    );
+  });
+});

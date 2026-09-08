@@ -158,7 +158,7 @@ export function registerMarketTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const bar = readString(args, "bar");
-        assertEnum(bar, "bar", OKX_CANDLE_BARS, { caseInsensitive: true });
+        assertEnum(bar, "bar", OKX_CANDLE_BARS);
         const afterTs = readString(args, "after");
         const beforeTs = readString(args, "before");
         const demo = readBoolean(args, "demo") ?? false;
