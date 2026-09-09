@@ -357,7 +357,7 @@ export function registerMarketFilterTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const bar = readString(args, "bar");
-        assertEnum(bar, "bar", ["5m", "15m"], { caseInsensitive: true });
+        assertEnum(bar, "bar", ["5m", "15m"]);
         const body = compactObject({
           instIdA:      requireString(args, "instIdA"),
           instIdB:      requireString(args, "instIdB"),

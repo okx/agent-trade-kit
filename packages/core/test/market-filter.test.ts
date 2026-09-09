@@ -149,11 +149,40 @@ describe("market_get_pair_spread - bar validation", () => {
     );
   });
 
-  it("accepts uppercase '5M' (case-insensitive for pair_spread)", async () => {
-    const client = new OkxRestClient(BASE_CONFIG, jsonFetch(MOCK_RESPONSE));
-    await assert.doesNotReject(
+  it("rejects uppercase '5M' without making a network request (server for this endpoint accepts only exact lowercase '5m'/'15m')", async () => {
+    let fetchCalled = false;
+    const trackFetch: typeof globalThis.fetch = async (...args) => {
+      fetchCalled = true;
+      return jsonFetch(MOCK_RESPONSE)(...args);
+    };
+    const client = new OkxRestClient(BASE_CONFIG, trackFetch);
+    await assert.rejects(
       () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "5M" }, { config: BASE_CONFIG, client }),
+      (err) => {
+        assert.ok(err instanceof ValidationError);
+        assert.match((err as Error).message, /bar/);
+        return true;
+      },
     );
+    assert.equal(fetchCalled, false, "fetch must not be called when validation fails");
+  });
+
+  it("rejects uppercase '15M' without making a network request", async () => {
+    let fetchCalled = false;
+    const trackFetch: typeof globalThis.fetch = async (...args) => {
+      fetchCalled = true;
+      return jsonFetch(MOCK_RESPONSE)(...args);
+    };
+    const client = new OkxRestClient(BASE_CONFIG, trackFetch);
+    await assert.rejects(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "15M" }, { config: BASE_CONFIG, client }),
+      (err) => {
+        assert.ok(err instanceof ValidationError);
+        assert.match((err as Error).message, /bar/);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false, "fetch must not be called when validation fails");
   });
 
   it("accepts missing bar (undefined is allowed)", async () => {
