@@ -33,6 +33,22 @@ function getTool(name: string) {
   return registerMarketFilterTools().find((t) => t.name === name)!;
 }
 
+/**
+ * Captures the actual request body sent to the mocked endpoint, so tests can
+ * assert on the real forwarded value instead of only "did not reject".
+ */
+function capturingFetch(): { fetchFn: typeof globalThis.fetch; getBody: () => Record<string, unknown> | undefined } {
+  let body: Record<string, unknown> | undefined;
+  const fetchFn: typeof globalThis.fetch = async (_url, init) => {
+    body = JSON.parse((init as RequestInit).body as string);
+    return new Response(JSON.stringify(MOCK_RESPONSE), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  return { fetchFn, getBody: () => body };
+}
+
 describe("market_get_oi_history - bar validation", () => {
   const tool = getTool("market_get_oi_history");
 
@@ -75,6 +91,20 @@ describe("market_get_oi_history - bar validation", () => {
       () => tool.handler({ instId: "BTC-USDT-SWAP" }, { config: BASE_CONFIG, client }),
     );
   });
+
+  it("forwards lowercase '1h' unchanged in the request body (no normalization to '1H')", async () => {
+    const { fetchFn, getBody } = capturingFetch();
+    const client = new OkxRestClient(BASE_CONFIG, fetchFn);
+    await tool.handler({ instId: "BTC-USDT-SWAP", bar: "1h" }, { config: BASE_CONFIG, client });
+    assert.equal(getBody()?.["bar"], "1h");
+  });
+
+  it("forwards uppercase '1H' unchanged in the request body", async () => {
+    const { fetchFn, getBody } = capturingFetch();
+    const client = new OkxRestClient(BASE_CONFIG, fetchFn);
+    await tool.handler({ instId: "BTC-USDT-SWAP", bar: "1H" }, { config: BASE_CONFIG, client });
+    assert.equal(getBody()?.["bar"], "1H");
+  });
 });
 
 describe("market_filter_oi_change - bar validation", () => {
@@ -111,6 +141,20 @@ describe("market_filter_oi_change - bar validation", () => {
     await assert.doesNotReject(
       () => tool.handler({ instType: "SWAP" }, { config: BASE_CONFIG, client }),
     );
+  });
+
+  it("forwards lowercase '4h' unchanged in the request body (no normalization to '4H')", async () => {
+    const { fetchFn, getBody } = capturingFetch();
+    const client = new OkxRestClient(BASE_CONFIG, fetchFn);
+    await tool.handler({ instType: "SWAP", bar: "4h" }, { config: BASE_CONFIG, client });
+    assert.equal(getBody()?.["bar"], "4h");
+  });
+
+  it("forwards uppercase '4H' unchanged in the request body", async () => {
+    const { fetchFn, getBody } = capturingFetch();
+    const client = new OkxRestClient(BASE_CONFIG, fetchFn);
+    await tool.handler({ instType: "SWAP", bar: "4H" }, { config: BASE_CONFIG, client });
+    assert.equal(getBody()?.["bar"], "4H");
   });
 });
 
@@ -190,5 +234,41 @@ describe("market_get_pair_spread - bar validation", () => {
     await assert.doesNotReject(
       () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT" }, { config: BASE_CONFIG, client }),
     );
+  });
+
+  it("rejects empty string bar without making a network request", async () => {
+    let fetchCalled = false;
+    const trackFetch: typeof globalThis.fetch = async (...args) => {
+      fetchCalled = true;
+      return jsonFetch(MOCK_RESPONSE)(...args);
+    };
+    const client = new OkxRestClient(BASE_CONFIG, trackFetch);
+    await assert.rejects(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "" }, { config: BASE_CONFIG, client }),
+      (err) => {
+        assert.ok(err instanceof ValidationError);
+        assert.match((err as Error).message, /bar/);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false, "fetch must not be called when validation fails");
+  });
+
+  it("rejects '5m ' (trailing whitespace) without making a network request", async () => {
+    let fetchCalled = false;
+    const trackFetch: typeof globalThis.fetch = async (...args) => {
+      fetchCalled = true;
+      return jsonFetch(MOCK_RESPONSE)(...args);
+    };
+    const client = new OkxRestClient(BASE_CONFIG, trackFetch);
+    await assert.rejects(
+      () => tool.handler({ instIdA: "BTC-USDT-SWAP", instIdB: "BTC-USDT", bar: "5m " }, { config: BASE_CONFIG, client }),
+      (err) => {
+        assert.ok(err instanceof ValidationError);
+        assert.match((err as Error).message, /bar/);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false, "fetch must not be called when validation fails");
   });
 });

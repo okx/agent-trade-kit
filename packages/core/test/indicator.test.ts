@@ -634,6 +634,30 @@ describe("market_get_indicator - bar validation", () => {
       );
     });
   });
+
+  it("forwards lowercase '1h' unchanged in timeframes (no normalization to '1H')", async () => {
+    let captured: unknown;
+    await withFetch(async (_url, init) => {
+      captured = JSON.parse((init as RequestInit).body as string);
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await tool.handler({ instId: "BTC-USDT", indicator: "rsi", bar: "1h" }, { config: BASE_CONFIG, client });
+    });
+    assert.deepEqual((captured as Record<string, unknown>)["timeframes"], ["1h"]);
+  });
+
+  it("forwards uppercase '4H' unchanged in timeframes", async () => {
+    let captured: unknown;
+    await withFetch(async (_url, init) => {
+      captured = JSON.parse((init as RequestInit).body as string);
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await tool.handler({ instId: "BTC-USDT", indicator: "rsi", bar: "4H" }, { config: BASE_CONFIG, client });
+    });
+    assert.deepEqual((captured as Record<string, unknown>)["timeframes"], ["4H"]);
+  });
 });
 
 // Indicator name validation

@@ -238,6 +238,22 @@ describe("market_get_candles - bar validation (exact-match)", () => {
       (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
     );
   });
+
+  it("rejects empty string bar value", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", bar: "" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects '1H ' (trailing whitespace)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", bar: "1H " }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
+    );
+  });
 });
 
 describe("market_get_funding_rate", () => {
