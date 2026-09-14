@@ -185,6 +185,77 @@ describe("market_get_candles", () => {
   });
 });
 
+describe("market_get_candles - bar validation (exact-match)", () => {
+  const tools = registerMarketTools();
+  const tool = tools.find((t) => t.name === "market_get_candles")!;
+
+  it("accepts '1m' and passes it through unchanged to request params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", bar: "1m" }, makeContext(client));
+    assert.equal(getLastCall()?.params["bar"], "1m");
+  });
+
+  it("accepts '1M' and passes it through unchanged to request params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", bar: "1M" }, makeContext(client));
+    assert.equal(getLastCall()?.params["bar"], "1M");
+  });
+
+  it("accepts '3m' and passes it through unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", bar: "3m" }, makeContext(client));
+    assert.equal(getLastCall()?.params["bar"], "3m");
+  });
+
+  it("accepts '3M' and passes it through unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", bar: "3M" }, makeContext(client));
+    assert.equal(getLastCall()?.params["bar"], "3M");
+  });
+
+  it("treats '1m' and '1M' as distinct values", async () => {
+    const { client: c1, getLastCall: gl1 } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", bar: "1m" }, makeContext(c1));
+    const { client: c2, getLastCall: gl2 } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", bar: "1M" }, makeContext(c2));
+    assert.equal(gl1()?.params["bar"], "1m");
+    assert.equal(gl2()?.params["bar"], "1M");
+    assert.notEqual(gl1()?.params["bar"], gl2()?.params["bar"]);
+  });
+
+  it("rejects '1h' (lowercase of '1H', exact-match required for candles)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", bar: "1h" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects 'INVALID' bar value", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", bar: "INVALID" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects empty string bar value", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", bar: "" }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
+    );
+  });
+
+  it("rejects '1H ' (trailing whitespace)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", bar: "1H " }, makeContext(client)),
+      (err: unknown) => err instanceof ValidationError && /bar/i.test((err as ValidationError).message),
+    );
+  });
+});
+
 describe("market_get_funding_rate", () => {
   const tools = registerMarketTools();
   const tool = tools.find((t) => t.name === "market_get_funding_rate")!;

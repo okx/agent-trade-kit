@@ -1,6 +1,7 @@
 import type { ToolSpec } from "./types.js";
 import {
   asRecord,
+  assertEnum,
   compactObject,
   normalizeResponse,
   readNumber,
@@ -8,6 +9,7 @@ import {
   requireString,
 } from "./helpers.js";
 import { publicRateLimit } from "./common.js";
+import { withAigcErrors } from "./aigc-errors.js";
 
 const OI_BARS = ["5m", "15m", "1H", "4H", "1D"] as const;
 
@@ -151,12 +153,14 @@ export function registerMarketFilterTools(): ToolSpec[] {
           sortOrder:      readString(args, "sortOrder"),
           limit:          readNumber(args, "limit"),
         });
-        const response = await context.client.publicPost(
-          "/api/v5/aigc/mcp/market-filter",
-          body,
-          publicRateLimit("market_filter", 5),
-        );
-        return normalizeResponse(response);
+        return withAigcErrors(async () => {
+          const response = await context.client.publicPost(
+            "/api/v5/aigc/mcp/market-filter",
+            body,
+            publicRateLimit("market_filter", 5),
+          );
+          return normalizeResponse(response);
+        });
       },
     },
 
@@ -199,18 +203,22 @@ export function registerMarketFilterTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const bar = readString(args, "bar");
+        assertEnum(bar, "bar", OI_BARS, { caseInsensitive: true });
         const body = compactObject({
           instId: requireString(args, "instId"),
-          bar:    readString(args, "bar"),
+          bar,
           limit:  readNumber(args, "limit"),
           ts:     readNumber(args, "ts"),
         });
-        const response = await context.client.publicPost(
-          "/api/v5/aigc/mcp/oi-history",
-          body,
-          publicRateLimit("market_get_oi_history", 10),
-        );
-        return normalizeResponse(response);
+        return withAigcErrors(async () => {
+          const response = await context.client.publicPost(
+            "/api/v5/aigc/mcp/oi-history",
+            body,
+            publicRateLimit("market_get_oi_history", 10),
+          );
+          return normalizeResponse(response);
+        });
       },
     },
 
@@ -280,9 +288,11 @@ export function registerMarketFilterTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const bar = readString(args, "bar");
+        assertEnum(bar, "bar", OI_BARS, { caseInsensitive: true });
         const body = compactObject({
           instType:         requireString(args, "instType").toUpperCase(),
-          bar:              readString(args, "bar"),
+          bar,
           minOiUsd:         readString(args, "minOiUsd"),
           minVolUsd24h:     readString(args, "minVolUsd24h"),
           minAbsOiDeltaPct: readString(args, "minAbsOiDeltaPct"),
@@ -290,12 +300,14 @@ export function registerMarketFilterTools(): ToolSpec[] {
           sortOrder:        readString(args, "sortOrder"),
           limit:            readNumber(args, "limit"),
         });
-        const response = await context.client.publicPost(
-          "/api/v5/aigc/mcp/oi-change-filter",
-          body,
-          publicRateLimit("market_filter_oi_change", 5),
-        );
-        return normalizeResponse(response);
+        return withAigcErrors(async () => {
+          const response = await context.client.publicPost(
+            "/api/v5/aigc/mcp/oi-change-filter",
+            body,
+            publicRateLimit("market_filter_oi_change", 5),
+          );
+          return normalizeResponse(response);
+        });
       },
     },
 
@@ -344,19 +356,23 @@ export function registerMarketFilterTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const bar = readString(args, "bar");
+        assertEnum(bar, "bar", ["5m", "15m"]);
         const body = compactObject({
           instIdA:      requireString(args, "instIdA"),
           instIdB:      requireString(args, "instIdB"),
-          bar:          readString(args, "bar"),
+          bar,
           window:       readString(args, "window"),
           backtestTime: readNumber(args, "backtestTime"),
         });
-        const response = await context.client.publicPost(
-          "/api/v5/aigc/mcp/pair-spread",
-          body,
-          publicRateLimit("market_get_pair_spread", 5),
-        );
-        return normalizeResponse(response);
+        return withAigcErrors(async () => {
+          const response = await context.client.publicPost(
+            "/api/v5/aigc/mcp/pair-spread",
+            body,
+            publicRateLimit("market_get_pair_spread", 5),
+          );
+          return normalizeResponse(response);
+        });
       },
     },
   ];

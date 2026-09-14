@@ -11,6 +11,12 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`market indicator`、`market oi-history`、`market oi-change`、`market candles` 无效 `--bar` 现在在本地拦截** ([#216])：之前无效的 `--bar` 值（如 indicator 的 `1D`、OI 接口的 `5H`）会被静默转发到 AIGC 端点，导致固定的 HTTP 400 / code 902 且没有有用的错误提示。现在 CLI/MCP handler 在发起网络请求前会校验 `bar` 是否在允许的枚举范围内，校验失败抛出 `ValidationError` 并列出字段名和合法值。OI/indicator 接口支持大小写不敏感匹配（如 `1h`、`1d` 合法）。`market candles` 使用精确匹配：`OKX_CANDLE_BARS` 中的 `1m`（分钟）和 `1M`（月）是语义不同的独立值，大小写敏感区分。
+- **`market pair-spread` 无效 `--bar` 现在在本地拦截** ([#216])：`market_get_pair_spread` 之前会将任意 bar 值直接转发给服务端，导致通用 code 902 且无有效提示。现在在发起网络请求前会校验 `bar` 是否为 `["5m", "15m"]` 之一（精确匹配、大小写敏感——服务端本身会拒绝大写的 `5M`/`15M`），无效值直接抛出 `ValidationError`。
+- **AIGC 端点错误码 41001/41020/41030/50029/51000 现在提供准确的操作建议** ([#216])：新增 `withAigcErrors` 包装器（对应 DCD 的 `withDcdErrors` 模式），将这些之前回退为"稍后重试"的错误码转换为具体提示（pair-spread 的 instId/bar 问题、Bean Validation 失败、无效参数格式）。
+
 ## [1.4.6] - 2026-09-07
 
 稳定维护版本：同步已发布的 CLI、MCP 和 skill 包版本。

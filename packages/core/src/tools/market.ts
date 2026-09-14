@@ -1,5 +1,5 @@
 import type { ToolSpec } from "./types.js";
-import { asRecord, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString, validateSwapInstId } from "./helpers.js";
+import { asRecord, assertEnum, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString, validateSwapInstId } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
@@ -157,12 +157,14 @@ export function registerMarketTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const bar = readString(args, "bar");
+        assertEnum(bar, "bar", OKX_CANDLE_BARS);
         const afterTs = readString(args, "after");
         const beforeTs = readString(args, "before");
         const demo = readBoolean(args, "demo") ?? false;
         const query = compactObject({
           instId: requireString(args, "instId"),
-          bar: readString(args, "bar"),
+          bar,
           after: afterTs,
           before: beforeTs,
           limit: readNumber(args, "limit"),
