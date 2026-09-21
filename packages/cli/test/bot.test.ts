@@ -526,6 +526,25 @@ describe("cmdDcaSubOrders", () => {
     await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", cycleId: "c001", json: false });
     assert.equal(captured["cycleId"], "c001");
   });
+
+  it("forwards after/before/limit to runner (cycle list branch)", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", after: "5", before: "2", limit: 10, json: false });
+    assert.equal(captured["after"], "5");
+    assert.equal(captured["before"], "2");
+    assert.equal(captured["limit"], 10);
+  });
+
+  it("forwards after/before/limit to runner (cycleId/orders branch)", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await cmdDcaSubOrders(runner, { algoId: "DCA001", algoOrdType: "contract_dca", cycleId: "c001", after: "5", before: "2", limit: 10, json: false });
+    assert.equal(captured["cycleId"], "c001");
+    assert.equal(captured["after"], "5");
+    assert.equal(captured["before"], "2");
+    assert.equal(captured["limit"], 10);
+  });
 });
 
 // ---------------------------------------------------------------------------

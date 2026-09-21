@@ -406,7 +406,7 @@ Returns: `avgPx`, `upl`, `liqPx`, `sz`, `tpPx`, `slPx`, `initPx`, `fundingFee`, 
 ### DCA Bot — Sub-Orders
 
 ```bash
-okx bot dca sub-orders --algoOrdType <spot_dca|contract_dca> --algoId <id> [--cycleId <id>] [--json]
+okx bot dca sub-orders --algoOrdType <spot_dca|contract_dca> --algoId <id> [--cycleId <id>] [--after <id>] [--before <id>] [--limit <n>] [--json]
 ```
 
 | Flag / Param | Effect |

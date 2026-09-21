@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`dca_get_sub_orders` pagination params silently dropped for cycleId branch** ([#219]): when `cycleId` was provided, `after` and `before` pagination cursors were forwarded to `/cycle-list` but not to `/orders`, so paginating within a cycle always returned the first page. The `after`/`before` fields are now passed in both branches.
+- **CLI `okx bot dca sub-orders` missing `--after`/`--before`/`--limit` flags** ([#219]): the three pagination parameters were absent from the CLI opts type, dispatcher, and usage string. All three are now wired through the full chain: cli-registry usage string → dispatcher (`handleBotDcaCommand`) → `cmdDcaSubOrders` → `dca_get_sub_orders` handler.
+- **`dca_create_order` description clarifications** ([#219]): `initOrdAmt` and `safetyOrdAmt` now note that for `contract_dca` these represent margin in quote currency, not order size. `reserveFunds` now notes it is `spot_dca` only.
+
 ## [1.4.7] - 2026-09-14
 
 ### Fixed

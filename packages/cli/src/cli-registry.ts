@@ -836,7 +836,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "sub-orders": {
             toolName: "dca_get_sub_orders",
-            usage: "okx bot dca sub-orders --algoOrdType <spot_dca|contract_dca> --algoId <id> [--cycleId <id>]",
+            usage: "okx bot dca sub-orders --algoOrdType <spot_dca|contract_dca> --algoId <id> [--cycleId <id>] [--after <id>] [--before <id>] [--limit <n>]",
             description: "Get DCA cycles/orders (spot or contract)",
           },
           create: {

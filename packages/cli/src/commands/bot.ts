@@ -448,12 +448,15 @@ export async function cmdDcaDetails(
 
 export async function cmdDcaSubOrders(
   run: ToolRunner,
-  opts: { algoId: string; algoOrdType: string; cycleId?: string; json: boolean },
+  opts: { algoId: string; algoOrdType: string; cycleId?: string; after?: string; before?: string; limit?: number; json: boolean },
 ): Promise<void> {
   const result = await run("dca_get_sub_orders", {
     algoId: opts.algoId,
     algoOrdType: opts.algoOrdType,
     cycleId: opts.cycleId,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
   });
   const rows = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(rows);

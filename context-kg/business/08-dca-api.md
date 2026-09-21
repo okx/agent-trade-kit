@@ -185,7 +185,7 @@ AI recommended parameters: `initOrdAmt`, `safetyOrdAmt`, `maxSafetyOrds`, `pxSte
 |-------|----------|------|-------------|------------|---------|
 | instId | Y | String | Contract instrument id | Not blank, uppercase+num | `BTC-USDT-SWAP` |
 | algoOrdType | Y | String | Algo order type | `contract_dca` only | `contract_dca` |
-| initOrdAmt | Y | String | Initial order amount (USDT) | > 0 | `2000` |
+| initOrdAmt | Y | String | Initial order margin (USDT, contract_dca) | > 0 | `2000` |
 | direction | Y | String | Direction | `long` / `short` | `long` |
 | lever | Y | String | Leverage multiplier | >= 1 | `5` |
 | maxSafetyOrds | Y | String | Max safety orders (0 = no DCA) | >= 0 | `5` |
@@ -561,7 +561,9 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 2. **`curCycleld` typo** in V2 `/position-details` is **load-bearing** — do not "fix" the spelling when mapping the response to internal types; frontends depend on it.
 3. **`tpPct`, `pxSteps`, `pxStepsMult`, `volMult`** are all **decimal strings** (e.g. `"0.05"` = 5%), not percentage strings (`"5"`). Easy to confuse.
 4. **`allowReinvest`** is Boolean in request but sample shows string `"TRUE"` — likely accepts both, but prefer boolean.
-5. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
+5. **`reserveFunds` is V1 (spot_dca) only** — the field is present in the `dca_create_order` MCP tool but is silently ignored by the V2 contract_dca controller.
+6. **`initOrdAmt` / `safetyOrdAmt` semantics differ by type** — for `spot_dca` they are in quote currency (e.g. USDT spend per order); for `contract_dca` they represent initial/safety **margin** in USDT.
+7. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
 6. **Cursor direction** — `after` = newer, `before` = older. Same convention as OKX core API.
 
 ## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
@@ -574,7 +576,7 @@ The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 5 un
 | `dca_stop_order` | `algoId`, `algoOrdType`; `stopType` required for `spot_dca` (1=sell, 2=keep) | true |
 | `dca_get_orders` | `algoOrdType`, optional `algoId`, pagination cursors | false |
 | `dca_get_order_details` | `algoId` (required) | false |
-| `dca_get_sub_orders` | `algoId`, `type: filled\|live` (required) | false |
+| `dca_get_sub_orders` | `algoId`, `algoOrdType`; optional `cycleId` (omit=cycle list, provide=orders in cycle); `after`, `before`, `limit` pagination in both branches | false |
 
 ### Backlog (not yet wrapped)
 
