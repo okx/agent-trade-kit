@@ -564,7 +564,7 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 5. **`reserveFunds` is V1 (spot_dca) only** — the field is present in the `dca_create_order` MCP tool but is silently ignored by the V2 contract_dca controller.
 6. **`initOrdAmt` / `safetyOrdAmt` semantics differ by type** — for `spot_dca` they are in quote currency (e.g. USDT spend per order); for `contract_dca` they represent initial/safety **margin** in USDT.
 7. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
-6. **Cursor direction** — `after` = newer, `before` = older. Same convention as OKX core API.
+8. **Cursor direction** — `after` = older data, `before` = newer data (per OKX OpenAPI spec for `GET /dca/orders`: `after` 请求此ID之前（更旧的数据）, `before` 请求此ID之后（更新的数据）). Opposite of what you'd guess from the names — verified against live `dca_get_sub_orders` pagination.
 
 ## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
 
