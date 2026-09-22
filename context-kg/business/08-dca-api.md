@@ -87,8 +87,8 @@ Use this as the source of truth when validating request/response shapes, enum va
 | Field | Required | Type | Description | Example |
 |-------|----------|------|-------------|---------|
 | algoId | N | String | Filter by strategy id | `12345` |
-| after | N | String | Pagination cursor: request data newer than this algoId (exclusive) | `345` |
-| before | N | String | Pagination cursor: request data older than this algoId (exclusive) | `345` |
+| after | N | String | Pagination cursor: request data older than this algoId (exclusive) | `345` |
+| before | N | String | Pagination cursor: request data newer than this algoId (exclusive) | `345` |
 | limit | N | String | Max results (default 100, max 100) | `100` |
 
 #### Response (`OpenAPIQueryDcaStrategyVO`)
@@ -487,6 +487,8 @@ All fields from `BotRecord` plus:
 | algoId | Y | String | Strategy id | `12345` |
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | cycleId | Y | String | Cycle id | `3` |
+| after | N | String | Pagination cursor: request data older than this ordId (exclusive) | `345` |
+| before | N | String | Pagination cursor: request data newer than this ordId (exclusive) | `345` |
 | limit | N | String | Max results (default 100, max 100) | `50` |
 
 #### Response (`OrderRecord`)
