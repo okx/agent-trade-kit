@@ -185,14 +185,14 @@ AI recommended parameters: `initOrdAmt`, `safetyOrdAmt`, `maxSafetyOrds`, `pxSte
 |-------|----------|------|-------------|------------|---------|
 | instId | Y | String | Contract instrument id | Not blank, uppercase+num | `BTC-USDT-SWAP` |
 | algoOrdType | Y | String | Algo order type | `contract_dca` only | `contract_dca` |
-| initOrdAmt | Y | String | Initial order margin (USDT, contract_dca) | > 0 | `2000` |
+| initOrdAmt | Y | String | Initial order margin (USDT) | > 0 | `2000` |
 | direction | Y | String | Direction | `long` / `short` | `long` |
 | lever | Y | String | Leverage multiplier | >= 1 | `5` |
 | maxSafetyOrds | Y | String | Max safety orders (0 = no DCA) | >= 0 | `5` |
 | tpPct | Y | String | Take-profit percentage (0.05 = 5%) | Not blank, numeric (`@NumberMatch`) | `0.05` |
 | pxSteps | N | String | Initial price deviation (0.05 = 5%) | >= 0.001 | `0.05` |
 | pxStepsMult | N | String | Price step multiplier | >= 0.01 | `2` |
-| safetyOrdAmt | N | String | Safety order amount | > 0 | `200` |
+| safetyOrdAmt | N | String | Safety order margin, same convention as `initOrdAmt` (USDT) | > 0 | `200` |
 | volMult | N | String | Volume multiplier | - | `2` |
 | slPct | N | String | Stop-loss percentage | - | `0.05` |
 | slMode | N | String | Stop-loss price type | `limit` / `market` | `limit` |
