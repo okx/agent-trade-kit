@@ -171,7 +171,7 @@ AI recommended parameters: `initOrdAmt`, `safetyOrdAmt`, `maxSafetyOrds`, `pxSte
 
 ## Contract DCA (V2) — TradingBotDcaV2Controller
 
-> **Important**: All V2 endpoints only accept `algoOrdType=contract_dca`. The DTO `@StringMatch` annotation allows both `spot_dca` and `contract_dca` at validation layer, but controller method `ensureContractDcaOnly()` explicitly rejects `spot_dca` at runtime with parameter error. **Always pass `contract_dca`.**
+> **Important**: `algoOrdType=contract_dca` is the expected value for this section's endpoints, but runtime enforcement is **not** blanket-applied across all of them. The DTO `@StringMatch` annotation allows both `spot_dca` and `contract_dca` at validation layer on every V2 endpoint; only a subset — `/copy-order-algo`, `/settings/take-profit` (2.5), `/settings/reinvestment` (2.6) — additionally call controller method `ensureContractDcaOnly()` to reject `spot_dca` at runtime with a parameter error. `/create` (2.1) itself accepts either value at the controller level. **Always pass `contract_dca` for strategies created under this section**, regardless of which endpoints happen to enforce it at runtime.
 
 ---
 
@@ -557,7 +557,7 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 
 ## Cross-Version Gotchas
 
-1. **`algoOrdType` is NOT interchangeable** — V1 endpoints require `spot_dca`; V2 endpoints require `contract_dca`. Mixing them causes a runtime parameter error (the DTO annotation accepts both, but the controller rejects the wrong one).
+1. **`algoOrdType` runtime enforcement is endpoint-specific, not blanket-applied to all of V2** — the DTO `@StringMatch` annotation accepts both `spot_dca` and `contract_dca` on every endpoint; only endpoints that call `ensureContractDcaOnly()` (`/copy-order-algo`, `/settings/take-profit` (2.5), `/settings/reinvestment` (2.6)) reject `spot_dca` at runtime with a parameter error. `/create` (2.1) itself accepts either value at the controller level. Don't assume every V2 endpoint rejects `spot_dca` — check whether the specific endpoint calls `ensureContractDcaOnly()` before relying on runtime rejection. Regardless, **always pass `contract_dca` when working with V2 strategies**.
 2. **`curCycleld` typo** in V2 `/position-details` is **load-bearing** — do not "fix" the spelling when mapping the response to internal types; frontends depend on it.
 3. **`tpPct`, `pxSteps`, `pxStepsMult`, `volMult`** are all **decimal strings** (e.g. `"0.05"` = 5%), not percentage strings (`"5"`). Easy to confuse.
 4. **`allowReinvest`** is Boolean in request but sample shows string `"TRUE"` — likely accepts both, but prefer boolean.
