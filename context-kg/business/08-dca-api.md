@@ -379,8 +379,8 @@ Request/Response: Same shape as `/margin/add`.
 | algoId | Y | String | Strategy id | `12345` |
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | instId | N | String | Instrument id (not used currently) | `BTC-USDT-SWAP` |
-| before | N | String | CycleId cursor (backward, exclusive) | `5` |
-| after | N | String | CycleId cursor (forward, exclusive) | `1` |
+| after | N | String | Pagination cursor: request data older than this cycleId (exclusive) | `1` |
+| before | N | String | Pagination cursor: request data newer than this cycleId (exclusive) | `5` |
 | limit | N | String | Max results (default 100, max 100) | `20` |
 
 #### Response (`CycleDetailsResponse`)
@@ -413,8 +413,8 @@ Request/Response: Same shape as `/margin/add`.
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | algoId | N | String | Filter by strategy id | `12345` |
 | instId | N | String | Filter by instrument | `BTC-USDT-SWAP` |
-| before | N | String | AlgoId cursor (backward, exclusive) | - |
-| after | N | String | AlgoId cursor (forward, exclusive) | - |
+| after | N | String | Pagination cursor: request data older than this algoId (exclusive) | - |
+| before | N | String | Pagination cursor: request data newer than this algoId (exclusive) | - |
 | limit | N | String | Max results (default 100, max 100) | `20` |
 
 #### Response (`BotRecord`)
