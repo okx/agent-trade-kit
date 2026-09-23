@@ -216,6 +216,7 @@ okx bot dca orders --history
 okx bot dca details --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
+okx bot dca sub-orders --algoId <algoId> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]
 
 okx bot dca create \
   --instId BTC-USDT-SWAP --lever 3 --direction long \
@@ -528,6 +529,7 @@ okx bot dca orders --history
 okx bot dca details --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
+okx bot dca sub-orders --algoId <algoId> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]
 
 okx bot dca create \
   --instId BTC-USDT-SWAP --lever 3 --direction long \

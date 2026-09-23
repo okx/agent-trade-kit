@@ -1336,7 +1336,7 @@ export function handleBotDcaCommand(
   if (subAction === "details")
     return cmdDcaDetails(run, { algoId: v.algoId!, algoOrdType, json });
   if (subAction === "sub-orders")
-    return cmdDcaSubOrders(run, { algoId: v.algoId!, algoOrdType, cycleId: v.cycleId, json });
+    return cmdDcaSubOrders(run, { algoId: v.algoId!, algoOrdType, cycleId: v.cycleId, after: v.after, before: v.before, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
   if (subAction === "create")
     return cmdDcaCreate(run, {
       instId: v.instId!,

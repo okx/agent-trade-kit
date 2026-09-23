@@ -87,8 +87,8 @@ Use this as the source of truth when validating request/response shapes, enum va
 | Field | Required | Type | Description | Example |
 |-------|----------|------|-------------|---------|
 | algoId | N | String | Filter by strategy id | `12345` |
-| after | N | String | Pagination cursor: request data newer than this algoId (exclusive) | `345` |
-| before | N | String | Pagination cursor: request data older than this algoId (exclusive) | `345` |
+| after | N | String | Pagination cursor: request data older than this algoId (exclusive) | `345` |
+| before | N | String | Pagination cursor: request data newer than this algoId (exclusive) | `345` |
 | limit | N | String | Max results (default 100, max 100) | `100` |
 
 #### Response (`OpenAPIQueryDcaStrategyVO`)
@@ -171,7 +171,7 @@ AI recommended parameters: `initOrdAmt`, `safetyOrdAmt`, `maxSafetyOrds`, `pxSte
 
 ## Contract DCA (V2) — TradingBotDcaV2Controller
 
-> **Important**: All V2 endpoints only accept `algoOrdType=contract_dca`. The DTO `@StringMatch` annotation allows both `spot_dca` and `contract_dca` at validation layer, but controller method `ensureContractDcaOnly()` explicitly rejects `spot_dca` at runtime with parameter error. **Always pass `contract_dca`.**
+> **Important**: `algoOrdType=contract_dca` is the expected value for this section's endpoints, but runtime enforcement is **not** blanket-applied across all of them. The DTO `@StringMatch` annotation allows both `spot_dca` and `contract_dca` at validation layer on every V2 endpoint; only a subset — `/copy-order-algo` (not yet wrapped by this MCP/CLI — see below), `/settings/take-profit` (2.5), `/settings/reinvestment` (2.6) — additionally call controller method `ensureContractDcaOnly()` to reject `spot_dca` at runtime with a parameter error. `/create` (2.1) itself accepts either value at the controller level. **Always pass `contract_dca` for strategies created under this section**, regardless of which endpoints happen to enforce it at runtime.
 
 ---
 
@@ -185,14 +185,14 @@ AI recommended parameters: `initOrdAmt`, `safetyOrdAmt`, `maxSafetyOrds`, `pxSte
 |-------|----------|------|-------------|------------|---------|
 | instId | Y | String | Contract instrument id | Not blank, uppercase+num | `BTC-USDT-SWAP` |
 | algoOrdType | Y | String | Algo order type | `contract_dca` only | `contract_dca` |
-| initOrdAmt | Y | String | Initial order amount (USDT) | > 0 | `2000` |
+| initOrdAmt | Y | String | Initial order margin (USDT) | > 0 | `2000` |
 | direction | Y | String | Direction | `long` / `short` | `long` |
 | lever | Y | String | Leverage multiplier | >= 1 | `5` |
 | maxSafetyOrds | Y | String | Max safety orders (0 = no DCA) | >= 0 | `5` |
 | tpPct | Y | String | Take-profit percentage (0.05 = 5%) | Not blank, numeric (`@NumberMatch`) | `0.05` |
 | pxSteps | N | String | Initial price deviation (0.05 = 5%) | >= 0.001 | `0.05` |
 | pxStepsMult | N | String | Price step multiplier | >= 0.01 | `2` |
-| safetyOrdAmt | N | String | Safety order amount | > 0 | `200` |
+| safetyOrdAmt | N | String | Safety order margin, same convention as `initOrdAmt` (USDT) | > 0 | `200` |
 | volMult | N | String | Volume multiplier | - | `2` |
 | slPct | N | String | Stop-loss percentage | - | `0.05` |
 | slMode | N | String | Stop-loss price type | `limit` / `market` | `limit` |
@@ -379,8 +379,8 @@ Request/Response: Same shape as `/margin/add`.
 | algoId | Y | String | Strategy id | `12345` |
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | instId | N | String | Instrument id (not used currently) | `BTC-USDT-SWAP` |
-| before | N | String | CycleId cursor (backward, exclusive) | `5` |
-| after | N | String | CycleId cursor (forward, exclusive) | `1` |
+| after | N | String | Pagination cursor: request data older than this cycleId (exclusive) | `1` |
+| before | N | String | Pagination cursor: request data newer than this cycleId (exclusive) | `5` |
 | limit | N | String | Max results (default 100, max 100) | `20` |
 
 #### Response (`CycleDetailsResponse`)
@@ -413,8 +413,8 @@ Request/Response: Same shape as `/margin/add`.
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | algoId | N | String | Filter by strategy id | `12345` |
 | instId | N | String | Filter by instrument | `BTC-USDT-SWAP` |
-| before | N | String | AlgoId cursor (backward, exclusive) | - |
-| after | N | String | AlgoId cursor (forward, exclusive) | - |
+| after | N | String | Pagination cursor: request data older than this algoId (exclusive) | - |
+| before | N | String | Pagination cursor: request data newer than this algoId (exclusive) | - |
 | limit | N | String | Max results (default 100, max 100) | `20` |
 
 #### Response (`BotRecord`)
@@ -487,6 +487,8 @@ All fields from `BotRecord` plus:
 | algoId | Y | String | Strategy id | `12345` |
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | cycleId | Y | String | Cycle id | `3` |
+| after | N | String | Pagination cursor: request data older than this ordId (exclusive) | `345` |
+| before | N | String | Pagination cursor: request data newer than this ordId (exclusive) | `345` |
 | limit | N | String | Max results (default 100, max 100) | `50` |
 
 #### Response (`OrderRecord`)
@@ -557,12 +559,14 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 
 ## Cross-Version Gotchas
 
-1. **`algoOrdType` is NOT interchangeable** — V1 endpoints require `spot_dca`; V2 endpoints require `contract_dca`. Mixing them causes a runtime parameter error (the DTO annotation accepts both, but the controller rejects the wrong one).
+1. **`algoOrdType` runtime enforcement is endpoint-specific, not blanket-applied to all of V2** — the DTO `@StringMatch` annotation accepts both `spot_dca` and `contract_dca` on every endpoint; only endpoints that call `ensureContractDcaOnly()` (`/copy-order-algo` — not yet wrapped by this MCP/CLI, see "Backlog" below; `/settings/take-profit` (2.5); `/settings/reinvestment` (2.6)) reject `spot_dca` at runtime with a parameter error. `/create` (2.1) itself accepts either value at the controller level. Don't assume every V2 endpoint rejects `spot_dca` — check whether the specific endpoint calls `ensureContractDcaOnly()` before relying on runtime rejection. Regardless, **always pass `contract_dca` when working with V2 strategies**.
 2. **`curCycleld` typo** in V2 `/position-details` is **load-bearing** — do not "fix" the spelling when mapping the response to internal types; frontends depend on it.
 3. **`tpPct`, `pxSteps`, `pxStepsMult`, `volMult`** are all **decimal strings** (e.g. `"0.05"` = 5%), not percentage strings (`"5"`). Easy to confuse.
 4. **`allowReinvest`** is Boolean in request but sample shows string `"TRUE"` — likely accepts both, but prefer boolean.
-5. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
-6. **Cursor direction** — `after` = newer, `before` = older. Same convention as OKX core API.
+5. **`reserveFunds` is V1 (spot_dca) only** — the field is present in the `dca_create_order` MCP tool but is silently ignored by the V2 contract_dca controller.
+6. **`initOrdAmt` / `safetyOrdAmt` semantics differ by type** — for `spot_dca` they are in quote currency (e.g. USDT spend per order); for `contract_dca` they represent initial/safety **margin** in USDT.
+7. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
+8. **Cursor direction** — `after` = older data, `before` = newer data (per OKX OpenAPI spec for `GET /dca/orders`: `after` 请求此ID之前（更旧的数据）, `before` 请求此ID之后（更新的数据）). Opposite of what you'd guess from the names — verified against live `dca_get_sub_orders` pagination.
 
 ## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
 
@@ -574,7 +578,7 @@ The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 5 un
 | `dca_stop_order` | `algoId`, `algoOrdType`; `stopType` required for `spot_dca` (1=sell, 2=keep) | true |
 | `dca_get_orders` | `algoOrdType`, optional `algoId`, pagination cursors | false |
 | `dca_get_order_details` | `algoId` (required) | false |
-| `dca_get_sub_orders` | `algoId`, `type: filled\|live` (required) | false |
+| `dca_get_sub_orders` | `algoId`, `algoOrdType`; optional `cycleId` (omit=cycle list, provide=orders in cycle); `after`, `before`, `limit` pagination in both branches | false |
 
 ### Backlog (not yet wrapped)
 
@@ -592,3 +596,4 @@ The following V2 Contract DCA upstream endpoints exist but are not yet exposed a
 | `GET /ongoing-list` | Active bot list |
 | `GET /history-list` | Historical bot list |
 | `GET /orders` | Order list by cycle (blocked for sync copy followers) |
+| `POST /copy-order-algo` | Copy-trading algo order setup (related to Appendix A sync copy followers); rejects `spot_dca` via `ensureContractDcaOnly()`. Not otherwise documented in this file — full request/response shape unconfirmed. |

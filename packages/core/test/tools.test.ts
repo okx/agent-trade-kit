@@ -3249,6 +3249,32 @@ describe("dca_get_sub_orders", () => {
     assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "spot_dca");
     assert.equal((getLastCall()?.params as Record<string, unknown>).cycleId, "c002");
   });
+
+  it("with cycleId: forwards after/before/limit to /dca/orders", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { algoId: "123", algoOrdType: "contract_dca", cycleId: "c001", after: "a001", before: "b001", limit: 50 },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.after, "a001");
+    assert.equal(params.before, "b001");
+    assert.equal(params.limit, 50);
+  });
+
+  it("without cycleId: forwards after/before/limit to /dca/cycle-list", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { algoId: "123", algoOrdType: "contract_dca", after: "a002", before: "b002", limit: 20 },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/cycle-list");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.after, "a002");
+    assert.equal(params.before, "b002");
+    assert.equal(params.limit, 20);
+  });
 });
 
 // ---------------------------------------------------------------------------
