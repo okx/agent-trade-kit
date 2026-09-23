@@ -11,11 +11,17 @@
 
 ## [Unreleased]
 
+## [1.4.8] - 2026-09-23
+
 ### 修复
 
 - **`dca_get_sub_orders` 在 cycleId 分支下分页参数被静默丢弃** ([#219])：当传入 `cycleId` 时，`after`/`before` 游标只被转发到 `/cycle-list`，而不会转发到 `/orders`，导致在周期内翻页时始终返回第一页。现已在两个分支均转发 `after`/`before`。
 - **CLI `okx bot dca sub-orders` 缺少 `--after`/`--before`/`--limit` 参数** ([#219])：三个分页参数在 CLI opts 类型、dispatcher 和 usage 字符串中均缺失。现已全链路打通：cli-registry usage 字符串 → dispatcher（`handleBotDcaCommand`）→ `cmdDcaSubOrders` → `dca_get_sub_orders` handler。
 - **`dca_create_order` 描述说明补充** ([#219])：`initOrdAmt` 和 `safetyOrdAmt` 现在注明在 `contract_dca` 模式下表示保证金（quote currency），而非订单数量。`reserveFunds` 现在注明仅适用于 `spot_dca`。
+
+### 变更
+
+- 按稳定版 skill 版本同步策略，所有 skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 安装版本均同步至 `1.4.8`。
 
 ## [1.4.7] - 2026-09-14
 
