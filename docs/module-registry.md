@@ -30,7 +30,7 @@ Unregistered modules will be rejected during review.
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
-| **Total** | | **167** | **104** | **63** | **~49,705** | | | |
+| **Total** | | **171** | **104** | **67** | **~50,105** | | | |
 
 ## Status Legend
 
