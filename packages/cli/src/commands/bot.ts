@@ -419,11 +419,10 @@ export async function cmdDcaReduceMargin(
 
 export async function cmdDcaUpdateTakeProfit(
   run: ToolRunner,
-  opts: { algoId: string; algoOrdType: string; tpPrice: string; json: boolean },
+  opts: { algoId: string; tpPrice: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_update_take_profit", {
     algoId: opts.algoId,
-    algoOrdType: opts.algoOrdType,
     tpPrice: opts.tpPrice,
   });
   const data = getData(result) as Record<string, unknown>[];
@@ -433,13 +432,15 @@ export async function cmdDcaUpdateTakeProfit(
 
 export async function cmdDcaManualBuy(
   run: ToolRunner,
-  opts: { algoId: string; algoOrdType: string; amt: string; px?: string; json: boolean },
+  opts: { algoId: string; algoOrdType: string; amt: string; px?: string; ordType?: string; tradeQuoteCcy?: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_manual_buy", {
     algoId: opts.algoId,
     algoOrdType: opts.algoOrdType,
     amt: opts.amt,
     px: opts.px,
+    ordType: opts.ordType,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

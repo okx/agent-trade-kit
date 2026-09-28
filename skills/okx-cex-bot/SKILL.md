@@ -116,6 +116,10 @@ Resolution:
 | `okx bot dca orders` | READ | List active or history DCA bots (default: contract_dca) |
 | `okx bot dca details` | READ | DCA bot details + PnL |
 | `okx bot dca sub-orders` | READ | DCA cycles and orders within a cycle |
+| `okx bot dca add-margin` | WRITE | Add margin to a running contract DCA bot |
+| `okx bot dca reduce-margin` | WRITE | Reduce margin on a running contract DCA bot |
+| `okx bot dca update-tp` | WRITE | Update take-profit price on a running contract DCA bot |
+| `okx bot dca manual-buy` | WRITE | Trigger a manual buy cycle on a running DCA bot |
 
 ## Operation Flow
 
@@ -316,7 +320,8 @@ okx bot grid sub-orders --algoOrdType <type> --algoId <id> [--pending] [--groupI
 ### DCA Bot — Create (Spot & Contract)
 
 ```bash
-okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --direction <long|short> \
+okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> \
+  [--direction <long|short>] \
   --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <ratio> \
   [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <ratio>] [--pxStepsMult <mult>] [--volMult <mult>] \
   [--slPct <ratio>] [--slMode <limit|market>] [--allowReinvest] \
@@ -330,7 +335,7 @@ okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --directi
 | `--algoOrdType` | Yes | - | `spot_dca` (Spot DCA) or `contract_dca` (Contract DCA) |
 | `--instId` | Yes | - | Instrument (e.g., `BTC-USDT` for spot, `BTC-USDT-SWAP` for contract) |
 | `--lever` | Cond. | - | Leverage multiplier (e.g., `3`). Required for `contract_dca` |
-| `--direction` | Yes | - | `long` or `short`. `spot_dca` must be `long` |
+| `--direction` | Cond. | `long` | `long` or `short`. Optional for `spot_dca` (defaults to `long`); required for `contract_dca` |
 | `--initOrdAmt` | Yes | - | Initial order amount (quote currency) |
 | `--maxSafetyOrds` | Yes | - | Max safety orders, integer [0, 100] (e.g., `3`; `0` = no DCA) |
 | `--safetyOrdAmt` | Cond. | - | Safety order amount (quote currency). Required when `maxSafetyOrds > 0` |
@@ -352,7 +357,8 @@ okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --directi
 | `--tradeQuoteCcy` | No | - | Trade quote currency |
 
 **Conditional required logic:**
-- Always required: `--algoOrdType`, `--instId`, `--direction`, `--initOrdAmt`, `--maxSafetyOrds`, `--tpPct`
+- Always required: `--algoOrdType`, `--instId`, `--initOrdAmt`, `--maxSafetyOrds`, `--tpPct`
+- `--direction`: optional for `spot_dca` (defaults to `long`); **required** for `contract_dca`
 - When `algoOrdType=contract_dca`: also required `--lever`
 - When `maxSafetyOrds > 0`: also required `--safetyOrdAmt`, `--pxSteps`, `--pxStepsMult`, `--volMult`
 - `--slPct` and `--slMode` must be both set or both omitted
@@ -413,6 +419,72 @@ okx bot dca sub-orders --algoOrdType <spot_dca|contract_dca> --algoId <id> [--cy
 |---|---|
 | *(default)* | List all cycles |
 | `--cycleId <id>` | Show orders within a specific cycle |
+
+---
+
+### DCA Bot — Add Margin
+
+```bash
+okx bot dca add-margin --algoId <id> --amt <amount> [--json]
+```
+
+| Param | Required | Description |
+|---|---|---|
+| `--algoId` | Yes | DCA bot algo order ID |
+| `--amt` | Yes | Amount to add in quote currency. Must be a positive finite number |
+
+**Error codes:** `59302` → Cancel the pending close order first, then retry. `59301` → Adjustment amount is outside the allowed margin range.
+
+---
+
+### DCA Bot — Reduce Margin
+
+```bash
+okx bot dca reduce-margin --algoId <id> --amt <amount> [--json]
+```
+
+| Param | Required | Description |
+|---|---|---|
+| `--algoId` | Yes | DCA bot algo order ID |
+| `--amt` | Yes | Amount to reduce in quote currency. Must be a positive finite number |
+
+**Error codes:** `59302` → Cancel the pending close order first, then retry. `59301` → Adjustment amount is outside the allowed margin range.
+
+---
+
+### DCA Bot — Update Take-Profit
+
+```bash
+okx bot dca update-tp --algoId <id> --tpPrice <price> [--json]
+```
+
+| Param | Required | Description |
+|---|---|---|
+| `--algoId` | Yes | DCA bot algo order ID |
+| `--tpPrice` | Yes | New take-profit price |
+
+**Note:** Only applies to contract DCA bots (`algoOrdType: contract_dca` is hardcoded internally — you do not need to pass it).
+
+**Error codes:** `51223` → Not available for sync copy-trading follower accounts.
+
+---
+
+### DCA Bot — Manual Buy
+
+```bash
+okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> --amt <qty> [--px <price>] [--ordType <limit|market>] [--tradeQuoteCcy <ccy>] [--json]
+```
+
+| Param | Required | Description |
+|---|---|---|
+| `--algoId` | Yes | DCA bot algo order ID |
+| `--algoOrdType` | Yes | `spot_dca` or `contract_dca` |
+| `--amt` | Yes | Order quantity (base currency for spot_dca, contracts for contract_dca) |
+| `--px` | No | Limit price. Omit for market order |
+| `--ordType` | No | `limit` or `market`. Inferred from `--px` presence when omitted |
+| `--tradeQuoteCcy` | No | Quote currency (e.g. `USDT`). Applicable for spot_dca |
+
+**Error codes:** `51223` → Not available for sync copy-trading follower accounts.
 
 ## Quickstart
 

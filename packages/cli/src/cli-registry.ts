@@ -841,7 +841,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "dca_create_order",
-            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi\n                 [--aiBuilderCode <code>]",
+            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--direction <long|short>] [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; --direction required for contract_dca (default: long for spot_dca)\n                 safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi\n                 [--aiBuilderCode <code>]",
             description: "Create a DCA (Martingale) bot (spot or contract)",
           },
           stop: {
@@ -861,12 +861,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "update-tp": {
             toolName: "dca_update_take_profit",
-            usage: "okx bot dca update-tp --algoOrdType contract_dca --algoId <id> --tpPrice <price>",
+            usage: "okx bot dca update-tp --algoId <id> --tpPrice <price>",
             description: "Update take-profit price on a running contract DCA bot",
           },
           "manual-buy": {
             toolName: "dca_manual_buy",
-            usage: "okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> --amt <qty> [--px <price>]",
+            usage: "okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> --amt <qty> [--px <price>] [--ordType <limit|market>] [--tradeQuoteCcy <ccy>]",
             description: "Trigger a manual buy cycle on a running DCA bot",
           },
         },

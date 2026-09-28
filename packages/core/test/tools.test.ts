@@ -3580,6 +3580,141 @@ describe("dca_manual_buy", () => {
 });
 
 // ---------------------------------------------------------------------------
+// dca_add_margin — NaN guard
+// ---------------------------------------------------------------------------
+describe("dca_add_margin — NaN guard", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_add_margin")!;
+
+  it("throws when amt is non-numeric string (NaN guard)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "abc" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0") || err instanceof OkxApiError);
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is zero", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "0" }, makeContext(client)),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_reduce_margin — NaN guard
+// ---------------------------------------------------------------------------
+describe("dca_reduce_margin — NaN guard", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
+
+  it("throws when amt is non-numeric string (NaN guard)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "abc" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0") || err instanceof OkxApiError);
+        return true;
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_update_take_profit — algoOrdType hardcoded
+// ---------------------------------------------------------------------------
+describe("dca_update_take_profit — implicit algoOrdType", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
+
+  it("hardcodes algoOrdType=contract_dca even when not provided in input", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoOrdType, "contract_dca");
+  });
+
+  it("does not expose algoOrdType in inputSchema properties", () => {
+    const schema = tool.inputSchema as { properties?: Record<string, unknown>; required?: string[] };
+    assert.equal(schema.properties?.["algoOrdType"], undefined);
+    assert.ok(!(schema.required ?? []).includes("algoOrdType"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_manual_buy — ordType and tradeQuoteCcy forwarding
+// ---------------------------------------------------------------------------
+describe("dca_manual_buy — ordType and tradeQuoteCcy", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_manual_buy")!;
+
+  it("forwards ordType to request body when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1", ordType: "limit" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, "limit");
+  });
+
+  it("omits ordType from body when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, undefined);
+  });
+
+  it("forwards tradeQuoteCcy to request body when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1", tradeQuoteCcy: "USDT" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).tradeQuoteCcy, "USDT");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_create_order — direction conditional logic
+// ---------------------------------------------------------------------------
+describe("dca_create_order — direction conditional", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_create_order")!;
+  const baseArgs = {
+    instId: "BTC-USDT",
+    algoOrdType: "spot_dca",
+    initOrdAmt: "100",
+    maxSafetyOrds: "0",
+    tpPct: "0.03",
+  };
+
+  it("defaults direction to long for spot_dca when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "long");
+  });
+
+  it("forwards direction=short for spot_dca when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs, direction: "short" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "short");
+  });
+
+  it("throws when direction is missing for contract_dca", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...baseArgs, algoOrdType: "contract_dca", lever: "3" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof OkxApiError || err.message.includes("direction"));
+        return true;
+      },
+    );
+  });
+
+  it("direction is not in required[] in inputSchema", () => {
+    const schema = tool.inputSchema as { required?: string[] };
+    assert.ok(!(schema.required ?? []).includes("direction"));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Grid — grid_amend_order
 // ---------------------------------------------------------------------------
 

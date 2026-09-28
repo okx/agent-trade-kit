@@ -91,41 +91,29 @@ function normalizeWrite(response: {
   };
 }
 
-function preCheckMarginErrors(response: { endpoint: string; requestTime: string; data: unknown }, endpoint: string): void {
+function translateKnownErrorCodes(
+  response: { endpoint: string; requestTime: string; data: unknown },
+  errorTable: Record<string, string>,
+  endpoint: string,
+): void {
   const data = response.data;
   if (!Array.isArray(data)) return;
   for (const item of data) {
     if (item === null || typeof item !== "object") continue;
-    const sCode = (item as Record<string, unknown>)["sCode"];
-    if (sCode === "59302") {
-      throw new OkxApiError("Cancel the pending close order first, then retry", {
-        code: "59302",
-        endpoint,
-      });
-    }
-    if (sCode === "59301") {
-      throw new OkxApiError("Adjustment amount is outside the allowed margin range", {
-        code: "59301",
-        endpoint,
-      });
-    }
+    const sCode = String((item as Record<string, unknown>)["sCode"] ?? "");
+    const msg = errorTable[sCode];
+    if (msg) throw new OkxApiError(msg, { code: sCode, endpoint });
   }
 }
 
-function preCheckCopyTradingErrors(response: { endpoint: string; requestTime: string; data: unknown }, endpoint: string): void {
-  const data = response.data;
-  if (!Array.isArray(data)) return;
-  for (const item of data) {
-    if (item === null || typeof item !== "object") continue;
-    const sCode = (item as Record<string, unknown>)["sCode"];
-    if (sCode === "51223") {
-      throw new OkxApiError("This operation is not available for sync copy-trading follower accounts", {
-        code: "51223",
-        endpoint,
-      });
-    }
-  }
-}
+const MARGIN_ERRORS: Record<string, string> = {
+  "59302": "Cancel the pending close order first, then retry",
+  "59301": "Adjustment amount is outside the allowed margin range",
+};
+
+const COPY_TRADING_ERRORS: Record<string, string> = {
+  "51223": "This operation is not available for sync copy-trading follower accounts",
+};
 
 export function registerDcaTools(): ToolSpec[] {
   return [
@@ -167,7 +155,7 @@ export function registerDcaTools(): ToolSpec[] {
           reserveFunds: { type: "string", description: "spot_dca only. 'true' or 'false', default 'true'. Reserves funds for safety orders at bot creation." },
           tradeQuoteCcy: { type: "string" },
         },
-        required: ["instId", "algoOrdType", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
+        required: ["instId", "algoOrdType", "initOrdAmt", "maxSafetyOrds", "tpPct"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -180,6 +168,18 @@ export function registerDcaTools(): ToolSpec[] {
             code: "VALIDATION",
             endpoint: `${BASE}/create`,
           });
+        }
+
+        // direction: required for contract_dca; defaults to "long" for spot_dca
+        let direction = readString(args, "direction");
+        if (!direction) {
+          if (algoOrdType === "contract_dca") {
+            throw new OkxApiError("direction is required for contract_dca", {
+              code: "VALIDATION",
+              endpoint: `${BASE}/create`,
+            });
+          }
+          direction = "long";
         }
 
         const triggerParam = buildTriggerParam(args, algoOrdType);
@@ -197,7 +197,7 @@ export function registerDcaTools(): ToolSpec[] {
             instId,
             algoOrdType,
             lever: readString(args, "lever"),
-            direction: requireString(args, "direction"),
+            direction,
             initOrdAmt: requireString(args, "initOrdAmt"),
             safetyOrdAmt: readString(args, "safetyOrdAmt"),
             maxSafetyOrds,
@@ -409,7 +409,7 @@ export function registerDcaTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
         const amt = requireString(args, "amt");
-        if (Number(amt) <= 0) {
+        if (!Number.isFinite(Number(amt)) || Number(amt) <= 0) {
           throw new OkxApiError("amt must be greater than 0", {
             code: "VALIDATION",
             endpoint: `${BASE}/margin/add`,
@@ -420,7 +420,7 @@ export function registerDcaTools(): ToolSpec[] {
           { algoId, amt },
           privateRateLimit("dca_add_margin", 20),
         );
-        preCheckMarginErrors(response, `${BASE}/margin/add`);
+        translateKnownErrorCodes(response, MARGIN_ERRORS, `${BASE}/margin/add`);
         return normalizeWrite(response);
       },
     },
@@ -445,7 +445,7 @@ export function registerDcaTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
         const amt = requireString(args, "amt");
-        if (Number(amt) <= 0) {
+        if (!Number.isFinite(Number(amt)) || Number(amt) <= 0) {
           throw new OkxApiError("amt must be greater than 0", {
             code: "VALIDATION",
             endpoint: `${BASE}/margin/reduce`,
@@ -456,7 +456,7 @@ export function registerDcaTools(): ToolSpec[] {
           { algoId, amt },
           privateRateLimit("dca_reduce_margin", 20),
         );
-        preCheckMarginErrors(response, `${BASE}/margin/reduce`);
+        translateKnownErrorCodes(response, MARGIN_ERRORS, `${BASE}/margin/reduce`);
         return normalizeWrite(response);
       },
     },
@@ -473,22 +473,20 @@ export function registerDcaTools(): ToolSpec[] {
         type: "object",
         properties: {
           algoId: { type: "string", description: "Algo order ID" },
-          algoOrdType: { type: "string", enum: ["contract_dca"], description: "Must be contract_dca" },
           tpPrice: { type: "string", description: "New take-profit price" },
         },
-        required: ["algoId", "algoOrdType", "tpPrice"],
+        required: ["algoId", "tpPrice"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
-        const algoOrdType = requireString(args, "algoOrdType");
         const tpPrice = requireString(args, "tpPrice");
         const response = await context.client.privatePost(
           `${BASE}/settings/take-profit`,
-          { algoId, algoOrdType, tpPrice },
+          { algoId, algoOrdType: "contract_dca", tpPrice },
           privateRateLimit("dca_update_take_profit", 20),
         );
-        preCheckCopyTradingErrors(response, `${BASE}/settings/take-profit`);
+        translateKnownErrorCodes(response, COPY_TRADING_ERRORS, `${BASE}/settings/take-profit`);
         return normalizeWrite(response);
       },
     },
@@ -509,6 +507,8 @@ export function registerDcaTools(): ToolSpec[] {
           algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
           amt: { type: "string", description: "Order quantity (in base currency for spot_dca, or contracts for contract_dca)" },
           px: { type: "string", description: "Limit price. Omit for market order." },
+          ordType: { type: "string", enum: ["limit", "market"], description: "Order type. Default: market when px is omitted, limit when px is provided." },
+          tradeQuoteCcy: { type: "string", description: "Quote currency for trade (e.g. USDT). Applicable for spot_dca." },
         },
         required: ["algoId", "algoOrdType", "amt"],
       },
@@ -518,12 +518,14 @@ export function registerDcaTools(): ToolSpec[] {
         const algoOrdType = requireString(args, "algoOrdType");
         const amt = requireString(args, "amt");
         const px = readString(args, "px");
+        const ordType = readString(args, "ordType");
+        const tradeQuoteCcy = readString(args, "tradeQuoteCcy");
         const response = await context.client.privatePost(
           `${BASE}/orders/manual-buy`,
-          compactObject({ algoId, algoOrdType, amt, px }),
+          compactObject({ algoId, algoOrdType, amt, px, ordType, tradeQuoteCcy }),
           privateRateLimit("dca_manual_buy", 20),
         );
-        preCheckCopyTradingErrors(response, `${BASE}/orders/manual-buy`);
+        translateKnownErrorCodes(response, COPY_TRADING_ERRORS, `${BASE}/orders/manual-buy`);
         return normalizeWrite(response);
       },
     },

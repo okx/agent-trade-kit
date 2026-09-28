@@ -13,7 +13,15 @@
 
 ### 新增
 
-- **DCA 机器人运营管理工具** ([#220])：新增 4 个 MCP 工具及对应 CLI 子命令，用于管理运行中的 DCA 机器人——`dca_add_margin` / `okx bot dca add-margin`、`dca_reduce_margin` / `okx bot dca reduce-margin`、`dca_update_take_profit` / `okx bot dca update-tp`、`dca_manual_buy` / `okx bot dca manual-buy`。错误码 59301（超出保证金调整范围）和 59302（存在待关闭订单冲突）会被翻译为友好提示；错误码 51223（跟单用户不支持此操作）同样翻译为友好提示。`dca_manual_buy` 请求体使用 `px` 字段（非 `price`），符合 ALGO-35353 变更。
+- **DCA 机器人运营管理工具** ([#220])：新增 4 个 MCP 工具及对应 CLI 子命令，用于管理运行中的 DCA 机器人——`dca_add_margin` / `okx bot dca add-margin`、`dca_reduce_margin` / `okx bot dca reduce-margin`、`dca_update_take_profit` / `okx bot dca update-tp`、`dca_manual_buy` / `okx bot dca manual-buy`。错误码 59301（超出保证金调整范围）和 59302（存在待关闭订单冲突）会被翻译为友好提示；错误码 51223（跟单用户不支持此操作）同样翻译为友好提示。`dca_manual_buy` 请求体使用 `px` 字段（非 `price`），符合 OKX API 规范。
+- **`dca_manual_buy` 新增 `ordType` 和 `tradeQuoteCcy` 参数**：工具现在接受并转发 `ordType: "limit"|"market"` 和 `tradeQuoteCcy`，支持现货 DCA 手动加仓时指定报价货币。
+
+### 修复
+
+- **`dca_add_margin` / `dca_reduce_margin` — `amt` NaN 校验缺失**：非数字字符串（如 `"abc"`）此前能绕过 `> 0` 校验，因为 JavaScript 中 `NaN <= 0` 为 `false`。现已修正为 `!Number.isFinite(Number(amt)) || Number(amt) <= 0`，所有非有限值均会被拒绝。
+- **`dca_update_take_profit` — 从用户侧 schema 移除 `algoOrdType`**：该参数此前在输入 schema 中为必填，要求调用方始终传入 `"contract_dca"`。现改为在 handler 内硬编码，不再暴露于 schema，因为该端点仅支持合约 DCA 机器人。
+- **`dca_create_order` — `direction` 对 `spot_dca` 不再强制要求**：此前 `direction` 在所有场景下均为必填。现改为对 `spot_dca` 可选（默认 `"long"`），对 `contract_dca` 仍为必填。向后兼容：已明确传入 `direction` 的调用不受影响。
+- **统一错误码翻译**：将原有的两个独立函数 `preCheckMarginErrors` / `preCheckCopyTradingErrors` 替换为单一的表驱动 `translateKnownErrorCodes` 工具函数，消除代码重复。
 
 ## [1.4.8] - 2026-09-23
 

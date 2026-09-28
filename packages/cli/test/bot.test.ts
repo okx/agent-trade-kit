@@ -826,7 +826,7 @@ describe("cmdDcaReduceMargin", () => {
 // cmdDcaUpdateTakeProfit
 // ---------------------------------------------------------------------------
 describe("cmdDcaUpdateTakeProfit", () => {
-  it("passes algoId, algoOrdType, tpPrice to runner as dca_update_take_profit", async () => {
+  it("passes algoId and tpPrice to runner as dca_update_take_profit (no algoOrdType)", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -834,16 +834,16 @@ describe("cmdDcaUpdateTakeProfit", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([{ sCode: "0" }]);
     };
-    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", algoOrdType: "contract_dca", tpPrice: "55000", json: false });
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: false });
     assert.equal(capturedName, "dca_update_take_profit");
     assert.equal(captured["algoId"], "DCA001");
-    assert.equal(captured["algoOrdType"], "contract_dca");
     assert.equal(captured["tpPrice"], "55000");
+    assert.equal(captured["algoOrdType"], undefined);
   });
 
   it("outputs success message when sCode='0'", async () => {
     const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
-    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", algoOrdType: "contract_dca", tpPrice: "55000", json: false });
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: false });
     assert.ok(out.join("").includes("Take-profit updated"));
     assert.equal(err.join(""), "");
   });
@@ -877,6 +877,26 @@ describe("cmdDcaManualBuy", () => {
     };
     await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", amt: "1", px: "48000", json: false });
     assert.equal(captured["px"], "48000");
+  });
+
+  it("passes ordType from named flag when provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", amt: "1", ordType: "limit", json: false });
+    assert.equal(captured["ordType"], "limit");
+  });
+
+  it("passes tradeQuoteCcy from named flag when provided", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "spot_dca", amt: "1", tradeQuoteCcy: "USDT", json: false });
+    assert.equal(captured["tradeQuoteCcy"], "USDT");
   });
 
   it("outputs success message when sCode='0'", async () => {
