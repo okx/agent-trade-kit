@@ -91,6 +91,42 @@ function normalizeWrite(response: {
   };
 }
 
+function preCheckMarginErrors(response: { endpoint: string; requestTime: string; data: unknown }, endpoint: string): void {
+  const data = response.data;
+  if (!Array.isArray(data)) return;
+  for (const item of data) {
+    if (item === null || typeof item !== "object") continue;
+    const sCode = (item as Record<string, unknown>)["sCode"];
+    if (sCode === "59302") {
+      throw new OkxApiError("Cancel the pending close order first, then retry", {
+        code: "59302",
+        endpoint,
+      });
+    }
+    if (sCode === "59301") {
+      throw new OkxApiError("Adjustment amount is outside the allowed margin range", {
+        code: "59301",
+        endpoint,
+      });
+    }
+  }
+}
+
+function preCheckCopyTradingErrors(response: { endpoint: string; requestTime: string; data: unknown }, endpoint: string): void {
+  const data = response.data;
+  if (!Array.isArray(data)) return;
+  for (const item of data) {
+    if (item === null || typeof item !== "object") continue;
+    const sCode = (item as Record<string, unknown>)["sCode"];
+    if (sCode === "51223") {
+      throw new OkxApiError("This operation is not available for sync copy-trading follower accounts", {
+        code: "51223",
+        endpoint,
+      });
+    }
+  }
+}
+
 export function registerDcaTools(): ToolSpec[] {
   return [
     {
@@ -349,6 +385,144 @@ export function registerDcaTools(): ToolSpec[] {
           privateRateLimit("dca_get_sub_orders", 20),
         );
         return normalizeResponse(response);
+      },
+    },
+    // ── Operational management ─────────────────────────────────────────────
+    {
+      name: "dca_add_margin",
+      title: "Martingale Bot Add Margin",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Add margin to a running contract DCA bot. Real-money operation. " +
+        "Use to prevent liquidation or extend position runway.",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          amt: { type: "string", description: "Amount to add (in quote currency, must be > 0)" },
+        },
+        required: ["algoId", "amt"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const amt = requireString(args, "amt");
+        if (Number(amt) <= 0) {
+          throw new OkxApiError("amt must be greater than 0", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/margin/add`,
+          });
+        }
+        const response = await context.client.privatePost(
+          `${BASE}/margin/add`,
+          { algoId, amt },
+          privateRateLimit("dca_add_margin", 20),
+        );
+        preCheckMarginErrors(response, `${BASE}/margin/add`);
+        return normalizeWrite(response);
+      },
+    },
+    {
+      name: "dca_reduce_margin",
+      title: "Martingale Bot Reduce Margin",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Reduce margin on a running contract DCA bot. Real-money operation. " +
+        "Cancel any pending close order first if error sCode=59302 is returned.",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          amt: { type: "string", description: "Amount to reduce (in quote currency, must be > 0)" },
+        },
+        required: ["algoId", "amt"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const amt = requireString(args, "amt");
+        if (Number(amt) <= 0) {
+          throw new OkxApiError("amt must be greater than 0", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/margin/reduce`,
+          });
+        }
+        const response = await context.client.privatePost(
+          `${BASE}/margin/reduce`,
+          { algoId, amt },
+          privateRateLimit("dca_reduce_margin", 20),
+        );
+        preCheckMarginErrors(response, `${BASE}/margin/reduce`);
+        return normalizeWrite(response);
+      },
+    },
+    {
+      name: "dca_update_take_profit",
+      title: "Martingale Bot Update Take-Profit",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Update the take-profit price on a running contract DCA bot. Real-money operation. " +
+        "Not available for sync copy-trading follower accounts (sCode=51223).",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          algoOrdType: { type: "string", enum: ["contract_dca"], description: "Must be contract_dca" },
+          tpPrice: { type: "string", description: "New take-profit price" },
+        },
+        required: ["algoId", "algoOrdType", "tpPrice"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const algoOrdType = requireString(args, "algoOrdType");
+        const tpPrice = requireString(args, "tpPrice");
+        const response = await context.client.privatePost(
+          `${BASE}/settings/take-profit`,
+          { algoId, algoOrdType, tpPrice },
+          privateRateLimit("dca_update_take_profit", 20),
+        );
+        preCheckCopyTradingErrors(response, `${BASE}/settings/take-profit`);
+        return normalizeWrite(response);
+      },
+    },
+    {
+      name: "dca_manual_buy",
+      title: "Martingale Bot Manual Buy",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Trigger a manual buy cycle on a running DCA bot. Real-money operation. " +
+        "Omit px for market order; supply px for limit order. " +
+        "Not available for sync copy-trading follower accounts (sCode=51223).",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
+          px: { type: "string", description: "Limit price. Omit for market order." },
+        },
+        required: ["algoId", "algoOrdType"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const algoOrdType = requireString(args, "algoOrdType");
+        const px = readString(args, "px");
+        const response = await context.client.privatePost(
+          `${BASE}/buy`,
+          compactObject({ algoId, algoOrdType, px }),
+          privateRateLimit("dca_manual_buy", 20),
+        );
+        preCheckCopyTradingErrors(response, `${BASE}/buy`);
+        return normalizeWrite(response);
       },
     },
   ];

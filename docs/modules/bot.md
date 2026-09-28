@@ -9,7 +9,7 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | Sub-module | Tools | Description |
 |------------|-------|-------------|
 | `bot.grid` | 9 | Spot Grid, Contract Grid, Moon Grid strategies |
-| `bot.dca` | 5 | Contract DCA (Martingale) strategies |
+| `bot.dca` | 9 | Contract DCA (Martingale) strategies |
 
 **Module aliases:**
 - `bot` → all bot sub-modules (`bot.grid` + `bot.dca`)
@@ -58,6 +58,10 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_get_orders` | List active or historical Contract DCA bots |
 | `dca_get_order_details` | Get details of a single Contract DCA bot |
 | `dca_get_sub_orders` | List cycles / orders within a cycle of a Contract DCA bot |
+| `dca_add_margin` | Add margin to a running contract DCA bot |
+| `dca_reduce_margin` | Reduce margin on a running contract DCA bot |
+| `dca_update_take_profit` | Update take-profit price on a running contract DCA bot |
+| `dca_manual_buy` | Trigger a manual buy cycle on a running DCA bot |
 
 ## Example prompts
 

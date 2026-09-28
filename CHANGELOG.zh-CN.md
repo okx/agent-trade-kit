@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **DCA 机器人运营管理工具** ([#220])：新增 4 个 MCP 工具及对应 CLI 子命令，用于管理运行中的 DCA 机器人——`dca_add_margin` / `okx bot dca add-margin`、`dca_reduce_margin` / `okx bot dca reduce-margin`、`dca_update_take_profit` / `okx bot dca update-tp`、`dca_manual_buy` / `okx bot dca manual-buy`。错误码 59301（超出保证金调整范围）和 59302（存在待关闭订单冲突）会被翻译为友好提示；错误码 51223（跟单用户不支持此操作）同样翻译为友好提示。`dca_manual_buy` 请求体使用 `px` 字段（非 `price`），符合 ALGO-35353 变更。
+
 ## [1.4.8] - 2026-09-23
 
 ### 修复

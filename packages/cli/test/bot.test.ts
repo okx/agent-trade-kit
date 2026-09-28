@@ -15,6 +15,10 @@ import {
   cmdDcaCreate,
   cmdDcaStop,
   cmdDcaSubOrders,
+  cmdDcaAddMargin,
+  cmdDcaReduceMargin,
+  cmdDcaUpdateTakeProfit,
+  cmdDcaManualBuy,
 } from "../src/commands/bot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 
@@ -757,5 +761,127 @@ describe("cmdGridClosePosition", () => {
       fakeResult([{ algoId: "G001", sCode: "0" }]);
     await cmdGridClosePosition(runner, { algoId: "G001", mktClose: true, json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaAddMargin
+// ---------------------------------------------------------------------------
+describe("cmdDcaAddMargin", () => {
+  it("passes algoId and amt to runner as dca_add_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaAddMargin(runner, { algoId: "DCA001", amt: "100", json: false });
+    assert.equal(capturedName, "dca_add_margin");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["amt"], "100");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaAddMargin(runner, { algoId: "DCA001", amt: "100", json: false });
+    assert.ok(out.join("").includes("Margin added"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0" }]);
+    await cmdDcaAddMargin(runner, { algoId: "DCA001", amt: "100", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaReduceMargin
+// ---------------------------------------------------------------------------
+describe("cmdDcaReduceMargin", () => {
+  it("passes algoId and amt to runner as dca_reduce_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: "50", json: false });
+    assert.equal(capturedName, "dca_reduce_margin");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["amt"], "50");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: "50", json: false });
+    assert.ok(out.join("").includes("Margin reduced"));
+    assert.equal(err.join(""), "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaUpdateTakeProfit
+// ---------------------------------------------------------------------------
+describe("cmdDcaUpdateTakeProfit", () => {
+  it("passes algoId, algoOrdType, tpPrice to runner as dca_update_take_profit", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", algoOrdType: "contract_dca", tpPrice: "55000", json: false });
+    assert.equal(capturedName, "dca_update_take_profit");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["algoOrdType"], "contract_dca");
+    assert.equal(captured["tpPrice"], "55000");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", algoOrdType: "contract_dca", tpPrice: "55000", json: false });
+    assert.ok(out.join("").includes("Take-profit updated"));
+    assert.equal(err.join(""), "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaManualBuy
+// ---------------------------------------------------------------------------
+describe("cmdDcaManualBuy", () => {
+  it("passes algoId and algoOrdType to runner as dca_manual_buy (no px)", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    assert.equal(capturedName, "dca_manual_buy");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["algoOrdType"], "contract_dca");
+    assert.equal(captured["px"], undefined);
+  });
+
+  it("passes px when provided (limit mode)", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => {
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", px: "48000", json: false });
+    assert.equal(captured["px"], "48000");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    assert.ok(out.join("").includes("Manual buy triggered"));
+    assert.equal(err.join(""), "");
   });
 });

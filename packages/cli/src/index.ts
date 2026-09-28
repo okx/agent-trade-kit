@@ -191,6 +191,10 @@ import {
   cmdDcaOrders,
   cmdDcaDetails,
   cmdDcaSubOrders,
+  cmdDcaAddMargin,
+  cmdDcaReduceMargin,
+  cmdDcaUpdateTakeProfit,
+  cmdDcaManualBuy,
 } from "./commands/bot.js";
 import {
   cmdOnchainEarnOffers,
@@ -1367,7 +1371,15 @@ export function handleBotDcaCommand(
     });
   if (subAction === "stop")
     return cmdDcaStop(run, { algoId: v.algoId!, algoOrdType, stopType: v.stopType, json });
-  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop"]);
+  if (subAction === "add-margin")
+    return cmdDcaAddMargin(run, { algoId: v.algoId!, amt: v.amt!, json });
+  if (subAction === "reduce-margin")
+    return cmdDcaReduceMargin(run, { algoId: v.algoId!, amt: v.amt!, json });
+  if (subAction === "update-tp")
+    return cmdDcaUpdateTakeProfit(run, { algoId: v.algoId!, algoOrdType, tpPrice: v.tpPrice!, json });
+  if (subAction === "manual-buy")
+    return cmdDcaManualBuy(run, { algoId: v.algoId!, algoOrdType, px: v.px, json });
+  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop", "add-margin", "reduce-margin", "update-tp", "manual-buy"]);
 }
 
 export function handleBotCommand(

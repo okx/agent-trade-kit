@@ -391,6 +391,60 @@ export async function cmdDcaStop(
   emitWriteResult(data?.[0], "DCA bot stopped", "algoId");
 }
 
+export async function cmdDcaAddMargin(
+  run: ToolRunner,
+  opts: { algoId: string; amt: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_add_margin", {
+    algoId: opts.algoId,
+    amt: opts.amt,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  emitWriteResult(data?.[0], "Margin added", "algoId");
+}
+
+export async function cmdDcaReduceMargin(
+  run: ToolRunner,
+  opts: { algoId: string; amt: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_reduce_margin", {
+    algoId: opts.algoId,
+    amt: opts.amt,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  emitWriteResult(data?.[0], "Margin reduced", "algoId");
+}
+
+export async function cmdDcaUpdateTakeProfit(
+  run: ToolRunner,
+  opts: { algoId: string; algoOrdType: string; tpPrice: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_update_take_profit", {
+    algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
+    tpPrice: opts.tpPrice,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  emitWriteResult(data?.[0], "Take-profit updated", "algoId");
+}
+
+export async function cmdDcaManualBuy(
+  run: ToolRunner,
+  opts: { algoId: string; algoOrdType: string; px?: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_manual_buy", {
+    algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
+    px: opts.px,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  emitWriteResult(data?.[0], "Manual buy triggered", "algoId");
+}
+
 export async function cmdDcaOrders(
   run: ToolRunner,
   opts: { algoOrdType?: string; algoId?: string; instId?: string; history: boolean; json: boolean },

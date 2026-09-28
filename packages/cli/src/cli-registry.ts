@@ -849,6 +849,26 @@ export const CLI_REGISTRY: CliRegistry = {
             usage: "okx bot dca stop --algoOrdType <spot_dca|contract_dca> --algoId <id> [--stopType <1|2>]\n                 Note: --stopType required for spot_dca (1=sell all, 2=keep tokens)",
             description: "Stop a DCA bot (spot or contract)",
           },
+          "add-margin": {
+            toolName: "dca_add_margin",
+            usage: "okx bot dca add-margin --algoId <id> --amt <amount>",
+            description: "Add margin to a running contract DCA bot",
+          },
+          "reduce-margin": {
+            toolName: "dca_reduce_margin",
+            usage: "okx bot dca reduce-margin --algoId <id> --amt <amount>",
+            description: "Reduce margin on a running contract DCA bot",
+          },
+          "update-tp": {
+            toolName: "dca_update_take_profit",
+            usage: "okx bot dca update-tp --algoOrdType contract_dca --algoId <id> --tpPrice <price>",
+            description: "Update take-profit price on a running contract DCA bot",
+          },
+          "manual-buy": {
+            toolName: "dca_manual_buy",
+            usage: "okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> [--px <price>]",
+            description: "Trigger a manual buy cycle on a running DCA bot",
+          },
         },
       },
     },

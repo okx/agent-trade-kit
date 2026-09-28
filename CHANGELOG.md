@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **DCA bot operational management tools** ([#220]): four new MCP tools and matching CLI subcommands for managing running DCA bots — `dca_add_margin` / `okx bot dca add-margin`, `dca_reduce_margin` / `okx bot dca reduce-margin`, `dca_update_take_profit` / `okx bot dca update-tp`, `dca_manual_buy` / `okx bot dca manual-buy`. Error codes 59301 (out-of-range margin) and 59302 (pending close order conflict) are translated to friendly messages; error code 51223 (copy-trading follower accounts) is also translated. The `dca_manual_buy` request body uses the `px` field (not `price`) per ALGO-35353.
+
 ## [1.4.8] - 2026-09-23
 
 ### Fixed

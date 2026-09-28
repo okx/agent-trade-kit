@@ -3345,8 +3345,8 @@ describe("swap_get_algo_orders", () => {
 describe("dca tools registration", () => {
   const tools = registerDcaTools();
 
-  it("registers exactly 5 DCA tools", () => {
-    assert.equal(tools.length, 5);
+  it("registers exactly 9 DCA tools", () => {
+    assert.equal(tools.length, 9);
   });
 
   it("all DCA tools have module bot.dca", () => {
@@ -3357,6 +3357,217 @@ describe("dca tools registration", () => {
         `${tool.name} should have module bot.dca`,
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_add_margin
+// ---------------------------------------------------------------------------
+describe("dca_add_margin", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_add_margin")!;
+
+  it("calls /dca/margin/add with algoId and amt", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "100" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/margin/add");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "111");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "100");
+  });
+
+  it("does not include algoOrdType in request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "50" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, undefined);
+  });
+
+  it("throws error when amt is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111" }, makeContext(client)),
+    );
+  });
+
+  it("translates sCode=59302 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59302", sMsg: "Pls cancel the pending close order first" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Cancel the pending close order first"));
+        return true;
+      },
+    );
+  });
+
+  it("translates sCode=59301 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59301", sMsg: "Adjustment amount exceeds max limit" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Adjustment amount is outside the allowed margin range"));
+        return true;
+      },
+    );
+  });
+
+});
+
+// ---------------------------------------------------------------------------
+// dca_reduce_margin
+// ---------------------------------------------------------------------------
+describe("dca_reduce_margin", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
+
+  it("calls /dca/margin/reduce with algoId and amt", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/margin/reduce");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "222");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "50");
+  });
+
+  it("does not include algoOrdType in request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, undefined);
+  });
+
+  it("throws error when amt is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222" }, makeContext(client)),
+    );
+  });
+
+  it("translates sCode=59302 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59302", sMsg: "Pls cancel the pending close order first" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Cancel the pending close order first"));
+        return true;
+      },
+    );
+  });
+
+  it("translates sCode=59301 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59301", sMsg: "Adjustment amount exceeds max limit" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Adjustment amount is outside the allowed margin range"));
+        return true;
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_update_take_profit
+// ---------------------------------------------------------------------------
+describe("dca_update_take_profit", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
+
+  it("calls /dca/settings/take-profit with algoId, algoOrdType, tpPrice", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "333", algoOrdType: "contract_dca", tpPrice: "50000" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/settings/take-profit");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoId, "333");
+    assert.equal(params.algoOrdType, "contract_dca");
+    assert.equal(params.tpPrice, "50000");
+  });
+
+  it("translates sCode=51223 to copy-trading message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "51223", sMsg: "This operation is not supported" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", algoOrdType: "contract_dca", tpPrice: "50000" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("not available for sync copy-trading follower accounts"));
+        return true;
+      },
+    );
+  });
+
+  it("throws error when tpPrice is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", algoOrdType: "contract_dca" }, makeContext(client)),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_manual_buy
+// ---------------------------------------------------------------------------
+describe("dca_manual_buy", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_manual_buy")!;
+
+  it("calls /dca/buy with algoId and algoOrdType, no px when omitted", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "444", algoOrdType: "contract_dca" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/buy");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "444");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).px, undefined);
+  });
+
+  it("uses field name 'px' (not 'price') for limit price", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", px: "48000" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.px, "48000");
+    assert.equal(params.price, undefined);
+  });
+
+  it("translates sCode=51223 to copy-trading message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/buy",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "51223", sMsg: "This operation is not supported" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "444", algoOrdType: "contract_dca" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("not available for sync copy-trading follower accounts"));
+        return true;
+      },
+    );
+  });
+
+  it("throws error when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoOrdType: "contract_dca" }, makeContext(client)),
+    );
   });
 });
 

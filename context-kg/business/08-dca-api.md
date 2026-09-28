@@ -315,9 +315,9 @@ Request/Response: Same shape as `/margin/add`.
 | algoId | Y | String | Strategy id | `12345` |
 | algoOrdType | Y | String | Algo order type (`contract_dca`) | `contract_dca` |
 | amt | Y | String | Order quantity | `5` |
-| price | N | String | Order price (blank for market) | `42000.5` |
+| px | N | String | Order price (blank for market) | `42000.5` |
 
-> `price` will be truncated to instrument tick size precision.
+> `px` (not `price`) will be truncated to instrument tick size precision. Field was renamed from `price` to `px` per ALGO-35353.
 
 #### Response — Success (`ManualBuyResponse`)
 

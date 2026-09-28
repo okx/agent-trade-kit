@@ -109,6 +109,7 @@ export interface CliValues {
   pxStepsMult?: string;
   volMult?: string;
   tpPct?: string;
+  tpPrice?: string;
   slPct?: string;
   slMode?: string;
   allowReinvest?: string;
@@ -379,6 +380,7 @@ export const CLI_OPTIONS = {
   pxStepsMult: { type: "string" },
   volMult: { type: "string" },
   tpPct: { type: "string" },
+  tpPrice: { type: "string" },
   slPct: { type: "string" },
   slMode: { type: "string" },
   allowReinvest: { type: "string" },
