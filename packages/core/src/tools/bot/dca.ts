@@ -507,21 +507,23 @@ export function registerDcaTools(): ToolSpec[] {
         properties: {
           algoId: { type: "string", description: "Algo order ID" },
           algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
+          amt: { type: "string", description: "Order quantity (in base currency for spot_dca, or contracts for contract_dca)" },
           px: { type: "string", description: "Limit price. Omit for market order." },
         },
-        required: ["algoId", "algoOrdType"],
+        required: ["algoId", "algoOrdType", "amt"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
         const algoOrdType = requireString(args, "algoOrdType");
+        const amt = requireString(args, "amt");
         const px = readString(args, "px");
         const response = await context.client.privatePost(
-          `${BASE}/buy`,
-          compactObject({ algoId, algoOrdType, px }),
+          `${BASE}/orders/manual-buy`,
+          compactObject({ algoId, algoOrdType, amt, px }),
           privateRateLimit("dca_manual_buy", 20),
         );
-        preCheckCopyTradingErrors(response, `${BASE}/buy`);
+        preCheckCopyTradingErrors(response, `${BASE}/orders/manual-buy`);
         return normalizeWrite(response);
       },
     },

@@ -853,7 +853,7 @@ describe("cmdDcaUpdateTakeProfit", () => {
 // cmdDcaManualBuy
 // ---------------------------------------------------------------------------
 describe("cmdDcaManualBuy", () => {
-  it("passes algoId and algoOrdType to runner as dca_manual_buy (no px)", async () => {
+  it("passes algoId, algoOrdType and amt to runner as dca_manual_buy (no px)", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -861,10 +861,11 @@ describe("cmdDcaManualBuy", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([{ sCode: "0" }]);
     };
-    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", amt: "1", json: false });
     assert.equal(capturedName, "dca_manual_buy");
     assert.equal(captured["algoId"], "DCA001");
     assert.equal(captured["algoOrdType"], "contract_dca");
+    assert.equal(captured["amt"], "1");
     assert.equal(captured["px"], undefined);
   });
 
@@ -874,13 +875,13 @@ describe("cmdDcaManualBuy", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([{ sCode: "0" }]);
     };
-    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", px: "48000", json: false });
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", amt: "1", px: "48000", json: false });
     assert.equal(captured["px"], "48000");
   });
 
   it("outputs success message when sCode='0'", async () => {
     const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
-    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    await cmdDcaManualBuy(runner, { algoId: "DCA001", algoOrdType: "contract_dca", amt: "1", json: false });
     assert.ok(out.join("").includes("Manual buy triggered"));
     assert.equal(err.join(""), "");
   });

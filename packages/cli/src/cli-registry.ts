@@ -866,7 +866,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "manual-buy": {
             toolName: "dca_manual_buy",
-            usage: "okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> [--px <price>]",
+            usage: "okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> --amt <qty> [--px <price>]",
             description: "Trigger a manual buy cycle on a running DCA bot",
           },
         },

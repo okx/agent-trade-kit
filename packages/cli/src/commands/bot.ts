@@ -433,11 +433,12 @@ export async function cmdDcaUpdateTakeProfit(
 
 export async function cmdDcaManualBuy(
   run: ToolRunner,
-  opts: { algoId: string; algoOrdType: string; px?: string; json: boolean },
+  opts: { algoId: string; algoOrdType: string; amt: string; px?: string; json: boolean },
 ): Promise<void> {
   const result = await run("dca_manual_buy", {
     algoId: opts.algoId,
     algoOrdType: opts.algoOrdType,
+    amt: opts.amt,
     px: opts.px,
   });
   const data = getData(result) as Record<string, unknown>[];
