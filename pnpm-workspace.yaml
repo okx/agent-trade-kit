@@ -1,4 +1,7 @@
 packages:
   - "packages/*"
+# See .npmrc's onlyBuiltDependencies comment: allow-lists esbuild's postinstall
+# script under newer pnpm's default install-script blocking. Build-environment
+# necessity, unrelated to any single feature.
 allowBuilds:
   esbuild: true

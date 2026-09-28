@@ -495,8 +495,9 @@ export function registerDcaTools(): ToolSpec[] {
       title: "Martingale Bot Manual Buy",
       module: "bot.dca",
       description:
-        "[CAUTION] Trigger a manual buy cycle on a running DCA bot. Real-money operation. " +
-        "Omit px for market order; supply px for limit order. " +
+        "[CAUTION] Manually place an extra buy order on a running DCA bot, adding more of the base asset to its existing position " +
+        "(also known as \"Add investment\" in OKX's public API naming). Does not start a new cycle — it adds to the current one. " +
+        "Real-money operation. Omit px for market order; supply px for limit order. " +
         "Not available for sync copy-trading follower accounts (sCode=51223).",
       isWrite: true,
       destructiveHint: false,

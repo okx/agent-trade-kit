@@ -13,7 +13,7 @@
 
 ### 新增
 
-- **DCA 机器人运营管理工具** ([#220])：新增 4 个 MCP 工具及对应 CLI 子命令，用于管理运行中的 DCA 机器人——`dca_add_margin` / `okx bot dca add-margin`、`dca_reduce_margin` / `okx bot dca reduce-margin`、`dca_update_take_profit` / `okx bot dca update-tp`、`dca_manual_buy` / `okx bot dca manual-buy`。错误码 59301（超出保证金调整范围）和 59302（存在待关闭订单冲突）会被翻译为友好提示；错误码 51223（跟单用户不支持此操作）同样翻译为友好提示。`dca_manual_buy` 请求体使用 `px` 字段（非 `price`），符合 OKX API 规范。
+- **DCA 机器人运营管理工具** ([#220])：新增 4 个 MCP 工具及对应 CLI 子命令，用于管理运行中的 DCA 机器人——`dca_add_margin` / `okx bot dca add-margin`、`dca_reduce_margin` / `okx bot dca reduce-margin`、`dca_update_take_profit` / `okx bot dca update-tp`、`dca_manual_buy` / `okx bot dca manual-buy`（在 OKX 官方 API 命名中也称"Add investment"）。错误码 59301（超出保证金调整范围）和 59302（存在待关闭订单冲突）会被翻译为友好提示；错误码 51223（跟单用户不支持此操作）同样翻译为友好提示。`dca_manual_buy` 请求体的限价字段为 `px`。
 - **`dca_manual_buy` 新增 `ordType` 和 `tradeQuoteCcy` 参数**：工具现在接受并转发 `ordType: "limit"|"market"` 和 `tradeQuoteCcy`，支持现货 DCA 手动加仓时指定报价货币。
 
 ### 修复

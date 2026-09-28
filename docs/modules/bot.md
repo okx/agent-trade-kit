@@ -61,7 +61,7 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_add_margin` | Add margin to a running contract DCA bot |
 | `dca_reduce_margin` | Reduce margin on a running contract DCA bot |
 | `dca_update_take_profit` | Update take-profit price on a running contract DCA bot |
-| `dca_manual_buy` | Trigger a manual buy cycle on a running DCA bot |
+| `dca_manual_buy` | Manually place an extra buy order on a running DCA bot, adding to its current position |
 
 ## Example prompts
 
