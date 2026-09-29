@@ -393,7 +393,7 @@ export function registerDcaTools(): ToolSpec[] {
       title: "Martingale Bot Add Margin",
       module: "bot.dca",
       description:
-        "[CAUTION] Add margin to a running contract DCA bot. Real-money operation. " +
+        "[CAUTION] Add margin to a running contract DCA bot. Moves funds into the position. " +
         "Use to prevent liquidation or extend position runway.",
       isWrite: true,
       destructiveHint: false,
@@ -429,8 +429,8 @@ export function registerDcaTools(): ToolSpec[] {
       title: "Martingale Bot Reduce Margin",
       module: "bot.dca",
       description:
-        "[CAUTION] Reduce margin on a running contract DCA bot. Real-money operation. " +
-        "If a pending close order exists on the position, cancel it first and retry.",
+        "[CAUTION] Reduce margin on a running contract DCA bot. Moves funds out of the position. " +
+        "Use to free up margin no longer needed for the position.",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
@@ -465,7 +465,7 @@ export function registerDcaTools(): ToolSpec[] {
       title: "Martingale Bot Update Take-Profit",
       module: "bot.dca",
       description:
-        "[CAUTION] Update the take-profit price on a running contract DCA bot. Real-money operation. " +
+        "[CAUTION] Update the take-profit price on a running contract DCA bot. Changes a live risk parameter. " +
         "Not available for sync copy-trading follower accounts.",
       isWrite: true,
       destructiveHint: false,

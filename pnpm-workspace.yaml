@@ -1,7 +1,10 @@
 packages:
   - "packages/*"
-# See .npmrc's onlyBuiltDependencies comment: allow-lists esbuild's postinstall
-# script under newer pnpm's default install-script blocking. Build-environment
-# necessity, unrelated to any single feature.
+# Allow-lists esbuild's postinstall script under newer pnpm's default
+# install-script blocking; without this, `pnpm install` fails with
+# ERR_PNPM_IGNORED_BUILDS (confirmed empirically -- this is the setting that
+# actually enforces it under this repo's pnpm 12.5.1, not .npmrc or
+# package.json's "pnpm" field). Build-environment necessity, unrelated to any
+# single feature.
 allowBuilds:
   esbuild: true
