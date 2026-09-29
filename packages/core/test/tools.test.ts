@@ -3527,7 +3527,7 @@ describe("dca_update_take_profit", () => {
 // ---------------------------------------------------------------------------
 // dca_add_margin — NaN guard
 // ---------------------------------------------------------------------------
-describe("dca_add_margin — NaN guard", () => {
+describe("dca_add_margin - NaN guard", () => {
   const tools = registerDcaTools();
   const tool = tools.find((t) => t.name === "dca_add_margin")!;
 
@@ -3553,7 +3553,7 @@ describe("dca_add_margin — NaN guard", () => {
 // ---------------------------------------------------------------------------
 // dca_reduce_margin — NaN guard
 // ---------------------------------------------------------------------------
-describe("dca_reduce_margin — NaN guard", () => {
+describe("dca_reduce_margin - NaN guard", () => {
   const tools = registerDcaTools();
   const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
 
@@ -3572,7 +3572,7 @@ describe("dca_reduce_margin — NaN guard", () => {
 // ---------------------------------------------------------------------------
 // dca_update_take_profit — algoOrdType hardcoded
 // ---------------------------------------------------------------------------
-describe("dca_update_take_profit — implicit algoOrdType", () => {
+describe("dca_update_take_profit - implicit algoOrdType", () => {
   const tools = registerDcaTools();
   const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
 
@@ -3593,7 +3593,7 @@ describe("dca_update_take_profit — implicit algoOrdType", () => {
 // ---------------------------------------------------------------------------
 // dca_create_order — direction conditional logic
 // ---------------------------------------------------------------------------
-describe("dca_create_order — direction conditional", () => {
+describe("dca_create_order - direction conditional", () => {
   const tools = registerDcaTools();
   const tool = tools.find((t) => t.name === "dca_create_order")!;
   const baseArgs = {

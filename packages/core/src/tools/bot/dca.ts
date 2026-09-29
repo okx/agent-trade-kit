@@ -430,7 +430,7 @@ export function registerDcaTools(): ToolSpec[] {
       module: "bot.dca",
       description:
         "[CAUTION] Reduce margin on a running contract DCA bot. Real-money operation. " +
-        "Cancel any pending close order first if error sCode=59302 is returned.",
+        "If a pending close order exists on the position, cancel it first and retry.",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
@@ -466,7 +466,7 @@ export function registerDcaTools(): ToolSpec[] {
       module: "bot.dca",
       description:
         "[CAUTION] Update the take-profit price on a running contract DCA bot. Real-money operation. " +
-        "Not available for sync copy-trading follower accounts (sCode=51223).",
+        "Not available for sync copy-trading follower accounts.",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
