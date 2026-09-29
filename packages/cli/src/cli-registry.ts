@@ -864,11 +864,6 @@ export const CLI_REGISTRY: CliRegistry = {
             usage: "okx bot dca update-tp --algoId <id> --tpPrice <price>",
             description: "Update take-profit price on a running contract DCA bot",
           },
-          "manual-buy": {
-            toolName: "dca_manual_buy",
-            usage: "okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> --amt <qty> [--px <price>] [--ordType <limit|market>] [--tradeQuoteCcy <ccy>]",
-            description: "Trigger a manual buy cycle on a running DCA bot",
-          },
         },
       },
     },

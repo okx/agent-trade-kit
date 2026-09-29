@@ -194,7 +194,6 @@ import {
   cmdDcaAddMargin,
   cmdDcaReduceMargin,
   cmdDcaUpdateTakeProfit,
-  cmdDcaManualBuy,
 } from "./commands/bot.js";
 import {
   cmdOnchainEarnOffers,
@@ -1377,9 +1376,7 @@ export function handleBotDcaCommand(
     return cmdDcaReduceMargin(run, { algoId: v.algoId!, amt: v.amt!, json });
   if (subAction === "update-tp")
     return cmdDcaUpdateTakeProfit(run, { algoId: v.algoId!, tpPrice: v.tpPrice!, json });
-  if (subAction === "manual-buy")
-    return cmdDcaManualBuy(run, { algoId: v.algoId!, algoOrdType, amt: v.amt!, px: v.px, ordType: v.ordType, tradeQuoteCcy: v.tradeQuoteCcy, json });
-  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop", "add-margin", "reduce-margin", "update-tp", "manual-buy"]);
+  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop", "add-margin", "reduce-margin", "update-tp"]);
 }
 
 export function handleBotCommand(

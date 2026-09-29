@@ -119,7 +119,6 @@ Resolution:
 | `okx bot dca add-margin` | WRITE | Add margin to a running contract DCA bot |
 | `okx bot dca reduce-margin` | WRITE | Reduce margin on a running contract DCA bot |
 | `okx bot dca update-tp` | WRITE | Update take-profit price on a running contract DCA bot |
-| `okx bot dca manual-buy` | WRITE | Manually place an extra buy order on a running DCA bot, adding to its current position |
 
 ## Operation Flow
 
@@ -467,27 +466,6 @@ okx bot dca update-tp --algoId <id> --tpPrice <price> [--json]
 
 **Error codes:** `51223` → Not available for sync copy-trading follower accounts.
 
----
-
-### DCA Bot — Manual Buy
-
-> Also referred to as "Add investment" in OKX's public API naming (same display name used by Grid's `adjust-investment` and Recurring Buy's `add-investment`) — recognize this term if a user asks to "add investment" to a DCA bot.
-
-```bash
-okx bot dca manual-buy --algoOrdType <spot_dca|contract_dca> --algoId <id> --amt <qty> [--px <price>] [--ordType <limit|market>] [--tradeQuoteCcy <ccy>] [--json]
-```
-
-| Param | Required | Description |
-|---|---|---|
-| `--algoId` | Yes | DCA bot algo order ID |
-| `--algoOrdType` | Yes | `spot_dca` or `contract_dca` |
-| `--amt` | Yes | Order quantity (base currency for spot_dca, contracts for contract_dca) |
-| `--px` | No | Limit price. Omit for market order |
-| `--ordType` | No | `limit` or `market`. Inferred from `--px` presence when omitted |
-| `--tradeQuoteCcy` | No | Quote currency (e.g. `USDT`). Applicable for spot_dca |
-
-**Error codes:** `51223` → Not available for sync copy-trading follower accounts.
-
 ## Quickstart
 
 ```bash
@@ -616,7 +594,7 @@ okx bot dca orders --algoOrdType spot_dca
 - **algoClOrdId duplicate**: error code `51065`
 - **Margin adjustment blocked by pending close order (`59302`)**: `bot dca add-margin`/`reduce-margin` fails if the position has a pending close order. Tell the user to cancel the pending close order first, then retry
 - **Margin adjustment out of range (`59301`)**: `bot dca add-margin`/`reduce-margin` fails if the adjustment would push margin outside the allowed range. Report the error; do not retry with an arbitrary different amount without asking the user
-- **Sync copy-trading follower blocked (`51223`)**: `bot dca update-tp` and `bot dca manual-buy` are not available for sync copy-trading follower accounts (`copyType=2` + `trackingMode=sync`). Explain this to the user rather than retrying
+- **Sync copy-trading follower blocked (`51223`)**: `bot dca update-tp` is not available for sync copy-trading follower accounts (`copyType=2` + `trackingMode=sync`). Explain this to the user rather than retrying
 
 ## Communication Guidelines
 
@@ -681,11 +659,9 @@ okx bot dca orders --algoOrdType spot_dca
 | `algoClOrdId` | Client order ID | 客户端策略订单 ID |
 | `stopType` | Stop type (sell all / keep tokens) | 停止类型（卖出/保留） |
 | `reserveFunds` | Reserve funds | 预留资金 |
-| `amt` | Amount (margin adjustment / order quantity) | 金额（保证金调整/下单数量） |
+| `amt` | Amount (margin adjustment) | 金额（保证金调整） |
 | `tpPrice` | New take-profit price | 新止盈价格 |
-| `ordType` | Order type (limit/market) | 订单类型（限价/市价） |
 | `tradeQuoteCcy` | Quote currency for trade | 交易计价货币 |
-| `px` | Limit price (manual buy) | 限价（手动加仓） |
 
 > **`slPct` stop-loss logic:**
 > - Long: stop-loss price = initial fill price × (1 − slPct)

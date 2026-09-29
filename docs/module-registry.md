@@ -24,13 +24,13 @@ Unregistered modules will be rejected during review.
 | news | ✅ approved | 9 | 9 | 0 | ~3,352 | [design doc](designs/news.md) | @Chen.Gong | 2026-03-24 |
 | bot.grid | ✅ approved | 9 | 5 | 4 | ~3,131 | _(founding module)_ | @Jasmine.Li | — |
 | earn.savings | ✅ approved | 10 | 5 | 5 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
-| bot.dca | ✅ approved | 9 | 3 | 6 | ~1,770 | _(founding module)_ | @Jasmine.Li | — |
+| bot.dca | ✅ approved | 8 | 3 | 5 | ~1,660 | _(founding module)_ | @Jasmine.Li | — |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |
 | earn.onchain | ✅ approved | 6 | 3 | 3 | ~993 | _(founding module)_ | @Jasmine.Li | — |
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
-| **Total** | | **171** | **104** | **67** | **~50,105** | | | |
+| **Total** | | **170** | **104** | **66** | **~49,995** | | | |
 
 ## Status Legend
 

@@ -3345,8 +3345,8 @@ describe("swap_get_algo_orders", () => {
 describe("dca tools registration", () => {
   const tools = registerDcaTools();
 
-  it("registers exactly 9 DCA tools", () => {
-    assert.equal(tools.length, 9);
+  it("registers exactly 8 DCA tools", () => {
+    assert.equal(tools.length, 8);
   });
 
   it("all DCA tools have module bot.dca", () => {
@@ -3525,61 +3525,6 @@ describe("dca_update_take_profit", () => {
 });
 
 // ---------------------------------------------------------------------------
-// dca_manual_buy
-// ---------------------------------------------------------------------------
-describe("dca_manual_buy", () => {
-  const tools = registerDcaTools();
-  const tool = tools.find((t) => t.name === "dca_manual_buy")!;
-
-  it("calls /dca/orders/manual-buy with algoId, algoOrdType, and amt; no px when omitted", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1" }, makeContext(client));
-    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/orders/manual-buy");
-    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "444");
-    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "1");
-    assert.equal((getLastCall()?.params as Record<string, unknown>).px, undefined);
-  });
-
-  it("uses field name 'px' (not 'price') for limit price", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1", px: "48000" }, makeContext(client));
-    const params = getLastCall()?.params as Record<string, unknown>;
-    assert.equal(params.px, "48000");
-    assert.equal(params.price, undefined);
-  });
-
-  it("translates sCode=51223 to copy-trading message", async () => {
-    const { client } = makeMockClient();
-    client.privatePost = async () => ({
-      endpoint: "/api/v5/tradingBot/dca/orders/manual-buy",
-      requestTime: "2024-01-01",
-      data: [{ sCode: "51223", sMsg: "This operation is not supported" }],
-    });
-    await assert.rejects(
-      () => tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1" }, makeContext(client)),
-      (err: Error) => {
-        assert.ok(err.message.includes("not available for sync copy-trading follower accounts"));
-        return true;
-      },
-    );
-  });
-
-  it("throws error when algoId is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({ algoOrdType: "contract_dca", amt: "1" }, makeContext(client)),
-    );
-  });
-
-  it("throws error when amt is missing", async () => {
-    const { client } = makeMockClient();
-    await assert.rejects(
-      () => tool.handler({ algoId: "444", algoOrdType: "contract_dca" }, makeContext(client)),
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
 // dca_add_margin — NaN guard
 // ---------------------------------------------------------------------------
 describe("dca_add_margin — NaN guard", () => {
@@ -3642,32 +3587,6 @@ describe("dca_update_take_profit — implicit algoOrdType", () => {
     const schema = tool.inputSchema as { properties?: Record<string, unknown>; required?: string[] };
     assert.equal(schema.properties?.["algoOrdType"], undefined);
     assert.ok(!(schema.required ?? []).includes("algoOrdType"));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// dca_manual_buy — ordType and tradeQuoteCcy forwarding
-// ---------------------------------------------------------------------------
-describe("dca_manual_buy — ordType and tradeQuoteCcy", () => {
-  const tools = registerDcaTools();
-  const tool = tools.find((t) => t.name === "dca_manual_buy")!;
-
-  it("forwards ordType to request body when provided", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1", ordType: "limit" }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, "limit");
-  });
-
-  it("omits ordType from body when not provided", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1" }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>).ordType, undefined);
-  });
-
-  it("forwards tradeQuoteCcy to request body when provided", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "444", algoOrdType: "contract_dca", amt: "1", tradeQuoteCcy: "USDT" }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>).tradeQuoteCcy, "USDT");
   });
 });
 

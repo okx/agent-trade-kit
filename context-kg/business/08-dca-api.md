@@ -570,7 +570,7 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 
 ## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
 
-The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 9 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
+The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 8 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
 
 | Tool | Key params | `isWrite` |
 |---|---|---|
@@ -582,7 +582,6 @@ The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 9 un
 | `dca_add_margin` | `algoId`, `amt` (must be a positive finite number — NaN/Infinity rejected client-side) | true |
 | `dca_reduce_margin` | `algoId`, `amt` (positive finite number); sCode=59302 → cancel pending close order first; sCode=59301 → amount outside allowed range | true |
 | `dca_update_take_profit` | `algoId`, `tpPrice`; `algoOrdType: contract_dca` is hardcoded server-side (not exposed in schema); sCode=51223 → blocked for sync copy-trading followers | true |
-| `dca_manual_buy` | `algoId`, `algoOrdType`, `amt`; optional `px` (limit price), `ordType: limit\|market`, `tradeQuoteCcy`; sCode=51223 → blocked for sync copy-trading followers | true |
 
 ### Backlog (not yet wrapped)
 
@@ -590,5 +589,6 @@ The following V2 Contract DCA upstream endpoints exist but are not yet exposed a
 
 | Endpoint | Purpose |
 |---|---|
+| `POST /orders/manual-buy` | Manually add to a bot's current position. Was implemented as `dca_manual_buy` and then removed from scope before merge (issue #220) due to API design concerns raised during review — not just "not yet gotten to." Revisit the design (naming/field semantics) before re-attempting, rather than re-shipping the same shape. |
 | `POST /settings/reinvestment` | Toggle profit reinvestment |
 | `POST /copy-order-algo` | Copy-trading algo order setup (related to Appendix A sync copy followers); rejects `spot_dca` via `ensureContractDcaOnly()`. Not otherwise documented in this file — full request/response shape unconfirmed. |

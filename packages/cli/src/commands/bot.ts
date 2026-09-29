@@ -430,23 +430,6 @@ export async function cmdDcaUpdateTakeProfit(
   emitWriteResult(data?.[0], "Take-profit updated", "algoId");
 }
 
-export async function cmdDcaManualBuy(
-  run: ToolRunner,
-  opts: { algoId: string; algoOrdType: string; amt: string; px?: string; ordType?: string; tradeQuoteCcy?: string; json: boolean },
-): Promise<void> {
-  const result = await run("dca_manual_buy", {
-    algoId: opts.algoId,
-    algoOrdType: opts.algoOrdType,
-    amt: opts.amt,
-    px: opts.px,
-    ordType: opts.ordType,
-    tradeQuoteCcy: opts.tradeQuoteCcy,
-  });
-  const data = getData(result) as Record<string, unknown>[];
-  if (opts.json) return printJson(data);
-  emitWriteResult(data?.[0], "Manual buy triggered", "algoId");
-}
-
 export async function cmdDcaOrders(
   run: ToolRunner,
   opts: { algoOrdType?: string; algoId?: string; instId?: string; history: boolean; json: boolean },

@@ -333,24 +333,6 @@ describe("handleBotDcaCommand", () => {
     assert.equal(getCaptured()["tpPrice"], "55000", "tpPrice must come from v.tpPrice");
   });
 
-  it("manual-buy: algoId and amt come from named flags (v.algoId, v.amt)", async () => {
-    const { spy, getCaptured } = makeCaptureSpy();
-    await handleBotDcaCommand(spy, "manual-buy", { algoId: "DCA004", algoOrdType: "contract_dca", amt: "2" } as never, false);
-    assert.equal(getCaptured()["algoId"], "DCA004", "algoId must come from v.algoId");
-    assert.equal(getCaptured()["amt"], "2", "amt must come from v.amt");
-  });
-
-  it("manual-buy: ordType and tradeQuoteCcy come from named flags (v.ordType, v.tradeQuoteCcy), not rest[N]", async () => {
-    const { spy, getCaptured } = makeCaptureSpy();
-    await handleBotDcaCommand(
-      spy,
-      "manual-buy",
-      { algoId: "DCA005", algoOrdType: "spot_dca", amt: "3", ordType: "limit", tradeQuoteCcy: "USDT" } as never,
-      false,
-    );
-    assert.equal(getCaptured()["ordType"], "limit", "ordType must come from v.ordType");
-    assert.equal(getCaptured()["tradeQuoteCcy"], "USDT", "tradeQuoteCcy must come from v.tradeQuoteCcy");
-  });
 });
 
 // ---------------------------------------------------------------------------

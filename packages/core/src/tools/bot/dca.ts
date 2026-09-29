@@ -490,45 +490,5 @@ export function registerDcaTools(): ToolSpec[] {
         return normalizeWrite(response);
       },
     },
-    {
-      name: "dca_manual_buy",
-      title: "Martingale Bot Manual Buy",
-      module: "bot.dca",
-      description:
-        "[CAUTION] Manually place an extra buy order on a running DCA bot, adding more of the base asset to its existing position " +
-        "(also known as \"Add investment\" in OKX's public API naming). Does not start a new cycle — it adds to the current one. " +
-        "Real-money operation. Omit px for market order; supply px for limit order. " +
-        "Not available for sync copy-trading follower accounts (sCode=51223).",
-      isWrite: true,
-      destructiveHint: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          algoId: { type: "string", description: "Algo order ID" },
-          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
-          amt: { type: "string", description: "Order quantity (in base currency for spot_dca, or contracts for contract_dca)" },
-          px: { type: "string", description: "Limit price. Omit for market order." },
-          ordType: { type: "string", enum: ["limit", "market"], description: "Order type. Default: market when px is omitted, limit when px is provided." },
-          tradeQuoteCcy: { type: "string", description: "Quote currency for trade (e.g. USDT). Applicable for spot_dca." },
-        },
-        required: ["algoId", "algoOrdType", "amt"],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const algoId = requireString(args, "algoId");
-        const algoOrdType = requireString(args, "algoOrdType");
-        const amt = requireString(args, "amt");
-        const px = readString(args, "px");
-        const ordType = readString(args, "ordType");
-        const tradeQuoteCcy = readString(args, "tradeQuoteCcy");
-        const response = await context.client.privatePost(
-          `${BASE}/orders/manual-buy`,
-          compactObject({ algoId, algoOrdType, amt, px, ordType, tradeQuoteCcy }),
-          privateRateLimit("dca_manual_buy", 20),
-        );
-        translateKnownErrorCodes(response, COPY_TRADING_ERRORS, `${BASE}/orders/manual-buy`);
-        return normalizeWrite(response);
-      },
-    },
   ];
 }
