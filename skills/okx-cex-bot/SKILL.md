@@ -432,6 +432,8 @@ okx bot dca add-margin --algoId <id> --amt <amount> [--json]
 | `--algoId` | Yes | DCA bot algo order ID |
 | `--amt` | Yes | Amount to add in quote currency. Must be a positive finite number |
 
+**Note:** Only applies to contract DCA bots (`algoOrdType: contract_dca`).
+
 **Error codes:** `59302` → Cancel the pending close order first, then retry. `59301` → Adjustment amount is outside the allowed margin range.
 
 ---
@@ -446,6 +448,8 @@ okx bot dca reduce-margin --algoId <id> --amt <amount> [--json]
 |---|---|---|
 | `--algoId` | Yes | DCA bot algo order ID |
 | `--amt` | Yes | Amount to reduce in quote currency. Must be a positive finite number |
+
+**Note:** Only applies to contract DCA bots (`algoOrdType: contract_dca`).
 
 **Error codes:** `59302` → Cancel the pending close order first, then retry. `59301` → Adjustment amount is outside the allowed margin range.
 
