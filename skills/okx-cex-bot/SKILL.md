@@ -396,6 +396,8 @@ okx bot dca orders [--algoOrdType <spot_dca|contract_dca>] [--algoId <id>] [--in
 | `--instId` | No | - | Filter by instrument |
 | `--history` | No | false | Show completed/stopped bots instead of active |
 
+Returns bot summary + PnL. Also returns `transferInMargin` (net margin transferred in).
+
 ---
 
 ### DCA Bot — Details
@@ -404,7 +406,7 @@ okx bot dca orders [--algoOrdType <spot_dca|contract_dca>] [--algoId <id>] [--in
 okx bot dca details --algoOrdType <spot_dca|contract_dca> --algoId <id> [--json]
 ```
 
-Returns: `avgPx`, `upl`, `liqPx`, `sz`, `tpPx`, `slPx`, `initPx`, `fundingFee`, `fee`, `fillSafetyOrds`, `algoClOrdId`, `baseSz`, `quoteSz`, `tradeQuoteCcy`.
+Returns: `avgPx`, `upl`, `liqPx`, `notionalUsd`, `sz`, `tpPx`, `slPx`, `initPx`, `fundingFee`, `fee`, `fillSafetyOrds`, `algoClOrdId`, `baseSz`, `quoteSz`, `tradeQuoteCcy`.
 
 ---
 
