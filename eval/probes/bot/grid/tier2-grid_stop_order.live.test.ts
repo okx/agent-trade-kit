@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.grid-stop-order';
-const USER_PROMPT = 'Stop my spot grid bot with algoId G001 on BTC-USDT, and sell all base assets back to quote. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Stop my spot grid bot with algoId G001 on BTC-USDT in demo/dry-run mode, and sell all base assets back to quote. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "stop"]];
 const EXPECTATION = 'okx bot grid stop';
 

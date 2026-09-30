@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.dca-add-margin';
-const USER_PROMPT = 'Add 100 USDT margin to my DCA bot with algoId 12345. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Add 100 USDT margin to my DCA bot with algoId 12345 in demo/dry-run mode. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "dca", "add-margin"]];
 const EXPECTATION = 'okx bot dca add-margin';
 

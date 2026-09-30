@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.dca-update-take-profit';
-const USER_PROMPT = 'Update the take-profit price to 55000 on my contract DCA bot with algoId 12345. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Update the take-profit price to 55000 on my contract DCA bot with algoId 12345 in demo/dry-run mode. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "dca", "update-tp"]];
 const EXPECTATION = 'okx bot dca update-tp';
 

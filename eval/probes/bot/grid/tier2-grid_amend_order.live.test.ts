@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.grid-amend-order';
-const USER_PROMPT = 'Amend my grid bot with algoId G001: widen the price range to a new upper price of 32000, lower price of 24000, with 12 grids. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Amend my grid bot with algoId G001 in demo/dry-run mode: widen the price range to a new upper price of 32000, lower price of 24000, with 12 grids. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "amend"]];
 const EXPECTATION = 'okx bot grid amend';
 

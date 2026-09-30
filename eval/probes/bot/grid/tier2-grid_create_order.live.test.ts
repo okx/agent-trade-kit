@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.grid-create-order';
-const USER_PROMPT = 'Create a spot grid bot on BTC-USDT with upper price 30000, lower price 25000, 10 grids, using 500 USDT. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Create a spot grid bot on BTC-USDT in demo/dry-run mode with upper price 30000, lower price 25000, 10 grids, using 500 USDT. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "grid", "create"]];
 const EXPECTATION = 'okx bot grid create';
 

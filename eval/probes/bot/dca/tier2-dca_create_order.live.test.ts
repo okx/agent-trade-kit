@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.dca-create-order';
-const USER_PROMPT = 'Create a contract DCA bot on BTC-USDT-SWAP: direction long, 5x leverage, initial order amount 50 USDT, no safety orders, and 3% take-profit. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Create a contract DCA bot on BTC-USDT-SWAP in demo/dry-run mode: direction long, 5x leverage, initial order amount 50 USDT, no safety orders, and 3% take-profit. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "dca", "create"]];
 const EXPECTATION = 'okx bot dca create';
 
