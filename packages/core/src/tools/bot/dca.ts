@@ -481,6 +481,12 @@ export function registerDcaTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
         const tpPrice = requireString(args, "tpPrice");
+        if (!Number.isFinite(Number(tpPrice)) || Number(tpPrice) <= 0) {
+          throw new OkxApiError("tpPrice must be greater than 0", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/settings/take-profit`,
+          });
+        }
         const response = await context.client.privatePost(
           `${BASE}/settings/take-profit`,
           { algoId, algoOrdType: "contract_dca", tpPrice },

@@ -3916,15 +3916,54 @@ describe("dca_update_take_profit - additional coverage", () => {
     );
   });
 
-  // Design-gap case (TP-N5 in aDocs/dca-mcp-phase1/test-cases-mr390.md): unlike
-  // amt on dca_add_margin/dca_reduce_margin, tpPrice has no numeric validation at
-  // all. This test locks in the current (unvalidated) behavior — it is not an
-  // endorsement of it. Whether to add a Number.isFinite-style guard is a product
-  // decision the team still needs to make.
-  it("does NOT reject a non-numeric tpPrice — forwarded to the backend as-is", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "333", tpPrice: "abc" }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>).tpPrice, "abc");
+  // Resolved TP-N5 (aDocs/dca-mcp-phase1/test-cases-mr390.md): tpPrice now gets
+  // the same Number.isFinite + >0 guard as amt on dca_add_margin/dca_reduce_margin,
+  // closing the validation-parity gap between the three operational tools.
+  it("throws when tpPrice is non-numeric", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "abc" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when tpPrice is zero", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "0" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when tpPrice is negative", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "-50000" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when tpPrice is the literal string 'NaN'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "NaN" }, makeContext(client)),
+    );
+  });
+
+  it("throws when tpPrice is the literal string 'Infinity'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "Infinity" }, makeContext(client)),
+    );
   });
 
   it("throws the raw [sCode] sMsg error for an unknown sCode not in COPY_TRADING_ERRORS", async () => {
