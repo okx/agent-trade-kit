@@ -20,6 +20,8 @@ import {
   cmdDcaUpdateTakeProfit,
 } from "../src/commands/bot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
+import { handleBotDcaCommand } from "../src/index.js";
+import type { CliValues } from "../src/parser.js";
 
 /** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
 function findJson(output: string[]): string {
@@ -845,6 +847,115 @@ describe("cmdDcaUpdateTakeProfit", () => {
     await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: false });
     assert.ok(out.join("").includes("Take-profit updated"));
     assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0" }]);
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaReduceMargin — additional coverage (json output parity with add-margin)
+// ---------------------------------------------------------------------------
+describe("cmdDcaReduceMargin - additional coverage", () => {
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0" }]);
+    await cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: "50", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaAddMargin / cmdDcaReduceMargin / cmdDcaUpdateTakeProfit — error propagation
+// ---------------------------------------------------------------------------
+describe("dca operational cmd* functions - error propagation", () => {
+  it("cmdDcaAddMargin propagates a runner rejection instead of swallowing it", async () => {
+    const runner: ToolRunner = async () => {
+      throw new Error('Missing required parameter "amt".');
+    };
+    await assert.rejects(
+      () => cmdDcaAddMargin(runner, { algoId: "DCA001", amt: undefined as unknown as string, json: false }),
+      /Missing required parameter "amt"/,
+    );
+    assert.equal(out.join(""), "");
+  });
+
+  it("cmdDcaReduceMargin propagates a runner rejection instead of swallowing it", async () => {
+    const runner: ToolRunner = async () => {
+      throw new Error('Missing required parameter "amt".');
+    };
+    await assert.rejects(
+      () => cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: undefined as unknown as string, json: false }),
+      /Missing required parameter "amt"/,
+    );
+  });
+
+  it("cmdDcaUpdateTakeProfit propagates a runner rejection instead of swallowing it", async () => {
+    const runner: ToolRunner = async () => {
+      throw new Error('Missing required parameter "tpPrice".');
+    };
+    await assert.rejects(
+      () => cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: undefined as unknown as string, json: false }),
+      /Missing required parameter "tpPrice"/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleBotDcaCommand — dispatcher-layer routing (CLI-DISPATCH-1)
+//
+// Covers the literal `v.algoId!`/`v.amt!`/`v.tpPrice!` mapping in index.ts's
+// dispatcher itself, one layer above the cmd* functions above. This is the
+// layer where issue #78's "instId misused rest[0] instead of the named flag"
+// regression happened (see CLAUDE.md "CLI Parameter Routing Tests").
+// ---------------------------------------------------------------------------
+describe("handleBotDcaCommand - add-margin/reduce-margin/update-tp routing", () => {
+  it("add-margin: forwards v.algoId/v.amt (named flags) to dca_add_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    const v = { algoId: "DCA001", amt: "100" } as CliValues;
+    await handleBotDcaCommand(runner, "add-margin", v, false);
+    assert.equal(capturedName, "dca_add_margin");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["amt"], "100");
+  });
+
+  it("reduce-margin: forwards v.algoId/v.amt (named flags) to dca_reduce_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    const v = { algoId: "DCA002", amt: "50" } as CliValues;
+    await handleBotDcaCommand(runner, "reduce-margin", v, false);
+    assert.equal(capturedName, "dca_reduce_margin");
+    assert.equal(captured["algoId"], "DCA002");
+    assert.equal(captured["amt"], "50");
+  });
+
+  it("update-tp: forwards v.algoId/v.tpPrice (named flags) to dca_update_take_profit, without algoOrdType", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    const v = { algoId: "DCA003", tpPrice: "55000" } as CliValues;
+    await handleBotDcaCommand(runner, "update-tp", v, false);
+    assert.equal(capturedName, "dca_update_take_profit");
+    assert.equal(captured["algoId"], "DCA003");
+    assert.equal(captured["tpPrice"], "55000");
+    assert.equal(captured["algoOrdType"], undefined);
   });
 });
 

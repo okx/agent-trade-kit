@@ -3634,6 +3634,361 @@ describe("dca_create_order - direction conditional", () => {
 });
 
 // ---------------------------------------------------------------------------
+// dca_add_margin — additional coverage (MR !390 test-case design follow-up)
+// ---------------------------------------------------------------------------
+describe("dca_add_margin - additional coverage", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_add_margin")!;
+
+  it("forwards decimal amt unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "0.01" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "0.01");
+  });
+
+  it("forwards high-precision amt without losing digits", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "123456.789012" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "123456.789012");
+  });
+
+  it("does not throw when sCode='0' (explicit success path)", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "0", algoId: "111" }],
+    });
+    const result = await tool.handler({ algoId: "111", amt: "100" }, makeContext(client));
+    assert.equal((result as Record<string, unknown>)["data"] instanceof Array, true);
+  });
+
+  it("throws when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ amt: "100" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is negative", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "-100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is the literal string 'NaN'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "NaN" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is the literal string 'Infinity'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "Infinity" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when amt is passed as a number instead of a string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: 100 }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof ValidationError, `expected ValidationError, got ${err.constructor.name}`);
+        assert.ok(err.message.includes("must be a string"));
+        return true;
+      },
+    );
+  });
+
+  // Known-risk case, not a hard bug: Number() trims whitespace during validation,
+  // but the padded string is forwarded to the backend as-is. Locks in current
+  // behavior so a future change (e.g. trimming amt) is a deliberate decision.
+  it("passes amt through with surrounding whitespace preserved (current behavior)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "  100  " }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "  100  ");
+  });
+
+  it("throws the raw [sCode] sMsg error for an unknown sCode not in MARGIN_ERRORS", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "1", sMsg: "Some other error" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("[1] Some other error"));
+        return true;
+      },
+    );
+  });
+
+  it("does not throw when the backend returns an empty data array", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [],
+    });
+    const result = await tool.handler({ algoId: "111", amt: "100" }, makeContext(client));
+    assert.deepEqual((result as Record<string, unknown>)["data"], []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_reduce_margin — additional coverage (mirrors dca_add_margin)
+// ---------------------------------------------------------------------------
+describe("dca_reduce_margin - additional coverage", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
+
+  it("forwards decimal amt unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "0.01" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "0.01");
+  });
+
+  it("forwards high-precision amt without losing digits", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "123456.789012" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "123456.789012");
+  });
+
+  it("does not throw when sCode='0' (explicit success path)", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "0", algoId: "222" }],
+    });
+    const result = await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.equal((result as Record<string, unknown>)["data"] instanceof Array, true);
+  });
+
+  it("throws when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ amt: "50" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is zero", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "0" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is negative", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "-50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is the literal string 'NaN'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "NaN" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is the literal string 'Infinity'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "Infinity" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when amt is passed as a number instead of a string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: 50 }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof ValidationError, `expected ValidationError, got ${err.constructor.name}`);
+        assert.ok(err.message.includes("must be a string"));
+        return true;
+      },
+    );
+  });
+
+  it("passes amt through with surrounding whitespace preserved (current behavior)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "  50  " }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "  50  ");
+  });
+
+  it("throws the raw [sCode] sMsg error for an unknown sCode not in MARGIN_ERRORS", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "1", sMsg: "Some other error" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("[1] Some other error"));
+        return true;
+      },
+    );
+  });
+
+  it("does not throw when the backend returns an empty data array", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [],
+    });
+    const result = await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.deepEqual((result as Record<string, unknown>)["data"], []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_update_take_profit — additional coverage
+// ---------------------------------------------------------------------------
+describe("dca_update_take_profit - additional coverage", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
+
+  it("ignores a caller-supplied algoOrdType and always sends contract_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { algoId: "333", tpPrice: "50000", algoOrdType: "spot_dca" },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("does not throw when sCode='0' (explicit success path)", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "0", algoId: "333" }],
+    });
+    const result = await tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client));
+    assert.equal((result as Record<string, unknown>)["data"] instanceof Array, true);
+  });
+
+  it("throws when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ tpPrice: "50000" }, makeContext(client)),
+    );
+  });
+
+  it("throws when tpPrice is an empty string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when tpPrice is passed as a number instead of a string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: 50000 }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof ValidationError, `expected ValidationError, got ${err.constructor.name}`);
+        assert.ok(err.message.includes("must be a string"));
+        return true;
+      },
+    );
+  });
+
+  // Design-gap case (TP-N5 in aDocs/dca-mcp-phase1/test-cases-mr390.md): unlike
+  // amt on dca_add_margin/dca_reduce_margin, tpPrice has no numeric validation at
+  // all. This test locks in the current (unvalidated) behavior — it is not an
+  // endorsement of it. Whether to add a Number.isFinite-style guard is a product
+  // decision the team still needs to make.
+  it("does NOT reject a non-numeric tpPrice — forwarded to the backend as-is", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "333", tpPrice: "abc" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).tpPrice, "abc");
+  });
+
+  it("throws the raw [sCode] sMsg error for an unknown sCode not in COPY_TRADING_ERRORS", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "1", sMsg: "Some other error" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("[1] Some other error"));
+        return true;
+      },
+    );
+  });
+
+  it("does not throw when the backend returns an empty data array", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [],
+    });
+    const result = await tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client));
+    assert.deepEqual((result as Record<string, unknown>)["data"], []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCA operational tools — cross-tool registration/schema checks
+// ---------------------------------------------------------------------------
+describe("dca operational tools - registration and description hygiene", () => {
+  const tools = registerDcaTools();
+  const operationalToolNames = ["dca_add_margin", "dca_reduce_margin", "dca_update_take_profit"];
+
+  it("all three operational tools are marked isWrite", () => {
+    for (const name of operationalToolNames) {
+      const tool = tools.find((t) => t.name === name)!;
+      assert.equal(tool.isWrite, true, `${name} should be isWrite=true`);
+    }
+  });
+
+  it("no operational tool description leaks a raw sCode value (regression: MR !390 review pass 2)", () => {
+    for (const name of operationalToolNames) {
+      const tool = tools.find((t) => t.name === name)!;
+      assert.ok(
+        !/sCode\s*=?\s*\d{4,5}/i.test(tool.description),
+        `${name}.description should not leak a raw sCode number: "${tool.description}"`,
+      );
+    }
+  });
+
+  it("dca_add_margin and dca_reduce_margin descriptions stay symmetric (neither singles out an error code)", () => {
+    const add = tools.find((t) => t.name === "dca_add_margin")!;
+    const reduce = tools.find((t) => t.name === "dca_reduce_margin")!;
+    for (const tool of [add, reduce]) {
+      assert.ok(!/59301|59302/.test(tool.description), `${tool.name} should not mention specific error codes`);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Grid — grid_amend_order
 // ---------------------------------------------------------------------------
 
