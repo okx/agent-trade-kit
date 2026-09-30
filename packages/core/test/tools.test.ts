@@ -3707,10 +3707,13 @@ describe("dca_add_margin - additional coverage", () => {
     );
   });
 
-  // Known-risk case, not a hard bug: Number() trims whitespace during validation,
-  // but the padded string is forwarded to the backend as-is. Locks in current
-  // behavior so a future change (e.g. trimming amt) is a deliberate decision.
-  it("passes amt through with surrounding whitespace preserved (current behavior)", async () => {
+  // Number() trims whitespace during validation, but the padded string is
+  // forwarded to the backend as-is. Decided (2026-09-30) not to trim: matches
+  // the no-trim convention used by lever's equivalent Number.isFinite guard in
+  // contract-trade.ts/spot-trade.ts, and sz/px (higher-traffic price fields)
+  // have no numeric validation at all — trimming only amt/tpPrice here would
+  // be a new, inconsistent pattern rather than closing a real gap.
+  it("passes amt through with surrounding whitespace preserved (intentional, no trim)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ algoId: "111", amt: "  100  " }, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "  100  ");
@@ -3829,7 +3832,8 @@ describe("dca_reduce_margin - additional coverage", () => {
     );
   });
 
-  it("passes amt through with surrounding whitespace preserved (current behavior)", async () => {
+  // Decided (2026-09-30) not to trim — see the equivalent test on dca_add_margin.
+  it("passes amt through with surrounding whitespace preserved (intentional, no trim)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ algoId: "222", amt: "  50  " }, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "  50  ");
