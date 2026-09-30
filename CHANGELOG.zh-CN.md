@@ -22,6 +22,10 @@
 - **`dca_create_order` — `direction` 对 `spot_dca` 不再强制要求**：此前 `direction` 在所有场景下均为必填。现改为对 `spot_dca` 可选（默认 `"long"`），对 `contract_dca` 仍为必填。向后兼容：已明确传入 `direction` 的调用不受影响。
 - **统一错误码翻译**：将原有的两个独立函数 `preCheckMarginErrors` / `preCheckCopyTradingErrors` 替换为单一的表驱动 `translateKnownErrorCodes` 工具函数，消除代码重复。
 
+### 变更
+
+- **`okx-cex-bot` SKILL.md 拆分重构**：将 Grid Bot 和 DCA Bot 的 CLI 参数表、Quickstart 示例、边界场景提取至 `references/grid-commands.md`、`references/dca-commands.md`；跨技能工作流示例移至 `references/workflows.md`。与 `okx-cex-trade`、`okx-cex-earn`、`okx-cex-market` 保持一致。纯文档结构调整，不改变任何命令行为。
+
 ## [1.4.8] - 2026-09-23
 
 ### 修复

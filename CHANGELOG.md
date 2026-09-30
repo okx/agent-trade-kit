@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`dca_create_order` — `direction` no longer required for `spot_dca`**: previously `direction` was always required. It is now optional for `spot_dca` (defaults to `"long"`) and remains required for `contract_dca`. Backward-compatible: existing callers passing `direction` explicitly are unaffected.
 - **Unified error-code translation**: the two separate `preCheckMarginErrors` / `preCheckCopyTradingErrors` helpers are replaced by a single table-driven `translateKnownErrorCodes` utility, eliminating code duplication.
 
+### Changed
+
+- **`okx-cex-bot` SKILL.md restructured with reference files**: Extracted Grid Bot and DCA Bot CLI param tables, Quickstart examples, and edge cases into `references/grid-commands.md` and `references/dca-commands.md`; cross-skill workflow examples moved into `references/workflows.md`. Follows the same pattern as `okx-cex-trade`, `okx-cex-earn`, and `okx-cex-market`. Pure documentation restructuring — no command or behavior changes.
+
 ## [1.4.8] - 2026-09-23
 
 ### Fixed
