@@ -7496,6 +7496,26 @@ describe("smart_portfolio_create_order", () => {
     );
   });
 
+  it("throws ValidationError when portfolioList has more than 10 items", async () => {
+    const { client } = makeMockClient();
+    const items = Array.from({ length: 11 }, (_, i) => ({
+      ccy: `COIN${i}`,
+      ratio: (1 / 11).toFixed(6),
+    }));
+    await assert.rejects(
+      () => tool.handler({
+        investmentCcy: "USDT",
+        portfolioList: JSON.stringify(items),
+        deltaRatio: "0.05",
+      }, makeContext(client)),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes("at most 10 items"));
+        return true;
+      },
+    );
+  });
+
   it("throws ValidationError on duplicate CCY after normalization", async () => {
     const { client } = makeMockClient();
     await assert.rejects(

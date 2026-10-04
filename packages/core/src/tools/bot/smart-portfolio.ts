@@ -49,6 +49,12 @@ function validateAndNormalizePortfolioList(
       `portfolioList must have at least 2 items, got ${Array.isArray(raw) ? raw.length : "non-array"}`,
     );
   }
+  if (raw.length > 10) {
+    throw new ValidationError(
+      `portfolioList must have at most 10 items, got ${raw.length}`,
+      `Provide 2–10 unique assets in portfolioList`,
+    );
+  }
 
   const normalized: PortfolioItem[] = (raw as Record<string, unknown>[]).map((item) => {
     const ccy = String(item["ccy"] ?? "").trim().toUpperCase();
