@@ -1,6 +1,6 @@
 ---
 name: okx-cex-bot
-description: Manage Grid bots (spot/contract/coin-margined) and DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁) on OKX. Covers create, stop, amend, monitor P&L, TP/SL, margin/investment adjustment, and AI-recommended parameters. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
+description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), and Smart Portfolio bots (auto-rebalancing multi-asset portfolio) on OKX. Covers create, stop, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
 license: MIT
 metadata:
   author: okx
@@ -120,11 +120,27 @@ Resolution:
 | `okx bot dca reduce-margin` | WRITE | Reduce margin on a running contract DCA bot |
 | `okx bot dca update-tp` | WRITE | Update take-profit price on a running contract DCA bot |
 
+### Smart Portfolio Bot
+
+> **Note**: Load with `--modules bot.smartportfolio` or `bot.all` (not in default modules).
+
+| Command | Type | Description |
+|---|---|---|
+| `okx bot smart-portfolio create` | WRITE | Create a Smart Portfolio bot (2–10 assets, ratios summing to 1.0, deltaRatio threshold) |
+| `okx bot smart-portfolio stop` | WRITE | Stop a running Smart Portfolio bot |
+| `okx bot smart-portfolio orders` | READ | List running Smart Portfolio bots |
+| `okx bot smart-portfolio history` | READ | List stopped/completed Smart Portfolio bots |
+| `okx bot smart-portfolio details` | READ | Get Smart Portfolio bot details and current allocation |
+| `okx bot smart-portfolio amend-rebalance` | WRITE | Update rebalance parameters (portfolioList, deltaRatio, interval) |
+| `okx bot smart-portfolio instant-rebalance` | WRITE | Trigger an immediate rebalance |
+| `okx bot smart-portfolio recommend-zones` | READ | Browse OKX-recommended portfolio zone configurations |
+| `okx bot smart-portfolio zones-backtest` | READ | Get historical backtest results for a recommended zone |
+
 ## Operation Flow
 
 ### Step 1 — Identify bot type and action
 
-Parse user request → determine module (Grid / DCA) and action (create / stop / list / details).
+Parse user request → determine module (Grid / DCA / Smart Portfolio) and action (create / stop / list / details).
 
 ### Step 2 — Execute
 
@@ -153,6 +169,9 @@ read `{baseDir}/references/grid-commands.md`.
 
 For DCA Bot command syntax, parameter tables, Quickstart examples, and edge cases,
 read `{baseDir}/references/dca-commands.md`.
+
+For Smart Portfolio Bot command syntax, parameter tables, and examples,
+read `{baseDir}/references/smart-portfolio-commands.md`.
 
 For cross-skill workflow examples (chaining `okx-cex-market`/`okx-cex-portfolio` with bot
 creation), read `{baseDir}/references/workflows.md`.

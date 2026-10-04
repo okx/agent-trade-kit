@@ -194,6 +194,15 @@ import {
   cmdDcaAddMargin,
   cmdDcaReduceMargin,
   cmdDcaUpdateTakeProfit,
+  cmdSmartPortfolioCreate,
+  cmdSmartPortfolioOrders,
+  cmdSmartPortfolioHistory,
+  cmdSmartPortfolioDetails,
+  cmdSmartPortfolioStop,
+  cmdSmartPortfolioAmendRebalance,
+  cmdSmartPortfolioInstantRebalance,
+  cmdSmartPortfolioRecommendZones,
+  cmdSmartPortfolioZonesBacktest,
 } from "./commands/bot.js";
 import {
   cmdOnchainEarnOffers,
@@ -1379,6 +1388,33 @@ export function handleBotDcaCommand(
   unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop", "add-margin", "reduce-margin", "update-tp"]);
 }
 
+export function handleBotSmartPortfolioCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (subAction === "orders")
+    return cmdSmartPortfolioOrders(run, { algoId: v.algoId, after: v.after, before: v.before, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
+  if (subAction === "history")
+    return cmdSmartPortfolioHistory(run, { state: v.state, instType: v.instType, algoId: v.algoId, after: v.after, before: v.before, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
+  if (subAction === "details")
+    return cmdSmartPortfolioDetails(run, { algoId: v.algoId!, json });
+  if (subAction === "create")
+    return cmdSmartPortfolioCreate(run, { investmentCcy: v.investmentCcy!, portfolioList: v.portfolioList!, deltaRatio: v.deltaRatio!, interval: v.interval, json });
+  if (subAction === "stop")
+    return cmdSmartPortfolioStop(run, { algoId: v.algoId!, json });
+  if (subAction === "amend-rebalance")
+    return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, portfolioList: v.portfolioList, deltaRatio: v.deltaRatio, interval: v.interval, json });
+  if (subAction === "instant-rebalance")
+    return cmdSmartPortfolioInstantRebalance(run, { algoId: v.algoId!, json });
+  if (subAction === "recommend-zones")
+    return cmdSmartPortfolioRecommendZones(run, { investCcy: v.investCcy!, ccy: v.ccy, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
+  if (subAction === "zones-backtest")
+    return cmdSmartPortfolioZonesBacktest(run, { investCcy: v.investCcy!, zoneId: v.zoneId!, period: v.period, json });
+  unknownSubcommand("bot smart-portfolio", subAction, ["orders", "history", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
+}
+
 export function handleBotCommand(
   run: ToolRunner,
   action: string,
@@ -1388,7 +1424,8 @@ export function handleBotCommand(
 ): Promise<void> | void {
   if (action === "grid") return handleBotGridCommand(run, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
-  unknownSubcommand("bot", action, ["grid", "dca"]);
+  if (action === "smart-portfolio") return handleBotSmartPortfolioCommand(run, rest[0], v, json);
+  unknownSubcommand("bot", action, ["grid", "dca", "smart-portfolio"]);
 }
 
 export function handleEarnCommand(

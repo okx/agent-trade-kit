@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`bot.smartportfolio` module** (9 MCP tools + matching CLI `okx bot smart-portfolio` subcommands): full Smart Portfolio lifecycle — create, list pending orders, list history, get details, stop, amend rebalance parameters, trigger instant rebalance, browse recommended zones, and get zone backtest data. `deltaRatio` is validated with `floor(x*100)/100 ∈ [0.01, 1)`; `portfolioList` CCYs are normalized to uppercase, deduplication-checked, and ratio-sum validated. The module is **not** in `DEFAULT_MODULES` (load via `bot.all` or `all`). 9 eval probes added under `eval/probes/bot/smart-portfolio/`.
+
 - **DCA bot operational management tools** ([#220]): three new MCP tools and matching CLI subcommands for managing running DCA bots — `dca_add_margin` / `okx bot dca add-margin`, `dca_reduce_margin` / `okx bot dca reduce-margin`, `dca_update_take_profit` / `okx bot dca update-tp`. Error codes 59301 (out-of-range margin) and 59302 (pending close order conflict) are translated to friendly messages; error code 51223 (copy-trading follower accounts) is also translated.
 
 ### Fixed

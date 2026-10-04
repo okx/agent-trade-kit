@@ -531,3 +531,185 @@ export async function cmdDcaSubOrders(
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Smart Portfolio commands
+// ---------------------------------------------------------------------------
+
+export async function cmdSmartPortfolioCreate(
+  run: ToolRunner,
+  opts: {
+    investmentCcy: string;
+    portfolioList: string;
+    deltaRatio: string;
+    interval?: string;
+    json: boolean;
+  },
+): Promise<void> {
+  const result = await run("smart_portfolio_create_order", {
+    investmentCcy: opts.investmentCcy,
+    portfolioList: opts.portfolioList,
+    deltaRatio: opts.deltaRatio,
+    interval: opts.interval,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  emitWriteResult(data?.[0], "Smart Portfolio created", "algoId");
+}
+
+export async function cmdSmartPortfolioOrders(
+  run: ToolRunner,
+  opts: { algoId?: string; after?: string; before?: string; limit?: number; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_get_orders", {
+    algoId: opts.algoId,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
+  });
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(orders);
+  if (!orders.length) { outputLine("No Smart Portfolio bots"); return; }
+  printTable(
+    orders.map((o) => ({
+      algoId:        o["algoId"],
+      state:         o["state"],
+      investmentCcy: o["investmentCcy"],
+      totalPnl:      o["totalPnl"],
+      totalPnlRatio: o["totalPnlRatio"],
+      createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
+    })),
+  );
+}
+
+export async function cmdSmartPortfolioHistory(
+  run: ToolRunner,
+  opts: { state?: string; instType?: string; algoId?: string; after?: string; before?: string; limit?: number; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_get_orders_history", {
+    state: opts.state,
+    instType: opts.instType,
+    algoId: opts.algoId,
+    after: opts.after,
+    before: opts.before,
+    limit: opts.limit,
+  });
+  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(orders);
+  if (!orders.length) { outputLine("No Smart Portfolio history"); return; }
+  printTable(
+    orders.map((o) => ({
+      algoId:        o["algoId"],
+      state:         o["state"],
+      investmentCcy: o["investmentCcy"],
+      totalPnl:      o["totalPnl"],
+      totalPnlRatio: o["totalPnlRatio"],
+      createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
+    })),
+  );
+}
+
+export async function cmdSmartPortfolioDetails(
+  run: ToolRunner,
+  opts: { algoId: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_get_order_details", { algoId: opts.algoId });
+  const detail = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
+  if (!detail) { outputLine("Smart Portfolio bot not found"); return; }
+  if (opts.json) return printJson(detail);
+  printKv({
+    algoId:        detail["algoId"],
+    state:         detail["state"],
+    investmentCcy: detail["investmentCcy"],
+    deltaRatio:    detail["deltaRatio"],
+    interval:      detail["interval"],
+    totalPnl:      detail["totalPnl"],
+    totalPnlRatio: detail["totalPnlRatio"],
+    createdAt:     detail["cTime"] ? new Date(Number(detail["cTime"] as string)).toLocaleString() : "",
+  });
+}
+
+export async function cmdSmartPortfolioStop(
+  run: ToolRunner,
+  opts: { algoId: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_stop_order", { algoId: opts.algoId });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  outputLine(`Smart Portfolio stopped: ${opts.algoId} (OK)`);
+}
+
+export async function cmdSmartPortfolioAmendRebalance(
+  run: ToolRunner,
+  opts: { algoId: string; portfolioList?: string; deltaRatio?: string; interval?: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_amend_rebalance", {
+    algoId: opts.algoId,
+    portfolioList: opts.portfolioList,
+    deltaRatio: opts.deltaRatio,
+    interval: opts.interval,
+  });
+  const data = getData(result) as Record<string, unknown>[];
+  if (opts.json) return printJson(data);
+  outputLine(`Smart Portfolio rebalance amended: ${opts.algoId} (OK)`);
+}
+
+export async function cmdSmartPortfolioInstantRebalance(
+  run: ToolRunner,
+  opts: { algoId: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_instant_rebalance", { algoId: opts.algoId });
+  if (opts.json) return printJson(result);
+  const data = (result as unknown as Record<string, unknown>).data;
+  const triggered = (data as Record<string, unknown>)?.["triggered"];
+  if (triggered) {
+    outputLine(`Smart Portfolio rebalance triggered: ${opts.algoId} (OK)`);
+  } else {
+    outputLine(`Smart Portfolio rebalance not triggered for ${opts.algoId} (portfolio may already be balanced)`);
+  }
+}
+
+export async function cmdSmartPortfolioRecommendZones(
+  run: ToolRunner,
+  opts: { investCcy: string; ccy?: string; limit?: number; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_get_recommend_zones", {
+    investCcy: opts.investCcy,
+    ccy: opts.ccy,
+    limit: opts.limit,
+  });
+  const zones = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(zones);
+  if (!zones.length) { outputLine("No recommended zones found"); return; }
+  printTable(
+    zones.map((z) => ({
+      zoneId:     z["zoneId"],
+      zoneName:   z["zoneName"],
+      investCcy:  z["investCcy"],
+      deltaRatio: z["deltaRatio"],
+      interval:   z["interval"],
+    })),
+  );
+}
+
+export async function cmdSmartPortfolioZonesBacktest(
+  run: ToolRunner,
+  opts: { investCcy: string; zoneId: string; period?: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_get_zones_backtest", {
+    investCcy: opts.investCcy,
+    zoneId: opts.zoneId,
+    period: opts.period,
+  });
+  const data = (getData(result) as Record<string, unknown>[]) ?? [];
+  if (opts.json) return printJson(data);
+  const item = data[0];
+  if (!item) { outputLine("No backtest data"); return; }
+  printKv({
+    zoneId:      opts.zoneId,
+    period:      item["period"],
+    annRate:     item["annRate"],
+    maxDrawdown: item["maxDrawdown"],
+    vsHodl:      item["vsHodl"],
+  });
+}

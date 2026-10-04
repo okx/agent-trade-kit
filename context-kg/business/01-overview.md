@@ -17,7 +17,7 @@ The project is a pnpm workspace monorepo containing three packages:
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **170 MCP tools** organized into **17 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **179 MCP tools** organized into **18 modules** (authoritative count: see `docs/module-registry.md`):
 
 - **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)
@@ -34,6 +34,7 @@ As of the latest registry scan, the server exposes **170 MCP tools** organized i
 - **earn.flash** — flash earn (short-window high-yield projects)
 - **bot.grid** — grid trading bot (create, monitor, stop)
 - **bot.dca** — DCA (Martingale) bot (spot or contract recurring buys)
+- **bot.smartportfolio** — Smart Portfolio bot (auto-rebalancing multi-asset portfolio strategy)
 - **smartmoney** — smart-money signals, trader leaderboard, consensus/position analysis
 - **skills** — skills marketplace (search, install, manage skill packs)
 

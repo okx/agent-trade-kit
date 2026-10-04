@@ -3,7 +3,7 @@
 All MCP modules must be registered here before implementation can be merged to master.
 Unregistered modules will be rejected during review.
 
-**Token Budget:** 25,000 tokens | **Current Usage:** ~50,024 tokens | **Over budget:** ~25,024 tokens | **Tools:** 170 (104 read / 66 write)
+**Token Budget:** 25,000 tokens | **Current Usage:** ~52,824 tokens | **Over budget:** ~27,824 tokens | **Tools:** 179 (108 read / 71 write)
 
 > Token 估算由 `npx tsx scripts/mcp-token-stats.ts` 生成（JSON schema 字符数 / 3.5）。readOnly 模式下 104 工具, ~26,251 tokens (over budget)。
 >
@@ -25,12 +25,13 @@ Unregistered modules will be rejected during review.
 | bot.grid | ✅ approved | 9 | 5 | 4 | ~3,131 | _(founding module)_ | @Jasmine.Li | — |
 | earn.savings | ✅ approved | 10 | 5 | 5 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 8 | 3 | 5 | ~1,660 | _(founding module)_ | @Jasmine.Li | — |
+| bot.smartportfolio | ✅ approved | 9 | 4 | 5 | ~2,800 | [smart-portfolio](designs/smart-portfolio.md) | — | 2026-10-04 |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |
 | earn.onchain | ✅ approved | 6 | 3 | 3 | ~993 | _(founding module)_ | @Jasmine.Li | — |
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
-| **Total** | | **170** | **104** | **66** | **~50,024** | | | |
+| **Total** | | **179** | **108** | **71** | **~52,824** | | | |
 
 ## Status Legend
 

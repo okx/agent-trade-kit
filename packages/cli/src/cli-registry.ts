@@ -821,6 +821,56 @@ export const CLI_REGISTRY: CliRegistry = {
           },
         },
       },
+      "smart-portfolio": {
+        description: "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
+        commands: {
+          orders: {
+            toolName: "smart_portfolio_get_orders",
+            usage: "okx bot smart-portfolio orders [--algoId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List running Smart Portfolio bots",
+          },
+          history: {
+            toolName: "smart_portfolio_get_orders_history",
+            usage: "okx bot smart-portfolio history [--state <stopped|filled>] [--instType <type>] [--algoId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List historical (stopped) Smart Portfolio bots",
+          },
+          details: {
+            toolName: "smart_portfolio_get_order_details",
+            usage: "okx bot smart-portfolio details --algoId <id>",
+            description: "Get Smart Portfolio bot details",
+          },
+          create: {
+            toolName: "smart_portfolio_create_order",
+            usage: "okx bot smart-portfolio create --investmentCcy <USDT|USDC> --portfolioList '<json>' --deltaRatio <n>\n                         [--interval <secs>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
+            description: "Create a Smart Portfolio bot",
+          },
+          stop: {
+            toolName: "smart_portfolio_stop_order",
+            usage: "okx bot smart-portfolio stop --algoId <id>",
+            description: "Stop a running Smart Portfolio bot",
+          },
+          "amend-rebalance": {
+            toolName: "smart_portfolio_amend_rebalance",
+            usage: "okx bot smart-portfolio amend-rebalance --algoId <id> [--portfolioList '<json>'] [--deltaRatio <n>] [--interval <secs>]",
+            description: "Amend rebalance parameters of a running Smart Portfolio bot",
+          },
+          "instant-rebalance": {
+            toolName: "smart_portfolio_instant_rebalance",
+            usage: "okx bot smart-portfolio instant-rebalance --algoId <id>",
+            description: "Trigger an immediate rebalance for a Smart Portfolio bot",
+          },
+          "recommend-zones": {
+            toolName: "smart_portfolio_get_recommend_zones",
+            usage: "okx bot smart-portfolio recommend-zones --investCcy <USDT|USDC> [--ccy <asset>] [--limit <n>]",
+            description: "Browse OKX-recommended Smart Portfolio zone configurations",
+          },
+          "zones-backtest": {
+            toolName: "smart_portfolio_get_zones_backtest",
+            usage: "okx bot smart-portfolio zones-backtest --investCcy <USDT|USDC> --zoneId <id> [--period <1W|1M|3M|6M|1Y>]",
+            description: "Get historical backtest results for a recommended zone",
+          },
+        },
+      },
       dca: {
         description: "DCA (Martingale) bot - spot or contract recurring buys",
         commands: {

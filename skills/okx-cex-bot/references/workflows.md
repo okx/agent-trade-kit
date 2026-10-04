@@ -41,3 +41,19 @@
                        --pxSteps 0.03 --pxStepsMult 1.2 --volMult 1.5 --tpPct 0.05
 4. okx-cex-bot       okx bot dca orders --algoOrdType spot_dca       → confirm active
 ```
+
+## Smart Portfolio Bot — Create from Recommended Zone
+> User: "Set up a Smart Portfolio with OKX's recommended allocation in USDT"
+
+```
+1. okx-cex-bot       okx bot smart-portfolio recommend-zones --investCcy USDT → pick a zone
+2. okx-cex-bot       okx bot smart-portfolio zones-backtest --investCcy USDT --zoneId <id> --period 3M → evaluate
+3. okx-cex-portfolio okx account balance USDT                       → confirm funds
+        ↓ user approves
+4. okx-cex-bot       okx bot smart-portfolio create \
+                       --investmentCcy USDT \
+                       --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
+                       --deltaRatio 0.05
+5. okx-cex-bot       okx bot smart-portfolio orders                  → confirm active
+6. okx-cex-bot       okx bot smart-portfolio details --algoId <id>   → monitor allocation
+```

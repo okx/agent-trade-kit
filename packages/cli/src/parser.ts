@@ -240,6 +240,13 @@ export interface CliValues {
   settleCcy?: string;
   ts?: string;
   minAbsOiDeltaPct?: string;
+  // smart portfolio
+  investmentCcy?: string;
+  portfolioList?: string;
+  deltaRatio?: string;
+  investCcy?: string;
+  zoneId?: string;
+  interval?: string;
   // AI builder attribution
   aiBuilderCode?: string;
   // diagnostics (diagnose-specific flags)
@@ -508,6 +515,13 @@ export const CLI_OPTIONS = {
   settleCcy:        { type: "string" },
   ts:               { type: "string" },
   minAbsOiDeltaPct: { type: "string" },
+  // smart portfolio
+  investmentCcy: { type: "string" },
+  portfolioList: { type: "string" },
+  deltaRatio:    { type: "string" },
+  investCcy:     { type: "string" },
+  zoneId:        { type: "string" },
+  interval:      { type: "string" },
   // AI builder attribution
   aiBuilderCode: { type: "string" },
   // diagnostics - cli/mcp/all/output are diagnose-specific; verbose is shared

@@ -62,9 +62,9 @@ Special shorthands:
 - `all` → expands to every known module
 - `earn` / `earn.all` → expands to `[earn.savings, earn.onchain, earn.dcd, earn.autoearn]`
 - `bot` → expands to `[bot.grid]` only
-- `bot.all` → expands to `[bot.grid, bot.dca]`
+- `bot.all` → expands to `[bot.grid, bot.dca, bot.smartportfolio]`
 
-**Default modules** (when `--modules` is not specified): `["spot", "swap", "option", "account", "bot.grid", "skills"]`. Note: `market`, `futures`, `earn.*` and `bot.dca` are **not** loaded by default. This expansion happens in `packages/core/src/config.ts`.
+**Default modules** (when `--modules` is not specified): `["spot", "swap", "option", "account", "bot.grid", "skills"]`. Note: `market`, `futures`, `earn.*`, `bot.dca`, and `bot.smartportfolio` are **not** loaded by default. This expansion happens in `packages/core/src/config.ts`.
 
 ## Read-Only Mode
 
