@@ -1019,13 +1019,13 @@ describe("cmdSmartPortfolioCreate", () => {
 
 describe("cmdSmartPortfolioInstantRebalance", () => {
   it("outputs triggered message when triggered=true", async () => {
-    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: { triggered: true } });
+    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: true }] });
     await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: false });
     assert.ok(out.join("").includes("triggered"));
   });
 
   it("outputs not-triggered message when triggered=false", async () => {
-    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: { triggered: false } });
+    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: false }] });
     await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: false });
     assert.ok(out.join("").includes("not triggered") || out.join("").includes("already balanced"));
   });
@@ -1132,7 +1132,7 @@ describe("handleBotSmartPortfolioCommand routing", () => {
     const runner: ToolRunner = async (name, args) => {
       capturedName = name;
       captured = args as Record<string, unknown>;
-      return { endpoint: "POST /instant", requestTime: new Date().toISOString(), data: { triggered: true } };
+      return { endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: true }] };
     };
     const v = { algoId: "SP006" } as CliValues;
     await handleBotSmartPortfolioCommand(runner, "instant-rebalance", v, false);

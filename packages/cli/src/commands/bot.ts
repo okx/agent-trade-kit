@@ -660,8 +660,8 @@ export async function cmdSmartPortfolioInstantRebalance(
 ): Promise<void> {
   const result = await run("smart_portfolio_instant_rebalance", { algoId: opts.algoId });
   if (opts.json) return printJson(result);
-  const data = (result as unknown as Record<string, unknown>).data;
-  const triggered = (data as Record<string, unknown>)?.["triggered"];
+  const items = getData(result) as Array<Record<string, unknown>>;
+  const triggered = items?.[0]?.["triggered"];
   if (triggered) {
     outputLine(`Smart Portfolio rebalance triggered: ${opts.algoId} (OK)`);
   } else {
