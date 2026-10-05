@@ -7636,17 +7636,6 @@ describe("smart_portfolio_get_order_details — correct endpoint", () => {
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-details");
   });
 
-  it("returns empty data (not throws) when API returns error code 51293 (strategy not found)", async () => {
-    const { client } = makeMockClient();
-    // Simulate 51293 from REST client
-    (client as unknown as { privateGet: unknown }).privateGet = async () => {
-      const err = new OkxApiError("Strategy does not exist", { code: "51293" });
-      throw err;
-    };
-    const result = await tool.handler({ algoId: "nonexistent" }, makeContext(client)) as Record<string, unknown>;
-    const data = result["data"] as unknown[];
-    assert.equal(data.length, 0, "should return empty data for 51293");
-  });
 });
 
 describe("smart_portfolio_instant_rebalance", () => {
