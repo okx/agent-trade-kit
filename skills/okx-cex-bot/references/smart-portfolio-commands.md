@@ -92,7 +92,7 @@ okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3
 | `recommendId` | Recommended zone ID | 推荐组合 ID |
 | `assetType` | Asset category (Crypto / TradeFi) | 资产类别（加密货币 / 传统金融） |
 | `period` | Backtest period | 回测周期 |
-| `investCcy` | Valuation currency (in query response) | 计价币种（查询响应字段） |
+| `investmentCcy` | Valuation currency | 计价币种 |
 | `totalPnl` | Total profit and loss | 累计盈亏 |
 | `pnlRatio` | PnL ratio | 累计收益率 |
 | `state` | Bot state (running / stopping / stopped / pause) | 策略状态（运行中 / 停止中 / 已停止 / 暂停） |

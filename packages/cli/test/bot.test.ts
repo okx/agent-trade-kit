@@ -981,7 +981,7 @@ describe("cmdSmartPortfolioOrders", () => {
   });
 
   it("outputs JSON when json=true", async () => {
-    const runner: ToolRunner = async () => fakeResult([{ algoId: "SP001", stgyName: "Test", state: "running", investCcy: "USDT", totalPnl: "0", pnlRatio: "0", cTime: "0" }]);
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "SP001", stgyName: "Test", state: "running", investmentCcy: "USDT", totalPnl: "0", pnlRatio: "0", cTime: "0" }]);
     await cmdSmartPortfolioOrders(runner, { json: true });
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });

@@ -7562,6 +7562,66 @@ describe("smart_portfolio_create_order", () => {
       (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("too large")); return true; },
     );
   });
+
+  it("deltaRatio is sent as toFixed(2) string (not floating-point)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...validCreateArgs(), deltaRatio: "0.05" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["deltaRatio"], "0.05", "deltaRatio should be 2-decimal string");
+  });
+
+  it("injects tag from context.config.sourceTag", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(validCreateArgs(), makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["tag"], DEFAULT_SOURCE_TAG, "tag should come from sourceTag config");
+  });
+
+  it("response sCode non-zero throws OkxApiError", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/order-algo": [{ algoId: "", sCode: "51001", sMsg: "Insufficient balance" }],
+    });
+    await assert.rejects(
+      () => tool.handler(validCreateArgs(), makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("51001")); return true; },
+    );
+  });
+
+  it("optional params tradeQuoteCcy, investType, algoClOrdId are forwarded when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      ...validCreateArgs(),
+      tradeQuoteCcy: "USDC",
+      investType: "complex",
+      algoClOrdId: "myid001",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["tradeQuoteCcy"], "USDC");
+    assert.equal(params["investType"], "complex");
+    assert.equal(params["algoClOrdId"], "myid001");
+  });
+});
+
+describe("smart_portfolio_get_orders — instId forwarded", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_orders")!;
+
+  it("forwards instId when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)["instId"], "BTC-USDT");
+  });
+});
+
+describe("smart_portfolio_get_orders_history — instId forwarded", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_orders_history")!;
+
+  it("forwards instId when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)["instId"], "BTC-USDT");
+  });
 });
 
 describe("smart_portfolio_amend_rebalance", () => {
@@ -7592,6 +7652,15 @@ describe("smart_portfolio_amend_rebalance", () => {
       () => tool.handler({ algoId: "99999" }, makeContext(client)),
       (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("at least one")); return true; },
     );
+  });
+
+  it("interval-only path: sends algoId and interval without deltaRatio", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "12345", interval: "30" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["algoId"], "12345");
+    assert.equal(params["interval"], "30");
+    assert.ok(!("deltaRatio" in params) || params["deltaRatio"] === undefined);
   });
 });
 
@@ -7651,6 +7720,16 @@ describe("smart_portfolio_instant_rebalance", () => {
     const data = (result["data"] as Record<string, unknown>[] | undefined)?.[0];
     assert.equal(data?.["triggered"], false);
   });
+
+  it("passes through triggered=true with balanceTime", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/instant-rebalance": [{ algoId: "555", balanceTime: "1700000000000", triggered: true }],
+    });
+    const result = await tool.handler({ algoId: "555" }, makeContext(client)) as Record<string, unknown>;
+    const data = (result["data"] as Record<string, unknown>[] | undefined)?.[0];
+    assert.equal(data?.["triggered"], true);
+    assert.equal(data?.["balanceTime"], "1700000000000");
+  });
 });
 
 describe("smart_portfolio_get_recommend_zones", () => {
@@ -7691,6 +7770,36 @@ describe("smart_portfolio_get_recommend_zones", () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({}, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/recommend-zones");
+  });
+
+  it("stgyParam fields are preserved (not stripped) alongside profitHistory removal", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/recommend-zones": [
+        {
+          recommendId: "12",
+          stgyParam: {
+            portfolioList: [{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }],
+            deltaRatio: "0.05",
+            interval: "20",
+          },
+          defaultBacktestYield: {
+            defaultPnlRatio: "0.08",
+            profitHistory: [{ cTime: "1700000000000", pnlRatio: "0.01" }],
+          },
+        },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const zone = (result["data"] as Record<string, unknown>[])[0]!;
+    // stgyParam should be fully preserved
+    const stgyParam = zone["stgyParam"] as Record<string, unknown>;
+    assert.ok(stgyParam !== undefined, "stgyParam should exist");
+    assert.ok(Array.isArray(stgyParam["portfolioList"]), "stgyParam.portfolioList should exist");
+    assert.equal(stgyParam["deltaRatio"], "0.05");
+    assert.equal(stgyParam["interval"], "20");
+    // profitHistory should be stripped
+    const yield_ = zone["defaultBacktestYield"] as Record<string, unknown>;
+    assert.equal("profitHistory" in yield_, false);
   });
 });
 
