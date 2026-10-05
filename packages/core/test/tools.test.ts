@@ -7507,11 +7507,7 @@ describe("smart_portfolio_create_order", () => {
       ratio: (1 / 11).toFixed(6),
     }));
     await assert.rejects(
-      () => tool.handler({
-        investmentCcy: "USDT",
-        portfolioList: JSON.stringify(items),
-        deltaRatio: "0.05",
-      }, makeContext(client)),
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify(items) }, makeContext(client)),
       (err: unknown) => {
         assert.ok(err instanceof Error);
         assert.ok(err.message.includes("at most 10 items"));
