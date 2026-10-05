@@ -583,12 +583,13 @@ export async function cmdSmartPortfolioOrders(
   if (!orders.length) { outputLine("No Smart Portfolio bots"); return; }
   printTable(
     orders.map((o) => ({
-      algoId:        o["algoId"],
-      state:         o["state"],
-      investmentCcy: o["investmentCcy"],
-      totalPnl:      o["totalPnl"],
-      pnlRatio:      o["pnlRatio"],
-      createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
+      algoId:     o["algoId"],
+      stgyName:   o["stgyName"],
+      state:      o["state"],
+      investCcy:  o["investCcy"],
+      totalPnl:   o["totalPnl"],
+      pnlRatio:   o["pnlRatio"],
+      createdAt:  new Date(Number(o["cTime"])).toLocaleString(),
     })),
   );
 }
@@ -611,12 +612,13 @@ export async function cmdSmartPortfolioHistory(
   if (!orders.length) { outputLine("No Smart Portfolio history"); return; }
   printTable(
     orders.map((o) => ({
-      algoId:        o["algoId"],
-      state:         o["state"],
-      investmentCcy: o["investmentCcy"],
-      totalPnl:      o["totalPnl"],
-      pnlRatio:      o["pnlRatio"],
-      createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
+      algoId:     o["algoId"],
+      stgyName:   o["stgyName"],
+      state:      o["state"],
+      investCcy:  o["investCcy"],
+      totalPnl:   o["totalPnl"],
+      pnlRatio:   o["pnlRatio"],
+      createdAt:  new Date(Number(o["cTime"])).toLocaleString(),
     })),
   );
 }
@@ -630,14 +632,15 @@ export async function cmdSmartPortfolioDetails(
   if (!detail) { outputLine("Smart Portfolio bot not found"); return; }
   if (opts.json) return printJson(detail);
   printKv({
-    algoId:        detail["algoId"],
-    state:         detail["state"],
-    investmentCcy: detail["investmentCcy"],
-    deltaRatio:    detail["deltaRatio"],
-    interval:      detail["interval"],
-    totalPnl:      detail["totalPnl"],
-    pnlRatio:      detail["pnlRatio"],
-    createdAt:     detail["cTime"] ? new Date(Number(detail["cTime"] as string)).toLocaleString() : "",
+    algoId:     detail["algoId"],
+    stgyName:   detail["stgyName"],
+    state:      detail["state"],
+    investCcy:  detail["investCcy"],
+    deltaRatio: detail["deltaRatio"],
+    interval:   detail["interval"],
+    totalPnl:   detail["totalPnl"],
+    pnlRatio:   detail["pnlRatio"],
+    createdAt:  detail["cTime"] ? new Date(Number(detail["cTime"] as string)).toLocaleString() : "",
   });
 }
 

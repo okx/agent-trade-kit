@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Smart Portfolio CLI display — `pnlRatio` and `investCcy` columns**: `orders`, `history`, and `details` commands were reading non-existent fields (`totalPnlRatio`, `investmentCcy`) from API responses, causing those columns to always display as empty. Corrected to `pnlRatio` and `investCcy` (the real response field names). Also added `stgyName` column to `orders` and `history` tables for bot identification.
+
 - **`dca_add_margin` / `dca_reduce_margin` — NaN guard for `amt`**: non-numeric strings (e.g. `"abc"`) previously passed the `> 0` check because `NaN <= 0` is `false` in JavaScript. The guard is now `!Number.isFinite(Number(amt)) || Number(amt) <= 0`, which rejects any non-finite input.
 - **`dca_update_take_profit` — `algoOrdType` removed from user-facing schema**: the parameter was previously required in the input schema, forcing callers to always pass `"contract_dca"`. It is now hardcoded in the handler body and absent from the schema, since this endpoint only supports contract DCA bots.
 - **`dca_create_order` — `direction` no longer required for `spot_dca`**: previously `direction` was always required. It is now optional for `spot_dca` (defaults to `"long"`) and remains required for `contract_dca`. Backward-compatible: existing callers passing `direction` explicitly are unaffected.
