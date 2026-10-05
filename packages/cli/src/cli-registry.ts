@@ -826,12 +826,12 @@ export const CLI_REGISTRY: CliRegistry = {
         commands: {
           orders: {
             toolName: "smart_portfolio_get_orders",
-            usage: "okx bot smart-portfolio orders [--algoId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            usage: "okx bot smart-portfolio orders [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
             description: "List running Smart Portfolio bots",
           },
           history: {
             toolName: "smart_portfolio_get_orders_history",
-            usage: "okx bot smart-portfolio history [--state <stopped|filled>] [--instType <type>] [--algoId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            usage: "okx bot smart-portfolio history [--state <stopped|filled>] [--instType <SPOT>] [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
             description: "List historical (stopped) Smart Portfolio bots",
           },
           details: {
@@ -851,7 +851,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "amend-rebalance": {
             toolName: "smart_portfolio_amend_rebalance",
-            usage: "okx bot smart-portfolio amend-rebalance --algoId <id> [--portfolioList '<json>'] [--deltaRatio <n>] [--interval <secs>]",
+            usage: "okx bot smart-portfolio amend-rebalance --algoId <id> [--deltaRatio <n>] [--interval <minutes>]\n                         At least one of --deltaRatio or --interval must be provided",
             description: "Amend rebalance parameters of a running Smart Portfolio bot",
           },
           "instant-rebalance": {

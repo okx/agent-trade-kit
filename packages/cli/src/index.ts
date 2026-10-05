@@ -1395,9 +1395,9 @@ export function handleBotSmartPortfolioCommand(
   json: boolean,
 ): Promise<void> | void {
   if (subAction === "orders")
-    return cmdSmartPortfolioOrders(run, { algoId: v.algoId, after: v.after, before: v.before, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
+    return cmdSmartPortfolioOrders(run, { algoId: v.algoId, instId: v.instId, after: v.after, before: v.before, limit: v.limit, json });
   if (subAction === "history")
-    return cmdSmartPortfolioHistory(run, { state: v.state, instType: v.instType, algoId: v.algoId, after: v.after, before: v.before, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
+    return cmdSmartPortfolioHistory(run, { state: v.state, instType: v.instType, algoId: v.algoId, instId: v.instId, after: v.after, before: v.before, limit: v.limit, json });
   if (subAction === "details")
     return cmdSmartPortfolioDetails(run, { algoId: v.algoId!, json });
   if (subAction === "create")
@@ -1405,7 +1405,7 @@ export function handleBotSmartPortfolioCommand(
   if (subAction === "stop")
     return cmdSmartPortfolioStop(run, { algoId: v.algoId!, stopType: v.stopType!, json });
   if (subAction === "amend-rebalance")
-    return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, portfolioList: v.portfolioList, deltaRatio: v.deltaRatio, interval: v.interval, json });
+    return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, deltaRatio: v.deltaRatio, interval: v.interval, json });
   if (subAction === "instant-rebalance")
     return cmdSmartPortfolioInstantRebalance(run, { algoId: v.algoId!, json });
   if (subAction === "recommend-zones")

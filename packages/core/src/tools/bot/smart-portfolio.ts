@@ -30,7 +30,7 @@ function validateDeltaRatio(raw: string): string {
       `Use a deltaRatio < 1 (e.g. "0.05" for 5%)`,
     );
   }
-  return String(truncated);
+  return truncated.toFixed(2);
 }
 
 interface PortfolioItem {
@@ -57,6 +57,9 @@ function validateAndNormalizePortfolioList(raw: unknown): PortfolioItem[] {
     const ratio = String(item["ratio"] ?? "");
     if (!ccy) throw new ValidationError("Each portfolioList item must have a non-empty ccy");
     if (!ratio) throw new ValidationError("Each portfolioList item must have a non-empty ratio");
+    if (isNaN(Number(ratio))) {
+      throw new ValidationError(`portfolioList ratio "${ratio}" is not a valid number`);
+    }
     return { ccy, ratio };
   });
 
@@ -244,7 +247,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       description:
         "List running Smart Portfolio bots. " +
         "Returns algoId, stgyName, investCcy, portfolioList, totalPnl, pnlRatio, and state. " +
-        "Server always filters to smart_portfolio type and SPOT; do not pass algoOrdType or instType.",
+        "Filter by instId (instrument pair) or algoId (strategy ID).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -282,7 +285,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       description:
         "List historical (stopped) Smart Portfolio bots. " +
         "Recommended state filter: 'stopped'. " +
-        "Server always filters to smart_portfolio type; do not pass algoOrdType.",
+        "Filter by instType (e.g. SPOT) or instId.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -394,9 +397,9 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       title: "Smart Portfolio Amend Rebalance",
       module: "bot.smartportfolio",
       description:
-        "Amend the rebalance parameters (deltaRatio or interval) of a running Smart Portfolio bot. " +
-        "At least one of deltaRatio or interval must change from its current value. " +
-        "deltaRatio validation: floor(x*100)/100 must be in [0.01, 1).",
+        "Amend the rebalance parameters of a running Smart Portfolio bot. " +
+        "Provide at least one of deltaRatio or interval. " +
+        "deltaRatio must be >= 0.01 (1%) and < 1 (100%).",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
@@ -425,6 +428,13 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         }
 
         const interval = readString(args, "interval");
+
+        if (deltaRatio === undefined && interval === undefined) {
+          throw new ValidationError(
+            "amend-rebalance requires at least one of deltaRatio or interval",
+            "Provide the new deltaRatio (threshold) or interval (minutes), or both.",
+          );
+        }
 
         const response = await context.client.privatePost(
           `${BASE}/amend-rebalance`,
@@ -480,7 +490,6 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         "Browse OKX-recommended Smart Portfolio configurations. " +
         "Each zone has a predefined asset allocation (stgyParam.portfolioList), deltaRatio, and interval ready to use for create. " +
         "Returns recommendId — pass it to smart_portfolio_get_zones_backtest to get the full backtest curve. " +
-        "profitHistory inside defaultBacktestYield is stripped here; use zones_backtest for the full curve. " +
         "Filter by assetType: 'Crypto' or 'TradeFi'. Use recommendId to fetch a specific zone.",
       isWrite: false,
       inputSchema: {

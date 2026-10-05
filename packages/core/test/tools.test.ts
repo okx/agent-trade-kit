@@ -7532,6 +7532,14 @@ describe("smart_portfolio_create_order", () => {
     );
   });
 
+  it("throws ValidationError when ratio is not a valid number (NaN bypass fix)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "abc" }, { ccy: "ETH", ratio: "0.4" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("not a valid number")); return true; },
+    );
+  });
+
   it("deltaRatio 0.019 truncates to 0.01 and passes validation", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ ...validCreateArgs(), deltaRatio: "0.019" }, makeContext(client));
@@ -7574,8 +7582,16 @@ describe("smart_portfolio_amend_rebalance", () => {
     await tool.handler({ algoId: "99999", deltaRatio: "0.10" }, makeContext(client));
     const params = getLastCall()?.params as Record<string, unknown>;
     assert.equal(params["algoId"], "99999");
-    assert.equal(params["deltaRatio"], "0.1");
+    assert.equal(params["deltaRatio"], "0.10");
     assert.ok(!("portfolioList" in params));
+  });
+
+  it("throws ValidationError when neither deltaRatio nor interval is provided", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "99999" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("at least one")); return true; },
+    );
   });
 });
 

@@ -569,10 +569,11 @@ export async function cmdSmartPortfolioCreate(
 
 export async function cmdSmartPortfolioOrders(
   run: ToolRunner,
-  opts: { algoId?: string; after?: string; before?: string; limit?: number; json: boolean },
+  opts: { algoId?: string; instId?: string; after?: string; before?: string; limit?: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_get_orders", {
     algoId: opts.algoId,
+    instId: opts.instId,
     after: opts.after,
     before: opts.before,
     limit: opts.limit,
@@ -594,12 +595,13 @@ export async function cmdSmartPortfolioOrders(
 
 export async function cmdSmartPortfolioHistory(
   run: ToolRunner,
-  opts: { state?: string; instType?: string; algoId?: string; after?: string; before?: string; limit?: number; json: boolean },
+  opts: { state?: string; instType?: string; algoId?: string; instId?: string; after?: string; before?: string; limit?: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_get_orders_history", {
     state: opts.state,
     instType: opts.instType,
     algoId: opts.algoId,
+    instId: opts.instId,
     after: opts.after,
     before: opts.before,
     limit: opts.limit,
@@ -651,11 +653,10 @@ export async function cmdSmartPortfolioStop(
 
 export async function cmdSmartPortfolioAmendRebalance(
   run: ToolRunner,
-  opts: { algoId: string; portfolioList?: string; deltaRatio?: string; interval?: string; json: boolean },
+  opts: { algoId: string; deltaRatio?: string; interval?: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_amend_rebalance", {
     algoId: opts.algoId,
-    portfolioList: opts.portfolioList,
     deltaRatio: opts.deltaRatio,
     interval: opts.interval,
   });
