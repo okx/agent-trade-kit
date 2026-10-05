@@ -1032,6 +1032,15 @@ describe("cmdSmartPortfolioInstantRebalance", () => {
     await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: false });
     assert.ok(out.join("").includes("not triggered") || out.join("").includes("already balanced"));
   });
+
+  it("--json outputs data array directly (not wrapped in endpoint/requestTime shell)", async () => {
+    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ algoId: "SP001", triggered: true, balanceTime: "1700000000000" }] });
+    await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: true });
+    const parsed = JSON.parse(findJson(out));
+    assert.ok(Array.isArray(parsed), "--json should output an array");
+    assert.equal(parsed[0]?.triggered, true);
+    assert.ok(!("endpoint" in (parsed as object)), "should not have endpoint wrapper");
+  });
 });
 
 describe("cmdSmartPortfolioRecommendZones", () => {
