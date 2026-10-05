@@ -1,6 +1,6 @@
 ---
 name: okx-cex-bot
-description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), and Smart Portfolio bots (auto-rebalancing multi-asset portfolio) on OKX. Covers create, stop, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
+description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), and Smart Portfolio bots (智能组合, auto-rebalancing multi-asset portfolio) on OKX. Covers create, stop, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
 license: MIT
 metadata:
   author: okx
@@ -180,7 +180,7 @@ creation), read `{baseDir}/references/workflows.md`.
 
 - **Grid/DCA**: use "bot" not "strategy" (e.g., "grid bot", "DCA bot")
 - **DCA**: always say "DCA" or "Martingale" — DCA supports both Spot DCA and Contract DCA
-- **Chinese**: Grid = "网格", Spot DCA = "现货马丁", Contract DCA = "合约马丁"
+- **Chinese**: Grid = "网格", Spot DCA = "现货马丁", Contract DCA = "合约马丁", Smart Portfolio = "智能组合"
 - Use natural language for parameters — "What price range?" not "Enter minPx and maxPx"
 - If the user already provides values, map directly — don't re-ask
 

@@ -68,5 +68,31 @@ Use `zoneId` from results to run a backtest.
 ## Get Zone Backtest
 
 ```bash
-okx bot smart-portfolio zones-backtest --investCcy USDT --zoneId <id> [--period <1W|1M|3M|6M|1Y>]
+okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3M|6M|1Y|2Y>]
 ```
+
+---
+
+## Parameter Display Names
+
+### Smart Portfolio Bot (智能组合)
+
+| API Field | EN | ZH |
+|---|---|---|
+| `stgyName` | Strategy name | 策略名称 |
+| `investmentCcy` | Valuation currency | 计价币种 |
+| `initCapital` | Initial investment amount | 初始投入金额 |
+| `portfolioList` | Asset allocation list | 组合资产列表 |
+| `interval` | Rebalance interval (minutes) | 再平衡间隔（分钟） |
+| `deltaRatio` | Rebalance threshold | 再平衡偏离阈值 |
+| `investType` | Investment type (simple / complex) | 投入方式（简单 / 复合） |
+| `tradeQuoteCcy` | Debit currency | 实际扣款币种 |
+| `algoClOrdId` | Client strategy ID | 客户端策略 ID |
+| `stopType` | Stop type (1=sell all / 2=keep assets) | 停止类型（1=卖出全部 / 2=保留持仓） |
+| `recommendId` | Recommended zone ID | 推荐组合 ID |
+| `assetType` | Asset category (Crypto / TradeFi) | 资产类别（加密货币 / 传统金融） |
+| `period` | Backtest period | 回测周期 |
+| `investCcy` | Valuation currency (in query response) | 计价币种（查询响应字段） |
+| `totalPnl` | Total profit and loss | 累计盈亏 |
+| `pnlRatio` | PnL ratio | 累计收益率 |
+| `state` | Bot state (running / stopping / stopped / pause) | 策略状态（运行中 / 停止中 / 已停止 / 暂停） |
