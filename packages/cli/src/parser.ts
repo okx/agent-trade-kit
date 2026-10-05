@@ -241,11 +241,14 @@ export interface CliValues {
   ts?: string;
   minAbsOiDeltaPct?: string;
   // smart portfolio
+  stgyName?: string;
   investmentCcy?: string;
+  initCapital?: string;
   portfolioList?: string;
   deltaRatio?: string;
-  investCcy?: string;
-  zoneId?: string;
+  investType?: string;
+  recommendId?: string;
+  assetType?: string;
   interval?: string;
   // AI builder attribution
   aiBuilderCode?: string;
@@ -516,11 +519,14 @@ export const CLI_OPTIONS = {
   ts:               { type: "string" },
   minAbsOiDeltaPct: { type: "string" },
   // smart portfolio
+  stgyName:      { type: "string" },
   investmentCcy: { type: "string" },
+  initCapital:   { type: "string" },
   portfolioList: { type: "string" },
   deltaRatio:    { type: "string" },
-  investCcy:     { type: "string" },
-  zoneId:        { type: "string" },
+  investType:    { type: "string" },
+  recommendId:   { type: "string" },
+  assetType:     { type: "string" },
   interval:      { type: "string" },
   // AI builder attribution
   aiBuilderCode: { type: "string" },

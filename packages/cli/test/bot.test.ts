@@ -989,8 +989,8 @@ describe("cmdSmartPortfolioOrders", () => {
 
 describe("cmdSmartPortfolioStop", () => {
   it("outputs success message with algoId", async () => {
-    const runner: ToolRunner = async () => fakeResult([]);
-    await cmdSmartPortfolioStop(runner, { algoId: "SP999", json: false });
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "SP999", sCode: "0", sMsg: "" }]);
+    await cmdSmartPortfolioStop(runner, { algoId: "SP999", stopType: "1", json: false });
     assert.ok(out.join("").includes("SP999"));
     assert.ok(out.join("").includes("OK"));
   });
@@ -1008,8 +1008,11 @@ describe("cmdSmartPortfolioCreate", () => {
   it("calls smart_portfolio_create_order and outputs success", async () => {
     const runner: ToolRunner = async () => fakeResult([{ algoId: "SP001", sCode: "0", sMsg: "" }]);
     await cmdSmartPortfolioCreate(runner, {
+      stgyName: "My Portfolio",
       investmentCcy: "USDT",
+      initCapital: "3000",
       portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]),
+      interval: "20",
       deltaRatio: "0.05",
       json: false,
     });
@@ -1034,7 +1037,7 @@ describe("cmdSmartPortfolioInstantRebalance", () => {
 describe("cmdSmartPortfolioRecommendZones", () => {
   it("outputs 'No recommended zones found' when empty", async () => {
     const runner: ToolRunner = async () => fakeResult([]);
-    await cmdSmartPortfolioRecommendZones(runner, { investCcy: "USDT", json: false });
+    await cmdSmartPortfolioRecommendZones(runner, { json: false });
     assert.ok(out.join("").includes("No recommended zones"));
   });
 });
@@ -1042,7 +1045,7 @@ describe("cmdSmartPortfolioRecommendZones", () => {
 describe("cmdSmartPortfolioZonesBacktest", () => {
   it("outputs 'No backtest data' when empty", async () => {
     const runner: ToolRunner = async () => fakeResult([]);
-    await cmdSmartPortfolioZonesBacktest(runner, { investCcy: "USDT", zoneId: "Z1", json: false });
+    await cmdSmartPortfolioZonesBacktest(runner, { recommendId: "12", json: false });
     assert.ok(out.join("").includes("No backtest data"));
   });
 });
@@ -1080,7 +1083,7 @@ describe("handleBotSmartPortfolioCommand routing", () => {
     assert.equal(captured["algoId"], "SP002");
   });
 
-  it("create: forwards v.investmentCcy, v.portfolioList, v.deltaRatio (named flags) to smart_portfolio_create_order", async () => {
+  it("create: forwards stgyName, investmentCcy, initCapital, portfolioList, interval, deltaRatio (named flags)", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -1089,26 +1092,30 @@ describe("handleBotSmartPortfolioCommand routing", () => {
       return fakeResult([{ algoId: "SP003", sCode: "0" }]);
     };
     const portfolio = JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]);
-    const v = { investmentCcy: "USDT", portfolioList: portfolio, deltaRatio: "0.05" } as CliValues;
+    const v = { stgyName: "Test", investmentCcy: "USDT", initCapital: "3000", portfolioList: portfolio, interval: "20", deltaRatio: "0.05" } as CliValues;
     await handleBotSmartPortfolioCommand(runner, "create", v, false);
     assert.equal(capturedName, "smart_portfolio_create_order");
+    assert.equal(captured["stgyName"], "Test");
     assert.equal(captured["investmentCcy"], "USDT");
+    assert.equal(captured["initCapital"], "3000");
     assert.equal(captured["portfolioList"], portfolio);
+    assert.equal(captured["interval"], "20");
     assert.equal(captured["deltaRatio"], "0.05");
   });
 
-  it("stop: forwards v.algoId (named flag) to smart_portfolio_stop_order", async () => {
+  it("stop: forwards v.algoId and v.stopType (named flags) to smart_portfolio_stop_order", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
       capturedName = name;
       captured = args as Record<string, unknown>;
-      return fakeResult([]);
+      return fakeResult([{ algoId: "SP004", sCode: "0" }]);
     };
-    const v = { algoId: "SP004" } as CliValues;
+    const v = { algoId: "SP004", stopType: "2" } as CliValues;
     await handleBotSmartPortfolioCommand(runner, "stop", v, false);
     assert.equal(capturedName, "smart_portfolio_stop_order");
     assert.equal(captured["algoId"], "SP004");
+    assert.equal(captured["stopType"], "2");
   });
 
   it("amend-rebalance: forwards v.algoId, v.deltaRatio (named flags) to smart_portfolio_amend_rebalance", async () => {
@@ -1140,7 +1147,7 @@ describe("handleBotSmartPortfolioCommand routing", () => {
     assert.equal(captured["algoId"], "SP006");
   });
 
-  it("recommend-zones: forwards v.investCcy (named flag) to smart_portfolio_get_recommend_zones", async () => {
+  it("recommend-zones: forwards v.recommendId, v.assetType (named flags) to smart_portfolio_get_recommend_zones", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -1148,13 +1155,14 @@ describe("handleBotSmartPortfolioCommand routing", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([]);
     };
-    const v = { investCcy: "USDT" } as CliValues;
+    const v = { recommendId: "12", assetType: "Crypto" } as CliValues;
     await handleBotSmartPortfolioCommand(runner, "recommend-zones", v, false);
     assert.equal(capturedName, "smart_portfolio_get_recommend_zones");
-    assert.equal(captured["investCcy"], "USDT");
+    assert.equal(captured["recommendId"], "12");
+    assert.equal(captured["assetType"], "Crypto");
   });
 
-  it("zones-backtest: forwards v.investCcy, v.zoneId (named flags) to smart_portfolio_get_zones_backtest", async () => {
+  it("zones-backtest: forwards v.recommendId (named flag) to smart_portfolio_get_zones_backtest", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -1162,11 +1170,11 @@ describe("handleBotSmartPortfolioCommand routing", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([]);
     };
-    const v = { investCcy: "USDT", zoneId: "ZONE001" } as CliValues;
+    const v = { recommendId: "12", period: "7D" } as CliValues;
     await handleBotSmartPortfolioCommand(runner, "zones-backtest", v, false);
     assert.equal(capturedName, "smart_portfolio_get_zones_backtest");
-    assert.equal(captured["investCcy"], "USDT");
-    assert.equal(captured["zoneId"], "ZONE001");
+    assert.equal(captured["recommendId"], "12");
+    assert.equal(captured["period"], "7D");
   });
 
   it("history: forwards v.state, v.instType to smart_portfolio_get_orders_history", async () => {

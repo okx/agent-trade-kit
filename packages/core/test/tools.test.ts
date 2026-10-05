@@ -7460,21 +7460,33 @@ describe("smart_portfolio tools — module registration", () => {
   });
 });
 
+// Helper: valid create args per OpenAPI
+function validCreateArgs() {
+  return {
+    stgyName: "Test Portfolio",
+    investmentCcy: "USDT",
+    initCapital: "3000",
+    portfolioList: JSON.stringify([{ ccy: "btc", ratio: "0.6" }, { ccy: "eth", ratio: "0.4" }]),
+    interval: "20",
+    deltaRatio: "0.05",
+  };
+}
+
 describe("smart_portfolio_create_order", () => {
   const tools = registerSmartPortfolioTools();
   const tool = tools.find((t) => t.name === "smart_portfolio_create_order")!;
 
-  it("calls POST /order-algo with normalized portfolio", async () => {
+  it("calls POST /order-algo with normalized portfolio and all required fields", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      investmentCcy: "USDT",
-      portfolioList: JSON.stringify([{ ccy: "btc", ratio: "0.6" }, { ccy: "eth", ratio: "0.4" }]),
-      deltaRatio: "0.05",
-    }, makeContext(client));
+    await tool.handler(validCreateArgs(), makeContext(client));
     const call = getLastCall();
     assert.equal(call?.endpoint, "/api/v5/tradingBot/smart-portfolio/order-algo");
     assert.equal(call?.method, "POST");
     const params = call?.params as Record<string, unknown>;
+    assert.equal(params["stgyName"], "Test Portfolio");
+    assert.equal(params["investmentCcy"], "USDT");
+    assert.equal(params["initCapital"], "3000");
+    assert.equal(params["interval"], "20");
     const list = params["portfolioList"] as Array<{ ccy: string; ratio: string }>;
     assert.equal(list[0]?.ccy, "BTC");
     assert.equal(list[1]?.ccy, "ETH");
@@ -7483,16 +7495,8 @@ describe("smart_portfolio_create_order", () => {
   it("throws ValidationError when portfolioList has fewer than 2 items", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({
-        investmentCcy: "USDT",
-        portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "1.0" }]),
-        deltaRatio: "0.05",
-      }, makeContext(client)),
-      (err: unknown) => {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("at least 2 items"));
-        return true;
-      },
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "1.0" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("at least 2 items")); return true; },
     );
   });
 
@@ -7519,76 +7523,39 @@ describe("smart_portfolio_create_order", () => {
   it("throws ValidationError on duplicate CCY after normalization", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({
-        investmentCcy: "USDT",
-        portfolioList: JSON.stringify([{ ccy: "btc", ratio: "0.5" }, { ccy: "BTC", ratio: "0.5" }]),
-        deltaRatio: "0.05",
-      }, makeContext(client)),
-      (err: unknown) => {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("Duplicate CCY"));
-        return true;
-      },
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "btc", ratio: "0.5" }, { ccy: "BTC", ratio: "0.5" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("Duplicate CCY")); return true; },
     );
   });
 
   it("throws ValidationError when ratio sum != 1", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({
-        investmentCcy: "USDT",
-        portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.5" }, { ccy: "ETH", ratio: "0.3" }]),
-        deltaRatio: "0.05",
-      }, makeContext(client)),
-      (err: unknown) => {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("sum to 1.0"));
-        return true;
-      },
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.5" }, { ccy: "ETH", ratio: "0.3" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("sum to 1.0")); return true; },
     );
   });
 
   it("deltaRatio 0.019 truncates to 0.01 and passes validation", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({
-      investmentCcy: "USDT",
-      portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]),
-      deltaRatio: "0.019",
-    }, makeContext(client));
+    await tool.handler({ ...validCreateArgs(), deltaRatio: "0.019" }, makeContext(client));
     const params = getLastCall()?.params as Record<string, unknown>;
-    // 0.019 truncated: floor(0.019*100)/100 = floor(1.9)/100 = 1/100 = 0.01
     assert.equal(params["deltaRatio"], "0.01");
   });
 
   it("deltaRatio 0.009 truncates to 0.00 and throws", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({
-        investmentCcy: "USDT",
-        portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]),
-        deltaRatio: "0.009",
-      }, makeContext(client)),
-      (err: unknown) => {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("too small"));
-        return true;
-      },
+      () => tool.handler({ ...validCreateArgs(), deltaRatio: "0.009" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("too small")); return true; },
     );
   });
 
   it("deltaRatio 1.0 truncates to 1.00 and throws (too large)", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({
-        investmentCcy: "USDT",
-        portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]),
-        deltaRatio: "1.0",
-      }, makeContext(client)),
-      (err: unknown) => {
-        assert.ok(err instanceof Error);
-        assert.ok(err.message.includes("too large"));
-        return true;
-      },
+      () => tool.handler({ ...validCreateArgs(), deltaRatio: "1.0" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("too large")); return true; },
     );
   });
 });
@@ -7606,12 +7573,13 @@ describe("smart_portfolio_amend_rebalance", () => {
     assert.ok(result !== null && result !== undefined);
   });
 
-  it("sends algoId and deltaRatio to endpoint", async () => {
+  it("sends algoId and deltaRatio, does NOT send portfolioList (not in OpenAPI)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ algoId: "99999", deltaRatio: "0.10" }, makeContext(client));
     const params = getLastCall()?.params as Record<string, unknown>;
     assert.equal(params["algoId"], "99999");
     assert.equal(params["deltaRatio"], "0.1");
+    assert.ok(!("portfolioList" in params));
   });
 });
 
@@ -7619,18 +7587,41 @@ describe("smart_portfolio_stop_order", () => {
   const tools = registerSmartPortfolioTools();
   const tool = tools.find((t) => t.name === "smart_portfolio_stop_order")!;
 
-  it("calls POST stop-order-algo with algoId", async () => {
+  it("calls POST stop-order-algo with algoId and stopType", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "777" }, makeContext(client));
+    await tool.handler({ algoId: "777", stopType: "1" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/stop-order-algo");
     assert.equal(getLastCall()?.method, "POST");
-    assert.equal((getLastCall()?.params as Record<string, unknown>)["algoId"], "777");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["algoId"], "777");
+    assert.equal(params["stopType"], "1");
   });
 
-  it("response without clOrdId does not throw (separate normalizer from create)", async () => {
-    const { client } = makeMockClient();
-    // normalizeWriteStop is used, not normalizeWriteCreate — no sCode inspection
-    await assert.doesNotReject(() => tool.handler({ algoId: "888" }, makeContext(client)));
+  it("stopType='2' (keep assets) is sent correctly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "888", stopType: "2" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)["stopType"], "2");
+  });
+
+  it("response sCode check: throws on non-zero sCode", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/stop-order-algo": [{ algoId: "999", sCode: "51001", sMsg: "algo order not exist" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "999", stopType: "1" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); return true; },
+    );
+  });
+});
+
+describe("smart_portfolio_get_order_details — correct endpoint", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_order_details")!;
+
+  it("calls /orders-algo-details (not /order-algo)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-details");
   });
 });
 
@@ -7640,11 +7631,10 @@ describe("smart_portfolio_instant_rebalance", () => {
 
   it("passes through triggered=false without error", async () => {
     const { client } = makeMockClientWithData({
-      "/api/v5/tradingBot/smart-portfolio/instant-rebalance": [{ triggered: false }],
+      "/api/v5/tradingBot/smart-portfolio/instant-rebalance": [{ algoId: "555", balanceTime: "1700000000000", triggered: false }],
     });
     const result = await tool.handler({ algoId: "555" }, makeContext(client)) as Record<string, unknown>;
     assert.ok(result !== null);
-    // triggered is returned as Boolean in the data
     const data = (result["data"] as Record<string, unknown>[] | undefined)?.[0];
     assert.equal(data?.["triggered"], false);
   });
@@ -7658,20 +7648,51 @@ describe("smart_portfolio_get_recommend_zones", () => {
     const { client } = makeMockClientWithData({
       "/api/v5/tradingBot/smart-portfolio/recommend-zones": [
         {
-          zoneId: "z1",
+          recommendId: "12",
           defaultBacktestYield: {
-            annRate: "0.15",
-            profitHistory: [{ date: "2024-01-01", pnl: "0.01" }],
+            defaultPnlRatio: "0.08",
+            profitHistory: [{ cTime: "1700000000000", pnlRatio: "0.01", timeUnit: "1D" }],
           },
         },
       ],
     });
-    const result = await tool.handler({ investCcy: "USDT" }, makeContext(client)) as Record<string, unknown>;
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
     const data = result["data"] as Record<string, unknown>[];
     const zone = data[0]!;
     const yield_ = zone["defaultBacktestYield"] as Record<string, unknown>;
     assert.equal("profitHistory" in yield_, false, "profitHistory should be stripped");
-    assert.equal(yield_["annRate"], "0.15");
+    assert.equal(yield_["defaultPnlRatio"], "0.08");
+  });
+
+  it("sends recommendId and assetType (NOT investCcy)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ recommendId: "12", assetType: "Crypto" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["recommendId"], "12");
+    assert.equal(params["assetType"], "Crypto");
+    assert.ok(!("investCcy" in params));
+    assert.ok(!("ccy" in params));
+  });
+
+  it("works with no params (returns all zones)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/recommend-zones");
+  });
+});
+
+describe("smart_portfolio_get_zones_backtest — uses recommendId not zoneId", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_zones_backtest")!;
+
+  it("sends recommendId and period (NOT investCcy or zoneId)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ recommendId: "12", period: "7D" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["recommendId"], "12");
+    assert.equal(params["period"], "7D");
+    assert.ok(!("investCcy" in params));
+    assert.ok(!("zoneId" in params));
   });
 });
 

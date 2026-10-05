@@ -1401,17 +1401,17 @@ export function handleBotSmartPortfolioCommand(
   if (subAction === "details")
     return cmdSmartPortfolioDetails(run, { algoId: v.algoId!, json });
   if (subAction === "create")
-    return cmdSmartPortfolioCreate(run, { investmentCcy: v.investmentCcy!, portfolioList: v.portfolioList!, deltaRatio: v.deltaRatio!, interval: v.interval, json });
+    return cmdSmartPortfolioCreate(run, { stgyName: v.stgyName!, investmentCcy: v.investmentCcy!, initCapital: v.initCapital!, portfolioList: v.portfolioList!, interval: v.interval!, deltaRatio: v.deltaRatio!, tradeQuoteCcy: v.tradeQuoteCcy, investType: v.investType, algoClOrdId: v.algoClOrdId, json });
   if (subAction === "stop")
-    return cmdSmartPortfolioStop(run, { algoId: v.algoId!, json });
+    return cmdSmartPortfolioStop(run, { algoId: v.algoId!, stopType: v.stopType!, json });
   if (subAction === "amend-rebalance")
     return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, portfolioList: v.portfolioList, deltaRatio: v.deltaRatio, interval: v.interval, json });
   if (subAction === "instant-rebalance")
     return cmdSmartPortfolioInstantRebalance(run, { algoId: v.algoId!, json });
   if (subAction === "recommend-zones")
-    return cmdSmartPortfolioRecommendZones(run, { investCcy: v.investCcy!, ccy: v.ccy, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
+    return cmdSmartPortfolioRecommendZones(run, { recommendId: v.recommendId, assetType: v.assetType, json });
   if (subAction === "zones-backtest")
-    return cmdSmartPortfolioZonesBacktest(run, { investCcy: v.investCcy!, zoneId: v.zoneId!, period: v.period, json });
+    return cmdSmartPortfolioZonesBacktest(run, { recommendId: v.recommendId!, period: v.period, json });
   unknownSubcommand("bot smart-portfolio", subAction, ["orders", "history", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
 }
 

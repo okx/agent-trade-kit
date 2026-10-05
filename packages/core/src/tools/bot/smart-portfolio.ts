@@ -3,7 +3,6 @@ import {
   asRecord,
   compactObject,
   normalizeResponse,
-  readNumber,
   readString,
   requireString,
 } from "../helpers.js";
@@ -13,7 +12,7 @@ import { OkxApiError, ValidationError } from "../../utils/errors.js";
 const BASE = "/api/v5/tradingBot/smart-portfolio";
 
 /** Validate and truncate deltaRatio: floor(x*100)/100 must be in [0.01, 1). */
-function validateDeltaRatio(raw: string, endpoint: string): string {
+function validateDeltaRatio(raw: string): string {
   const n = Number(raw);
   if (isNaN(n)) {
     throw new ValidationError(`deltaRatio must be a number, got: ${raw}`);
@@ -40,10 +39,7 @@ interface PortfolioItem {
 }
 
 /** Validate and normalize portfolioList: trim/uppercase CCY, check dedup, check ratio sum = 1. */
-function validateAndNormalizePortfolioList(
-  raw: unknown,
-  endpoint: string,
-): PortfolioItem[] {
+function validateAndNormalizePortfolioList(raw: unknown): PortfolioItem[] {
   if (!Array.isArray(raw) || raw.length < 2) {
     throw new ValidationError(
       `portfolioList must have at least 2 items, got ${Array.isArray(raw) ? raw.length : "non-array"}`,
@@ -85,8 +81,8 @@ function validateAndNormalizePortfolioList(
   return normalized;
 }
 
-/** For tool 1 (create): check outer sCode in data items. */
-function normalizeWriteCreate(response: {
+/** For write operations that return sCode per item (tools 1 and 5). */
+function normalizeWriteScode(response: {
   endpoint: string;
   requestTime: string;
   data: unknown;
@@ -114,19 +110,6 @@ function normalizeWriteCreate(response: {
     endpoint: response.endpoint,
     requestTime: response.requestTime,
     data,
-  };
-}
-
-/** For tool 5 (stop): pass through as-is (response has no clOrdId or sCode). */
-function normalizeWriteStop(response: {
-  endpoint: string;
-  requestTime: string;
-  data: unknown;
-}): Record<string, unknown> {
-  return {
-    endpoint: response.endpoint,
-    requestTime: response.requestTime,
-    data: response.data,
   };
 }
 
@@ -161,39 +144,63 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         "Create a Smart Portfolio bot. [CAUTION] Real trades. " +
         "Allocate across 2–10 assets with specified ratios summing to 1.0. " +
         "The bot auto-rebalances when allocation drifts beyond deltaRatio. " +
-        "investmentCcy is the quote currency (USDT or USDC). " +
+        "investmentCcy is the quote/valuation currency (USDT, USDC, or USD). " +
         "portfolioList items: {ccy, ratio} — CCY is case-insensitive, must be unique.",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
+          stgyName: {
+            type: "string",
+            description: "Strategy name",
+          },
           investmentCcy: {
             type: "string",
-            description: "Quote currency for valuing the portfolio (USDT or USDC)",
+            description: "Valuation currency (USDT, USDC, or USD). Missing or blank is rejected.",
+          },
+          initCapital: {
+            type: "string",
+            description: "Planned initial investment amount (e.g. '3000')",
           },
           portfolioList: {
             type: "string",
             description:
               "JSON array of {ccy, ratio} objects. Must have 2–10 items. " +
               "Ratios must sum to 1.0. CCYs must be unique. " +
-              'Example: [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]',
+              'Example: [{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]',
+          },
+          interval: {
+            type: "string",
+            description: "Rebalance interval in minutes (e.g. '20'). Required.",
           },
           deltaRatio: {
             type: "string",
             description: "Rebalance trigger threshold (e.g. '0.05' for 5%). Minimum 0.01, must be < 1.",
           },
-          interval: {
+          tradeQuoteCcy: {
             type: "string",
-            description: "Periodic rebalance interval in seconds (optional). 0 = disable periodic rebalance.",
+            description: "Actual debit currency; defaults to investmentCcy if omitted.",
+          },
+          investType: {
+            type: "string",
+            enum: ["simple", "complex"],
+            description: "simple (default): invest specified amount in investmentCcy; complex: server calculates asset transfers.",
+          },
+          algoClOrdId: {
+            type: "string",
+            description: "Client strategy ID, up to 32 alphanumeric characters (optional).",
           },
         },
-        required: ["investmentCcy", "portfolioList", "deltaRatio"],
+        required: ["stgyName", "investmentCcy", "initCapital", "portfolioList", "interval", "deltaRatio"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const stgyName = requireString(args, "stgyName");
         const investmentCcy = requireString(args, "investmentCcy");
+        const initCapital = requireString(args, "initCapital");
         const portfolioListRaw = requireString(args, "portfolioList");
+        const interval = requireString(args, "interval");
         const deltaRatioRaw = requireString(args, "deltaRatio");
 
         let portfolioListParsed: unknown;
@@ -206,22 +213,26 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
           );
         }
 
-        const portfolioList = validateAndNormalizePortfolioList(portfolioListParsed, `${BASE}/order-algo`);
-        const deltaRatio = validateDeltaRatio(deltaRatioRaw, `${BASE}/order-algo`);
-        const interval = readString(args, "interval");
+        const portfolioList = validateAndNormalizePortfolioList(portfolioListParsed);
+        const deltaRatio = validateDeltaRatio(deltaRatioRaw);
 
         const response = await context.client.privatePost(
           `${BASE}/order-algo`,
           compactObject({
+            stgyName,
             investmentCcy,
+            initCapital,
             portfolioList,
-            deltaRatio,
             interval,
+            deltaRatio,
+            tradeQuoteCcy: readString(args, "tradeQuoteCcy"),
+            investType: readString(args, "investType"),
+            algoClOrdId: readString(args, "algoClOrdId"),
             tag: context.config.sourceTag,
           }),
           privateRateLimit("smart_portfolio_create_order", 20),
         );
-        return normalizeWriteCreate(response);
+        return normalizeWriteScode(response);
       },
     },
 
@@ -231,16 +242,18 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       title: "Smart Portfolio List Orders",
       module: "bot.smartportfolio",
       description:
-        "List pending (running) Smart Portfolio bots. " +
-        "Returns algoId, state, investmentCcy, portfolioList, and performance fields.",
+        "List running Smart Portfolio bots. " +
+        "Returns algoId, stgyName, investCcy, portfolioList, totalPnl, pnlRatio, and state. " +
+        "Server always filters to smart_portfolio type and SPOT; do not pass algoOrdType or instType.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           algoId: { type: "string", description: "Filter by algo order ID" },
+          instId: { type: "string", description: "Filter by instrument (e.g. BTC-USDT)" },
           after: { type: "string", description: "Pagination cursor (older data)" },
           before: { type: "string", description: "Pagination cursor (newer data)" },
-          limit: { type: "number", description: "Number of results (default 20, max 100)" },
+          limit: { type: "string", description: "Number of results (1–100, default 100)" },
         },
         required: [],
       },
@@ -250,9 +263,10 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
           `${BASE}/orders-algo-pending`,
           compactObject({
             algoId: readString(args, "algoId"),
+            instId: readString(args, "instId"),
             after: readString(args, "after"),
             before: readString(args, "before"),
-            limit: readNumber(args, "limit"),
+            limit: readString(args, "limit"),
           }),
           privateRateLimit("smart_portfolio_get_orders", 20),
         );
@@ -267,25 +281,25 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "List historical (stopped) Smart Portfolio bots. " +
-        "Filter by state: 'stopped' (user stopped) or 'filled' (closed by TP/SL). " +
-        "Use instType to filter by instrument type (SPOT, MARGIN, etc.).",
+        "Recommended state filter: 'stopped'. " +
+        "Server always filters to smart_portfolio type; do not pass algoOrdType.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
           state: {
             type: "string",
-            enum: ["stopped", "filled"],
-            description: "Filter by terminal state",
+            description: "Filter by terminal state (e.g. 'stopped')",
           },
           instType: {
             type: "string",
-            description: "Instrument type filter (e.g. SPOT)",
+            description: "Instrument type filter (SPOT recommended; omit to get all)",
           },
           algoId: { type: "string", description: "Filter by algo order ID" },
+          instId: { type: "string", description: "Filter by instrument" },
           after: { type: "string", description: "Pagination cursor (older data)" },
           before: { type: "string", description: "Pagination cursor (newer data)" },
-          limit: { type: "number", description: "Number of results (default 20, max 100)" },
+          limit: { type: "string", description: "Number of results (1–100, default 100)" },
         },
         required: [],
       },
@@ -297,9 +311,10 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
             state: readString(args, "state"),
             instType: readString(args, "instType"),
             algoId: readString(args, "algoId"),
+            instId: readString(args, "instId"),
             after: readString(args, "after"),
             before: readString(args, "before"),
-            limit: readNumber(args, "limit"),
+            limit: readString(args, "limit"),
           }),
           privateRateLimit("smart_portfolio_get_orders_history", 20),
         );
@@ -314,12 +329,13 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "Get details of a Smart Portfolio bot by algoId. " +
-        "Returns current allocation, unrealized PnL, rebalance history, and bot settings.",
+        "Returns current allocation (portfolioList), investCcy, totalPnl, pnlRatio, interval, deltaRatio, and state. " +
+        "Returns a 'not found' result when the strategy does not exist, does not belong to the caller, or is a different type.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "Algo order ID" },
+          algoId: { type: "string", description: "Smart Portfolio strategy ID" },
         },
         required: ["algoId"],
       },
@@ -327,7 +343,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
         const response = await context.client.privateGet(
-          `${BASE}/order-algo`,
+          `${BASE}/orders-algo-details`,
           { algoId },
           privateRateLimit("smart_portfolio_get_order_details", 20),
         );
@@ -342,27 +358,33 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "[CAUTION] Stop a running Smart Portfolio bot — real trades, irreversible. " +
-        "Workflow: (1) Call smart_portfolio_get_orders to confirm the bot is running. " +
-        "(2) Call this tool with the algoId to stop it. " +
-        "All assets remain in the account after stopping.",
+        "stopType is required: '1' = stop and sell all assets; '2' = stop but keep assets. " +
+        "Workflow: (1) Call smart_portfolio_get_orders to find the target bot and confirm it is running. " +
+        "(2) Confirm stopType with the user before proceeding. " +
+        "(3) Call this tool. Assets remain in the account when stopType='2'.",
       isWrite: true,
-      idempotentHint: true,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "Algo order ID to stop" },
+          algoId: { type: "string", description: "Smart Portfolio strategy ID to stop" },
+          stopType: {
+            type: "string",
+            enum: ["1", "2"],
+            description: "1 = stop and sell all assets; 2 = stop but keep assets",
+          },
         },
-        required: ["algoId"],
+        required: ["algoId", "stopType"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
+        const stopType = requireString(args, "stopType");
         const response = await context.client.privatePost(
           `${BASE}/stop-order-algo`,
-          { algoId },
+          { algoId, stopType },
           privateRateLimit("smart_portfolio_stop_order", 20),
         );
-        return normalizeWriteStop(response);
+        return normalizeWriteScode(response);
       },
     },
 
@@ -372,27 +394,22 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       title: "Smart Portfolio Amend Rebalance",
       module: "bot.smartportfolio",
       description:
-        "Amend the rebalance parameters (target allocation, deltaRatio, or interval) of a running Smart Portfolio bot. " +
-        "portfolioList, deltaRatio, and interval are all optional; provide only the fields to change. " +
-        "If portfolioList is provided, the same validation rules apply as for create.",
+        "Amend the rebalance parameters (deltaRatio or interval) of a running Smart Portfolio bot. " +
+        "At least one of deltaRatio or interval must change from its current value. " +
+        "deltaRatio validation: floor(x*100)/100 must be in [0.01, 1).",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "Algo order ID to amend" },
-          portfolioList: {
-            type: "string",
-            description:
-              "New JSON array of {ccy, ratio} objects (optional). Same validation as create.",
-          },
+          algoId: { type: "string", description: "Smart Portfolio strategy ID to amend" },
           deltaRatio: {
             type: "string",
-            description: "New rebalance trigger threshold (optional).",
+            description: "New rebalance trigger threshold (optional). Must be >= 0.01 and < 1.",
           },
           interval: {
             type: "string",
-            description: "New periodic rebalance interval in seconds (optional).",
+            description: "New periodic rebalance interval in minutes (optional).",
           },
         },
         required: ["algoId"],
@@ -401,29 +418,17 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
 
-        let portfolioList: PortfolioItem[] | undefined;
-        const portfolioListRaw = readString(args, "portfolioList");
-        if (portfolioListRaw !== undefined) {
-          let parsed: unknown;
-          try {
-            parsed = JSON.parse(portfolioListRaw);
-          } catch {
-            throw new ValidationError(`portfolioList is not valid JSON: ${portfolioListRaw}`);
-          }
-          portfolioList = validateAndNormalizePortfolioList(parsed, `${BASE}/amend-rebalance`);
-        }
-
         let deltaRatio: string | undefined;
         const deltaRatioRaw = readString(args, "deltaRatio");
         if (deltaRatioRaw !== undefined) {
-          deltaRatio = validateDeltaRatio(deltaRatioRaw, `${BASE}/amend-rebalance`);
+          deltaRatio = validateDeltaRatio(deltaRatioRaw);
         }
 
         const interval = readString(args, "interval");
 
         const response = await context.client.privatePost(
           `${BASE}/amend-rebalance`,
-          compactObject({ algoId, portfolioList, deltaRatio, interval }),
+          compactObject({ algoId, deltaRatio, interval }),
           privateRateLimit("smart_portfolio_amend_rebalance", 20),
         );
         // Tool 6: data is always [] — only check outer code (done by normalizeResponse)
@@ -438,14 +443,14 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "Trigger an immediate rebalance for a running Smart Portfolio bot. " +
-        "Returns triggered: true if rebalance was successfully triggered, false if not executed " +
-        "(e.g. portfolio already balanced or conditions not met).",
+        "Returns triggered: true if the rebalance event was accepted — this does NOT mean trades have executed. " +
+        "Do not update position knowledge based solely on this result.",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
         type: "object",
         properties: {
-          algoId: { type: "string", description: "Algo order ID to rebalance" },
+          algoId: { type: "string", description: "Smart Portfolio strategy ID to rebalance" },
         },
         required: ["algoId"],
       },
@@ -457,7 +462,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
           { algoId },
           privateRateLimit("smart_portfolio_instant_rebalance", 20),
         );
-        // Tool 7: triggered is Boolean, pass through as-is
+        // triggered is Boolean in data items; pass through as-is
         return {
           endpoint: response.endpoint,
           requestTime: response.requestTime,
@@ -472,38 +477,33 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       title: "Smart Portfolio Get Recommended Zones",
       module: "bot.smartportfolio",
       description:
-        "Browse OKX-recommended Smart Portfolio configurations (zones). " +
-        "Each zone has a predefined asset allocation, deltaRatio, and interval. " +
-        "Use zoneId from the result to run a backtest with smart_portfolio_get_zones_backtest. " +
-        "investCcy is the valuation currency for the portfolio (USDT or USDC).",
+        "Browse OKX-recommended Smart Portfolio configurations. " +
+        "Each zone has a predefined asset allocation (stgyParam.portfolioList), deltaRatio, and interval ready to use for create. " +
+        "Returns recommendId — pass it to smart_portfolio_get_zones_backtest to get the full backtest curve. " +
+        "profitHistory inside defaultBacktestYield is stripped here; use zones_backtest for the full curve. " +
+        "Filter by assetType: 'Crypto' or 'TradeFi'. Use recommendId to fetch a specific zone.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          investCcy: {
+          recommendId: {
             type: "string",
-            description: "Valuation currency for zones (USDT or USDC)",
+            description: "Positive integer ID of a specific recommended zone (optional). When provided, assetType filter is ignored.",
           },
-          ccy: {
+          assetType: {
             type: "string",
-            description: "Filter zones containing a specific asset (optional)",
-          },
-          limit: {
-            type: "number",
-            description: "Number of results (default 20, max 100)",
+            description: "Filter by asset type: 'Crypto' or 'TradeFi' (case-insensitive). Omit to get all zones.",
           },
         },
-        required: ["investCcy"],
+        required: [],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const investCcy = requireString(args, "investCcy");
         const response = await context.client.privateGet(
           `${BASE}/recommend-zones`,
           compactObject({
-            investCcy,
-            ccy: readString(args, "ccy"),
-            limit: readNumber(args, "limit"),
+            recommendId: readString(args, "recommendId"),
+            assetType: readString(args, "assetType"),
           }),
           privateRateLimit("smart_portfolio_get_recommend_zones", 20),
         );
@@ -523,43 +523,34 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       title: "Smart Portfolio Get Zones Backtest",
       module: "bot.smartportfolio",
       description:
-        "Get historical backtest results for a specific recommended zone. " +
-        "Use zoneId from smart_portfolio_get_recommend_zones. " +
-        "period controls the backtest window: '1W', '1M', '3M', '6M', '1Y' (case-insensitive). " +
-        "Returns annualized yield, max drawdown, and performance vs buy-and-hold.",
+        "Get full backtest results for a specific recommended zone by recommendId. " +
+        "Use recommendId from smart_portfolio_get_recommend_zones. " +
+        "period controls the backtest window: 24H, 7D, 1M, 3M, 6M, 1Y, 2Y (case-insensitive). " +
+        "Returns pnlRatio, apy, and profitHistory curve. " +
+        "The actual returned period may differ from requested when data is unavailable.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
-          investCcy: {
+          recommendId: {
             type: "string",
-            description: "Valuation currency (must match the zone's investCcy)",
-          },
-          zoneId: {
-            type: "string",
-            description: "Zone ID from smart_portfolio_get_recommend_zones",
+            description: "Recommended zone ID from smart_portfolio_get_recommend_zones",
           },
           period: {
             type: "string",
-            description: "Backtest period: 1W, 1M, 3M, 6M, or 1Y (case-insensitive)",
+            description: "Backtest period: 24H, 7D, 1M, 3M, 6M, 1Y, 2Y (case-insensitive). Omit to use default period.",
           },
         },
-        required: ["investCcy", "zoneId"],
+        required: ["recommendId"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
-        const investCcy = requireString(args, "investCcy");
-        const zoneId = requireString(args, "zoneId");
+        const recommendId = requireString(args, "recommendId");
         const period = readString(args, "period");
 
         const response = await context.client.privateGet(
           `${BASE}/zones-backtest`,
-          compactObject({
-            investCcy,
-            zoneId,
-            // period is case-insensitive per API; pass through as provided
-            period,
-          }),
+          compactObject({ recommendId, period }),
           privateRateLimit("smart_portfolio_get_zones_backtest", 20),
         );
         return normalizeResponse(response);

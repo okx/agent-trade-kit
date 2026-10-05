@@ -539,18 +539,28 @@ export async function cmdDcaSubOrders(
 export async function cmdSmartPortfolioCreate(
   run: ToolRunner,
   opts: {
+    stgyName: string;
     investmentCcy: string;
+    initCapital: string;
     portfolioList: string;
+    interval: string;
     deltaRatio: string;
-    interval?: string;
+    tradeQuoteCcy?: string;
+    investType?: string;
+    algoClOrdId?: string;
     json: boolean;
   },
 ): Promise<void> {
   const result = await run("smart_portfolio_create_order", {
+    stgyName: opts.stgyName,
     investmentCcy: opts.investmentCcy,
+    initCapital: opts.initCapital,
     portfolioList: opts.portfolioList,
-    deltaRatio: opts.deltaRatio,
     interval: opts.interval,
+    deltaRatio: opts.deltaRatio,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
+    investType: opts.investType,
+    algoClOrdId: opts.algoClOrdId,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
@@ -631,12 +641,12 @@ export async function cmdSmartPortfolioDetails(
 
 export async function cmdSmartPortfolioStop(
   run: ToolRunner,
-  opts: { algoId: string; json: boolean },
+  opts: { algoId: string; stopType: string; json: boolean },
 ): Promise<void> {
-  const result = await run("smart_portfolio_stop_order", { algoId: opts.algoId });
+  const result = await run("smart_portfolio_stop_order", { algoId: opts.algoId, stopType: opts.stopType });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);
-  outputLine(`Smart Portfolio stopped: ${opts.algoId} (OK)`);
+  emitWriteResult(data?.[0], "Smart Portfolio stopped", "algoId");
 }
 
 export async function cmdSmartPortfolioAmendRebalance(
@@ -671,34 +681,34 @@ export async function cmdSmartPortfolioInstantRebalance(
 
 export async function cmdSmartPortfolioRecommendZones(
   run: ToolRunner,
-  opts: { investCcy: string; ccy?: string; limit?: number; json: boolean },
+  opts: { recommendId?: string; assetType?: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_get_recommend_zones", {
-    investCcy: opts.investCcy,
-    ccy: opts.ccy,
-    limit: opts.limit,
+    recommendId: opts.recommendId,
+    assetType: opts.assetType,
   });
   const zones = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(zones);
   if (!zones.length) { outputLine("No recommended zones found"); return; }
   printTable(
     zones.map((z) => ({
-      zoneId:     z["zoneId"],
-      zoneName:   z["zoneName"],
-      investCcy:  z["investCcy"],
-      deltaRatio: z["deltaRatio"],
-      interval:   z["interval"],
+      recommendId: z["recommendId"],
+      title:       z["title"],
+      assetType:   z["assetType"],
+      coinCount:   z["coinCount"],
+      userCount:   z["userCount"],
+      deltaRatio:  (z["stgyParam"] as Record<string, unknown> | undefined)?.["deltaRatio"],
+      interval:    (z["stgyParam"] as Record<string, unknown> | undefined)?.["interval"],
     })),
   );
 }
 
 export async function cmdSmartPortfolioZonesBacktest(
   run: ToolRunner,
-  opts: { investCcy: string; zoneId: string; period?: string; json: boolean },
+  opts: { recommendId: string; period?: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_get_zones_backtest", {
-    investCcy: opts.investCcy,
-    zoneId: opts.zoneId,
+    recommendId: opts.recommendId,
     period: opts.period,
   });
   const data = (getData(result) as Record<string, unknown>[]) ?? [];
@@ -706,10 +716,10 @@ export async function cmdSmartPortfolioZonesBacktest(
   const item = data[0];
   if (!item) { outputLine("No backtest data"); return; }
   printKv({
-    zoneId:      opts.zoneId,
+    recommendId: opts.recommendId,
     period:      item["period"],
-    annRate:     item["annRate"],
-    maxDrawdown: item["maxDrawdown"],
-    vsHodl:      item["vsHodl"],
+    pnlRatio:    item["pnlRatio"],
+    apy:         item["apy"],
+    updateTime:  item["updateTime"],
   });
 }

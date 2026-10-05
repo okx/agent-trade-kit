@@ -841,12 +841,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "smart_portfolio_create_order",
-            usage: "okx bot smart-portfolio create --investmentCcy <USDT|USDC> --portfolioList '<json>' --deltaRatio <n>\n                         [--interval <secs>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
+            usage: "okx bot smart-portfolio create --stgyName <name> --investmentCcy <USDT|USDC|USD> --initCapital <amount>\n                         --portfolioList '<json>' --interval <minutes> --deltaRatio <n>\n                         [--tradeQuoteCcy <ccy>] [--investType <simple|complex>] [--algoClOrdId <id>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
             description: "Create a Smart Portfolio bot",
           },
           stop: {
             toolName: "smart_portfolio_stop_order",
-            usage: "okx bot smart-portfolio stop --algoId <id>",
+            usage: "okx bot smart-portfolio stop --algoId <id> --stopType <1|2>\n                 1=stop and sell all assets; 2=stop but keep assets",
             description: "Stop a running Smart Portfolio bot",
           },
           "amend-rebalance": {
@@ -861,12 +861,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "recommend-zones": {
             toolName: "smart_portfolio_get_recommend_zones",
-            usage: "okx bot smart-portfolio recommend-zones --investCcy <USDT|USDC> [--ccy <asset>] [--limit <n>]",
-            description: "Browse OKX-recommended Smart Portfolio zone configurations",
+            usage: "okx bot smart-portfolio recommend-zones [--recommendId <id>] [--assetType <Crypto|TradeFi>]",
+            description: "Browse OKX-recommended Smart Portfolio configurations",
           },
           "zones-backtest": {
             toolName: "smart_portfolio_get_zones_backtest",
-            usage: "okx bot smart-portfolio zones-backtest --investCcy <USDT|USDC> --zoneId <id> [--period <1W|1M|3M|6M|1Y>]",
+            usage: "okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3M|6M|1Y|2Y>]",
             description: "Get historical backtest results for a recommended zone",
           },
         },
