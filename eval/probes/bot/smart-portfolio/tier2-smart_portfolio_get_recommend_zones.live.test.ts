@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.smart-portfolio-get-recommend-zones';
-const USER_PROMPT = 'Show me the recommended Smart Portfolio zones in USDT. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Show me the OKX recommended Smart Portfolio configurations (Crypto asset type). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "recommend-zones"]];
 const EXPECTATION = 'okx bot smart-portfolio recommend-zones';
 

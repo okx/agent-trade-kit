@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.smart-portfolio-get-zones-backtest';
-const USER_PROMPT = 'Get the 1-month backtest results for Smart Portfolio zone ZONE001 with USDT. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Get the 1-month backtest results for recommended Smart Portfolio zone with recommendId 12. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "zones-backtest"]];
 const EXPECTATION = 'okx bot smart-portfolio zones-backtest';
 
