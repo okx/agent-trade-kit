@@ -587,7 +587,7 @@ export async function cmdSmartPortfolioOrders(
       state:         o["state"],
       investmentCcy: o["investmentCcy"],
       totalPnl:      o["totalPnl"],
-      totalPnlRatio: o["totalPnlRatio"],
+      pnlRatio:      o["pnlRatio"],
       createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
     })),
   );
@@ -615,7 +615,7 @@ export async function cmdSmartPortfolioHistory(
       state:         o["state"],
       investmentCcy: o["investmentCcy"],
       totalPnl:      o["totalPnl"],
-      totalPnlRatio: o["totalPnlRatio"],
+      pnlRatio:      o["pnlRatio"],
       createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
     })),
   );
@@ -636,7 +636,7 @@ export async function cmdSmartPortfolioDetails(
     deltaRatio:    detail["deltaRatio"],
     interval:      detail["interval"],
     totalPnl:      detail["totalPnl"],
-    totalPnlRatio: detail["totalPnlRatio"],
+    pnlRatio:      detail["pnlRatio"],
     createdAt:     detail["cTime"] ? new Date(Number(detail["cTime"] as string)).toLocaleString() : "",
   });
 }
