@@ -345,12 +345,20 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
-        const response = await context.client.privateGet(
-          `${BASE}/orders-algo-details`,
-          { algoId },
-          privateRateLimit("smart_portfolio_get_order_details", 20),
-        );
-        return normalizeResponse(response);
+        try {
+          const response = await context.client.privateGet(
+            `${BASE}/orders-algo-details`,
+            { algoId },
+            privateRateLimit("smart_portfolio_get_order_details", 20),
+          );
+          return normalizeResponse(response);
+        } catch (err) {
+          // 51293 = strategy does not exist / does not belong to caller / wrong type
+          if (err instanceof OkxApiError && err.code === "51293") {
+            return { endpoint: `${BASE}/orders-algo-details`, requestTime: new Date().toISOString(), data: [] };
+          }
+          throw err;
+        }
       },
     },
 
