@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.smart-portfolio-create-order';
-const USER_PROMPT = 'Create a Smart Portfolio bot with USDT, allocating 60% to BTC and 40% to ETH, with a 5% rebalance threshold. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Create a Smart Portfolio bot named "Test Portfolio" with USDT, investing 3000 USDT total, allocating 60% to BTC and 40% to ETH, with a 5% rebalance threshold and a 20-minute rebalance interval. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "create"]];
 const EXPECTATION = 'okx bot smart-portfolio create';
 
