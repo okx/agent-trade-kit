@@ -6,26 +6,30 @@
 
 ```bash
 okx bot smart-portfolio create \
+  --stgyName <name> \
   --investmentCcy USDT \
+  --initCapital <amount> \
   --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
-  --deltaRatio 0.05 \
-  [--interval 60]
+  --interval <minutes> \
+  --deltaRatio 0.05
 ```
 
+- `stgyName`, `investmentCcy`, `initCapital`, `portfolioList`, `interval`, `deltaRatio`: all required.
 - `portfolioList`: JSON array of `{ccy, ratio}` objects. Must have 2–10 items. Ratios must sum to 1.0. CCYs are case-insensitive and must be unique.
 - `deltaRatio`: Rebalance trigger threshold. Minimum 0.01, must be < 1. Value is truncated to 2 decimal places.
-- `interval`: Optional periodic rebalance interval in minutes. Omit or set to 0 to disable periodic rebalance.
+- `interval`: Periodic rebalance interval in minutes (e.g. `20` = rebalance every 20 minutes).
 
 ## List Running Bots
 
 ```bash
-okx bot smart-portfolio orders [--algoId <id>] [--after <id>] [--before <id>] [--limit <n>]
+okx bot smart-portfolio orders [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]
 ```
 
 ## List History (Stopped)
 
 ```bash
-okx bot smart-portfolio history [--state stopped] [--instType <SPOT>] [--algoId <id>]
+okx bot smart-portfolio history [--state stopped] [--instType <SPOT>] [--algoId <id>] \
+  [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]
 ```
 
 ## Get Details
@@ -37,10 +41,10 @@ okx bot smart-portfolio details --algoId <id>
 ## Stop
 
 ```bash
-okx bot smart-portfolio stop --algoId <id>
+okx bot smart-portfolio stop --algoId <id> --stopType <1|2>
 ```
 
-Check bot state via `details` before stopping. `stopType` defaults to 1 (sell all assets); pass `--stopType 2` to keep current holdings.
+`--stopType` is required. `1` = stop and sell all assets back to `investmentCcy`; `2` = stop and keep current holdings. Always check bot state via `details` before stopping.
 
 ## Amend Rebalance Parameters
 

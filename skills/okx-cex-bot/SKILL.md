@@ -151,8 +151,9 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio) and actio
 ### Step 3 — Verify after writes
 
 - After create → run the corresponding `orders` command to confirm active
-- After amend → run `bot grid details` to confirm updated config
-- After stop → run `orders --history` to confirm stopped
+- After amend → run `details --algoId <id>` to confirm updated config
+- After Grid/DCA stop → run `orders --history` to confirm stopped
+- After Smart Portfolio stop → run `smart-portfolio history` to confirm stopped
 
 ## Key Rules
 

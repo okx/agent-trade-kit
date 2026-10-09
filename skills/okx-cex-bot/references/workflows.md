@@ -42,6 +42,23 @@
 4. okx-cex-bot       okx bot dca orders --algoOrdType spot_dca       → confirm active
 ```
 
+## Smart Portfolio Bot — 修改再平衡参数
+> User: "帮我把囤币 bot SP001 的再平衡阈值改成 5%，间隔改为 60 分钟"
+> 适用场景：用户想修改已运行 bot 的 deltaRatio 或 interval
+
+```
+1. okx-cex-bot       okx bot smart-portfolio orders                   → list running bots, find algoId for "SP001"
+2. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → confirm current deltaRatio/interval
+        ↓ user approves
+3. okx-cex-bot       okx bot smart-portfolio amend-rebalance \
+                       --algoId <id> \
+                       --deltaRatio 0.05 \
+                       --interval 60
+4. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → verify updated params
+```
+
+Note: `--stgyName` / display name in user message is NOT `algoId`. Always run `orders` first to get the numeric algoId.
+
 ## Smart Portfolio Bot — 用户自定义配置（直接建仓）
 > User: "帮我建一个 60% BTC、40% ETH 的囤币策略，投 5000 USDT"
 > 适用场景：用户已明确指定配置比例，无需参考推荐组合
