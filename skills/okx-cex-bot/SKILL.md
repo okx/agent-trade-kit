@@ -126,6 +126,7 @@ Resolution:
 
 | Command | Type | Description |
 |---|---|---|
+| `okx bot smart-portfolio config` | READ | Get valid intervalOptions, deltaRatio/ratio ranges — call before create |
 | `okx bot smart-portfolio create` | WRITE | Create a Smart Portfolio bot (2–10 assets, ratios summing to 1.0, deltaRatio threshold) |
 | `okx bot smart-portfolio stop` | WRITE | Stop a running Smart Portfolio bot |
 | `okx bot smart-portfolio orders` | READ | List running Smart Portfolio bots |

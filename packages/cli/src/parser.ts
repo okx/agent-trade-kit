@@ -249,6 +249,7 @@ export interface CliValues {
   investType?: string;
   recommendId?: string;
   assetType?: string;
+  coinNames?: string;
   interval?: string;
   // AI builder attribution
   aiBuilderCode?: string;
@@ -527,6 +528,7 @@ export const CLI_OPTIONS = {
   investType:    { type: "string" },
   recommendId:   { type: "string" },
   assetType:     { type: "string" },
+  coinNames:     { type: "string" },
   interval:      { type: "string" },
   // AI builder attribution
   aiBuilderCode: { type: "string" },

@@ -194,6 +194,7 @@ import {
   cmdDcaAddMargin,
   cmdDcaReduceMargin,
   cmdDcaUpdateTakeProfit,
+  cmdSmartPortfolioGetConfig,
   cmdSmartPortfolioCreate,
   cmdSmartPortfolioOrders,
   cmdSmartPortfolioHistory,
@@ -1394,6 +1395,8 @@ export function handleBotSmartPortfolioCommand(
   v: CliValues,
   json: boolean,
 ): Promise<void> | void {
+  if (subAction === "config")
+    return cmdSmartPortfolioGetConfig(run, { instId: v.instId, coinNames: v.coinNames, json });
   if (subAction === "orders")
     return cmdSmartPortfolioOrders(run, { algoId: v.algoId, instId: v.instId, after: v.after, before: v.before, limit: v.limit, json });
   if (subAction === "history")
@@ -1412,7 +1415,7 @@ export function handleBotSmartPortfolioCommand(
     return cmdSmartPortfolioRecommendZones(run, { recommendId: v.recommendId, assetType: v.assetType, json });
   if (subAction === "zones-backtest")
     return cmdSmartPortfolioZonesBacktest(run, { recommendId: v.recommendId!, period: v.period, json });
-  unknownSubcommand("bot smart-portfolio", subAction, ["orders", "history", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
+  unknownSubcommand("bot smart-portfolio", subAction, ["config", "orders", "history", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
 }
 
 export function handleBotCommand(
