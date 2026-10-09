@@ -9,12 +9,12 @@ okx bot smart-portfolio create \
   --investmentCcy USDT \
   --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
   --deltaRatio 0.05 \
-  [--interval 86400]
+  [--interval 60]
 ```
 
 - `portfolioList`: JSON array of `{ccy, ratio}` objects. Must have 2–10 items. Ratios must sum to 1.0. CCYs are case-insensitive and must be unique.
 - `deltaRatio`: Rebalance trigger threshold. Minimum 0.01, must be < 1. Value is truncated to 2 decimal places.
-- `interval`: Optional periodic rebalance interval in seconds. Omit or set to 0 to disable periodic rebalance.
+- `interval`: Optional periodic rebalance interval in minutes. Omit or set to 0 to disable periodic rebalance.
 
 ## List Running Bots
 
@@ -25,7 +25,7 @@ okx bot smart-portfolio orders [--algoId <id>] [--after <id>] [--before <id>] [-
 ## List History (Stopped)
 
 ```bash
-okx bot smart-portfolio history [--state <stopped|filled>] [--instType <SPOT>] [--algoId <id>]
+okx bot smart-portfolio history [--state stopped] [--instType <SPOT>] [--algoId <id>]
 ```
 
 ## Get Details
@@ -40,14 +40,15 @@ okx bot smart-portfolio details --algoId <id>
 okx bot smart-portfolio stop --algoId <id>
 ```
 
+Check bot state via `details` before stopping. `stopType` defaults to 1 (sell all assets); pass `--stopType 2` to keep current holdings.
+
 ## Amend Rebalance Parameters
 
 ```bash
-okx bot smart-portfolio amend-rebalance --algoId <id> \
-  [--portfolioList '<json>'] \
-  [--deltaRatio <n>] \
-  [--interval <secs>]
+okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio <n> --interval <minutes>
 ```
+
+Both `--deltaRatio` and `--interval` are required on every call. The server rejects the request if both values equal the bot's current settings. `portfolioList`, `investmentCcy`, and rebalance mode cannot be changed via this command.
 
 ## Trigger Instant Rebalance
 
@@ -60,16 +61,25 @@ Returns `triggered: true` if a rebalance was triggered, `false` if the portfolio
 ## Browse Recommended Zones
 
 ```bash
-okx bot smart-portfolio recommend-zones --investCcy USDT [--ccy <asset>] [--limit <n>]
+okx bot smart-portfolio recommend-zones [--recommendId <id>] [--assetType <Crypto|TradeFi>]
 ```
 
-Use `zoneId` from results to run a backtest.
+Use `recommendId` from results to run a backtest.
 
 ## Get Zone Backtest
 
 ```bash
 okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3M|6M|1Y|2Y>]
 ```
+
+---
+
+## Edge Cases
+
+- **State check before stop**: always call `details` first to confirm the bot is `running` before issuing `stop`.
+- **amend-rebalance no-op rejection**: if both `deltaRatio` and `interval` match the bot's current values, the server returns an error — at least one value must differ.
+- **Demo mode**: smart-portfolio bots created in demo mode (`--demo`) are isolated from live bots.
+- **`filled` state not applicable**: unlike Grid/DCA, Smart Portfolio history only uses state `stopped`; do not pass `--state filled`.
 
 ---
 
@@ -92,7 +102,6 @@ okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3
 | `recommendId` | Recommended zone ID | 推荐组合 ID |
 | `assetType` | Asset category (Crypto / TradeFi) | 资产类别（加密货币 / 传统金融） |
 | `period` | Backtest period | 回测周期 |
-| `investmentCcy` | Valuation currency | 计价币种 |
 | `totalPnl` | Total profit and loss | 累计盈亏 |
 | `pnlRatio` | PnL ratio | 累计收益率 |
 | `state` | Bot state (running / stopping / stopped / pause) | 策略状态（运行中 / 停止中 / 已停止 / 暂停） |

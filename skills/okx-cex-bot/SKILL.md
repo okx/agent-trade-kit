@@ -131,7 +131,7 @@ Resolution:
 | `okx bot smart-portfolio orders` | READ | List running Smart Portfolio bots |
 | `okx bot smart-portfolio history` | READ | List stopped/completed Smart Portfolio bots |
 | `okx bot smart-portfolio details` | READ | Get Smart Portfolio bot details and current allocation |
-| `okx bot smart-portfolio amend-rebalance` | WRITE | Update rebalance parameters (portfolioList, deltaRatio, interval) |
+| `okx bot smart-portfolio amend-rebalance` | WRITE | Update rebalance threshold and interval (both --deltaRatio and --interval required) |
 | `okx bot smart-portfolio instant-rebalance` | WRITE | Trigger an immediate rebalance |
 | `okx bot smart-portfolio recommend-zones` | READ | Browse OKX-recommended portfolio zone configurations |
 | `okx bot smart-portfolio zones-backtest` | READ | Get historical backtest results for a recommended zone |
