@@ -1126,7 +1126,7 @@ describe("handleBotSmartPortfolioCommand routing", () => {
     assert.equal(captured["stopType"], "2");
   });
 
-  it("amend-rebalance: forwards v.algoId, v.deltaRatio (named flags) to smart_portfolio_amend_rebalance, portfolioList NOT forwarded", async () => {
+  it("amend-rebalance: forwards v.algoId, v.deltaRatio, v.interval (named flags) to smart_portfolio_amend_rebalance, portfolioList NOT forwarded", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -1134,11 +1134,12 @@ describe("handleBotSmartPortfolioCommand routing", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([]);
     };
-    const v = { algoId: "SP005", deltaRatio: "0.10", portfolioList: '[{"ccy":"BTC","ratio":"1.0"}]' } as CliValues;
+    const v = { algoId: "SP005", deltaRatio: "0.10", interval: "20", portfolioList: '[{"ccy":"BTC","ratio":"1.0"}]' } as CliValues;
     await handleBotSmartPortfolioCommand(runner, "amend-rebalance", v, false);
     assert.equal(capturedName, "smart_portfolio_amend_rebalance");
     assert.equal(captured["algoId"], "SP005");
     assert.equal(captured["deltaRatio"], "0.10");
+    assert.equal(captured["interval"], "20");
     assert.equal(captured["portfolioList"], undefined);
   });
 

@@ -11,15 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.9-beta.1] - 2026-10-09
+
+Beta release: skill `metadata.version` and pinned CLI install versions remain at `1.4.8` (stable-release-only policy).
+
 ### Added
 
-- **`bot.smartportfolio` module** (9 MCP tools + matching CLI `okx bot smart-portfolio` subcommands): full Smart Portfolio lifecycle — create, list pending orders, list history, get details, stop, amend rebalance parameters, trigger instant rebalance, browse recommended zones, and get zone backtest data. `deltaRatio` is validated with `floor(x*100)/100 ∈ [0.01, 1)`; `portfolioList` CCYs are normalized to uppercase, deduplication-checked, and ratio-sum validated. The module is **not** in `DEFAULT_MODULES` (load via `bot.all` or `all`). 9 eval probes added under `eval/probes/bot/smart-portfolio/`.
+- **`bot.smartportfolio` module** (8 MCP tools + matching CLI `okx bot smart-portfolio` subcommands): full Smart Portfolio lifecycle — create, list pending orders, list history, get details, stop, amend rebalance parameters, trigger instant rebalance, browse recommended zones, and get zone backtest data. `deltaRatio` is validated with `floor(x*100)/100 ∈ [0.01, 1)`; `portfolioList` CCYs are normalized to uppercase, deduplication-checked, and ratio-sum validated. The module is **not** in `DEFAULT_MODULES` (load via `bot.all` or `all`). 9 eval probes added under `eval/probes/bot/smart-portfolio/`.
 
 - **DCA bot operational management tools** ([#220]): three new MCP tools and matching CLI subcommands for managing running DCA bots — `dca_add_margin` / `okx bot dca add-margin`, `dca_reduce_margin` / `okx bot dca reduce-margin`, `dca_update_take_profit` / `okx bot dca update-tp`. Error codes 59301 (out-of-range margin) and 59302 (pending close order conflict) are translated to friendly messages; error code 51223 (copy-trading follower accounts) is also translated.
 
 ### Fixed
 
-- **Smart Portfolio CLI display — `pnlRatio` and `investCcy` columns**: `orders`, `history`, and `details` commands were reading non-existent fields (`totalPnlRatio`, `investmentCcy`) from API responses, causing those columns to always display as empty. Corrected to `pnlRatio` and `investCcy` (the real response field names). Also added `stgyName` column to `orders` and `history` tables for bot identification.
+- **Smart Portfolio CLI display**: `orders` and `details` now use `pnlRatio`; `orders` also displays `stgyName`. The investment currency field remains `investmentCcy` to match API unification.
+- **Smart Portfolio rebalance routing**: CLI `amend-rebalance` now treats both `deltaRatio` and `interval` as required, matching the command contract and passing type checking.
 
 - **`dca_add_margin` / `dca_reduce_margin` — NaN guard for `amt`**: non-numeric strings (e.g. `"abc"`) previously passed the `> 0` check because `NaN <= 0` is `false` in JavaScript. The guard is now `!Number.isFinite(Number(amt)) || Number(amt) <= 0`, which rejects any non-finite input.
 - **`dca_update_take_profit` — `algoOrdType` removed from user-facing schema**: the parameter was previously required in the input schema, forcing callers to always pass `"contract_dca"`. It is now hardcoded in the handler body and absent from the schema, since this endpoint only supports contract DCA bots.
@@ -27,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unified error-code translation**: the two separate `preCheckMarginErrors` / `preCheckCopyTradingErrors` helpers are replaced by a single table-driven `translateKnownErrorCodes` utility, eliminating code duplication.
 
 ### Changed
+
+- Smart Portfolio active and historical order queries share `smart_portfolio_get_orders` (`status=active|history`); CLI uses `orders --history` for historical queries.
 
 - **`okx-cex-bot` SKILL.md restructured with reference files**: Extracted Grid Bot and DCA Bot CLI param tables, Quickstart examples, and edge cases into `references/grid-commands.md` and `references/dca-commands.md`; cross-skill workflow examples moved into `references/workflows.md`. Follows the same pattern as `okx-cex-trade`, `okx-cex-earn`, and `okx-cex-market`. Pure documentation restructuring — no command or behavior changes.
 

@@ -1402,7 +1402,7 @@ export function handleBotSmartPortfolioCommand(
   if (subAction === "stop")
     return cmdSmartPortfolioStop(run, { algoId: v.algoId!, stopType: v.stopType!, json });
   if (subAction === "amend-rebalance")
-    return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, deltaRatio: v.deltaRatio, interval: v.interval, json });
+    return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, deltaRatio: v.deltaRatio!, interval: v.interval!, json });
   if (subAction === "instant-rebalance")
     return cmdSmartPortfolioInstantRebalance(run, { algoId: v.algoId!, json });
   if (subAction === "recommend-zones")
