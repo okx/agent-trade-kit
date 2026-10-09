@@ -7632,35 +7632,35 @@ describe("smart_portfolio_amend_rebalance", () => {
     const { client, getLastCall } = makeMockClientWithData({
       "/api/v5/tradingBot/smart-portfolio/amend-rebalance": [],
     });
-    const result = await tool.handler({ algoId: "123456", deltaRatio: "0.05" }, makeContext(client));
+    const result = await tool.handler({ algoId: "123456", deltaRatio: "0.05", interval: "60" }, makeContext(client));
     assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/amend-rebalance");
     assert.ok(result !== null && result !== undefined);
   });
 
-  it("sends algoId and deltaRatio, does NOT send portfolioList (not in OpenAPI)", async () => {
+  it("sends algoId, deltaRatio and interval to endpoint, does NOT send portfolioList", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "99999", deltaRatio: "0.10" }, makeContext(client));
+    await tool.handler({ algoId: "99999", deltaRatio: "0.10", interval: "60" }, makeContext(client));
     const params = getLastCall()?.params as Record<string, unknown>;
     assert.equal(params["algoId"], "99999");
     assert.equal(params["deltaRatio"], "0.10");
+    assert.equal(params["interval"], "60");
     assert.ok(!("portfolioList" in params));
   });
 
-  it("throws ValidationError when neither deltaRatio nor interval is provided", async () => {
+  it("throws when deltaRatio is missing", async () => {
     const { client } = makeMockClient();
     await assert.rejects(
-      () => tool.handler({ algoId: "99999" }, makeContext(client)),
-      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("at least one")); return true; },
+      () => tool.handler({ algoId: "99999", interval: "60" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); return true; },
     );
   });
 
-  it("interval-only path: sends algoId and interval without deltaRatio", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ algoId: "12345", interval: "30" }, makeContext(client));
-    const params = getLastCall()?.params as Record<string, unknown>;
-    assert.equal(params["algoId"], "12345");
-    assert.equal(params["interval"], "30");
-    assert.ok(!("deltaRatio" in params) || params["deltaRatio"] === undefined);
+  it("throws when interval is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "99999", deltaRatio: "0.10" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); return true; },
+    );
   });
 });
 

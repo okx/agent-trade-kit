@@ -398,8 +398,9 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "Amend the rebalance parameters of a running Smart Portfolio bot. " +
-        "Provide at least one of deltaRatio or interval. " +
-        "deltaRatio must be >= 0.01 (1%) and < 1 (100%).",
+        "Both deltaRatio and interval are required on every call. " +
+        "deltaRatio must be >= 0.01 (1%) and < 1 (100%). " +
+        "If both values equal the bot's current settings, the request is rejected (no actual change).",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
@@ -408,33 +409,23 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
           algoId: { type: "string", description: "Smart Portfolio strategy ID to amend" },
           deltaRatio: {
             type: "string",
-            description: "New rebalance trigger threshold (optional). Must be >= 0.01 and < 1.",
+            description: "New rebalance trigger threshold. Must be >= 0.01 and < 1.",
           },
           interval: {
             type: "string",
-            description: "New periodic rebalance interval in minutes (optional).",
+            description: "New periodic rebalance interval in minutes.",
           },
         },
-        required: ["algoId"],
+        required: ["algoId", "deltaRatio", "interval"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const algoId = requireString(args, "algoId");
 
-        let deltaRatio: string | undefined;
-        const deltaRatioRaw = readString(args, "deltaRatio");
-        if (deltaRatioRaw !== undefined) {
-          deltaRatio = validateDeltaRatio(deltaRatioRaw);
-        }
+        const deltaRatioRaw = requireString(args, "deltaRatio");
+        const deltaRatio = validateDeltaRatio(deltaRatioRaw);
 
-        const interval = readString(args, "interval");
-
-        if (deltaRatio === undefined && interval === undefined) {
-          throw new ValidationError(
-            "amend-rebalance requires at least one of deltaRatio or interval",
-            "Provide the new deltaRatio (threshold) or interval (minutes), or both.",
-          );
-        }
+        const interval = requireString(args, "interval");
 
         const response = await context.client.privatePost(
           `${BASE}/amend-rebalance`,

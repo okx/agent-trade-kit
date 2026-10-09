@@ -851,7 +851,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "amend-rebalance": {
             toolName: "smart_portfolio_amend_rebalance",
-            usage: "okx bot smart-portfolio amend-rebalance --algoId <id> [--deltaRatio <n>] [--interval <minutes>]\n                         At least one of --deltaRatio or --interval must be provided",
+            usage: "okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio <n> --interval <minutes>\n                         Both --deltaRatio and --interval are required",
             description: "Amend rebalance parameters of a running Smart Portfolio bot",
           },
           "instant-rebalance": {
