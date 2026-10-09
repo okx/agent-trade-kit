@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.smart-portfolio-amend-rebalance';
-const USER_PROMPT = 'Change the rebalance threshold of my Smart Portfolio bot 123456789 on my demo account to 3% and set the rebalance interval to 60 minutes. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Change the rebalance threshold of my Smart Portfolio bot 123456789 in demo/dry-run mode to 3% and set the rebalance interval to 60 minutes. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "amend-rebalance"]];
 const EXPECTATION = 'okx bot smart-portfolio amend-rebalance';
 

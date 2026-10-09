@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.smart-portfolio-stop-order';
-const USER_PROMPT = 'Stop my Smart Portfolio bot with algoId 123456789 on my demo account, and keep my current holdings (do not sell). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
+const USER_PROMPT = 'Stop my Smart Portfolio bot with algoId 123456789 in demo/dry-run mode, and keep my current holdings (do not sell). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "stop"]];
 const EXPECTATION = 'okx bot smart-portfolio stop';
 
