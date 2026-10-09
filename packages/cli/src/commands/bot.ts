@@ -656,7 +656,7 @@ export async function cmdSmartPortfolioStop(
 
 export async function cmdSmartPortfolioAmendRebalance(
   run: ToolRunner,
-  opts: { algoId: string; deltaRatio?: string; interval?: string; json: boolean },
+  opts: { algoId: string; deltaRatio: string; interval: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_amend_rebalance", {
     algoId: opts.algoId,
