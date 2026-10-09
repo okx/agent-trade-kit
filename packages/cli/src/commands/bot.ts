@@ -536,26 +536,6 @@ export async function cmdDcaSubOrders(
 // Smart Portfolio commands
 // ---------------------------------------------------------------------------
 
-export async function cmdSmartPortfolioGetConfig(
-  run: ToolRunner,
-  opts: { instId?: string; coinNames?: string; json: boolean },
-): Promise<void> {
-  const result = await run("smart_portfolio_get_config", {
-    instId: opts.instId,
-    coinNames: opts.coinNames,
-  });
-  const data = getData(result) as Record<string, unknown>[];
-  if (opts.json) return printJson(data);
-  if (!data?.length) { outputLine("No config returned"); return; }
-  const cfg = data[0]!;
-  outputLine(`intervalOptions: ${JSON.stringify(cfg["intervalOptions"])}`);
-  outputLine(`interval range:  ${cfg["intervalMin"]}–${cfg["intervalMax"]} min`);
-  outputLine(`deltaRatio range: ${cfg["deltaRatioMin"]}–${cfg["deltaRatioMax"]}`);
-  outputLine(`ratio range:     ${cfg["ratioMin"]}–${cfg["ratioMax"]}`);
-  outputLine(`perCoinMinAmt:   ${cfg["perCoinMinAmt"]}`);
-  outputLine(`nameMax:         ${cfg["nameMax"]}`);
-}
-
 export async function cmdSmartPortfolioCreate(
   run: ToolRunner,
   opts: {

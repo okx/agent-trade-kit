@@ -824,11 +824,6 @@ export const CLI_REGISTRY: CliRegistry = {
       "smart-portfolio": {
         description: "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
         commands: {
-          config: {
-            toolName: "smart_portfolio_get_config",
-            usage: "okx bot smart-portfolio config [--instId <pair>] [--coinNames <ccy1,ccy2>]",
-            description: "Get valid intervalOptions, deltaRatio range, ratio range, and perCoinMinAmt — call before create",
-          },
           orders: {
             toolName: "smart_portfolio_get_orders",
             usage: "okx bot smart-portfolio orders [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
@@ -836,7 +831,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           history: {
             toolName: "smart_portfolio_get_orders_history",
-            usage: "okx bot smart-portfolio history [--state <stopped|filled>] [--instType <SPOT>] [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
+            usage: "okx bot smart-portfolio history [--state <stopped>] [--instType <SPOT>] [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
             description: "List historical (stopped) Smart Portfolio bots",
           },
           details: {

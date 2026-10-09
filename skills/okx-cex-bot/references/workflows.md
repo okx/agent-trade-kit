@@ -64,41 +64,37 @@ Note: `--stgyName` / display name in user message is NOT `algoId`. Always run `o
 > 适用场景：用户已明确指定配置比例，无需参考推荐组合
 
 ```
-1. okx-cex-bot       okx bot smart-portfolio config                  → get intervalOptions; pick key as --interval
-2. okx-cex-portfolio okx account balance USDT                        → confirm available funds
+1. okx-cex-portfolio okx account balance USDT                       → confirm available funds
         ↓ user approves
-3. okx-cex-bot       okx bot smart-portfolio create \
+2. okx-cex-bot       okx bot smart-portfolio create \
                        --stgyName "My Portfolio" \
                        --investmentCcy USDT \
                        --initCapital 5000 \
                        --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
-                       --interval <key from step 1 intervalOptions, e.g. 20> \
+                       --interval 20 \
                        --deltaRatio 0.05
-4. okx-cex-bot       okx bot smart-portfolio orders                   → confirm active
-5. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → monitor allocation
+3. okx-cex-bot       okx bot smart-portfolio orders                  → confirm active
+4. okx-cex-bot       okx bot smart-portfolio details --algoId <id>   → monitor allocation
 ```
-
-Note: `--interval` must be one of the `key` values from `config`'s `intervalOptions` array (e.g. 20, 60, 240). Passing an arbitrary number returns Code 51000.
 
 ## Smart Portfolio Bot — 从 OKX 推荐组合建仓
 > User: "帮我选一个 OKX 推荐的囤币方案"
 > 适用场景：用户希望参考官方推荐，或不确定该选哪些币种
 
 ```
-1. okx-cex-bot       okx bot smart-portfolio config                  → get intervalOptions (valid --interval keys)
-2. okx-cex-bot       okx bot smart-portfolio recommend-zones [--assetType Crypto]
+1. okx-cex-bot       okx bot smart-portfolio recommend-zones [--assetType Crypto]
                        → browse zones, pick recommendId; note stgyParam.interval and stgyParam.deltaRatio
-3. okx-cex-bot       okx bot smart-portfolio zones-backtest --recommendId <id> [--period 3M]
+2. okx-cex-bot       okx bot smart-portfolio zones-backtest --recommendId <id> [--period 3M]
                        → (optional) evaluate backtest; skip if user has already decided
-4. okx-cex-portfolio okx account balance USDT                        → confirm funds
+3. okx-cex-portfolio okx account balance USDT                        → confirm funds
         ↓ user approves
-5. okx-cex-bot       okx bot smart-portfolio create \
+4. okx-cex-bot       okx bot smart-portfolio create \
                        --stgyName "My Portfolio" \
                        --investmentCcy USDT \
                        --initCapital <amount> \
-                       --portfolioList '<stgyParam.portfolioList from step 2>' \
-                       --interval <stgyParam.interval from step 2 — verify it is in intervalOptions from step 1> \
-                       --deltaRatio <stgyParam.deltaRatio from step 2>
-6. okx-cex-bot       okx bot smart-portfolio orders                   → confirm active
-7. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → monitor allocation
+                       --portfolioList '<stgyParam.portfolioList from step 1>' \
+                       --interval <stgyParam.interval from step 1> \
+                       --deltaRatio <stgyParam.deltaRatio from step 1>
+5. okx-cex-bot       okx bot smart-portfolio orders                   → confirm active
+6. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → monitor allocation
 ```

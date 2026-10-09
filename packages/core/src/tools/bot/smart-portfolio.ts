@@ -138,45 +138,6 @@ function stripProfitHistory(data: unknown): unknown {
 
 export function registerSmartPortfolioTools(): ToolSpec[] {
   return [
-    // ── Tool 0: Get Config ──────────────────────────────────────────────────────
-    {
-      name: "smart_portfolio_get_config",
-      title: "Smart Portfolio Get Config",
-      module: "bot.smartportfolio",
-      description:
-        "Get Smart Portfolio configuration before creating or amending a bot. " +
-        "Returns intervalOptions (the only valid --interval values), deltaRatioMin/Max, " +
-        "ratioMin/Max (per-coin weight limits), perCoinMinAmt, and nameMax. " +
-        "Always call this before create to pick a valid interval from intervalOptions[].key.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          instId: {
-            type: "string",
-            description: "Instrument pair (optional, e.g. BTC-USDT). If omitted returns general config.",
-          },
-          coinNames: {
-            type: "string",
-            description: "Comma-separated coin symbols for auto-earn/staking info (optional, e.g. 'BTC,ETH,USDT').",
-          },
-        },
-        required: [],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const response = await context.client.privateGet(
-          `${BASE}/config`,
-          compactObject({
-            instId: readString(args, "instId"),
-            coinNames: readString(args, "coinNames"),
-          }),
-          privateRateLimit("smart_portfolio_get_config", 20),
-        );
-        return normalizeResponse(response);
-      },
-    },
-
     // ── Tool 1: Create ─────────────────────────────────────────────────────────
     {
       name: "smart_portfolio_create_order",
@@ -185,7 +146,6 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       description:
         "Create a Smart Portfolio bot. [CAUTION] Real trades. " +
         "Allocate across 2–10 assets with specified ratios summing to 1.0. " +
-        "Call smart_portfolio_get_config first to get valid intervalOptions keys for the interval parameter. " +
         "investmentCcy is the quote/valuation currency (USDT, USDC, or USD). " +
         "portfolioList items: {ccy, ratio} — CCY is case-insensitive, must be unique.",
       isWrite: true,

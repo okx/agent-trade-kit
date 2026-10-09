@@ -2,21 +2,6 @@
 
 > Requires `--modules bot.smartportfolio` or `bot.all` (not in default modules).
 
-## Get Config (call before Create)
-
-```bash
-okx bot smart-portfolio config [--instId <pair>] [--coinNames <ccy1,ccy2>]
-```
-
-Returns `intervalOptions` (the **only valid values** for `--interval`), `intervalMin/Max`, `deltaRatioMin/Max`, `ratioMin/Max`, `perCoinMinAmt`, and `nameMax`. Always call this first to pick a valid `--interval` value from `intervalOptions[].key`.
-
-Example response fields:
-- `intervalOptions`: `[{"key": 20, "value": "20 minutes"}, {"key": 60, "value": "1 hour"}, ...]` — use `key` as `--interval`
-- `intervalMin` / `intervalMax`: allowed interval range in minutes
-- `deltaRatioMin` / `deltaRatioMax`: e.g. `"0.01"` / `"0.99"`
-- `ratioMin` / `ratioMax`: per-coin weight limits (e.g. `"0.05"` / `"0.95"`)
-- `perCoinMinAmt`: minimum investment per coin
-
 ## Create
 
 ```bash
