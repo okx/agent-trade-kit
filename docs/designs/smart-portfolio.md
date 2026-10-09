@@ -24,13 +24,12 @@ Token budget: adding 9 tools (~2,800 tokens) would bring the total to ~52,824 to
 | # | Name | Method | Endpoint | isWrite |
 |---|------|--------|----------|---------|
 | 1 | `smart_portfolio_create_order` | POST | `/order-algo` | true |
-| 2 | `smart_portfolio_get_orders` | GET | `/orders-algo-pending` | false |
-| 3 | `smart_portfolio_get_orders_history` | GET | `/orders-algo-history` | false |
-| 4 | `smart_portfolio_get_order_details` | GET | `/order-algo` | false |
-| 5 | `smart_portfolio_stop_order` | POST | `/stop-order-algo` | true |
-| 6 | `smart_portfolio_amend_rebalance` | POST | `/amend-rebalance` | true |
-| 7 | `smart_portfolio_instant_rebalance` | POST | `/instant-rebalance` | true |
-| 8 | `smart_portfolio_get_recommend_zones` | GET | `/recommend-zones` | false |
+| 2 | `smart_portfolio_get_orders` | GET | `/orders-algo-pending` or `/orders-algo-history` (via `status` param) | false |
+| 3 | `smart_portfolio_get_order_details` | GET | `/order-algo` | false |
+| 4 | `smart_portfolio_stop_order` | POST | `/stop-order-algo` | true |
+| 5 | `smart_portfolio_amend_rebalance` | POST | `/amend-rebalance` | true |
+| 6 | `smart_portfolio_instant_rebalance` | POST | `/instant-rebalance` | true |
+| 7 | `smart_portfolio_get_recommend_zones` | GET | `/recommend-zones` | false |
 | 9 | `smart_portfolio_get_zones_backtest` | GET | `/zones-backtest` | false |
 
 ## Key Implementation Constraints

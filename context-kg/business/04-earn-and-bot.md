@@ -85,7 +85,7 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 - Allocate across 2–10 assets; bot rebalances when actual allocation drifts beyond `deltaRatio`
 - `smart_portfolio_create_order` — create a Smart Portfolio bot (write); `portfolioList` CCYs normalized to uppercase, dedup-checked, ratio sum must equal 1.0; `deltaRatio` validated as `floor(x*100)/100 ∈ [0.01, 1)`
 - `smart_portfolio_get_orders` — list running Smart Portfolio bots
-- `smart_portfolio_get_orders_history` — list stopped/completed Smart Portfolio bots; supports `instType` filter
+- `smart_portfolio_get_orders` — list Smart Portfolio bots; `status=active` (default) returns running bots via `/orders-algo-pending`; `status=history` returns stopped bots via `/orders-algo-history` with optional `instType`/`state` filters
 - `smart_portfolio_get_order_details` — get details for a specific bot by `algoId`
 - `smart_portfolio_stop_order` — stop a running Smart Portfolio bot (write)
 - `smart_portfolio_amend_rebalance` — update rebalance parameters of a running bot (write); `data` is always `[]` in response — only outer `code` is checked

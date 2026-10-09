@@ -20,7 +20,6 @@ import {
   cmdDcaUpdateTakeProfit,
   cmdSmartPortfolioCreate,
   cmdSmartPortfolioOrders,
-  cmdSmartPortfolioHistory,
   cmdSmartPortfolioDetails,
   cmdSmartPortfolioStop,
   cmdSmartPortfolioAmendRebalance,
@@ -1187,7 +1186,7 @@ describe("handleBotSmartPortfolioCommand routing", () => {
     assert.equal(captured["period"], "7D");
   });
 
-  it("history: forwards v.state, v.instType to smart_portfolio_get_orders_history", async () => {
+  it("orders --history: forwards status=history, v.state, v.instType to smart_portfolio_get_orders", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};
     const runner: ToolRunner = async (name, args) => {
@@ -1195,9 +1194,10 @@ describe("handleBotSmartPortfolioCommand routing", () => {
       captured = args as Record<string, unknown>;
       return fakeResult([]);
     };
-    const v = { state: "stopped", instType: "SPOT" } as CliValues;
-    await handleBotSmartPortfolioCommand(runner, "history", v, false);
-    assert.equal(capturedName, "smart_portfolio_get_orders_history");
+    const v = { history: true, state: "stopped", instType: "SPOT" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "orders", v, false);
+    assert.equal(capturedName, "smart_portfolio_get_orders");
+    assert.equal(captured["status"], "history");
     assert.equal(captured["state"], "stopped");
     assert.equal(captured["instType"], "SPOT");
   });
