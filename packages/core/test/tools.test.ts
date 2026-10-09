@@ -7419,8 +7419,8 @@ describe("toMcpTool title & annotation overrides", () => {
 describe("smart_portfolio tools — module registration", () => {
   const tools = registerSmartPortfolioTools();
 
-  it("registers exactly 9 tools", () => {
-    assert.equal(tools.length, 9);
+  it("registers exactly 8 tools", () => {
+    assert.equal(tools.length, 8);
   });
 
   it("all tools have module=bot.smartportfolio", () => {
@@ -7441,7 +7441,6 @@ describe("smart_portfolio tools — module registration", () => {
     const names = tools.map((t) => t.name);
     assert.ok(names.includes("smart_portfolio_create_order"));
     assert.ok(names.includes("smart_portfolio_get_orders"));
-    assert.ok(names.includes("smart_portfolio_get_orders_history"));
     assert.ok(names.includes("smart_portfolio_get_order_details"));
     assert.ok(names.includes("smart_portfolio_stop_order"));
     assert.ok(names.includes("smart_portfolio_amend_rebalance"));
@@ -7452,7 +7451,7 @@ describe("smart_portfolio tools — module registration", () => {
 
   it("isWrite is true for write tools only", () => {
     const writes = ["smart_portfolio_create_order", "smart_portfolio_stop_order", "smart_portfolio_amend_rebalance", "smart_portfolio_instant_rebalance"];
-    const reads = ["smart_portfolio_get_orders", "smart_portfolio_get_orders_history", "smart_portfolio_get_order_details", "smart_portfolio_get_recommend_zones", "smart_portfolio_get_zones_backtest"];
+    const reads = ["smart_portfolio_get_orders", "smart_portfolio_get_order_details", "smart_portfolio_get_recommend_zones", "smart_portfolio_get_zones_backtest"];
     for (const t of tools) {
       if (writes.includes(t.name)) assert.equal(t.isWrite, true, `${t.name} should be isWrite=true`);
       if (reads.includes(t.name)) assert.equal(t.isWrite, false, `${t.name} should be isWrite=false`);
@@ -7602,25 +7601,34 @@ describe("smart_portfolio_create_order", () => {
   });
 });
 
-describe("smart_portfolio_get_orders — instId forwarded", () => {
+describe("smart_portfolio_get_orders — active and history routing", () => {
   const tools = registerSmartPortfolioTools();
   const tool = tools.find((t) => t.name === "smart_portfolio_get_orders")!;
+
+  it("routes to orders-algo-pending when status=active (default)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-pending");
+  });
+
+  it("routes to orders-algo-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-history");
+  });
 
   it("forwards instId when provided", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ instId: "BTC-USDT" }, makeContext(client));
     assert.equal((getLastCall()?.params as Record<string, unknown>)["instId"], "BTC-USDT");
   });
-});
 
-describe("smart_portfolio_get_orders_history — instId forwarded", () => {
-  const tools = registerSmartPortfolioTools();
-  const tool = tools.find((t) => t.name === "smart_portfolio_get_orders_history")!;
-
-  it("forwards instId when provided", async () => {
+  it("forwards instType and state for history", async () => {
     const { client, getLastCall } = makeMockClient();
-    await tool.handler({ instId: "BTC-USDT" }, makeContext(client));
-    assert.equal((getLastCall()?.params as Record<string, unknown>)["instId"], "BTC-USDT");
+    await tool.handler({ status: "history", instType: "SPOT", state: "stopped" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["instType"], "SPOT");
+    assert.equal(params["state"], "stopped");
   });
 });
 
@@ -7818,7 +7826,7 @@ describe("smart_portfolio_get_zones_backtest — uses recommendId not zoneId", (
   });
 });
 
-describe("smart_portfolio_get_orders — no instType or algoOrdType in request", () => {
+describe("smart_portfolio_get_orders — no instType or algoOrdType for active", () => {
   const tools = registerSmartPortfolioTools();
   const tool = tools.find((t) => t.name === "smart_portfolio_get_orders")!;
 
@@ -7829,18 +7837,6 @@ describe("smart_portfolio_get_orders — no instType or algoOrdType in request",
     assert.equal(call?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-pending");
     assert.ok(!("instType" in (call?.params ?? {})));
     assert.ok(!("algoOrdType" in (call?.params ?? {})));
-  });
-});
-
-describe("smart_portfolio_get_orders_history — instType accepted", () => {
-  const tools = registerSmartPortfolioTools();
-  const tool = tools.find((t) => t.name === "smart_portfolio_get_orders_history")!;
-
-  it("sends instType when provided", async () => {
-    const { client, getLastCall } = makeMockClient();
-    await tool.handler({ instType: "SPOT" }, makeContext(client));
-    const params = getLastCall()?.params as Record<string, unknown>;
-    assert.equal(params["instType"], "SPOT");
   });
 });
 

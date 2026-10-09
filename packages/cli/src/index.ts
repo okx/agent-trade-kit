@@ -196,7 +196,6 @@ import {
   cmdDcaUpdateTakeProfit,
   cmdSmartPortfolioCreate,
   cmdSmartPortfolioOrders,
-  cmdSmartPortfolioHistory,
   cmdSmartPortfolioDetails,
   cmdSmartPortfolioStop,
   cmdSmartPortfolioAmendRebalance,
@@ -1395,9 +1394,7 @@ export function handleBotSmartPortfolioCommand(
   json: boolean,
 ): Promise<void> | void {
   if (subAction === "orders")
-    return cmdSmartPortfolioOrders(run, { algoId: v.algoId, instId: v.instId, after: v.after, before: v.before, limit: v.limit, json });
-  if (subAction === "history")
-    return cmdSmartPortfolioHistory(run, { state: v.state, instType: v.instType, algoId: v.algoId, instId: v.instId, after: v.after, before: v.before, limit: v.limit, json });
+    return cmdSmartPortfolioOrders(run, { history: !!v.history, algoId: v.algoId, instId: v.instId, state: v.state, instType: v.instType, after: v.after, before: v.before, limit: v.limit, json });
   if (subAction === "details")
     return cmdSmartPortfolioDetails(run, { algoId: v.algoId!, json });
   if (subAction === "create")
@@ -1412,7 +1409,7 @@ export function handleBotSmartPortfolioCommand(
     return cmdSmartPortfolioRecommendZones(run, { recommendId: v.recommendId, assetType: v.assetType, json });
   if (subAction === "zones-backtest")
     return cmdSmartPortfolioZonesBacktest(run, { recommendId: v.recommendId!, period: v.period, json });
-  unknownSubcommand("bot smart-portfolio", subAction, ["orders", "history", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
+  unknownSubcommand("bot smart-portfolio", subAction, ["orders", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
 }
 
 export function handleBotCommand(

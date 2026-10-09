@@ -7,8 +7,8 @@ import {
 
 const PROBE_ID = 'tier2.smart-portfolio-get-orders-history';
 const USER_PROMPT = 'Show me my historical (stopped) Smart Portfolio bots. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "history"]];
-const EXPECTATION = 'okx bot smart-portfolio history';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "orders"]];
+const EXPECTATION = 'okx bot smart-portfolio orders --history';
 
 describe(PROBE_ID, () => {
   const models = getModels();

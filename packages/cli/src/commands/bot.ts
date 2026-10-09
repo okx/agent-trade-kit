@@ -569,56 +569,33 @@ export async function cmdSmartPortfolioCreate(
 
 export async function cmdSmartPortfolioOrders(
   run: ToolRunner,
-  opts: { algoId?: string; instId?: string; after?: string; before?: string; limit?: string; json: boolean },
+  opts: { history?: boolean; algoId?: string; instId?: string; state?: string; instType?: string; after?: string; before?: string; limit?: string; json: boolean },
 ): Promise<void> {
   const result = await run("smart_portfolio_get_orders", {
+    status: opts.history ? "history" : "active",
     algoId: opts.algoId,
     instId: opts.instId,
-    after: opts.after,
-    before: opts.before,
-    limit: opts.limit,
-  });
-  const orders = (getData(result) as Record<string, unknown>[]) ?? [];
-  if (opts.json) return printJson(orders);
-  if (!orders.length) { outputLine("No Smart Portfolio bots"); return; }
-  printTable(
-    orders.map((o) => ({
-      algoId:     o["algoId"],
-      stgyName:   o["stgyName"],
-      state:      o["state"],
-      investmentCcy: o["investmentCcy"],
-      totalPnl:   o["totalPnl"],
-      pnlRatio:   o["pnlRatio"],
-      createdAt:  new Date(Number(o["cTime"])).toLocaleString(),
-    })),
-  );
-}
-
-export async function cmdSmartPortfolioHistory(
-  run: ToolRunner,
-  opts: { state?: string; instType?: string; algoId?: string; instId?: string; after?: string; before?: string; limit?: string; json: boolean },
-): Promise<void> {
-  const result = await run("smart_portfolio_get_orders_history", {
     state: opts.state,
     instType: opts.instType,
-    algoId: opts.algoId,
-    instId: opts.instId,
     after: opts.after,
     before: opts.before,
     limit: opts.limit,
   });
   const orders = (getData(result) as Record<string, unknown>[]) ?? [];
   if (opts.json) return printJson(orders);
-  if (!orders.length) { outputLine("No Smart Portfolio history"); return; }
+  if (!orders.length) {
+    outputLine(opts.history ? "No Smart Portfolio history" : "No Smart Portfolio bots");
+    return;
+  }
   printTable(
     orders.map((o) => ({
-      algoId:     o["algoId"],
-      stgyName:   o["stgyName"],
-      state:      o["state"],
+      algoId:        o["algoId"],
+      stgyName:      o["stgyName"],
+      state:         o["state"],
       investmentCcy: o["investmentCcy"],
-      totalPnl:   o["totalPnl"],
-      pnlRatio:   o["pnlRatio"],
-      createdAt:  new Date(Number(o["cTime"])).toLocaleString(),
+      totalPnl:      o["totalPnl"],
+      pnlRatio:      o["pnlRatio"],
+      createdAt:     new Date(Number(o["cTime"])).toLocaleString(),
     })),
   );
 }

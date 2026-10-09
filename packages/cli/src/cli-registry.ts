@@ -826,13 +826,8 @@ export const CLI_REGISTRY: CliRegistry = {
         commands: {
           orders: {
             toolName: "smart_portfolio_get_orders",
-            usage: "okx bot smart-portfolio orders [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
-            description: "List running Smart Portfolio bots",
-          },
-          history: {
-            toolName: "smart_portfolio_get_orders_history",
-            usage: "okx bot smart-portfolio history [--state <stopped>] [--instType <SPOT>] [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]",
-            description: "List historical (stopped) Smart Portfolio bots",
+            usage: "okx bot smart-portfolio orders [--history] [--algoId <id>] [--instId <pair>] [--state <stopped>] [--instType <SPOT>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List Smart Portfolio bots (default: running; --history for stopped)",
           },
           details: {
             toolName: "smart_portfolio_get_order_details",

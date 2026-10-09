@@ -128,8 +128,7 @@ Resolution:
 |---|---|---|
 | `okx bot smart-portfolio create` | WRITE | Create a Smart Portfolio bot (2–10 assets, ratios summing to 1.0, deltaRatio threshold) |
 | `okx bot smart-portfolio stop` | WRITE | Stop a running Smart Portfolio bot |
-| `okx bot smart-portfolio orders` | READ | List running Smart Portfolio bots |
-| `okx bot smart-portfolio history` | READ | List stopped/completed Smart Portfolio bots |
+| `okx bot smart-portfolio orders` | READ | List Smart Portfolio bots (default: running; add --history for stopped) |
 | `okx bot smart-portfolio details` | READ | Get Smart Portfolio bot details and current allocation |
 | `okx bot smart-portfolio amend-rebalance` | WRITE | Update rebalance threshold and interval (both --deltaRatio and --interval required) |
 | `okx bot smart-portfolio instant-rebalance` | WRITE | Trigger an immediate rebalance |
@@ -153,7 +152,7 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio) and actio
 - After create → run the corresponding `orders` command to confirm active
 - After amend → run `details --algoId <id>` to confirm updated config
 - After Grid/DCA stop → run `orders --history` to confirm stopped
-- After Smart Portfolio stop → run `smart-portfolio history` to confirm stopped
+- After Smart Portfolio stop → run `smart-portfolio orders --history` to confirm stopped
 
 ## Key Rules
 

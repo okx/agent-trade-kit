@@ -19,17 +19,15 @@ okx bot smart-portfolio create \
 - `deltaRatio`: Rebalance trigger threshold. Minimum 0.01, must be < 1. Value is truncated to 2 decimal places.
 - `interval`: Periodic rebalance interval in minutes (e.g. `20` = rebalance every 20 minutes).
 
-## List Running Bots
+## List Bots (Running or History)
 
 ```bash
+# Running bots (default)
 okx bot smart-portfolio orders [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]
-```
 
-## List History (Stopped)
-
-```bash
-okx bot smart-portfolio history [--state stopped] [--instType <SPOT>] [--algoId <id>] \
-  [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]
+# Stopped bots
+okx bot smart-portfolio orders --history [--state stopped] [--instType <SPOT>] \
+  [--algoId <id>] [--instId <pair>] [--after <id>] [--before <id>] [--limit <n>]
 ```
 
 ## Get Details

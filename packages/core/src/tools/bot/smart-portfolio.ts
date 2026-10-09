@@ -238,21 +238,28 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       },
     },
 
-    // ── Tool 2: Get Pending Orders ──────────────────────────────────────────────
+    // ── Tool 2: Get Orders (active or history) ─────────────────────────────────
     {
       name: "smart_portfolio_get_orders",
       title: "Smart Portfolio List Orders",
       module: "bot.smartportfolio",
       description:
-        "List running Smart Portfolio bots. " +
-        "Returns algoId, stgyName, investCcy, portfolioList, totalPnl, pnlRatio, and state. " +
-        "Filter by instId (instrument pair) or algoId (strategy ID).",
+        "List Smart Portfolio bots. " +
+        "status='active' (default) returns running bots; status='history' returns stopped bots. " +
+        "state and instType filters only apply when status='history'.",
       isWrite: false,
       inputSchema: {
         type: "object",
         properties: {
+          status: {
+            type: "string",
+            enum: ["active", "history"],
+            description: "active=running bots (default); history=stopped bots",
+          },
           algoId: { type: "string", description: "Filter by algo order ID" },
           instId: { type: "string", description: "Filter by instrument (e.g. BTC-USDT)" },
+          state: { type: "string", description: "Filter by terminal state (history only, e.g. 'stopped')" },
+          instType: { type: "string", description: "Instrument type filter (history only, e.g. SPOT)" },
           after: { type: "string", description: "Pagination cursor (older data)" },
           before: { type: "string", description: "Pagination cursor (newer data)" },
           limit: { type: "string", description: "Number of results (1–100, default 100)" },
@@ -261,64 +268,22 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const status = readString(args, "status") ?? "active";
+        const endpoint = status === "history"
+          ? `${BASE}/orders-algo-history`
+          : `${BASE}/orders-algo-pending`;
         const response = await context.client.privateGet(
-          `${BASE}/orders-algo-pending`,
+          endpoint,
           compactObject({
             algoId: readString(args, "algoId"),
             instId: readString(args, "instId"),
+            state: status === "history" ? readString(args, "state") : undefined,
+            instType: status === "history" ? readString(args, "instType") : undefined,
             after: readString(args, "after"),
             before: readString(args, "before"),
             limit: readString(args, "limit"),
           }),
           privateRateLimit("smart_portfolio_get_orders", 20),
-        );
-        return normalizeResponse(response);
-      },
-    },
-
-    // ── Tool 3: Get Orders History ──────────────────────────────────────────────
-    {
-      name: "smart_portfolio_get_orders_history",
-      title: "Smart Portfolio Orders History",
-      module: "bot.smartportfolio",
-      description:
-        "List historical (stopped) Smart Portfolio bots. " +
-        "Recommended state filter: 'stopped'. " +
-        "Filter by instType (e.g. SPOT) or instId.",
-      isWrite: false,
-      inputSchema: {
-        type: "object",
-        properties: {
-          state: {
-            type: "string",
-            description: "Filter by terminal state (e.g. 'stopped')",
-          },
-          instType: {
-            type: "string",
-            description: "Instrument type filter (SPOT recommended; omit to get all)",
-          },
-          algoId: { type: "string", description: "Filter by algo order ID" },
-          instId: { type: "string", description: "Filter by instrument" },
-          after: { type: "string", description: "Pagination cursor (older data)" },
-          before: { type: "string", description: "Pagination cursor (newer data)" },
-          limit: { type: "string", description: "Number of results (1–100, default 100)" },
-        },
-        required: [],
-      },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const response = await context.client.privateGet(
-          `${BASE}/orders-algo-history`,
-          compactObject({
-            state: readString(args, "state"),
-            instType: readString(args, "instType"),
-            algoId: readString(args, "algoId"),
-            instId: readString(args, "instId"),
-            after: readString(args, "after"),
-            before: readString(args, "before"),
-            limit: readString(args, "limit"),
-          }),
-          privateRateLimit("smart_portfolio_get_orders_history", 20),
         );
         return normalizeResponse(response);
       },
