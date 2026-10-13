@@ -160,6 +160,7 @@ describe("validateCliAiBuilderCodeUsage", () => {
     assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("spot", "place", [], vals({ aiBuilderCode: "MYBOT" })));
     assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("swap", "algo", ["trail"], vals({ aiBuilderCode: "MYBOT" })));
     assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("bot", "dca", ["create"], vals({ aiBuilderCode: "MYBOT" })));
+    assert.doesNotThrow(() => validateCliAiBuilderCodeUsage("bot", "smart-portfolio", ["create"], vals({ aiBuilderCode: "MYBOT" })));
   });
 
   it("allows batch commands only for --action place", () => {
