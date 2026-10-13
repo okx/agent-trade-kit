@@ -1111,6 +1111,21 @@ describe("handleBotSmartPortfolioCommand routing", () => {
     assert.equal(captured["deltaRatio"], "0.05");
   });
 
+  it("create: forwards v.aiBuilderCode (named flag) to smart_portfolio_create_order", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "SP004", sCode: "0" }]);
+    };
+    const portfolio = JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]);
+    const v = { stgyName: "Test", investmentCcy: "USDT", initCapital: "3000", portfolioList: portfolio, interval: "20", deltaRatio: "0.05", aiBuilderCode: "MYBOT" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "create", v, false);
+    assert.equal(capturedName, "smart_portfolio_create_order");
+    assert.equal(captured["aiBuilderCode"], "MYBOT");
+  });
+
   it("stop: forwards v.algoId and v.stopType (named flags) to smart_portfolio_stop_order", async () => {
     let capturedName = "";
     let captured: Record<string, unknown> = {};

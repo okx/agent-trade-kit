@@ -21,6 +21,7 @@ import {
   handleOptionAlgoCommand,
   handleBotGridCommand,
   handleBotDcaCommand,
+  handleBotSmartPortfolioCommand,
   handleEventCommand,
   createCliToolRunner,
   resolveCliAiBuilderCode,
@@ -811,5 +812,48 @@ describe("handleEventCommand - aiBuilderCode routing", () => {
 
     assert.equal(process.exitCode, 1);
     assert.equal(callCount, 1);
+  });
+});
+
+// ===========================================================================
+// bot smart-portfolio create
+// ===========================================================================
+
+describe("handleBotSmartPortfolioCommand create - aiBuilderCode routing", () => {
+  it("create: aiBuilderCode is forwarded when provided", async () => {
+    const { spy, captured } = makeSpy();
+    await handleBotSmartPortfolioCommand(
+      spy,
+      "create",
+      vals({
+        stgyName: "Test Portfolio",
+        investmentCcy: "USDT",
+        initCapital: "3000",
+        portfolioList: '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]',
+        interval: "20",
+        deltaRatio: "0.05",
+        aiBuilderCode: "MYBOT",
+      }),
+      false,
+    );
+    assert.equal(captured.args["aiBuilderCode"], "MYBOT");
+  });
+
+  it("create: aiBuilderCode is absent when not provided", async () => {
+    const { spy, captured } = makeSpy();
+    await handleBotSmartPortfolioCommand(
+      spy,
+      "create",
+      vals({
+        stgyName: "Test Portfolio",
+        investmentCcy: "USDT",
+        initCapital: "3000",
+        portfolioList: '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]',
+        interval: "20",
+        deltaRatio: "0.05",
+      }),
+      false,
+    );
+    assert.equal(captured.args["aiBuilderCode"], undefined);
   });
 });

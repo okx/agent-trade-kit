@@ -548,6 +548,7 @@ export async function cmdSmartPortfolioCreate(
     tradeQuoteCcy?: string;
     investType?: string;
     algoClOrdId?: string;
+    aiBuilderCode?: string;
     json: boolean;
   },
 ): Promise<void> {
@@ -561,6 +562,7 @@ export async function cmdSmartPortfolioCreate(
     tradeQuoteCcy: opts.tradeQuoteCcy,
     investType: opts.investType,
     algoClOrdId: opts.algoClOrdId,
+    aiBuilderCode: opts.aiBuilderCode,
   });
   const data = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(data);

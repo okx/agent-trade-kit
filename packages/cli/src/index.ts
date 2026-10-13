@@ -1398,7 +1398,7 @@ export function handleBotSmartPortfolioCommand(
   if (subAction === "details")
     return cmdSmartPortfolioDetails(run, { algoId: v.algoId!, json });
   if (subAction === "create")
-    return cmdSmartPortfolioCreate(run, { stgyName: v.stgyName!, investmentCcy: v.investmentCcy!, initCapital: v.initCapital!, portfolioList: v.portfolioList!, interval: v.interval!, deltaRatio: v.deltaRatio!, tradeQuoteCcy: v.tradeQuoteCcy, investType: v.investType, algoClOrdId: v.algoClOrdId, json });
+    return cmdSmartPortfolioCreate(run, { stgyName: v.stgyName!, investmentCcy: v.investmentCcy!, initCapital: v.initCapital!, portfolioList: v.portfolioList!, interval: v.interval!, deltaRatio: v.deltaRatio!, tradeQuoteCcy: v.tradeQuoteCcy, investType: v.investType, algoClOrdId: v.algoClOrdId, aiBuilderCode: v.aiBuilderCode, json });
   if (subAction === "stop")
     return cmdSmartPortfolioStop(run, { algoId: v.algoId!, stopType: v.stopType!, json });
   if (subAction === "amend-rebalance")

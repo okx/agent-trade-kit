@@ -836,7 +836,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "smart_portfolio_create_order",
-            usage: "okx bot smart-portfolio create --stgyName <name> --investmentCcy <USDT|USDC|USD> --initCapital <amount>\n                         --portfolioList '<json>' --interval <minutes> --deltaRatio <n>\n                         [--tradeQuoteCcy <ccy>] [--investType <simple|complex>] [--algoClOrdId <id>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
+            usage: "okx bot smart-portfolio create --stgyName <name> --investmentCcy <USDT|USDC|USD> --initCapital <amount>\n                         --portfolioList '<json>' --interval <minutes> --deltaRatio <n>\n                         [--tradeQuoteCcy <ccy>] [--investType <simple|complex>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
             description: "Create a Smart Portfolio bot",
           },
           stop: {
