@@ -18,6 +18,7 @@ okx bot smart-portfolio create \
 - `portfolioList`: JSON array of `{ccy, ratio}` objects. Must have 2–10 items. Ratios must sum to 1.0. CCYs are case-insensitive and must be unique.
 - `deltaRatio`: Rebalance trigger threshold. Minimum 0.01, must be < 1. Value is truncated to 2 decimal places.
 - `interval`: Periodic rebalance interval in minutes (e.g. `20` = rebalance every 20 minutes).
+- `--aiBuilderCode <code>`: Optional builder attribution code, forwarded to `smart_portfolio_create_order`.
 
 ## List Bots (Running or History)
 
@@ -100,6 +101,7 @@ okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3
 | `investType` | Investment type (simple / complex) | 投入方式（简单 / 复合） |
 | `tradeQuoteCcy` | Debit currency | 实际扣款币种 |
 | `algoClOrdId` | Client strategy ID | 客户端策略 ID |
+| `aiBuilderCode` | Builder attribution code (optional) | Builder 归因码（可选） |
 | `stopType` | Stop type (1=sell all / 2=keep assets) | 停止类型（1=卖出全部 / 2=保留持仓） |
 | `recommendId` | Recommended zone ID | 推荐组合 ID |
 | `assetType` | Asset category (Crypto / TradeFi) | 资产类别（加密货币 / 传统金融） |

@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+## [1.4.9-beta.2] - 2026-10-14
+
+Beta 版本：skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.4.8`，仅在稳定版发布时同步。
+
+### 新增
+
+- **智能组合 CLI builder code 支持**：`okx bot smart-portfolio create` 新增可选 `--aiBuilderCode` 参数，并将其透传至 `smart_portfolio_create_order`。CLI 帮助已补充该参数；回归测试覆盖显式 builder code 路由、未提供参数及命令校验。
+
 ## [1.4.9-beta.1] - 2026-10-09
 
 Beta 版本：skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.4.8`，仅在稳定版发布时同步。

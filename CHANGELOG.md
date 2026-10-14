@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.9-beta.2] - 2026-10-14
+
+Beta release: skill `metadata.version` and pinned CLI install versions remain at `1.4.8` (stable-release-only policy).
+
+### Added
+
+- **Smart Portfolio CLI builder-code support**: `okx bot smart-portfolio create` now accepts the optional `--aiBuilderCode` flag and forwards it to `smart_portfolio_create_order`. CLI help documents the flag; regression tests cover explicit builder-code routing, omission, and command validation.
+
 ## [1.4.9-beta.1] - 2026-10-09
 
 Beta release: skill `metadata.version` and pinned CLI install versions remain at `1.4.8` (stable-release-only policy).
