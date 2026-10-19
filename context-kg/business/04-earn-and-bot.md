@@ -80,10 +80,23 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 - `dca_get_sub_orders` — list DCA cycles or orders within a cycle
 - `dca_stop_order` — terminate a DCA bot (write); spot_dca requires stopType; contract_dca supports stopType `"1"` (close, default) or `"2"` (keep position)
 
+### smart-portfolio (`bot/smart-portfolio.ts`)
+- Smart Portfolio bots: auto-rebalancing multi-asset portfolio strategy
+- Allocate across 2–10 assets; bot rebalances when actual allocation drifts beyond `deltaRatio`
+- `smart_portfolio_create_order` — create a Smart Portfolio bot (write); `portfolioList` CCYs normalized to uppercase, dedup-checked, ratio sum must equal 1.0; `deltaRatio` validated as `floor(x*100)/100 ∈ [0.01, 1)`
+- `smart_portfolio_get_orders` — list running Smart Portfolio bots
+- `smart_portfolio_get_orders` — list Smart Portfolio bots; `status=active` (default) returns running bots via `/orders-algo-pending`; `status=history` returns stopped bots via `/orders-algo-history` with optional `instType`/`state` filters
+- `smart_portfolio_get_order_details` — get details for a specific bot by `algoId`
+- `smart_portfolio_stop_order` — stop a running Smart Portfolio bot (write)
+- `smart_portfolio_amend_rebalance` — update rebalance parameters of a running bot (write); `data` is always `[]` in response — only outer `code` is checked
+- `smart_portfolio_instant_rebalance` — trigger an immediate rebalance (write); returns `triggered: boolean`
+- `smart_portfolio_get_recommend_zones` — browse OKX-recommended portfolio configurations; `profitHistory` is stripped from response to limit context size
+- `smart_portfolio_get_zones_backtest` — get historical backtest for a recommended zone
+
 ### Sub-module ID Expansion
 
 ```
-bot.all → [bot.grid, bot.dca]
+bot.all → [bot.grid, bot.dca, bot.smartportfolio]
 ```
 
 ## Write Safety

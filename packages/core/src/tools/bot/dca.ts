@@ -91,6 +91,30 @@ function normalizeWrite(response: {
   };
 }
 
+function translateKnownErrorCodes(
+  response: { endpoint: string; requestTime: string; data: unknown },
+  errorTable: Record<string, string>,
+  endpoint: string,
+): void {
+  const data = response.data;
+  if (!Array.isArray(data)) return;
+  for (const item of data) {
+    if (item === null || typeof item !== "object") continue;
+    const sCode = String((item as Record<string, unknown>)["sCode"] ?? "");
+    const msg = errorTable[sCode];
+    if (msg) throw new OkxApiError(msg, { code: sCode, endpoint });
+  }
+}
+
+const MARGIN_ERRORS: Record<string, string> = {
+  "59302": "Cancel the pending close order first, then retry",
+  "59301": "Adjustment amount is outside the allowed margin range",
+};
+
+const COPY_TRADING_ERRORS: Record<string, string> = {
+  "51223": "This operation is not available for sync copy-trading follower accounts",
+};
+
 export function registerDcaTools(): ToolSpec[] {
   return [
     {
@@ -131,7 +155,7 @@ export function registerDcaTools(): ToolSpec[] {
           reserveFunds: { type: "string", description: "spot_dca only. 'true' or 'false', default 'true'. Reserves funds for safety orders at bot creation." },
           tradeQuoteCcy: { type: "string" },
         },
-        required: ["instId", "algoOrdType", "direction", "initOrdAmt", "maxSafetyOrds", "tpPct"],
+        required: ["instId", "algoOrdType", "initOrdAmt", "maxSafetyOrds", "tpPct"],
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
@@ -144,6 +168,18 @@ export function registerDcaTools(): ToolSpec[] {
             code: "VALIDATION",
             endpoint: `${BASE}/create`,
           });
+        }
+
+        // direction: required for contract_dca; defaults to "long" for spot_dca
+        let direction = readString(args, "direction");
+        if (!direction) {
+          if (algoOrdType === "contract_dca") {
+            throw new OkxApiError("direction is required for contract_dca", {
+              code: "VALIDATION",
+              endpoint: `${BASE}/create`,
+            });
+          }
+          direction = "long";
         }
 
         const triggerParam = buildTriggerParam(args, algoOrdType);
@@ -161,7 +197,7 @@ export function registerDcaTools(): ToolSpec[] {
             instId,
             algoOrdType,
             lever: readString(args, "lever"),
-            direction: requireString(args, "direction"),
+            direction,
             initOrdAmt: requireString(args, "initOrdAmt"),
             safetyOrdAmt: readString(args, "safetyOrdAmt"),
             maxSafetyOrds,
@@ -349,6 +385,115 @@ export function registerDcaTools(): ToolSpec[] {
           privateRateLimit("dca_get_sub_orders", 20),
         );
         return normalizeResponse(response);
+      },
+    },
+    // ── Operational management ─────────────────────────────────────────────
+    {
+      name: "dca_add_margin",
+      title: "Martingale Bot Add Margin",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Add margin to a running contract DCA bot. Moves funds into the position. " +
+        "Use to prevent liquidation or extend position runway.",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          amt: { type: "string", description: "Amount to add (in quote currency, must be > 0)" },
+        },
+        required: ["algoId", "amt"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const amt = requireString(args, "amt");
+        if (!Number.isFinite(Number(amt)) || Number(amt) <= 0) {
+          throw new OkxApiError("amt must be greater than 0", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/margin/add`,
+          });
+        }
+        const response = await context.client.privatePost(
+          `${BASE}/margin/add`,
+          { algoId, amt },
+          privateRateLimit("dca_add_margin", 20),
+        );
+        translateKnownErrorCodes(response, MARGIN_ERRORS, `${BASE}/margin/add`);
+        return normalizeWrite(response);
+      },
+    },
+    {
+      name: "dca_reduce_margin",
+      title: "Martingale Bot Reduce Margin",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Reduce margin on a running contract DCA bot. Moves funds out of the position. " +
+        "Use to free up margin no longer needed for the position.",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          amt: { type: "string", description: "Amount to reduce (in quote currency, must be > 0)" },
+        },
+        required: ["algoId", "amt"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const amt = requireString(args, "amt");
+        if (!Number.isFinite(Number(amt)) || Number(amt) <= 0) {
+          throw new OkxApiError("amt must be greater than 0", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/margin/reduce`,
+          });
+        }
+        const response = await context.client.privatePost(
+          `${BASE}/margin/reduce`,
+          { algoId, amt },
+          privateRateLimit("dca_reduce_margin", 20),
+        );
+        translateKnownErrorCodes(response, MARGIN_ERRORS, `${BASE}/margin/reduce`);
+        return normalizeWrite(response);
+      },
+    },
+    {
+      name: "dca_update_take_profit",
+      title: "Martingale Bot Update Take-Profit",
+      module: "bot.dca",
+      description:
+        "[CAUTION] Update the take-profit price on a running contract DCA bot. Changes a live risk parameter. " +
+        "Not available for sync copy-trading follower accounts.",
+      isWrite: true,
+      destructiveHint: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          tpPrice: { type: "string", description: "New take-profit price" },
+        },
+        required: ["algoId", "tpPrice"],
+      },
+      handler: async (rawArgs, context) => {
+        const args = asRecord(rawArgs);
+        const algoId = requireString(args, "algoId");
+        const tpPrice = requireString(args, "tpPrice");
+        if (!Number.isFinite(Number(tpPrice)) || Number(tpPrice) <= 0) {
+          throw new OkxApiError("tpPrice must be greater than 0", {
+            code: "VALIDATION",
+            endpoint: `${BASE}/settings/take-profit`,
+          });
+        }
+        const response = await context.client.privatePost(
+          `${BASE}/settings/take-profit`,
+          { algoId, algoOrdType: "contract_dca", tpPrice },
+          privateRateLimit("dca_update_take_profit", 20),
+        );
+        translateKnownErrorCodes(response, COPY_TRADING_ERRORS, `${BASE}/settings/take-profit`);
+        return normalizeWrite(response);
       },
     },
   ];

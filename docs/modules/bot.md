@@ -9,7 +9,7 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | Sub-module | Tools | Description |
 |------------|-------|-------------|
 | `bot.grid` | 9 | Spot Grid, Contract Grid, Moon Grid strategies |
-| `bot.dca` | 5 | Contract DCA (Martingale) strategies |
+| `bot.dca` | 8 | Contract DCA (Martingale) strategies |
 
 **Module aliases:**
 - `bot` → all bot sub-modules (`bot.grid` + `bot.dca`)
@@ -58,6 +58,9 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_get_orders` | List active or historical Contract DCA bots |
 | `dca_get_order_details` | Get details of a single Contract DCA bot |
 | `dca_get_sub_orders` | List cycles / orders within a cycle of a Contract DCA bot |
+| `dca_add_margin` | Add margin to a running contract DCA bot |
+| `dca_reduce_margin` | Reduce margin on a running contract DCA bot |
+| `dca_update_take_profit` | Update take-profit price on a running contract DCA bot |
 
 ## Example prompts
 
@@ -137,7 +140,7 @@ okx bot dca stop --algoId <id>
 | 子模块 | 工具数 | 说明 |
 |--------|--------|------|
 | `bot.grid` | 9 | 现货网格、合约网格、Moon Grid 策略 |
-| `bot.dca` | 5 | 合约 DCA（马丁格尔）策略 |
+| `bot.dca` | 8 | 合约 DCA（马丁格尔）策略 |
 
 **模块别名：**
 - `bot` → 所有 bot 子模块（`bot.grid` + `bot.dca`）
@@ -186,6 +189,9 @@ okx bot dca stop --algoId <id>
 | `dca_get_orders` | 列出运行中或历史合约 DCA 机器人 |
 | `dca_get_order_details` | 查询单个合约 DCA 机器人详情 |
 | `dca_get_sub_orders` | 列出合约 DCA 周期 / 周期内订单 |
+| `dca_add_margin` | 为运行中的合约 DCA 机器人增加保证金 |
+| `dca_reduce_margin` | 减少运行中的合约 DCA 机器人的保证金 |
+| `dca_update_take_profit` | 更新运行中的合约 DCA 机器人的止盈价 |
 
 ## 示例提示词
 

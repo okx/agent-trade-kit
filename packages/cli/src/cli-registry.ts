@@ -821,6 +821,51 @@ export const CLI_REGISTRY: CliRegistry = {
           },
         },
       },
+      "smart-portfolio": {
+        description: "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
+        commands: {
+          orders: {
+            toolName: "smart_portfolio_get_orders",
+            usage: "okx bot smart-portfolio orders [--history] [--algoId <id>] [--instId <pair>] [--state <stopped>] [--instType <SPOT>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List Smart Portfolio bots (default: running; --history for stopped)",
+          },
+          details: {
+            toolName: "smart_portfolio_get_order_details",
+            usage: "okx bot smart-portfolio details --algoId <id>",
+            description: "Get Smart Portfolio bot details",
+          },
+          create: {
+            toolName: "smart_portfolio_create_order",
+            usage: "okx bot smart-portfolio create --stgyName <name> --investmentCcy <USDT|USDC|USD> --initCapital <amount>\n                         --portfolioList '<json>' --interval <minutes> --deltaRatio <n>\n                         [--tradeQuoteCcy <ccy>] [--investType <simple|complex>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
+            description: "Create a Smart Portfolio bot",
+          },
+          stop: {
+            toolName: "smart_portfolio_stop_order",
+            usage: "okx bot smart-portfolio stop --algoId <id> --stopType <1|2>\n                 1=stop and sell all assets; 2=stop but keep assets",
+            description: "Stop a running Smart Portfolio bot",
+          },
+          "amend-rebalance": {
+            toolName: "smart_portfolio_amend_rebalance",
+            usage: "okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio <n> --interval <minutes>\n                         Both --deltaRatio and --interval are required",
+            description: "Amend rebalance parameters of a running Smart Portfolio bot",
+          },
+          "instant-rebalance": {
+            toolName: "smart_portfolio_instant_rebalance",
+            usage: "okx bot smart-portfolio instant-rebalance --algoId <id>",
+            description: "Trigger an immediate rebalance for a Smart Portfolio bot",
+          },
+          "recommend-zones": {
+            toolName: "smart_portfolio_get_recommend_zones",
+            usage: "okx bot smart-portfolio recommend-zones [--recommendId <id>] [--assetType <Crypto|TradeFi>]",
+            description: "Browse OKX-recommended Smart Portfolio configurations",
+          },
+          "zones-backtest": {
+            toolName: "smart_portfolio_get_zones_backtest",
+            usage: "okx bot smart-portfolio zones-backtest --recommendId <id> [--period <24H|7D|1M|3M|6M|1Y|2Y>]",
+            description: "Get historical backtest results for a recommended zone",
+          },
+        },
+      },
       dca: {
         description: "DCA (Martingale) bot - spot or contract recurring buys",
         commands: {
@@ -841,13 +886,28 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "dca_create_order",
-            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id> --direction <long|short>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi\n                 [--aiBuilderCode <code>]",
+            usage: "okx bot dca create --algoOrdType <spot_dca|contract_dca> --instId <id>\n                 --initOrdAmt <n> --maxSafetyOrds <n> --tpPct <n>\n                 [--direction <long|short>] [--lever <n>] [--safetyOrdAmt <n>] [--pxSteps <n>] [--pxStepsMult <n>] [--volMult <n>]\n                 [--slPct <n>] [--slMode <limit|market>] [--allowReinvest <true|false>]\n                 [--triggerStrategy <instant|price|rsi>] [--triggerPx <price>]\n                 [--triggerCond <cross_up|cross_down>] [--thold <n>] [--timeframe <tf>] [--timePeriod <n>]\n                 [--algoClOrdId <id>] [--reserveFunds <true|false>] [--tradeQuoteCcy <ccy>]\n                 Note: --lever required for contract_dca; --direction required for contract_dca (default: long for spot_dca)\n                 safetyOrdAmt, pxSteps, pxStepsMult, volMult required when maxSafetyOrds > 0\n                 triggerStrategy: contract_dca supports instant|price|rsi; spot_dca supports instant|rsi\n                 [--aiBuilderCode <code>]",
             description: "Create a DCA (Martingale) bot (spot or contract)",
           },
           stop: {
             toolName: "dca_stop_order",
             usage: "okx bot dca stop --algoOrdType <spot_dca|contract_dca> --algoId <id> [--stopType <1|2>]\n                 Note: --stopType required for spot_dca (1=sell all, 2=keep tokens)",
             description: "Stop a DCA bot (spot or contract)",
+          },
+          "add-margin": {
+            toolName: "dca_add_margin",
+            usage: "okx bot dca add-margin --algoId <id> --amt <amount>",
+            description: "Add margin to a running contract DCA bot",
+          },
+          "reduce-margin": {
+            toolName: "dca_reduce_margin",
+            usage: "okx bot dca reduce-margin --algoId <id> --amt <amount>",
+            description: "Reduce margin on a running contract DCA bot",
+          },
+          "update-tp": {
+            toolName: "dca_update_take_profit",
+            usage: "okx bot dca update-tp --algoId <id> --tpPrice <price>",
+            description: "Update take-profit price on a running contract DCA bot",
           },
         },
       },

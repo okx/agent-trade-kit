@@ -17,12 +17,13 @@ import { registerAlgoTradeTools, registerFuturesAlgoTools } from "../src/tools/a
 import { registerOptionAlgoTools } from "../src/tools/option-algo-trade.js";
 import { registerGridTools } from "../src/tools/bot/grid.js";
 import { registerDcaTools } from "../src/tools/bot/dca.js";
+import { registerSmartPortfolioTools } from "../src/tools/bot/smart-portfolio.js";
 import { registerOnchainEarnTools } from "../src/tools/earn/onchain.js";
 import { registerAllEarnTools } from "../src/tools/earn/index.js";
 import { registerSmartmoneyTools } from "../src/tools/smartmoney.js";
 import { assertNotDemo } from "../src/tools/common.js";
 import { ConfigError, OkxApiError, ValidationError } from "../src/utils/errors.js";
-import { DEFAULT_SOURCE_TAG } from "../src/constants.js";
+import { DEFAULT_SOURCE_TAG, DEFAULT_MODULES, BOT_SUB_MODULE_IDS } from "../src/constants.js";
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -3345,8 +3346,8 @@ describe("swap_get_algo_orders", () => {
 describe("dca tools registration", () => {
   const tools = registerDcaTools();
 
-  it("registers exactly 5 DCA tools", () => {
-    assert.equal(tools.length, 5);
+  it("registers exactly 8 DCA tools", () => {
+    assert.equal(tools.length, 8);
   });
 
   it("all DCA tools have module bot.dca", () => {
@@ -3356,6 +3357,677 @@ describe("dca tools registration", () => {
         "bot.dca",
         `${tool.name} should have module bot.dca`,
       );
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_add_margin
+// ---------------------------------------------------------------------------
+describe("dca_add_margin", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_add_margin")!;
+
+  it("calls /dca/margin/add with algoId and amt", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "100" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/margin/add");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "111");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "100");
+  });
+
+  it("does not include algoOrdType in request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "50" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, undefined);
+  });
+
+  it("throws error when amt is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111" }, makeContext(client)),
+    );
+  });
+
+  it("translates sCode=59302 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59302", sMsg: "Pls cancel the pending close order first" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Cancel the pending close order first"));
+        return true;
+      },
+    );
+  });
+
+  it("translates sCode=59301 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59301", sMsg: "Adjustment amount exceeds max limit" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Adjustment amount is outside the allowed margin range"));
+        return true;
+      },
+    );
+  });
+
+});
+
+// ---------------------------------------------------------------------------
+// dca_reduce_margin
+// ---------------------------------------------------------------------------
+describe("dca_reduce_margin", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
+
+  it("calls /dca/margin/reduce with algoId and amt", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/margin/reduce");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoId, "222");
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "50");
+  });
+
+  it("does not include algoOrdType in request body", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, undefined);
+  });
+
+  it("throws error when amt is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222" }, makeContext(client)),
+    );
+  });
+
+  it("translates sCode=59302 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59302", sMsg: "Pls cancel the pending close order first" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Cancel the pending close order first"));
+        return true;
+      },
+    );
+  });
+
+  it("translates sCode=59301 to friendly message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "59301", sMsg: "Adjustment amount exceeds max limit" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("Adjustment amount is outside the allowed margin range"));
+        return true;
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_update_take_profit
+// ---------------------------------------------------------------------------
+describe("dca_update_take_profit", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
+
+  it("calls /dca/settings/take-profit with algoId, algoOrdType, tpPrice", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "333", algoOrdType: "contract_dca", tpPrice: "50000" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/settings/take-profit");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoId, "333");
+    assert.equal(params.algoOrdType, "contract_dca");
+    assert.equal(params.tpPrice, "50000");
+  });
+
+  it("translates sCode=51223 to copy-trading message", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "51223", sMsg: "This operation is not supported" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", algoOrdType: "contract_dca", tpPrice: "50000" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("not available for sync copy-trading follower accounts"));
+        return true;
+      },
+    );
+  });
+
+  it("throws error when tpPrice is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", algoOrdType: "contract_dca" }, makeContext(client)),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_add_margin — NaN guard
+// ---------------------------------------------------------------------------
+describe("dca_add_margin - NaN guard", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_add_margin")!;
+
+  it("throws when amt is non-numeric string (NaN guard)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "abc" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0") || err instanceof OkxApiError);
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is zero", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "0" }, makeContext(client)),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_reduce_margin — NaN guard
+// ---------------------------------------------------------------------------
+describe("dca_reduce_margin - NaN guard", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
+
+  it("throws when amt is non-numeric string (NaN guard)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "abc" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0") || err instanceof OkxApiError);
+        return true;
+      },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_update_take_profit — algoOrdType hardcoded
+// ---------------------------------------------------------------------------
+describe("dca_update_take_profit - implicit algoOrdType", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
+
+  it("hardcodes algoOrdType=contract_dca even when not provided in input", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params.algoOrdType, "contract_dca");
+  });
+
+  it("does not expose algoOrdType in inputSchema properties", () => {
+    const schema = tool.inputSchema as { properties?: Record<string, unknown>; required?: string[] };
+    assert.equal(schema.properties?.["algoOrdType"], undefined);
+    assert.ok(!(schema.required ?? []).includes("algoOrdType"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_create_order — direction conditional logic
+// ---------------------------------------------------------------------------
+describe("dca_create_order - direction conditional", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_create_order")!;
+  const baseArgs = {
+    instId: "BTC-USDT",
+    algoOrdType: "spot_dca",
+    initOrdAmt: "100",
+    maxSafetyOrds: "0",
+    tpPct: "0.03",
+  };
+
+  it("defaults direction to long for spot_dca when not provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "long");
+  });
+
+  it("forwards direction=short for spot_dca when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...baseArgs, direction: "short" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).direction, "short");
+  });
+
+  it("throws when direction is missing for contract_dca", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...baseArgs, algoOrdType: "contract_dca", lever: "3" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof OkxApiError || err.message.includes("direction"));
+        return true;
+      },
+    );
+  });
+
+  it("direction is not in required[] in inputSchema", () => {
+    const schema = tool.inputSchema as { required?: string[] };
+    assert.ok(!(schema.required ?? []).includes("direction"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_add_margin — additional coverage (MR !390 test-case design follow-up)
+// ---------------------------------------------------------------------------
+describe("dca_add_margin - additional coverage", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_add_margin")!;
+
+  it("forwards decimal amt unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "0.01" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "0.01");
+  });
+
+  it("forwards high-precision amt without losing digits", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "123456.789012" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "123456.789012");
+  });
+
+  it("does not throw when sCode='0' (explicit success path)", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "0", algoId: "111" }],
+    });
+    const result = await tool.handler({ algoId: "111", amt: "100" }, makeContext(client));
+    assert.equal((result as Record<string, unknown>)["data"] instanceof Array, true);
+  });
+
+  it("throws when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ amt: "100" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is negative", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "-100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is the literal string 'NaN'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "NaN" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is the literal string 'Infinity'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "Infinity" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when amt is passed as a number instead of a string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: 100 }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof ValidationError, `expected ValidationError, got ${err.constructor.name}`);
+        assert.ok(err.message.includes("must be a string"));
+        return true;
+      },
+    );
+  });
+
+  // Number() trims whitespace during validation, but the padded string is
+  // forwarded to the backend as-is. Decided (2026-09-30) not to trim: matches
+  // the no-trim convention used by lever's equivalent Number.isFinite guard in
+  // contract-trade.ts/spot-trade.ts, and sz/px (higher-traffic price fields)
+  // have no numeric validation at all — trimming only amt/tpPrice here would
+  // be a new, inconsistent pattern rather than closing a real gap.
+  it("passes amt through with surrounding whitespace preserved (intentional, no trim)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "111", amt: "  100  " }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "  100  ");
+  });
+
+  it("throws the raw [sCode] sMsg error for an unknown sCode not in MARGIN_ERRORS", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "1", sMsg: "Some other error" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "111", amt: "100" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("[1] Some other error"));
+        return true;
+      },
+    );
+  });
+
+  it("does not throw when the backend returns an empty data array", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/add",
+      requestTime: "2024-01-01",
+      data: [],
+    });
+    const result = await tool.handler({ algoId: "111", amt: "100" }, makeContext(client));
+    assert.deepEqual((result as Record<string, unknown>)["data"], []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_reduce_margin — additional coverage (mirrors dca_add_margin)
+// ---------------------------------------------------------------------------
+describe("dca_reduce_margin - additional coverage", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_reduce_margin")!;
+
+  it("forwards decimal amt unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "0.01" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "0.01");
+  });
+
+  it("forwards high-precision amt without losing digits", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "123456.789012" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "123456.789012");
+  });
+
+  it("does not throw when sCode='0' (explicit success path)", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "0", algoId: "222" }],
+    });
+    const result = await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.equal((result as Record<string, unknown>)["data"] instanceof Array, true);
+  });
+
+  it("throws when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ amt: "50" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is zero", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "0" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is negative", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "-50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when amt is the literal string 'NaN'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "NaN" }, makeContext(client)),
+    );
+  });
+
+  it("throws when amt is the literal string 'Infinity'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "Infinity" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when amt is passed as a number instead of a string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: 50 }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof ValidationError, `expected ValidationError, got ${err.constructor.name}`);
+        assert.ok(err.message.includes("must be a string"));
+        return true;
+      },
+    );
+  });
+
+  // Decided (2026-09-30) not to trim — see the equivalent test on dca_add_margin.
+  it("passes amt through with surrounding whitespace preserved (intentional, no trim)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "222", amt: "  50  " }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>).amt, "  50  ");
+  });
+
+  it("throws the raw [sCode] sMsg error for an unknown sCode not in MARGIN_ERRORS", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "1", sMsg: "Some other error" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "222", amt: "50" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("[1] Some other error"));
+        return true;
+      },
+    );
+  });
+
+  it("does not throw when the backend returns an empty data array", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/margin/reduce",
+      requestTime: "2024-01-01",
+      data: [],
+    });
+    const result = await tool.handler({ algoId: "222", amt: "50" }, makeContext(client));
+    assert.deepEqual((result as Record<string, unknown>)["data"], []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// dca_update_take_profit — additional coverage
+// ---------------------------------------------------------------------------
+describe("dca_update_take_profit - additional coverage", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_update_take_profit")!;
+
+  it("ignores a caller-supplied algoOrdType and always sends contract_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { algoId: "333", tpPrice: "50000", algoOrdType: "spot_dca" },
+      makeContext(client),
+    );
+    assert.equal((getLastCall()?.params as Record<string, unknown>).algoOrdType, "contract_dca");
+  });
+
+  it("does not throw when sCode='0' (explicit success path)", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "0", algoId: "333" }],
+    });
+    const result = await tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client));
+    assert.equal((result as Record<string, unknown>)["data"] instanceof Array, true);
+  });
+
+  it("throws when algoId is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ tpPrice: "50000" }, makeContext(client)),
+    );
+  });
+
+  it("throws when tpPrice is an empty string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "" }, makeContext(client)),
+    );
+  });
+
+  it("throws ValidationError when tpPrice is passed as a number instead of a string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: 50000 }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err instanceof ValidationError, `expected ValidationError, got ${err.constructor.name}`);
+        assert.ok(err.message.includes("must be a string"));
+        return true;
+      },
+    );
+  });
+
+  // Resolved TP-N5 (aDocs/dca-mcp-phase1/test-cases-mr390.md): tpPrice now gets
+  // the same Number.isFinite + >0 guard as amt on dca_add_margin/dca_reduce_margin,
+  // closing the validation-parity gap between the three operational tools.
+  it("throws when tpPrice is non-numeric", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "abc" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when tpPrice is zero", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "0" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when tpPrice is negative", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "-50000" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("greater than 0"));
+        return true;
+      },
+    );
+  });
+
+  it("throws when tpPrice is the literal string 'NaN'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "NaN" }, makeContext(client)),
+    );
+  });
+
+  it("throws when tpPrice is the literal string 'Infinity'", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "Infinity" }, makeContext(client)),
+    );
+  });
+
+  it("throws the raw [sCode] sMsg error for an unknown sCode not in COPY_TRADING_ERRORS", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [{ sCode: "1", sMsg: "Some other error" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client)),
+      (err: Error) => {
+        assert.ok(err.message.includes("[1] Some other error"));
+        return true;
+      },
+    );
+  });
+
+  it("does not throw when the backend returns an empty data array", async () => {
+    const { client } = makeMockClient();
+    client.privatePost = async () => ({
+      endpoint: "/api/v5/tradingBot/dca/settings/take-profit",
+      requestTime: "2024-01-01",
+      data: [],
+    });
+    const result = await tool.handler({ algoId: "333", tpPrice: "50000" }, makeContext(client));
+    assert.deepEqual((result as Record<string, unknown>)["data"], []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DCA operational tools — cross-tool registration/schema checks
+// ---------------------------------------------------------------------------
+describe("dca operational tools - registration and description hygiene", () => {
+  const tools = registerDcaTools();
+  const operationalToolNames = ["dca_add_margin", "dca_reduce_margin", "dca_update_take_profit"];
+
+  it("all three operational tools are marked isWrite", () => {
+    for (const name of operationalToolNames) {
+      const tool = tools.find((t) => t.name === name)!;
+      assert.equal(tool.isWrite, true, `${name} should be isWrite=true`);
+    }
+  });
+
+  it("no operational tool description leaks a raw sCode value (regression: MR !390 review pass 2)", () => {
+    for (const name of operationalToolNames) {
+      const tool = tools.find((t) => t.name === name)!;
+      assert.ok(
+        !/sCode\s*=?\s*\d{4,5}/i.test(tool.description),
+        `${name}.description should not leak a raw sCode number: "${tool.description}"`,
+      );
+    }
+  });
+
+  it("dca_add_margin and dca_reduce_margin descriptions stay symmetric (neither singles out an error code)", () => {
+    const add = tools.find((t) => t.name === "dca_add_margin")!;
+    const reduce = tools.find((t) => t.name === "dca_reduce_margin")!;
+    for (const tool of [add, reduce]) {
+      assert.ok(!/59301|59302/.test(tool.description), `${tool.name} should not mention specific error codes`);
     }
   });
 });
@@ -6737,6 +7409,434 @@ describe("toMcpTool title & annotation overrides", () => {
     assert.equal(t.annotations?.readOnlyHint, false);
     assert.equal(t.annotations?.destructiveHint, false);
     assert.equal(t.annotations?.idempotentHint, true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Smart Portfolio Tools
+// ---------------------------------------------------------------------------
+
+describe("smart_portfolio tools — module registration", () => {
+  const tools = registerSmartPortfolioTools();
+
+  it("registers exactly 8 tools", () => {
+    assert.equal(tools.length, 8);
+  });
+
+  it("all tools have module=bot.smartportfolio", () => {
+    for (const t of tools) {
+      assert.equal(t.module, "bot.smartportfolio", `${t.name} has wrong module`);
+    }
+  });
+
+  it("module NOT in DEFAULT_MODULES", () => {
+    assert.ok(!(DEFAULT_MODULES as string[]).includes("bot.smartportfolio"));
+  });
+
+  it("bot.smartportfolio in BOT_SUB_MODULE_IDS", () => {
+    assert.ok((BOT_SUB_MODULE_IDS as readonly string[]).includes("bot.smartportfolio"));
+  });
+
+  it("tool names are correct", () => {
+    const names = tools.map((t) => t.name);
+    assert.ok(names.includes("smart_portfolio_create_order"));
+    assert.ok(names.includes("smart_portfolio_get_orders"));
+    assert.ok(names.includes("smart_portfolio_get_order_details"));
+    assert.ok(names.includes("smart_portfolio_stop_order"));
+    assert.ok(names.includes("smart_portfolio_amend_rebalance"));
+    assert.ok(names.includes("smart_portfolio_instant_rebalance"));
+    assert.ok(names.includes("smart_portfolio_get_recommend_zones"));
+    assert.ok(names.includes("smart_portfolio_get_zones_backtest"));
+  });
+
+  it("isWrite is true for write tools only", () => {
+    const writes = ["smart_portfolio_create_order", "smart_portfolio_stop_order", "smart_portfolio_amend_rebalance", "smart_portfolio_instant_rebalance"];
+    const reads = ["smart_portfolio_get_orders", "smart_portfolio_get_order_details", "smart_portfolio_get_recommend_zones", "smart_portfolio_get_zones_backtest"];
+    for (const t of tools) {
+      if (writes.includes(t.name)) assert.equal(t.isWrite, true, `${t.name} should be isWrite=true`);
+      if (reads.includes(t.name)) assert.equal(t.isWrite, false, `${t.name} should be isWrite=false`);
+    }
+  });
+});
+
+// Helper: valid create args per OpenAPI
+function validCreateArgs() {
+  return {
+    stgyName: "Test Portfolio",
+    investmentCcy: "USDT",
+    initCapital: "3000",
+    portfolioList: JSON.stringify([{ ccy: "btc", ratio: "0.6" }, { ccy: "eth", ratio: "0.4" }]),
+    interval: "20",
+    deltaRatio: "0.05",
+  };
+}
+
+describe("smart_portfolio_create_order", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_create_order")!;
+
+  it("calls POST /order-algo with normalized portfolio and all required fields", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(validCreateArgs(), makeContext(client));
+    const call = getLastCall();
+    assert.equal(call?.endpoint, "/api/v5/tradingBot/smart-portfolio/order-algo");
+    assert.equal(call?.method, "POST");
+    const params = call?.params as Record<string, unknown>;
+    assert.equal(params["stgyName"], "Test Portfolio");
+    assert.equal(params["investmentCcy"], "USDT");
+    assert.equal(params["initCapital"], "3000");
+    assert.equal(params["interval"], "20");
+    const list = params["portfolioList"] as Array<{ ccy: string; ratio: string }>;
+    assert.equal(list[0]?.ccy, "BTC");
+    assert.equal(list[1]?.ccy, "ETH");
+  });
+
+  it("throws ValidationError when portfolioList has fewer than 2 items", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "1.0" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("at least 2 items")); return true; },
+    );
+  });
+
+  it("throws ValidationError when portfolioList has more than 10 items", async () => {
+    const { client } = makeMockClient();
+    const items = Array.from({ length: 11 }, (_, i) => ({
+      ccy: `COIN${i}`,
+      ratio: (1 / 11).toFixed(6),
+    }));
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify(items) }, makeContext(client)),
+      (err: unknown) => {
+        assert.ok(err instanceof Error);
+        assert.ok(err.message.includes("at most 10 items"));
+        return true;
+      },
+    );
+  });
+
+  it("throws ValidationError on duplicate CCY after normalization", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "btc", ratio: "0.5" }, { ccy: "BTC", ratio: "0.5" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("Duplicate CCY")); return true; },
+    );
+  });
+
+  it("throws ValidationError when ratio sum != 1", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.5" }, { ccy: "ETH", ratio: "0.3" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("sum to 1.0")); return true; },
+    );
+  });
+
+  it("throws ValidationError when ratio is not a valid number (NaN bypass fix)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "abc" }, { ccy: "ETH", ratio: "0.4" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("not a valid number")); return true; },
+    );
+  });
+
+  it("deltaRatio 0.019 truncates to 0.01 and passes validation", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...validCreateArgs(), deltaRatio: "0.019" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["deltaRatio"], "0.01");
+  });
+
+  it("deltaRatio 0.009 truncates to 0.00 and throws", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), deltaRatio: "0.009" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("too small")); return true; },
+    );
+  });
+
+  it("deltaRatio 1.0 truncates to 1.00 and throws (too large)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), deltaRatio: "1.0" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("too large")); return true; },
+    );
+  });
+
+  it("deltaRatio is sent as toFixed(2) string (not floating-point)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ ...validCreateArgs(), deltaRatio: "0.05" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["deltaRatio"], "0.05", "deltaRatio should be 2-decimal string");
+  });
+
+  it("injects tag from context.config.sourceTag", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(validCreateArgs(), makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["tag"], DEFAULT_SOURCE_TAG, "tag should come from sourceTag config");
+  });
+
+  it("response sCode non-zero throws OkxApiError", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/order-algo": [{ algoId: "", sCode: "51001", sMsg: "Insufficient balance" }],
+    });
+    await assert.rejects(
+      () => tool.handler(validCreateArgs(), makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); assert.ok(err.message.includes("51001")); return true; },
+    );
+  });
+
+  it("optional params tradeQuoteCcy, investType, algoClOrdId are forwarded when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({
+      ...validCreateArgs(),
+      tradeQuoteCcy: "USDC",
+      investType: "complex",
+      algoClOrdId: "myid001",
+    }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["tradeQuoteCcy"], "USDC");
+    assert.equal(params["investType"], "complex");
+    assert.equal(params["algoClOrdId"], "myid001");
+  });
+});
+
+describe("smart_portfolio_get_orders — active and history routing", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_orders")!;
+
+  it("routes to orders-algo-pending when status=active (default)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-pending");
+  });
+
+  it("routes to orders-algo-history when status=history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-history");
+  });
+
+  it("forwards instId when provided", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)["instId"], "BTC-USDT");
+  });
+
+  it("forwards instType and state for history", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ status: "history", instType: "SPOT", state: "stopped" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["instType"], "SPOT");
+    assert.equal(params["state"], "stopped");
+  });
+});
+
+describe("smart_portfolio_amend_rebalance", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_amend_rebalance")!;
+
+  it("server returns data:[] — normalizeResponse passes without error", async () => {
+    const { client, getLastCall } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/amend-rebalance": [],
+    });
+    const result = await tool.handler({ algoId: "123456", deltaRatio: "0.05", interval: "60" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/amend-rebalance");
+    assert.ok(result !== null && result !== undefined);
+  });
+
+  it("sends algoId, deltaRatio and interval to endpoint, does NOT send portfolioList", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "99999", deltaRatio: "0.10", interval: "60" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["algoId"], "99999");
+    assert.equal(params["deltaRatio"], "0.10");
+    assert.equal(params["interval"], "60");
+    assert.ok(!("portfolioList" in params));
+  });
+
+  it("throws when deltaRatio is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "99999", interval: "60" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); return true; },
+    );
+  });
+
+  it("throws when interval is missing", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ algoId: "99999", deltaRatio: "0.10" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); return true; },
+    );
+  });
+});
+
+describe("smart_portfolio_stop_order", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_stop_order")!;
+
+  it("calls POST stop-order-algo with algoId and stopType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "777", stopType: "1" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/stop-order-algo");
+    assert.equal(getLastCall()?.method, "POST");
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["algoId"], "777");
+    assert.equal(params["stopType"], "1");
+  });
+
+  it("stopType='2' (keep assets) is sent correctly", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "888", stopType: "2" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)["stopType"], "2");
+  });
+
+  it("response sCode check: throws on non-zero sCode", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/stop-order-algo": [{ algoId: "999", sCode: "51001", sMsg: "algo order not exist" }],
+    });
+    await assert.rejects(
+      () => tool.handler({ algoId: "999", stopType: "1" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof Error); return true; },
+    );
+  });
+});
+
+describe("smart_portfolio_get_order_details — correct endpoint", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_order_details")!;
+
+  it("calls /orders-algo-details (not /order-algo)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "123" }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-details");
+  });
+
+});
+
+describe("smart_portfolio_instant_rebalance", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_instant_rebalance")!;
+
+  it("passes through triggered=false without error", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/instant-rebalance": [{ algoId: "555", balanceTime: "1700000000000", triggered: false }],
+    });
+    const result = await tool.handler({ algoId: "555" }, makeContext(client)) as Record<string, unknown>;
+    assert.ok(result !== null);
+    const data = (result["data"] as Record<string, unknown>[] | undefined)?.[0];
+    assert.equal(data?.["triggered"], false);
+  });
+
+  it("passes through triggered=true with balanceTime", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/instant-rebalance": [{ algoId: "555", balanceTime: "1700000000000", triggered: true }],
+    });
+    const result = await tool.handler({ algoId: "555" }, makeContext(client)) as Record<string, unknown>;
+    const data = (result["data"] as Record<string, unknown>[] | undefined)?.[0];
+    assert.equal(data?.["triggered"], true);
+    assert.equal(data?.["balanceTime"], "1700000000000");
+  });
+});
+
+describe("smart_portfolio_get_recommend_zones", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_recommend_zones")!;
+
+  it("strips profitHistory from defaultBacktestYield", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/recommend-zones": [
+        {
+          recommendId: "12",
+          defaultBacktestYield: {
+            defaultPnlRatio: "0.08",
+            profitHistory: [{ cTime: "1700000000000", pnlRatio: "0.01", timeUnit: "1D" }],
+          },
+        },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const data = result["data"] as Record<string, unknown>[];
+    const zone = data[0]!;
+    const yield_ = zone["defaultBacktestYield"] as Record<string, unknown>;
+    assert.equal("profitHistory" in yield_, false, "profitHistory should be stripped");
+    assert.equal(yield_["defaultPnlRatio"], "0.08");
+  });
+
+  it("sends recommendId and assetType (NOT investCcy)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ recommendId: "12", assetType: "Crypto" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["recommendId"], "12");
+    assert.equal(params["assetType"], "Crypto");
+    assert.ok(!("investCcy" in params));
+    assert.ok(!("ccy" in params));
+  });
+
+  it("works with no params (returns all zones)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/smart-portfolio/recommend-zones");
+  });
+
+  it("stgyParam fields are preserved (not stripped) alongside profitHistory removal", async () => {
+    const { client } = makeMockClientWithData({
+      "/api/v5/tradingBot/smart-portfolio/recommend-zones": [
+        {
+          recommendId: "12",
+          stgyParam: {
+            portfolioList: [{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }],
+            deltaRatio: "0.05",
+            interval: "20",
+          },
+          defaultBacktestYield: {
+            defaultPnlRatio: "0.08",
+            profitHistory: [{ cTime: "1700000000000", pnlRatio: "0.01" }],
+          },
+        },
+      ],
+    });
+    const result = await tool.handler({}, makeContext(client)) as Record<string, unknown>;
+    const zone = (result["data"] as Record<string, unknown>[])[0]!;
+    // stgyParam should be fully preserved
+    const stgyParam = zone["stgyParam"] as Record<string, unknown>;
+    assert.ok(stgyParam !== undefined, "stgyParam should exist");
+    assert.ok(Array.isArray(stgyParam["portfolioList"]), "stgyParam.portfolioList should exist");
+    assert.equal(stgyParam["deltaRatio"], "0.05");
+    assert.equal(stgyParam["interval"], "20");
+    // profitHistory should be stripped
+    const yield_ = zone["defaultBacktestYield"] as Record<string, unknown>;
+    assert.equal("profitHistory" in yield_, false);
+  });
+});
+
+describe("smart_portfolio_get_zones_backtest — uses recommendId not zoneId", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_zones_backtest")!;
+
+  it("sends recommendId and period (NOT investCcy or zoneId)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ recommendId: "12", period: "7D" }, makeContext(client));
+    const params = getLastCall()?.params as Record<string, unknown>;
+    assert.equal(params["recommendId"], "12");
+    assert.equal(params["period"], "7D");
+    assert.ok(!("investCcy" in params));
+    assert.ok(!("zoneId" in params));
+  });
+});
+
+describe("smart_portfolio_get_orders — no instType or algoOrdType for active", () => {
+  const tools = registerSmartPortfolioTools();
+  const tool = tools.find((t) => t.name === "smart_portfolio_get_orders")!;
+
+  it("sends request to orders-algo-pending without instType or algoOrdType", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({}, makeContext(client));
+    const call = getLastCall();
+    assert.equal(call?.endpoint, "/api/v5/tradingBot/smart-portfolio/orders-algo-pending");
+    assert.ok(!("instType" in (call?.params ?? {})));
+    assert.ok(!("algoOrdType" in (call?.params ?? {})));
   });
 });
 

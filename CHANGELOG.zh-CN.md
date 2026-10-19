@@ -11,6 +11,40 @@
 
 ## [Unreleased]
 
+## [1.4.9-beta.2] - 2026-10-14
+
+Beta 版本：skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.4.8`，仅在稳定版发布时同步。
+
+### 新增
+
+- **智能组合 CLI builder code 支持**：`okx bot smart-portfolio create` 新增可选 `--aiBuilderCode` 参数，并将其透传至 `smart_portfolio_create_order`。CLI 帮助已补充该参数；回归测试覆盖显式 builder code 路由、未提供参数及命令校验。
+
+## [1.4.9-beta.1] - 2026-10-09
+
+Beta 版本：skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.4.8`，仅在稳定版发布时同步。
+
+### 新增
+
+- **`bot.smartportfolio` 模块**（8 个 MCP 工具 + 对应 CLI `okx bot smart-portfolio` 子命令）：完整的智能投资组合生命周期管理——创建、列出待运行订单、查询历史、获取详情、停止、修改再平衡参数、触发即时再平衡、浏览推荐策略区间、获取区间回测数据。`deltaRatio` 通过 `floor(x*100)/100 ∈ [0.01, 1)` 校验；`portfolioList` 中的 CCY 会自动大写规范化、去重检查并校验 ratio 之和等于 1.0。该模块**不在** `DEFAULT_MODULES` 中（通过 `bot.all` 或 `all` 加载）。新增 9 个 eval probe（位于 `eval/probes/bot/smart-portfolio/`）。
+
+- **DCA 机器人运营管理工具** ([#220])：新增 3 个 MCP 工具及对应 CLI 子命令，用于管理运行中的 DCA 机器人——`dca_add_margin` / `okx bot dca add-margin`、`dca_reduce_margin` / `okx bot dca reduce-margin`、`dca_update_take_profit` / `okx bot dca update-tp`。错误码 59301（超出保证金调整范围）和 59302（存在待关闭订单冲突）会被翻译为友好提示；错误码 51223（跟单用户不支持此操作）同样翻译为友好提示。
+
+### 修复
+
+- **智能组合 CLI 展示**：`orders` 和 `details` 使用正确的 `pnlRatio` 字段；`orders` 增加 `stgyName` 列。投资币种字段保持 `investmentCcy`，与 API 统一约定一致。
+- **智能组合再平衡路由**：CLI `amend-rebalance` 将 `deltaRatio` 和 `interval` 均按必填参数传递，与命令约定一致并修复类型检查错误。
+
+- **`dca_add_margin` / `dca_reduce_margin` — `amt` NaN 校验缺失**：非数字字符串（如 `"abc"`）此前能绕过 `> 0` 校验，因为 JavaScript 中 `NaN <= 0` 为 `false`。现已修正为 `!Number.isFinite(Number(amt)) || Number(amt) <= 0`，所有非有限值均会被拒绝。
+- **`dca_update_take_profit` — 从用户侧 schema 移除 `algoOrdType`**：该参数此前在输入 schema 中为必填，要求调用方始终传入 `"contract_dca"`。现改为在 handler 内硬编码，不再暴露于 schema，因为该端点仅支持合约 DCA 机器人。
+- **`dca_create_order` — `direction` 对 `spot_dca` 不再强制要求**：此前 `direction` 在所有场景下均为必填。现改为对 `spot_dca` 可选（默认 `"long"`），对 `contract_dca` 仍为必填。向后兼容：已明确传入 `direction` 的调用不受影响。
+- **统一错误码翻译**：将原有的两个独立函数 `preCheckMarginErrors` / `preCheckCopyTradingErrors` 替换为单一的表驱动 `translateKnownErrorCodes` 工具函数，消除代码重复。
+
+### 变更
+
+- 智能组合运行中和历史订单统一通过 `smart_portfolio_get_orders` 查询（`status=active|history`）；CLI 使用 `orders --history` 查询历史。
+
+- **`okx-cex-bot` SKILL.md 拆分重构**：将 Grid Bot 和 DCA Bot 的 CLI 参数表、Quickstart 示例、边界场景提取至 `references/grid-commands.md`、`references/dca-commands.md`；跨技能工作流示例移至 `references/workflows.md`。与 `okx-cex-trade`、`okx-cex-earn`、`okx-cex-market` 保持一致。纯文档结构调整，不改变任何命令行为。
+
 ## [1.4.8] - 2026-09-23
 
 ### 修复

@@ -43,6 +43,7 @@ export const SITE_IDS = Object.keys(OKX_SITES) as SiteId[];
 export const BOT_SUB_MODULE_IDS = [
   "bot.grid",
   "bot.dca",
+  "bot.smartportfolio",
 ] as const;
 
 export type BotSubModuleId = (typeof BOT_SUB_MODULE_IDS)[number];
@@ -79,7 +80,7 @@ export type ModuleId = (typeof MODULES)[number];
 export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account", ...BOT_DEFAULT_SUB_MODULES, "skills"];
 // Default: spot, swap, option, account, bot.grid
 // "all": every module including market, futures, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.autoearn, earn.flash
-// "bot": bot.grid only; "bot.all": bot.grid + bot.dca
+// "bot": bot.grid only; "bot.all": bot.grid + bot.dca + bot.smartportfolio
 // "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd + earn.autoearn + earn.flash)
 // "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only; "earn.autoearn": Auto-Earn only; "earn.flash": Flash Earn only
 
@@ -114,13 +115,14 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   "earn.autoearn": "Auto-earn - automatically lend, stake, or earn on idle assets",
   "earn.flash":    "Flash Earn - short-window high-yield earn projects",
   event:           "Event contracts - binary prediction markets (YES/NO, UP/DOWN)",
-  "bot.grid":      "Grid trading bot - create, monitor, and stop grid orders",
-  "bot.dca":       "DCA (Martingale) bot - spot or contract recurring buys",
+  "bot.grid":           "Grid trading bot - create, monitor, and stop grid orders",
+  "bot.dca":            "DCA (Martingale) bot - spot or contract recurring buys",
+  "bot.smartportfolio": "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
   news:            "Crypto news, sentiment analysis, and coin trend tracking",
   smartmoney:      "Smart money signals - trader leaderboard, consensus signals, and position analysis",
   skills:          SKILLS_MARKETPLACE_DESC,
   earn:            "Earn products - Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
-  bot:             "Trading bot strategies (grid, dca)",
+  bot:             "Trading bot strategies (grid, dca, smart-portfolio)",
   config:          "Manage CLI configuration profiles",
   setup:           "Set up client integrations (Cursor, Windsurf, Claude, etc.)",
   pilot:           "Manage Pilot proxy resolver binary",

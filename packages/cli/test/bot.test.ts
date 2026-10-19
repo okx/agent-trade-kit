@@ -15,8 +15,21 @@ import {
   cmdDcaCreate,
   cmdDcaStop,
   cmdDcaSubOrders,
+  cmdDcaAddMargin,
+  cmdDcaReduceMargin,
+  cmdDcaUpdateTakeProfit,
+  cmdSmartPortfolioCreate,
+  cmdSmartPortfolioOrders,
+  cmdSmartPortfolioDetails,
+  cmdSmartPortfolioStop,
+  cmdSmartPortfolioAmendRebalance,
+  cmdSmartPortfolioInstantRebalance,
+  cmdSmartPortfolioRecommendZones,
+  cmdSmartPortfolioZonesBacktest,
 } from "../src/commands/bot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
+import { handleBotDcaCommand, handleBotSmartPortfolioCommand } from "../src/index.js";
+import type { CliValues } from "../src/parser.js";
 
 /** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
 function findJson(output: string[]): string {
@@ -759,3 +772,450 @@ describe("cmdGridClosePosition", () => {
     assert.doesNotThrow(() => JSON.parse(findJson(out)));
   });
 });
+
+// ---------------------------------------------------------------------------
+// cmdDcaAddMargin
+// ---------------------------------------------------------------------------
+describe("cmdDcaAddMargin", () => {
+  it("passes algoId and amt to runner as dca_add_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaAddMargin(runner, { algoId: "DCA001", amt: "100", json: false });
+    assert.equal(capturedName, "dca_add_margin");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["amt"], "100");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaAddMargin(runner, { algoId: "DCA001", amt: "100", json: false });
+    assert.ok(out.join("").includes("Margin added"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0" }]);
+    await cmdDcaAddMargin(runner, { algoId: "DCA001", amt: "100", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaReduceMargin
+// ---------------------------------------------------------------------------
+describe("cmdDcaReduceMargin", () => {
+  it("passes algoId and amt to runner as dca_reduce_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: "50", json: false });
+    assert.equal(capturedName, "dca_reduce_margin");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["amt"], "50");
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: "50", json: false });
+    assert.ok(out.join("").includes("Margin reduced"));
+    assert.equal(err.join(""), "");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaUpdateTakeProfit
+// ---------------------------------------------------------------------------
+describe("cmdDcaUpdateTakeProfit", () => {
+  it("passes algoId and tpPrice to runner as dca_update_take_profit (no algoOrdType)", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: false });
+    assert.equal(capturedName, "dca_update_take_profit");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["tpPrice"], "55000");
+    assert.equal(captured["algoOrdType"], undefined);
+  });
+
+  it("outputs success message when sCode='0'", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0", algoId: "DCA001" }]);
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: false });
+    assert.ok(out.join("").includes("Take-profit updated"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0" }]);
+    await cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: "55000", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaReduceMargin — additional coverage (json output parity with add-margin)
+// ---------------------------------------------------------------------------
+describe("cmdDcaReduceMargin - additional coverage", () => {
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ sCode: "0" }]);
+    await cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: "50", json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaAddMargin / cmdDcaReduceMargin / cmdDcaUpdateTakeProfit — error propagation
+// ---------------------------------------------------------------------------
+describe("dca operational cmd* functions - error propagation", () => {
+  it("cmdDcaAddMargin propagates a runner rejection instead of swallowing it", async () => {
+    const runner: ToolRunner = async () => {
+      throw new Error('Missing required parameter "amt".');
+    };
+    await assert.rejects(
+      () => cmdDcaAddMargin(runner, { algoId: "DCA001", amt: undefined as unknown as string, json: false }),
+      /Missing required parameter "amt"/,
+    );
+    assert.equal(out.join(""), "");
+  });
+
+  it("cmdDcaReduceMargin propagates a runner rejection instead of swallowing it", async () => {
+    const runner: ToolRunner = async () => {
+      throw new Error('Missing required parameter "amt".');
+    };
+    await assert.rejects(
+      () => cmdDcaReduceMargin(runner, { algoId: "DCA001", amt: undefined as unknown as string, json: false }),
+      /Missing required parameter "amt"/,
+    );
+  });
+
+  it("cmdDcaUpdateTakeProfit propagates a runner rejection instead of swallowing it", async () => {
+    const runner: ToolRunner = async () => {
+      throw new Error('Missing required parameter "tpPrice".');
+    };
+    await assert.rejects(
+      () => cmdDcaUpdateTakeProfit(runner, { algoId: "DCA001", tpPrice: undefined as unknown as string, json: false }),
+      /Missing required parameter "tpPrice"/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleBotDcaCommand — dispatcher-layer routing (CLI-DISPATCH-1)
+//
+// Covers the literal `v.algoId!`/`v.amt!`/`v.tpPrice!` mapping in index.ts's
+// dispatcher itself, one layer above the cmd* functions above. This is the
+// layer where issue #78's "instId misused rest[0] instead of the named flag"
+// regression happened (see CLAUDE.md "CLI Parameter Routing Tests").
+// ---------------------------------------------------------------------------
+describe("handleBotDcaCommand - add-margin/reduce-margin/update-tp routing", () => {
+  it("add-margin: forwards v.algoId/v.amt (named flags) to dca_add_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    const v = { algoId: "DCA001", amt: "100" } as CliValues;
+    await handleBotDcaCommand(runner, "add-margin", v, false);
+    assert.equal(capturedName, "dca_add_margin");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["amt"], "100");
+  });
+
+  it("reduce-margin: forwards v.algoId/v.amt (named flags) to dca_reduce_margin", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    const v = { algoId: "DCA002", amt: "50" } as CliValues;
+    await handleBotDcaCommand(runner, "reduce-margin", v, false);
+    assert.equal(capturedName, "dca_reduce_margin");
+    assert.equal(captured["algoId"], "DCA002");
+    assert.equal(captured["amt"], "50");
+  });
+
+  it("update-tp: forwards v.algoId/v.tpPrice (named flags) to dca_update_take_profit, without algoOrdType", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ sCode: "0" }]);
+    };
+    const v = { algoId: "DCA003", tpPrice: "55000" } as CliValues;
+    await handleBotDcaCommand(runner, "update-tp", v, false);
+    assert.equal(capturedName, "dca_update_take_profit");
+    assert.equal(captured["algoId"], "DCA003");
+    assert.equal(captured["tpPrice"], "55000");
+    assert.equal(captured["algoOrdType"], undefined);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Smart Portfolio CLI output tests
+// ---------------------------------------------------------------------------
+
+describe("cmdSmartPortfolioOrders", () => {
+  it("outputs 'No Smart Portfolio bots' when list is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdSmartPortfolioOrders(runner, { json: false });
+    assert.ok(out.join("").includes("No Smart Portfolio bots"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("outputs JSON when json=true", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "SP001", stgyName: "Test", state: "running", investmentCcy: "USDT", totalPnl: "0", pnlRatio: "0", cTime: "0" }]);
+    await cmdSmartPortfolioOrders(runner, { json: true });
+    assert.doesNotThrow(() => JSON.parse(findJson(out)));
+  });
+});
+
+describe("cmdSmartPortfolioStop", () => {
+  it("outputs success message with algoId", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "SP999", sCode: "0", sMsg: "" }]);
+    await cmdSmartPortfolioStop(runner, { algoId: "SP999", stopType: "1", json: false });
+    assert.ok(out.join("").includes("SP999"));
+    assert.ok(out.join("").includes("OK"));
+  });
+});
+
+describe("cmdSmartPortfolioDetails", () => {
+  it("outputs 'Smart Portfolio bot not found' when result is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdSmartPortfolioDetails(runner, { algoId: "SP888", json: false });
+    assert.ok(out.join("").includes("not found"));
+  });
+});
+
+describe("cmdSmartPortfolioCreate", () => {
+  it("calls smart_portfolio_create_order and outputs success", async () => {
+    const runner: ToolRunner = async () => fakeResult([{ algoId: "SP001", sCode: "0", sMsg: "" }]);
+    await cmdSmartPortfolioCreate(runner, {
+      stgyName: "My Portfolio",
+      investmentCcy: "USDT",
+      initCapital: "3000",
+      portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]),
+      interval: "20",
+      deltaRatio: "0.05",
+      json: false,
+    });
+    assert.ok(out.join("").includes("OK"));
+  });
+});
+
+describe("cmdSmartPortfolioInstantRebalance", () => {
+  it("outputs triggered message when triggered=true", async () => {
+    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: true }] });
+    await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: false });
+    assert.ok(out.join("").includes("triggered"));
+  });
+
+  it("outputs not-triggered message when triggered=false", async () => {
+    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: false }] });
+    await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: false });
+    assert.ok(out.join("").includes("not triggered") || out.join("").includes("already balanced"));
+  });
+
+  it("--json outputs data array directly (not wrapped in endpoint/requestTime shell)", async () => {
+    const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ algoId: "SP001", triggered: true, balanceTime: "1700000000000" }] });
+    await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: true });
+    const parsed = JSON.parse(findJson(out));
+    assert.ok(Array.isArray(parsed), "--json should output an array");
+    assert.equal(parsed[0]?.triggered, true);
+    assert.ok(!("endpoint" in (parsed as object)), "should not have endpoint wrapper");
+  });
+});
+
+describe("cmdSmartPortfolioRecommendZones", () => {
+  it("outputs 'No recommended zones found' when empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdSmartPortfolioRecommendZones(runner, { json: false });
+    assert.ok(out.join("").includes("No recommended zones"));
+  });
+});
+
+describe("cmdSmartPortfolioZonesBacktest", () => {
+  it("outputs 'No backtest data' when empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdSmartPortfolioZonesBacktest(runner, { recommendId: "12", json: false });
+    assert.ok(out.join("").includes("No backtest data"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Smart Portfolio CLI routing tests (spy ToolRunner — named flags, not positional)
+// ---------------------------------------------------------------------------
+
+describe("handleBotSmartPortfolioCommand routing", () => {
+  it("orders: forwards v.algoId to smart_portfolio_get_orders", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    const v = { algoId: "SP001" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "orders", v, false);
+    assert.equal(capturedName, "smart_portfolio_get_orders");
+    assert.equal(captured["algoId"], "SP001");
+  });
+
+  it("details: forwards v.algoId to smart_portfolio_get_order_details", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "SP002", state: "running" }]);
+    };
+    const v = { algoId: "SP002" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "details", v, false);
+    assert.equal(capturedName, "smart_portfolio_get_order_details");
+    assert.equal(captured["algoId"], "SP002");
+  });
+
+  it("create: forwards stgyName, investmentCcy, initCapital, portfolioList, interval, deltaRatio (named flags)", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "SP003", sCode: "0" }]);
+    };
+    const portfolio = JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]);
+    const v = { stgyName: "Test", investmentCcy: "USDT", initCapital: "3000", portfolioList: portfolio, interval: "20", deltaRatio: "0.05" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "create", v, false);
+    assert.equal(capturedName, "smart_portfolio_create_order");
+    assert.equal(captured["stgyName"], "Test");
+    assert.equal(captured["investmentCcy"], "USDT");
+    assert.equal(captured["initCapital"], "3000");
+    assert.equal(captured["portfolioList"], portfolio);
+    assert.equal(captured["interval"], "20");
+    assert.equal(captured["deltaRatio"], "0.05");
+  });
+
+  it("create: forwards v.aiBuilderCode (named flag) to smart_portfolio_create_order", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "SP004", sCode: "0" }]);
+    };
+    const portfolio = JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.4" }]);
+    const v = { stgyName: "Test", investmentCcy: "USDT", initCapital: "3000", portfolioList: portfolio, interval: "20", deltaRatio: "0.05", aiBuilderCode: "MYBOT" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "create", v, false);
+    assert.equal(capturedName, "smart_portfolio_create_order");
+    assert.equal(captured["aiBuilderCode"], "MYBOT");
+  });
+
+  it("stop: forwards v.algoId and v.stopType (named flags) to smart_portfolio_stop_order", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([{ algoId: "SP004", sCode: "0" }]);
+    };
+    const v = { algoId: "SP004", stopType: "2" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "stop", v, false);
+    assert.equal(capturedName, "smart_portfolio_stop_order");
+    assert.equal(captured["algoId"], "SP004");
+    assert.equal(captured["stopType"], "2");
+  });
+
+  it("amend-rebalance: forwards v.algoId, v.deltaRatio, v.interval (named flags) to smart_portfolio_amend_rebalance, portfolioList NOT forwarded", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    const v = { algoId: "SP005", deltaRatio: "0.10", interval: "20", portfolioList: '[{"ccy":"BTC","ratio":"1.0"}]' } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "amend-rebalance", v, false);
+    assert.equal(capturedName, "smart_portfolio_amend_rebalance");
+    assert.equal(captured["algoId"], "SP005");
+    assert.equal(captured["deltaRatio"], "0.10");
+    assert.equal(captured["interval"], "20");
+    assert.equal(captured["portfolioList"], undefined);
+  });
+
+  it("instant-rebalance: forwards v.algoId (named flag) to smart_portfolio_instant_rebalance", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return { endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: true }] };
+    };
+    const v = { algoId: "SP006" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "instant-rebalance", v, false);
+    assert.equal(capturedName, "smart_portfolio_instant_rebalance");
+    assert.equal(captured["algoId"], "SP006");
+  });
+
+  it("recommend-zones: forwards v.recommendId, v.assetType (named flags) to smart_portfolio_get_recommend_zones", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    const v = { recommendId: "12", assetType: "Crypto" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "recommend-zones", v, false);
+    assert.equal(capturedName, "smart_portfolio_get_recommend_zones");
+    assert.equal(captured["recommendId"], "12");
+    assert.equal(captured["assetType"], "Crypto");
+  });
+
+  it("zones-backtest: forwards v.recommendId (named flag) to smart_portfolio_get_zones_backtest", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    const v = { recommendId: "12", period: "7D" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "zones-backtest", v, false);
+    assert.equal(capturedName, "smart_portfolio_get_zones_backtest");
+    assert.equal(captured["recommendId"], "12");
+    assert.equal(captured["period"], "7D");
+  });
+
+  it("orders --history: forwards status=history, v.state, v.instType to smart_portfolio_get_orders", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    const v = { history: true, state: "stopped", instType: "SPOT" } as CliValues;
+    await handleBotSmartPortfolioCommand(runner, "orders", v, false);
+    assert.equal(capturedName, "smart_portfolio_get_orders");
+    assert.equal(captured["status"], "history");
+    assert.equal(captured["state"], "stopped");
+    assert.equal(captured["instType"], "SPOT");
+  });
+});
+
