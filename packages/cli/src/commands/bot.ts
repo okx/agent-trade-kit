@@ -485,6 +485,36 @@ export async function cmdDcaDetails(
   });
 }
 
+export async function cmdDcaPositions(
+  run: ToolRunner,
+  opts: { algoId: string; algoOrdType: string; json: boolean },
+): Promise<void> {
+  const result = await run("dca_get_positions", {
+    algoId: opts.algoId,
+    algoOrdType: opts.algoOrdType,
+  });
+  const position = ((getData(result) as Record<string, unknown>[]) ?? [])[0];
+  if (!position) { outputLine("DCA position not found"); return; }
+  if (opts.json) return printJson(position);
+  printKv({
+    algoId:         position["algoId"],
+    algoOrdType:    position["algoOrdType"],
+    instId:         position["instId"],
+    sz:             position["sz"],
+    notionalUsd:    position["notionalUsd"],
+    avgPx:          position["avgPx"],
+    liqPx:          position["liqPx"] || "-",
+    tpPx:           position["tpPx"],
+    slPx:           position["slPx"] || "-",
+    upl:            position["upl"],
+    fee:            position["fee"],
+    fundingFee:     position["fundingFee"],
+    curCycleld:     position["curCycleld"], // OKX response key is spelled "curCycleld" (lowercase L)
+    fillSafetyOrds: position["fillSafetyOrds"],
+    createdAt:      new Date(Number(position["startTime"])).toLocaleString(),
+  });
+}
+
 export async function cmdDcaSubOrders(
   run: ToolRunner,
   opts: { algoId: string; algoOrdType: string; cycleId?: string; after?: string; before?: string; limit?: number; json: boolean },

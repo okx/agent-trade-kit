@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`dca_get_positions` MCP tool and `okx bot dca positions` CLI command**: dedicated entry point for DCA bot position info (avgPx, upl, liqPx, sz, tpPx, slPx, fee). OKX has no separate DCA positions endpoint, so it calls the same `/api/v5/tradingBot/dca/position-details` as `dca_get_order_details` and returns the response as-is; use `dca_get_orders` for strategy-level info (state, pnl, config).
+
+### Changed
+
+- **`dca_get_order_details` is deprecated** (description-only): prefixed with `[DEPRECATED] Use dca_get_positions for position info instead.`. Behavior, parameters and `okx bot dca details` are unchanged.
+
 ## [1.4.9] - 2026-10-19
 
 ### Added

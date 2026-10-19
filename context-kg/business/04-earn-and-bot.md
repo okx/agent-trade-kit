@@ -76,7 +76,8 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 - DCA (Dollar Cost Averaging) bots: recurring purchases at fixed intervals
 - `dca_create_order` — create a DCA bot (write)
 - `dca_get_orders` — list active or historical DCA bots
-- `dca_get_order_details` — get DCA bot position details
+- `dca_get_order_details` — **[deprecated]** get DCA bot position details; use `dca_get_positions` (same endpoint)
+- `dca_get_positions` — get DCA bot position info (read)
 - `dca_get_sub_orders` — list DCA cycles or orders within a cycle
 - `dca_stop_order` — terminate a DCA bot (write); spot_dca requires stopType; contract_dca supports stopType `"1"` (close, default) or `"2"` (keep position)
 

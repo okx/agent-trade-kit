@@ -570,14 +570,15 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 
 ## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
 
-The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 8 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
+The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 9 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
 
 | Tool | Key params | `isWrite` |
 |---|---|---|
 | `dca_create_order` | `instId`, `algoOrdType: spot_dca\|contract_dca`, `initOrdAmt`, `maxSafetyOrds`, `tpPct` (required); `direction` optional for `spot_dca` (default: `long`), required for `contract_dca`; `lever` required for `contract_dca` | true |
 | `dca_stop_order` | `algoId`, `algoOrdType`; `stopType` required for `spot_dca` (1=sell, 2=keep) | true |
 | `dca_get_orders` | `algoOrdType`, optional `algoId`, pagination cursors | false |
-| `dca_get_order_details` | `algoId` (required) | false |
+| `dca_get_order_details` | `algoId`, `algoOrdType` (required); **deprecated** — description-only deprecation, behavior unchanged | false |
+| `dca_get_positions` | `algoId`, `algoOrdType` (required); calls the same `/position-details` endpoint (§2.8) as `dca_get_order_details` — OKX has no separate DCA positions endpoint and the response is already position-only, so it is returned as-is (keeps the `curCycleld` key spelling) | false |
 | `dca_get_sub_orders` | `algoId`, `algoOrdType`; optional `cycleId` (omit=cycle list, provide=orders in cycle); `after`, `before`, `limit` pagination in both branches | false |
 | `dca_add_margin` | `algoId`, `amt` (must be a positive finite number — NaN/Infinity rejected client-side) | true |
 | `dca_reduce_margin` | `algoId`, `amt` (positive finite number); sCode=59302 → cancel pending close order first; sCode=59301 → amount outside allowed range | true |

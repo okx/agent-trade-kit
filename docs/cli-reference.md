@@ -213,7 +213,8 @@ okx bot grid details --algoOrdType moon_grid --algoId <algoId>
 # ── Contract DCA ──────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <algoId>] [--instId <instId>]
 okx bot dca orders --history
-okx bot dca details --algoId <algoId>
+okx bot dca positions --algoId <algoId>
+okx bot dca details --algoId <algoId>   # deprecated, use `positions`
 okx bot dca sub-orders --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
 okx bot dca sub-orders --algoId <algoId> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]
@@ -526,7 +527,8 @@ okx bot grid details --algoOrdType moon_grid --algoId <algoId>
 # ── 合约 DCA ──────────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <algoId>] [--instId <instId>]
 okx bot dca orders --history
-okx bot dca details --algoId <algoId>
+okx bot dca positions --algoId <algoId>
+okx bot dca details --algoId <algoId>   # deprecated, use `positions`
 okx bot dca sub-orders --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
 okx bot dca sub-orders --algoId <algoId> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]

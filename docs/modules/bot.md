@@ -56,7 +56,8 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_create_order` | Create a Contract DCA (Martingale) bot |
 | `dca_stop_order` | Stop a running Contract DCA bot |
 | `dca_get_orders` | List active or historical Contract DCA bots |
-| `dca_get_order_details` | Get details of a single Contract DCA bot |
+| `dca_get_order_details` | **[Deprecated]** Use `dca_get_positions`. Get position details of a single Contract DCA bot |
+| `dca_get_positions` | Get position info (avgPx, upl, liqPx, ...) of a single Contract DCA bot |
 | `dca_get_sub_orders` | List cycles / orders within a cycle of a Contract DCA bot |
 | `dca_add_margin` | Add margin to a running contract DCA bot |
 | `dca_reduce_margin` | Reduce margin on a running contract DCA bot |
@@ -108,7 +109,8 @@ okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT
 # ── Contract DCA ──────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <id>] [--instId <id>]
 okx bot dca orders --history
-okx bot dca details --algoId <id>
+okx bot dca positions --algoId <id>
+okx bot dca details --algoId <id>   # deprecated, use `positions`
 okx bot dca sub-orders --algoId <id>
 okx bot dca sub-orders --algoId <id> --cycleId <cycleId>
 okx bot dca sub-orders --algoId <id> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]
@@ -187,7 +189,8 @@ okx bot dca stop --algoId <id>
 | `dca_create_order` | 创建合约 DCA（马丁格尔）机器人 |
 | `dca_stop_order` | 停止合约 DCA 机器人 |
 | `dca_get_orders` | 列出运行中或历史合约 DCA 机器人 |
-| `dca_get_order_details` | 查询单个合约 DCA 机器人详情 |
+| `dca_get_order_details` | **[已废弃]** 请使用 `dca_get_positions`。查询单个合约 DCA 机器人持仓详情 |
+| `dca_get_positions` | 查询单个合约 DCA 机器人持仓信息（avgPx、upl、liqPx 等） |
 | `dca_get_sub_orders` | 列出合约 DCA 周期 / 周期内订单 |
 | `dca_add_margin` | 为运行中的合约 DCA 机器人增加保证金 |
 | `dca_reduce_margin` | 减少运行中的合约 DCA 机器人的保证金 |
@@ -239,7 +242,8 @@ okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT
 # ── 合约 DCA ──────────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <id>] [--instId <id>]
 okx bot dca orders --history
-okx bot dca details --algoId <id>
+okx bot dca positions --algoId <id>
+okx bot dca details --algoId <id>   # deprecated, use `positions`
 okx bot dca sub-orders --algoId <id>
 okx bot dca sub-orders --algoId <id> --cycleId <cycleId>
 okx bot dca sub-orders --algoId <id> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]

@@ -12,6 +12,28 @@ import { OkxApiError } from "../../utils/errors.js";
 
 const BASE = "/api/v5/tradingBot/dca";
 
+/**
+ * Shared request for dca_get_positions and the deprecated dca_get_order_details.
+ * OKX has no dedicated DCA positions endpoint: /position-details already returns
+ * position-only fields (avgPx, upl, liqPx, ...), so both tools hit it as-is.
+ */
+async function getDcaPositionDetails(
+  rawArgs: unknown,
+  context: Parameters<ToolSpec["handler"]>[1],
+  rateLimitKey: string,
+) {
+  const args = asRecord(rawArgs);
+  const algoId = requireString(args, "algoId");
+  const algoOrdType = requireString(args, "algoOrdType");
+
+  const response = await context.client.privateGet(
+    `${BASE}/position-details`,
+    { algoId, algoOrdType },
+    privateRateLimit(rateLimitKey, 20),
+  );
+  return normalizeResponse(response);
+}
+
 /** Build triggerParams for dca_create_order. */
 function buildTriggerParam(
   args: Record<string, unknown>,
@@ -309,7 +331,7 @@ export function registerDcaTools(): ToolSpec[] {
       name: "dca_get_order_details",
       title: "Martingale Bot Get Detail",
       module: "bot.dca",
-      description: "Get DCA bot position details (avgPx, upl, liqPx, etc).",
+      description: "[DEPRECATED] Use dca_get_positions for position info instead. Get DCA bot position details (avgPx, upl, liqPx, etc).",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -319,18 +341,23 @@ export function registerDcaTools(): ToolSpec[] {
         },
         required: ["algoId", "algoOrdType"],
       },
-      handler: async (rawArgs, context) => {
-        const args = asRecord(rawArgs);
-        const algoId = requireString(args, "algoId");
-        const algoOrdType = requireString(args, "algoOrdType");
-
-        const response = await context.client.privateGet(
-          `${BASE}/position-details`,
-          { algoId, algoOrdType },
-          privateRateLimit("dca_get_order_details", 20),
-        );
-        return normalizeResponse(response);
+      handler: (rawArgs, context) => getDcaPositionDetails(rawArgs, context, "dca_get_order_details"),
+    },
+    {
+      name: "dca_get_positions",
+      title: "Martingale Bot Get Positions",
+      module: "bot.dca",
+      description: "Get DCA bot position info (avgPx, upl, liqPx, sz, tpPx, slPx, fee). Use dca_get_orders for strategy-level info (state, pnl, config).",
+      isWrite: false,
+      inputSchema: {
+        type: "object",
+        properties: {
+          algoId: { type: "string", description: "Algo order ID" },
+          algoOrdType: { type: "string", enum: ["spot_dca", "contract_dca"] },
+        },
+        required: ["algoId", "algoOrdType"],
       },
+      handler: (rawArgs, context) => getDcaPositionDetails(rawArgs, context, "dca_get_positions"),
     },
     {
       name: "dca_get_sub_orders",
