@@ -11,6 +11,27 @@
 
 ## [Unreleased]
 
+## [1.4.9] - 2026-10-19
+
+### 新增
+
+- **`bot.smartportfolio` 模块**（8 个 MCP 工具及对应 CLI 子命令）：覆盖智能组合的完整生命周期，包括创建、查询运行中及历史订单、获取详情、停止、修改再平衡参数、触发即时再平衡、浏览推荐区间及获取区间回测数据。`deltaRatio` 和 `portfolioList` 会进行校验与规范化。该模块不在 `DEFAULT_MODULES` 中，可通过 `bot.all` 或 `all` 加载。
+- **DCA 机器人运营管理工具**：新增调整运行中 DCA 机器人保证金及止盈设置的 MCP 工具和对应 CLI 子命令。
+- **智能组合 CLI builder code 支持**：`okx bot smart-portfolio create` 支持可选的 `--aiBuilderCode`，并将其传递给 `smart_portfolio_create_order`。
+
+### 修复
+
+- 智能组合订单和详情输出改用 `pnlRatio`；订单输出增加 `stgyName`，投资币种字段继续使用 `investmentCcy`。
+- 智能组合 CLI `amend-rebalance` 现要求并传递 `deltaRatio` 和 `interval`。
+- DCA 保证金调整会拒绝非有限数值 `amt`；`dca_update_take_profit` 不再向用户暴露固定的 `algoOrdType` 参数；`spot_dca` 的 `direction` 改为可选，`contract_dca` 仍为必填。
+- DCA 保证金及跟单错误统一使用表驱动的错误翻译函数。
+
+### 变更
+
+- 智能组合运行中和历史订单统一使用 `smart_portfolio_get_orders` 查询；CLI 使用 `orders --history` 查询历史订单。
+- 重构 `okx-cex-bot` Skill，将 Grid Bot、DCA Bot 和工作流说明移入 reference 文件，不改变命令行为。
+- 稳定版发布时，将所有 Skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 版本同步至 `1.4.9`。
+
 ## [1.4.8] - 2026-09-23
 
 ### 修复

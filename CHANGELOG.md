@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.9] - 2026-10-19
+
+### Added
+
+- **`bot.smartportfolio` module** (8 MCP tools and matching CLI subcommands): complete Smart Portfolio lifecycle management — create, list active and historical orders, get details, stop, amend rebalance parameters, trigger an instant rebalance, browse recommended zones, and get zone backtest data. `deltaRatio` and `portfolioList` are validated and normalized. The module is not in `DEFAULT_MODULES`; load it through `bot.all` or `all`.
+- **DCA bot operational management tools**: add margin, reduce margin, and update take-profit for running DCA bots through matching MCP tools and CLI subcommands.
+- **Smart Portfolio CLI builder-code support**: `okx bot smart-portfolio create` accepts optional `--aiBuilderCode` and forwards it to `smart_portfolio_create_order`.
+
+### Fixed
+
+- Smart Portfolio order and detail output now uses `pnlRatio`; order output also includes `stgyName`, while the investment currency field remains `investmentCcy`.
+- Smart Portfolio CLI `amend-rebalance` now requires and forwards both `deltaRatio` and `interval`.
+- DCA margin adjustment rejects non-finite `amt` values; `dca_update_take_profit` no longer exposes the fixed `algoOrdType` parameter; `direction` is optional for `spot_dca` and still required for `contract_dca`.
+- DCA margin and copy-trading errors use one table-driven translation helper.
+
+### Changed
+
+- Smart Portfolio active and historical order queries share `smart_portfolio_get_orders`; the CLI uses `orders --history` for historical queries.
+- Restructured the `okx-cex-bot` skill by moving Grid Bot, DCA Bot, and workflow guidance into reference files without changing command behavior.
+- Synced all skill-pack `metadata.version` fields and pinned `@okx_ai/okx-trade-cli` versions to `1.4.9` for the stable release.
+
 ## [1.4.8] - 2026-09-23
 
 ### Fixed

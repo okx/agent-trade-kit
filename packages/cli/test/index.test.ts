@@ -302,6 +302,37 @@ describe("handleBotDcaCommand", () => {
     const result = handleBotDcaCommand(noopRunner, "noop", {}, false);
     assert.equal(result, undefined);
   });
+
+  function makeCaptureSpy(): { spy: ToolRunner; getCaptured: () => Record<string, unknown> } {
+    let captured: Record<string, unknown> = {};
+    const spy: ToolRunner = async (_tool, args) => {
+      captured = args as Record<string, unknown>;
+      return { endpoint: "", requestTime: "", data: [{ sCode: "0" }] };
+    };
+    return { spy, getCaptured: () => captured };
+  }
+
+  it("add-margin: algoId and amt come from named flags (v.algoId, v.amt)", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleBotDcaCommand(spy, "add-margin", { algoId: "DCA001", amt: "100" } as never, false);
+    assert.equal(getCaptured()["algoId"], "DCA001", "algoId must come from v.algoId");
+    assert.equal(getCaptured()["amt"], "100", "amt must come from v.amt");
+  });
+
+  it("reduce-margin: algoId and amt come from named flags (v.algoId, v.amt)", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleBotDcaCommand(spy, "reduce-margin", { algoId: "DCA002", amt: "50" } as never, false);
+    assert.equal(getCaptured()["algoId"], "DCA002", "algoId must come from v.algoId");
+    assert.equal(getCaptured()["amt"], "50", "amt must come from v.amt");
+  });
+
+  it("update-tp: algoId and tpPrice come from named flags (v.algoId, v.tpPrice)", async () => {
+    const { spy, getCaptured } = makeCaptureSpy();
+    await handleBotDcaCommand(spy, "update-tp", { algoId: "DCA003", algoOrdType: "contract_dca", tpPrice: "55000" } as never, false);
+    assert.equal(getCaptured()["algoId"], "DCA003", "algoId must come from v.algoId");
+    assert.equal(getCaptured()["tpPrice"], "55000", "tpPrice must come from v.tpPrice");
+  });
+
 });
 
 // ---------------------------------------------------------------------------

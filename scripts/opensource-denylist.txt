@@ -18,6 +18,7 @@ path:^memory/
 path:^aTempFiles/
 path:^\.stoli_checkpoint\.json$
 path:^context-kg/
+path:^packages/cli/test/context-kg-accuracy\.test\.ts$
 path:^docs/superpowers/
 path:^eval/
 path:^CLAUDE\.md$

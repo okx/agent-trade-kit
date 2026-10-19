@@ -109,6 +109,7 @@ export interface CliValues {
   pxStepsMult?: string;
   volMult?: string;
   tpPct?: string;
+  tpPrice?: string;
   slPct?: string;
   slMode?: string;
   allowReinvest?: string;
@@ -239,6 +240,16 @@ export interface CliValues {
   settleCcy?: string;
   ts?: string;
   minAbsOiDeltaPct?: string;
+  // smart portfolio
+  stgyName?: string;
+  investmentCcy?: string;
+  initCapital?: string;
+  portfolioList?: string;
+  deltaRatio?: string;
+  investType?: string;
+  recommendId?: string;
+  assetType?: string;
+  interval?: string;
   // AI builder attribution
   aiBuilderCode?: string;
   // diagnostics (diagnose-specific flags)
@@ -379,6 +390,7 @@ export const CLI_OPTIONS = {
   pxStepsMult: { type: "string" },
   volMult: { type: "string" },
   tpPct: { type: "string" },
+  tpPrice: { type: "string" },
   slPct: { type: "string" },
   slMode: { type: "string" },
   allowReinvest: { type: "string" },
@@ -506,6 +518,16 @@ export const CLI_OPTIONS = {
   settleCcy:        { type: "string" },
   ts:               { type: "string" },
   minAbsOiDeltaPct: { type: "string" },
+  // smart portfolio
+  stgyName:      { type: "string" },
+  investmentCcy: { type: "string" },
+  initCapital:   { type: "string" },
+  portfolioList: { type: "string" },
+  deltaRatio:    { type: "string" },
+  investType:    { type: "string" },
+  recommendId:   { type: "string" },
+  assetType:     { type: "string" },
+  interval:      { type: "string" },
   // AI builder attribution
   aiBuilderCode: { type: "string" },
   // diagnostics - cli/mcp/all/output are diagnose-specific; verbose is shared

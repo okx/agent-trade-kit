@@ -90,6 +90,7 @@ describe("parseCli", () => {
     });
   });
 });
+
 // ---------------------------------------------------------------------------
 // parseCli — grid position management options (grid_close_position CLI parity)
 // sourceAlgoId was added to CLI_OPTIONS/CliValues speculatively but never
