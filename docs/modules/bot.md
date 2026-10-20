@@ -71,6 +71,7 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 - "Create a coin-margined contract grid on BTC-USD-SWAP: long, 5x lever, 0.1 BTC margin, 20 grids, range 80000–100000"
 - "Show filled sub-orders for grid bot algoId 12345"
 - "Stop my BTC-USDT grid bot and sell all holdings"
+- "Show the open positions and liquidation price of contract grid bot algoId 12345"
 
 **DCA:**
 - "Create a contract DCA bot on BTC-USDT-SWAP: 3x leverage, long, 100 USDT initial, 3 max safety, 3% TP"
@@ -105,6 +106,17 @@ okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
   --direction long --lever 5 --sz 0.1
 
 okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT
+
+# Contract grid positions (liquidation price, margin ratio, unrealized PnL) — contract_grid only
+okx bot grid positions --algoId <id> --algoOrdType contract_grid
+
+# Estimate liquidation price before creating a contract grid (full intended config required)
+okx bot grid liquidate-price --instId BTC-USDT-SWAP --sz 100 --lever 3 \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --direction neutral
+
+# Close the remaining position after stopping with --stopType 2
+# (close mode required: --mktClose for market, or --no-mktClose --sz --px for limit)
+okx bot grid close-position --algoId <id> --mktClose
 
 # ── Contract DCA ──────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <id>] [--instId <id>]
@@ -204,6 +216,7 @@ okx bot dca stop --algoId <id>
 - "在 BTC-USD-SWAP 创建币本位合约网格：做多，5 倍杠杆，0.1 BTC 保证金，20 个格，区间 80000–100000"
 - "显示网格机器人 algoId 12345 的已成交子订单"
 - "停止我的 BTC-USDT 网格机器人并卖出所有持仓"
+- "查看合约网格机器人 algoId 12345 的当前持仓和强平价"
 
 **DCA：**
 - "创建 BTC-USDT-SWAP 合约 DCA 机器人：3 倍杠杆，做多，初始 100 USDT，最多 3 个安全单，3% 止盈"
@@ -238,6 +251,16 @@ okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
   --direction long --lever 5 --sz 0.1
 
 okx bot grid stop --algoId <id> --algoOrdType grid --instId BTC-USDT
+
+# 合约网格持仓（强平价、保证金率、未实现盈亏）— 仅 contract_grid
+okx bot grid positions --algoId <id> --algoOrdType contract_grid
+
+# 建仓前估算强平价（需提供完整的目标配置）
+okx bot grid liquidate-price --instId BTC-USDT-SWAP --sz 100 --lever 3 \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --direction neutral
+
+# 以 --stopType 2 停止后，关闭剩余持仓（平仓方式必填：--mktClose 市价，或 --no-mktClose --sz --px 限价）
+okx bot grid close-position --algoId <id> --mktClose
 
 # ── 合约 DCA ──────────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <id>] [--instId <id>]
