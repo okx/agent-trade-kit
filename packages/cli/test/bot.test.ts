@@ -403,18 +403,18 @@ describe("cmdDcaPositions", () => {
   });
 
   it("prints the raw record in --json mode", async () => {
-    const record = { algoId: "DCA001", avgPx: "30000", curCycleld: "c1" };
+    const record = { algoId: "DCA001", avgPx: "30000", curCycleId: "c1" };
     const runner: ToolRunner = async () => fakeResult([record]);
     await cmdDcaPositions(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: true });
     assert.deepEqual(JSON.parse(out.join("")), record);
   });
 
-  it("renders KV output including the curCycleld field and liqPx", async () => {
+  it("renders KV output including the curCycleId field and liqPx", async () => {
     const runner: ToolRunner = async () => fakeResult([{
       algoId: "DCA001", algoOrdType: "contract_dca", instId: "BTC-USDT-SWAP",
       sz: "0.01", notionalUsd: "300", avgPx: "30000", liqPx: "12345.6", tpPx: "31500",
       slPx: "", upl: "50", fee: "-1.5", fundingFee: "0",
-      curCycleld: "cycle-xyz", fillSafetyOrds: "2", startTime: "1700000000000",
+      curCycleId: "cycle-xyz", fillSafetyOrds: "2", startTime: "1700000000000",
     }]);
     await cmdDcaPositions(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
     const text = out.join("");

@@ -509,7 +509,7 @@ export async function cmdDcaPositions(
     upl:            position["upl"],
     fee:            position["fee"],
     fundingFee:     position["fundingFee"],
-    curCycleld:     position["curCycleld"], // OKX response key is spelled "curCycleld" (lowercase L)
+    curCycleId:     position["curCycleId"],
     fillSafetyOrds: position["fillSafetyOrds"],
     createdAt:      new Date(Number(position["startTime"])).toLocaleString(),
   });
