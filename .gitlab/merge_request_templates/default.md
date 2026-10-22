@@ -15,7 +15,7 @@
 - [ ] news
 - [ ] smartmoney
 - [ ] earn (savings / onchain / dcd / autoearn / flash)
-- [ ] bot (grid / dca)
+- [ ] bot (grid / dca / recurring)
 - [ ] skills
 - [ ] infra / config / other (no probe required)
 
@@ -52,6 +52,7 @@
 | earn.flash | `eval/probes/earn/flash/` |
 | bot.grid | `eval/probes/bot/grid/` |
 | bot.dca | `eval/probes/bot/dca/` |
+| bot.recurring (CLI-only) | `eval/probes/bot/recurring/` |
 | skills | `eval/probes/skills/` |
 
 ### Documentation

@@ -250,6 +250,15 @@ export interface CliValues {
   recommendId?: string;
   assetType?: string;
   interval?: string;
+  // recurring buy
+  recurringList?: string;
+  recurringDay?: string;
+  recurringHour?: string;
+  recurringTime?: string;
+  recurringTimeType?: string;
+  timeZone?: string;
+  amount?: string;
+  source?: string;
   // AI builder attribution
   aiBuilderCode?: string;
   // diagnostics (diagnose-specific flags)
@@ -528,6 +537,15 @@ export const CLI_OPTIONS = {
   recommendId:   { type: "string" },
   assetType:     { type: "string" },
   interval:      { type: "string" },
+  // recurring buy
+  recurringList:     { type: "string" },
+  recurringDay:      { type: "string" },
+  recurringHour:     { type: "string" },
+  recurringTime:     { type: "string" },
+  recurringTimeType: { type: "string" },
+  timeZone:          { type: "string" },
+  amount:            { type: "string" },
+  source:            { type: "string" },
   // AI builder attribution
   aiBuilderCode: { type: "string" },
   // diagnostics - cli/mcp/all/output are diagnose-specific; verbose is shared
@@ -589,10 +607,30 @@ export function parseTpLevel(s: string): Record<string, string> {
   return result;
 }
 
+const NEGATIVE_NUMBER_RE = /^-\d+(\.\d+)?$/;
+
+/**
+ * parseArgs rejects `--timeZone -5` (the value looks like an option), so join a
+ * negative offset to its flag: `--timeZone -5` -> `--timeZone=-5`.
+ */
+function joinNegativeTimeZone(argv: string[]): string[] {
+  const joined: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const next = argv[i + 1];
+    if (argv[i] === "--timeZone" && next !== undefined && NEGATIVE_NUMBER_RE.test(next)) {
+      joined.push(`--timeZone=${next}`);
+      i++;
+    } else {
+      joined.push(argv[i]!);
+    }
+  }
+  return joined;
+}
+
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
   // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
   const negated = new Set<string>();
-  const filtered = argv.filter((arg) => {
+  const filtered = joinNegativeTimeZone(argv).filter((arg) => {
     if (arg.startsWith("--no-")) {
       const key = arg.slice(5);
       if (key in CLI_OPTIONS && (CLI_OPTIONS as Record<string, { type: string }>)[key].type === "boolean") {

@@ -40,6 +40,10 @@ The earn module is split into five sub-modules, each targeting a different OKX e
 - Read-only module — no subscribe/redeem operations currently exposed
 - Projects have limited quotas and specific start/end windows
 
+### recurring (`bot/recurring.ts`) — CLI-only
+- Recurring Buy (定投) strategies; module `bot.recurring` is in `CLI_ONLY_MODULE_IDS`, **not** in `MODULES`, so no `recurring_*` tool is ever served over MCP. Reachable only as `okx bot recurring <sub>`. Full endpoint/validation notes: [recurring-api.md](recurring-api.md)
+- 12 tools: `recurring_place_order`, `recurring_get_orders` (`status=active|history`), `recurring_get_order_details`, `recurring_get_sub_orders`, `recurring_pause`, `recurring_restart`, `recurring_stop`, `recurring_amend_name`, `recurring_amend_price_range`, `recurring_amend_amount`, `recurring_amend_time`, `recurring_add_investment`
+
 ### Sub-module ID Expansion
 
 In config and CLI, `earn.all` is a shorthand that expands to all five earn sub-modules:
@@ -98,6 +102,8 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 ```
 bot.all → [bot.grid, bot.dca, bot.smartportfolio]
 ```
+
+`bot.recurring` is intentionally absent from the expansion (CLI-only).
 
 ## Write Safety
 

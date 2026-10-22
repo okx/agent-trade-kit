@@ -62,6 +62,10 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_reduce_margin` | Reduce margin on a running contract DCA bot |
 | `dca_update_take_profit` | Update take-profit price on a running contract DCA bot |
 
+## Recurring Buy (CLI only)
+
+`bot.recurring` (Recurring Buy / 定投) is a **CLI-only** module: it exposes 12 `okx bot recurring <sub>` commands and **no MCP tools** (it is not an MCP module, so `--modules` does not apply and the MCP tool list is unchanged). See [designs/recurring.md](../designs/recurring.md) and [cli-reference](../cli-reference.md).
+
 ## Example prompts
 
 **Grid:**
@@ -192,6 +196,10 @@ okx bot dca stop --algoId <id>
 | `dca_add_margin` | 为运行中的合约 DCA 机器人增加保证金 |
 | `dca_reduce_margin` | 减少运行中的合约 DCA 机器人的保证金 |
 | `dca_update_take_profit` | 更新运行中的合约 DCA 机器人的止盈价 |
+
+## Recurring Buy（仅 CLI）
+
+`bot.recurring`（Recurring Buy / 定投）是**仅 CLI** 模块：提供 12 个 `okx bot recurring <sub>` 命令，**没有 MCP 工具**（它不是 MCP 模块，`--modules` 不适用，MCP 工具列表保持不变）。详见 [designs/recurring.md](../designs/recurring.md)。
 
 ## 示例提示词
 

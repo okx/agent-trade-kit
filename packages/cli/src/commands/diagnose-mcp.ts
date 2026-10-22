@@ -14,6 +14,7 @@ import {
   allToolSpecs,
   CLIENT_NAMES,
   DEFAULT_MODULES,
+  MODULES,
 } from "@agent-tradekit/core";
 import type { ClientId } from "@agent-tradekit/core";
 import {
@@ -310,7 +311,9 @@ export function checkToolCount(
 ): void {
   section("Tool Count");
 
-  const specs = getSpecs();
+  // Only MCP-loadable specs count: CLI-only modules (CLI_ONLY_MODULE_IDS) are never served over MCP.
+  const mcpModuleSet = new Set<string>(MODULES);
+  const specs = getSpecs().filter((s) => mcpModuleSet.has(s.module));
   const totalCount = specs.length;
 
   // Count tools for default modules (the suggested --modules set)

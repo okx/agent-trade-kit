@@ -20,6 +20,7 @@
 #   skills*.ts, skill-mp*.ts                → skills/
 #   bot-grid*.ts, grid-trade*.ts            → bot/grid/
 #   bot-dca*.ts, dca-trade*.ts              → bot/dca/
+#   recurring*.ts, write-result*.ts         → bot/recurring/
 #   earn-savings*.ts, savings*.ts           → earn/savings/
 #   earn-onchain*.ts, onchain-earn*.ts      → earn/onchain/
 #   earn-dcd*.ts, dcd*.ts, dual-currency*.ts → earn/dcd/
@@ -70,6 +71,7 @@ for file in $changed_tool_files; do
     skills*|skill-mp*)                   probe_path="skills" ;;
     bot-grid*|grid-trade*)               probe_path="bot/grid" ;;
     bot-dca*|dca-trade*)                 probe_path="bot/dca" ;;
+    recurring*|write-result*)            probe_path="bot/recurring" ;;
     earn-savings*|savings*)              probe_path="earn/savings" ;;
     earn-onchain*|onchain-earn*)         probe_path="earn/onchain" ;;
     earn-dcd*|dcd*|dual-currency*)       probe_path="earn/dcd" ;;

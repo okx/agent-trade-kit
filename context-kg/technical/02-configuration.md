@@ -63,6 +63,7 @@ Special shorthands:
 - `earn` / `earn.all` → expands to `[earn.savings, earn.onchain, earn.dcd, earn.autoearn]`
 - `bot` → expands to `[bot.grid]` only
 - `bot.all` → expands to `[bot.grid, bot.dca, bot.smartportfolio]`
+- `bot.recurring` is a **CLI-only module** (`CLI_ONLY_MODULE_IDS`): it is not in `MODULES`, so `--modules bot.recurring` is rejected as an unknown module and neither `all` nor `bot.all` enables it. The CLI resolves its tools without module gating.
 
 **Default modules** (when `--modules` is not specified): `["spot", "swap", "option", "account", "bot.grid", "skills"]`. Note: `market`, `futures`, `earn.*`, `bot.dca`, and `bot.smartportfolio` are **not** loaded by default. This expansion happens in `packages/core/src/config.ts`.
 

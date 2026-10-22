@@ -1,6 +1,6 @@
 ---
 name: okx-cex-bot
-description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), and Smart Portfolio bots (智能组合, auto-rebalancing multi-asset portfolio) on OKX. Covers create, stop, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
+description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), Smart Portfolio bots (智能组合, auto-rebalancing multi-asset portfolio), and Recurring Buy strategies (定投, periodic fixed-amount multi-coin buys) on OKX. Covers create, stop, pause, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
 license: MIT
 metadata:
   author: okx
@@ -20,7 +20,7 @@ metadata:
 
 # OKX CEX Bot Trading
 
-Grid and DCA (Spot & Contract Martingale) bot management on OKX. All bots are **native OKX server-side** — they run on OKX and do not require a local process.
+Grid, DCA (Spot & Contract Martingale), Smart Portfolio and Recurring Buy (定投) management on OKX. All bots are **native OKX server-side** — they run on OKX and do not require a local process.
 
 ## Preflight
 
@@ -89,7 +89,7 @@ Resolution:
 | Market data, prices, depth | `okx-cex-market` |
 | Account balance, positions, fees | `okx-cex-portfolio` |
 | Regular spot/swap/futures orders | `okx-cex-trade` |
-| **Grid / DCA bots** | **`okx-cex-bot` (this skill)** |
+| **Grid / DCA / Smart Portfolio / Recurring Buy bots** | **`okx-cex-bot` (this skill)** |
 
 ## Command Index
 
@@ -135,11 +135,30 @@ Resolution:
 | `okx bot smart-portfolio recommend-zones` | READ | Browse OKX-recommended portfolio zone configurations |
 | `okx bot smart-portfolio zones-backtest` | READ | Get historical backtest results for a recommended zone |
 
+### Recurring Buy (定投)
+
+> **Note**: CLI-only (`okx bot recurring ...`); no `--modules` flag is needed.
+
+| Command | Type | Description |
+|---|---|---|
+| `okx bot recurring create` | WRITE | Create a Recurring Buy strategy (coins + ratios, period, time, amount per cycle, `--tdMode` required) |
+| `okx bot recurring orders` | READ | List strategies (default: running/paused; add --history for stopped) |
+| `okx bot recurring details` | READ | Strategy details with per-coin holdings, average price and PnL |
+| `okx bot recurring sub-orders` | READ | Buy orders executed by a strategy |
+| `okx bot recurring pause` | WRITE | Pause a strategy |
+| `okx bot recurring restart` | WRITE | Restart a paused strategy |
+| `okx bot recurring stop` | WRITE | Stop a strategy (permanent) |
+| `okx bot recurring amend-name` | WRITE | Rename a strategy |
+| `okx bot recurring amend-price-range` | WRITE | Change the per-coin buy price range |
+| `okx bot recurring amend-amount` | WRITE | Change the amount invested per cycle |
+| `okx bot recurring amend-time` | WRITE | Change period/day/time/time zone |
+| `okx bot recurring add-investment` | WRITE | Add an extra one-off investment |
+
 ## Operation Flow
 
 ### Step 1 — Identify bot type and action
 
-Parse user request → determine module (Grid / DCA / Smart Portfolio) and action (create / stop / list / details).
+Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurring Buy) and action (create / stop / list / details).
 
 ### Step 2 — Execute
 
@@ -147,12 +166,18 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio) and actio
 
 **WRITE commands** (create, amend, stop): confirm key parameters with user once before executing.
 
+**Write-operation confirmation checklist — Recurring Buy**:
+- `recurring create`: confirm coins and ratios, period + day/hour + time + `--timeZone`, `--amt` and `--investmentCcy`. **Determine `--tdMode` yourself — do NOT ask the user**: run `okx account config` first, read `acctLv`, and map `1`/`2` (spot / futures mode) → `cash`, `3`/`4` (multi-currency / portfolio margin) → `cross`. Never invent a default.
+- `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount.
+- `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`.
+
 ### Step 3 — Verify after writes
 
 - After create → run the corresponding `orders` command to confirm active
 - After amend → run `details --algoId <id>` to confirm updated config
 - After Grid/DCA stop → run `orders --history` to confirm stopped
 - After Smart Portfolio stop → run `smart-portfolio orders --history` to confirm stopped
+- After Recurring Buy stop → run `recurring orders --history` to confirm stopped; after pause/restart/amend → run `recurring details --algoId <id>`
 
 ## Key Rules
 
@@ -173,6 +198,9 @@ read `{baseDir}/references/dca-commands.md`.
 For Smart Portfolio Bot command syntax, parameter tables, and examples,
 read `{baseDir}/references/smart-portfolio-commands.md`.
 
+For Recurring Buy command syntax, the `acctLv` → `tdMode` mapping, parameter tables, and edge cases,
+read `{baseDir}/references/recurring-commands.md`.
+
 For cross-skill workflow examples (chaining `okx-cex-market`/`okx-cex-portfolio` with bot
 creation), read `{baseDir}/references/workflows.md`.
 
@@ -180,7 +208,7 @@ creation), read `{baseDir}/references/workflows.md`.
 
 - **Grid/DCA**: use "bot" not "strategy" (e.g., "grid bot", "DCA bot")
 - **DCA**: always say "DCA" or "Martingale" — DCA supports both Spot DCA and Contract DCA
-- **Chinese**: Grid = "网格", Spot DCA = "现货马丁", Contract DCA = "合约马丁", Smart Portfolio = "智能组合"
+- **Chinese**: Grid = "网格", Spot DCA = "现货马丁", Contract DCA = "合约马丁", Smart Portfolio = "智能组合", Recurring Buy = "定投"
 - Use natural language for parameters — "What price range?" not "Enter minPx and maxPx"
 - If the user already provides values, map directly — don't re-ask
 

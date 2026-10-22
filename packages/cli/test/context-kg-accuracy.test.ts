@@ -24,7 +24,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "../../..");
 
 // Cache to avoid re-invoking allToolSpecs() across multiple tests.
-const TOOL_SPECS = allToolSpecs();
+// Only MCP-loadable specs: CLI-only modules (e.g. bot.recurring) are not MCP tools.
+const MCP_MODULES = new Set<string>(MODULES);
+const TOOL_SPECS = allToolSpecs().filter((spec) => MCP_MODULES.has(spec.module));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,13 +73,13 @@ describe("context-kg accuracy: numbers match actual code state", () => {
   describe("business/01-overview.md", () => {
     const overview = readKgFile("business/01-overview.md");
 
-    it("declared MCP tool count matches allToolSpecs().length", () => {
+    it("declared MCP tool count matches the MCP-loadable allToolSpecs() count", () => {
       const declared = extractNumber(overview, /\*\*~?(\d+) MCP tools\*\*/, "business/01-overview.md");
       const actual = TOOL_SPECS.length;
       assert.strictEqual(
         declared,
         actual,
-        `context-kg/business/01-overview.md declares ${declared} MCP tools, but allToolSpecs() returns ${actual}.\n` +
+        `context-kg/business/01-overview.md declares ${declared} MCP tools, but the MCP-loadable allToolSpecs() count is ${actual}.\n` +
           `  -> Update the tool count in context-kg/business/01-overview.md to ${actual}.`,
       );
     });

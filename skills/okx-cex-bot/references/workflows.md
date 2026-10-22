@@ -98,3 +98,32 @@ Note: `--stgyName` / display name in user message is NOT `algoId`. Always run `o
 5. okx-cex-bot       okx bot smart-portfolio orders                   → confirm active
 6. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → monitor allocation
 ```
+
+## Recurring Buy (定投) — 创建定投策略
+> User: "帮我每月 1 号定投 100 USDT，BTC 20% / ETH 80%"
+> 适用场景：用户想建立周期性定投；`--tdMode` 由账户模式自动推导，不要询问用户
+
+```
+1. okx-cex-portfolio okx account config                              → read acctLv (1/2 → cash, 3/4 → cross)
+2. okx-cex-portfolio okx account balance USDT                        → confirm funds
+        ↓ user approves coins / ratios / schedule / amount
+3. okx-cex-bot       okx bot recurring create \
+                       --stgyName "BTC-ETH monthly" \
+                       --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
+                       --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
+                       --amt 100 --investmentCcy USDT --tdMode <cash|cross>
+4. okx-cex-bot       okx bot recurring orders                        → confirm running
+5. okx-cex-bot       okx bot recurring details --algoId <id>         → monitor holdings / PnL
+```
+
+## Recurring Buy (定投) — 调整金额 / 暂停 / 停止
+> User: "把定投金额改成 20 USDT" / "先暂停定投" / "停止定投"
+
+```
+1. okx-cex-bot       okx bot recurring orders                        → find algoId (name is NOT algoId)
+2. okx-cex-bot       okx bot recurring details --algoId <id>         → confirm current state
+        ↓ user approves
+3. okx-cex-bot       okx bot recurring amend-amount --algoId <id> --amount 20
+                     (or: pause / restart / stop --algoId <id>)
+4. okx-cex-bot       okx bot recurring details --algoId <id>         → verify; stopped ones: orders --history
+```

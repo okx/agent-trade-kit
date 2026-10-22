@@ -234,6 +234,27 @@ okx bot dca create \
 okx bot dca stop --algoId <algoId>
 ```
 
+### Recurring Buy (定投) — CLI only, no MCP tools
+
+```bash
+# tdMode is required: `cash` for acctLv 1/2, `cross` for acctLv 3/4 (see `okx account config`)
+okx bot recurring create --stgyName "BTC-ETH monthly" \
+  --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
+  --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
+  --amt 100 --investmentCcy USDT --tdMode cross
+# Negative time zone: --timeZone=-5
+
+okx bot recurring orders [--history] [--algoId <id>]
+okx bot recurring details --algoId <id>
+okx bot recurring sub-orders --algoId <id>
+okx bot recurring pause|restart|stop --algoId <id>
+okx bot recurring amend-name --algoId <id> --stgyName <name>
+okx bot recurring amend-price-range --algoId <id> --recurringList '[{"ccy":"BTC","minPx":"80000","maxPx":"120000"}]'
+okx bot recurring amend-amount --algoId <id> --amount 20
+okx bot recurring amend-time --algoId <id> --recurringTimeType 1 --period monthly --recurringDay 1 --recurringTime 11 --timeZone 8
+okx bot recurring add-investment --algoId <id> --amount 20
+```
+
 ---
 
 ## smartmoney — Smart Money Analytics (read-only)
@@ -545,6 +566,27 @@ okx bot dca create \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
 okx bot dca stop --algoId <algoId>
+```
+
+### Recurring Buy（定投）— 仅 CLI，无 MCP 工具
+
+```bash
+# tdMode 必填：acctLv 1/2 用 `cash`，acctLv 3/4 用 `cross`（先运行 `okx account config`）
+okx bot recurring create --stgyName "BTC-ETH 每月定投" \
+  --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
+  --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
+  --amt 100 --investmentCcy USDT --tdMode cross
+# 负数时区：--timeZone=-5
+
+okx bot recurring orders [--history] [--algoId <id>]
+okx bot recurring details --algoId <id>
+okx bot recurring sub-orders --algoId <id>
+okx bot recurring pause|restart|stop --algoId <id>
+okx bot recurring amend-name --algoId <id> --stgyName <name>
+okx bot recurring amend-price-range --algoId <id> --recurringList '[{"ccy":"BTC","minPx":"80000","maxPx":"120000"}]'
+okx bot recurring amend-amount --algoId <id> --amount 20
+okx bot recurring amend-time --algoId <id> --recurringTimeType 1 --period monthly --recurringDay 1 --recurringTime 11 --timeZone 8
+okx bot recurring add-investment --algoId <id> --amount 20
 ```
 
 ---

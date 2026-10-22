@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Recurring Buy (定投) CLI commands** (`okx bot recurring <sub>`, CLI-only — **no MCP tools**): `create`, `orders [--history]`, `details`, `sub-orders`, `pause`, `restart`, `stop`, `amend-name`, `amend-price-range`, `amend-amount`, `amend-time`, `add-investment`, backed by 12 core `recurring_*` tool specs in the new CLI-only module `bot.recurring`. The module is deliberately not part of `MODULES`, so the MCP tool list (178 tools) and `--modules` are unchanged. `--tdMode` is required (no default; the skill maps `acctLv` 1/2 → `cash`, 3/4 → `cross`); `--aiBuilderCode` is accepted on `create`.
+- `CLI_ONLY_MODULE_IDS` / `CliOnlyModuleId` exports in `@agent-tradekit/core`; `ToolSpec.module` may now be a CLI-only module.
+- CLI: a negative `--timeZone` (e.g. `--timeZone -5`) is now parsed correctly.
+- `okx-cex-bot` skill: Recurring Buy command index, write-confirmation checklist and `references/recurring-commands.md`.
+
 ## [1.4.9] - 2026-10-19
 
 ### Added
