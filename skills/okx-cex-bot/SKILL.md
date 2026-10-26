@@ -172,7 +172,7 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
   - `2` (single-currency margin) → **ask the user** in this same confirmation round: `cash` (spot) or `cross` (opens a real **leveraged** position, with leverage risk); `cash` if no preference.
   - `3` (multi-currency margin) → `cross` only (executed as spot); state it in the summary.
   - `4` (portfolio margin) → default `cross` (executed as spot); state it in the summary — `cash` is also accepted with the same effect, switch only if the user asks.
-  - Hard constraints: never guess `acctLv`; never pass `cross` on `1`, never pass `cash` on `3`; always pass `--tdMode` explicitly (no CLI default).
+  - Hard constraints: never guess `acctLv` (if it cannot be read or is not `1`–`4`, tell the user and ask them to confirm their account mode); never pass `cross` on `1`, never pass `cash` on `3` — if the user asks for that, explain it is not accepted and offer the accepted option; on `3`/`4` explain that `cross` is executed as spot (no leverage); on `2` always state the leverage risk of `cross` in the summary, even if the user already chose it; always pass `--tdMode` explicitly (no CLI default).
 - `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount.
 - `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`.
 

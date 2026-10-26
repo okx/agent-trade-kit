@@ -18,8 +18,8 @@ Recurring Buy invests a fixed amount in a basket of coins at fixed intervals (mo
 | `3` | Multi-currency margin (跨币种保证金模式) | `cross` only | spot (downgraded by the system) | `cross`. Only one option: state it in the summary |
 | `4` | Portfolio margin (组合保证金模式) | `cash`, `cross` | spot (both downgraded) | Default `cross`; state it in the summary. `cash` has the same effect — switch only if the user asks |
 
-3. Ask or state the choice in the same confirmation round as the other parameters (do not ask twice). If the user already said `cash` or `cross`, do not ask again. If they have no preference or do not answer, use the default in the table.
-4. If the user asks for a combination the account does not accept (`cross` on `acctLv` 1, `cash` on `acctLv` 3), explain why and offer the accepted option.
+3. Ask or state the choice in the same confirmation round as the other parameters (do not ask twice). If the user already said `cash` or `cross`, do not ask again. If they have no preference or do not answer, use the default in the table. On `acctLv` 2, even when the user already said `cross`, still state in the summary that it opens a real leveraged position.
+4. If the user asks for a combination the account does not accept (`cross` on `acctLv` 1, `cash` on `acctLv` 3), explain why and offer the accepted option. If the user wants leverage but `acctLv` is 3 or 4, explain that `cross` is executed as spot there (no leverage).
 5. If `acctLv` cannot be read or is not 1–4, do not guess and never use `cross`: tell the user and ask them to confirm their account mode.
 6. Never pass `cross` unless `acctLv` is 2 (and the user chose leverage), 3 or 4. Always pass `--tdMode` explicitly — the CLI has no default.
 
@@ -147,7 +147,7 @@ Invests an extra one-off amount now (real trade), in the strategy's investment c
 | `amt` / `amount` | Amount per cycle / extra investment | 每期投入金额 / 追加金额 |
 | `investmentCcy` | Investment currency | 投入币种 |
 | `investmentAmt` | Accumulated investment | 累计投入 |
-| `tdMode` | Trade mode (cash / cross) | 交易模式（非保证金 / 全仓） |
+| `tdMode` | Trade mode (cash / cross; accepted values depend on `acctLv`, see above) | 交易模式（cash / cross，可接受的值取决于 acctLv，见上文） |
 | `source` | Funding source (1=trading / 2=funding / 3=simple earn) | 资金来源（1=交易账户 / 2=资金账户 / 3=简单赚币） |
 | `tradeQuoteCcy` | Trade quote currency | 交易计价币种 |
 | `algoClOrdId` | Client strategy ID | 客户端策略 ID |

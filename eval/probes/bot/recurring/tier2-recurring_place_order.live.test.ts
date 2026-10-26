@@ -6,7 +6,7 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.recurring-place-order';
-const USER_PROMPT = "Create a Recurring Buy strategy named 'BTC-ETH monthly' in demo/dry-run mode: every month on day 1 at 00:00 (UTC+8, time zone 8), invest 100 USDT per cycle split 20% BTC and 80% ETH, funded from the trading account in cross margin mode (tdMode cross). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.";
+const USER_PROMPT = "Create a Recurring Buy strategy named 'BTC-ETH monthly' in demo/dry-run mode: every month on day 1 at 00:00 (UTC+8, time zone 8), invest 100 USDT per cycle split 20% BTC and 80% ETH, funded from the trading account (the account is a portfolio-margin account, acctLv 4; use tdMode cross). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.";
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "recurring", "create"]];
 const EXPECTATION = 'okx bot recurring create';
 
