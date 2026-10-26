@@ -16,7 +16,7 @@ Expose the OKX Recurring Buy lifecycle (create, list, details, sub-orders, pause
 
 - `cliOnly` flag on `ToolSpec` + `buildTools` filter: new shared field and leaks in capability snapshot / `--modules` hints.
 - Handlers inside `packages/cli` bypassing `ToolSpec`: loses audit logging, builder-code tagging and the drift guard.
-- Defaulting/auto-detecting `tdMode` in code: rejected by the TL; the skill documents the `acctLv` mapping instead.
+- Defaulting/auto-detecting `tdMode` in code: rejected by the TL; the skill guides the choice by `acctLv` instead (the code neither defaults nor checks it against the account).
 
 ## Risks
 

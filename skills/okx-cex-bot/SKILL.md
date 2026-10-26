@@ -168,9 +168,11 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
 
 **Write-operation confirmation checklist — Recurring Buy**:
 - `recurring create`: confirm coins and ratios, period + day/hour + time + `--timeZone`, `--amt` and `--investmentCcy`, plus `--tdMode`. Run `okx account config` first and read `acctLv`, then read `{baseDir}/references/recurring-commands.md` and follow its rule before running `create`:
-  - `1`/`2` (spot / futures mode) → `cash` only.
-  - `3`/`4` (multi-currency / portfolio margin) → ask the user `cash` or `cross` in this same confirmation round (skip the question if they already said which); `cash` if no preference.
-  - Hard constraints: never guess `acctLv`; never pass `cross` unless `acctLv` is `3`/`4` and the user chose it; always pass `--tdMode` explicitly (no CLI default).
+  - `1` (simple mode) → `cash` only; state it in the confirmation summary.
+  - `2` (single-currency margin) → **ask the user** in this same confirmation round: `cash` (spot) or `cross` (opens a real **leveraged** position, with leverage risk); `cash` if no preference.
+  - `3` (multi-currency margin) → `cross` only (executed as spot); state it in the summary.
+  - `4` (portfolio margin) → default `cross` (executed as spot); state it in the summary — `cash` is also accepted with the same effect, switch only if the user asks.
+  - Hard constraints: never guess `acctLv`; never pass `cross` on `1`, never pass `cash` on `3`; always pass `--tdMode` explicitly (no CLI default).
 - `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount.
 - `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`.
 

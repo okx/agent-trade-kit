@@ -27,7 +27,7 @@ Contract source of truth: the OKX V5 Recurring Buy OpenAPI document (13 endpoint
 - `timeZone` numeric in [-12, 14]; decimals such as `5.5` are accepted because the server accepts them.
 - Period-scoped: `recurringDay` required + range-checked for monthly (1–28) / weekly (1–7); a day supplied for daily/hourly is tolerated. `recurringHour` ∈ 1/4/8/12, required when `period=hourly`.
 - `recurringList` is a JSON string, assembled into an array in the handler. create: `ccy` + `ratio` required, `minPx`/`maxPx` optional; amend-price-range: `ccy` + `minPx` + `maxPx` required (`""` = no limit), no `ratio`. JSON numbers are coerced to strings.
-- **`tdMode` is required with no default and no auto-detection in code.** The skill decides it from `acctLv` (agent runs `okx account config` first): 1/2 → `cash` only; 3/4 → ask the user, `cash` or `cross` (`cash` if no preference). The flag must always be passed explicitly.
+- **`tdMode` is required with no default and no auto-detection in code.** The code does not check it against the account; the skill guides it from `acctLv` (agent runs `okx account config` first): 1 → `cash` only; 2 → ask the user, `cash` (spot) or `cross` (real leverage), `cash` if no preference; 3 → `cross` only; 4 → `cross` by default (`cash` has the same effect). Recurring Buy executes as spot except `acctLv` 2 + `cross`. The flag must always be passed explicitly.
 - Server-owned (deliberately NOT validated here): ratio sum, duplicate coins, max coin count, per-coin minimum ratio, minimum investment, `minPx`/`maxPx` consistency, KYC level.
 
 ## Response handling

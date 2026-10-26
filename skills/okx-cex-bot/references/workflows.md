@@ -101,10 +101,10 @@ Note: `--stgyName` / display name in user message is NOT `algoId`. Always run `o
 
 ## Recurring Buy (定投) — 创建定投策略
 > User: "帮我每月 1 号定投 100 USDT，BTC 20% / ETH 80%"
-> 适用场景：用户想建立周期性定投；`--tdMode` 由账户模式决定：现货/合约模式固定 `cash`，跨币种/组合保证金模式需询问用户（并入同一次参数确认；无偏好则用 `cash`）
+> 适用场景：用户想建立周期性定投；`--tdMode` 由账户模式引导：acctLv 1 固定 `cash`；acctLv 2 询问用户（`cash` 现货 / `cross` 真实杠杆，无偏好用 `cash`）；acctLv 3 固定 `cross`；acctLv 4 默认 `cross`（`cash` 效果相同）。选择并入同一次参数确认
 
 ```
-1. okx-cex-portfolio okx account config                              → read acctLv (1/2 → cash; 3/4 → ask user: cash / cross, cash if no preference)
+1. okx-cex-portfolio okx account config                              → read acctLv (1 → cash; 2 → ask user: cash / cross=leverage; 3 → cross; 4 → cross by default)
 2. okx-cex-portfolio okx account balance USDT                        → confirm funds
         ↓ user approves coins / ratios / schedule / amount
 3. okx-cex-bot       okx bot recurring create \

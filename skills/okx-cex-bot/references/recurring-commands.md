@@ -6,22 +6,22 @@ Recurring Buy invests a fixed amount in a basket of coins at fixed intervals (mo
 
 ## Before creating: pick `--tdMode` from the account level
 
-`--tdMode` is **required** on `create`; the CLI/tool itself has no default and rejects a missing value. The skill decides it from the account level:
+`--tdMode` is **required** on `create`. The CLI/tool has no default and does not check the value against the account — the server decides what it accepts. So the skill guides the choice from the account level:
 
 1. Run `okx account config` and read `acctLv`.
 2. Apply the rule:
 
-| `acctLv` | Account mode | `--tdMode` |
-|---|---|---|
-| `1` | Spot mode (现货模式) | `cash` only — do not offer `cross` |
-| `2` | Futures mode (合约模式) | `cash` only — do not offer `cross` |
-| `3` | Multi-currency margin (跨币种保证金模式) | **Ask the user**: `cash` (non-margin) or `cross` (cross margin) |
-| `4` | Portfolio margin (组合保证金模式) | **Ask the user**: `cash` (non-margin) or `cross` (cross margin) |
+| `acctLv` | Account mode | Server accepts | Executed as | `--tdMode` |
+|---|---|---|---|---|
+| `1` | Simple mode (简单模式 / spot mode) | `cash` only | spot | `cash`. Only one option: state it in the confirmation summary |
+| `2` | Single-currency margin (单币种保证金模式 / spot and futures mode) | `cash`, `cross` | `cash` → spot; `cross` → **real leverage (MARGIN)** | **Ask the user**: `cash` (spot) or `cross` (leveraged, with leverage risk). `cash` if no preference |
+| `3` | Multi-currency margin (跨币种保证金模式) | `cross` only | spot (downgraded by the system) | `cross`. Only one option: state it in the summary |
+| `4` | Portfolio margin (组合保证金模式) | `cash`, `cross` | spot (both downgraded) | Default `cross`; state it in the summary. `cash` has the same effect — switch only if the user asks |
 
-3. For `acctLv` 3/4, ask in the same confirmation round as the other parameters (do not ask twice); skip the question if the user already said `cash` or `cross`. If the user has no preference or does not answer, use `cash`.
-4. If the user explicitly asks for `cross` on `acctLv` 1/2, tell them it is not available in their account mode and use `cash`.
-5. If `acctLv` cannot be read or is not 1–4, do not guess and never use `cross`: tell the user and ask.
-6. Never pass `cross` unless `acctLv` is 3/4 and the user chose it. Always pass `--tdMode` explicitly — the CLI has no default.
+3. Ask or state the choice in the same confirmation round as the other parameters (do not ask twice). If the user already said `cash` or `cross`, do not ask again. If they have no preference or do not answer, use the default in the table.
+4. If the user asks for a combination the account does not accept (`cross` on `acctLv` 1, `cash` on `acctLv` 3), explain why and offer the accepted option.
+5. If `acctLv` cannot be read or is not 1–4, do not guess and never use `cross`: tell the user and ask them to confirm their account mode.
+6. Never pass `cross` unless `acctLv` is 2 (and the user chose leverage), 3 or 4. Always pass `--tdMode` explicitly — the CLI has no default.
 
 ## Create
 
@@ -117,7 +117,7 @@ Invests an extra one-off amount now (real trade), in the strategy's investment c
 
 ## Edge Cases
 
-- **`tdMode` is never defaulted in code**: the skill picks it from `acctLv` (see above: 1/2 → `cash`; 3/4 → ask the user, `cash` if no preference); a missing value is rejected before any request is sent.
+- **`tdMode` is never defaulted or account-checked in code**: the skill guides it from `acctLv` (see above: 1 → `cash`; 2 → ask the user, `cash` if no preference; 3 → `cross`; 4 → `cross` by default); a missing or non-`cash|cross` value is rejected before any request is sent, and a combination the account does not accept is rejected by the server.
 - **Negative time zones**: write `--timeZone=-5`; a bare negative value after the flag looks like another option to generic argument parsers.
 - **Numeric strings**: pass plain decimals (no scientific notation). `amount` for `amend-amount` / `add-investment` must be > 0 (the server allows at most 2 decimals).
 - **State check before changes**: `stop` / `pause` / `restart` / amend commands act on the current state; use `details` first. Stopped strategies appear only with `orders --history`.
