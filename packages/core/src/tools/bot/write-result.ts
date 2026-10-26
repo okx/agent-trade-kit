@@ -21,7 +21,7 @@ export function normalizeRecurringWrite(response: WriteResponse): Record<string,
   const failed = items.filter(isFailedItem);
   if (failed.length > 0) {
     const message = failed.map((item) => `[${String(item["sCode"])}] ${String(item["sMsg"] ?? "Operation failed")}`).join("; ");
-    throw new OkxApiError(message, { code: String(failed[0]!["sCode"]), endpoint: response.endpoint });
+    throw new OkxApiError(message, { code: String(failed[0]["sCode"]), endpoint: response.endpoint });
   }
   return { endpoint: response.endpoint, requestTime: response.requestTime, data: response.data };
 }

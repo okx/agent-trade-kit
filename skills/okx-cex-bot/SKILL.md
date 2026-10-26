@@ -167,7 +167,10 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
 **WRITE commands** (create, amend, stop): confirm key parameters with user once before executing.
 
 **Write-operation confirmation checklist — Recurring Buy**:
-- `recurring create`: confirm coins and ratios, period + day/hour + time + `--timeZone`, `--amt` and `--investmentCcy`. **Determine `--tdMode` yourself — do NOT ask the user**: run `okx account config` first, read `acctLv`, and map `1`/`2` (spot / futures mode) → `cash`, `3`/`4` (multi-currency / portfolio margin) → `cross`. Never invent a default.
+- `recurring create`: confirm coins and ratios, period + day/hour + time + `--timeZone`, `--amt` and `--investmentCcy`, plus `--tdMode`. Run `okx account config` first and read `acctLv`, then read `{baseDir}/references/recurring-commands.md` and follow its rule before running `create`:
+  - `1`/`2` (spot / futures mode) → `cash` only.
+  - `3`/`4` (multi-currency / portfolio margin) → ask the user `cash` or `cross` in this same confirmation round (skip the question if they already said which); `cash` if no preference.
+  - Hard constraints: never guess `acctLv`; never pass `cross` unless `acctLv` is `3`/`4` and the user chose it; always pass `--tdMode` explicitly (no CLI default).
 - `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount.
 - `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`.
 
@@ -198,7 +201,7 @@ read `{baseDir}/references/dca-commands.md`.
 For Smart Portfolio Bot command syntax, parameter tables, and examples,
 read `{baseDir}/references/smart-portfolio-commands.md`.
 
-For Recurring Buy command syntax, the `acctLv` → `tdMode` mapping, parameter tables, and edge cases,
+For Recurring Buy command syntax, the `acctLv` → `tdMode` selection rule, parameter tables, and edge cases,
 read `{baseDir}/references/recurring-commands.md`.
 
 For cross-skill workflow examples (chaining `okx-cex-market`/`okx-cex-portfolio` with bot

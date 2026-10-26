@@ -206,7 +206,7 @@ export function registerRecurringTools(): ToolSpec[] {
       module: "bot.recurring",
       description:
         "Create a Recurring Buy (定投) strategy that buys a basket of coins with a fixed amount each cycle. [CAUTION] Real trades. " +
-        "tdMode is required: 'cash' for spot/futures account mode (acctLv 1/2), 'cross' for multi-currency/portfolio margin (acctLv 3/4).",
+        "tdMode is required and has no default, always pass it: 'cash' for spot/futures account mode (acctLv 1/2); 'cash' or 'cross' for multi-currency/portfolio margin (acctLv 3/4).",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {
@@ -222,7 +222,7 @@ export function registerRecurringTools(): ToolSpec[] {
           recurringTime: { type: "string", description: "Hour of day to buy, integer 0-23 (first buy hour when hourly)" },
           amt: { type: "string", description: "Amount invested per cycle, in investmentCcy" },
           investmentCcy: { type: "string", enum: ["USDT", "USDC"], description: "Investment currency" },
-          tdMode: { type: "string", enum: ["cash", "cross"], description: "Trade mode: cash (acctLv 1/2) or cross (acctLv 3/4)" },
+          tdMode: { type: "string", enum: ["cash", "cross"], description: "Trade mode: cash (any acctLv; the only option for acctLv 1/2) or cross (acctLv 3/4 only)" },
           algoClOrdId: { type: "string", description: "Client strategy ID (optional)" },
           tradeQuoteCcy: { type: "string", description: "Quote currency for trading (optional)" },
           source: { type: "string", description: "Funding sources, comma-separated: 1=trading, 2=funding, 3=simple earn (default 1)" },

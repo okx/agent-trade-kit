@@ -13,7 +13,7 @@
 
 ### 新增
 
-- **Recurring Buy（定投）CLI 命令**（`okx bot recurring <sub>`，仅 CLI —— **不提供 MCP 工具**）：`create`、`orders [--history]`、`details`、`sub-orders`、`pause`、`restart`、`stop`、`amend-name`、`amend-price-range`、`amend-amount`、`amend-time`、`add-investment`，由新的仅 CLI 模块 `bot.recurring` 下 12 个 core `recurring_*` 工具规格支撑。该模块刻意不属于 `MODULES`，因此 MCP 工具列表（178 个）与 `--modules` 均不变。`--tdMode` 必填（无默认值；skill 中说明 `acctLv` 1/2 → `cash`，3/4 → `cross`）；`create` 支持 `--aiBuilderCode`。
+- **Recurring Buy（定投）CLI 命令**（`okx bot recurring <sub>`，仅 CLI —— **不提供 MCP 工具**）：`create`、`orders [--history]`、`details`、`sub-orders`、`pause`、`restart`、`stop`、`amend-name`、`amend-price-range`、`amend-amount`、`amend-time`、`add-investment`，由新的仅 CLI 模块 `bot.recurring` 下 12 个 core `recurring_*` 工具规格支撑。该模块刻意不属于 `MODULES`，因此 MCP 工具列表（178 个）与 `--modules` 均不变。`--tdMode` 必填（代码中无默认值；skill 规定 `acctLv` 1/2 固定用 `cash`，3/4 则询问用户选择 `cash` 或 `cross`，无偏好时用 `cash`）；`create` 支持 `--aiBuilderCode`。
 - `@agent-tradekit/core` 新增导出 `CLI_ONLY_MODULE_IDS` / `CliOnlyModuleId`；`ToolSpec.module` 现可为仅 CLI 模块。
 - CLI：现在可正确解析负数 `--timeZone`（如 `--timeZone -5`）。
 - `okx-cex-bot` skill：新增定投命令索引、写操作确认清单及 `references/recurring-commands.md`。
