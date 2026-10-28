@@ -12,6 +12,7 @@ import {
   cmdGridClosePosition,
   cmdDcaOrders,
   cmdDcaDetails,
+  cmdDcaPositions,
   cmdDcaCreate,
   cmdDcaStop,
   cmdDcaSubOrders,
@@ -29,6 +30,7 @@ import {
 } from "../src/commands/bot.js";
 import { setOutput, resetOutput } from "../src/formatter.js";
 import { handleBotDcaCommand, handleBotSmartPortfolioCommand } from "../src/index.js";
+import { CLI_REGISTRY } from "../src/cli-registry.js";
 import type { CliValues } from "../src/parser.js";
 
 /** Find valid JSON in captured output (tolerates parallel test output mixing in Node 18). */
@@ -372,6 +374,90 @@ describe("cmdDcaDetails", () => {
     await cmdDcaDetails(runner, { algoId: "DCA001", algoOrdType: "spot_dca", json: false });
     assert.ok(out.join("").includes("DCA001"));
     assert.ok(out.join("").includes("BTC-USDT"));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// cmdDcaPositions
+// ---------------------------------------------------------------------------
+describe("cmdDcaPositions", () => {
+  it("routes to dca_get_positions with algoId/algoOrdType from named options", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    await cmdDcaPositions(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    assert.equal(capturedName, "dca_get_positions");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["algoOrdType"], "contract_dca");
+  });
+
+  it("outputs 'DCA position not found' when result is empty", async () => {
+    const runner: ToolRunner = async () => fakeResult([]);
+    await cmdDcaPositions(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    assert.ok(out.join("").includes("DCA position not found"));
+    assert.equal(err.join(""), "");
+  });
+
+  it("prints the raw record in --json mode", async () => {
+    const record = { algoId: "DCA001", avgPx: "30000", curCycleId: "c1" };
+    const runner: ToolRunner = async () => fakeResult([record]);
+    await cmdDcaPositions(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: true });
+    assert.deepEqual(JSON.parse(out.join("")), record);
+  });
+
+  it("renders KV output including the curCycleId field and liqPx", async () => {
+    const runner: ToolRunner = async () => fakeResult([{
+      algoId: "DCA001", algoOrdType: "contract_dca", instId: "BTC-USDT-SWAP",
+      sz: "0.01", notionalUsd: "300", avgPx: "30000", liqPx: "12345.6", tpPx: "31500",
+      slPx: "", upl: "50", fee: "-1.5", fundingFee: "0",
+      curCycleId: "cycle-xyz", fillSafetyOrds: "2", startTime: "1700000000000",
+    }]);
+    await cmdDcaPositions(runner, { algoId: "DCA001", algoOrdType: "contract_dca", json: false });
+    const text = out.join("");
+    assert.ok(text.includes("BTC-USDT-SWAP"));
+    assert.ok(text.includes("cycle-xyz"));
+    assert.ok(text.includes("12345.6"));
+  });
+});
+
+describe("handleBotDcaCommand - positions routing", () => {
+  it("positions: forwards v.algoId/v.algoOrdType (named flags) to dca_get_positions", async () => {
+    let capturedName = "";
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (name, args) => {
+      capturedName = name;
+      captured = args as Record<string, unknown>;
+      return fakeResult([]);
+    };
+    const v = { algoId: "DCA001", algoOrdType: "spot_dca" } as CliValues;
+    await handleBotDcaCommand(runner, "positions", v, false);
+    assert.equal(capturedName, "dca_get_positions");
+    assert.equal(captured["algoId"], "DCA001");
+    assert.equal(captured["algoOrdType"], "spot_dca");
+  });
+
+  it("positions: defaults algoOrdType to contract_dca", async () => {
+    let captured: Record<string, unknown> = {};
+    const runner: ToolRunner = async (_name, args) => { captured = args as Record<string, unknown>; return fakeResult([]); };
+    await handleBotDcaCommand(runner, "positions", { algoId: "DCA001" } as CliValues, false);
+    assert.equal(captured["algoOrdType"], "contract_dca");
+  });
+
+  it("registry: bot dca positions maps to dca_get_positions and details stays on dca_get_order_details", () => {
+    const dcaCmds = CLI_REGISTRY["bot"]!.subgroups!["dca"]!.commands!;
+    assert.equal(dcaCmds["positions"]!.toolName, "dca_get_positions");
+    assert.equal(dcaCmds["details"]!.toolName, "dca_get_order_details");
+  });
+
+  it("details: still routes to dca_get_order_details (backward compatible)", async () => {
+    let capturedName = "";
+    const runner: ToolRunner = async (name) => { capturedName = name; return fakeResult([]); };
+    await handleBotDcaCommand(runner, "details", { algoId: "DCA001" } as CliValues, false);
+    assert.equal(capturedName, "dca_get_order_details");
   });
 });
 

@@ -190,6 +190,7 @@ import {
   cmdDcaStop,
   cmdDcaOrders,
   cmdDcaDetails,
+  cmdDcaPositions,
   cmdDcaSubOrders,
   cmdDcaAddMargin,
   cmdDcaReduceMargin,
@@ -1346,6 +1347,8 @@ export function handleBotDcaCommand(
     return cmdDcaOrders(run, { algoOrdType, algoId: v.algoId, instId: v.instId, history: v.history ?? false, json });
   if (subAction === "details")
     return cmdDcaDetails(run, { algoId: v.algoId!, algoOrdType, json });
+  if (subAction === "positions")
+    return cmdDcaPositions(run, { algoId: v.algoId!, algoOrdType, json });
   if (subAction === "sub-orders")
     return cmdDcaSubOrders(run, { algoId: v.algoId!, algoOrdType, cycleId: v.cycleId, after: v.after, before: v.before, limit: v.limit !== undefined ? Number(v.limit) : undefined, json });
   if (subAction === "create")
@@ -1384,7 +1387,7 @@ export function handleBotDcaCommand(
     return cmdDcaReduceMargin(run, { algoId: v.algoId!, amt: v.amt!, json });
   if (subAction === "update-tp")
     return cmdDcaUpdateTakeProfit(run, { algoId: v.algoId!, tpPrice: v.tpPrice!, json });
-  unknownSubcommand("bot dca", subAction, ["orders", "details", "sub-orders", "create", "stop", "add-margin", "reduce-margin", "update-tp"]);
+  unknownSubcommand("bot dca", subAction, ["orders", "details", "positions", "sub-orders", "create", "stop", "add-margin", "reduce-margin", "update-tp"]);
 }
 
 export function handleBotSmartPortfolioCommand(

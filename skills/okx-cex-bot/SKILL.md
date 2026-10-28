@@ -4,7 +4,7 @@ description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots
 license: MIT
 metadata:
   author: okx
-  version: "1.4.9"
+  version: "1.5.0"
   homepage: "https://www.okx.com"
   agent:
     emoji: "🤖"
@@ -13,7 +13,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.4.9"
+        package: "@okx_ai/okx-trade-cli@1.5.0"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -114,7 +114,8 @@ Resolution:
 | `okx bot dca create` | WRITE | Create a DCA (Martingale) bot (spot or contract) |
 | `okx bot dca stop` | WRITE | Stop a DCA bot (spot or contract) |
 | `okx bot dca orders` | READ | List active or history DCA bots (default: contract_dca) |
-| `okx bot dca details` | READ | DCA bot details + PnL |
+| `okx bot dca positions` | READ | DCA bot position info (avgPx, upl, liqPx, ...) |
+| `okx bot dca details` | READ | **Deprecated** - use `okx bot dca positions` (same endpoint) |
 | `okx bot dca sub-orders` | READ | DCA cycles and orders within a cycle |
 | `okx bot dca add-margin` | WRITE | Add margin to a running contract DCA bot |
 | `okx bot dca reduce-margin` | WRITE | Reduce margin on a running contract DCA bot |
