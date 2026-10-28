@@ -11,6 +11,14 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`dca_get_positions` MCP 工具及 `okx bot dca positions` CLI 命令**：DCA 机器人持仓信息（avgPx、upl、liqPx、sz、tpPx、slPx、fee）的专用入口。OKX 没有独立的 DCA 持仓接口，因此该工具与 `dca_get_order_details` 调用同一个 `/api/v5/tradingBot/dca/position-details` 并原样返回；策略级信息（state、pnl、配置）请使用 `dca_get_orders`。
+
+### 变更
+
+- **`dca_get_order_details` 已废弃**（仅描述层面）：描述前缀 `[DEPRECATED] Use dca_get_positions for position info instead.`。行为、参数及 `okx bot dca details` 均保持不变。
+
 ## [1.4.9] - 2026-10-19
 
 ### 新增

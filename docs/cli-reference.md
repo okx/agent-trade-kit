@@ -206,6 +206,17 @@ okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
+# Contract grid positions (liquidation price, margin ratio, unrealized PnL) — contract_grid only
+okx bot grid positions --algoId <algoId> --algoOrdType contract_grid
+
+# Estimate liquidation price before creating a contract grid (full intended config required)
+okx bot grid liquidate-price --instId BTC-USDT-SWAP --sz 100 --lever 3 \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --direction neutral
+
+# Close the remaining position after stopping with --stopType 2 (close mode is required)
+okx bot grid close-position --algoId <algoId> --mktClose                      # market close
+okx bot grid close-position --algoId <algoId> --no-mktClose --sz <size> --px <price> # limit close
+
 # ── Moon Grid (algoOrdType: moon_grid) — list/query only ─────────────────────
 okx bot grid orders --algoOrdType moon_grid
 okx bot grid details --algoOrdType moon_grid --algoId <algoId>
@@ -213,7 +224,8 @@ okx bot grid details --algoOrdType moon_grid --algoId <algoId>
 # ── Contract DCA ──────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <algoId>] [--instId <instId>]
 okx bot dca orders --history
-okx bot dca details --algoId <algoId>
+okx bot dca positions --algoId <algoId>
+okx bot dca details --algoId <algoId>   # deprecated, use `positions`
 okx bot dca sub-orders --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
 okx bot dca sub-orders --algoId <algoId> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]
@@ -519,6 +531,17 @@ okx bot grid create --instId BTC-USD-SWAP --algoOrdType contract_grid \
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP
 okx bot grid stop --algoId <algoId> --algoOrdType contract_grid --instId BTC-USDT-SWAP --stopType 2
 
+# 合约网格持仓（强平价、保证金率、未实现盈亏）— 仅 contract_grid
+okx bot grid positions --algoId <algoId> --algoOrdType contract_grid
+
+# 建仓前估算强平价（需提供完整的目标配置）
+okx bot grid liquidate-price --instId BTC-USDT-SWAP --sz 100 --lever 3 \
+  --maxPx 100000 --minPx 80000 --gridNum 10 --direction neutral
+
+# 以 --stopType 2 停止后，关闭剩余持仓（平仓方式必填）
+okx bot grid close-position --algoId <algoId> --mktClose                      # 市价平仓
+okx bot grid close-position --algoId <algoId> --no-mktClose --sz <size> --px <price> # 限价平仓
+
 # ── 月网格（algoOrdType: moon_grid）— 仅支持查询 ─────────────────────────────
 okx bot grid orders --algoOrdType moon_grid
 okx bot grid details --algoOrdType moon_grid --algoId <algoId>
@@ -526,7 +549,8 @@ okx bot grid details --algoOrdType moon_grid --algoId <algoId>
 # ── 合约 DCA ──────────────────────────────────────────────────────────────────
 okx bot dca orders [--algoId <algoId>] [--instId <instId>]
 okx bot dca orders --history
-okx bot dca details --algoId <algoId>
+okx bot dca positions --algoId <algoId>
+okx bot dca details --algoId <algoId>   # deprecated, use `positions`
 okx bot dca sub-orders --algoId <algoId>
 okx bot dca sub-orders --algoId <algoId> --cycleId <cycleId>
 okx bot dca sub-orders --algoId <algoId> [--cycleId <cycleId>] [--after <id>] [--before <id>] [--limit <n>]

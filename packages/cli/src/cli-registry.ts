@@ -877,7 +877,12 @@ export const CLI_REGISTRY: CliRegistry = {
           details: {
             toolName: "dca_get_order_details",
             usage: "okx bot dca details --algoOrdType <spot_dca|contract_dca> --algoId <id>",
-            description: "Get DCA bot details (spot or contract)",
+            description: "Get DCA bot details (spot or contract) - deprecated, use `positions`",
+          },
+          positions: {
+            toolName: "dca_get_positions",
+            usage: "okx bot dca positions --algoOrdType <spot_dca|contract_dca> --algoId <id>",
+            description: "Get DCA bot position info (avgPx, upl, liqPx, ...)",
           },
           "sub-orders": {
             toolName: "dca_get_sub_orders",

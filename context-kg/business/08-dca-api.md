@@ -1,4 +1,4 @@
-<!-- triggers: dca, dca bot, dca strategy, bot.dca, martingale, contract dca, spot dca, order-algo, ai-param, cycle, safety order, maxSafetyOrds, pxSteps, volMult, tpPct, slPct, trigger sign, rsi trigger, sync copy, async copy, copy trading dca, profitSharingRatio, trackingMode, curCycleld -->
+<!-- triggers: dca, dca bot, dca strategy, bot.dca, martingale, contract dca, spot dca, order-algo, ai-param, cycle, safety order, maxSafetyOrds, pxSteps, volMult, tpPct, slPct, trigger sign, rsi trigger, sync copy, async copy, copy trading dca, profitSharingRatio, trackingMode, curCycleId -->
 # DCA (Dollar-Cost Averaging) Bot OpenAPI Spec
 
 **Source**: [DCA OpenAPI Doc](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/wikis/Open-API-Doc/DCA-OpenAPI-Doc) (repo wiki, mirror of [Lark original](https://okg-block.sg.larksuite.com/docx/G2R6dI2dmoLv3ux1pvOlobAYggD))
@@ -349,7 +349,7 @@ Request/Response: Same shape as `/margin/add`.
 | algoId | String | Strategy id |
 | algoOrdType | String | `contract_dca` |
 | instId | String | Instrument id |
-| curCycleld | String | Current cycle id. **Note**: JSON key is `curCycleld` (lowercase L + d), **not** `curCycleId`. This is a legacy typo in `@JsonProperty("curCycleld")` — Java field is `curCycleId` but serialized as `curCycleld`. Already live, **do not change** without frontend coordination. |
+| curCycleId | String | Current cycle id |
 | startTime | String | Current cycle start time (Unix ms) |
 | fillManualOrds | String | Filled manual orders count |
 | fillSafetyOrds | String | Filled safety orders count |
@@ -560,24 +560,24 @@ A "sync copy follower" is a strategy with `copyType=2` and `trackingMode=sync`. 
 ## Cross-Version Gotchas
 
 1. **`algoOrdType` runtime enforcement is endpoint-specific, not blanket-applied to all of V2** — the DTO `@StringMatch` annotation accepts both `spot_dca` and `contract_dca` on every endpoint; only endpoints that call `ensureContractDcaOnly()` (`/copy-order-algo` — not yet wrapped by this MCP/CLI, see "Backlog" below; `/settings/take-profit` (2.5); `/settings/reinvestment` (2.6)) reject `spot_dca` at runtime with a parameter error. `/create` (2.1) itself accepts either value at the controller level. Don't assume every V2 endpoint rejects `spot_dca` — check whether the specific endpoint calls `ensureContractDcaOnly()` before relying on runtime rejection. Regardless, **always pass `contract_dca` when working with V2 strategies**.
-2. **`curCycleld` typo** in V2 `/position-details` is **load-bearing** — do not "fix" the spelling when mapping the response to internal types; frontends depend on it.
-3. **`tpPct`, `pxSteps`, `pxStepsMult`, `volMult`** are all **decimal strings** (e.g. `"0.05"` = 5%), not percentage strings (`"5"`). Easy to confuse.
-4. **`allowReinvest`** is Boolean in request but sample shows string `"TRUE"` — likely accepts both, but prefer boolean.
-5. **`reserveFunds` is V1 (spot_dca) only** — the field is present in the `dca_create_order` MCP tool but is silently ignored by the V2 contract_dca controller.
-6. **`initOrdAmt` / `safetyOrdAmt` semantics differ by type** — for `spot_dca` they are in quote currency (e.g. USDT spend per order); for `contract_dca` they represent initial/safety **margin** in USDT.
-7. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
-8. **Cursor direction** — `after` = older data, `before` = newer data (per OKX OpenAPI spec for `GET /dca/orders`: `after` 请求此ID之前（更旧的数据）, `before` 请求此ID之后（更新的数据）). Opposite of what you'd guess from the names — verified against live `dca_get_sub_orders` pagination.
+2. **`tpPct`, `pxSteps`, `pxStepsMult`, `volMult`** are all **decimal strings** (e.g. `"0.05"` = 5%), not percentage strings (`"5"`). Easy to confuse.
+3. **`allowReinvest`** is Boolean in request but sample shows string `"TRUE"` — likely accepts both, but prefer boolean.
+4. **`reserveFunds` is V1 (spot_dca) only** — the field is present in the `dca_create_order` MCP tool but is silently ignored by the V2 contract_dca controller.
+5. **`initOrdAmt` / `safetyOrdAmt` semantics differ by type** — for `spot_dca` they are in quote currency (e.g. USDT spend per order); for `contract_dca` they represent initial/safety **margin** in USDT.
+6. **V1 `triggerType` hard-coded enums** — `indicator` must be `rsi`, `triggerCond` must be `cross_down`, `timePeriod` must be `14`. Any other value is rejected. V2 `triggerStrategy` is more flexible (`instant` / `price` / `rsi`).
+7. **Cursor direction** — `after` = older data, `before` = newer data (per OKX OpenAPI spec for `GET /dca/orders`: `after` 请求此ID之前（更旧的数据）, `before` 请求此ID之后（更新的数据）). Opposite of what you'd guess from the names — verified against live `dca_get_sub_orders` pagination.
 
 ## As-shipped tool surface (`packages/core/src/tools/bot/dca.ts`)
 
-The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 8 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
+The `bot.dca` module uses flat `dca_*` naming (not dotted `bot.dca.*`) with 9 unified tools. The V1/V2 distinction is controlled by the `algoOrdType` parameter (`spot_dca` for V1 Spot DCA, `contract_dca` for V2 Contract DCA) rather than separate tool sets.
 
 | Tool | Key params | `isWrite` |
 |---|---|---|
 | `dca_create_order` | `instId`, `algoOrdType: spot_dca\|contract_dca`, `initOrdAmt`, `maxSafetyOrds`, `tpPct` (required); `direction` optional for `spot_dca` (default: `long`), required for `contract_dca`; `lever` required for `contract_dca` | true |
 | `dca_stop_order` | `algoId`, `algoOrdType`; `stopType` required for `spot_dca` (1=sell, 2=keep) | true |
 | `dca_get_orders` | `algoOrdType`, optional `algoId`, pagination cursors | false |
-| `dca_get_order_details` | `algoId` (required) | false |
+| `dca_get_order_details` | `algoId`, `algoOrdType` (required); **deprecated** — description-only deprecation, behavior unchanged | false |
+| `dca_get_positions` | `algoId`, `algoOrdType` (required); calls the same `/position-details` endpoint (§2.8) as `dca_get_order_details` — OKX has no separate DCA positions endpoint and the response is already position-only, so it is returned as-is | false |
 | `dca_get_sub_orders` | `algoId`, `algoOrdType`; optional `cycleId` (omit=cycle list, provide=orders in cycle); `after`, `before`, `limit` pagination in both branches | false |
 | `dca_add_margin` | `algoId`, `amt` (must be a positive finite number — NaN/Infinity rejected client-side) | true |
 | `dca_reduce_margin` | `algoId`, `amt` (positive finite number); sCode=59302 → cancel pending close order first; sCode=59301 → amount outside allowed range | true |
