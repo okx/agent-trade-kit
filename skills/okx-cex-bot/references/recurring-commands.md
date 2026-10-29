@@ -16,12 +16,12 @@ Recurring Buy invests a fixed amount in a basket of coins at fixed intervals (mo
 | `1` | Simple mode (简单模式 / spot mode) | `cash` only | spot | `cash`. Only one option: state it in the confirmation summary |
 | `2` | Single-currency margin (单币种保证金模式 / spot and futures mode) | `cash`, `cross` | `cash` → spot; `cross` → **real leverage (MARGIN)** | **Ask the user**: `cash` (spot) or `cross` (leveraged, with leverage risk). `cash` if no preference |
 | `3` | Multi-currency margin (跨币种保证金模式) | `cross` only | spot (downgraded by the system) | `cross`. Only one option: state it in the summary |
-| `4` | Portfolio margin (组合保证金模式) | `cash`, `cross` | spot (both downgraded) | Default `cross`; state it in the summary. `cash` has the same effect — switch only if the user asks |
+| `4` | Portfolio margin (组合保证金模式) | `cross`, plus `cash` — accepted today (`code=0`) but **does not execute** (no sub-order, `investmentAmt` unchanged); the server will be changed to reject it | spot (downgraded by the system) | `cross`. Only one option: state it in the summary. **Never `cash`** |
 
-3. Ask or state the choice in the same confirmation round as the other parameters (do not ask twice). If the user already said `cash` or `cross`, do not ask again. If they have no preference or do not answer, use the default in the table. On `acctLv` 2, even when the user already said `cross`, still state in the summary that it opens a real leveraged position.
-4. If the user asks for a combination the account does not accept (`cross` on `acctLv` 1, `cash` on `acctLv` 3), explain why and offer the accepted option. If the user wants leverage but `acctLv` is 3 or 4, explain that `cross` is executed as spot there (no leverage).
+3. Ask (`acctLv` 2 only) or state (`acctLv` 1, 3 and 4) the choice in the same confirmation round as the other parameters (do not ask twice). On `acctLv` 2, if the user already said `cash` or `cross`, do not ask again. If they have no preference or do not answer, use the default in the table. On `acctLv` 2, even when the user already said `cross`, still state in the summary that it opens a real leveraged position.
+4. If the user asks for a combination the account does not support (`cross` on `acctLv` 1, `cash` on `acctLv` 3 or 4; on 4 the server would report success but not trade), explain why and offer the supported option. If the user wants leverage but `acctLv` is 3 or 4, explain that `cross` is executed as spot there (no leverage).
 5. If `acctLv` cannot be read or is not 1–4, do not guess and never use `cross`: tell the user and ask them to confirm their account mode.
-6. Never pass `cross` unless `acctLv` is 2 (and the user chose leverage), 3 or 4. Always pass `--tdMode` explicitly — the CLI has no default.
+6. Pass `cross` only on `acctLv` 2 (when the user chose leverage), 3 and 4; pass `cash` only on `acctLv` 1 and 2. Always pass `--tdMode` explicitly — the CLI has no default.
 
 ## Create
 
@@ -119,7 +119,7 @@ Invests an extra one-off amount now (real trade), in the strategy's investment c
 
 ## Edge Cases
 
-- **`tdMode` is never defaulted or account-checked in code**: the skill guides it from `acctLv` (see above: 1 → `cash`; 2 → ask the user, `cash` if no preference; 3 → `cross`; 4 → `cross` by default); a missing or non-`cash|cross` value is rejected before any request is sent, and a combination the account does not accept is rejected by the server.
+- **`tdMode` is never defaulted or account-checked in code**: the skill guides it from `acctLv` (see above: 1 → `cash`; 2 → ask the user, `cash` if no preference; 3 → `cross`; 4 → `cross`); a missing or non-`cash|cross` value is rejected before any request is sent, and a combination the account does not accept is rejected by the server — except `cash` on `acctLv` 4, which is accepted but not executed today, so the skill must never use it.
 - **Negative time zones**: write `--timeZone=-5`; a bare negative value after the flag looks like another option to generic argument parsers.
 - **Numeric strings**: pass plain decimals (no scientific notation). `amount` for `amend-amount` / `add-investment` must be > 0 (the server allows at most 2 decimals).
 - **State check before changes**: `stop` / `pause` / `restart` / amend commands act on the current state; use `details` first. Stopped strategies appear only with `orders --history`.

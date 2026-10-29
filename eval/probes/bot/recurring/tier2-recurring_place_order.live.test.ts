@@ -33,7 +33,13 @@ describe(PROBE_ID, () => {
             failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
             evidence.matched_call = { name: call.name, command: call.input.command };
-            status = 'pass';
+            // acctLv 4 (portfolio margin) must use cross; never cash.
+            if (/--tdMode[ =]cross(\s|$)/.test(String(call.input.command))) {
+              status = 'pass';
+            } else {
+              status = 'fail';
+              failure_reason = 'expected --tdMode cross on an acctLv 4 account';
+            }
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);

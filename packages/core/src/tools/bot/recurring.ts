@@ -212,7 +212,7 @@ export function registerRecurringTools(): ToolSpec[] {
       module: "bot.recurring",
       description:
         "Create a Recurring Buy (定投) strategy that buys a basket of coins with a fixed amount each cycle. [CAUTION] Real trades. " +
-        "tdMode is required and has no default, always pass it: 'cash' or 'cross'. Accepted values depend on the account mode (acctLv): 1 accepts cash, 3 accepts cross, 2 and 4 accept both (cross on 2 opens a real leveraged position).",
+        "tdMode is required and has no default, always pass it: 'cash' or 'cross'. Accepted values depend on the account mode (acctLv): 1 accepts cash, 2 accepts both (cross opens a real leveraged position), 3 and 4 use cross only (never cash).",
       isWrite: true,
       destructiveHint: false,
       inputSchema: {

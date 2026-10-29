@@ -249,7 +249,7 @@ okx bot dca stop --algoId <algoId>
 ### Recurring Buy (定投) — CLI only, no MCP tools
 
 ```bash
-# tdMode is required (no default, always pass it). Accepted values depend on acctLv (see `okx account config`): 1 → cash; 3 → cross; 2/4 → cash or cross (cross on acctLv 2 opens a real leveraged position)
+# tdMode is required (no default, always pass it). Accepted values depend on acctLv (see `okx account config`): 1 → cash; 2 → cash or cross (cross opens a real leveraged position); 3 and 4 → cross only
 okx bot recurring create --stgyName "BTC-ETH monthly" \
   --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
   --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
@@ -595,7 +595,7 @@ okx bot dca stop --algoId <algoId>
 ### Recurring Buy（定投）— 仅 CLI，无 MCP 工具
 
 ```bash
-# tdMode 必填（无默认值，必须显式传入）。可接受的值取决于 acctLv（先运行 `okx account config`）：1 → cash；3 → cross；2/4 → cash 或 cross（acctLv 2 传 cross 会产生真实杠杆）
+# tdMode 必填（无默认值，必须显式传入）。可接受的值取决于 acctLv（先运行 `okx account config`）：1 → cash；2 → cash 或 cross（cross 会产生真实杠杆）；3 和 4 → 仅 cross
 okx bot recurring create --stgyName "BTC-ETH 每月定投" \
   --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
   --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
