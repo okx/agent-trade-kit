@@ -72,6 +72,8 @@ okx bot recurring sub-orders --algoId <id> [--ordId <id>] [--after <id>] [--befo
 
 Lists the buy orders the strategy has executed (`ordType` is `market`, or `manual_add_order` for `add-investment`).
 
+`--limit` max is 300 (the default) here — unlike `orders`, whose max is 100.
+
 ## Pause / Restart / Stop
 
 ```bash

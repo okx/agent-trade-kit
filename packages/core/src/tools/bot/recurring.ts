@@ -189,11 +189,16 @@ const getSubOrdersHandler: Handler = async (rawArgs, context) => {
   return normalizeResponse(response);
 };
 
-const PAGE_PROPS = {
-  after: { type: "string", description: "Pagination cursor: records earlier than this algoId/ordId" },
-  before: { type: "string", description: "Pagination cursor: records newer than this algoId/ordId" },
-  limit: { type: "string", description: "Number of results (max 100, default 100)" },
-} as const;
+/** Pagination filters of the list endpoints. The page-size cap differs per endpoint (orders: 100, sub-orders: 300). */
+function pageProps(maxLimit: number) {
+  return {
+    after: { type: "string", description: "Pagination cursor: records earlier than this algoId/ordId" },
+    before: { type: "string", description: "Pagination cursor: records newer than this algoId/ordId" },
+    limit: { type: "string", description: `Number of results (max ${maxLimit}, default ${maxLimit})` },
+  } as const;
+}
+const ORDERS_MAX_LIMIT = 100;
+const SUB_ORDERS_MAX_LIMIT = 300;
 
 /**
  * Recurring Buy (定投) tools. CLI-only: module `bot.recurring` is not part of
@@ -372,7 +377,7 @@ export function registerRecurringTools(): ToolSpec[] {
         properties: {
           status: { type: "string", enum: ["active", "history"], description: "active (default) or history" },
           algoId: { type: "string", description: "Filter by strategy ID" },
-          ...PAGE_PROPS,
+          ...pageProps(ORDERS_MAX_LIMIT),
         },
         required: [],
       },
@@ -386,7 +391,7 @@ export function registerRecurringTools(): ToolSpec[] {
       isWrite: false,
       inputSchema: {
         type: "object",
-        properties: { algoId: ALGO_ID_PROP, ordId: { type: "string", description: "Filter by sub order ID" }, ...PAGE_PROPS },
+        properties: { algoId: ALGO_ID_PROP, ordId: { type: "string", description: "Filter by sub order ID" }, ...pageProps(SUB_ORDERS_MAX_LIMIT) },
         required: ["algoId"],
       },
       handler: getSubOrdersHandler,

@@ -629,6 +629,13 @@ describe("recurring read tools", () => {
     await assertRejects("recurring_get_orders", { status: "bogus" }, /status/);
   });
 
+  it("documents each list endpoint's own page-size cap (orders 100, sub-orders 300)", () => {
+    const limitDescription = (name: string) =>
+      ((tool(name).inputSchema as { properties: Record<string, { description: string }> }).properties["limit"]!).description;
+    assert.equal(limitDescription("recurring_get_orders"), "Number of results (max 100, default 100)");
+    assert.equal(limitDescription("recurring_get_sub_orders"), "Number of results (max 300, default 300)");
+  });
+
   it("get_sub_orders GETs sub-orders with algoId required and optional filters", async () => {
     const { calls } = await run("recurring_get_sub_orders", { algoId: "560516615079727104", ordId: "9", after: "1", before: "2", limit: "20" });
     assert.equal(calls[0]!.endpoint, "/api/v5/tradingBot/recurring/sub-orders");
