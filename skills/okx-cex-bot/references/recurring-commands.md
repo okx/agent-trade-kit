@@ -36,12 +36,12 @@ okx bot recurring create \
 - Required: `stgyName` (max 40 chars), `recurringList`, `period`, `recurringTime`, `timeZone`, `amt`, `investmentCcy`, `tdMode`.
 - `recurringList`: JSON array of `{ccy, ratio, minPx?, maxPx?}`. `minPx` / `maxPx` limit the price range in which that coin is bought; `""` or omitted = no limit. Ratio sum, duplicate coins, minimum investment and similar rules are checked by the server.
 - `period`: `monthly` | `weekly` | `daily` | `hourly`.
-  - `monthly` requires `--recurringDay` 1–28; `weekly` requires `--recurringDay` 1–7; `daily` / `hourly` do not need it.
+  - `monthly` requires `--recurringDay` 1–28; `weekly` requires `--recurringDay` 1–7 (1 = Monday … 7 = Sunday); `daily` / `hourly` do not need it.
   - `hourly` requires `--recurringHour` (`1`, `4`, `8` or `12` = buy every N hours); `--recurringTime` is then the hour of the first buy.
 - `recurringTime`: hour of day, integer 0–23.
 - `timeZone`: UTC offset in [-12, 14], e.g. `8` for UTC+8. **For a negative offset write `--timeZone=-5`** (the `=` form is the documented one).
 - `investmentCcy`: `USDT` or `USDC`. `amt` is the amount invested per cycle.
-- Optional: `--source <1,2,3>` funding sources (1 = trading account (default), 2 = funding account, 3 = simple earn), `--recurringTimeType <1|2>` (1 = custom time (default), 2 = trigger immediately), `--tradeQuoteCcy <ccy>`, `--algoClOrdId <id>`.
+- Optional: `--source <1,2,3>` funding sources (1 = trading account (default), 2 = funding account, 3 = simple earn), `--recurringTimeType <1|2>` (1 = custom time (default), 2 = trigger immediately — buys right away), `--tradeQuoteCcy <ccy>`, `--algoClOrdId <id>`.
 - `--aiBuilderCode <code>`: Optional builder attribution code, forwarded as the order tag. Only `create` accepts it.
 
 ## List Strategies (Running or History)
@@ -102,7 +102,7 @@ okx bot recurring amend-time --algoId <id> --recurringTimeType 1 --period monthl
 ```
 
 - `amend-amount` / `add-investment` use `--amount` (`--amt` is accepted as an alias).
-- `amend-time`: `--recurringTimeType 1` (custom time) needs `--recurringTime` and, for `monthly` / `weekly`, `--recurringDay`; `--recurringTimeType 2` triggers immediately and needs neither. `hourly` always needs `--recurringHour`. Negative offsets: `--timeZone=-5`.
+- `amend-time`: `--recurringTimeType 1` (custom time) needs `--recurringTime` and, for `monthly` / `weekly`, `--recurringDay`; `--recurringTimeType 2` triggers immediately and needs neither — **it makes a real purchase right away, and every call buys again (it is not idempotent), so confirm with the user first and never retry it blindly**; afterwards check `recurring sub-orders`. `hourly` always needs `--recurringHour`. Negative offsets: `--timeZone=-5`.
 - Price-range, amount, time and add-investment amends return no data on success; the CLI prints `... (OK)`.
 
 ## Add Investment

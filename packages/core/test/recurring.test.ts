@@ -238,6 +238,21 @@ describe("recurring_place_order — request", () => {
     }
   });
 
+  it("trims and upper-cases coin symbols, and parses the comma-separated source list", async () => {
+    const { calls } = await run("recurring_place_order", {
+      ...VALID_CREATE,
+      recurringList: '[{"ccy":" btc ","ratio":"0.5"},{"ccy":"eth","ratio":"0.5"}]',
+      source: " 1 , 2 ,3",
+    });
+    const body = calls[0]!.payload as Record<string, unknown>;
+    assert.deepEqual(body["recurringList"], [{ ccy: "BTC", ratio: "0.5" }, { ccy: "ETH", ratio: "0.5" }]);
+    assert.deepEqual(body["source"], ["1", "2", "3"]);
+  });
+
+  it("rejects a source list with no usable entry", async () => {
+    await assertRejects("recurring_place_order", { ...VALID_CREATE, source: "," }, /source/);
+  });
+
   it("uses a 10 rps private rate limit keyed by the tool name", async () => {
     const { calls } = await run("recurring_place_order", VALID_CREATE);
     assert.deepEqual(calls[0]!.rateLimit, {
@@ -366,6 +381,72 @@ describe("recurring write results", () => {
     );
     assert.deepEqual(result.data, [{ sCode: "0", sMsg: "" }]);
   });
+
+  it("create rejects a success response that carries no algoId (never a silent success)", async () => {
+    const cases: Array<[string, unknown]> = [
+      ["empty array", []],
+      ["absent data", ABSENT],
+      ["item without algoId", [{ sCode: "0", sMsg: "" }]],
+      ["item with an empty algoId", [{ algoId: "", sCode: "0", sMsg: "" }]],
+    ];
+    for (const [title, data] of cases) {
+      await assert.rejects(
+        () => run("recurring_place_order", VALID_CREATE, data),
+        (err: unknown) => {
+          assert.ok(err instanceof OkxApiError, `${title}: expected OkxApiError`);
+          assert.match((err as Error).message, /no algoId/, title);
+          assert.match(String((err as OkxApiError).suggestion), /recurring orders/, title);
+          return true;
+        },
+        title,
+      );
+    }
+  });
+
+  it("create still surfaces the server's own failure ahead of the missing-algoId check", async () => {
+    await assert.rejects(
+      () => run("recurring_place_order", VALID_CREATE, [{ algoId: "", sCode: "51000", sMsg: "Parameter error" }]),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.match((err as Error).message, /\[51000\] Parameter error/);
+        assert.doesNotMatch((err as Error).message, /no algoId/);
+        return true;
+      },
+    );
+  });
+
+  it("only create requires an algoId: pause, restart, stop and amend_name keep accepting an empty response", async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [
+      ["recurring_pause", { algoId: "1" }],
+      ["recurring_restart", { algoId: "1" }],
+      ["recurring_stop", { algoId: "1" }],
+      ["recurring_amend_name", { algoId: "1", stgyName: "n" }],
+    ];
+    for (const [name, args] of calls) {
+      for (const data of [[], ABSENT]) {
+        await run(name, args, data); // must not throw
+      }
+    }
+  });
+
+  it("joins every failed item, reports the first sCode and ignores successful items", async () => {
+    await assert.rejects(
+      () => run("recurring_pause", { algoId: "1" }, [{ sCode: "1", sMsg: "a" }, { sCode: "0", sMsg: "" }, { sCode: "2", sMsg: "b" }]),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.equal((err as Error).message, "[1] a; [2] b");
+        assert.equal((err as OkxApiError).code, "1");
+        return true;
+      },
+    );
+  });
+
+  it("falls back to a generic message when a failed item has no sMsg", async () => {
+    await assert.rejects(
+      () => run("recurring_pause", { algoId: "1" }, [{ sCode: "51000" }]),
+      (err: unknown) => err instanceof OkxApiError && /\[51000\] Operation failed/.test((err as Error).message),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -481,6 +562,20 @@ describe("recurring_amend_time", () => {
     const { calls } = await run("recurring_amend_time", { ...BASE, recurringTimeType: "2" });
     assert.deepEqual(calls[0]!.payload, {
       algoId: "2837428373700509696", recurringTimeType: "2", period: "monthly", timeZone: "8",
+    });
+  });
+
+  it("daily sends a supplied recurringDay unchanged (the client neither strips nor rejects it)", async () => {
+    const { calls } = await run("recurring_amend_time", {
+      ...BASE, period: "daily", recurringTimeType: "1", recurringTime: "11", recurringDay: "1",
+    });
+    assert.deepEqual(calls[0]!.payload, {
+      algoId: "2837428373700509696",
+      recurringTimeType: "1",
+      period: "daily",
+      timeZone: "8",
+      recurringDay: "1",
+      recurringTime: "11",
     });
   });
 

@@ -183,6 +183,12 @@ describe("recurring command output", () => {
     assert.match(output(), /: 44 \(OK\)/);
   });
 
+  it("falls back to the requested algoId when the response item carries an empty algoId", async () => {
+    const { run } = spyRunner([{ algoId: "", sCode: "0", sMsg: "" }]);
+    await cmdRecurringPause(run, { algoId: "46", json: false });
+    assert.match(output(), /Recurring Buy paused: 46 \(OK\)/);
+  });
+
   it("--json prints the raw data array", async () => {
     const { run } = spyRunner([{ algoId: "5", sCode: "0", sMsg: "" }]);
     await cmdRecurringPause(run, { algoId: "5", json: true });
@@ -370,6 +376,33 @@ describe("createCliToolRunner with recurring tools", () => {
       /tdMode/,
     );
     assert.equal(calls.length, 0);
+  });
+
+  const CREATE_VALS = {
+    stgyName: "n", recurringList: '[{"ccy":"BTC","ratio":"1"}]', period: "daily", recurringTime: "0",
+    timeZone: "8", amt: "10", investmentCcy: "USDT", tdMode: "cash",
+  };
+
+  it("create fails instead of printing a blank '(OK)' when the server returns success without an algoId", async () => {
+    for (const data of [[], [{ sCode: "0", sMsg: "" }], [{ algoId: "", sCode: "0", sMsg: "" }]]) {
+      const { run } = recorder(data);
+      await assert.rejects(
+        async () => handleBotRecurringCommand(run, "create", vals(CREATE_VALS), false),
+        (e: unknown) => e instanceof OkxApiError && /no algoId/.test(e.message),
+      );
+    }
+    assert.equal(output(), "");
+  });
+
+  it("create rejects an invalid --aiBuilderCode before any HTTP call", async () => {
+    for (const code of ["bad-code!", "ABCDEFGHIJKLMNOPQ"]) {
+      const { run, calls } = recorder();
+      await assert.rejects(
+        async () => handleBotRecurringCommand(run, "create", vals({ ...CREATE_VALS, aiBuilderCode: code }), false),
+        /aiBuilderCode .* is invalid/,
+      );
+      assert.equal(calls.length, 0, code);
+    }
   });
 });
 

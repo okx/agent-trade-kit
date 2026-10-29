@@ -40,10 +40,6 @@ The earn module is split into five sub-modules, each targeting a different OKX e
 - Read-only module — no subscribe/redeem operations currently exposed
 - Projects have limited quotas and specific start/end windows
 
-### recurring (`bot/recurring.ts`) — CLI-only
-- Recurring Buy (定投) strategies; module `bot.recurring` is in `CLI_ONLY_MODULE_IDS`, **not** in `MODULES`, so no `recurring_*` tool is ever served over MCP. Reachable only as `okx bot recurring <sub>`. Full endpoint/validation notes: [recurring-api.md](recurring-api.md)
-- 12 tools: `recurring_place_order`, `recurring_get_orders` (`status=active|history`), `recurring_get_order_details`, `recurring_get_sub_orders`, `recurring_pause`, `recurring_restart`, `recurring_stop`, `recurring_amend_name`, `recurring_amend_price_range`, `recurring_amend_amount`, `recurring_amend_time`, `recurring_add_investment`
-
 ### Sub-module ID Expansion
 
 In config and CLI, `earn.all` is a shorthand that expands to all five earn sub-modules:
@@ -77,7 +73,7 @@ The bot module exposes two automated strategy types. Like earn, it uses `bot.all
 Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details` and `/api/v5/tradingBot/dca/ongoing-list`) — state field is present in both grid and DCA list/detail responses.
 
 ### dca (`bot/dca.ts`)
-- DCA (Dollar Cost Averaging) bots: recurring purchases at fixed intervals
+- DCA bots (Martingale-style: staged entries with safety orders); not periodic fixed-amount buying — that is Recurring Buy (定投), see `bot.recurring`
 - `dca_create_order` — create a DCA bot (write)
 - `dca_get_orders` — list active or historical DCA bots
 - `dca_get_order_details` — **[deprecated]** get DCA bot position details; use `dca_get_positions` (same endpoint)
@@ -97,6 +93,10 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 - `smart_portfolio_instant_rebalance` — trigger an immediate rebalance (write); returns `triggered: boolean`
 - `smart_portfolio_get_recommend_zones` — browse OKX-recommended portfolio configurations; `profitHistory` is stripped from response to limit context size
 - `smart_portfolio_get_zones_backtest` — get historical backtest for a recommended zone
+
+### recurring (`bot/recurring.ts`) — CLI-only
+- Recurring Buy (定投) strategies; module `bot.recurring` is in `CLI_ONLY_MODULE_IDS`, **not** in `MODULES`, so no `recurring_*` tool is ever served over MCP. Reachable only as `okx bot recurring <sub>`. Full endpoint/validation notes: [recurring-api.md](recurring-api.md)
+- 12 tools: `recurring_place_order`, `recurring_get_orders` (`status=active|history`), `recurring_get_order_details`, `recurring_get_sub_orders`, `recurring_pause`, `recurring_restart`, `recurring_stop`, `recurring_amend_name`, `recurring_amend_price_range`, `recurring_amend_amount`, `recurring_amend_time`, `recurring_add_investment`
 
 ### Sub-module ID Expansion
 

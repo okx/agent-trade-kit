@@ -161,6 +161,11 @@ Resolution:
 
 Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurring Buy) and action (create / stop / list / details).
 
+**DCA and Recurring Buy are different products — route by the user's wording:**
+- "DCA" / 马丁 / Martingale → `okx bot dca` (the Martingale bot with safety orders).
+- "recurring" / "Recurring Buy" / 定投 → `okx bot recurring` (periodic fixed-amount buys of a coin basket).
+- Never treat one as the other. If the wording matches neither (for example just "buy BTC every week"), or uses both words, ask which one the user means.
+
 ### Step 2 — Execute
 
 **READ commands** (orders, details, sub-orders): run immediately after profile confirmation.
@@ -175,7 +180,7 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
   - `4` (portfolio margin) → default `cross` (executed as spot); state it in the summary — `cash` is also accepted with the same effect, switch only if the user asks.
   - Hard constraints: never guess `acctLv` (if it cannot be read or is not `1`–`4`, tell the user and ask them to confirm their account mode); never pass `cross` on `1`, never pass `cash` on `3` — if the user asks for that, explain it is not accepted and offer the accepted option; on `3`/`4` explain that `cross` is executed as spot (no leverage); on `2` always state the leverage risk of `cross` in the summary, even if the user already chose it; always pass `--tdMode` explicitly (no CLI default).
 - `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount.
-- `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`.
+- `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`. **`amend-time --recurringTimeType 2` (and `create --recurringTimeType 2`) buys immediately** — say so, get an explicit yes, never retry it blindly, and check `recurring sub-orders` afterwards.
 
 ### Step 3 — Verify after writes
 
@@ -214,6 +219,7 @@ creation), read `{baseDir}/references/workflows.md`.
 
 - **Grid/DCA**: use "bot" not "strategy" (e.g., "grid bot", "DCA bot")
 - **DCA**: always say "DCA" or "Martingale" — DCA supports both Spot DCA and Contract DCA
+- **Recurring Buy**: say "Recurring Buy" / 定投 — never call it DCA
 - **Chinese**: Grid = "网格", Spot DCA = "现货马丁", Contract DCA = "合约马丁", Smart Portfolio = "智能组合", Recurring Buy = "定投"
 - Use natural language for parameters — "What price range?" not "Enter minPx and maxPx"
 - If the user already provides values, map directly — don't re-ask

@@ -6,8 +6,9 @@ import { outputLine, printJson, printKv, printTable } from "../formatter.js";
 //
 // Write tools throw OkxApiError when the server reports sCode != 0, and four
 // endpoints (amend-time, amend-amount, amend-price-range, add-investment)
-// return no data on success. So a returned write is always a success and the
-// strategy id falls back to the one the caller passed in.
+// return no data on success. So a returned write is a success (create is the one
+// exception: the tool rejects a response without an algoId) and the strategy id
+// falls back to the one the caller passed in.
 // ---------------------------------------------------------------------------
 
 function getItems(result: unknown): Record<string, unknown>[] {
@@ -21,7 +22,10 @@ function formatTime(value: unknown): string {
 
 function emitOk(label: string, items: Record<string, unknown>[], fallbackId?: string, json?: boolean): void {
   if (json) return printJson(items);
-  outputLine(`${label}: ${String(items[0]?.["algoId"] ?? fallbackId ?? "")} (OK)`);
+  // An empty algoId counts as missing, so the requested id is shown instead of a blank.
+  const rawId = items[0]?.["algoId"];
+  const id = rawId === undefined || rawId === null || rawId === "" ? (fallbackId ?? "") : String(rawId);
+  outputLine(`${label}: ${id} (OK)`);
 }
 
 interface CreateOpts {

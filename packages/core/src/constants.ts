@@ -127,7 +127,7 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   "earn.flash":    "Flash Earn - short-window high-yield earn projects",
   event:           "Event contracts - binary prediction markets (YES/NO, UP/DOWN)",
   "bot.grid":           "Grid trading bot - create, monitor, and stop grid orders",
-  "bot.dca":            "DCA (Martingale) bot - spot or contract recurring buys",
+  "bot.dca":            "DCA (Martingale) bot with safety orders - spot or contract",
   "bot.smartportfolio": "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
   "bot.recurring":      "Recurring Buy bot (CLI only) - periodic fixed-amount buys across multiple coins",
   news:            "Crypto news, sentiment analysis, and coin trend tracking",

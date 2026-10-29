@@ -876,7 +876,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "amend-time": {
             toolName: "recurring_amend_time",
-            usage: "okx bot recurring amend-time --algoId <id> --recurringTimeType <1|2> --period <monthly|weekly|daily|hourly> --timeZone <-12..14>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] [--recurringTime <0-23>]\n                         type 1 = custom time (needs --recurringTime, plus --recurringDay for monthly/weekly); type 2 = trigger now\n                         negative zone: use --timeZone=-5",
+            usage: "okx bot recurring amend-time --algoId <id> --recurringTimeType <1|2> --period <monthly|weekly|daily|hourly> --timeZone <-12..14>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] [--recurringTime <0-23>]\n                         type 1 = custom time (needs --recurringTime, plus --recurringDay for monthly/weekly); type 2 = trigger NOW (buys immediately, every call buys again; never retry blindly)\n                         negative zone: use --timeZone=-5",
             description: "Amend the schedule of a Recurring Buy strategy",
           },
           "add-investment": {
@@ -932,7 +932,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       dca: {
-        description: "DCA (Martingale) bot - spot or contract recurring buys",
+        description: "DCA (Martingale) bot with safety orders - spot or contract",
         commands: {
           orders: {
             toolName: "dca_get_orders",

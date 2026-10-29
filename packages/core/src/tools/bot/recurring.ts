@@ -28,7 +28,7 @@ const SCHEDULE_PROPS = {
   period: { type: "string", enum: ["monthly", "weekly", "daily", "hourly"], description: "Recurring period" },
   recurringDay: {
     type: "string",
-    description: "Day: monthly 1-28, weekly 1-7 (weekly: 1=Monday). Not needed for daily/hourly.",
+    description: "Day: monthly 1-28, weekly 1-7 (weekly: 1=Monday ... 7=Sunday). Not needed for daily/hourly.",
   },
   recurringHour: {
     type: "string",
@@ -101,7 +101,8 @@ const placeOrderHandler: Handler = async (rawArgs, context) => {
     }),
     privateRateLimit("recurring_place_order", RPS),
   );
-  return normalizeRecurringWrite(response);
+  // Unlike the amend endpoints, create must hand back the new algoId.
+  return normalizeRecurringWrite(response, { requireAlgoId: true });
 };
 
 const stopHandler: Handler = async (rawArgs, context) => {
@@ -321,11 +322,10 @@ export function registerRecurringTools(): ToolSpec[] {
       title: "Recurring Buy Amend Time",
       module: "bot.recurring",
       description:
-        "Change the schedule of a Recurring Buy strategy. recurringTimeType 1 = custom time (needs recurringTime and, for monthly/weekly, recurringDay); " +
-        "2 = trigger immediately.",
+        "[CAUTION] Change the schedule of a Recurring Buy strategy. recurringTimeType 1 = custom time (needs recurringTime and, for monthly/weekly, recurringDay); " +
+        "2 = trigger immediately: it makes a real purchase right away, and every call buys again (not idempotent) - never retry it blindly.",
       isWrite: true,
       destructiveHint: false,
-      idempotentHint: true,
       inputSchema: {
         type: "object",
         properties: {
