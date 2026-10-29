@@ -3218,6 +3218,78 @@ describe("dca_get_order_details", () => {
   });
 });
 
+describe("dca_get_order_details deprecation", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_get_order_details")!;
+
+  it("description is prefixed with [DEPRECATED] and points to dca_get_positions", () => {
+    assert.ok(tool.description.startsWith("[DEPRECATED]"));
+    assert.ok(tool.description.includes("dca_get_positions"));
+  });
+
+  it("keeps its own rate-limit key", async () => {
+    let rateLimitKey: string | undefined;
+    const client = {
+      privateGet: async (_e: string, _p: unknown, rl?: { key: string }) => {
+        rateLimitKey = rl?.key;
+        return { endpoint: "", requestTime: "", data: [{ dummy: true }] };
+      },
+    };
+    await tool.handler({ algoId: "1", algoOrdType: "contract_dca" }, makeContext(client as never));
+    assert.equal(rateLimitKey, "private:dca_get_order_details");
+  });
+});
+
+describe("dca_get_positions", () => {
+  const tools = registerDcaTools();
+  const tool = tools.find((t) => t.name === "dca_get_positions")!;
+
+  it("is registered as a read-only bot.dca tool with required algoId/algoOrdType", () => {
+    assert.ok(tool, "dca_get_positions should be registered");
+    assert.equal(tool.isWrite, false);
+    assert.equal(tool.module, "bot.dca");
+    assert.deepEqual((tool.inputSchema as Record<string, unknown>).required, ["algoId", "algoOrdType"]);
+  });
+
+  it("calls /dca/position-details with algoId and algoOrdType=contract_dca", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "789", algoOrdType: "contract_dca" }, makeContext(client));
+    assert.equal(getLastCall()?.method, "GET");
+    assert.equal(getLastCall()?.endpoint, "/api/v5/tradingBot/dca/position-details");
+    assert.deepEqual(getLastCall()?.params, { algoId: "789", algoOrdType: "contract_dca" });
+  });
+
+  it("passes algoOrdType=spot_dca through unchanged", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "789", algoOrdType: "spot_dca" }, makeContext(client));
+    assert.deepEqual(getLastCall()?.params, { algoId: "789", algoOrdType: "spot_dca" });
+  });
+
+  it("throws and makes no request when algoId is missing", async () => {
+    const { client, getCalls } = makeMockClient();
+    await assert.rejects(() => tool.handler({ algoOrdType: "contract_dca" }, makeContext(client)));
+    assert.equal(getCalls().length, 0);
+  });
+
+  it("throws and makes no request when algoOrdType is missing", async () => {
+    const { client, getCalls } = makeMockClient();
+    await assert.rejects(() => tool.handler({ algoId: "789" }, makeContext(client)));
+    assert.equal(getCalls().length, 0);
+  });
+
+  it("uses its own rate-limit key", async () => {
+    let rateLimitKey: string | undefined;
+    const client = {
+      privateGet: async (_e: string, _p: unknown, rl?: { key: string }) => {
+        rateLimitKey = rl?.key;
+        return { endpoint: "", requestTime: "", data: [{ dummy: true }] };
+      },
+    };
+    await tool.handler({ algoId: "1", algoOrdType: "contract_dca" }, makeContext(client as never));
+    assert.equal(rateLimitKey, "private:dca_get_positions");
+  });
+});
+
 describe("dca_get_sub_orders", () => {
   const tools = registerDcaTools();
   const tool = tools.find((t) => t.name === "dca_get_sub_orders")!;
@@ -3346,8 +3418,8 @@ describe("swap_get_algo_orders", () => {
 describe("dca tools registration", () => {
   const tools = registerDcaTools();
 
-  it("registers exactly 8 DCA tools", () => {
-    assert.equal(tools.length, 8);
+  it("registers exactly 9 DCA tools", () => {
+    assert.equal(tools.length, 9);
   });
 
   it("all DCA tools have module bot.dca", () => {
@@ -4443,7 +4515,7 @@ describe("grid tools algoId description", () => {
 
 describe("dca tools algoId description", () => {
   const tools = registerDcaTools();
-  const allDcaTools = ["dca_create_order", "dca_stop_order", "dca_get_orders", "dca_get_order_details", "dca_get_sub_orders"];
+  const allDcaTools = ["dca_create_order", "dca_stop_order", "dca_get_orders", "dca_get_order_details", "dca_get_positions", "dca_get_sub_orders"];
 
   for (const name of allDcaTools) {
     const tool = tools.find((t) => t.name === name)!;

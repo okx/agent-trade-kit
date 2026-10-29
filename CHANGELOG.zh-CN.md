@@ -13,10 +13,21 @@
 
 ### 新增
 
-- **Recurring Buy（定投）CLI 命令**（`okx bot recurring <sub>`，仅 CLI —— **不提供 MCP 工具**）：`create`、`orders [--history]`、`details`、`sub-orders`、`pause`、`restart`、`stop`、`amend-name`、`amend-price-range`、`amend-amount`、`amend-time`、`add-investment`，由新的仅 CLI 模块 `bot.recurring` 下 12 个 core `recurring_*` 工具规格支撑。该模块刻意不属于 `MODULES`，因此 MCP 工具列表（178 个）与 `--modules` 均不变。`--tdMode` 必填（代码中无默认值，也不按账户校验；skill 按 `acctLv` 引导：1 → `cash`；2 → 询问用户选 `cash`（现货）或 `cross`（真实杠杆）；3 → `cross`；4 → 默认 `cross`）；`create` 支持 `--aiBuilderCode`。
+- **Recurring Buy（定投）CLI 命令**（`okx bot recurring <sub>`，仅 CLI —— **不提供 MCP 工具**）：`create`、`orders [--history]`、`details`、`sub-orders`、`pause`、`restart`、`stop`、`amend-name`、`amend-price-range`、`amend-amount`、`amend-time`、`add-investment`，由新的仅 CLI 模块 `bot.recurring` 下 12 个 core `recurring_*` 工具规格支撑。该模块刻意不属于 `MODULES`，因此 MCP 工具列表（179 个）与 `--modules` 均不变。`--tdMode` 必填（代码中无默认值，也不按账户校验；skill 按 `acctLv` 引导：1 → `cash`；2 → 询问用户选 `cash`（现货）或 `cross`（真实杠杆）；3 → `cross`；4 → 默认 `cross`）；`create` 支持 `--aiBuilderCode`。
 - `@agent-tradekit/core` 新增导出 `CLI_ONLY_MODULE_IDS` / `CliOnlyModuleId`；`ToolSpec.module` 现可为仅 CLI 模块。
 - CLI：现在可正确解析负数 `--timeZone`（如 `--timeZone -5`）。
 - `okx-cex-bot` skill：新增定投命令索引、写操作确认清单及 `references/recurring-commands.md`。
+
+## [1.5.0] - 2026-10-28
+
+### 新增
+
+- **`dca_get_positions` MCP 工具及 `okx bot dca positions` CLI 命令**：DCA 机器人持仓信息（avgPx、upl、liqPx、sz、tpPx、slPx、fee）的专用入口。OKX 没有独立的 DCA 持仓接口，因此该工具与 `dca_get_order_details` 调用同一个 `/api/v5/tradingBot/dca/position-details` 并原样返回；策略级信息（state、pnl、配置）请使用 `dca_get_orders`。
+
+### 变更
+
+- **`dca_get_order_details` 已废弃**（仅描述层面）：描述前缀 `[DEPRECATED] Use dca_get_positions for position info instead.`。行为、参数及 `okx bot dca details` 均保持不变。
+- 稳定版发布时，将所有 Skill 包的 `metadata.version` 及锁定的 `@okx_ai/okx-trade-cli` 版本同步至 `1.5.0`。
 
 ## [1.4.9] - 2026-10-19
 

@@ -106,7 +106,17 @@ okx bot dca orders --algoOrdType spot_dca
 
 ---
 
-## DCA Bot — Details
+## DCA Bot — Positions
+
+```bash
+okx bot dca positions --algoOrdType <spot_dca|contract_dca> --algoId <id> [--json]
+```
+
+Returns the bot's position info (same fields as the deprecated `details` command). For strategy-level info (`state`, `pnl`, config) use `okx bot dca orders`.
+
+## DCA Bot — Details (deprecated)
+
+> **Deprecated**: use `okx bot dca positions` instead. `details` calls the same endpoint and keeps working.
 
 ```bash
 okx bot dca details --algoOrdType <spot_dca|contract_dca> --algoId <id> [--json]

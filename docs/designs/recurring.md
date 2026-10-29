@@ -4,7 +4,7 @@ Issue #223 · Jira ALGO-47987 · Status: approved (module-registry row `bot.recu
 
 ## Goal
 
-Expose the OKX Recurring Buy lifecycle (create, list, details, sub-orders, pause/restart/stop, four amends, add-investment) as `okx bot recurring <sub>` CLI commands. Per TL decision there are **no MCP tools** for this module, so the MCP tool list, `system_get_capabilities` and `--modules` are unchanged (178 tools, 18 modules).
+Expose the OKX Recurring Buy lifecycle (create, list, details, sub-orders, pause/restart/stop, four amends, add-investment) as `okx bot recurring <sub>` CLI commands. Per TL decision there are **no MCP tools** for this module, so the MCP tool list, `system_get_capabilities` and `--modules` are unchanged (179 tools, 18 modules).
 
 ## Design
 

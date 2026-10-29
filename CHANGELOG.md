@@ -13,10 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Recurring Buy (定投) CLI commands** (`okx bot recurring <sub>`, CLI-only — **no MCP tools**): `create`, `orders [--history]`, `details`, `sub-orders`, `pause`, `restart`, `stop`, `amend-name`, `amend-price-range`, `amend-amount`, `amend-time`, `add-investment`, backed by 12 core `recurring_*` tool specs in the new CLI-only module `bot.recurring`. The module is deliberately not part of `MODULES`, so the MCP tool list (178 tools) and `--modules` are unchanged. `--tdMode` is required (no default and no per-account check in code; the skill guides the choice by `acctLv`: 1 → `cash`, 2 → ask the user to choose `cash` (spot) or `cross` (real leverage), 3 → `cross`, 4 → `cross` by default); `--aiBuilderCode` is accepted on `create`.
+- **Recurring Buy (定投) CLI commands** (`okx bot recurring <sub>`, CLI-only — **no MCP tools**): `create`, `orders [--history]`, `details`, `sub-orders`, `pause`, `restart`, `stop`, `amend-name`, `amend-price-range`, `amend-amount`, `amend-time`, `add-investment`, backed by 12 core `recurring_*` tool specs in the new CLI-only module `bot.recurring`. The module is deliberately not part of `MODULES`, so the MCP tool list (179 tools) and `--modules` are unchanged. `--tdMode` is required (no default and no per-account check in code; the skill guides the choice by `acctLv`: 1 → `cash`, 2 → ask the user to choose `cash` (spot) or `cross` (real leverage), 3 → `cross`, 4 → `cross` by default); `--aiBuilderCode` is accepted on `create`.
 - `CLI_ONLY_MODULE_IDS` / `CliOnlyModuleId` exports in `@agent-tradekit/core`; `ToolSpec.module` may now be a CLI-only module.
 - CLI: a negative `--timeZone` (e.g. `--timeZone -5`) is now parsed correctly.
 - `okx-cex-bot` skill: Recurring Buy command index, write-confirmation checklist and `references/recurring-commands.md`.
+
+## [1.5.0] - 2026-10-28
+
+### Added
+
+- **`dca_get_positions` MCP tool and `okx bot dca positions` CLI command**: dedicated entry point for DCA bot position info (avgPx, upl, liqPx, sz, tpPx, slPx, fee). OKX has no separate DCA positions endpoint, so it calls the same `/api/v5/tradingBot/dca/position-details` as `dca_get_order_details` and returns the response as-is; use `dca_get_orders` for strategy-level info (state, pnl, config).
+
+### Changed
+
+- **`dca_get_order_details` is deprecated** (description-only): prefixed with `[DEPRECATED] Use dca_get_positions for position info instead.`. Behavior, parameters and `okx bot dca details` are unchanged.
+- Synced all skill-pack `metadata.version` fields and pinned `@okx_ai/okx-trade-cli` versions to `1.5.0` for the stable release.
 
 ## [1.4.9] - 2026-10-19
 
