@@ -35,7 +35,10 @@ const DEFAULT_DATA = Symbol("default-data");
 /** Marks a response whose `data` field is absent (a plain `undefined` would select the default). */
 const ABSENT = Symbol("absent-data");
 
-function makeClient(data: unknown = DEFAULT_DATA) {
+/** Top-level envelope the REST client attaches as `raw` (it lets code "1" through). */
+type Envelope = { code?: unknown; msg?: unknown };
+
+function makeClient(data: unknown = DEFAULT_DATA, raw?: Envelope) {
   let responseData = data;
   if (data === DEFAULT_DATA) responseData = [{ algoId: "1", sCode: "0", sMsg: "" }];
   if (data === ABSENT) responseData = undefined;
@@ -43,7 +46,7 @@ function makeClient(data: unknown = DEFAULT_DATA) {
   const respond = (method: "GET" | "POST") =>
     async (endpoint: string, payload: unknown, rateLimit?: Captured["rateLimit"]) => {
       calls.push({ method, endpoint, payload, rateLimit });
-      return { endpoint, requestTime: "2026-10-22T00:00:00.000Z", data: responseData };
+      return { endpoint, requestTime: "2026-10-22T00:00:00.000Z", data: responseData, ...(raw ? { raw } : {}) };
     };
   const client = { privateGet: respond("GET"), privatePost: respond("POST") };
   return { client, calls };
@@ -61,8 +64,8 @@ function tool(name: string): ToolSpec {
   return spec;
 }
 
-async function run(name: string, args: Record<string, unknown>, data: unknown = DEFAULT_DATA, sourceTag?: string) {
-  const { client, calls } = makeClient(data);
+async function run(name: string, args: Record<string, unknown>, data: unknown = DEFAULT_DATA, sourceTag?: string, raw?: Envelope) {
+  const { client, calls } = makeClient(data, raw);
   const result = await tool(name).handler(args, makeContext(client, sourceTag));
   return { result: result as { endpoint: string; requestTime: string; data: unknown }, calls };
 }
@@ -438,6 +441,57 @@ describe("recurring write results", () => {
         assert.equal((err as OkxApiError).code, "1");
         return true;
       },
+    );
+  });
+
+  it("rejects a top-level failure code even when data is empty (the REST client lets code \"1\" through)", async () => {
+    const writes: Array<[string, Record<string, unknown>]> = [
+      ["recurring_amend_amount", { algoId: "1", amount: "20" }],
+      ["recurring_add_investment", { algoId: "1", amount: "20" }],
+      ["recurring_amend_price_range", { algoId: "1", recurringList: '[{"ccy":"BTC","minPx":"1","maxPx":"2"}]' }],
+      ["recurring_amend_time", { algoId: "1", recurringTimeType: "1", period: "daily", timeZone: "8", recurringTime: "1" }],
+      ["recurring_pause", { algoId: "1" }],
+    ];
+    for (const [name, args] of writes) {
+      for (const data of [[], ABSENT]) {
+        await assert.rejects(
+          () => run(name, args, data, undefined, { code: "1", msg: "Operation failed upstream" }),
+          (err: unknown) => {
+            assert.ok(err instanceof OkxApiError, `${name}: expected OkxApiError`);
+            assert.match((err as Error).message, /\[1\] Operation failed upstream/, name);
+            assert.equal((err as OkxApiError).code, "1", name);
+            return true;
+          },
+          name,
+        );
+      }
+    }
+  });
+
+  it("create also rejects a top-level failure code, ahead of the missing-algoId check", async () => {
+    await assert.rejects(
+      () => run("recurring_place_order", VALID_CREATE, [], undefined, { code: "1", msg: "" }),
+      (err: unknown) => {
+        assert.ok(err instanceof OkxApiError);
+        assert.match((err as Error).message, /\[1\] Operation failed/);
+        assert.doesNotMatch((err as Error).message, /no algoId/);
+        return true;
+      },
+    );
+  });
+
+  it("keeps empty data a success when the top-level code is \"0\", empty or absent", async () => {
+    const args = { algoId: "1", amount: "20" };
+    for (const raw of [{ code: "0", msg: "" }, { code: "", msg: "" }, {}, undefined]) {
+      const { result } = await run("recurring_amend_amount", args, [], undefined, raw);
+      assert.deepEqual(result.data, []);
+    }
+  });
+
+  it("an item-level failure wins over the top-level code in the message", async () => {
+    await assert.rejects(
+      () => run("recurring_pause", { algoId: "1" }, [{ sCode: "51000", sMsg: "Parameter error" }], undefined, { code: "1", msg: "all operations failed" }),
+      (err: unknown) => err instanceof OkxApiError && (err as Error).message === "[51000] Parameter error",
     );
   });
 

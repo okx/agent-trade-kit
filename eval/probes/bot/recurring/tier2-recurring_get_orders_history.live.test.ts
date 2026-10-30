@@ -8,7 +8,7 @@ import {
 const PROBE_ID = 'tier2.recurring-get-orders-history';
 const USER_PROMPT = "Show my stopped Recurring Buy (定投) strategies (history). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.";
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "recurring", "orders"]];
-const EXPECTATION = 'okx bot recurring orders';
+const EXPECTATION = 'okx bot recurring orders --history';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -33,7 +33,13 @@ describe(PROBE_ID, () => {
             failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
             evidence.matched_call = { name: call.name, command: call.input.command };
-            status = 'pass';
+            // Without --history the CLI lists active strategies, not stopped ones.
+            if (/(^|\s)--history(\s|$)/.test(String(call.input.command))) {
+              status = 'pass';
+            } else {
+              status = 'fail';
+              failure_reason = 'expected --history to list stopped strategies';
+            }
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);

@@ -4,7 +4,8 @@ import { outputLine, printJson, printKv, printTable } from "../formatter.js";
 // ---------------------------------------------------------------------------
 // Recurring Buy (定投) commands
 //
-// Write tools throw OkxApiError when the server reports sCode != 0, and four
+// Write tools throw OkxApiError when an item reports sCode != 0 or the response
+// envelope reports a top-level code other than "0", and four
 // endpoints (amend-time, amend-amount, amend-price-range, add-investment)
 // return no data on success. So a returned write is a success (create is the one
 // exception: the tool rejects a response without an algoId) and the strategy id
