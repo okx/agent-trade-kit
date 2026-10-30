@@ -116,7 +116,7 @@ okx account balance
 | [`okx-cex-market`](skills/okx-cex-market/SKILL.md) | 行情数据：价格、K线、盘口、资金费率、技术指标 | 否 |
 | [`okx-cex-trade`](skills/okx-cex-trade/SKILL.md) | 订单管理：现货、永续合约、交割合约、期权、算法单 | 是 |
 | [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | 账户：余额、持仓、盈亏、资金划转 | 是 |
-| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | 交易机器人：网格、DCA（现货 & 合约） | 是 |
+| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | 交易机器人：网格、DCA（现货 & 合约）、智能组合、定投 | 是 |
 | [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | 赚币：简单赚币、链上质押、双币赢、自动赚币 | 是 |
 | [`okx-cex-smartmoney`](skills/okx-cex-smartmoney/SKILL.md) | 聪明钱：交易员排行榜、共识信号、持仓分析 | 是 |
 

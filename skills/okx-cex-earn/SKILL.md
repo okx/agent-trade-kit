@@ -71,7 +71,7 @@ OKX Earn does not support demo mode. Always use live mode silently — don't men
 | Market prices, tickers, candles | `okx-cex-market` |
 | Spot / swap / futures / options orders | `okx-cex-trade` |
 | Account balance, positions, transfers | `okx-cex-portfolio` |
-| Grid / DCA trading bots | `okx-cex-bot` |
+| Grid / DCA / Smart Portfolio / Recurring Buy trading bots | `okx-cex-bot` |
 | Simple Earn, Flash Earn, On-chain Earn, Dual Investment (双币赢), or AutoEarn (自动赚币) | **This skill** |
 
 ---

@@ -11,7 +11,7 @@ Pre-built skills for AI agents to operate OKX via the `okx` CLI. Each skill is a
 | [`okx-cex-market`](okx-cex-market/SKILL.md) | Public market data: prices, order books, candles, funding rates, open interest, instruments, technical indicators | No |
 | [`okx-cex-trade`](okx-cex-trade/SKILL.md) | Order management: spot, perpetual swap, delivery futures, options, TP/SL and trailing stop algo orders | Yes |
 | [`okx-cex-portfolio`](okx-cex-portfolio/SKILL.md) | Account operations: balances, positions, P&L, fees, fund transfers | Yes |
-| [`okx-cex-bot`](okx-cex-bot/SKILL.md) | Automated strategies: spot/contract grid bots and DCA (Spot & Contract) bots | Yes |
+| [`okx-cex-bot`](okx-cex-bot/SKILL.md) | Automated strategies: spot/contract grid bots, DCA (Spot & Contract) bots, Smart Portfolio bots and Recurring Buy | Yes |
 | [`okx-cex-earn`](okx-cex-earn/SKILL.md) | Earn products: Simple Earn, On-chain staking, Dual Investment (双币赢), AutoEarn | Yes |
 
 ## Requirements
