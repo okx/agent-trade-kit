@@ -35,7 +35,7 @@ As of the latest registry scan, the server exposes **179 MCP tools** organized i
 - **bot.grid** — grid trading bot (create, monitor, stop)
 - **bot.dca** — DCA (Martingale) bot with safety orders (spot or contract); not a periodic fixed-amount buy — that is Recurring Buy (`bot.recurring`)
 - **bot.smartportfolio** — Smart Portfolio bot (auto-rebalancing multi-asset portfolio strategy)
-- **bot.recurring** _(CLI-only, not an MCP module — outside `MODULES`, the 179 MCP tools / 18 modules above exclude it)_ — Recurring Buy (定投): periodic fixed-amount multi-coin buys via `okx bot recurring <sub>`; see `business/recurring-api.md`
+- **bot.recurring** _(CLI-only, not an MCP module — outside `MODULES`, the 179 MCP tools / 18 modules above exclude it)_ — Recurring Buy: periodic fixed-amount multi-coin buys via `okx bot recurring <sub>`; see `business/recurring-api.md`
 - **smartmoney** — smart-money signals, trader leaderboard, consensus/position analysis
 - **skills** — skills marketplace (search, install, manage skill packs)
 

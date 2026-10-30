@@ -244,7 +244,7 @@ The following OKX REST API modules are **not yet supported**:
 | **Earn / Savings / Staking** | Financial products, outside core trading |
 | **Copy Trading** | Newer API endpoints, under evaluation |
 | **Spread Trading** | Professional strategy, limited audience |
-| **Recurring Buy** | Simple operation, lower priority |
+| **Recurring Buy** | Not available as MCP tools; provided as CLI-only `okx bot recurring` commands |
 | **Block Trading / RFQ** | Institutional OTC trading |
 | **Broker / Affiliate** | Platform-level APIs, not end-user features |
 
@@ -498,7 +498,7 @@ MCP Server 和 CLI 当前覆盖 **7 个模块 / 77 个工具**，聚焦核心交
 | **Earn / Savings / Staking** | 金融产品类，非交易核心链路 |
 | **Copy Trading**（跟单） | API 较新，评估中 |
 | **Spread Trading**（价差交易） | 专业策略工具，覆盖面较窄 |
-| **Recurring Buy**（定投） | 操作简单，优先级较低 |
+| **Recurring Buy**（定投） | 暂无 MCP 工具；以仅 CLI 的 `okx bot recurring` 命令提供 |
 | **Block Trading / RFQ**（大宗交易） | 面向机构 OTC |
 | **Broker / Affiliate** | 平台级接口，非终端用户功能 |
 

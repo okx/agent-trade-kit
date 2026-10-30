@@ -162,15 +162,17 @@ Resolution:
 Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurring Buy) and action (create / stop / list / details).
 
 **DCA and Recurring Buy are different products — route by the user's wording:**
-- "DCA" / 马丁 / Martingale → `okx bot dca` (the Martingale bot with safety orders).
+- "DCA" / 马丁 / Martingale, or safety-order / buy-the-dip wording → `okx bot dca` (the Martingale bot with safety orders), except in the "DCA" case below.
 - "recurring" / "Recurring Buy" / 定投 → `okx bot recurring` (periodic fixed-amount buys of a coin basket).
-- Never treat one as the other. If the wording matches neither (for example just "buy BTC every week"), or uses both words, ask which one the user means.
+- A clear periodic fixed-amount request with no safety-order or buy-the-dip wording (for example "每周买 100 USDT 的 BTC", "buy 50 USDT of ETH every month") → `okx bot recurring`; name the product ("Recurring Buy / 定投") in the confirmation summary.
+- Exception: the user says "DCA" but describes periodic fixed-amount buying (no safety orders, no averaging down) → ask which product they mean, once.
+- Never treat one as the other. If the wording matches neither and is not a clear periodic fixed-amount request, or uses both words, or mixes recurring wording with safety-order wording, ask which one the user means.
 
 ### Step 2 — Execute
 
 **READ commands** (orders, details, sub-orders): run immediately after profile confirmation.
 
-**WRITE commands** (create, amend, stop): confirm key parameters with user once before executing.
+**WRITE commands** (create, amend, stop; for Recurring Buy also pause, restart, add-investment): confirm key parameters with user once before executing.
 
 **Write-operation confirmation checklist — Recurring Buy**:
 - `recurring create`: confirm coins and ratios, period + day/hour + time + `--timeZone`, `--amt` and `--investmentCcy`, plus `--tdMode`. Run `okx account config` first and read `acctLv`, then read `{baseDir}/references/recurring-commands.md` and follow its rule before running `create`:
@@ -178,8 +180,9 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
   - `2` (single-currency margin) → **ask the user** in this same confirmation round: `cash` (spot) or `cross` (opens a real **leveraged** position, with leverage risk); `cash` if no preference.
   - `3` (multi-currency margin) → `cross` only (executed as spot); state it in the summary.
   - `4` (portfolio margin) → `cross` only (executed as spot); state it in the summary. Never use `cash` here: the server answers success but does not execute the trade.
-  - Hard constraints: never guess `acctLv` (if it cannot be read or is not `1`–`4`, tell the user and ask them to confirm their account mode); never pass `cross` on `1`, never pass `cash` on `3` or `4` — if the user asks for that, explain it is not supported (on `3` the server rejects it; on `4` it would report success but not trade) and offer the supported option; on `3`/`4` explain that `cross` is executed as spot (no leverage); on `2` always state the leverage risk of `cross` in the summary, even if the user already chose it; always pass `--tdMode` explicitly (no CLI default).
-- `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount.
+  - Hard constraints (full rules in the reference): never guess `acctLv` (ask the user to confirm their account mode if it cannot be read or is not `1`–`4`); never `cross` on `1`, never `cash` on `3` or `4`; on `2` always state the leverage risk of `cross`, even if the user already chose it; always pass `--tdMode` explicitly (no CLI default).
+- `recurring pause` / `restart`: confirm `algoId` (from `recurring orders`) and the strategy name, and read `recurring details` first: `pause` needs `state` `running`, `restart` needs `state` `pause`; otherwise tell the user instead of running it. `pause`: say that scheduled automatic purchases stop until it is restarted. `restart`: say that scheduled automatic purchases resume (do not say whether cycles missed while paused are bought later) and check `nextInvestTime` in `details` afterwards. Wait for an explicit yes before running either, and treat the `(OK)` message as not proof: read `details` to confirm.
+- `recurring stop` / `add-investment`: real money and irreversible — confirm `algoId` (from `recurring orders`) and, for add-investment, the amount. Before `add-investment`, note `investmentAmt` from `details` and the newest `sub-orders` entry so the result can be compared.
 - `recurring amend-*`: confirm `algoId` and the new values; negative time zones use `--timeZone=-5`. **`amend-time --recurringTimeType 2` (and `create --recurringTimeType 2`) buys immediately** — say so, get an explicit yes, never retry it blindly, and check `recurring sub-orders` afterwards.
 
 ### Step 3 — Verify after writes
@@ -189,10 +192,12 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
 - After Grid/DCA stop → run `orders --history` to confirm stopped
 - After Smart Portfolio stop → run `smart-portfolio orders --history` to confirm stopped
 - After Recurring Buy stop → run `recurring orders --history` to confirm stopped; after pause/restart/amend → run `recurring details --algoId <id>`
+- After Recurring Buy add-investment → run `recurring sub-orders --algoId <id>` and look for a new buy order (normally `ordType` `manual_add_order`) created just after the write, and compare `investmentAmt` in `details` with the value read before (it should rise by the amount; if it does not, rely on the `sub-orders` entry)
 
 ## Key Rules
 
 - **Never auto-transfer funds.** If balance is insufficient for bot creation, report the shortfall (current available vs required) and ask the user how to proceed: (1) transfer funds manually, (2) reduce size, or (3) cancel.
+- **An uncertain outcome is not "not executed" (Recurring Buy real-money writes).** After a timeout, a dropped connection, or a `create` that fails with "returned no algoId", the operation may still have happened. Do not retry yet: for `create`, list `recurring orders` (and `--history`) and look for the strategy by name and creation time; for `add-investment` and `amend-time --recurringTimeType 2`, check `details` and `sub-orders`. Tell the user what you found, and retry only if nothing was executed; retrying any of them blindly can create a duplicate strategy or buy again.
 - **`algoId`** is the bot's algo order ID (from create or list output). It is NOT a normal `ordId`. Never fabricate — always obtain from a prior command.
 - **`algoOrdType`** for grid must match the bot's actual type. Always use the value from `bot grid orders` — do not infer from user description alone. Mismatch causes error `50016`.
 - When operating on existing bots, **always list first** to get correct IDs, unless the user provides them explicitly.
@@ -219,7 +224,7 @@ creation), read `{baseDir}/references/workflows.md`.
 
 - **Grid/DCA**: use "bot" not "strategy" (e.g., "grid bot", "DCA bot")
 - **DCA**: always say "DCA" or "Martingale" — DCA supports both Spot DCA and Contract DCA
-- **Recurring Buy**: say "Recurring Buy" / 定投 — never call it DCA
+- **Recurring Buy**: say "Recurring Buy" / 定投 — never call it DCA (except when asking the user to choose between the two products)
 - **Chinese**: Grid = "网格", Spot DCA = "现货马丁", Contract DCA = "合约马丁", Smart Portfolio = "智能组合", Recurring Buy = "定投"
 - Use natural language for parameters — "What price range?" not "Enter minPx and maxPx"
 - If the user already provides values, map directly — don't re-ask

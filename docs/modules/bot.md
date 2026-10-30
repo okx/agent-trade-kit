@@ -65,7 +65,7 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 
 ## Recurring Buy (CLI only)
 
-`bot.recurring` (Recurring Buy / 定投) is a **CLI-only** module: it exposes 12 `okx bot recurring <sub>` commands and **no MCP tools** (it is not an MCP module, so `--modules` does not apply and the MCP tool list is unchanged). See [designs/recurring.md](../designs/recurring.md) and [cli-reference](../cli-reference.md).
+`bot.recurring` (Recurring Buy) is a **CLI-only** module: it exposes 12 `okx bot recurring <sub>` commands and **no MCP tools** (it is not an MCP module, so `--modules` does not apply and the MCP tool list is unchanged). See [designs/recurring.md](../designs/recurring.md) and [cli-reference](../cli-reference.md).
 
 ## Example prompts
 

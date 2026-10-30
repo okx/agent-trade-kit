@@ -1,4 +1,4 @@
-# Design: Recurring Buy (定投) — CLI-only module `bot.recurring`
+# Design: Recurring Buy — CLI-only module `bot.recurring`
 
 Issue #223 · Jira ALGO-47987 · Status: approved (module-registry row `bot.recurring`).
 

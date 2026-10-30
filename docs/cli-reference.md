@@ -246,7 +246,7 @@ okx bot dca create \
 okx bot dca stop --algoId <algoId>
 ```
 
-### Recurring Buy (定投) — CLI only, no MCP tools
+### Recurring Buy — CLI only, no MCP tools
 
 ```bash
 # tdMode is required (no default, always pass it). Accepted values depend on acctLv (see `okx account config`): 1 → cash; 2 → cash or cross (cross opens a real leveraged position); 3 and 4 → cross only

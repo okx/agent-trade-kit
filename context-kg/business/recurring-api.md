@@ -1,4 +1,4 @@
-# Recurring Buy (定投) — API & Tool Notes
+# Recurring Buy — API & Tool Notes
 
 Recurring Buy invests a fixed amount in a basket of coins at fixed intervals. CLI-only module `bot.recurring` (see `technical/02-configuration.md`): 12 `recurring_*` core tool specs, surfaced as `okx bot recurring <sub>`, never as MCP tools.
 
@@ -8,9 +8,9 @@ Contract source of truth: the OKX V5 Recurring Buy OpenAPI document (13 endpoint
 
 | Tool | Endpoint | CLI |
 |---|---|---|
-| `recurring_place_order` | POST `/order-algo` | `create` |
+| `recurring_create_order` | POST `/order-algo` | `create` |
 | `recurring_pause` / `recurring_restart` | POST `/pause` / `/restart` | `pause` / `restart` |
-| `recurring_stop` | POST `/stop-order-algo` — **body is a JSON array** `[{algoId}]` (API allows ≤10; tool sends one, no `tag`) | `stop` |
+| `recurring_stop_order` | POST `/stop-order-algo` — **body is a JSON array** `[{algoId}]` (API allows ≤10; tool sends one, no `tag`) | `stop` |
 | `recurring_amend_name` | POST `/amend-order-algo` | `amend-name` |
 | `recurring_amend_price_range` | POST `/amend-price-range` | `amend-price-range` |
 | `recurring_amend_amount` | POST `/amend-recurring-amount` | `amend-amount` (`--amount`, `--amt` alias) |
@@ -18,7 +18,7 @@ Contract source of truth: the OKX V5 Recurring Buy OpenAPI document (13 endpoint
 | `recurring_add_investment` | POST `/add-investment` | `add-investment` |
 | `recurring_get_order_details` | GET `/orders-algo-details` | `details` |
 | `recurring_get_orders` | GET `/orders-algo-pending` (`status=active`, default) or `/orders-algo-history` (`status=history`) | `orders [--history]` |
-| `recurring_get_sub_orders` | GET `/sub-orders` | `sub-orders` |
+| `recurring_get_sub_orders` | GET `/sub-orders` (`ordType`: `market`, or `manual_add_order` for `add-investment` orders) | `sub-orders` |
 
 ## Parameter rules enforced client-side (only those written in the contract)
 
