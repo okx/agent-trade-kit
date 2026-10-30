@@ -26,7 +26,8 @@ eval/probes/
 ├── bot/
 │   ├── grid/          # grid_create_order, grid_stop_order, ...
 │   ├── dca/           # dca_create_order, dca_stop_order, ...
-│   └── recurring/     # recurring_place_order, recurring_stop, ... (CLI-only; probes assert `okx bot recurring <sub>`)
+│   └── recurring/     # recurring_create_order, recurring_stop_order, ... (CLI-only; probes assert `okx bot recurring <sub>`)
+│                      # plus tier2-bot-route-*: DCA vs Recurring Buy routing probes (not tied to one tool; also tier2-bot-route-dca-martingale under dca/)
 └── skills/            # skills_search, skills_download, ...
 ```
 
@@ -39,7 +40,7 @@ not all probed yet. Current state on `feat/eval-probes-comprehensive`:
 
 | Status | Modules |
 |--------|---------|
-| ✅ Probed | market, spot, swap, futures, option, account, event, news, smartmoney, skills, bot.grid, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.flash |
+| ✅ Probed | market, spot, swap, futures, option, account, event, news, smartmoney, skills, bot.grid, bot.dca, bot.recurring (CLI-only), earn.savings, earn.onchain, earn.dcd, earn.flash |
 | ⏳ Deferred | `earn.autoearn` (placeholder dir only — no probes yet), `earn.fixed` (no dir yet) |
 
 When adding a probe for a deferred module, drop the `.gitkeep` placeholder
