@@ -143,9 +143,9 @@ describe("CLI-only modules are not exposed over MCP", () => {
     assert.deepEqual(names.filter((n) => n.startsWith("recurring_")), []);
   });
 
-  it("tools/call recurring_place_order is rejected as not available", async () => {
+  it("tools/call recurring_create_order is rejected as not available", async () => {
     const { client } = await createTestPair(makeConfig({ modules: allModules }));
-    const result = await client.callTool({ name: "recurring_place_order", arguments: {} });
+    const result = await client.callTool({ name: "recurring_create_order", arguments: {} });
     assert.equal(result.isError, true);
     const content = result.content as Array<{ type: string; text: string }>;
     const payload = JSON.parse(content[0].text);

@@ -1,5 +1,5 @@
 /**
- * CLI tests for `okx bot recurring <sub>` (Recurring Buy / 定投, CLI-only module).
+ * CLI tests for `okx bot recurring <sub>` (Recurring Buy, CLI-only module).
  *
  * Routing tests use a spy ToolRunner and assert that every argument comes from its
  * named --flag (issue #78: never from positional `rest[N]`).
@@ -69,14 +69,14 @@ const output = () => out.join("");
 // ---------------------------------------------------------------------------
 
 describe("handleBotRecurringCommand routing (named flags only)", () => {
-  it("create forwards every flag to recurring_place_order", async () => {
+  it("create forwards every flag to recurring_create_order", async () => {
     const { run, captured } = spyRunner();
     await handleBotRecurringCommand(run, "create", vals({
       stgyName: "n", recurringList: '[{"ccy":"BTC","ratio":"1"}]', period: "weekly", recurringDay: "3",
       recurringHour: "4", recurringTime: "9", timeZone: "-5", amt: "100", investmentCcy: "USDC", tdMode: "cash",
       algoClOrdId: "cl1", tradeQuoteCcy: "USDT", source: "1,2", recurringTimeType: "2", aiBuilderCode: "MYBOT",
     }), false);
-    assert.equal(captured.tool, "recurring_place_order");
+    assert.equal(captured.tool, "recurring_create_order");
     assert.deepEqual(captured.args, {
       stgyName: "n", recurringList: '[{"ccy":"BTC","ratio":"1"}]', period: "weekly", recurringDay: "3",
       recurringHour: "4", recurringTime: "9", timeZone: "-5", amt: "100", investmentCcy: "USDC", tdMode: "cash",
@@ -95,7 +95,7 @@ describe("handleBotRecurringCommand routing (named flags only)", () => {
   const SIMPLE: Array<[string, string, Partial<CliValues>, Record<string, unknown>]> = [
     ["pause", "recurring_pause", { algoId: "9" }, { algoId: "9" }],
     ["restart", "recurring_restart", { algoId: "9" }, { algoId: "9" }],
-    ["stop", "recurring_stop", { algoId: "9" }, { algoId: "9" }],
+    ["stop", "recurring_stop_order", { algoId: "9" }, { algoId: "9" }],
     ["details", "recurring_get_order_details", { algoId: "9" }, { algoId: "9" }],
     ["amend-name", "recurring_amend_name", { algoId: "9", stgyName: "new" }, { algoId: "9", stgyName: "new" }],
     ["amend-price-range", "recurring_amend_price_range", { algoId: "9", recurringList: "[]" }, { algoId: "9", recurringList: "[]" }],
@@ -270,9 +270,9 @@ describe("recurring registry", () => {
 
   it("maps the 12 subcommands to their recurring_* tools", () => {
     const expected: Record<string, string> = {
-      create: "recurring_place_order", orders: "recurring_get_orders", details: "recurring_get_order_details",
+      create: "recurring_create_order", orders: "recurring_get_orders", details: "recurring_get_order_details",
       "sub-orders": "recurring_get_sub_orders", pause: "recurring_pause", restart: "recurring_restart",
-      stop: "recurring_stop", "amend-name": "recurring_amend_name", "amend-price-range": "recurring_amend_price_range",
+      stop: "recurring_stop_order", "amend-name": "recurring_amend_name", "amend-price-range": "recurring_amend_price_range",
       "amend-amount": "recurring_amend_amount", "amend-time": "recurring_amend_time", "add-investment": "recurring_add_investment",
     };
     assert.deepEqual(Object.fromEntries(Object.entries(commands).map(([k, c]) => [k, c.toolName])), expected);

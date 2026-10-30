@@ -2,7 +2,7 @@ import type { ToolRunner } from "@agent-tradekit/core";
 import { outputLine, printJson, printKv, printTable } from "../formatter.js";
 
 // ---------------------------------------------------------------------------
-// Recurring Buy (定投) commands
+// Recurring Buy commands
 //
 // Write tools throw OkxApiError when an item reports sCode != 0 or the response
 // envelope reports a top-level code other than "0", and four
@@ -50,7 +50,7 @@ interface CreateOpts {
 
 export async function cmdRecurringCreate(run: ToolRunner, opts: CreateOpts): Promise<void> {
   const { json, ...args } = opts;
-  const result = await run("recurring_place_order", args);
+  const result = await run("recurring_create_order", args);
   emitOk("Recurring Buy created", getItems(result), undefined, json);
 }
 
@@ -182,7 +182,7 @@ export function cmdRecurringRestart(run: ToolRunner, opts: { algoId: string; jso
 }
 
 export function cmdRecurringStop(run: ToolRunner, opts: { algoId: string; json: boolean }): Promise<void> {
-  return simpleAction(run, "recurring_stop", { algoId: opts.algoId }, "Recurring Buy stopped", opts);
+  return simpleAction(run, "recurring_stop_order", { algoId: opts.algoId }, "Recurring Buy stopped", opts);
 }
 
 export function cmdRecurringAmendName(

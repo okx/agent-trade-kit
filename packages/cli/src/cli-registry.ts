@@ -822,10 +822,10 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       recurring: {
-        description: "Recurring Buy (定投) bot - periodically buy a basket of coins with a fixed amount (CLI only)",
+        description: "Recurring Buy bot - periodically buy a basket of coins with a fixed amount (CLI only)",
         commands: {
           create: {
-            toolName: "recurring_place_order",
+            toolName: "recurring_create_order",
             usage: "okx bot recurring create --stgyName <name> --recurringList '<json>' --period <monthly|weekly|daily|hourly>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] --recurringTime <0-23> --timeZone <-12..14>\n                         --amt <amount> --investmentCcy <USDT|USDC> --tdMode <cash|cross>\n                         [--source <1,2,3>] [--recurringTimeType <1|2>] [--tradeQuoteCcy <ccy>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         recurringList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.2\"},{\"ccy\":\"ETH\",\"ratio\":\"0.8\",\"minPx\":\"1000\",\"maxPx\":\"\"}]\n                         tdMode: required, no default; accepted values depend on acctLv: 1 cash, 2 cash or cross (cross = real leverage), 3 and 4 cross only; see `okx account config`\n                         negative zone: use --timeZone=-5",
             description: "Create a Recurring Buy strategy",
           },
@@ -855,7 +855,7 @@ export const CLI_REGISTRY: CliRegistry = {
             description: "Restart a paused Recurring Buy strategy",
           },
           stop: {
-            toolName: "recurring_stop",
+            toolName: "recurring_stop_order",
             usage: "okx bot recurring stop --algoId <id>",
             description: "Stop a Recurring Buy strategy",
           },

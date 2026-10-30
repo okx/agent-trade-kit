@@ -70,7 +70,7 @@ function pageQuery(args: Record<string, unknown>, extra: Record<string, unknown>
   });
 }
 
-const placeOrderHandler: Handler = async (rawArgs, context) => {
+const createOrderHandler: Handler = async (rawArgs, context) => {
   const args = asRecord(rawArgs);
   const stgyName = requireStrategyName(args);
   const recurringList = parseRecurringList(requireString(args, "recurringList"), "create");
@@ -99,7 +99,7 @@ const placeOrderHandler: Handler = async (rawArgs, context) => {
       recurringTimeType,
       tag: context.config.sourceTag,
     }),
-    privateRateLimit("recurring_place_order", RPS),
+    privateRateLimit("recurring_create_order", RPS),
   );
   // Unlike the amend endpoints, create must hand back the new algoId.
   return normalizeRecurringWrite(response, { requireAlgoId: true });
@@ -111,7 +111,7 @@ const stopHandler: Handler = async (rawArgs, context) => {
   const response = await context.client.privatePost(
     `${BASE}/stop-order-algo`,
     [{ algoId }],
-    privateRateLimit("recurring_stop", RPS),
+    privateRateLimit("recurring_stop_order", RPS),
   );
   return normalizeRecurringWrite(response);
 };
@@ -201,17 +201,17 @@ const ORDERS_MAX_LIMIT = 100;
 const SUB_ORDERS_MAX_LIMIT = 300;
 
 /**
- * Recurring Buy (定投) tools. CLI-only: module `bot.recurring` is not part of
+ * Recurring Buy tools. CLI-only: module `bot.recurring` is not part of
  * MODULES, so these specs are never exposed through the MCP server.
  */
 export function registerRecurringTools(): ToolSpec[] {
   return [
     {
-      name: "recurring_place_order",
+      name: "recurring_create_order",
       title: "Recurring Buy Create",
       module: "bot.recurring",
       description:
-        "Create a Recurring Buy (定投) strategy that buys a basket of coins with a fixed amount each cycle. [CAUTION] Real trades. " +
+        "Create a Recurring Buy strategy that buys a basket of coins with a fixed amount each cycle. [CAUTION] Real trades. " +
         "tdMode is required and has no default, always pass it: 'cash' or 'cross'. Accepted values depend on the account mode (acctLv): 1 accepts cash, 2 accepts both (cross opens a real leveraged position), 3 and 4 use cross only (never cash).",
       isWrite: true,
       destructiveHint: false,
@@ -236,7 +236,7 @@ export function registerRecurringTools(): ToolSpec[] {
         },
         required: ["stgyName", "recurringList", "period", "recurringTime", "timeZone", "amt", "investmentCcy", "tdMode"],
       },
-      handler: placeOrderHandler,
+      handler: createOrderHandler,
     },
     {
       name: "recurring_pause",
@@ -261,7 +261,7 @@ export function registerRecurringTools(): ToolSpec[] {
       handler: algoIdAction("recurring_restart", "restart"),
     },
     {
-      name: "recurring_stop",
+      name: "recurring_stop_order",
       title: "Recurring Buy Stop",
       module: "bot.recurring",
       description: "[CAUTION] Stop a Recurring Buy strategy permanently. Confirm the target with the user first.",

@@ -1,14 +1,14 @@
-// eval/probes/bot/recurring/tier2-recurring_stop.live.test.ts
+// eval/probes/bot/recurring/tier2-recurring_create_order.live.test.ts
 import { describe, it } from 'vitest';
 import {
   runAgent, recordResult, getModels, getRunsPerModel,
   findToolCall, summarizeToolCalls,
 } from '@eval/shared/eval-helpers.js';
 
-const PROBE_ID = 'tier2.recurring-stop';
-const USER_PROMPT = "Stop my Recurring Buy strategy with algoId 560472804207104000 in demo/dry-run mode. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.";
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "recurring", "stop"]];
-const EXPECTATION = 'okx bot recurring stop';
+const PROBE_ID = 'tier2.recurring-create-order';
+const USER_PROMPT = "Create a Recurring Buy strategy named 'BTC-ETH monthly' in demo/dry-run mode: every month on day 1 at 00:00 (UTC+8, time zone 8), invest 100 USDT per cycle split 20% BTC and 80% ETH, funded from the trading account (the account is a portfolio-margin account, acctLv 4; use tdMode cross). Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.";
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "recurring", "create"]];
+const EXPECTATION = 'okx bot recurring create';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -33,7 +33,13 @@ describe(PROBE_ID, () => {
             failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
             evidence.matched_call = { name: call.name, command: call.input.command };
-            status = 'pass';
+            // acctLv 4 (portfolio margin) must use cross; never cash.
+            if (/--tdMode[ =]cross(\s|$)/.test(String(call.input.command))) {
+              status = 'pass';
+            } else {
+              status = 'fail';
+              failure_reason = 'expected --tdMode cross on an acctLv 4 account';
+            }
           }
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e);

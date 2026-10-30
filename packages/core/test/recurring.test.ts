@@ -1,5 +1,5 @@
 /**
- * Unit tests for the Recurring Buy (定投) tools (CLI-only module `bot.recurring`).
+ * Unit tests for the Recurring Buy tools (CLI-only module `bot.recurring`).
  *
  * Fixtures copy the real response shapes of the OpenAPI contract
  * (OKX_Recurring_Buy_API_openapi). The module is deliberately outside MODULES, so
@@ -103,10 +103,10 @@ const MCP_TOOL_COUNT = 179;
 
 describe("recurring tools — registration", () => {
   const WRITES = [
-    "recurring_place_order",
+    "recurring_create_order",
     "recurring_pause",
     "recurring_restart",
-    "recurring_stop",
+    "recurring_stop_order",
     "recurring_amend_name",
     "recurring_amend_price_range",
     "recurring_amend_amount",
@@ -195,13 +195,13 @@ describe("recurring tools — never exposed through MCP", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 4–6. recurring_place_order
+// 4–6. recurring_create_order
 // ---------------------------------------------------------------------------
 
-describe("recurring_place_order — request", () => {
+describe("recurring_create_order — request", () => {
   it("POSTs order-algo with recurringList as an array of objects and tag from sourceTag", async () => {
     const { result, calls } = await run(
-      "recurring_place_order",
+      "recurring_create_order",
       { ...VALID_CREATE, source: "1,2", algoClOrdId: "abc123", tradeQuoteCcy: "USDT", recurringTimeType: "1" },
       [{ algoId: "560472804207104000", algoClOrdId: "", sCode: "0", sMsg: "", tag: "" }],
       "MYTAG",
@@ -230,7 +230,7 @@ describe("recurring_place_order — request", () => {
 
   it("drops unset optionals and keeps per-coin price limits (including empty = no limit)", async () => {
     const list = '[{"ccy":"BTC","ratio":0.5,"minPx":"50000","maxPx":""},{"ccy":"ETH","ratio":0.5}]';
-    const { calls } = await run("recurring_place_order", { ...VALID_CREATE, recurringList: list });
+    const { calls } = await run("recurring_create_order", { ...VALID_CREATE, recurringList: list });
     const body = calls[0]!.payload as Record<string, unknown>;
     assert.deepEqual(body["recurringList"], [
       { ccy: "BTC", ratio: "0.5", minPx: "50000", maxPx: "" },
@@ -242,7 +242,7 @@ describe("recurring_place_order — request", () => {
   });
 
   it("trims and upper-cases coin symbols, and parses the comma-separated source list", async () => {
-    const { calls } = await run("recurring_place_order", {
+    const { calls } = await run("recurring_create_order", {
       ...VALID_CREATE,
       recurringList: '[{"ccy":" btc ","ratio":"0.5"},{"ccy":"eth","ratio":"0.5"}]',
       source: " 1 , 2 ,3",
@@ -253,20 +253,20 @@ describe("recurring_place_order — request", () => {
   });
 
   it("rejects a source list with no usable entry", async () => {
-    await assertRejects("recurring_place_order", { ...VALID_CREATE, source: "," }, /source/);
+    await assertRejects("recurring_create_order", { ...VALID_CREATE, source: "," }, /source/);
   });
 
   it("uses a 10 rps private rate limit keyed by the tool name", async () => {
-    const { calls } = await run("recurring_place_order", VALID_CREATE);
+    const { calls } = await run("recurring_create_order", VALID_CREATE);
     assert.deepEqual(calls[0]!.rateLimit, {
-      key: "private:recurring_place_order",
+      key: "private:recurring_create_order",
       capacity: 10,
       refillPerSecond: 10,
     });
   });
 });
 
-describe("recurring_place_order — validation (no HTTP call)", () => {
+describe("recurring_create_order — validation (no HTTP call)", () => {
   const cases: Array<[string, Record<string, unknown>, RegExp?]> = [
     ["missing tdMode (no default is applied)", { tdMode: undefined }, /tdMode/],
     ["tdMode isolated", { tdMode: "isolated" }, /tdMode/],
@@ -296,18 +296,18 @@ describe("recurring_place_order — validation (no HTTP call)", () => {
   ];
   for (const [title, override, pattern] of cases) {
     it(`rejects ${title}`, async () => {
-      await assertRejects("recurring_place_order", { ...VALID_CREATE, ...override }, pattern);
+      await assertRejects("recurring_create_order", { ...VALID_CREATE, ...override }, pattern);
     });
   }
 
   it("rejects when a required argument is missing entirely", async () => {
     for (const key of ["stgyName", "recurringList", "period", "timeZone", "amt", "investmentCcy"]) {
-      await assertRejects("recurring_place_order", { ...VALID_CREATE, [key]: undefined }, new RegExp(key));
+      await assertRejects("recurring_create_order", { ...VALID_CREATE, [key]: undefined }, new RegExp(key));
     }
   });
 });
 
-describe("recurring_place_order — accepted boundaries", () => {
+describe("recurring_create_order — accepted boundaries", () => {
   const ok: Array<[string, Record<string, unknown>]> = [
     ["monthly day 1", { recurringDay: "1" }],
     ["monthly day 28", { recurringDay: "28" }],
@@ -333,7 +333,7 @@ describe("recurring_place_order — accepted boundaries", () => {
   ];
   for (const [title, override] of ok) {
     it(`accepts ${title}`, async () => {
-      const { calls } = await run("recurring_place_order", { ...VALID_CREATE, ...override });
+      const { calls } = await run("recurring_create_order", { ...VALID_CREATE, ...override });
       assert.equal(calls.length, 1);
     });
   }
@@ -394,7 +394,7 @@ describe("recurring write results", () => {
     ];
     for (const [title, data] of cases) {
       await assert.rejects(
-        () => run("recurring_place_order", VALID_CREATE, data),
+        () => run("recurring_create_order", VALID_CREATE, data),
         (err: unknown) => {
           assert.ok(err instanceof OkxApiError, `${title}: expected OkxApiError`);
           assert.match((err as Error).message, /no algoId/, title);
@@ -408,7 +408,7 @@ describe("recurring write results", () => {
 
   it("create still surfaces the server's own failure ahead of the missing-algoId check", async () => {
     await assert.rejects(
-      () => run("recurring_place_order", VALID_CREATE, [{ algoId: "", sCode: "51000", sMsg: "Parameter error" }]),
+      () => run("recurring_create_order", VALID_CREATE, [{ algoId: "", sCode: "51000", sMsg: "Parameter error" }]),
       (err: unknown) => {
         assert.ok(err instanceof OkxApiError);
         assert.match((err as Error).message, /\[51000\] Parameter error/);
@@ -422,7 +422,7 @@ describe("recurring write results", () => {
     const calls: Array<[string, Record<string, unknown>]> = [
       ["recurring_pause", { algoId: "1" }],
       ["recurring_restart", { algoId: "1" }],
-      ["recurring_stop", { algoId: "1" }],
+      ["recurring_stop_order", { algoId: "1" }],
       ["recurring_amend_name", { algoId: "1", stgyName: "n" }],
     ];
     for (const [name, args] of calls) {
@@ -470,7 +470,7 @@ describe("recurring write results", () => {
 
   it("create also rejects a top-level failure code, ahead of the missing-algoId check", async () => {
     await assert.rejects(
-      () => run("recurring_place_order", VALID_CREATE, [], undefined, { code: "1", msg: "" }),
+      () => run("recurring_create_order", VALID_CREATE, [], undefined, { code: "1", msg: "" }),
       (err: unknown) => {
         assert.ok(err instanceof OkxApiError);
         assert.match((err as Error).message, /\[1\] Operation failed/);
@@ -542,13 +542,13 @@ describe("recurring simple write tools", () => {
   });
 
   it("stop POSTs a JSON array body [{algoId}] and never sends tag", async () => {
-    const { calls } = await run("recurring_stop", { algoId: "560472804207104000" }, [
+    const { calls } = await run("recurring_stop_order", { algoId: "560472804207104000" }, [
       { algoClOrdId: "", algoId: "560472804207104000", sCode: "0", sMsg: "", tag: "" },
     ], "MYTAG");
     assert.equal(calls[0]!.endpoint, "/api/v5/tradingBot/recurring/stop-order-algo");
     assert.ok(Array.isArray(calls[0]!.payload));
     assert.deepEqual(calls[0]!.payload, [{ algoId: "560472804207104000" }]);
-    await assertRejects("recurring_stop", {}, /algoId/);
+    await assertRejects("recurring_stop_order", {}, /algoId/);
   });
 });
 
@@ -701,10 +701,10 @@ describe("recurring read tools", () => {
 
   it("every tool uses a 10 rps private rate limit keyed by its name", async () => {
     const args: Record<string, Record<string, unknown>> = {
-      recurring_place_order: VALID_CREATE,
+      recurring_create_order: VALID_CREATE,
       recurring_pause: { algoId: "1" },
       recurring_restart: { algoId: "1" },
-      recurring_stop: { algoId: "1" },
+      recurring_stop_order: { algoId: "1" },
       recurring_amend_name: { algoId: "1", stgyName: "a" },
       recurring_amend_price_range: { algoId: "1", recurringList: '[{"ccy":"BTC","minPx":"","maxPx":""}]' },
       recurring_amend_amount: { algoId: "1", amount: "1" },
