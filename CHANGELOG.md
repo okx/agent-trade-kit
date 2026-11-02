@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1-beta.1] - 2026-11-02
+
+Beta release: Skill `metadata.version` and pinned CLI install versions remain at `1.5.0` per the stable-release-only policy.
+
 ### Added
 
 - **Recurring Buy CLI commands** (`okx bot recurring <sub>`, CLI-only — **no MCP tools**): `create`, `orders [--history]`, `details`, `sub-orders`, `pause`, `restart`, `stop`, `amend-name`, `amend-price-range`, `amend-amount`, `amend-time`, `add-investment`, backed by 12 core `recurring_*` tool specs in the new CLI-only module `bot.recurring`. The module is deliberately not part of `MODULES`, so the MCP tool list (179 tools) and `--modules` are unchanged. `--tdMode` is required (no default and no per-account check in code; the skill guides the choice by `acctLv`: 1 → `cash`, 2 → ask the user to choose `cash` (spot) or `cross` (real leverage), 3 and 4 → `cross` only); `--aiBuilderCode` is accepted on `create`.

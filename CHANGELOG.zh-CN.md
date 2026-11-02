@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.5.1-beta.1] - 2026-11-02
+
+Beta 版本：按稳定版同步策略，所有 Skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.5.0`。
+
 ### 新增
 
 - **Recurring Buy（定投）CLI 命令**（`okx bot recurring <sub>`，仅 CLI —— **不提供 MCP 工具**）：`create`、`orders [--history]`、`details`、`sub-orders`、`pause`、`restart`、`stop`、`amend-name`、`amend-price-range`、`amend-amount`、`amend-time`、`add-investment`，由新的仅 CLI 模块 `bot.recurring` 下 12 个 core `recurring_*` 工具规格支撑。该模块刻意不属于 `MODULES`，因此 MCP 工具列表（179 个）与 `--modules` 均不变。`--tdMode` 必填（代码中无默认值，也不按账户校验；skill 按 `acctLv` 引导：1 → `cash`；2 → 询问用户选 `cash`（现货）或 `cross`（真实杠杆）；3 和 4 → 仅 `cross`）；`create` 支持 `--aiBuilderCode`。
