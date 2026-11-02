@@ -9,10 +9,16 @@
 // tier2-bot-route-recurring-implicit uses the same schedule, amount, funding source and
 // tdMode), so a missing parameter is never a reason to hold back; the only reason left is
 // the product ambiguity. The prompt omits "run the command once" on purpose: nudging the
-// agent to execute would defeat the probe. Read-only commands are fine.
+// agent to execute would defeat the probe. Read-only commands are fine. It also asks for the
+// question to be written in the reply as plain text: this harness is headless, so an
+// interactive question tool would wait for an answer that never comes.
 //
-// Verdict (three layers):
-//   1. Any `bot dca create` / `bot recurring create` call fails the probe.
+// Verdict:
+//   0. An empty reply (the run produced nothing: aborted, timed out) is an `error`, not a
+//      routing result, so a harness problem is not counted as a skill failure.
+//   1. Any `bot dca create` / `bot recurring create` call fails the probe. A `--help` call on
+//      them is read-only, but the helper returns only the first match so we cannot tell whether a
+//      real create followed; that is reported as an `error` (inconclusive), never as a pass.
 //   2. With no create, the reply must name BOTH alternatives. The prompt contains neither
 //      "定投"/"Recurring" nor "马丁"/"Martingale" (it only says "DCA"), so naming both is the
 //      agent's own doing.
@@ -32,7 +38,8 @@ import {
 } from '@eval/shared/eval-helpers.js';
 
 const PROBE_ID = 'tier2.bot-route-ambiguous-dca';
-const USER_PROMPT = "我想在模拟盘/dry-run 模式下做 DCA：每周一 09:00（UTC+8，时区 8）每次投入 100 USDT 买 BTC，资金来自交易账户（账户是 acctLv 1 的简单模式，tdMode 用 cash）；如果价格跌了，可以多买一点。Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init.";
+const USER_PROMPT = "我想在模拟盘/dry-run 模式下做 DCA：每周一 09:00（UTC+8，时区 8）每次投入 100 USDT 买 BTC，资金来自交易账户（账户是 acctLv 1 的简单模式，tdMode 用 cash）；如果价格跌了，可以多买一点。Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. If you need to ask me something, write the question in your reply as plain text; do not use any interactive question tool.";
+const HELP_FLAG = /(^|\s)(--help|-h)(\s|$)/;
 const FORBIDDEN_COMMAND_PATTERNS: string[][] = [
   ["okx", "bot", "dca", "create"],
   ["okx", "bot", "recurring", "create"],
@@ -90,6 +97,8 @@ describe(PROBE_ID, () => {
           trace = await runAgent({ userPrompt: USER_PROMPT, timeoutMs: 300_000 });
           evidence.tool_calls = summarizeToolCalls(trace);
           evidence.reply_tail = trace.assistantReply.slice(-600);
+          evidence.reply_length = trace.assistantReply.length;
+          evidence.tokens_out = trace.tokensOut;
           evidence.expected = EXPECTATION;
 
           const reply = trace.assistantReply;
@@ -99,8 +108,15 @@ describe(PROBE_ID, () => {
           evidence.ends_with_choice_question = asksChoice;
 
           const created = findToolCall(trace, { commandPatterns: FORBIDDEN_COMMAND_PATTERNS });
-          if (created) {
-            evidence.matched_call = { name: created.name, command: created.input.command };
+          if (created) evidence.matched_call = { name: created.name, command: created.input.command };
+          if (reply.trim() === '' && !created) {
+            // Nothing was produced: the run did not complete. Not a routing result.
+            status = 'error';
+            failure_reason = 'empty reply: the run produced no output (aborted or timed out), so there is no routing result';
+          } else if (created && HELP_FLAG.test(String(created.input.command))) {
+            status = 'error';
+            failure_reason = 'matched a --help call on a create command; cannot tell whether a real create followed, so the result is inconclusive';
+          } else if (created) {
             status = 'fail';
             failure_reason = 'agent created a bot for a request that mixes DCA and Recurring Buy wording instead of asking which product is meant';
           } else if (!namedBoth) {
