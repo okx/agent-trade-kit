@@ -826,7 +826,7 @@ export const CLI_REGISTRY: CliRegistry = {
         commands: {
           create: {
             toolName: "recurring_create_order",
-            usage: "okx bot recurring create --stgyName <name> --recurringList '<json>' --period <monthly|weekly|daily|hourly>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] --recurringTime <0-23> --timeZone <-12..14>\n                         --amt <amount> --investmentCcy <USDT|USDC> --tdMode <cash|cross>\n                         [--source <1,2,3>] [--recurringTimeType <1|2>] [--tradeQuoteCcy <ccy>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         recurringList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.2\"},{\"ccy\":\"ETH\",\"ratio\":\"0.8\",\"minPx\":\"1000\",\"maxPx\":\"\"}]\n                         tdMode: required, no default; accepted values depend on acctLv: 1 cash, 2 cash or cross (cross = real leverage), 3 and 4 cross only; see `okx account config`\n                         negative zone: use --timeZone=-5",
+            usage: "okx bot recurring create --stgyName <name> --recurringList '<json>' --period <monthly|weekly|daily|hourly>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] --recurringTime <0-23> --timeZone <-12..14>\n                         --amt <amount> --investmentCcy <USDT|USDC> --tdMode <cash|cross>\n                         [--source <1,2,3>] [--recurringTimeType <1|2>] [--tradeQuoteCcy <ccy>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         recurringList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.2\"},{\"ccy\":\"ETH\",\"ratio\":\"0.8\",\"minPx\":\"1000\",\"maxPx\":\"\"}]\n                         tdMode: required, no default; accepted values depend on acctLv: 1 cash, 2 cash or cross (cross = real leverage), 3 and 4 cross only; see `okx account config`\n                         negative zone: use --timeZone=-5\n                         not idempotent: on an uncertain result do not retry on your own; check `okx bot recurring orders` first",
             description: "Create a Recurring Buy strategy",
           },
           orders: {
@@ -876,12 +876,12 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "amend-time": {
             toolName: "recurring_amend_time",
-            usage: "okx bot recurring amend-time --algoId <id> --recurringTimeType <1|2> --period <monthly|weekly|daily|hourly> --timeZone <-12..14>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] [--recurringTime <0-23>]\n                         type 1 = custom time (needs --recurringTime, plus --recurringDay for monthly/weekly); type 2 = trigger NOW (buys immediately, every call buys again; never retry blindly)\n                         negative zone: use --timeZone=-5",
+            usage: "okx bot recurring amend-time --algoId <id> --recurringTimeType <1|2> --period <monthly|weekly|daily|hourly> --timeZone <-12..14>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] [--recurringTime <0-23>]\n                         type 1 = custom time (needs --recurringTime, plus --recurringDay for monthly/weekly); type 2 = trigger NOW (buys immediately, every call buys again; do not retry on your own)\n                         negative zone: use --timeZone=-5",
             description: "Amend the schedule of a Recurring Buy strategy",
           },
           "add-investment": {
             toolName: "recurring_add_investment",
-            usage: "okx bot recurring add-investment --algoId <id> --amount <amount>   (--amt is accepted as an alias)",
+            usage: "okx bot recurring add-investment --algoId <id> --amount <amount>   (--amt is accepted as an alias)\n                         buys right away and is not idempotent: on an uncertain result do not retry on your own; check `sub-orders` first",
             description: "Add an extra one-off investment to a Recurring Buy strategy",
           },
         },

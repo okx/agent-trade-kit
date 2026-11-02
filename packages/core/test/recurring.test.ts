@@ -17,7 +17,7 @@ import {
   MODULES,
   MODULE_DESCRIPTIONS,
 } from "../src/constants.js";
-import { OkxApiError, ValidationError } from "../src/utils/errors.js";
+import { AuthenticationError, NetworkError, OkxApiError, OkxMcpError, RateLimitError, ValidationError } from "../src/utils/errors.js";
 import type { ToolContext, ToolSpec } from "../src/tools/types.js";
 
 // ---------------------------------------------------------------------------
@@ -506,6 +506,152 @@ describe("recurring write results", () => {
 // ---------------------------------------------------------------------------
 // 8–9. simple writes
 // ---------------------------------------------------------------------------
+
+describe("recurring uncertain write outcomes", () => {
+  /** A client whose every call rejects with `error` (a timeout, a 5xx, a business error ...). */
+  async function runFailing(name: string, args: Record<string, unknown>, error: Error, counter?: { calls: number }) {
+    const client = {
+      privateGet: async () => { if (counter) counter.calls++; throw error; },
+      privatePost: async () => { if (counter) counter.calls++; throw error; },
+    };
+    return tool(name).handler(args, makeContext(client));
+  }
+
+  const ADD_INVESTMENT = { algoId: "1", amount: "20" };
+  const AMEND_NOW = { algoId: "1", recurringTimeType: "2", period: "daily", timeZone: "8" };
+  const AMEND_CUSTOM = { algoId: "1", recurringTimeType: "1", period: "daily", timeZone: "8", recurringTime: "1" };
+  const NON_IDEMPOTENT: Array<[string, Record<string, unknown>]> = [
+    ["recurring_create_order", VALID_CREATE],
+    ["recurring_add_investment", ADD_INVESTMENT],
+    ["recurring_amend_time", AMEND_NOW],
+  ];
+  /** Writes that can be repeated without a second effect. */
+  const IDEMPOTENT: Array<[string, Record<string, unknown>]> = [
+    ["recurring_pause", { algoId: "1" }],
+    ["recurring_restart", { algoId: "1" }],
+    ["recurring_stop_order", { algoId: "1" }],
+    ["recurring_amend_name", { algoId: "1", stgyName: "n" }],
+    ["recurring_amend_price_range", { algoId: "1", recurringList: '[{"ccy":"BTC","minPx":"1","maxPx":"2"}]' }],
+    ["recurring_amend_amount", { algoId: "1", amount: "20" }],
+    ["recurring_amend_time", AMEND_CUSTOM],
+  ];
+  const UNCERTAIN: Array<[string, Error]> = [
+    ["timeout / dropped connection", new NetworkError("Failed to call OKX endpoint", "POST /x")],
+    ["HTTP 503", new OkxApiError("HTTP 503 from OKX", { code: "503", endpoint: "POST /x", suggestion: "Retry later or verify endpoint parameters." })],
+    ["50004 endpoint timeout", new OkxApiError("timeout", { code: "50004", endpoint: "POST /x", suggestion: "Endpoint request timeout. Retry later." })],
+    ["50026 system error", new OkxApiError("system error", { code: "50026", endpoint: "POST /x", suggestion: "Retry in a few minutes" })],
+    ["5xx with an unmapped business code", new OkxApiError("upstream failure", { code: "58888", endpoint: "POST /x", suggestion: "Retry later or verify endpoint parameters." })],
+  ];
+
+  it("replaces the generic retry hint for non-idempotent writes with a check-first, ask-the-user hint", async () => {
+    for (const [name, args] of NON_IDEMPOTENT) {
+      for (const [title, error] of UNCERTAIN) {
+        await assert.rejects(
+          () => runFailing(name, args, error),
+          (err: unknown) => {
+            const label = `${name}: ${title}`;
+            assert.ok(err instanceof OkxMcpError, `${label}: expected OkxMcpError`);
+            assert.equal(err.type, (error as OkxMcpError).type, `${label}: type is kept`);
+            assert.equal(err.message, error.message, `${label}: message is kept`);
+            assert.equal(err.code, (error as OkxMcpError).code, `${label}: code is kept`);
+            assert.equal(err.endpoint, (error as OkxMcpError).endpoint, `${label}: endpoint is kept`);
+            assert.match(String(err.suggestion), /may already have been executed/, label);
+            assert.match(String(err.suggestion), /do not retry on your own/i, label);
+            assert.match(String(err.suggestion), /wait a moment and check once more/, label);
+            assert.match(String(err.suggestion), /only after they explicitly agree/, label);
+            assert.doesNotMatch(String(err.suggestion), /retry (the request|later)|in a few (seconds|minutes)/i, label);
+            return true;
+          },
+          `${name}: ${title}`,
+        );
+      }
+    }
+  });
+
+  it("points create at the strategy list and the other writes at sub-orders", async () => {
+    await assert.rejects(
+      () => runFailing("recurring_create_order", VALID_CREATE, UNCERTAIN[0]![1]),
+      (err: unknown) => /recurring orders/.test(String((err as OkxMcpError).suggestion)) && /--history/.test(String((err as OkxMcpError).suggestion)),
+    );
+    for (const [name, args] of [["recurring_add_investment", ADD_INVESTMENT], ["recurring_amend_time", AMEND_NOW]] as const) {
+      await assert.rejects(
+        () => runFailing(name, args, UNCERTAIN[0]![1]),
+        (err: unknown) => /sub-orders/.test(String((err as OkxMcpError).suggestion)),
+        name,
+      );
+    }
+  });
+
+  it("keeps traceId and cause of the original error", async () => {
+    const cause = new Error("socket hang up");
+    const original = new OkxApiError("HTTP 502 from OKX", { code: "502", endpoint: "POST /x", traceId: "trace-1", cause, suggestion: "Retry later" });
+    await assert.rejects(
+      () => runFailing("recurring_create_order", VALID_CREATE, original),
+      (err: unknown) => err instanceof OkxMcpError && err.traceId === "trace-1" && err.cause === cause,
+    );
+  });
+
+  it("leaves a definite rejection untouched (business error, rate limit, auth)", async () => {
+    const definite: Error[] = [
+      new OkxApiError("Parameter error", { code: "51000", endpoint: "POST /x", suggestion: "Fix the parameter." }),
+      new RateLimitError("Too many requests", "Wait and slow down.", "POST /x"),
+      new AuthenticationError("Invalid sign", "Run `okx auth login` again.", "POST /x"),
+    ];
+    for (const [name, args] of [...NON_IDEMPOTENT, ...IDEMPOTENT]) {
+      for (const rejection of definite) {
+        await assert.rejects(() => runFailing(name, args, rejection), (err: unknown) => err === rejection, `${name}: ${rejection.name}`);
+      }
+    }
+  });
+
+  it("does not touch validation errors and sends no request when validation fails", async () => {
+    const counter = { calls: 0 };
+    await assert.rejects(
+      () => runFailing("recurring_add_investment", { algoId: "1" }, new NetworkError("never reached"), counter),
+      (err: unknown) => err instanceof ValidationError,
+    );
+    assert.equal(counter.calls, 0);
+  });
+
+  it("passes a successful result through untouched", async () => {
+    const { result } = await run("recurring_add_investment", ADD_INVESTMENT, []);
+    assert.deepEqual(result.data, []);
+  });
+
+  it("idempotent writes get the same do-not-retry-on-your-own hint, without the duplicate warning", async () => {
+    for (const [name, args] of IDEMPOTENT) {
+      for (const [title, error] of UNCERTAIN) {
+        await assert.rejects(
+          () => runFailing(name, args, error),
+          (err: unknown) => {
+            const label = `${name}: ${title}`;
+            assert.ok(err instanceof OkxMcpError, `${label}: expected OkxMcpError`);
+            assert.equal(err.message, error.message, `${label}: message is kept`);
+            assert.equal(err.code, (error as OkxMcpError).code, `${label}: code is kept`);
+            assert.match(String(err.suggestion), /do not retry on your own/i, label);
+            assert.match(String(err.suggestion), /let them decide/, label);
+            assert.match(String(err.suggestion), /details|orders --history/, label);
+            assert.doesNotMatch(String(err.suggestion), /duplicate|buy again/, label);
+            assert.doesNotMatch(String(err.suggestion), /retry (the request|later)|in a few (seconds|minutes)/i, label);
+            return true;
+          },
+          `${name}: ${title}`,
+        );
+      }
+    }
+  });
+
+  it("amend-time type 1 only sets the schedule, so it gets the idempotent wording; type 2 gets the duplicate warning", async () => {
+    await assert.rejects(
+      () => runFailing("recurring_amend_time", AMEND_CUSTOM, UNCERTAIN[0]![1]),
+      (err: unknown) => /let them decide/.test(String((err as OkxMcpError).suggestion)) && !/buy again/.test(String((err as OkxMcpError).suggestion)),
+    );
+    await assert.rejects(
+      () => runFailing("recurring_amend_time", AMEND_NOW, UNCERTAIN[0]![1]),
+      (err: unknown) => /buy again/.test(String((err as OkxMcpError).suggestion)),
+    );
+  });
+});
 
 describe("recurring simple write tools", () => {
   it("pause and restart POST {algoId}", async () => {

@@ -18,10 +18,9 @@ Recurring Buy invests a fixed amount in a basket of coins at fixed intervals (mo
 | `3` | Multi-currency margin (跨币种保证金模式) | `cross` only | spot (downgraded by the system) | `cross`. Only one option: state it in the summary |
 | `4` | Portfolio margin (组合保证金模式) | `cross`, plus `cash` — accepted today (`code=0`) but **does not execute** (no sub-order, `investmentAmt` unchanged); the server will be changed to reject it | spot (downgraded by the system) | `cross`. Only one option: state it in the summary. **Never `cash`** |
 
-3. Ask (`acctLv` 2 only) or state (`acctLv` 1, 3 and 4) the choice in the same confirmation round as the other parameters (do not ask twice). On `acctLv` 2, if the user already said `cash` or `cross`, do not ask again. If they have no preference or do not answer, use the default in the table. On `acctLv` 2, even when the user already said `cross`, still state in the summary that it opens a real leveraged position.
+3. Ask (`acctLv` 2 only) or state (`acctLv` 1, 3 and 4) the choice in the same confirmation round as the other parameters (do not ask twice). On `acctLv` 2, skip the question if the user already said `cash` or `cross`, use `cash` if they have no preference, and always state that `cross` opens a real leveraged position.
 4. If the user asks for a combination the account does not support (`cross` on `acctLv` 1, `cash` on `acctLv` 3 or 4; on 4 the server would report success but not trade), explain why and offer the supported option. If the user wants leverage but `acctLv` is 3 or 4, explain that `cross` is executed as spot there (no leverage).
-5. If `acctLv` cannot be read or is not 1–4, do not guess and never use `cross`: tell the user and ask them to confirm their account mode.
-6. Pass `cross` only on `acctLv` 2 (when the user chose leverage), 3 and 4; pass `cash` only on `acctLv` 1 and 2. Always pass `--tdMode` explicitly — the CLI has no default.
+5. If `acctLv` cannot be read or is not 1–4, do not guess (never `cross`): ask the user to confirm their account mode. Always pass `--tdMode` explicitly — the CLI has no default.
 
 ## Create
 
@@ -41,9 +40,8 @@ okx bot recurring create \
 - `recurringTime`: hour of day, integer 0–23.
 - `timeZone`: UTC offset in [-12, 14], e.g. `8` for UTC+8. **For a negative offset write `--timeZone=-5`** (the `=` form is the documented one).
 - `investmentCcy`: `USDT` or `USDC`. `amt` is the amount invested per cycle.
-- Optional: `--source <1,2,3>` funding sources (1 = trading account (default), 2 = funding account, 3 = simple earn), `--recurringTimeType <1|2>` (1 = custom time (default), 2 = trigger immediately — the create itself buys right away: confirm first, never retry blindly, and check `sub-orders` afterwards), `--tradeQuoteCcy <ccy>`, `--algoClOrdId <id>`.
+- Optional: `--source <1,2,3>` funding sources (1 = trading account (default), 2 = funding account, 3 = simple earn), `--recurringTimeType <1|2>` (1 = custom time (default), 2 = trigger immediately — the create itself buys right away and is not idempotent: confirm first, then check `sub-orders`), `--tradeQuoteCcy <ccy>`, `--algoClOrdId <id>`.
 - `--aiBuilderCode <code>`: Optional builder attribution code, forwarded as the order tag. Only `create` accepts it.
-- **Uncertain result**: if `create` times out, loses the connection, or the CLI reports that the server returned no `algoId`, the strategy may still exist. Run `okx bot recurring orders` (and `--history`) first and only retry when nothing new is listed; otherwise a retry creates a duplicate strategy. If `--recurringTimeType 2` was used, also check `sub-orders` to see whether the immediate buy happened.
 
 ## List Strategies (Running or History)
 
@@ -83,7 +81,7 @@ okx bot recurring restart --algoId <id>
 okx bot recurring stop --algoId <id>
 ```
 
-- `pause`: scheduled automatic purchases stop until the strategy is restarted. `restart`: scheduled automatic purchases resume (do not say whether cycles missed while paused are bought later); check `nextInvestTime` in `details` afterwards. Read `details` first — `pause` needs `state` `running`, `restart` needs `state` `pause`, otherwise tell the user instead of running it — confirm `algoId` and name, and wait for an explicit yes before running either. The `(OK)` message is not proof; `details` is the check.
+- `pause` stops scheduled purchases until `restart` resumes them (do not promise that cycles missed while paused are bought later). Read `details` first (`pause` needs `state` `running`, `restart` needs `pause`, otherwise tell the user instead of running it), confirm `algoId` and name, and wait for an explicit yes; `(OK)` is not proof — check `details` (`nextInvestTime`) afterwards.
 - `stop` is permanent. Always check the state via `details` first. One strategy is stopped per call.
 
 ## Amend
@@ -106,7 +104,7 @@ okx bot recurring amend-time --algoId <id> --recurringTimeType 1 --period monthl
 ```
 
 - `amend-amount` / `add-investment` use `--amount` (`--amt` is accepted as an alias).
-- `amend-time`: `--recurringTimeType 1` (custom time) needs `--recurringTime` and, for `monthly` / `weekly`, `--recurringDay`; `--recurringTimeType 2` triggers immediately and needs neither — **it makes a real purchase right away, and every call buys again (it is not idempotent), so confirm with the user first and never retry it blindly**; afterwards check `recurring sub-orders`. `hourly` always needs `--recurringHour`. Negative offsets: `--timeZone=-5`.
+- `amend-time`: `--recurringTimeType 1` (custom time) needs `--recurringTime` and, for `monthly` / `weekly`, `--recurringDay`; `--recurringTimeType 2` triggers immediately and needs neither — **it buys right away and every call buys again (not idempotent), so confirm with the user first**; afterwards check `recurring sub-orders` and `details`. `hourly` always needs `--recurringHour`. Negative offsets: `--timeZone=-5`.
 - Price-range, amount, time and add-investment amends return no data on success; the CLI prints `... (OK)`.
 
 ## Add Investment
@@ -115,9 +113,7 @@ okx bot recurring amend-time --algoId <id> --recurringTimeType 1 --period monthl
 okx bot recurring add-investment --algoId <id> --amount <amount>
 ```
 
-Invests an extra one-off amount now (real trade, not idempotent), in the strategy's investment currency. Confirm `algoId` and the amount with the user first, and note `investmentAmt` from `details` and the newest `sub-orders` entry beforehand.
-
-Afterwards verify it really executed: `okx bot recurring sub-orders --algoId <id>` should list a new buy order (normally `ordType` `manual_add_order`) created just after the write, and `investmentAmt` in `details` should rise by the amount compared with the value read before (if it does not, rely on the `sub-orders` entry). A success message alone is not proof. If the command timed out or the connection dropped, check `sub-orders` before retrying; a blind retry buys again.
+Invests an extra one-off amount now (real trade, not idempotent), in the strategy's investment currency. Confirm `algoId` and the amount first, and note `investmentAmt` from `details` and the newest `sub-orders` entry beforehand. Afterwards `sub-orders` should list a new buy order (normally `ordType` `manual_add_order`) and `investmentAmt` should rise by the amount (otherwise rely on `sub-orders`); `(OK)` alone is not proof.
 
 ---
 
@@ -126,6 +122,7 @@ Afterwards verify it really executed: `okx bot recurring sub-orders --algoId <id
 - **`tdMode` is never defaulted or account-checked in code**: follow the "Before creating" section at the top of this file. A missing or non-`cash|cross` value is rejected before any request is sent; the server rejects a combination the account does not accept, except `cash` on `acctLv` 4, which it accepts but does not execute today, so never use it.
 - **Negative time zones**: write `--timeZone=-5`; a bare negative value after the flag looks like another option to generic argument parsers.
 - **Numeric strings**: pass plain decimals (no scientific notation). `amount` for `amend-amount` / `add-investment` must be > 0 (the server allows at most 2 decimals).
+- **Errors on writes**: never retry a failed or uncertain write yourself, and ignore any "retry later" hint in the error output. Check the current state (`orders` and `--history` for `create`, `sub-orders` / `details` otherwise), wait a moment and check once more, tell the user what you found, and re-run only after they explicitly ask or agree. A retry of `create`, `add-investment` or `amend-time --recurringTimeType 2` may duplicate the strategy or buy again.
 - **State check before changes**: `stop` / `pause` / `restart` / amend commands act on the current state; use `details` first. Stopped strategies appear only with `orders --history`.
 - **Empty-data success**: `amend-time`, `amend-amount`, `amend-price-range` and `add-investment` return an empty `data` array on success; that is success, not an error.
 - **`algoId`** comes from `create` or `orders`; never fabricate it.

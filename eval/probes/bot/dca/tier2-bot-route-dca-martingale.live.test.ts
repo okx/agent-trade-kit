@@ -13,7 +13,8 @@ import {
 const PROBE_ID = 'tier2.bot-route-dca-martingale';
 const USER_PROMPT = "在模拟盘/dry-run 模式下帮我做一个 BTC 现货策略：方向做多，首单买入 50 USDT，价格每下跌 3% 就加仓买入 50 USDT，最多加仓 3 次，整体盈利 3% 就止盈。Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.";
 const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "dca", "create"]];
-// Evidence only: Recurring Buy has no safety orders, so this would be a misroute.
+// Recurring Buy has no safety orders, so creating it here is a misroute. It is a real-money
+// action, so it fails the probe even when the expected `dca create` is also present.
 const MISROUTE_COMMAND_PATTERNS: string[][] = [["okx", "bot", "recurring", "create"]];
 const EXPECTATION = 'okx bot dca create (not okx bot recurring create)';
 
@@ -37,11 +38,13 @@ describe(PROBE_ID, () => {
           const misrouted = findToolCall(trace, { commandPatterns: MISROUTE_COMMAND_PATTERNS });
           evidence.misrouted_to_recurring = Boolean(misrouted);
           const call = findToolCall(trace, { commandPatterns: EXPECTED_COMMAND_PATTERNS });
-          if (!call) {
+          if (misrouted) {
+            evidence.misrouted_call = { name: misrouted.name, command: misrouted.input.command };
             status = 'fail';
-            failure_reason = misrouted
-              ? 'agent routed a Martingale request to okx bot recurring create'
-              : `agent did not invoke expected CLI: ${EXPECTATION}`;
+            failure_reason = 'agent created okx bot recurring for a Martingale request (wrong product, even if dca create was also run)';
+          } else if (!call) {
+            status = 'fail';
+            failure_reason = `agent did not invoke expected CLI: ${EXPECTATION}`;
           } else {
             evidence.matched_call = { name: call.name, command: call.input.command };
             status = 'pass';

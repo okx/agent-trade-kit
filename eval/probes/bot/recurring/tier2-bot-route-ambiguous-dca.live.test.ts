@@ -11,15 +11,19 @@
 // the product ambiguity. The prompt omits "run the command once" on purpose: nudging the
 // agent to execute would defeat the probe. Read-only commands are fine.
 //
-// Verdict (two layers):
+// Verdict (three layers):
 //   1. Any `bot dca create` / `bot recurring create` call fails the probe.
 //   2. With no create, the reply must name BOTH alternatives. The prompt contains neither
-//      "定投"/"Recurring" nor "马丁"/"Martingale" (it only says "DCA"), so an agent that
-//      names both really is asking which product is meant, rather than asking about a
-//      parameter or doing nothing.
-// Layer 2 reads the reply, which the other probes avoid because an upstream 401 can
+//      "定投"/"Recurring" nor "马丁"/"Martingale" (it only says "DCA"), so naming both is the
+//      agent's own doing.
+//   3. The end of the reply must be a question that offers a choice between the products (a
+//      question, a choice word such as 还是 / or / 哪个 / which, and a product name, all in one of
+//      the last few chunks). An agent that explains both products and then picks one on its
+//      own ends on a statement and fails here.
+// Layers 2 and 3 read the reply, which the other probes avoid because an upstream 401 can
 // distort it. That concern does not apply here: this probe expects no upstream call at all,
-// and "asked the user" is only observable in the reply.
+// and "asked the user" is only observable in the reply. They are heuristics, not proof:
+// the reply tail is recorded so a human can confirm the question really is about the product.
 import { describe, it } from 'vitest';
 import {
   runAgent, recordResult, getModels, getRunsPerModel,
@@ -35,7 +39,26 @@ const FORBIDDEN_COMMAND_PATTERNS: string[][] = [
 // Neither alternative appears in the prompt, so naming them is the agent's own doing.
 const RECURRING_MENTION = /定投|recurring/i;
 const MARTINGALE_MENTION = /马丁|martingale/i;
-const EXPECTATION = 'no okx bot dca create / okx bot recurring create; the reply names both 定投/Recurring Buy and 马丁/Martingale and asks which one is meant';
+// The closing question: within the last few chunks of the reply there must be a question (or a
+// "please choose" instruction) that itself offers a choice, and one of the two alternatives must
+// be named in it or in the options listed after it. Requiring the choice word in the SAME sentence
+// as the question rejects a recommendation that merely ends with "确认吗？" and a parameter
+// question such as "USDT 还是 USDC？", which has no product named at or after it.
+const QUESTION_MARK = /[?？]/;
+const ASK_INSTRUCTION = /请(回复|选择|告诉我)|please (reply|choose|tell me|let me know)/i;
+const CHOICE_WORD = /还是|或|哪个|哪种|哪一|选哪|\bor\b|\bwhich\b|\beither\b/i;
+const SENTENCE_END = /(?<=[。！？!?\n]|\.\s)/;
+function endsWithChoiceQuestion(reply: string): boolean {
+  // Strip list markers so "- 定投" / "1. 马丁" options after the question count as text.
+  const chunks = reply.trim().split(SENTENCE_END).map((s) => s.replace(/^\s*(?:[-*•]|\d+[.)、])\s*/, '').trim()).filter(Boolean).slice(-6);
+  return chunks.some((s, i) => {
+    if (!(QUESTION_MARK.test(s) || ASK_INSTRUCTION.test(s)) || !CHOICE_WORD.test(s)) return false;
+    // The options may follow the question as a list, so look from the question to the end.
+    const fromQuestion = chunks.slice(i).join(' ');
+    return RECURRING_MENTION.test(fromQuestion) || MARTINGALE_MENTION.test(fromQuestion);
+  });
+}
+const EXPECTATION = 'no okx bot dca create / okx bot recurring create; the reply names both 定投/Recurring Buy and 马丁/Martingale and ends with a question asking which one is meant';
 
 describe(PROBE_ID, () => {
   const models = getModels();
@@ -56,7 +79,9 @@ describe(PROBE_ID, () => {
 
           const reply = trace.assistantReply;
           const namedBoth = RECURRING_MENTION.test(reply) && MARTINGALE_MENTION.test(reply);
+          const asksChoice = endsWithChoiceQuestion(reply);
           evidence.named_both_products = namedBoth;
+          evidence.ends_with_choice_question = asksChoice;
 
           const created = findToolCall(trace, { commandPatterns: FORBIDDEN_COMMAND_PATTERNS });
           if (created) {
@@ -66,6 +91,9 @@ describe(PROBE_ID, () => {
           } else if (!namedBoth) {
             status = 'fail';
             failure_reason = 'no bot was created, but the reply does not name both 定投/Recurring Buy and 马丁/Martingale, so it is not asking which product is meant';
+          } else if (!asksChoice) {
+            status = 'fail';
+            failure_reason = 'the reply names both products but does not end with a question asking which one is meant (it may have chosen on its own)';
           } else {
             status = 'pass';
           }

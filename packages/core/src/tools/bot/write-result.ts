@@ -12,7 +12,7 @@ export interface RecurringWriteOptions {
   /**
    * The endpoint must return an item that carries the new strategy's algoId
    * (create). A success response without one is treated as a failure, because
-   * the caller could not act on the strategy and a blind retry may create a duplicate.
+   * the caller could not act on the strategy and a retry may create a duplicate.
    */
   requireAlgoId?: boolean;
 }
@@ -55,7 +55,7 @@ export function normalizeRecurringWrite(
   if (options.requireAlgoId && !hasAlgoId(items[0])) {
     throw new OkxApiError("The server reported success but returned no algoId, so the strategy cannot be confirmed.", {
       endpoint: response.endpoint,
-      suggestion: "Check `okx bot recurring orders` before retrying, to avoid creating a duplicate strategy.",
+      suggestion: "Check `okx bot recurring orders` (and --history) before doing anything else. Do not retry on your own: the strategy may exist, and a retry could create a duplicate. Retry only after the user confirms.",
     });
   }
   return { endpoint: response.endpoint, requestTime: response.requestTime, data: response.data };
