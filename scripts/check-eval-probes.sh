@@ -18,8 +18,9 @@
 #   news*.ts, sentiment*.ts                 → news/
 #   smartmoney*.ts                          → smartmoney/
 #   skills*.ts, skill-mp*.ts                → skills/
-#   bot-grid*.ts, grid-trade*.ts            → bot/grid/
-#   bot-dca*.ts, dca-trade*.ts              → bot/dca/
+#   grid.ts, grid-*.ts, bot-grid*.ts        → bot/grid/
+#   dca.ts, dca-*.ts, bot-dca*.ts           → bot/dca/
+#   smart-portfolio*.ts, smartportfolio*.ts → bot/smart-portfolio/
 #   recurring*.ts, write-result*.ts         → bot/recurring/
 #   earn-savings*.ts, savings*.ts           → earn/savings/
 #   earn-onchain*.ts, onchain-earn*.ts      → earn/onchain/
@@ -69,8 +70,9 @@ for file in $changed_tool_files; do
     news*|sentiment*)                    probe_path="news" ;;
     smartmoney*)                         probe_path="smartmoney" ;;
     skills*|skill-mp*)                   probe_path="skills" ;;
-    bot-grid*|grid-trade*)               probe_path="bot/grid" ;;
-    bot-dca*|dca-trade*)                 probe_path="bot/dca" ;;
+    grid*|bot-grid*)                     probe_path="bot/grid" ;;
+    dca*|bot-dca*)                       probe_path="bot/dca" ;;
+    smart-portfolio*|smartportfolio*)    probe_path="bot/smart-portfolio" ;;
     recurring*|write-result*)            probe_path="bot/recurring" ;;
     earn-savings*|savings*)              probe_path="earn/savings" ;;
     earn-onchain*|onchain-earn*)         probe_path="earn/onchain" ;;

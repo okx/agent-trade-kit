@@ -9,10 +9,14 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 | Sub-module | Tools | Description |
 |------------|-------|-------------|
 | `bot.grid` | 9 | Spot Grid, Contract Grid, Moon Grid strategies |
-| `bot.dca` | 8 | Contract DCA (Martingale) strategies |
+| `bot.dca` | 9 | DCA (Martingale) strategies |
+| `bot.smartportfolio` | 8 | Smart Portfolio strategies (auto-rebalancing multi-asset portfolio) |
+| `bot.recurring` | 12 (CLI only) | Recurring Buy strategies (periodic fixed-amount buys of a coin basket) |
 
 **Module aliases:**
-- `bot` → all bot sub-modules (`bot.grid` + `bot.dca`)
+- `bot` → `bot.grid` only (the default bot sub-module)
+- `bot.all` → all bot MCP sub-modules (`bot.grid` + `bot.dca` + `bot.smartportfolio`)
+- `bot.recurring` is **CLI-only**: it is not part of `bot` or `bot.all` and is not available through `--modules`
 
 ## Grid tools (bot.grid)
 
@@ -63,9 +67,42 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 | `dca_reduce_margin` | Reduce margin on a running contract DCA bot |
 | `dca_update_take_profit` | Update take-profit price on a running contract DCA bot |
 
-## Recurring Buy (CLI only)
+## Smart Portfolio tools (bot.smartportfolio)
 
-`bot.recurring` (Recurring Buy) is a **CLI-only** module: it exposes 12 `okx bot recurring <sub>` commands and **no MCP tools** (it is not an MCP module, so `--modules` does not apply and the MCP tool list is unchanged). See [designs/recurring.md](../designs/recurring.md) and [cli-reference](../cli-reference.md).
+| Tool | Description |
+|------|-------------|
+| `smart_portfolio_create_order` | Create a Smart Portfolio bot (2–10 assets with ratios summing to 1.0, auto-rebalanced) |
+| `smart_portfolio_get_orders` | List running Smart Portfolio bots, or stopped ones with `status='history'` |
+| `smart_portfolio_get_order_details` | Get one bot with its current allocation, PnL, rebalance interval and `deltaRatio` |
+| `smart_portfolio_stop_order` | Stop a running bot (`stopType` required: `1` sell all assets, `2` keep assets) |
+| `smart_portfolio_amend_rebalance` | Change the rebalance parameters (`deltaRatio` and `interval`, both required) |
+| `smart_portfolio_instant_rebalance` | Trigger an immediate rebalance (accepted, not necessarily executed) |
+| `smart_portfolio_get_recommend_zones` | Browse OKX-recommended Smart Portfolio configurations |
+| `smart_portfolio_get_zones_backtest` | Get the backtest result of a recommended zone by `recommendId` |
+
+## Recurring Buy tools (bot.recurring, CLI only)
+
+These are core tool specs behind the `okx bot recurring <sub>` commands. The module is **not** an MCP module, so none of them is exposed over MCP and the MCP tool list is unchanged. See [designs/recurring.md](../designs/recurring.md) and [cli-reference](../cli-reference.md).
+
+| Tool | Description |
+|------|-------------|
+| `recurring_create_order` | Create a Recurring Buy strategy (periodic fixed-amount buys of a coin basket) |
+| `recurring_get_orders` | List running / paused strategies, or stopped ones with `--history` |
+| `recurring_get_order_details` | Get one strategy with schedule, per-coin holdings, average price and PnL |
+| `recurring_get_sub_orders` | List the buy orders a strategy has executed |
+| `recurring_pause` | Pause a running strategy |
+| `recurring_restart` | Restart a paused strategy |
+| `recurring_stop_order` | Stop a strategy permanently |
+| `recurring_amend_name` | Rename a strategy |
+| `recurring_amend_price_range` | Change the per-coin price range in which it may buy |
+| `recurring_amend_amount` | Change the amount invested per cycle |
+| `recurring_amend_time` | Change the schedule (`recurringTimeType=2` buys immediately) |
+| `recurring_add_investment` | Add an extra one-off investment (real trade) |
+
+### Important: `tdMode` and `acctLv`
+
+- **`tdMode`** is required on create and has no default. The accepted value depends on the account mode (`acctLv` from `okx account config`): `1` → `cash`; `2` → `cash` or `cross` (`cross` opens a real leveraged position); `3` and `4` → `cross` only. The CLI does not check it against the account; the `okx-cex-bot` skill guides the choice.
+- **`algoId`** is the strategy ID returned by create or list. It is **NOT** a normal trade order ID.
 
 ## Example prompts
 
@@ -81,6 +118,17 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 - "Create a contract DCA bot on BTC-USDT-SWAP: 3x leverage, long, 100 USDT initial, 3 max safety, 3% TP"
 - "Show my active DCA strategies"
 - "Stop DCA bot algoId 12345"
+
+**Smart Portfolio:**
+- "Create a Smart Portfolio with 60% BTC and 40% ETH, 5000 USDT"
+- "Show my running Smart Portfolio bots"
+- "Change the rebalance threshold of Smart Portfolio algoId 12345 to 5%"
+
+**Recurring Buy:**
+- "Buy 100 USDT of BTC (20%) and ETH (80%) every month on day 1 at 00:00"
+- "Show my running Recurring Buy strategies"
+- "Change the amount of Recurring Buy strategy algoId 12345 to 20 USDT"
+- "Pause Recurring Buy strategy algoId 12345"
 
 ## CLI
 
@@ -143,6 +191,39 @@ okx bot dca create --instId BTC-USDT-SWAP --lever 3 --direction long \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
 okx bot dca stop --algoId <id>
+
+# ── Smart Portfolio ───────────────────────────────────────────────────────────
+okx bot smart-portfolio orders [--history] [--algoId <id>]
+okx bot smart-portfolio details --algoId <id>
+okx bot smart-portfolio recommend-zones [--assetType Crypto]
+okx bot smart-portfolio zones-backtest --recommendId <id> [--period 3M]
+
+okx bot smart-portfolio create --stgyName "My Portfolio" --investmentCcy USDT --initCapital 5000 \
+  --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
+  --interval 20 --deltaRatio 0.05
+
+okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio 0.05 --interval 60
+okx bot smart-portfolio instant-rebalance --algoId <id>
+okx bot smart-portfolio stop --algoId <id> --stopType 1
+
+# ── Recurring Buy (CLI only) ──────────────────────────────────────────────────
+okx bot recurring orders [--history] [--algoId <id>]
+okx bot recurring details --algoId <id>
+okx bot recurring sub-orders --algoId <id>
+
+# tdMode is required: 1 → cash; 2 → cash or cross (real leverage); 3 and 4 → cross only
+okx bot recurring create --stgyName "BTC-ETH monthly" \
+  --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
+  --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
+  --amt 100 --investmentCcy USDT --tdMode cash
+# Negative time zone: --timeZone=-5
+
+okx bot recurring pause --algoId <id>
+okx bot recurring restart --algoId <id>
+okx bot recurring stop --algoId <id>
+okx bot recurring amend-name --algoId <id> --stgyName <name>
+okx bot recurring amend-amount --algoId <id> --amount 20
+okx bot recurring add-investment --algoId <id> --amount 20
 ```
 
 ---
@@ -158,10 +239,14 @@ okx bot dca stop --algoId <id>
 | 子模块 | 工具数 | 说明 |
 |--------|--------|------|
 | `bot.grid` | 9 | 现货网格、合约网格、Moon Grid 策略 |
-| `bot.dca` | 8 | 合约 DCA（马丁格尔）策略 |
+| `bot.dca` | 9 | DCA（马丁格尔）策略 |
+| `bot.smartportfolio` | 8 | 智能组合策略（自动再平衡的多资产组合） |
+| `bot.recurring` | 12（仅 CLI） | 定投策略（按周期定额买入一篮子币） |
 
 **模块别名：**
-- `bot` → 所有 bot 子模块（`bot.grid` + `bot.dca`）
+- `bot` → 只有 `bot.grid`（默认的 bot 子模块）
+- `bot.all` → 所有 bot MCP 子模块（`bot.grid` + `bot.dca` + `bot.smartportfolio`）
+- `bot.recurring` 为**仅 CLI** 模块：不属于 `bot` 或 `bot.all`，也不能通过 `--modules` 启用
 
 ## 网格工具 (bot.grid)
 
@@ -212,9 +297,42 @@ okx bot dca stop --algoId <id>
 | `dca_reduce_margin` | 减少运行中的合约 DCA 机器人的保证金 |
 | `dca_update_take_profit` | 更新运行中的合约 DCA 机器人的止盈价 |
 
-## Recurring Buy（仅 CLI）
+## 智能组合工具 (bot.smartportfolio)
 
-`bot.recurring`（Recurring Buy / 定投）是**仅 CLI** 模块：提供 12 个 `okx bot recurring <sub>` 命令，**没有 MCP 工具**（它不是 MCP 模块，`--modules` 不适用，MCP 工具列表保持不变）。详见 [designs/recurring.md](../designs/recurring.md)。
+| 工具 | 说明 |
+|------|------|
+| `smart_portfolio_create_order` | 创建智能组合机器人（2 到 10 个资产，比例之和为 1.0，自动再平衡） |
+| `smart_portfolio_get_orders` | 列出运行中的智能组合机器人，`status='history'` 列出已停止的 |
+| `smart_portfolio_get_order_details` | 查询单个机器人的当前配比、盈亏、再平衡间隔和 `deltaRatio` |
+| `smart_portfolio_stop_order` | 停止运行中的机器人（`stopType` 必填：`1` 卖出全部资产，`2` 保留资产） |
+| `smart_portfolio_amend_rebalance` | 修改再平衡参数（`deltaRatio` 和 `interval` 均必填） |
+| `smart_portfolio_instant_rebalance` | 立即触发一次再平衡（请求被接受，不代表已成交） |
+| `smart_portfolio_get_recommend_zones` | 浏览 OKX 推荐的智能组合配置 |
+| `smart_portfolio_get_zones_backtest` | 按 `recommendId` 查询推荐配置的回测结果 |
+
+## 定投工具 (bot.recurring，仅 CLI)
+
+以下是 `okx bot recurring <sub>` 命令背后的核心工具定义。该模块**不是** MCP 模块，因此这些工具都不会通过 MCP 暴露，MCP 工具列表保持不变。详见 [designs/recurring.md](../designs/recurring.md) 和 [cli-reference](../cli-reference.md)。
+
+| 工具 | 说明 |
+|------|------|
+| `recurring_create_order` | 创建定投策略（按周期定额买入一篮子币） |
+| `recurring_get_orders` | 列出运行中 / 已暂停的策略，加 `--history` 列出已停止的策略 |
+| `recurring_get_order_details` | 查询单个策略的计划、各币种持仓、均价和盈亏 |
+| `recurring_get_sub_orders` | 列出策略已执行的买入订单 |
+| `recurring_pause` | 暂停运行中的策略 |
+| `recurring_restart` | 重新启动已暂停的策略 |
+| `recurring_stop_order` | 永久停止策略 |
+| `recurring_amend_name` | 修改策略名称 |
+| `recurring_amend_price_range` | 修改各币种允许买入的价格区间 |
+| `recurring_amend_amount` | 修改每期投入金额 |
+| `recurring_amend_time` | 修改定投时间（`recurringTimeType=2` 会立即买入） |
+| `recurring_add_investment` | 追加一笔一次性投入（真实交易） |
+
+### 重要：`tdMode` 和 `acctLv`
+
+- **`tdMode`** 创建时必填，没有默认值。可用的取值取决于账户模式（`okx account config` 返回的 `acctLv`）：`1` → `cash`；`2` → `cash` 或 `cross`（`cross` 会开出真实杠杆持仓）；`3` 和 `4` → 只能 `cross`。CLI 不会按账户校验，由 `okx-cex-bot` skill 引导选择。
+- **`algoId`** 是创建或列表返回的策略 ID，**不是**普通交易订单 ID。
 
 ## 示例提示词
 
@@ -230,6 +348,17 @@ okx bot dca stop --algoId <id>
 - "创建 BTC-USDT-SWAP 合约 DCA 机器人：3 倍杠杆，做多，初始 100 USDT，最多 3 个安全单，3% 止盈"
 - "显示我的 DCA 策略"
 - "停止 DCA 机器人 algoId 12345"
+
+**智能组合：**
+- "创建一个智能组合：60% BTC、40% ETH，投入 5000 USDT"
+- "显示我运行中的智能组合机器人"
+- "把智能组合 algoId 12345 的再平衡阈值改成 5%"
+
+**定投：**
+- "每月 1 号 00:00 定投 100 USDT，BTC 占 20%、ETH 占 80%"
+- "显示我运行中的定投策略"
+- "把定投策略 algoId 12345 的每期金额改成 20 USDT"
+- "暂停定投策略 algoId 12345"
 
 ## CLI
 
@@ -291,4 +420,37 @@ okx bot dca create --instId BTC-USDT-SWAP --lever 3 --direction long \
   --tpPct 0.03 --slPct 0.15 --slMode market
 
 okx bot dca stop --algoId <id>
+
+# ── 智能组合 ──────────────────────────────────────────────────────────────────
+okx bot smart-portfolio orders [--history] [--algoId <id>]
+okx bot smart-portfolio details --algoId <id>
+okx bot smart-portfolio recommend-zones [--assetType Crypto]
+okx bot smart-portfolio zones-backtest --recommendId <id> [--period 3M]
+
+okx bot smart-portfolio create --stgyName "My Portfolio" --investmentCcy USDT --initCapital 5000 \
+  --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' \
+  --interval 20 --deltaRatio 0.05
+
+okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio 0.05 --interval 60
+okx bot smart-portfolio instant-rebalance --algoId <id>
+okx bot smart-portfolio stop --algoId <id> --stopType 1
+
+# ── 定投（仅 CLI）──────────────────────────────────────────────────────────────
+okx bot recurring orders [--history] [--algoId <id>]
+okx bot recurring details --algoId <id>
+okx bot recurring sub-orders --algoId <id>
+
+# tdMode 必填：1 → cash；2 → cash 或 cross（真实杠杆）；3 和 4 → 只能 cross
+okx bot recurring create --stgyName "BTC-ETH 每月定投" \
+  --recurringList '[{"ccy":"BTC","ratio":"0.2"},{"ccy":"ETH","ratio":"0.8"}]' \
+  --period monthly --recurringDay 1 --recurringTime 0 --timeZone 8 \
+  --amt 100 --investmentCcy USDT --tdMode cash
+# 负时区：--timeZone=-5
+
+okx bot recurring pause --algoId <id>
+okx bot recurring restart --algoId <id>
+okx bot recurring stop --algoId <id>
+okx bot recurring amend-name --algoId <id> --stgyName <name>
+okx bot recurring amend-amount --algoId <id> --amount 20
+okx bot recurring add-investment --algoId <id> --amount 20
 ```
