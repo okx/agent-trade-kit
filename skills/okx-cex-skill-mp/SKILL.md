@@ -30,7 +30,7 @@ Browse, search, install, and manage AI trading skills from the OKX Skills Market
 - Market data / indicators → `okx-cex-market`
 - Account balance / positions → `okx-cex-portfolio`
 - Place / cancel orders → `okx-cex-trade`
-- Grid / DCA bots → `okx-cex-bot`
+- Grid / DCA / Smart Portfolio / Recurring Buy bots → `okx-cex-bot`
 
 ## Prerequisites
 

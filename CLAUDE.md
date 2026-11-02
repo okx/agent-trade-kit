@@ -193,6 +193,8 @@ probe 文件随工具代码在同一 MR 提交，eval runner 在容器内自动�
 | smartmoney | `eval/probes/smartmoney/` |
 | earn.savings / onchain / dcd / autoearn / flash | `eval/probes/earn/<sub>/` |
 | bot.grid / dca | `eval/probes/bot/<sub>/` |
+| bot.smartportfolio | `eval/probes/bot/smart-portfolio/` |
+| bot.recurring（CLI-only） | `eval/probes/bot/recurring/` |
 | skills | `eval/probes/skills/` |
 
 文件命名：`tier2-<tool_name>.live.test.ts`（snake_case，与 tool name 一致）。

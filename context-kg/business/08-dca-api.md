@@ -3,7 +3,7 @@
 
 **Source**: [DCA OpenAPI Doc](https://gitlab.okg.com/retail-ai/okx-trade-mcp/-/wikis/Open-API-Doc/DCA-OpenAPI-Doc) (repo wiki, mirror of [Lark original](https://okg-block.sg.larksuite.com/docx/G2R6dI2dmoLv3ux1pvOlobAYggD))
 
-**Purpose**: Upstream OKX spec for the DCA bot (Martingale-style recurring entry with safety orders). Covers the two controllers powering the `bot.dca` MCP module:
+**Purpose**: Upstream OKX spec for the DCA bot (Martingale-style entry with safety orders). Covers the two controllers powering the `bot.dca` MCP module:
 
 - **V1 Spot DCA** (`SpotDcaApiController`) — 7 endpoints, long-only, no leverage
 - **V2 Contract DCA** (`TradingBotDcaV2Controller`) — 12 endpoints, long/short, configurable leverage, copy-trading support

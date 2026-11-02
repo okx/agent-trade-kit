@@ -11,7 +11,7 @@
 | [`okx-cex-market`](okx-cex-market/SKILL.md) | 公开行情数据：价格、盘口、K线、资金费率、持仓量、交易对信息、技术指标 | 否 |
 | [`okx-cex-trade`](okx-cex-trade/SKILL.md) | 订单管理：现货、永续合约、交割合约、期权，含条件单/OCO/追踪止损 | 是 |
 | [`okx-cex-portfolio`](okx-cex-portfolio/SKILL.md) | 账户操作：余额、持仓、盈亏、手续费、资金划转 | 是 |
-| [`okx-cex-bot`](okx-cex-bot/SKILL.md) | 自动化策略：现货/合约网格机器人、DCA（现货 & 合约）马丁机器人 | 是 |
+| [`okx-cex-bot`](okx-cex-bot/SKILL.md) | 自动化策略：现货/合约网格机器人、DCA（现货 & 合约）马丁机器人、智能组合、定投 | 是 |
 | [`okx-cex-earn`](okx-cex-earn/SKILL.md) | 赚币产品：简单赚币、链上质押、双币赢、自动赚币 | 是 |
 
 ## 使用前提

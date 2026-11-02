@@ -326,5 +326,5 @@ If any `okx auth` command (`login`, `logout`, `status`) fails with "Failed to sp
 | Place / cancel / amend orders             | `okx-cex-trade`                     |
 | Check balance, positions, P&L             | `okx-cex-portfolio`                 |
 | Simple Earn, On-chain Earn, DCD, AutoEarn | `okx-cex-earn`                      |
-| Grid / DCA bots                           | `okx-cex-bot`                       |
+| Grid / DCA / Smart Portfolio / Recurring Buy bots | `okx-cex-bot`                       |
 | Market prices, candles, indicators        | `okx-cex-market` (no auth required) |

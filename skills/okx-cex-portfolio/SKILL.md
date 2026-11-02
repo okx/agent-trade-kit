@@ -116,7 +116,7 @@ okx --demo account balance                   # 模拟盘
 - For market data (prices, charts, depth, funding rates) → use `okx-cex-market`
 - For account balance, P&L, positions, fees, transfers → use `okx-cex-portfolio` (this skill)
 - For regular spot/swap/futures/algo orders → use `okx-cex-trade`
-- For grid and DCA trading bots → use `okx-cex-bot`
+- For grid, DCA, Smart Portfolio and Recurring Buy bots → use `okx-cex-bot`
 
 ## Quickstart
 

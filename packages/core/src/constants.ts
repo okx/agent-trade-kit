@@ -50,6 +50,16 @@ export type BotSubModuleId = (typeof BOT_SUB_MODULE_IDS)[number];
 
 export const BOT_DEFAULT_SUB_MODULES: BotSubModuleId[] = ["bot.grid"];
 
+/**
+ * Modules that are available through the CLI only. They are intentionally NOT
+ * part of MODULES, so `config.modules` (validated against MODULES) can never
+ * contain them and the MCP server (tools/list, tools/call, capabilities)
+ * never exposes their tools. The CLI resolves tools without module gating.
+ */
+export const CLI_ONLY_MODULE_IDS = ["bot.recurring"] as const;
+
+export type CliOnlyModuleId = (typeof CLI_ONLY_MODULE_IDS)[number];
+
 export const EARN_SUB_MODULE_IDS = [
   "earn.savings",
   "earn.onchain",
@@ -79,7 +89,7 @@ export type ModuleId = (typeof MODULES)[number];
 
 export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account", ...BOT_DEFAULT_SUB_MODULES, "skills"];
 // Default: spot, swap, option, account, bot.grid
-// "all": every module including market, futures, bot.dca, earn.savings, earn.onchain, earn.dcd, earn.autoearn, earn.flash
+// "all": every module including market, futures, bot.dca, bot.smartportfolio, earn.savings, earn.onchain, earn.dcd, earn.autoearn, earn.flash
 // "bot": bot.grid only; "bot.all": bot.grid + bot.dca + bot.smartportfolio
 // "earn" / "earn.all": all earn sub-modules (earn.savings + earn.onchain + earn.dcd + earn.autoearn + earn.flash)
 // "earn.savings": Simple Earn only; "earn.onchain": On-chain Earn only; "earn.dcd": Dual Currency Deposit only; "earn.autoearn": Auto-Earn only; "earn.flash": Flash Earn only
@@ -91,6 +101,7 @@ export const DEFAULT_MODULES: ModuleId[] = ["spot", "swap", "option", "account",
 
 export type CliModuleKey =
   | ModuleId
+  | CliOnlyModuleId
   | "earn"
   | "bot"
   | "config"
@@ -116,13 +127,14 @@ export const MODULE_DESCRIPTIONS: Record<CliModuleKey, string> = {
   "earn.flash":    "Flash Earn - short-window high-yield earn projects",
   event:           "Event contracts - binary prediction markets (YES/NO, UP/DOWN)",
   "bot.grid":           "Grid trading bot - create, monitor, and stop grid orders",
-  "bot.dca":            "DCA (Martingale) bot - spot or contract recurring buys",
+  "bot.dca":            "DCA (Martingale) bot with safety orders - spot or contract",
   "bot.smartportfolio": "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
+  "bot.recurring":      "Recurring Buy bot (CLI only) - periodic fixed-amount buys across multiple coins",
   news:            "Crypto news, sentiment analysis, and coin trend tracking",
   smartmoney:      "Smart money signals - trader leaderboard, consensus signals, and position analysis",
   skills:          SKILLS_MARKETPLACE_DESC,
   earn:            "Earn products - Simple Earn, On-chain Earn, DCD, Flash Earn, and Auto-Earn",
-  bot:             "Trading bot strategies (grid, dca, smart-portfolio)",
+  bot:             "Trading bot strategies (grid, dca, smart-portfolio, recurring)",
   config:          "Manage CLI configuration profiles",
   setup:           "Set up client integrations (Cursor, Windsurf, Claude, etc.)",
   pilot:           "Manage Pilot proxy resolver binary",

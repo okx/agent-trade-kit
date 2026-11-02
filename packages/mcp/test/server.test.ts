@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import type { OkxConfig } from "@agent-tradekit/core";
+import { MODULES, type ModuleId, type OkxConfig } from "@agent-tradekit/core";
 import { createServer, WRITE_ACTION_PATTERN, REMEDIATION_WARNING, applyRemediationWarning } from "../src/server.js";
 import { SERVER_NAME, SERVER_VERSION } from "../src/constants.js";
 
@@ -130,6 +130,34 @@ describe("createServer", () => {
     assert.ok(instructions, "instructions should be defined");
     assert.ok(instructions.includes("MUST NOT automatically execute"), "should contain safeguard rule");
     assert.ok(instructions.includes("read-only tools"), "should mention read-only diagnosis");
+  });
+});
+
+describe("CLI-only modules are not exposed over MCP", () => {
+  // bot.recurring is CLI-only (CLI_ONLY_MODULE_IDS): outside MODULES, so no config can enable it.
+  const allModules = [...MODULES] as ModuleId[];
+
+  it("tools/list with every module enabled contains no recurring_* tool", async () => {
+    const { client } = await createTestPair(makeConfig({ modules: allModules }));
+    const names = (await client.listTools()).tools.map((t) => t.name);
+    assert.deepEqual(names.filter((n) => n.startsWith("recurring_")), []);
+  });
+
+  it("tools/call recurring_create_order is rejected as not available", async () => {
+    const { client } = await createTestPair(makeConfig({ modules: allModules }));
+    const result = await client.callTool({ name: "recurring_create_order", arguments: {} });
+    assert.equal(result.isError, true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const payload = JSON.parse(content[0].text);
+    assert.equal(payload.code, "TOOL_NOT_AVAILABLE");
+  });
+
+  it("system_get_capabilities does not mention bot.recurring", async () => {
+    const { client } = await createTestPair(makeConfig({ modules: allModules }));
+    const result = await client.callTool({ name: "system_get_capabilities", arguments: {} });
+    const content = result.content as Array<{ type: string; text: string }>;
+    assert.ok(!content[0].text.includes("bot.recurring"));
+    assert.ok(!content[0].text.includes("recurring_"));
   });
 });
 

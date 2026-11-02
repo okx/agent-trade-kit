@@ -29,7 +29,7 @@ Public market data for OKX: prices, order books, candles, funding rates, open in
 - Place / cancel orders → `okx-cex-trade`
 - **Trading a directional view as an event contract** → `okx-cex-trade`
 - Market sentiment / most bullish-bearish coins → `okx-sentiment-tracker`
-- Grid / DCA bots → `okx-cex-bot`
+- Grid / DCA / Smart Portfolio / Recurring Buy bots → `okx-cex-bot`
 
 ## Preflight
 
