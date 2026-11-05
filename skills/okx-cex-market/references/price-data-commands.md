@@ -102,7 +102,7 @@ okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before
 
 `--bar` values: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `2D` `3D` `1W` `1M` `3M`
 
-UTC+0 variants (from 6H up only): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`. Plain bars follow UTC+8 (identical to UTC+0 up to 4H); use the `utc` variants for UTC day/week/month boundaries. `index-candles` accepts the same values.
+UTC+0 variants (from 6H up only): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`. Plain bars follow UTC+8 (identical to UTC+0 up to 4H); use the `utc` variants for UTC day/week/month boundaries.
 
 > Use uppercase for hour/day/week/month — `1H` not `1h`.
 

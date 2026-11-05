@@ -6,7 +6,14 @@ export const OKX_CANDLE_BARS = [
   "1m", "3m", "5m", "15m", "30m",
   "1H", "2H", "4H", "6H", "12H",
   "1D", "2D", "3D", "1W", "1M", "3M",
-  // UTC+0 variants (OKX only offers these from 6H up; default bars follow UTC+8)
+] as const;
+
+/**
+ * UTC+0 variants accepted by /market/candles (OKX offers them from 6H up; plain bars follow
+ * UTC+8). Candles only: the index-candles endpoints support a smaller UTC set, so
+ * OKX_CANDLE_BARS (also used by index-candles) is intentionally left unchanged.
+ */
+export const OKX_CANDLE_UTC_BARS = [
   "6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc",
 ] as const;
 

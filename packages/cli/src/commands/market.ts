@@ -6,6 +6,9 @@ import { resolveIndicatorCode, KNOWN_INDICATORS } from "@agent-tradekit/core";
 const NO_INDICATOR_VALUES_HINT =
   "No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).";
 
+const NO_VALUES_WITH_DEFAULT_HINT =
+  "No indicator values returned for the default params; there may not be enough candles for this instrument and bar.";
+
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
 }
@@ -269,11 +272,19 @@ const PARAM_TOKEN_RE = /^-?\d+(\.\d+)?$/;
 function parseIndicatorParams(raw: string): number[] {
   return raw.split(",").map((token) => {
     const trimmed = token.trim();
-    if (!PARAM_TOKEN_RE.test(trimmed)) {
-      throw new Error(`Invalid --params "${raw}": "${token}" is not a number; ${PARAMS_FORMAT_HINT}`);
+    const value = PARAM_TOKEN_RE.test(trimmed) ? Number(trimmed) : Number.NaN;
+    // a very long digit string overflows to Infinity, which JSON would serialise as null
+    if (!Number.isFinite(value)) {
+      throw new Error(`Invalid --params "${raw}": "${token.slice(0, 40)}" is not a finite number; ${PARAMS_FORMAT_HINT}`);
     }
-    return Number(trimmed);
+    return value;
   });
+}
+
+function noValuesError(indicator: string, explicit: number[]): Error {
+  return new Error(
+    `No values returned for ${indicator} with params [${explicit.join(",")}]: the period may exceed the available candles, or the params are not valid for this indicator.`,
+  );
 }
 
 /** `params: 12,26,9 (default)` line from the tool result; undefined when the indicator has no params contract. */
@@ -316,7 +327,11 @@ export async function cmdMarketIndicator(
   const outerArray = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(outerArray);
 
-  if (!outerArray?.length) { outputLine("No data"); return; }
+  if (!outerArray?.length) {
+    if (explicit) throw noValuesError(indicator, explicit);
+    outputLine("No data");
+    return;
+  }
 
   const apiCode = resolveIndicatorCode(indicator);
   const response = outerArray[0];
@@ -325,6 +340,7 @@ export async function cmdMarketIndicator(
   const timeframes = instData?.["timeframes"] as Record<string, unknown> | undefined;
 
   if (!timeframes) {
+    if (explicit) throw noValuesError(indicator, explicit);
     output(JSON.stringify(outerArray, null, 2) + "\n");
     return;
   }
@@ -360,12 +376,9 @@ export async function cmdMarketIndicator(
   }
 
   if (printed) return;
-  if (explicit) {
-    throw new Error(
-      `No values returned for ${indicator} with params [${explicit.join(",")}]: the period may exceed the available candles, or the params are not valid for this indicator.`,
-    );
-  }
-  outputLine(NO_INDICATOR_VALUES_HINT);
+  if (explicit) throw noValuesError(indicator, explicit);
+  // a default was already applied: a longer period is not the fix, there are simply too few candles
+  outputLine(applied ? NO_VALUES_WITH_DEFAULT_HINT : NO_INDICATOR_VALUES_HINT);
 }
 
 export async function cmdMarketInstrumentsByCategory(

@@ -40,7 +40,7 @@ describe("defaults", () => {
   });
 
   it("indicators outside the contract have no spec", () => {
-    for (const name of ["obv", "vwap", "sar", "ad", "envelope", "alphatrend", "halftrend", "pmax", "foo"]) {
+    for (const name of ["obv", "vwap", "sar", "ad", "foo"]) {
       assert.equal(hasIndicatorParamSpec(name), false, name);
       assert.equal(getSpecDefaultParams(name), undefined, name);
     }
@@ -109,6 +109,38 @@ describe("value ranges", () => {
   });
 });
 
+describe("envelope / alphatrend / halftrend / pmax", () => {
+  it("envelope: [period, percent] both integers 2..365 (percent is an integer, 2 = 2%)", () => {
+    assert.doesNotThrow(() => validateIndicatorParams("envelope", [20, 2]));
+    rejects("envelope", [20], /envelope requires 2 params \(period,percent\)/);
+    rejects("envelope", [20, 2, 1], /envelope requires 2 params/);
+    rejects("envelope", [20, 0.1], /param #2 \(percent\) must be an integer in 2-365, got 0.1/);
+    rejects("envelope", [1, 2], /param #1 \(period\)/);
+    assert.deepEqual(getSpecDefaultParams("envelope"), [20, 2]);
+  });
+
+  it("alphatrend / halftrend: two integers, no range check (the backend applies none)", () => {
+    assert.doesNotThrow(() => validateIndicatorParams("alphatrend", [14, 100]));
+    assert.doesNotThrow(() => validateIndicatorParams("alphatrend", [14, 500]));
+    assert.doesNotThrow(() => validateIndicatorParams("halftrend", [2, 20]));
+    assert.doesNotThrow(() => validateIndicatorParams("halftrend", [1, 35]));
+    rejects("alphatrend", [14], /alphatrend requires 2 params \(period,coefficientX100\)/);
+    rejects("halftrend", [2, 20, 1], /halftrend requires 2 params \(amplitude,channelDeviationX10\)/);
+    rejects("alphatrend", [14, 1.5], /param #2 \(coefficientX100\) must be an int32 integer, got 1.5/);
+    rejects("halftrend", [2, 2147483648], /must be an int32 integer/);
+    assert.deepEqual(getSpecDefaultParams("alphatrend"), [14, 100]);
+    assert.deepEqual(getSpecDefaultParams("halftrend"), [2, 20]);
+  });
+
+  it("pmax: [atrPeriod, multiplier x10, emaPeriod] all integers 2..365", () => {
+    assert.doesNotThrow(() => validateIndicatorParams("pmax", [10, 30, 10]));
+    rejects("pmax", [10, 30], /pmax requires 3 params \(atrPeriod,multiplierX10,emaPeriod\)/);
+    rejects("pmax", [1, 30, 10], /param #1 \(atrPeriod\) must be an integer in 2-365/);
+    rejects("pmax", [10, 30, 400], /param #3 \(emaPeriod\)/);
+    assert.deepEqual(getSpecDefaultParams("pmax"), [10, 30, 10]);
+  });
+});
+
 describe("multi-period indicators", () => {
   it("accept one or more periods", () => {
     for (const name of ["ma", "ema", "rsi", "wr", "wma", "dema", "tema", "zlema", "hma", "kama"]) {
@@ -127,7 +159,7 @@ describe("pass-through", () => {
     assert.doesNotThrow(() => validateIndicatorParams("macd", []));
   });
   it("indicators without a spec are not validated", () => {
-    for (const name of ["obv", "sar", "envelope", "alphatrend", "pmax", "foo-bar"]) {
+    for (const name of ["obv", "sar", "ad", "foo-bar"]) {
       assert.doesNotThrow(() => validateIndicatorParams(name, [0.5, -1, 999]), name);
     }
   });

@@ -10,7 +10,7 @@ import {
 
 const PROBE_ID = 'tier2.market-get-trades';
 const USER_PROMPT = 'Get the BTC-USDT public trades from the last 3 months, 50 records per page, starting from the newest. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "market", "trades", "BTC-USDT", "--history"]];
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "market", "trades", "BTC-USDT", "--history", "--limit", "50"]];
 const EXPECTATION = 'okx market trades BTC-USDT --history --limit 50';
 
 describe(PROBE_ID, () => {

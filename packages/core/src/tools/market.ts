@@ -1,7 +1,9 @@
 import type { ToolSpec } from "./types.js";
 import { asRecord, assertEnum, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString, validateSwapInstId } from "./helpers.js";
-import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
+import { publicRateLimit, OKX_CANDLE_BARS, OKX_CANDLE_UTC_BARS, OKX_INST_TYPES } from "./common.js";
 import { ValidationError } from "../utils/errors.js";
+
+const CANDLES_BARS = [...OKX_CANDLE_BARS, ...OKX_CANDLE_UTC_BARS] as const;
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -172,7 +174,7 @@ export function registerMarketTools(): ToolSpec[] {
           },
           bar: {
             type: "string",
-            enum: [...OKX_CANDLE_BARS],
+            enum: [...CANDLES_BARS],
             description: "Default 1m. 6Hutc,12Hutc,1Dutc,2Dutc,3Dutc,1Wutc,1Mutc,3Mutc are UTC+0 bars (plain 6H-3M follow UTC+8)",
           },
           after: {
@@ -194,7 +196,7 @@ export function registerMarketTools(): ToolSpec[] {
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
         const bar = readString(args, "bar");
-        assertEnum(bar, "bar", OKX_CANDLE_BARS);
+        assertEnum(bar, "bar", CANDLES_BARS);
         const afterTs = readString(args, "after");
         const beforeTs = readString(args, "before");
         const demo = readBoolean(args, "demo") ?? false;
@@ -499,7 +501,7 @@ export function registerMarketTools(): ToolSpec[] {
           bar: {
             type: "string",
             enum: [...OKX_CANDLE_BARS],
-            description: "Default 1m. 6Hutc,12Hutc,1Dutc,2Dutc,3Dutc,1Wutc,1Mutc,3Mutc are UTC+0 bars (plain 6H-3M follow UTC+8)",
+            description: "Default 1m",
           },
           after: {
             type: "string",

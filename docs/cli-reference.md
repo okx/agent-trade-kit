@@ -73,6 +73,8 @@ okx market pair-spread BTC-USDT-SWAP ETH-USDT-SWAP --backtest-time 1715000000000
 
 Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
 
+UTC+0 variants (`okx market candles` only, from 6H up): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`
+
 ---
 
 ## account
@@ -419,6 +421,8 @@ okx market open-interest --instType SWAP
 ```
 
 K线周期：`1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
+
+UTC+0 周期（仅 `okx market candles`，6H 及以上）：`6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`
 
 ---
 

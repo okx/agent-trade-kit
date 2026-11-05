@@ -199,8 +199,8 @@ describe("DEFAULT_INDICATOR_PARAMS", () => {
     assert.deepEqual(DEFAULT_INDICATOR_PARAMS["trix"], [18]);
   });
 
-  it("covers exactly the 35 indicators of the params contract", () => {
-    assert.equal(Object.keys(DEFAULT_INDICATOR_PARAMS).length, 35);
+  it("covers exactly the 39 indicators of the params contract", () => {
+    assert.equal(Object.keys(DEFAULT_INDICATOR_PARAMS).length, 39);
   });
 
   it("macd defaults to [12, 26, 9] (PRD example)", () => {
@@ -815,11 +815,22 @@ describe("market_get_indicator - params validation (handler level)", () => {
     assert.equal(explicit.result["paramsSource"], undefined);
   });
 
-  it("alphatrend / halftrend / pmax accept params (no longer rejected)", async () => {
-    for (const indicator of ["alphatrend", "halftrend", "pmax"]) {
-      const { body } = await send({ indicator, params: [14, 100] });
-      assert.deepEqual(paramListOf(body, indicator.toUpperCase()), [14, 100]);
+  it("envelope / alphatrend / halftrend / pmax: default applied when omitted, explicit params sent as-is", async () => {
+    const defaults: Record<string, number[]> = { envelope: [20, 2], alphatrend: [14, 100], halftrend: [2, 20], pmax: [10, 30, 10] };
+    for (const [indicator, def] of Object.entries(defaults)) {
+      const omitted = await send({ indicator });
+      assert.deepEqual(paramListOf(omitted.body, indicator.toUpperCase()), def, indicator);
+      assert.equal(omitted.result["paramsSource"], "default");
+      const explicit = await send({ indicator, params: def });
+      assert.deepEqual(explicit.result["appliedParams"], def);
+      assert.equal(explicit.result["paramsSource"], "explicit");
     }
+  });
+
+  it("envelope rejects the old documented example 20,0.1 and incomplete params", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(() => send({ indicator: "envelope", params: [20, 0.1] }), ValidationError);
+    await assert.rejects(() => send({ indicator: "pmax", params: [10, 30] }), ValidationError);
   });
 
   it("rejects incomplete and surplus fixed-length params", async () => {
@@ -853,7 +864,7 @@ describe("market_get_indicator - params validation (handler level)", () => {
     for (const item of [null, true, "", "abc", [26], Number.NaN]) {
       await assert.rejects(
         () => send({ indicator: "bb", params: [20, item] }),
-        (err) => err instanceof ValidationError && /must be a number/.test((err as Error).message),
+        (err) => err instanceof ValidationError && /must be a finite number/.test((err as Error).message),
         String(item),
       );
     }
@@ -883,5 +894,39 @@ describe("market_get_indicator - params validation (handler level)", () => {
       (err) => err instanceof ValidationError && /bb param #2 \(multiplier\)/.test((err as Error).message),
     );
   });
-});
 
+  it("type errors on an indicator with a params contract also carry its signature and default", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(
+      () => send({ indicator: "macd", params: [12, "abc", 9] }),
+      (err) => err instanceof ValidationError
+        && /params"\[1\] must be a finite number/.test((err as Error).message)
+        && /macd requires 3 params \(fast,slow,signal\)\. Default: 12,26,9\. Example: params \[12,26,9\]/.test((err as Error).message),
+    );
+    await assert.rejects(
+      () => send({ indicator: "ema", params: "5,20" }),
+      (err) => err instanceof ValidationError
+        && /must be an array of numbers/.test((err as Error).message)
+        && /ema requires one or more periods/.test((err as Error).message),
+    );
+  });
+
+  it("type errors on an indicator without a params contract stay generic", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(
+      () => send({ indicator: "obv", params: ["x"] }),
+      (err) => err instanceof ValidationError && !/requires/.test((err as Error).message),
+    );
+  });
+
+  it("a very long digit string (overflows to Infinity) is rejected instead of being sent as null", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const indicator of ["obv", "macd"]) {
+      await assert.rejects(
+        () => send({ indicator, params: ["9".repeat(400)] }),
+        (err) => err instanceof ValidationError && /must be a finite number/.test((err as Error).message),
+        indicator,
+      );
+    }
+  });
+});

@@ -15,6 +15,7 @@ import { withAigcErrors } from "./aigc-errors.js";
 import {
   INDICATOR_DEFAULT_PARAMS,
   describeIndicatorDefaults,
+  formatIndicatorSignature,
   getSpecDefaultParams,
   hasIndicatorParamSpec,
   validateIndicatorParams,
@@ -206,8 +207,13 @@ const NUMERIC_STRING_RE = /^-?\d+(\.\d+)?$/;
 /** Accept finite numbers and numeric strings (LLMs sometimes send "14"); reject everything else. */
 function toNumberItem(key: string, item: unknown, index: number): number {
   if (typeof item === "number" && Number.isFinite(item)) return item;
-  if (typeof item === "string" && NUMERIC_STRING_RE.test(item.trim())) return Number(item);
-  throw new ValidationError(`Parameter "${key}"[${index}] must be a number, got ${JSON.stringify(item)}.`);
+  if (typeof item === "string" && NUMERIC_STRING_RE.test(item.trim())) {
+    const parsed = Number(item);
+    // a very long digit string overflows to Infinity, which JSON would serialise as null
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const shown = typeof item === "string" ? JSON.stringify(item.slice(0, 40)) : JSON.stringify(item) ?? String(item);
+  throw new ValidationError(`Parameter "${key}"[${index}] must be a finite number, got ${shown}.`);
 }
 
 function readNumberArray(
@@ -220,6 +226,18 @@ function readNumberArray(
     throw new ValidationError(`Parameter "${key}" must be an array of numbers, e.g. [12,26,9].`);
   }
   return value.map((item, index) => toNumberItem(key, item, index));
+}
+
+/** Read `params`; a malformed value for an indicator with a params contract also reports its signature. */
+function readParams(args: Record<string, unknown>, indicator: string): number[] | undefined {
+  try {
+    return readNumberArray(args, "params");
+  } catch (error) {
+    if (error instanceof ValidationError && hasIndicatorParamSpec(indicator)) {
+      throw new ValidationError(`${error.message} ${formatIndicatorSignature(indicator)}`);
+    }
+    throw error;
+  }
 }
 
 export function registerIndicatorTools(): ToolSpec[] {
@@ -277,7 +295,7 @@ export function registerIndicatorTools(): ToolSpec[] {
         validateIndicatorName(indicator);
         const bar = readString(args, "bar") ?? "1H";
         assertEnum(bar, "bar", INDICATOR_BARS, { caseInsensitive: true });
-        const rawParams = readNumberArray(args, "params");
+        const rawParams = readParams(args, indicator);
         const explicit = rawParams && rawParams.length > 0 ? rawParams : undefined;
         if (explicit) validateIndicatorParams(indicator, explicit);
         // Omitted params -> apply the indicator's default (CLI and MCP alike).

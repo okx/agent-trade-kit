@@ -289,8 +289,8 @@ export const CLI_OPTIONS = {
   // orders
   instId: { type: "string" },
   history: { type: "boolean", default: false },
-  // `okx market trades --history` pagination type (1=tradeId, 2=timestamp). Registered globally like
-  // every other flag but only read by the trades command; other commands ignore it.
+  // `okx market trades --history` pagination type (1=tradeId, 2=timestamp). Only valid for that command:
+  // parseCli rejects it everywhere else, exactly like the unknown option it was before.
   type: { type: "string" },
   ordId: { type: "string" },
   // trade
@@ -616,20 +616,18 @@ const NEGATIVE_NUMBER_RE = /^-\d+(\.\d+)?$/;
 // first digit is validated later with a precise per-token error.
 const NEGATIVE_PARAMS_RE = /^-\d\S*$/;
 
-const NEGATIVE_VALUE_FLAGS: ReadonlyArray<{ flag: string; pattern: RegExp }> = [
-  { flag: "--timeZone", pattern: NEGATIVE_NUMBER_RE },
-  { flag: "--params", pattern: NEGATIVE_PARAMS_RE },
-];
-
 /**
  * parseArgs rejects `--timeZone -5` / `--params -9,3,3` (the value looks like an
  * option), so join a negative value to its flag: `--timeZone -5` -> `--timeZone=-5`.
+ * `--params` is only handled for `market indicator`, the sole command that reads it.
  */
-function joinNegativeFlagValues(argv: string[]): string[] {
+function joinNegativeFlagValues(argv: string[], joinParams: boolean): string[] {
+  const rules: Array<{ flag: string; pattern: RegExp }> = [{ flag: "--timeZone", pattern: NEGATIVE_NUMBER_RE }];
+  if (joinParams) rules.push({ flag: "--params", pattern: NEGATIVE_PARAMS_RE });
   const joined: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const next = argv[i + 1];
-    const rule = NEGATIVE_VALUE_FLAGS.find((r) => r.flag === argv[i]);
+    const rule = rules.find((r) => r.flag === argv[i]);
     if (rule && next !== undefined && rule.pattern.test(next)) {
       joined.push(`${rule.flag}=${next}`);
       i++;
@@ -640,7 +638,7 @@ function joinNegativeFlagValues(argv: string[]): string[] {
   return joined;
 }
 
-/** `--params` takes one comma-separated value; a repeated flag would silently keep only the last. */
+/** `okx market indicator --params` takes one comma-separated value; a repeated flag would silently keep only the last. */
 function assertSingleParamsFlag(argv: string[]): void {
   const count = argv.filter((a) => a === "--params" || a.startsWith("--params=")).length;
   if (count > 1) {
@@ -648,11 +646,23 @@ function assertSingleParamsFlag(argv: string[]): void {
   }
 }
 
+/** The first two command words (e.g. "market indicator"), read leniently before the strict parse. */
+function leadingCommand(argv: string[]): string {
+  const { positionals } = parseArgs({ args: argv, options: CLI_OPTIONS, allowPositionals: true, strict: false });
+  return positionals.slice(0, 2).join(" ");
+}
+
+const OPTIONS_WITHOUT_TYPE = Object.fromEntries(
+  Object.entries(CLI_OPTIONS).filter(([name]) => name !== "type"),
+) as typeof CLI_OPTIONS;
+
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
   // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
   const negated = new Set<string>();
-  assertSingleParamsFlag(argv);
-  const filtered = joinNegativeFlagValues(argv).filter((arg) => {
+  const command = leadingCommand(argv);
+  const isIndicator = command === "market indicator";
+  if (isIndicator) assertSingleParamsFlag(argv);
+  const filtered = joinNegativeFlagValues(argv, isIndicator).filter((arg) => {
     if (arg.startsWith("--no-")) {
       const key = arg.slice(5);
       if (key in CLI_OPTIONS && (CLI_OPTIONS as Record<string, { type: string }>)[key].type === "boolean") {
@@ -668,6 +678,12 @@ export function parseCli(argv: string[]): { values: CliValues; positionals: stri
     options: CLI_OPTIONS,
     allowPositionals: true,
   });
+
+  if (values.type !== undefined && command !== "market trades") {
+    // `--type` only exists for `okx market trades`; elsewhere it must stay an unknown option
+    // (this strict re-parse throws the same ERR_PARSE_ARGS_UNKNOWN_OPTION it always did).
+    parseArgs({ args: filtered, options: OPTIONS_WITHOUT_TYPE, allowPositionals: true });
+  }
 
   for (const key of negated) {
     (values as Record<string, unknown>)[key] = false;

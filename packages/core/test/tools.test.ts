@@ -483,6 +483,48 @@ describe("OKX_CANDLE_BARS / INDICATOR_BARS", () => {
 
 describe("market_get_candles - UTC bars", () => {
   const tools = registerMarketTools();
+  const tool = tools.find((t) => t.name === "market_get_candles")!;
+  const UTC_BARS = ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"];
+
+  for (const bar of UTC_BARS) {
+    it(`accepts ${bar}`, async () => {
+      const { client, getLastCall } = makeMockClient();
+      await tool.handler({ instId: "BTC-USDT", bar }, makeContext(client));
+      assert.equal(getLastCall()?.params["bar"], bar);
+    });
+  }
+  for (const bar of ["1Hutc", "4Hutc", "1h"]) {
+    it(`rejects ${bar}`, async () => {
+      const { client } = makeMockClient();
+      await assert.rejects(() => tool.handler({ instId: "BTC-USDT", bar }, makeContext(client)), ValidationError);
+    });
+  }
+});
+
+describe("market_get_index_candles - bar schema is unchanged (UTC bars are candles-only)", () => {
+  const tool = registerMarketTools().find((t) => t.name === "market_get_index_candles")!;
+  const props = (tool.inputSchema as { properties: Record<string, { enum?: string[]; description?: string }> }).properties;
+
+  it("keeps the original 16 bars and description", () => {
+    assert.equal(props["bar"]!.enum!.length, 16);
+    assert.ok(!props["bar"]!.enum!.some((b) => b.endsWith("utc")));
+    assert.equal(props["bar"]!.description, "Default 1m");
+  });
+});
+
+describe("OKX_CANDLE_BARS / INDICATOR_BARS", () => {
+  it("schema enum of market_get_candles lists all 8 UTC bars (24 total)", () => {
+    const tool = registerMarketTools().find((t) => t.name === "market_get_candles")!;
+    const props = (tool.inputSchema as { properties: Record<string, { enum?: string[] }> }).properties;
+    assert.equal(props["bar"]!.enum!.length, 24);
+    for (const b of ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"]) {
+      assert.ok(props["bar"]!.enum!.includes(b), b);
+    }
+  });
+});
+
+describe("market_get_candles - UTC bars", () => {
+  const tools = registerMarketTools();
   const UTC_BARS = ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"];
 
   for (const name of ["market_get_candles", "market_get_index_candles"]) {

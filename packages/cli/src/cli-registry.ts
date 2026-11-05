@@ -105,7 +105,7 @@ export const CLI_REGISTRY: CliRegistry = {
       "index-candles": {
         toolName: "market_get_index_candles",
         usage: "okx market index-candles <instId> [--bar <bar>] [--limit <n>] [--history]",
-        description: "Get index candlestick data (same --bar values as candles, including the UTC+0 variants such as 1Dutc)",
+        description: "Get index candlestick data",
       },
       "price-limit": {
         toolName: "market_get_price_limit",

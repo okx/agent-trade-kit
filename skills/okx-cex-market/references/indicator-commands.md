@@ -33,7 +33,7 @@ okx market indicator <indicator> <instId> [--bar <bar>] [--params <n1,n2,...>] [
 
 `3m` `5m` `15m` `1H` `4H` `12Hutc` `1Dutc` `3Dutc` `1Wutc`
 
-> These differ from candle `--bar` values: daily is `1Dutc` not `1D`, weekly is `1Wutc` not `1W`.
+> Indicators accept only this subset of the candle `--bar` values: daily is `1Dutc` (not `1D`), weekly is `1Wutc` (not `1W`).
 
 ### `--params` contract
 
@@ -55,6 +55,10 @@ Two ways to call an indicator:
 | `bbwidth`, `bbpct` | period, multiplier | `20,2` |
 | `keltner` | emaPeriod, atrPeriod, multiplier×10 | `20,10,20` |
 | `mvwap` | vwapPeriod, mvwapPeriod | `14,14` |
+| `envelope` | period, percent | `20,2` |
+| `alphatrend` | period, coefficient×100 | `14,100` |
+| `halftrend` | amplitude, channelDeviation×10 | `2,20` |
+| `pmax` | atrPeriod, multiplier×10, emaPeriod | `10,30,10` |
 | `ma` | one or more periods | `5,20,60` |
 | `ema` | one or more periods | `5,20` |
 | `rsi`, `wr`, `wma`, `dema`, `tema`, `zlema`, `hma`, `kama` | one or more periods | `14` |
@@ -70,12 +74,14 @@ Notes on the less obvious positions (from the backend contract):
 - `supertrend`: the **first** value is the ATR multiplier (`factor`, integer 1–9) and the second is the ATR period — the reverse of the usual "period, multiplier" order.
 - `bb`: the multiplier is an **integer** 1–9 (no decimals such as 2.5). `bbwidth` / `bbpct` validate their multiplier like a period (2–365) instead.
 - `keltner`: the third value is the channel multiplier **×10** (`20` means 2.0).
+- `envelope`: the second value is the band **percent as an integer** (`2` means 2%), not a decimal such as 0.1.
+- `alphatrend`, `halftrend`, `pmax`: scaled integers — `alphatrend` coefficient×100 (`100` = 1.0), `halftrend` channelDeviation×10 (`20` = 2.0), `pmax` multiplier×10 (`30` = 3.0). The backend applies no range check to the `alphatrend` / `halftrend` values; `pmax` and `envelope` values are periods (2–365).
 - `kdj`: the second and third values are accepted but the backend uses fixed smoothing, so they do not change the result.
 - All values are integers; the backend cannot take decimals in `--params`.
 
 Examples: `--params 12,26,9` (macd), `--params 3,10` (supertrend: factor 3, ATR period 10), `--params 5,20,60` (ma). `--params 12,26` for macd fails with `macd requires 3 params (fast,slow,signal), got 2`.
 
-Every other indicator (including `envelope`, `alphatrend`, `halftrend`, `pmax`, `obv`, `vwap`, `sar`, `ad` and the candlestick patterns) has no defaults or validation in the CLI: omit `--params` to let the backend use its own default, or pass values that you know the backend accepts.
+Every other indicator (including `obv`, `vwap`, `sar`, `ad` and the candlestick patterns) has no defaults or validation in the CLI: omit `--params` to let the backend use its own default, or pass values that you know the backend accepts.
 
 If explicit `--params` produce no values on any timeframe the command fails (the period may exceed the available candles).
 
@@ -102,10 +108,10 @@ Run `okx market indicator list` for the authoritative full list. Common indicato
 | **Trend** | `cci` | `20` | Commodity Channel Index |
 | **Trend** | `dpo` | `20` | Detrended Price Oscillator |
 | **Trend** | `supertrend` | `3,10` | factor, atrPeriod |
-| **Trend** | `alphatrend` | — | Optional params; no CLI default or validation |
-| **Trend** | `halftrend` | — | Optional params; no CLI default or validation |
-| **Trend** | `envelope` | — | Envelope — no CLI default or validation |
-| **Trend** | `pmax` | — | Optional params; no CLI default or validation |
+| **Trend** | `alphatrend` | `14,100` | period, coefficient×100 |
+| **Trend** | `halftrend` | `2,20` | amplitude, channelDeviation×10 |
+| **Trend** | `envelope` | `20,2` | period, percent — percent is an **integer** (2 = 2%), not a decimal |
+| **Trend** | `pmax` | `10,30,10` | atrPeriod, multiplier×10, emaPeriod |
 | **Momentum** | `rsi` | `14` | Period (default 14) |
 | **Momentum** | `stoch-rsi` | `14,14,3,3` | rsi, stoch, k, d — Stochastic RSI |
 | **Momentum** | `stoch` | `14,3` | Stochastic Oscillator |

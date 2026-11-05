@@ -17,8 +17,11 @@ const PERIOD_MIN = 2;
 const PERIOD_MAX = 365;
 const FACTOR_MIN = 1;
 const FACTOR_MAX = 9;
+const INT32_MIN = -2147483648;
+const INT32_MAX = 2147483647;
 
-type SlotKind = "period" | "factor";
+/** period: integer 2..365; factor: integer 1..9; int: any int32 (the backend applies no range check). */
+type SlotKind = "period" | "factor" | "int";
 
 interface Slot {
   readonly name: string;
@@ -33,6 +36,7 @@ type ParamSpec =
 
 const period = (name: string): Slot => ({ name, kind: "period" });
 const factor = (name: string): Slot => ({ name, kind: "factor" });
+const anyInt = (name: string): Slot => ({ name, kind: "int" });
 const fixed = (slots: Slot[], defaults: number[]): ParamSpec => ({ kind: "fixed", slots, defaults });
 const multi = (defaults: number[]): ParamSpec => ({ kind: "multi", defaults });
 const single = (defaults: number): ParamSpec => fixed([period("period")], [defaults]);
@@ -63,6 +67,14 @@ const PARAM_SPECS: Readonly<Record<string, ParamSpec>> = {
   bbpct: fixed([period("period"), period("multiplier")], [20, 2]),
   keltner: fixed([period("emaPeriod"), period("atrPeriod"), period("multiplierX10")], [20, 10, 20]),
   mvwap: fixed([period("vwapPeriod"), period("mvwapPeriod")], [14, 14]),
+  // percent is an integer (2 = 2%); the backend validates both slots as periods
+  envelope: fixed([period("period"), period("percent")], [20, 2]),
+  // coefficient is x100 (100 = 1.0); the backend applies no range check to these two
+  alphatrend: fixed([anyInt("period"), anyInt("coefficientX100")], [14, 100]),
+  // channel deviation is x10 (20 = 2.0); no range check on the backend
+  halftrend: fixed([anyInt("amplitude"), anyInt("channelDeviationX10")], [2, 20]),
+  // multiplier is x10 (30 = 3.0); the backend validates all three slots as periods
+  pmax: fixed([period("atrPeriod"), period("multiplierX10"), period("emaPeriod")], [10, 30, 10]),
   // Single period
   adx: single(14),
   aroon: single(25),
@@ -114,7 +126,15 @@ function plural(n: number): string {
 }
 
 function rangeText(kind: SlotKind): string {
-  return kind === "period" ? `${PERIOD_MIN}-${PERIOD_MAX}` : `${FACTOR_MIN}-${FACTOR_MAX}`;
+  if (kind === "period") return `an integer in ${PERIOD_MIN}-${PERIOD_MAX}`;
+  if (kind === "factor") return `an integer in ${FACTOR_MIN}-${FACTOR_MAX}`;
+  return "an int32 integer";
+}
+
+function slotBounds(kind: SlotKind): readonly [number, number] {
+  if (kind === "period") return [PERIOD_MIN, PERIOD_MAX];
+  if (kind === "factor") return [FACTOR_MIN, FACTOR_MAX];
+  return [INT32_MIN, INT32_MAX];
 }
 
 /** Human-readable signature, default and example, appended to every validation error. */
@@ -141,11 +161,10 @@ export function describeIndicatorDefaults(): string {
 }
 
 function checkSlot(key: string, slot: Slot, value: number, position: number): void {
-  const min = slot.kind === "period" ? PERIOD_MIN : FACTOR_MIN;
-  const max = slot.kind === "period" ? PERIOD_MAX : FACTOR_MAX;
+  const [min, max] = slotBounds(slot.kind);
   if (Number.isInteger(value) && value >= min && value <= max) return;
   throw new ValidationError(
-    `${key} param #${position + 1} (${slot.name}) must be an integer in ${rangeText(slot.kind)}, got ${String(value)}. ${formatIndicatorSignature(key)}`,
+    `${key} param #${position + 1} (${slot.name}) must be ${rangeText(slot.kind)}, got ${String(value)}. ${formatIndicatorSignature(key)}`,
   );
 }
 

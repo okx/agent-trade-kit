@@ -340,6 +340,52 @@ describe("cmdMarketIndicator - formatter", () => {
     assert.doesNotMatch(out, /params: /);
   });
 
+  it("explicit --params with an empty outer response or a response without timeframes also fails (table mode)", async () => {
+    for (const data of [[], [{ data: [{ instId: "BTC-USDT" }] }]]) {
+      const { spy } = makeSpy({ ...MOCK_INDICATOR_RESULT, data });
+      await assert.rejects(
+        () => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false, params: "14" }),
+        /No values returned for rsi with params \[14\]/,
+      );
+    }
+  });
+
+  it("without --params the same abnormal responses keep the master output", async () => {
+    const empty = makeSpy({ ...MOCK_INDICATOR_RESULT, data: [] });
+    assert.match(await captureStdout(() => cmdMarketIndicator(empty.spy, "rsi", "BTC-USDT", { json: false })), /No data/);
+    const noTf = makeSpy({ ...MOCK_INDICATOR_RESULT, data: [{ data: [{ instId: "BTC-USDT" }] }] });
+    assert.match(await captureStdout(() => cmdMarketIndicator(noTf.spy, "rsi", "BTC-USDT", { json: false })), /instId/);
+  });
+
+  it("--json is unchanged: explicit --params with no values still prints the data and does not throw", async () => {
+    const { spy } = makeSpy({ ...MOCK_INDICATOR_RESULT, data: [] });
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: true, params: "14" }));
+    assert.deepEqual(JSON.parse(out), []);
+  });
+
+  it("rejects a numeric token that overflows to Infinity", async () => {
+    const { spy, captured } = makeSpy();
+    await assert.rejects(
+      () => cmdMarketIndicator(spy, "obv", "BTC-USDT", { json: false, params: "9".repeat(400) }),
+      /not a finite number/,
+    );
+    assert.equal(captured.tool, "");
+  });
+
+  it("uses a different hint when a default was applied and nothing came back", async () => {
+    const emptyDefault = {
+      ...MOCK_INDICATOR_RESULT,
+      appliedParams: [14],
+      paramsSource: "default",
+      data: [{ data: [{ instId: "BTC-USDT", timeframes: { "1H": { indicators: { RSI: [] } } } }], mode: "live", summary: {}, timestamp: 0 }],
+    };
+    const { spy } = makeSpy(emptyDefault);
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false }));
+    assert.match(out, /params: 14 \(default\)/);
+    assert.match(out, /for the default params; there may not be enough candles/);
+    assert.doesNotMatch(out, /try --params/);
+  });
+
   it("skips timeframes with empty indicator values", async () => {
     const emptyValuesResult = {
       ...MOCK_INDICATOR_RESULT,
