@@ -269,7 +269,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           params: {
             type: "array",
             items: { type: "integer" },
-            description: `Optional. Omit to use the indicator's default. If given it must be complete: fixed-length indicators need exactly the full set (too few or too many is an error), ma/ema/rsi/wr/wma/dema/tema/zlema/hma/kama take one or more periods; values are integers (periods 2-365; bb multiplier and supertrend factor 1-9). Order matters, e.g. macd [fast,slow,signal], bb [period,multiplier], supertrend [factor,atrPeriod]. Defaults: ${describeIndicatorDefaults()}. The result reports appliedParams and paramsSource (default|explicit).`,
+            description: `Optional. Omit to use the indicator's default. If given it must be complete: fixed-length indicators need exactly the full set (too few or too many is an error), ma/ema/rsi/wr/wma/dema/tema/zlema/hma/kama take one or more periods; values are integers (periods 2-365; bb multiplier and supertrend factor 1-9; alphatrend and halftrend take any int32 integers). Indicators not listed under Defaults are not validated. Order matters, e.g. macd [fast,slow,signal], bb [period,multiplier], supertrend [factor,atrPeriod]. Defaults: ${describeIndicatorDefaults()}. The result reports appliedParams and paramsSource (default|explicit).`,
           },
           returnList: {
             type: "boolean",

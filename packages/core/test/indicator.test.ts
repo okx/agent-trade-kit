@@ -843,6 +843,13 @@ describe("market_get_indicator - params validation (handler level)", () => {
     }
   });
 
+  it("params description states the int32 exception and that unlisted indicators are not validated", () => {
+    const schema = tool.inputSchema as { properties: { params: { description: string } } };
+    const text = schema.properties.params.description;
+    assert.match(text, /alphatrend and halftrend take any int32 integers/);
+    assert.match(text, /Indicators not listed under Defaults are not validated/);
+  });
+
   it("describes defaults in the params schema", () => {
     const schema = tool.inputSchema as { properties: { params: { description: string; items: { type: string } } } };
     assert.match(schema.properties.params.description, /Defaults:.*supertrend 3,10/);

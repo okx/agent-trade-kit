@@ -259,11 +259,37 @@ describe("cmdMarketIndicator - formatter", () => {
       const { spy, captured } = makeSpy();
       await assert.rejects(
         () => cmdMarketIndicator(spy, "macd", "BTC-USDT", { json: false, params }),
-        /Invalid --params.*comma-separated numbers.*12,26,9/s,
+        /Invalid --params.*macd requires 3 params \(fast,slow,signal\)\. Default: 12,26,9\. Example: params \[12,26,9\]/s,
         params,
       );
       assert.equal(captured.tool, "", `tool must not run for params=${params}`);
     }
+  });
+
+  it("format errors carry the signature and default of the indicator that was asked for (not always macd)", async () => {
+    const cases: Array<[string, string, RegExp, RegExp]> = [
+      ["rsi", "14,x", /rsi requires one or more periods.*Default: 14\./s, /12,26,9/],
+      ["supertrend", "3,x", /supertrend requires 2 params \(factor,atrPeriod\)\. Default: 3,10\./, /12,26,9/],
+      ["boll", "20,x", /bb requires 2 params \(period,multiplier\)\. Default: 20,2\./, /12,26,9/],
+      ["envelope", "20,x", /envelope requires 2 params \(period,percent\)\. Default: 20,2\./, /12,26,9/],
+    ];
+    for (const [indicator, params, expected, forbidden] of cases) {
+      const { spy, captured } = makeSpy();
+      await assert.rejects(
+        () => cmdMarketIndicator(spy, indicator, "BTC-USDT", { json: false, params }),
+        (err) => expected.test((err as Error).message) && !forbidden.test((err as Error).message),
+        indicator,
+      );
+      assert.equal(captured.tool, "", `${indicator}: the tool must not run`);
+    }
+  });
+
+  it("an indicator without a params contract gets a neutral format hint (no macd example)", async () => {
+    const { spy } = makeSpy();
+    await assert.rejects(
+      () => cmdMarketIndicator(spy, "obv", "BTC-USDT", { json: false, params: "x" }),
+      (err) => /expected comma-separated numbers/.test((err as Error).message) && !/12,26,9|requires/.test((err as Error).message),
+    );
   });
 
   it("names the offending token in the error", async () => {

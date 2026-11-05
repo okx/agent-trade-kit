@@ -1,6 +1,6 @@
 import type { ToolRunner } from "@agent-tradekit/core";
 import { output, outputLine, printJson, printKv, printTable } from "../formatter.js";
-import { resolveIndicatorCode, KNOWN_INDICATORS } from "@agent-tradekit/core";
+import { resolveIndicatorCode, getDefaultIndicatorParams, formatIndicatorSignature, KNOWN_INDICATORS } from "@agent-tradekit/core";
 
 /** Verbatim safety-net hint (spec §8.2) shown when the indicator render loop prints nothing. */
 const NO_INDICATOR_VALUES_HINT =
@@ -265,17 +265,22 @@ export function cmdMarketIndicatorList(json: boolean): void {
   printTable(KNOWN_INDICATORS.map(({ name, description }) => ({ name, description })));
 }
 
-const PARAMS_FORMAT_HINT = "expected comma-separated numbers, e.g. --params 12,26,9";
+const PARAMS_FORMAT_HINT = "expected comma-separated numbers, e.g. --params 14,20";
+
+/** Format hint for a bad --params: the indicator's own signature/default/example when it has a params contract. */
+function paramsFormatHint(indicator: string): string {
+  return getDefaultIndicatorParams(indicator) !== undefined ? formatIndicatorSignature(indicator) : PARAMS_FORMAT_HINT;
+}
 const PARAM_TOKEN_RE = /^-?\d+(\.\d+)?$/;
 
 /** Strict `--params` parsing: every token must be a number, nothing is silently dropped. */
-function parseIndicatorParams(raw: string): number[] {
+function parseIndicatorParams(raw: string, indicator: string): number[] {
   return raw.split(",").map((token) => {
     const trimmed = token.trim();
     const value = PARAM_TOKEN_RE.test(trimmed) ? Number(trimmed) : Number.NaN;
     // a very long digit string overflows to Infinity, which JSON would serialise as null
     if (!Number.isFinite(value)) {
-      throw new Error(`Invalid --params "${raw}": "${token.slice(0, 40)}" is not a finite number; ${PARAMS_FORMAT_HINT}`);
+      throw new Error(`Invalid --params "${raw}": "${token.slice(0, 40)}" is not a finite number. ${paramsFormatHint(indicator)}`);
     }
     return value;
   });
@@ -308,7 +313,7 @@ export async function cmdMarketIndicator(
     json: boolean;
   },
 ): Promise<void> {
-  const params = opts.params ? parseIndicatorParams(opts.params) : undefined;
+  const params = opts.params ? parseIndicatorParams(opts.params, indicator) : undefined;
 
   // Omitted --params: core applies the indicator's default (shared with MCP).
   const explicit = params && params.length > 0 ? params : undefined;
