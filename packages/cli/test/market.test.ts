@@ -343,14 +343,14 @@ describe("cmdMarketIndicator", () => {
     assert.equal(err.join(""), "");
   });
 
-  it("Plan B routing: omitting --params for ema sends the core default [14] (via named flag, not positional)", async () => {
+  it("omitting --params sends no params: core applies the default (shared with MCP)", async () => {
     let capturedArgs: Record<string, unknown> = {};
     const runner: ToolRunner = async (_name, args) => {
       capturedArgs = args as Record<string, unknown>;
       return indicatorResult("EMA", { "1H": [{ ts: 1700000000000, values: { ema: "50000" } }] });
     };
     await cmdMarketIndicator(runner, "ema", "BTC-USDT", { json: false });
-    assert.deepEqual(capturedArgs.params, [14], "default paramList [14] must be sent on omit");
+    assert.equal(capturedArgs.params, undefined, "the CLI must not inject defaults itself; core does");
   });
 
   it("explicit --params wins: --params 2 sends [2] (no regression, no default override)", async () => {

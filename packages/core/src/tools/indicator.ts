@@ -12,7 +12,13 @@ import {
 import { ValidationError } from "../utils/errors.js";
 import { publicRateLimit } from "./common.js";
 import { withAigcErrors } from "./aigc-errors.js";
-import { validateIndicatorParams } from "./indicator-params.js";
+import {
+  INDICATOR_DEFAULT_PARAMS,
+  describeIndicatorDefaults,
+  getSpecDefaultParams,
+  hasIndicatorParamSpec,
+  validateIndicatorParams,
+} from "./indicator-params.js";
 
 // Valid timeframes accepted by the indicator API
 export const INDICATOR_BARS = [
@@ -151,64 +157,15 @@ export function resolveIndicatorCode(name: string): string {
 }
 
 /**
- * Default `paramList` for period-based indicators, keyed by the lowercase
- * indicator name (matching `KNOWN_INDICATORS[].name`).
- *
- * Single source of truth (repo CLAUDE.md: shared business logic lives in
- * `packages/core`). The CLI imports this when `--params` is omitted so the
- * server returns values instead of an empty `indicators.<CODE> = []`.
- *
- * Values: PRD-authoritative examples (EMA/MA/WMA/RSI `[14]`, MACD `[12,26,9]`,
- * BB `[20,2]`) plus conventional TA defaults for the remaining period-based
- * indicators. Non-period indicators (e.g. obv, vwap, sar, ad) intentionally
- * have NO entry — the Plan A visible hint covers them at the CLI layer.
- *
- * NOTE: this table is applied CLI-render-only. The MCP raw-data path
- * (`indicator.ts` param-assembly below) is intentionally NOT changed.
+ * Default `paramList` per indicator, keyed by the lowercase indicator name
+ * (matching `KNOWN_INDICATORS[].name`). Derived from the specs in
+ * `indicator-params.ts` (single source of truth, shared by CLI and MCP): when
+ * `params` is omitted the handler applies the default for these indicators.
+ * Indicators without an entry are sent without a `paramList`.
  */
-export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = {
-  // Moving Averages — PRD example default is [14]
-  ma: [14],
-  ema: [14],
-  wma: [14],
-  dema: [14],
-  tema: [14],
-  zlema: [14],
-  hma: [14],
-  kama: [14],
-  // Trend
-  macd: [12, 26, 9],
-  adx: [14],
-  aroon: [14],
-  cci: [20],
-  dpo: [20],
-  // Momentum
-  rsi: [14],
-  "stoch-rsi": [14],
-  stoch: [14, 3, 3],
-  roc: [12],
-  mom: [10],
-  ppo: [12, 26, 9],
-  trix: [15],
-  uo: [7, 14, 28],
-  wr: [14],
-  // Volatility
-  bb: [20, 2],
-  bbwidth: [20, 2],
-  bbpct: [20, 2],
-  atr: [14],
-  keltner: [20, 2],
-  donchian: [20],
-  hv: [20],
-  stddev: [20],
-  // Volume
-  mvwap: [20],
-  cmf: [20],
-  mfi: [14],
-  // Custom
-  kdj: [9, 3, 3],
-  supertrend: [10, 3],
-};
+export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = Object.fromEntries(
+  Object.entries(INDICATOR_DEFAULT_PARAMS).map(([name, defaults]) => [name, [...defaults]]),
+);
 
 /**
  * Resolve the default `paramList` for an indicator, case-insensitively and
@@ -218,22 +175,30 @@ export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = {
  * Returns `undefined` for non-period indicators and unknown names.
  */
 export function getDefaultIndicatorParams(name: string): number[] | undefined {
-  const lower = name.toLowerCase();
-  const direct = DEFAULT_INDICATOR_PARAMS[lower];
-  if (direct !== undefined) return direct;
-  // Resolve aliases (e.g. boll -> BB) back to a default-table key.
-  const code = resolveIndicatorCode(lower);
-  return DEFAULT_INDICATOR_PARAMS[code.toLowerCase()];
+  return getSpecDefaultParams(name);
 }
 
 /**
- * Unknown indicator names are NOT blocked locally: the backend decides. A
- * non-blocking notice is returned instead so callers can spot typos.
+ * Validate that the indicator name is in the KNOWN_INDICATORS list.
+ * Throws ValidationError with suggestions when an unknown name is given.
  */
-function unknownIndicatorNotice(name: string): string | undefined {
+function validateIndicatorName(name: string): void {
   const lower = name.toLowerCase();
-  if (VALID_INDICATOR_NAMES.has(lower) || INDICATOR_CODE_OVERRIDES[lower]) return undefined;
-  return `Unknown indicator "${name}": not in the local list (see market_list_indicators); the request was sent as-is and the backend decides.`;
+  if (VALID_INDICATOR_NAMES.has(lower)) return;
+  // Also accept override aliases (e.g. "boll")
+  if (INDICATOR_CODE_OVERRIDES[lower]) return;
+
+  // Find close matches for suggestion; skip substring-match for very short queries
+  // to avoid flooding the user with unrelated results (e.g. "ma" matching ema, macd, ...)
+  const suggestions = [...VALID_INDICATOR_NAMES]
+    .filter((n) => lower.length >= 3 && (n.includes(lower) || lower.includes(n)))
+    .slice(0, 5);
+  const hint = suggestions.length > 0
+    ? ` Did you mean: ${suggestions.join(", ")}?`
+    : " Call market_list_indicators to see all valid names.";
+  throw new ValidationError(
+    `Unknown indicator "${name}".${hint}`,
+  );
 }
 
 function readNumberArray(
@@ -265,7 +230,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           indicator: {
             type: "string",
             description:
-              "Indicator name (case-insensitive), e.g. 'rsi', 'macd', 'bb', 'ma', 'ema', 'kdj', 'supertrend'. Call market_list_indicators to see all valid names. Names not in that list are still sent to the backend, with a notice.",
+              "Indicator name (case-insensitive), e.g. 'rsi', 'macd', 'bb', 'ma', 'ema', 'kdj', 'supertrend'. Call market_list_indicators to see all valid names. Using an invalid name will return an error.",
           },
           bar: {
             type: "string",
@@ -274,8 +239,8 @@ export function registerIndicatorTools(): ToolSpec[] {
           },
           params: {
             type: "array",
-            items: { type: "number" },
-            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). Validated per indicator when provided (e.g. MACD needs exactly 3 positive integers; MA/EMA accept one or more periods; alphatrend/halftrend/pmax take none). For period-based indicators a parameter is required; the CLI applies a sensible default when omitted.",
+            items: { type: "integer" },
+            description: `Optional. Omit to use the indicator's default. If given it must be complete: fixed-length indicators need exactly the full set (too few or too many is an error), ma/ema/rsi/wr/wma/dema/tema/zlema/hma/kama take one or more periods; values are integers (periods 2-365; bb multiplier and supertrend factor 1-9). Order matters, e.g. macd [fast,slow,signal], bb [period,multiplier], supertrend [factor,atrPeriod]. Defaults: ${describeIndicatorDefaults()}. The result reports appliedParams and paramsSource (default|explicit).`,
           },
           returnList: {
             type: "boolean",
@@ -298,18 +263,21 @@ export function registerIndicatorTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const instId = requireString(args, "instId");
         const indicator = requireString(args, "indicator");
+        validateIndicatorName(indicator);
         const bar = readString(args, "bar") ?? "1H";
         assertEnum(bar, "bar", INDICATOR_BARS, { caseInsensitive: true });
-        const params = readNumberArray(args, "params");
-        if (params) validateIndicatorParams(indicator, params);
-        const notice = unknownIndicatorNotice(indicator);
+        const rawParams = readNumberArray(args, "params");
+        const explicit = rawParams && rawParams.length > 0 ? rawParams : undefined;
+        if (explicit) validateIndicatorParams(indicator, explicit);
+        // Omitted params -> apply the indicator's default (CLI and MCP alike).
+        const paramList = explicit ?? getDefaultIndicatorParams(indicator);
         const returnList = readBoolean(args, "returnList") ?? false;
         const limit = readNumber(args, "limit") ?? 10;
         const backtestTime = readNumber(args, "backtestTime");
 
         const apiCode = resolveIndicatorCode(indicator);
         const indicatorConfig = compactObject({
-          paramList: params && params.length > 0 ? params : undefined,
+          paramList,
           returnList,
           limit: returnList ? limit : undefined,
         });
@@ -328,7 +296,8 @@ export function registerIndicatorTools(): ToolSpec[] {
             publicRateLimit("market_get_indicator", 5),
           );
           const result = normalizeResponse(response);
-          return notice ? { ...result, notice } : result;
+          if (!paramList || !hasIndicatorParamSpec(indicator)) return result;
+          return { ...result, appliedParams: paramList, paramsSource: explicit ? "explicit" : "default" };
         });
       },
     },

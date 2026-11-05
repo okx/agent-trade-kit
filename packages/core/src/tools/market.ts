@@ -14,7 +14,6 @@ const DEMO_PROPERTY = {
 };
 
 const TRADES_PAGINATION_TYPES = ["1", "2"] as const;
-const TRADES_MAX_LIMIT = 500;
 const HISTORY_TRADES_MAX_LIMIT = 100;
 
 /**
@@ -36,9 +35,6 @@ function validateTradesPagination(opts: {
       throw new ValidationError(
         `Parameter(s) ${extras.map(([k]) => `"${k}"`).join(", ")} require history=true: the recent-trades endpoint does not support pagination.`,
       );
-    }
-    if (limit > TRADES_MAX_LIMIT) {
-      throw new ValidationError(`Parameter "limit" must be <= ${TRADES_MAX_LIMIT}.`);
     }
     return;
   }

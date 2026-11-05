@@ -7,7 +7,7 @@ okx market indicator list          # print all supported indicator names and des
 okx market indicator list --json   # machine-readable format
 ```
 
-Use this before calling `market_get_indicator` (MCP) or `okx market indicator` (CLI) to confirm a name is supported. Names not on the list are still sent to the backend as-is (with a notice) — the backend decides, so an unlisted name may return empty data.
+Use this before calling `market_get_indicator` (MCP) or `okx market indicator` (CLI) to confirm a name is supported. A name that is not on the list is rejected locally with an `Unknown indicator "x". Did you mean: ...` error.
 
 ---
 
@@ -24,7 +24,7 @@ okx market indicator <indicator> <instId> [--bar <bar>] [--params <n1,n2,...>] [
 | `indicator` | Yes | - | Indicator name (case-insensitive). Run `okx market indicator list` to see all. |
 | `instId` | Yes | - | Instrument ID (e.g., `BTC-USDT`, `ETH-USDT-SWAP`) |
 | `--bar` | No | `1H` | Timeframe. See supported values below. |
-| `--params` | No | indicator default | Comma-separated numeric params, no spaces, given once — e.g., `--params 14`, `--params 5,20`, `--params -9,3,3`. Validated per indicator (see "`--params` usage" below); invalid input is an error, never a silent fallback to defaults |
+| `--params` | No | indicator default | Omit to use the indicator's default (shown in the CLI output as `params: ... (default)`). If given it must be **complete** — comma-separated integers, no spaces, written once (see "`--params` contract" below). Too few or too many values is an error. |
 | `--list` | No | false | Return historical series instead of latest value only |
 | `--limit` | No | 10 | Number of records when `--list` is set (max 100) |
 | `--backtest-time` | No | - | Unix timestamp in ms; omit for real-time. Used for backtesting point-in-time values. |
@@ -35,20 +35,39 @@ okx market indicator <indicator> <instId> [--bar <bar>] [--params <n1,n2,...>] [
 
 > These differ from candle `--bar` values: daily is `1Dutc` not `1D`, weekly is `1Wutc` not `1W`.
 
-### `--params` usage (validated when `--params` is given)
+### `--params` contract
 
-| Indicator | Params | Rule | Example |
-|---|---|---|---|
-| `macd` | fast, slow, signal | exactly 3 positive integers | `--params 12,26,9` |
-| `kdj` | K, D, J periods | exactly 3 positive integers | `--params 9,3,3` |
-| `bb` (or `boll`) | period, stddev multiplier | 2 values: positive integer, positive number | `--params 20,2` |
-| `supertrend` | period, multiplier | 2 values: positive integer, positive number | `--params 10,3` |
-| `envelope` | period, deviation | 2 values: positive integer, positive number | `--params 20,0.1` |
-| `rsi`, `stoch-rsi` | period | exactly 1 positive integer | `--params 14` |
-| `ma`, `ema` | one or more periods | 1+ positive integers | `--params 5,20,60` |
-| `alphatrend`, `halftrend`, `pmax` | — | takes no params; passing any is an error | — |
+Two ways to call an indicator:
 
-Every other indicator (rows below with `—`) has no documented usage: `--params` is passed to the backend unvalidated. An unknown indicator name is also sent as-is, with a notice on stderr.
+1. **Omit `--params`** — the indicator's default is used (the CLI prints `params: <values> (default)`).
+2. **Pass `--params`** — it must be **complete**. A fixed-length indicator needs exactly the full set (too few *or* too many is an error); `ma`, `ema`, `rsi`, `wr`, `wma`, `dema`, `tema`, `zlema`, `hma`, `kama` take one or more periods. Every value is an integer: periods are 2–365; the `bb` multiplier and the `supertrend` factor are 1–9. Order matters.
+
+| Indicator | Params (in order) | Default |
+|---|---|---|
+| `macd` | fast, slow, signal | `12,26,9` |
+| `kdj` | n, kSmooth, dSmooth | `9,3,3` |
+| `bb` (or `boll`) | period, multiplier (1–9) | `20,2` |
+| `supertrend` | **factor (1–9), atrPeriod** | `3,10` |
+| `stoch-rsi` | rsi, stoch, k, d | `14,14,3,3` |
+| `stoch` | kPeriod, dPeriod | `14,3` |
+| `ppo` | short, long, signal | `12,26,9` |
+| `uo` | fast, medium, slow | `7,14,28` |
+| `bbwidth`, `bbpct` | period, multiplier | `20,2` |
+| `keltner` | emaPeriod, atrPeriod, multiplier×10 | `20,10,20` |
+| `mvwap` | vwapPeriod, mvwapPeriod | `14,14` |
+| `ma` | one or more periods | `5,20,60` |
+| `ema` | one or more periods | `5,20` |
+| `rsi`, `wr`, `wma`, `dema`, `tema`, `zlema`, `hma`, `kama` | one or more periods | `14` |
+| `adx`, `atr`, `mfi` | period | `14` |
+| `cci`, `dpo`, `cmf`, `donchian`, `hv`, `stddev` | period | `20` |
+| `roc` | period | `12` |
+| `mom` | period | `10` |
+| `aroon` | period | `25` |
+| `trix` | period | `18` |
+
+Examples: `--params 12,26,9` (macd), `--params 3,10` (supertrend: factor 3, ATR period 10), `--params 5,20,60` (ma). `--params 12,26` for macd fails with `macd requires 3 params (fast,slow,signal), got 2`.
+
+Every other indicator (including `envelope`, `alphatrend`, `halftrend`, `pmax`, `obv`, `vwap`, `sar`, `ad` and the candlestick patterns) has no defaults or validation in the CLI: omit `--params` to let the backend use its own default, or pass values that you know the backend accepts.
 
 If explicit `--params` produce no values on any timeframe the command fails (the period may exceed the available candles).
 
@@ -62,51 +81,51 @@ Run `okx market indicator list` for the authoritative full list. Common indicato
 |---|---|---|---|
 | **Moving Average** | `ma` | `5,20,60` | Simple moving averages; one or more periods |
 | **Moving Average** | `ema` | `5,20` | Exponential moving averages |
-| **Moving Average** | `wma` | — | Weighted Moving Average |
-| **Moving Average** | `dema` | — | Double Exponential Moving Average |
-| **Moving Average** | `tema` | — | Triple Exponential Moving Average |
-| **Moving Average** | `zlema` | — | Zero-Lag Exponential Moving Average |
-| **Moving Average** | `hma` | — | Hull Moving Average |
-| **Moving Average** | `kama` | — | Kaufman Adaptive Moving Average |
+| **Moving Average** | `wma` | `14` | Weighted Moving Average |
+| **Moving Average** | `dema` | `14` | Double Exponential Moving Average |
+| **Moving Average** | `tema` | `14` | Triple Exponential Moving Average |
+| **Moving Average** | `zlema` | `14` | Zero-Lag Exponential Moving Average |
+| **Moving Average** | `hma` | `14` | Hull Moving Average |
+| **Moving Average** | `kama` | `14` | Kaufman Adaptive Moving Average |
 | **Trend** | `macd` | `12,26,9` | fast, slow, signal |
 | **Trend** | `sar` | — | Parabolic SAR |
-| **Trend** | `adx` | — | Average Directional Index |
-| **Trend** | `aroon` | — | Aroon Indicator |
-| **Trend** | `cci` | — | Commodity Channel Index |
-| **Trend** | `dpo` | — | Detrended Price Oscillator |
-| **Trend** | `supertrend` | `10,3` | period, multiplier |
-| **Trend** | `alphatrend` | — | No params needed |
-| **Trend** | `halftrend` | — | No params needed |
-| **Trend** | `envelope` | `20,0.1` | period, deviation |
-| **Trend** | `pmax` | — | No params needed |
+| **Trend** | `adx` | `14` | Average Directional Index |
+| **Trend** | `aroon` | `25` | Aroon Indicator |
+| **Trend** | `cci` | `20` | Commodity Channel Index |
+| **Trend** | `dpo` | `20` | Detrended Price Oscillator |
+| **Trend** | `supertrend` | `3,10` | factor, atrPeriod |
+| **Trend** | `alphatrend` | — | Optional params; no CLI default or validation |
+| **Trend** | `halftrend` | — | Optional params; no CLI default or validation |
+| **Trend** | `envelope` | — | Envelope — no CLI default or validation |
+| **Trend** | `pmax` | — | Optional params; no CLI default or validation |
 | **Momentum** | `rsi` | `14` | Period (default 14) |
-| **Momentum** | `stoch-rsi` | `14` | Stochastic RSI |
-| **Momentum** | `stoch` | — | Stochastic Oscillator |
-| **Momentum** | `kdj` | `9,3,3` | K, D, J periods |
-| **Momentum** | `roc` | — | Rate of Change |
-| **Momentum** | `mom` | — | Momentum |
-| **Momentum** | `ppo` | — | Price Percentage Oscillator |
-| **Momentum** | `trix` | — | TRIX |
+| **Momentum** | `stoch-rsi` | `14,14,3,3` | rsi, stoch, k, d — Stochastic RSI |
+| **Momentum** | `stoch` | `14,3` | Stochastic Oscillator |
+| **Momentum** | `kdj` | `9,3,3` | n, kSmooth, dSmooth |
+| **Momentum** | `roc` | `12` | Rate of Change |
+| **Momentum** | `mom` | `10` | Momentum |
+| **Momentum** | `ppo` | `12,26,9` | Price Percentage Oscillator |
+| **Momentum** | `trix` | `18` | TRIX |
 | **Momentum** | `ao` | — | Awesome Oscillator |
-| **Momentum** | `uo` | — | Ultimate Oscillator |
-| **Momentum** | `wr` | — | Williams %R |
+| **Momentum** | `uo` | `7,14,28` | Ultimate Oscillator |
+| **Momentum** | `wr` | `14` | Williams %R |
 | **Momentum** | `tdi` | — | Traders Dynamic Index |
 | **Momentum** | `qqe` | — | QQE Mod |
-| **Volatility** | `bb` (or `boll`) | `20,2` | period, stddev multiplier — Bollinger Bands |
-| **Volatility** | `bbwidth` | — | Bollinger Band Width |
-| **Volatility** | `bbpct` | — | Bollinger Band %B |
-| **Volatility** | `atr` | — | Average True Range |
-| **Volatility** | `keltner` | — | Keltner Channel |
-| **Volatility** | `donchian` | — | Donchian Channel |
-| **Volatility** | `hv` | — | Historical Volatility |
-| **Volatility** | `stddev` | — | Standard Deviation |
+| **Volatility** | `bb` (or `boll`) | `20,2` | period, multiplier — Bollinger Bands |
+| **Volatility** | `bbwidth` | `20,2` | Bollinger Band Width |
+| **Volatility** | `bbpct` | `20,2` | Bollinger Band %B |
+| **Volatility** | `atr` | `14` | Average True Range |
+| **Volatility** | `keltner` | `20,10,20` | Keltner Channel |
+| **Volatility** | `donchian` | `20` | Donchian Channel |
+| **Volatility** | `hv` | `20` | Historical Volatility |
+| **Volatility** | `stddev` | `20` | Standard Deviation |
 | **Volatility** | `range-filter` | — | Range Filter |
 | **Volatility** | `waddah` | — | Waddah Attar Explosion |
 | **Volume** | `obv` | — | On-Balance Volume |
 | **Volume** | `vwap` | — | Volume Weighted Average Price |
-| **Volume** | `mvwap` | — | Moving VWAP |
-| **Volume** | `cmf` | — | Chaikin Money Flow |
-| **Volume** | `mfi` | — | Money Flow Index |
+| **Volume** | `mvwap` | `14,14` | Moving VWAP |
+| **Volume** | `cmf` | `20` | Chaikin Money Flow |
+| **Volume** | `mfi` | `14` | Money Flow Index |
 | **Volume** | `ad` | — | Accumulation/Distribution |
 | **Statistical** | `lr` | — | Linear Regression |
 | **Statistical** | `slope` | — | Linear Regression Slope |
@@ -115,8 +134,8 @@ Run `okx market indicator list` for the authoritative full list. Common indicato
 | **Statistical** | `meandev` | — | Mean Deviation |
 | **Statistical** | `sigma` | — | Sigma |
 | **Statistical** | `stderr` | — | Standard Error |
-| **Custom** | `kdj` | `9,3,3` | KDJ Stochastic Oscillator |
-| **Custom** | `supertrend` | `10,3` | Supertrend |
+| **Custom** | `kdj` | `9,3,3` | n, kSmooth, dSmooth — KDJ Stochastic Oscillator |
+| **Custom** | `supertrend` | `3,10` | factor, atrPeriod — Supertrend |
 | **Ichimoku** | `tenkan` | — | Tenkan-sen (Conversion Line) |
 | **Ichimoku** | `kijun` | — | Kijun-sen (Base Line) |
 | **Ichimoku** | `senkoa` | — | Senkou Span A (Leading Span A) |

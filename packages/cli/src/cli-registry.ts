@@ -160,7 +160,7 @@ export const CLI_REGISTRY: CliRegistry = {
           "<indicator> <instId>": {
             toolName: "market_get_indicator",
             usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--list] [--limit <1-100>] [--backtest-time <ts>] [--params <comma-separated numbers, e.g. 12,26,9>]",
-            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators. --params is validated per indicator (macd 3 values, kdj 3, bb/supertrend/envelope 2, rsi/stoch-rsi 1, ma/ema 1+; alphatrend/halftrend/pmax take none); give it once, e.g. --params 12,26,9 or --params -9,3,3. Names not in `indicator list` are passed to the backend as-is.",
+            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators. Omit --params to use the indicator default (shown as `params: ... (default)`); if given, --params must be complete integers, comma-separated and written once (e.g. macd --params 12,26,9; supertrend is factor,atrPeriod = 3,10; ma/ema/rsi accept one or more periods) — too few or too many values is an error. Defaults and params per indicator: see the okx-cex-market skill.",
           },
         },
       },

@@ -243,16 +243,15 @@ describe("cmdMarketIndicator - formatter", () => {
     assert.deepEqual(captured.args["params"], [5, 20]);
   });
 
-  it("applies the core default paramList when params string is empty (Plan B)", async () => {
-    const { spy, captured } = makeSpy();
-    await captureStdout(() =>
-      cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false, params: "" })
-    );
-    // Empty string is falsy → params=undefined (ternary short-circuits; the split never runs).
-    // Plan B (CLI layer) then substitutes the core default for period-based
-    // indicators so the server returns values instead of an empty array;
-    // rsi's default paramList is [14] (spec §7.2 / §7.3 item 4).
-    assert.deepEqual(captured.args["params"], [14]);
+  it("does not inject defaults itself: omitted/empty --params reach core as undefined", async () => {
+    for (const params of [undefined, ""]) {
+      const { spy, captured } = makeSpy();
+      await captureStdout(() =>
+        cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false, params })
+      );
+      // core applies the indicator default (shared with MCP); see core indicator tests
+      assert.equal(captured.args["params"], undefined);
+    }
   });
 
   it("throws before calling the tool when params contain junk / wrong format", async () => {
@@ -313,17 +312,32 @@ describe("cmdMarketIndicator - formatter", () => {
     assert.match(out, /No indicator values returned/);
   });
 
-  it("prints the notice for unknown indicators to stderr, not stdout", async () => {
-    const withNotice = { ...MOCK_INDICATOR_RESULT, notice: "Unknown indicator \"foo\"" };
-    const { spy } = makeSpy(withNotice);
-    const errChunks: string[] = [];
-    const origErr = process.stderr.write.bind(process.stderr);
-    (process.stderr as { write: typeof process.stderr.write }).write = (c: unknown) => { errChunks.push(String(c)); return true; };
-    try {
-      const out = await captureStdout(() => cmdMarketIndicator(spy, "foo", "BTC-USDT", { json: true }));
-      assert.doesNotMatch(out, /Unknown indicator/);
-    } finally { process.stderr.write = origErr; }
-    assert.match(errChunks.join(""), /Unknown indicator "foo"/);
+  it("prints the applied params line (default) in table mode", async () => {
+    const withApplied = { ...MOCK_INDICATOR_RESULT, appliedParams: [14], paramsSource: "default" };
+    const { spy } = makeSpy(withApplied);
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false }));
+    assert.match(out, /params: 14 \(default\)/);
+  });
+
+  it("prints the applied params line (explicit) in table mode", async () => {
+    const withApplied = { ...resultFor("MA"), appliedParams: [5, 20], paramsSource: "explicit" };
+    const { spy } = makeSpy(withApplied);
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "ma", "BTC-USDT", { json: false, params: "5,20" }));
+    assert.match(out, /params: 5,20 \(explicit\)/);
+  });
+
+  it("--json prints only the backend data (no applied params line)", async () => {
+    const withApplied = { ...MOCK_INDICATOR_RESULT, appliedParams: [14], paramsSource: "default" };
+    const { spy } = makeSpy(withApplied);
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: true }));
+    assert.doesNotMatch(out, /appliedParams|params: /);
+    assert.doesNotThrow(() => JSON.parse(out));
+  });
+
+  it("prints no params line for indicators without a params contract", async () => {
+    const { spy } = makeSpy();
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false }));
+    assert.doesNotMatch(out, /params: /);
   });
 
   it("skips timeframes with empty indicator values", async () => {

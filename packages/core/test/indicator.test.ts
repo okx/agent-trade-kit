@@ -182,11 +182,25 @@ describe("KNOWN_INDICATORS", () => {
 // ---------------------------------------------------------------------------
 
 describe("DEFAULT_INDICATOR_PARAMS", () => {
-  it("ema/ma/wma/rsi default to [14] (PRD example)", () => {
-    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ema"], [14]);
-    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ma"], [14]);
+  it("ma/ema follow the skill (5,20,60 / 5,20); wma/rsi default to [14]", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ma"], [5, 20, 60]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ema"], [5, 20]);
     assert.deepEqual(DEFAULT_INDICATOR_PARAMS["wma"], [14]);
     assert.deepEqual(DEFAULT_INDICATOR_PARAMS["rsi"], [14]);
+  });
+
+  it("matches the backend defaults that used to differ", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["supertrend"], [3, 10]); // [factor, atrPeriod]
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["stoch-rsi"], [14, 14, 3, 3]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["keltner"], [20, 10, 20]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["mvwap"], [14, 14]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["stoch"], [14, 3]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["aroon"], [25]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["trix"], [18]);
+  });
+
+  it("covers exactly the 35 indicators of the params contract", () => {
+    assert.equal(Object.keys(DEFAULT_INDICATOR_PARAMS).length, 35);
   });
 
   it("macd defaults to [12, 26, 9] (PRD example)", () => {
@@ -227,13 +241,13 @@ describe("DEFAULT_INDICATOR_PARAMS", () => {
 
 describe("getDefaultIndicatorParams", () => {
   it("resolves lowercase period indicators", () => {
-    assert.deepEqual(getDefaultIndicatorParams("ema"), [14]);
+    assert.deepEqual(getDefaultIndicatorParams("ema"), [5, 20]);
     assert.deepEqual(getDefaultIndicatorParams("macd"), [12, 26, 9]);
     assert.deepEqual(getDefaultIndicatorParams("bb"), [20, 2]);
   });
 
   it("is case-insensitive (uppercase input)", () => {
-    assert.deepEqual(getDefaultIndicatorParams("EMA"), [14]);
+    assert.deepEqual(getDefaultIndicatorParams("EMA"), [5, 20]);
     assert.deepEqual(getDefaultIndicatorParams("RSI"), [14]);
   });
 
@@ -407,7 +421,7 @@ describe("market_get_indicator handler - request body", () => {
     assert.deepEqual(ma["paramList"], [5, 20]);
   });
 
-  it("omits paramList when params is empty array", async () => {
+  it("treats an empty params array as omitted and applies the default", async () => {
     let captured: unknown;
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
@@ -418,7 +432,7 @@ describe("market_get_indicator handler - request body", () => {
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
     const rsi = indicators["RSI"] as Record<string, unknown>;
-    assert.equal(rsi["paramList"], undefined);
+    assert.deepEqual(rsi["paramList"], [14]);
   });
 
   it("includes limit when returnList=true", async () => {
@@ -666,29 +680,18 @@ describe("market_get_indicator - bar validation", () => {
 describe("market_get_indicator - indicator name validation", () => {
   const tool = registerIndicatorTools()[0]!;
 
-  it("passes unknown indicator names through to the backend with a non-blocking notice", async () => {
-    let captured: unknown;
-    let result: Record<string, unknown> = {};
-    await withFetch(async (_url, init) => {
-      captured = JSON.parse((init as RequestInit).body as string);
-      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
-    }, async (mock) => {
-      const client = new OkxRestClient(BASE_CONFIG, mock);
-      result = await tool.handler(
-        { instId: "BTC-USDT", indicator: "foo-bar", params: [1, 2] },
-        { config: BASE_CONFIG, client },
-      ) as Record<string, unknown>;
-    });
-    const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, Record<string, unknown>>;
-    assert.deepEqual(indicators["FOO_BAR"]!["paramList"], [1, 2]);
-    assert.match(String(result["notice"]), /Unknown indicator "foo-bar".*backend/i);
-  });
-
-  it("does not add a notice for known indicators", async () => {
+  it("rejects unknown indicator name", async () => {
     await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
       const client = new OkxRestClient(BASE_CONFIG, mock);
-      const result = await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client }) as Record<string, unknown>;
-      assert.equal(result["notice"], undefined);
+      const { ValidationError } = await import("../src/utils/errors.js");
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "not_real_indicator" }, { config: BASE_CONFIG, client }),
+        (err) => {
+          assert.ok(err instanceof ValidationError);
+          assert.match((err as Error).message, /Unknown indicator/);
+          return true;
+        },
+      );
     });
   });
 
@@ -704,6 +707,21 @@ describe("market_get_indicator - indicator name validation", () => {
     await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
       const client = new OkxRestClient(BASE_CONFIG, mock);
       await tool.handler({ instId: "BTC-USDT", indicator: "boll" }, { config: BASE_CONFIG, client });
+    });
+  });
+
+  it("suggests similar names for partial matches", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      const { ValidationError } = await import("../src/utils/errors.js");
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "mac" }, { config: BASE_CONFIG, client }),
+        (err) => {
+          assert.ok(err instanceof ValidationError);
+          assert.match((err as Error).message, /macd/);
+          return true;
+        },
+      );
     });
   });
 });
@@ -744,5 +762,79 @@ describe("market_get_indicator - params validation (handler level)", () => {
       await tool.handler({ instId: "BTC-USDT", indicator: "macd", params: [12, 26, 9] }, { config: BASE_CONFIG, client });
       await tool.handler({ instId: "BTC-USDT", indicator: "macd" }, { config: BASE_CONFIG, client });
     });
+  });
+
+  async function send(args: Record<string, unknown>): Promise<{ body: Record<string, unknown>; result: Record<string, unknown> }> {
+    let body: Record<string, unknown> = {};
+    let result: Record<string, unknown> = {};
+    await withFetch(async (_url, init) => {
+      body = JSON.parse((init as RequestInit).body as string);
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      result = await tool.handler({ instId: "BTC-USDT", ...args }, { config: BASE_CONFIG, client }) as Record<string, unknown>;
+    });
+    return { body, result };
+  }
+
+  const paramListOf = (body: Record<string, unknown>, code: string): unknown =>
+    ((body["indicators"] as Record<string, Record<string, unknown>>)[code])!["paramList"];
+
+  it("applies the default paramList when params is omitted and reports it", async () => {
+    const { body, result } = await send({ indicator: "macd" });
+    assert.deepEqual(paramListOf(body, "MACD"), [12, 26, 9]);
+    assert.deepEqual(result["appliedParams"], [12, 26, 9]);
+    assert.equal(result["paramsSource"], "default");
+  });
+
+  it("applies the corrected supertrend default [factor, atrPeriod] = [3, 10]", async () => {
+    const { body } = await send({ indicator: "supertrend" });
+    assert.deepEqual(paramListOf(body, "SUPERTREND"), [3, 10]);
+  });
+
+  it("resolves the boll alias to bb's default", async () => {
+    const { body } = await send({ indicator: "boll" });
+    assert.deepEqual(paramListOf(body, "BB"), [20, 2]);
+  });
+
+  it("sends explicit params as-is and reports paramsSource=explicit", async () => {
+    const { body, result } = await send({ indicator: "ma", params: [5, 10] });
+    assert.deepEqual(paramListOf(body, "MA"), [5, 10]);
+    assert.deepEqual(result["appliedParams"], [5, 10]);
+    assert.equal(result["paramsSource"], "explicit");
+  });
+
+  it("indicators without a params contract are passed through untouched", async () => {
+    const omitted = await send({ indicator: "obv" });
+    assert.equal(paramListOf(omitted.body, "OBV"), undefined);
+    assert.equal(omitted.result["appliedParams"], undefined);
+
+    const explicit = await send({ indicator: "obv", params: [1, 2, 3] });
+    assert.deepEqual(paramListOf(explicit.body, "OBV"), [1, 2, 3]);
+    assert.equal(explicit.result["appliedParams"], undefined);
+    assert.equal(explicit.result["paramsSource"], undefined);
+  });
+
+  it("alphatrend / halftrend / pmax accept params (no longer rejected)", async () => {
+    for (const indicator of ["alphatrend", "halftrend", "pmax"]) {
+      const { body } = await send({ indicator, params: [14, 100] });
+      assert.deepEqual(paramListOf(body, indicator.toUpperCase()), [14, 100]);
+    }
+  });
+
+  it("rejects incomplete and surplus fixed-length params", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const params of [[12, 26], [12, 26, 9, 1]]) {
+      await assert.rejects(
+        () => send({ indicator: "macd", params }),
+        (err) => err instanceof ValidationError && /macd requires 3 params/.test((err as Error).message),
+      );
+    }
+  });
+
+  it("describes defaults in the params schema", () => {
+    const schema = tool.inputSchema as { properties: { params: { description: string; items: { type: string } } } };
+    assert.match(schema.properties.params.description, /Defaults:.*supertrend 3,10/);
+    assert.equal(schema.properties.params.items.type, "integer");
   });
 });

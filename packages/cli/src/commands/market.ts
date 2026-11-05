@@ -1,6 +1,6 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { errorLine, output, outputLine, printJson, printKv, printTable } from "../formatter.js";
-import { resolveIndicatorCode, getDefaultIndicatorParams, KNOWN_INDICATORS } from "@agent-tradekit/core";
+import { output, outputLine, printJson, printKv, printTable } from "../formatter.js";
+import { resolveIndicatorCode, KNOWN_INDICATORS } from "@agent-tradekit/core";
 
 /** Verbatim safety-net hint (spec §8.2) shown when the indicator render loop prints nothing. */
 const NO_INDICATOR_VALUES_HINT =
@@ -276,6 +276,14 @@ function parseIndicatorParams(raw: string): number[] {
   });
 }
 
+/** `params: 12,26,9 (default)` line from the tool result; undefined when the indicator has no params contract. */
+function formatAppliedParams(result: unknown): string | undefined {
+  const r = result as unknown as { appliedParams?: unknown; paramsSource?: unknown };
+  if (!Array.isArray(r.appliedParams)) return undefined;
+  const source = r.paramsSource === "default" ? "default" : "explicit";
+  return `params: ${r.appliedParams.join(",")} (${source})`;
+}
+
 export async function cmdMarketIndicator(
   run: ToolRunner,
   indicator: string,
@@ -291,24 +299,18 @@ export async function cmdMarketIndicator(
 ): Promise<void> {
   const params = opts.params ? parseIndicatorParams(opts.params) : undefined;
 
-  // Plan B (CLI-layer only): when --params is omitted, substitute the core
-  // default paramList for period-based indicators so the server returns values.
-  // Explicit --params always wins. MCP raw-data path is intentionally unchanged.
+  // Omitted --params: core applies the indicator's default (shared with MCP).
   const explicit = params && params.length > 0 ? params : undefined;
-  const effectiveParams = explicit ?? getDefaultIndicatorParams(indicator);
 
   const result = await run("market_get_indicator", {
     instId,
     indicator,
     bar: opts.bar,
-    params: effectiveParams,
+    params: explicit,
     returnList: opts.list ?? false,
     limit: opts.limit,
     backtestTime: opts.backtestTime,
   });
-
-  const notice = (result as unknown as Record<string, unknown>).notice;
-  if (typeof notice === "string") errorLine(notice);
 
   // Response shape: data = Array<{ data: [{instId, timeframes}], mode, summary, timestamp }>
   const outerArray = getData(result) as Record<string, unknown>[];
@@ -326,6 +328,9 @@ export async function cmdMarketIndicator(
     output(JSON.stringify(outerArray, null, 2) + "\n");
     return;
   }
+
+  const applied = formatAppliedParams(result);
+  if (applied) outputLine(applied);
 
   // Plan A (safety net): track whether anything rendered; if not, emit a hint
   // so the command is never silent (non-period indicators or empty results).
