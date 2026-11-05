@@ -14,6 +14,7 @@ export interface CliValues {
   sz?: string;
   instId?: string;
   history?: boolean;
+  type?: string;
   ordId?: string;
   side?: string;
   ordType?: string;
@@ -288,6 +289,8 @@ export const CLI_OPTIONS = {
   // orders
   instId: { type: "string" },
   history: { type: "boolean", default: false },
+  // market trades --history pagination type (1=tradeId, 2=timestamp)
+  type: { type: "string" },
   ordId: { type: "string" },
   // trade
   side: { type: "string" },
@@ -608,17 +611,26 @@ export function parseTpLevel(s: string): Record<string, string> {
 }
 
 const NEGATIVE_NUMBER_RE = /^-\d+(\.\d+)?$/;
+// --params values may start with a negative number ("-9,3,3"); anything past the
+// first digit is validated later with a precise per-token error.
+const NEGATIVE_PARAMS_RE = /^-\d\S*$/;
+
+const NEGATIVE_VALUE_FLAGS: ReadonlyArray<{ flag: string; pattern: RegExp }> = [
+  { flag: "--timeZone", pattern: NEGATIVE_NUMBER_RE },
+  { flag: "--params", pattern: NEGATIVE_PARAMS_RE },
+];
 
 /**
- * parseArgs rejects `--timeZone -5` (the value looks like an option), so join a
- * negative offset to its flag: `--timeZone -5` -> `--timeZone=-5`.
+ * parseArgs rejects `--timeZone -5` / `--params -9,3,3` (the value looks like an
+ * option), so join a negative value to its flag: `--timeZone -5` -> `--timeZone=-5`.
  */
-function joinNegativeTimeZone(argv: string[]): string[] {
+function joinNegativeFlagValues(argv: string[]): string[] {
   const joined: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const next = argv[i + 1];
-    if (argv[i] === "--timeZone" && next !== undefined && NEGATIVE_NUMBER_RE.test(next)) {
-      joined.push(`--timeZone=${next}`);
+    const rule = NEGATIVE_VALUE_FLAGS.find((r) => r.flag === argv[i]);
+    if (rule && next !== undefined && rule.pattern.test(next)) {
+      joined.push(`${rule.flag}=${next}`);
       i++;
     } else {
       joined.push(argv[i]!);
@@ -627,10 +639,19 @@ function joinNegativeTimeZone(argv: string[]): string[] {
   return joined;
 }
 
+/** `--params` takes one comma-separated value; a repeated flag would silently keep only the last. */
+function assertSingleParamsFlag(argv: string[]): void {
+  const count = argv.filter((a) => a === "--params" || a.startsWith("--params=")).length;
+  if (count > 1) {
+    throw new Error("specify --params once, comma-separated (e.g. --params 12,26,9)");
+  }
+}
+
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
   // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
   const negated = new Set<string>();
-  const filtered = joinNegativeTimeZone(argv).filter((arg) => {
+  assertSingleParamsFlag(argv);
+  const filtered = joinNegativeFlagValues(argv).filter((arg) => {
     if (arg.startsWith("--no-")) {
       const key = arg.slice(5);
       if (key in CLI_OPTIONS && (CLI_OPTIONS as Record<string, { type: string }>)[key].type === "boolean") {

@@ -11,6 +11,20 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **`market_get_trades` / `okx market trades` 分页**：新增 `history` 开关（`--history`），通过 `/api/v5/market/history-trades` 分页获取最近 3 个月的公共成交（每页最多 100 条），支持 `type`（`1` 按 tradeId / `2` 按时间戳）、`after`、`before`。不新增 MCP 工具（仍为 179 个）。不传 `history` 时行为不变（最新成交，默认 20，最多 500）。
+- **UTC+0 K 线周期**：`market_get_candles` / `market_get_index_candles`（以及 `okx market candles|index-candles --bar`）支持 `6Hutc`、`12Hutc`、`1Dutc`、`2Dutc`、`3Dutc`、`1Wutc`、`1Mutc`、`3Mutc`。
+- **`market_get_indicator` 参数校验**：传入 `params` / `--params` 时，按 `skills/okx-cex-market/references/indicator-commands.md` 逐指标校验，报错信息包含参数签名和示例（`macd` 3 个正整数；`kdj` 3 个；`bb`/`boll`、`supertrend`、`envelope` 2 个；`rsi`/`stoch-rsi` 1 个；`ma`/`ema` 1 个及以上周期；`alphatrend`/`halftrend`/`pmax` 不接受参数）。文档未说明用法的指标不校验，直接透传。未知指标名会发给后端，并返回不阻断的 `notice` 提示。
+- CLI：`--params -9,3,3`（首个值为负数）现在可以正确解析。
+
+### 变更
+
+- **破坏性变更**：`okx market indicator --params` 非法时不再静默回退到默认值，而是直接报错。非数字（`[20]`、`12,,9`、`abc`）、重复传 `--params`、已文档化指标的参数个数/取值不合法都会被拒绝；显式传了 `--params` 但所有周期都无返回值时，改为报错而不是仅打印提示。不传 `--params` 时行为不变。
+- **破坏性变更**：`market_get_trades` 在未设置 `history=true` 时传 `type`/`after`/`before` 会报错（最新成交接口不支持分页）；`history=true` 时 `limit` 超过 100 也会报错。
+- **破坏性变更**：`market_get_indicator` 不再拒绝本地列表之外的指标名，由后端决定。
+- CLI 帮助：`--params` 说明改为逗号分隔的数字（原为 `<json>`）。
+
 ## [1.5.1-beta.1] - 2026-11-02
 
 Beta 版本：按稳定版同步策略，所有 Skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.5.0`。

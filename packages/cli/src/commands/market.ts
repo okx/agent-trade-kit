@@ -1,5 +1,5 @@
 import type { ToolRunner } from "@agent-tradekit/core";
-import { output, outputLine, printJson, printKv, printTable } from "../formatter.js";
+import { errorLine, output, outputLine, printJson, printKv, printTable } from "../formatter.js";
 import { resolveIndicatorCode, getDefaultIndicatorParams, KNOWN_INDICATORS } from "@agent-tradekit/core";
 
 /** Verbatim safety-net hint (spec §8.2) shown when the indicator render loop prints nothing. */
@@ -79,9 +79,17 @@ export async function cmdMarketMarkPrice(
 export async function cmdMarketTrades(
   run: ToolRunner,
   instId: string,
-  opts: { limit?: number; json: boolean; demo?: boolean },
+  opts: { limit?: number; history?: boolean; type?: string; after?: string; before?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_trades", { instId, limit: opts.limit, demo: opts.demo ?? false });
+  const result = await run("market_get_trades", {
+    instId,
+    limit: opts.limit,
+    history: opts.history ?? false,
+    type: opts.type,
+    after: opts.after,
+    before: opts.before,
+    demo: opts.demo ?? false,
+  });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -254,6 +262,20 @@ export function cmdMarketIndicatorList(json: boolean): void {
   printTable(KNOWN_INDICATORS.map(({ name, description }) => ({ name, description })));
 }
 
+const PARAMS_FORMAT_HINT = "expected comma-separated numbers, e.g. --params 12,26,9";
+const PARAM_TOKEN_RE = /^-?\d+(\.\d+)?$/;
+
+/** Strict `--params` parsing: every token must be a number, nothing is silently dropped. */
+function parseIndicatorParams(raw: string): number[] {
+  return raw.split(",").map((token) => {
+    const trimmed = token.trim();
+    if (!PARAM_TOKEN_RE.test(trimmed)) {
+      throw new Error(`Invalid --params "${raw}": "${token}" is not a number; ${PARAMS_FORMAT_HINT}`);
+    }
+    return Number(trimmed);
+  });
+}
+
 export async function cmdMarketIndicator(
   run: ToolRunner,
   indicator: string,
@@ -267,9 +289,7 @@ export async function cmdMarketIndicator(
     json: boolean;
   },
 ): Promise<void> {
-  const params = opts.params
-    ? opts.params.split(",").map((p) => Number(p.trim())).filter((n) => !Number.isNaN(n))
-    : undefined;
+  const params = opts.params ? parseIndicatorParams(opts.params) : undefined;
 
   // Plan B (CLI-layer only): when --params is omitted, substitute the core
   // default paramList for period-based indicators so the server returns values.
@@ -286,6 +306,9 @@ export async function cmdMarketIndicator(
     limit: opts.limit,
     backtestTime: opts.backtestTime,
   });
+
+  const notice = (result as unknown as Record<string, unknown>).notice;
+  if (typeof notice === "string") errorLine(notice);
 
   // Response shape: data = Array<{ data: [{instId, timeframes}], mode, summary, timestamp }>
   const outerArray = getData(result) as Record<string, unknown>[];
@@ -331,7 +354,13 @@ export async function cmdMarketIndicator(
     }
   }
 
-  if (!printed) outputLine(NO_INDICATOR_VALUES_HINT);
+  if (printed) return;
+  if (explicit) {
+    throw new Error(
+      `No values returned for ${indicator} with params [${explicit.join(",")}]: the period may exceed the available candles, or the params are not valid for this indicator.`,
+    );
+  }
+  outputLine(NO_INDICATOR_VALUES_HINT);
 }
 
 export async function cmdMarketInstrumentsByCategory(

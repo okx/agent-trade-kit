@@ -7,7 +7,7 @@ okx market indicator list          # print all supported indicator names and des
 okx market indicator list --json   # machine-readable format
 ```
 
-Use this before calling `market_get_indicator` (MCP) or `okx market indicator` (CLI) to confirm a name is supported. The API returns empty data silently for unknown indicator names.
+Use this before calling `market_get_indicator` (MCP) or `okx market indicator` (CLI) to confirm a name is supported. Names not on the list are still sent to the backend as-is (with a notice) — the backend decides, so an unlisted name may return empty data.
 
 ---
 
@@ -24,7 +24,7 @@ okx market indicator <indicator> <instId> [--bar <bar>] [--params <n1,n2,...>] [
 | `indicator` | Yes | - | Indicator name (case-insensitive). Run `okx market indicator list` to see all. |
 | `instId` | Yes | - | Instrument ID (e.g., `BTC-USDT`, `ETH-USDT-SWAP`) |
 | `--bar` | No | `1H` | Timeframe. See supported values below. |
-| `--params` | No | indicator default | Comma-separated numeric params, no spaces — e.g., `--params 14` or `--params 5,20` |
+| `--params` | No | indicator default | Comma-separated numeric params, no spaces, given once — e.g., `--params 14`, `--params 5,20`, `--params -9,3,3`. Validated per indicator (see "`--params` usage" below); invalid input is an error, never a silent fallback to defaults |
 | `--list` | No | false | Return historical series instead of latest value only |
 | `--limit` | No | 10 | Number of records when `--list` is set (max 100) |
 | `--backtest-time` | No | - | Unix timestamp in ms; omit for real-time. Used for backtesting point-in-time values. |
@@ -34,6 +34,23 @@ okx market indicator <indicator> <instId> [--bar <bar>] [--params <n1,n2,...>] [
 `3m` `5m` `15m` `1H` `4H` `12Hutc` `1Dutc` `3Dutc` `1Wutc`
 
 > These differ from candle `--bar` values: daily is `1Dutc` not `1D`, weekly is `1Wutc` not `1W`.
+
+### `--params` usage (validated when `--params` is given)
+
+| Indicator | Params | Rule | Example |
+|---|---|---|---|
+| `macd` | fast, slow, signal | exactly 3 positive integers | `--params 12,26,9` |
+| `kdj` | K, D, J periods | exactly 3 positive integers | `--params 9,3,3` |
+| `bb` (or `boll`) | period, stddev multiplier | 2 values: positive integer, positive number | `--params 20,2` |
+| `supertrend` | period, multiplier | 2 values: positive integer, positive number | `--params 10,3` |
+| `envelope` | period, deviation | 2 values: positive integer, positive number | `--params 20,0.1` |
+| `rsi`, `stoch-rsi` | period | exactly 1 positive integer | `--params 14` |
+| `ma`, `ema` | one or more periods | 1+ positive integers | `--params 5,20,60` |
+| `alphatrend`, `halftrend`, `pmax` | — | takes no params; passing any is an error | — |
+
+Every other indicator (rows below with `—`) has no documented usage: `--params` is passed to the backend unvalidated. An unknown indicator name is also sent as-is, with a notice on stderr.
+
+If explicit `--params` produce no values on any timeframe the command fails (the period may exceed the available candles).
 
 ---
 

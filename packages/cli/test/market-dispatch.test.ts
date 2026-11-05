@@ -210,3 +210,41 @@ describe("handleMarketPublicCommand: filter fallback returns undefined silently 
     assert.equal(process.exitCode, prevExit, "exitCode must not be touched by filter fallback");
   });
 });
+
+// ---------------------------------------------------------------------------
+// trades --history parameter routing (values must come from v.xxx flags)
+// ---------------------------------------------------------------------------
+
+describe("handleMarketCommand trades: history pagination routing", () => {
+  function spyRunner(): { run: ToolRunner; calls: Array<{ tool: string; args: Record<string, unknown> }> } {
+    const calls: Array<{ tool: string; args: Record<string, unknown> }> = [];
+    const run: ToolRunner = async (tool, args) => {
+      calls.push({ tool: tool as string, args: args as Record<string, unknown> });
+      return fakeResult([{ tradeId: "1", px: "100", sz: "1", side: "buy", ts: "1700000000000" }]) as never;
+    };
+    return { run, calls };
+  }
+
+  it("passes history/type/after/before/limit from named flags", async () => {
+    const { run, calls } = spyRunner();
+    await handleMarketCommand(
+      run,
+      "trades",
+      ["BTC-USDT", "decoy-1", "decoy-2"],
+      vals({ history: true, type: "1", after: "99", before: "10", limit: "20" }),
+      false,
+    );
+    assert.equal(calls[0]!.tool, "market_get_trades");
+    assert.deepEqual(
+      { ...calls[0]!.args, demo: undefined },
+      { instId: "BTC-USDT", limit: 20, history: true, type: "1", after: "99", before: "10", demo: undefined },
+    );
+  });
+
+  it("without --history the pagination flags are still forwarded so core can reject them", async () => {
+    const { run, calls } = spyRunner();
+    await handleMarketCommand(run, "trades", ["BTC-USDT"], vals({ after: "99" }), false);
+    assert.equal(calls[0]!.args["after"], "99");
+    assert.equal(calls[0]!.args["history"], false);
+  });
+});

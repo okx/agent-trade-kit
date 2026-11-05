@@ -288,3 +288,46 @@ describe("account asset-balance --valuationCcy parser integration", () => {
   });
 });
 
+describe("parseCli - indicator --params", () => {
+  const base = ["market", "indicator", "macd", "BTC-USDT"];
+
+  it("accepts a leading negative number: --params -9,3,3", () => {
+    const { values } = parseCli([...base, "--params", "-9,3,3"]);
+    assert.equal(values.params, "-9,3,3");
+  });
+
+  it("still accepts --params=-9,3,3 and plain values", () => {
+    assert.equal(parseCli([...base, "--params=-9,3,3"]).values.params, "-9,3,3");
+    assert.equal(parseCli([...base, "--params", "12,26,9"]).values.params, "12,26,9");
+  });
+
+  it("keeps the options after a joined negative value", () => {
+    const { values } = parseCli([...base, "--params", "-9,3,3", "--bar", "4H"]);
+    assert.equal(values.bar, "4H");
+  });
+
+  it("still joins negative --timeZone", () => {
+    const { values } = parseCli(["bot", "recurring", "create", "--timeZone", "-5"]);
+    assert.equal(values.timeZone, "-5");
+  });
+
+  it("rejects a repeated --params flag", () => {
+    assert.throws(
+      () => parseCli([...base, "--params", "12", "--params", "26", "--params", "9"]),
+      /specify --params once, comma-separated \(e\.g\. --params 12,26,9\)/,
+    );
+    assert.throws(() => parseCli([...base, "--params=12", "--params", "26"]), /specify --params once/);
+  });
+});
+
+describe("parseCli - market trades pagination flags", () => {
+  it("parses --history --type --after --before --limit", () => {
+    const { values } = parseCli(["market", "trades", "BTC-USDT", "--history", "--type", "2", "--after", "1", "--before", "2", "--limit", "50"]);
+    assert.equal(values.history, true);
+    assert.equal(values.type, "2");
+    assert.equal(values.after, "1");
+    assert.equal(values.before, "2");
+    assert.equal(values.limit, "50");
+  });
+});
+

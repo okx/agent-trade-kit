@@ -1,6 +1,7 @@
 import type { ToolSpec } from "./types.js";
 import { asRecord, assertEnum, compactObject, normalizeResponse, readBoolean, readNumber, readString, requireString, validateSwapInstId } from "./helpers.js";
 import { publicRateLimit, OKX_CANDLE_BARS, OKX_INST_TYPES } from "./common.js";
+import { ValidationError } from "../utils/errors.js";
 
 const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
 
@@ -11,6 +12,44 @@ const DEMO_PROPERTY = {
     description: "Query simulated trading (demo) market data. Default: false (live market data).",
   },
 };
+
+const TRADES_PAGINATION_TYPES = ["1", "2"] as const;
+const TRADES_MAX_LIMIT = 500;
+const HISTORY_TRADES_MAX_LIMIT = 100;
+
+/**
+ * /market/trades only accepts instId + limit; type/after/before exist solely on
+ * /market/history-trades (max 100 per page, last 3 months), so reject them
+ * instead of silently dropping the pagination the caller asked for.
+ */
+function validateTradesPagination(opts: {
+  isHistory: boolean;
+  type: string | undefined;
+  after: string | undefined;
+  before: string | undefined;
+  limit: number;
+}): void {
+  const { isHistory, type, after, before, limit } = opts;
+  if (!isHistory) {
+    const extras = [["type", type], ["after", after], ["before", before]].filter(([, v]) => v !== undefined);
+    if (extras.length > 0) {
+      throw new ValidationError(
+        `Parameter(s) ${extras.map(([k]) => `"${k}"`).join(", ")} require history=true: the recent-trades endpoint does not support pagination.`,
+      );
+    }
+    if (limit > TRADES_MAX_LIMIT) {
+      throw new ValidationError(`Parameter "limit" must be <= ${TRADES_MAX_LIMIT}.`);
+    }
+    return;
+  }
+  assertEnum(type, "type", TRADES_PAGINATION_TYPES);
+  if (limit > HISTORY_TRADES_MAX_LIMIT) {
+    throw new ValidationError(`Parameter "limit" must be <= ${HISTORY_TRADES_MAX_LIMIT} when history=true.`);
+  }
+  if (type === "2" && before !== undefined) {
+    throw new ValidationError('Parameter "before" is not supported with type=2 (timestamp pagination); use "after".');
+  }
+}
 
 export function registerMarketTools(): ToolSpec[] {
   return [
@@ -354,7 +393,7 @@ export function registerMarketTools(): ToolSpec[] {
       title: "Get Recent Trades",
       module: "market",
       description:
-        "Get recent trades for an instrument. Default 20 records, max 500.",
+        "Get recent public trades for an instrument. Default 20 records, max 500. Set history=true to page back through trades of the last 3 months (max 100 per page) using type/after/before.",
       isWrite: false,
       inputSchema: {
         type: "object",
@@ -365,7 +404,24 @@ export function registerMarketTools(): ToolSpec[] {
           },
           limit: {
             type: "number",
-            description: "Default 20, max 500",
+            description: "Default 20, max 500 (max 100 when history=true)",
+          },
+          history: {
+            type: "boolean",
+            description: "true=page through trades of the last 3 months. Required for type/after/before. Default false (latest trades only).",
+          },
+          type: {
+            type: "string",
+            enum: [...TRADES_PAGINATION_TYPES],
+            description: "Pagination type, only with history=true. 1=by tradeId (default), 2=by timestamp",
+          },
+          after: {
+            type: "string",
+            description: "Only with history=true. Return trades older than this tradeId (type=1) or timestamp in ms (type=2)",
+          },
+          before: {
+            type: "string",
+            description: "Only with history=true. Return trades newer than this tradeId. Not supported with type=2",
           },
           ...DEMO_PROPERTY,
         },
@@ -373,11 +429,20 @@ export function registerMarketTools(): ToolSpec[] {
       },
       handler: async (rawArgs, context) => {
         const args = asRecord(rawArgs);
+        const isHistory = readBoolean(args, "history") ?? false;
+        const type = readString(args, "type");
+        const after = readString(args, "after");
+        const before = readString(args, "before");
+        const limit = readNumber(args, "limit") ?? 20;
+        validateTradesPagination({ isHistory, type, after, before, limit });
         const response = await context.client.publicGet(
-          "/api/v5/market/trades",
+          isHistory ? "/api/v5/market/history-trades" : "/api/v5/market/trades",
           compactObject({
             instId: requireString(args, "instId"),
-            limit: readNumber(args, "limit") ?? 20,
+            type,
+            after,
+            before,
+            limit,
           }),
           publicRateLimit("market_get_trades", 20),
           readBoolean(args, "demo") ?? false,

@@ -62,6 +62,20 @@ const MOCK_INDICATOR_RESULT = {
   }],
 };
 
+/** Same shape as MOCK_INDICATOR_RESULT but for another indicator code (e.g. MA, MACD). */
+function resultFor(code: string): typeof MOCK_INDICATOR_RESULT {
+  return {
+    ...MOCK_INDICATOR_RESULT,
+    data: [{
+      ...MOCK_INDICATOR_RESULT.data[0]!,
+      data: [{
+        instId: "BTC-USDT",
+        timeframes: { "1H": { indicators: { [code]: [{ ts: "1700000000000", values: { v: "1.00" } }] } } },
+      }],
+    }],
+  } as unknown as typeof MOCK_INDICATOR_RESULT;
+}
+
 function makeSpy(result: unknown = MOCK_INDICATOR_RESULT): {
   spy: ToolRunner;
   captured: { tool: string; args: Record<string, unknown> };
@@ -99,7 +113,7 @@ describe("handleMarketPublicCommand - indicator routing", () => {
   });
 
   it("passes params from v.params string", async () => {
-    const { spy, captured } = makeSpy();
+    const { spy, captured } = makeSpy(resultFor("MA"));
     await captureStdout(() =>
       handleMarketPublicCommand(spy, "indicator", ["ma", "BTC-USDT"], vals({ params: "5,20" }), false)
     );
@@ -222,7 +236,7 @@ describe("cmdMarketIndicator - formatter", () => {
   });
 
   it("parses comma-separated params string into number array", async () => {
-    const { spy, captured } = makeSpy();
+    const { spy, captured } = makeSpy(resultFor("MA"));
     await captureStdout(() =>
       cmdMarketIndicator(spy, "ma", "BTC-USDT", { json: false, params: "5,20" })
     );
@@ -239,6 +253,77 @@ describe("cmdMarketIndicator - formatter", () => {
     // indicators so the server returns values instead of an empty array;
     // rsi's default paramList is [14] (spec §7.2 / §7.3 item 4).
     assert.deepEqual(captured.args["params"], [14]);
+  });
+
+  it("throws before calling the tool when params contain junk / wrong format", async () => {
+    for (const params of ["[20]", "12,,9", "abc", "12,x,9", "1 2"]) {
+      const { spy, captured } = makeSpy();
+      await assert.rejects(
+        () => cmdMarketIndicator(spy, "macd", "BTC-USDT", { json: false, params }),
+        /Invalid --params.*comma-separated numbers.*12,26,9/s,
+        params,
+      );
+      assert.equal(captured.tool, "", `tool must not run for params=${params}`);
+    }
+  });
+
+  it("names the offending token in the error", async () => {
+    const { spy } = makeSpy();
+    await assert.rejects(
+      () => cmdMarketIndicator(spy, "macd", "BTC-USDT", { json: false, params: "12,x,9" }),
+      /"x"/,
+    );
+  });
+
+  it("passes a negative first value through to the tool (validation is done in core)", async () => {
+    const { spy, captured } = makeSpy(resultFor("MACD"));
+    await captureStdout(() =>
+      cmdMarketIndicator(spy, "macd", "BTC-USDT", { json: false, params: "-9,3,3" })
+    );
+    assert.deepEqual(captured.args["params"], [-9, 3, 3]);
+  });
+
+  it("routes --params from v.params (not positional args)", async () => {
+    const { spy, captured } = makeSpy(resultFor("MACD"));
+    await captureStdout(() =>
+      handleMarketPublicCommand(spy, "indicator", ["macd", "BTC-USDT"], vals({ params: "12,26,9" }), false)
+    );
+    assert.deepEqual(captured.args["params"], [12, 26, 9]);
+  });
+
+  it("errors when explicit --params yield no values on any timeframe", async () => {
+    const empty = {
+      ...MOCK_INDICATOR_RESULT,
+      data: [{ data: [{ instId: "BTC-USDT", timeframes: { "1H": { indicators: { RSI: [] } } } }], mode: "live", summary: {}, timestamp: 0 }],
+    };
+    const { spy } = makeSpy(empty);
+    await assert.rejects(
+      () => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false, params: "5000" }),
+      /No values returned for rsi with params \[5000\].*available candles/s,
+    );
+  });
+
+  it("keeps the soft hint when params were omitted and nothing was returned", async () => {
+    const empty = {
+      ...MOCK_INDICATOR_RESULT,
+      data: [{ data: [{ instId: "BTC-USDT", timeframes: { "1H": { indicators: { OBV: [] } } } }], mode: "live", summary: {}, timestamp: 0 }],
+    };
+    const { spy } = makeSpy(empty);
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "obv", "BTC-USDT", { json: false }));
+    assert.match(out, /No indicator values returned/);
+  });
+
+  it("prints the notice for unknown indicators to stderr, not stdout", async () => {
+    const withNotice = { ...MOCK_INDICATOR_RESULT, notice: "Unknown indicator \"foo\"" };
+    const { spy } = makeSpy(withNotice);
+    const errChunks: string[] = [];
+    const origErr = process.stderr.write.bind(process.stderr);
+    (process.stderr as { write: typeof process.stderr.write }).write = (c: unknown) => { errChunks.push(String(c)); return true; };
+    try {
+      const out = await captureStdout(() => cmdMarketIndicator(spy, "foo", "BTC-USDT", { json: true }));
+      assert.doesNotMatch(out, /Unknown indicator/);
+    } finally { process.stderr.write = origErr; }
+    assert.match(errChunks.join(""), /Unknown indicator "foo"/);
   });
 
   it("skips timeframes with empty indicator values", async () => {

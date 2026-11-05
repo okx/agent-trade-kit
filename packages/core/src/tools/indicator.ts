@@ -12,6 +12,7 @@ import {
 import { ValidationError } from "../utils/errors.js";
 import { publicRateLimit } from "./common.js";
 import { withAigcErrors } from "./aigc-errors.js";
+import { validateIndicatorParams } from "./indicator-params.js";
 
 // Valid timeframes accepted by the indicator API
 export const INDICATOR_BARS = [
@@ -226,26 +227,13 @@ export function getDefaultIndicatorParams(name: string): number[] | undefined {
 }
 
 /**
- * Validate that the indicator name is in the KNOWN_INDICATORS list.
- * Throws ValidationError with suggestions when an unknown name is given.
+ * Unknown indicator names are NOT blocked locally: the backend decides. A
+ * non-blocking notice is returned instead so callers can spot typos.
  */
-function validateIndicatorName(name: string): void {
+function unknownIndicatorNotice(name: string): string | undefined {
   const lower = name.toLowerCase();
-  if (VALID_INDICATOR_NAMES.has(lower)) return;
-  // Also accept override aliases (e.g. "boll")
-  if (INDICATOR_CODE_OVERRIDES[lower]) return;
-
-  // Find close matches for suggestion; skip substring-match for very short queries
-  // to avoid flooding the user with unrelated results (e.g. "ma" matching ema, macd, ...)
-  const suggestions = [...VALID_INDICATOR_NAMES]
-    .filter((n) => lower.length >= 3 && (n.includes(lower) || lower.includes(n)))
-    .slice(0, 5);
-  const hint = suggestions.length > 0
-    ? ` Did you mean: ${suggestions.join(", ")}?`
-    : " Call market_list_indicators to see all valid names.";
-  throw new ValidationError(
-    `Unknown indicator "${name}".${hint}`,
-  );
+  if (VALID_INDICATOR_NAMES.has(lower) || INDICATOR_CODE_OVERRIDES[lower]) return undefined;
+  return `Unknown indicator "${name}": not in the local list (see market_list_indicators); the request was sent as-is and the backend decides.`;
 }
 
 function readNumberArray(
@@ -277,7 +265,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           indicator: {
             type: "string",
             description:
-              "Indicator name (case-insensitive), e.g. 'rsi', 'macd', 'bb', 'ma', 'ema', 'kdj', 'supertrend'. Call market_list_indicators to see all valid names. Using an invalid name will return an error.",
+              "Indicator name (case-insensitive), e.g. 'rsi', 'macd', 'bb', 'ma', 'ema', 'kdj', 'supertrend'. Call market_list_indicators to see all valid names. Names not in that list are still sent to the backend, with a notice.",
           },
           bar: {
             type: "string",
@@ -287,7 +275,7 @@ export function registerIndicatorTools(): ToolSpec[] {
           params: {
             type: "array",
             items: { type: "number" },
-            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). For period-based indicators a parameter is required; the CLI applies a sensible default when omitted.",
+            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). Validated per indicator when provided (e.g. MACD needs exactly 3 positive integers; MA/EMA accept one or more periods; alphatrend/halftrend/pmax take none). For period-based indicators a parameter is required; the CLI applies a sensible default when omitted.",
           },
           returnList: {
             type: "boolean",
@@ -310,10 +298,11 @@ export function registerIndicatorTools(): ToolSpec[] {
         const args = asRecord(rawArgs);
         const instId = requireString(args, "instId");
         const indicator = requireString(args, "indicator");
-        validateIndicatorName(indicator);
         const bar = readString(args, "bar") ?? "1H";
         assertEnum(bar, "bar", INDICATOR_BARS, { caseInsensitive: true });
         const params = readNumberArray(args, "params");
+        if (params) validateIndicatorParams(indicator, params);
+        const notice = unknownIndicatorNotice(indicator);
         const returnList = readBoolean(args, "returnList") ?? false;
         const limit = readNumber(args, "limit") ?? 10;
         const backtestTime = readNumber(args, "backtestTime");
@@ -338,7 +327,8 @@ export function registerIndicatorTools(): ToolSpec[] {
             body,
             publicRateLimit("market_get_indicator", 5),
           );
-          return normalizeResponse(response);
+          const result = normalizeResponse(response);
+          return notice ? { ...result, notice } : result;
         });
       },
     },

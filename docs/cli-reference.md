@@ -60,6 +60,7 @@ okx market funding-rate BTC-USDT-SWAP
 okx market funding-rate BTC-USDT-SWAP --history --limit 10
 okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
 okx market trades BTC-USDT --limit 20
+okx market trades BTC-USDT --history --after <tradeId> --limit 100   # page back through the last 3 months
 okx market index-ticker --instId BTC-USD
 okx market price-limit BTC-USDT-SWAP
 okx market open-interest --instType SWAP
@@ -411,6 +412,7 @@ okx market funding-rate BTC-USDT-SWAP
 okx market funding-rate BTC-USDT-SWAP --history --limit 10
 okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
 okx market trades BTC-USDT --limit 20
+okx market trades BTC-USDT --history --after <tradeId> --limit 100   # page back through the last 3 months
 okx market index-ticker --instId BTC-USD
 okx market price-limit BTC-USDT-SWAP
 okx market open-interest --instType SWAP

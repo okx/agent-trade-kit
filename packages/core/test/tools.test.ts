@@ -385,6 +385,109 @@ describe("market_get_trades", () => {
     await tool.handler({ instId: "BTC-USDT", limit: 100 }, makeContext(client));
     assert.equal(getLastCall()?.params.limit, 100);
   });
+
+  it("rejects after/before/type without history=true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    for (const extra of [{ after: "123" }, { before: "123" }, { type: "1" }]) {
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", ...extra }, makeContext(client)),
+        (err) => err instanceof ValidationError && /history=true/.test((err as Error).message),
+      );
+    }
+    assert.equal(getLastCall(), null);
+  });
+
+  it("history=false behaves like the default", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", history: false }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/market/trades");
+  });
+
+  it("history=true calls /market/history-trades with pagination params", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler(
+      { instId: "BTC-USDT", history: true, type: "1", after: "123", limit: 50 },
+      makeContext(client),
+    );
+    assert.equal(getLastCall()?.endpoint, "/api/v5/market/history-trades");
+    assert.deepEqual(getLastCall()?.params, { instId: "BTC-USDT", type: "1", after: "123", limit: 50 });
+  });
+
+  it("history=true keeps limit default 20 and omits unset type/after/before", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", history: true }, makeContext(client));
+    assert.deepEqual(getLastCall()?.params, { instId: "BTC-USDT", limit: 20 });
+  });
+
+  it("history=true rejects limit > 100", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", history: true, limit: 101 }, makeContext(client)),
+      ValidationError,
+    );
+  });
+
+  it("history=false still allows limit up to 500", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", limit: 500 }, makeContext(client));
+    assert.equal(getLastCall()?.params.limit, 500);
+  });
+
+  it("history=true rejects invalid type", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", history: true, type: "3" }, makeContext(client)),
+      ValidationError,
+    );
+  });
+
+  it("history=true rejects before with type=2 (timestamp pagination)", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", history: true, type: "2", before: "1" }, makeContext(client)),
+      (err) => err instanceof ValidationError && /before/.test((err as Error).message),
+    );
+  });
+
+  it("schema documents history/type/after/before", () => {
+    const props = (tool.inputSchema as { properties: Record<string, { description?: string }> }).properties;
+    for (const key of ["history", "type", "after", "before"]) assert.ok(props[key], `${key} missing`);
+    assert.match(props["after"]!.description!, /history=true/);
+  });
+});
+
+describe("OKX_CANDLE_BARS / INDICATOR_BARS", () => {
+  it("schema enum of market_get_candles lists all 8 UTC bars (24 total)", () => {
+    const tool = registerMarketTools().find((t) => t.name === "market_get_candles")!;
+    const props = (tool.inputSchema as { properties: Record<string, { enum?: string[] }> }).properties;
+    assert.equal(props["bar"]!.enum!.length, 24);
+    for (const b of ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"]) {
+      assert.ok(props["bar"]!.enum!.includes(b), b);
+    }
+  });
+});
+
+describe("market_get_candles - UTC bars", () => {
+  const tools = registerMarketTools();
+  const UTC_BARS = ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"];
+
+  for (const name of ["market_get_candles", "market_get_index_candles"]) {
+    const tool = tools.find((t) => t.name === name)!;
+    for (const bar of UTC_BARS) {
+      it(`${name} accepts ${bar}`, async () => {
+        const { client, getLastCall } = makeMockClient();
+        await tool.handler({ instId: "BTC-USDT", bar }, makeContext(client));
+        assert.equal(getLastCall()?.params["bar"], bar);
+      });
+    }
+    // index-candles handler does not enforce the enum (schema-only), so only candles is asserted
+    for (const bar of name === "market_get_candles" ? ["1Hutc", "4Hutc", "1h"] : []) {
+      it(`${name} rejects ${bar}`, async () => {
+        const { client } = makeMockClient();
+        await assert.rejects(() => tool.handler({ instId: "BTC-USDT", bar }, makeContext(client)), ValidationError);
+      });
+    }
+  }
 });
 
 describe("market_get_open_interest", () => {

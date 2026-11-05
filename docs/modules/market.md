@@ -17,7 +17,7 @@ Market data tools. **No API key required.**
 | `market_get_funding_rate_history` | Historical funding rates |
 | `market_get_mark_price` | Mark price for derivatives |
 | `market_get_open_interest` | Open interest across instruments |
-| `market_get_trades` | Recent trade history |
+| `market_get_trades` | Recent trades; `history=true` pages through the last 3 months (`type` / `after` / `before`, max 100 per page) |
 | `market_get_pair_spread` | Pair spread statistics (abs + ratio: mean/stdDev/median/min/max) between two instruments over a lookback window |
 
 ## Example prompts
@@ -50,11 +50,14 @@ okx market tickers SPOT
 okx market orderbook BTC-USDT --sz 10
 okx market candles BTC-USDT --bar 1H --limit 24
 okx market candles BTC-USDT --bar 1D --after 1672531200000   # candles before 2023-01-01
+okx market candles BTC-USDT --bar 1Dutc --limit 30            # UTC+0 daily bars (6Hutc ... 3Mutc)
 okx market funding-rate BTC-USDT-SWAP
 okx market funding-rate BTC-USDT-SWAP --history --limit 10
 okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
 okx market open-interest --instType SWAP
 okx market trades BTC-USDT --limit 20
+okx market trades BTC-USDT --history --limit 100                 # last 3 months, page 1
+okx market trades BTC-USDT --history --after <tradeId> --limit 100 # next page (older)
 okx market index-ticker --instId BTC-USD
 okx market price-limit BTC-USDT-SWAP
 okx market instruments --instType SPOT
@@ -83,7 +86,7 @@ Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H`
 | `market_get_funding_rate_history` | 历史资金费率 |
 | `market_get_mark_price` | 衍生品标记价格 |
 | `market_get_open_interest` | 持仓量 |
-| `market_get_trades` | 最新成交记录 |
+| `market_get_trades` | 最新成交记录；`history=true` 可分页查询最近 3 个月（`type` / `after` / `before`，每页最多 100 条） |
 
 ## 示例提示词
 
@@ -119,6 +122,8 @@ okx market funding-rate BTC-USDT-SWAP --history --limit 10
 okx market mark-price --instType SWAP --instId BTC-USDT-SWAP
 okx market open-interest --instType SWAP
 okx market trades BTC-USDT --limit 20
+okx market trades BTC-USDT --history --limit 100                 # 最近 3 个月，第一页
+okx market trades BTC-USDT --history --after <tradeId> --limit 100 # 下一页（更早）
 okx market index-ticker --instId BTC-USD
 okx market price-limit BTC-USDT-SWAP
 okx market instruments --instType SPOT

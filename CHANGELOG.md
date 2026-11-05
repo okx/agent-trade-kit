@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`market_get_trades` / `okx market trades` pagination**: new `history` switch (`--history`) pages through public trades of the last 3 months via `/api/v5/market/history-trades` (max 100 per page), with `type` (`1` tradeId / `2` timestamp), `after` and `before`. No new MCP tool (still 179). Without `history`, behavior is unchanged (latest trades, default 20, max 500).
+- **UTC+0 candle bars**: `market_get_candles` / `market_get_index_candles` (and `okx market candles|index-candles --bar`) accept `6Hutc`, `12Hutc`, `1Dutc`, `2Dutc`, `3Dutc`, `1Wutc`, `1Mutc`, `3Mutc`.
+- **`market_get_indicator` params validation**: when `params` / `--params` are given, they are validated per indicator against `skills/okx-cex-market/references/indicator-commands.md` and the error carries the signature and an example (`macd` 3 positive integers; `kdj` 3; `bb`/`boll`, `supertrend`, `envelope` 2; `rsi`/`stoch-rsi` 1; `ma`/`ema` one or more periods; `alphatrend`/`halftrend`/`pmax` take none). Indicators without documented usage are passed through unvalidated. Unknown indicator names are sent to the backend with a non-blocking `notice`.
+- CLI: `--params -9,3,3` (leading negative value) is now parsed correctly.
+
+### Changed
+
+- **BREAKING**: invalid `okx market indicator --params` now fails instead of silently falling back to defaults. Non-numeric tokens (`[20]`, `12,,9`, `abc`), a repeated `--params` flag, and a wrong parameter count/range for a documented indicator are rejected; explicit `--params` that return no values on any timeframe now error instead of printing a hint. Omitting `--params` behaves as before.
+- **BREAKING**: `market_get_trades` rejects `type`/`after`/`before` unless `history=true` (the recent-trades endpoint does not support pagination), and `limit` above 100 when `history=true`.
+- **BREAKING**: `market_get_indicator` no longer rejects indicator names missing from the local list; the backend decides.
+- CLI help: `--params` is documented as comma-separated numbers (was `<json>`).
+
 ## [1.5.1-beta.1] - 2026-11-02
 
 Beta release: Skill `metadata.version` and pinned CLI install versions remain at `1.5.0` per the stable-release-only policy.

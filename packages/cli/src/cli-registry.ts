@@ -75,7 +75,7 @@ export const CLI_REGISTRY: CliRegistry = {
       candles: {
         toolName: "market_get_candles",
         usage: "okx market candles <instId> [--bar <bar>] [--limit <n>]",
-        description: "Get candlestick (OHLCV) data",
+        description: "Get candlestick (OHLCV) data. Default bars follow UTC+8; from 6H up the UTC+0 variants 6Hutc,12Hutc,1Dutc,2Dutc,3Dutc,1Wutc,1Mutc,3Mutc are also accepted",
       },
       instruments: {
         toolName: "market_get_instruments",
@@ -94,8 +94,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       trades: {
         toolName: "market_get_trades",
-        usage: "okx market trades <instId> [--limit <n>]",
-        description: "Get recent trades for an instrument",
+        usage: "okx market trades <instId> [--limit <n>] [--history [--type <1|2>] [--after <id|ts>] [--before <id>]]",
+        description: "Get recent trades for an instrument (default 20, max 500). --history pages through the last 3 months (max 100 per page); --type/--after/--before require --history. --type 1=tradeId (default), 2=timestamp; --before is not supported with --type 2",
       },
       "index-ticker": {
         toolName: "market_get_index_ticker",
@@ -105,7 +105,7 @@ export const CLI_REGISTRY: CliRegistry = {
       "index-candles": {
         toolName: "market_get_index_candles",
         usage: "okx market index-candles <instId> [--bar <bar>] [--limit <n>] [--history]",
-        description: "Get index candlestick data",
+        description: "Get index candlestick data (same --bar values as candles, including the UTC+0 variants such as 1Dutc)",
       },
       "price-limit": {
         toolName: "market_get_price_limit",
@@ -159,8 +159,8 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "<indicator> <instId>": {
             toolName: "market_get_indicator",
-            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--list] [--limit <1-100>] [--backtest-time <ts>] [--params <json>]",
-            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators.",
+            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--list] [--limit <1-100>] [--backtest-time <ts>] [--params <comma-separated numbers, e.g. 12,26,9>]",
+            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators. --params is validated per indicator (macd 3 values, kdj 3, bb/supertrend/envelope 2, rsi/stoch-rsi 1, ma/ema 1+; alphatrend/halftrend/pmax take none); give it once, e.g. --params 12,26,9 or --params -9,3,3. Names not in `indicator list` are passed to the backend as-is.",
           },
         },
       },

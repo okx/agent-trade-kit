@@ -666,18 +666,29 @@ describe("market_get_indicator - bar validation", () => {
 describe("market_get_indicator - indicator name validation", () => {
   const tool = registerIndicatorTools()[0]!;
 
-  it("rejects unknown indicator name", async () => {
+  it("passes unknown indicator names through to the backend with a non-blocking notice", async () => {
+    let captured: unknown;
+    let result: Record<string, unknown> = {};
+    await withFetch(async (_url, init) => {
+      captured = JSON.parse((init as RequestInit).body as string);
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      result = await tool.handler(
+        { instId: "BTC-USDT", indicator: "foo-bar", params: [1, 2] },
+        { config: BASE_CONFIG, client },
+      ) as Record<string, unknown>;
+    });
+    const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, Record<string, unknown>>;
+    assert.deepEqual(indicators["FOO_BAR"]!["paramList"], [1, 2]);
+    assert.match(String(result["notice"]), /Unknown indicator "foo-bar".*backend/i);
+  });
+
+  it("does not add a notice for known indicators", async () => {
     await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
       const client = new OkxRestClient(BASE_CONFIG, mock);
-      const { ValidationError } = await import("../src/utils/errors.js");
-      await assert.rejects(
-        () => tool.handler({ instId: "BTC-USDT", indicator: "not_real_indicator" }, { config: BASE_CONFIG, client }),
-        (err) => {
-          assert.ok(err instanceof ValidationError);
-          assert.match((err as Error).message, /Unknown indicator/);
-          return true;
-        },
-      );
+      const result = await tool.handler({ instId: "BTC-USDT", indicator: "rsi" }, { config: BASE_CONFIG, client }) as Record<string, unknown>;
+      assert.equal(result["notice"], undefined);
     });
   });
 
@@ -695,19 +706,43 @@ describe("market_get_indicator - indicator name validation", () => {
       await tool.handler({ instId: "BTC-USDT", indicator: "boll" }, { config: BASE_CONFIG, client });
     });
   });
+});
 
-  it("suggests similar names for partial matches", async () => {
+describe("market_get_indicator - params validation (handler level)", () => {
+  const tool = registerIndicatorTools()[0]!;
+
+  it("rejects wrong param count before any HTTP call", async () => {
+    let called = false;
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await withFetch(async () => {
+      called = true;
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "macd", params: [12] }, { config: BASE_CONFIG, client }),
+        (err) => err instanceof ValidationError && /macd requires 3 params \(fast,slow,signal\), got 1: \[12\]/.test((err as Error).message),
+      );
+    });
+    assert.equal(called, false);
+  });
+
+  it("rejects non-numeric params", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
     await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
       const client = new OkxRestClient(BASE_CONFIG, mock);
-      const { ValidationError } = await import("../src/utils/errors.js");
       await assert.rejects(
-        () => tool.handler({ instId: "BTC-USDT", indicator: "mac" }, { config: BASE_CONFIG, client }),
-        (err) => {
-          assert.ok(err instanceof ValidationError);
-          assert.match((err as Error).message, /macd/);
-          return true;
-        },
+        () => tool.handler({ instId: "BTC-USDT", indicator: "rsi", params: ["abc"] }, { config: BASE_CONFIG, client }),
+        ValidationError,
       );
+    });
+  });
+
+  it("accepts valid params and omitted params", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await tool.handler({ instId: "BTC-USDT", indicator: "macd", params: [12, 26, 9] }, { config: BASE_CONFIG, client });
+      await tool.handler({ instId: "BTC-USDT", indicator: "macd" }, { config: BASE_CONFIG, client });
     });
   });
 });

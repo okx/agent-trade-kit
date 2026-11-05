@@ -9,7 +9,7 @@ Key capabilities:
 - **Tickers**: real-time bid/ask/last price for any instrument (`market_get_ticker`, `market_list_tickers`)
 - **Candlestick data**: OHLCV bars with configurable bar size (`1m`, `5m`, `1H`, `1D`, etc.) — `market_get_candles`, `market_get_history_candles`
 - **Order book**: full or depth-limited L2 order book snapshot (`market_get_orderbook`)
-- **Recent trades**: latest executed trades for an instrument (`market_get_trades`)
+- **Recent trades**: latest executed trades for an instrument (`market_get_trades`); `history=true` pages through the last 3 months (`/market/history-trades`, max 100 per page, `type`/`after`/`before`)
 - **Instrument info**: contract value, lot size, tick size, min size — `market_get_instrument`
 - **Mark/index price**: funding rate, mark price, index price for derivatives
 
