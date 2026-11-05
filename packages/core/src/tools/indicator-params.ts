@@ -169,5 +169,5 @@ export function validateIndicatorParams(name: string, params: readonly number[])
         `Default: ${spec.defaults.join(",")}. Example: params [${spec.defaults.join(",")}] (CLI: --params ${spec.defaults.join(",")})`,
     );
   }
-  spec.slots.forEach((slot, i) => checkSlot(key, slot, params[i]!, i));
+  spec.slots.forEach((slot, i) => checkSlot(key, slot, params[i], i));
 }

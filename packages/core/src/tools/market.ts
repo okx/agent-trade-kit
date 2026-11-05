@@ -32,8 +32,9 @@ function validateTradesPagination(opts: {
   if (!isHistory) {
     const extras = [["type", type], ["after", after], ["before", before]].filter(([, v]) => v !== undefined);
     if (extras.length > 0) {
+      const names = extras.map(([k]) => `"${k}"`).join(", ");
       throw new ValidationError(
-        `Parameter(s) ${extras.map(([k]) => `"${k}"`).join(", ")} require history=true: the recent-trades endpoint does not support pagination.`,
+        `Parameter(s) ${names} require history=true: the recent-trades endpoint does not support pagination.`,
       );
     }
     return;
