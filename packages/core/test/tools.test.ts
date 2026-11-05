@@ -449,6 +449,20 @@ describe("market_get_trades", () => {
     );
   });
 
+  it("history=true accepts limit exactly 100 and type=2 with after", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USDT", history: true, limit: 100, type: "2", after: "1700000000000" }, makeContext(client));
+    assert.deepEqual(getLastCall()?.params, { instId: "BTC-USDT", type: "2", after: "1700000000000", limit: 100 });
+  });
+
+  it("history=true rejects an empty type string", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ instId: "BTC-USDT", history: true, type: "" }, makeContext(client)),
+      ValidationError,
+    );
+  });
+
   it("schema documents history/type/after/before", () => {
     const props = (tool.inputSchema as { properties: Record<string, { description?: string }> }).properties;
     for (const key of ["history", "type", "after", "before"]) assert.ok(props[key], `${key} missing`);

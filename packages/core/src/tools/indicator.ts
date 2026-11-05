@@ -201,14 +201,25 @@ function validateIndicatorName(name: string): void {
   );
 }
 
+const NUMERIC_STRING_RE = /^-?\d+(\.\d+)?$/;
+
+/** Accept finite numbers and numeric strings (LLMs sometimes send "14"); reject everything else. */
+function toNumberItem(key: string, item: unknown, index: number): number {
+  if (typeof item === "number" && Number.isFinite(item)) return item;
+  if (typeof item === "string" && NUMERIC_STRING_RE.test(item.trim())) return Number(item);
+  throw new ValidationError(`Parameter "${key}"[${index}] must be a number, got ${JSON.stringify(item)}.`);
+}
+
 function readNumberArray(
   args: Record<string, unknown>,
   key: string,
 ): number[] | undefined {
   const value = args[key];
   if (value === undefined || value === null) return undefined;
-  if (!Array.isArray(value)) return undefined;
-  return value.map((item) => Number(item));
+  if (!Array.isArray(value)) {
+    throw new ValidationError(`Parameter "${key}" must be an array of numbers, e.g. [12,26,9].`);
+  }
+  return value.map((item, index) => toNumberItem(key, item, index));
 }
 
 export function registerIndicatorTools(): ToolSpec[] {

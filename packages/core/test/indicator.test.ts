@@ -837,4 +837,51 @@ describe("market_get_indicator - params validation (handler level)", () => {
     assert.match(schema.properties.params.description, /Defaults:.*supertrend 3,10/);
     assert.equal(schema.properties.params.items.type, "integer");
   });
+
+  it("rejects params that are not an array (no silent fallback to the default)", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const params of ["12,26,9", 14, { a: 1 }, true]) {
+      await assert.rejects(
+        () => send({ indicator: "macd", params }),
+        (err) => err instanceof ValidationError && /must be an array of numbers/.test((err as Error).message),
+      );
+    }
+  });
+
+  it("rejects array items that are not numbers (null, boolean, empty string, nested)", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const item of [null, true, "", "abc", [26], Number.NaN]) {
+      await assert.rejects(
+        () => send({ indicator: "bb", params: [20, item] }),
+        (err) => err instanceof ValidationError && /must be a number/.test((err as Error).message),
+        String(item),
+      );
+    }
+    // also for indicators without a params contract (previously NaN was sent as null)
+    await assert.rejects(() => send({ indicator: "obv", params: [null] }), ValidationError);
+  });
+
+  it("accepts numeric strings (LLMs sometimes send \"14\")", async () => {
+    const { body } = await send({ indicator: "rsi", params: ["14"] });
+    assert.deepEqual(paramListOf(body, "RSI"), [14]);
+  });
+
+  it("an empty params array reports paramsSource=default", async () => {
+    const { result } = await send({ indicator: "macd", params: [] });
+    assert.equal(result["paramsSource"], "default");
+    assert.deepEqual(result["appliedParams"], [12, 26, 9]);
+  });
+
+  it("validates with a mixed-case name and the boll alias", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(
+      () => send({ indicator: "MACD", params: [12, 26] }),
+      (err) => err instanceof ValidationError && /macd requires 3 params/.test((err as Error).message),
+    );
+    await assert.rejects(
+      () => send({ indicator: "boll", params: [20, 10] }),
+      (err) => err instanceof ValidationError && /bb param #2 \(multiplier\)/.test((err as Error).message),
+    );
+  });
 });
+

@@ -21,6 +21,7 @@
 ### 变更
 
 - **破坏性变更**：`market_get_indicator` / `okx market indicator --params` 校验更严格。非数字（`[20]`、`12,,9`、`abc`）和重复传 `--params` 不再静默回退默认值而是报错；参数约定覆盖的 35 个指标，`params` 个数不完整或多传（如 `macd` 只传 2 个）、数值越界都会被拒绝；显式传了 `--params` 但所有周期都无返回值时，改为报错（退出码 1）而不是仅打印提示。不传 `params` 时 CLI 与 MCP 都会补该指标默认值（MCP 之前不发 `paramList`，`ma`/`ema`/`wma` 等会返回空）。CLI 默认值已按后端修正：`supertrend` `3,10`（原 `10,3` 顺序反了）、`stoch-rsi` `14,14,3,3`、`keltner` `20,10,20`、`mvwap` `14,14`、`stoch` `14,3`、`aroon` `25`、`trix` `18`；`ma` `5,20,60`、`ema` `5,20`。
+- 库：`@agent-tradekit/core` 导出的 `DEFAULT_INDICATOR_PARAMS` / `getDefaultIndicatorParams` 名称不变，但多个取值已改变（见上，例如 `ma` `[5,20,60]`、`ema` `[5,20]`、`supertrend` `[3,10]`）；`params` 不是数字数组（字符串、单个数字、含 `null`/`true` 的元素）时现在直接报错，不再被忽略或强制转换。
 - **破坏性变更**：`market_get_trades` 在未设置 `history=true` 时传 `type`/`after`/`before` 会报错（最新成交接口不支持分页）；`history=true` 时 `limit` 超过 100 也会报错。
 - CLI 帮助：`--params` 说明改为逗号分隔的数字（原为 `<json>`）。
 

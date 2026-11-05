@@ -2,9 +2,9 @@
 // Auto-generated trace-based probe. Asserts that the agent invoked the
 // expected `okx` CLI command via the `exec` tool. Tool-call intent +
 // parameters is what we measure; upstream API auth/401 errors are not.
-// Plan B: omitting --params now yields values (CLI fills a default
-// paramList for period-based indicators), so the prompt asks for an
-// indicator without specifying a period.
+// Omitting --params yields values (core applies the indicator's default
+// paramList for CLI and MCP alike), so the prompt asks for an indicator
+// without specifying a period.
 import { describe, it } from 'vitest';
 import {
   runAgent, recordResult, getModels, getRunsPerModel,

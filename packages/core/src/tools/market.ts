@@ -172,7 +172,7 @@ export function registerMarketTools(): ToolSpec[] {
           bar: {
             type: "string",
             enum: [...OKX_CANDLE_BARS],
-            description: "Default 1m",
+            description: "Default 1m. 6Hutc,12Hutc,1Dutc,2Dutc,3Dutc,1Wutc,1Mutc,3Mutc are UTC+0 bars (plain 6H-3M follow UTC+8)",
           },
           after: {
             type: "string",
@@ -498,7 +498,7 @@ export function registerMarketTools(): ToolSpec[] {
           bar: {
             type: "string",
             enum: [...OKX_CANDLE_BARS],
-            description: "Default 1m",
+            description: "Default 1m. 6Hutc,12Hutc,1Dutc,2Dutc,3Dutc,1Wutc,1Mutc,3Mutc are UTC+0 bars (plain 6H-3M follow UTC+8)",
           },
           after: {
             type: "string",

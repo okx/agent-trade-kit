@@ -331,12 +331,12 @@ describe("cmdMarketIndicator - formatter", () => {
     const { spy } = makeSpy(withApplied);
     const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: true }));
     assert.doesNotMatch(out, /appliedParams|params: /);
-    assert.doesNotThrow(() => JSON.parse(out));
+    assert.deepEqual(JSON.parse(out), MOCK_INDICATOR_RESULT.data);
   });
 
-  it("prints no params line for indicators without a params contract", async () => {
-    const { spy } = makeSpy();
-    const out = await captureStdout(() => cmdMarketIndicator(spy, "rsi", "BTC-USDT", { json: false }));
+  it("prints no params line when the tool result carries no appliedParams (e.g. indicators without a params contract)", async () => {
+    const { spy } = makeSpy(resultFor("OBV"));
+    const out = await captureStdout(() => cmdMarketIndicator(spy, "obv", "BTC-USDT", { json: false }));
     assert.doesNotMatch(out, /params: /);
   });
 

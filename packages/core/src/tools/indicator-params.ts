@@ -79,7 +79,10 @@ const PARAM_SPECS: Readonly<Record<string, ParamSpec>> = {
   stddev: single(20),
 };
 
-/** CLI aliases that share another indicator's contract (mirrors INDICATOR_CODE_OVERRIDES). */
+/**
+ * CLI aliases that share another indicator's contract. Keep in sync with the aliases in
+ * INDICATOR_CODE_OVERRIDES (indicator.ts); a test asserts the alias resolves to a spec.
+ */
 const SPEC_ALIASES: Readonly<Record<string, string>> = { boll: "bb" };
 
 function resolveSpecKey(name: string): string {

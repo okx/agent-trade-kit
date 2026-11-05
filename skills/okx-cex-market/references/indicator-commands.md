@@ -65,6 +65,14 @@ Two ways to call an indicator:
 | `aroon` | period | `25` |
 | `trix` | period | `18` |
 
+Notes on the less obvious positions (from the backend contract):
+
+- `supertrend`: the **first** value is the ATR multiplier (`factor`, integer 1–9) and the second is the ATR period — the reverse of the usual "period, multiplier" order.
+- `bb`: the multiplier is an **integer** 1–9 (no decimals such as 2.5). `bbwidth` / `bbpct` validate their multiplier like a period (2–365) instead.
+- `keltner`: the third value is the channel multiplier **×10** (`20` means 2.0).
+- `kdj`: the second and third values are accepted but the backend uses fixed smoothing, so they do not change the result.
+- All values are integers; the backend cannot take decimals in `--params`.
+
 Examples: `--params 12,26,9` (macd), `--params 3,10` (supertrend: factor 3, ATR period 10), `--params 5,20,60` (ma). `--params 12,26` for macd fails with `macd requires 3 params (fast,slow,signal), got 2`.
 
 Every other indicator (including `envelope`, `alphatrend`, `halftrend`, `pmax`, `obv`, `vwap`, `sar`, `ad` and the candlestick patterns) has no defaults or validation in the CLI: omit `--params` to let the backend use its own default, or pass values that you know the backend accepts.

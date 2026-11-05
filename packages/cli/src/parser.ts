@@ -289,7 +289,8 @@ export const CLI_OPTIONS = {
   // orders
   instId: { type: "string" },
   history: { type: "boolean", default: false },
-  // market trades --history pagination type (1=tradeId, 2=timestamp)
+  // `okx market trades --history` pagination type (1=tradeId, 2=timestamp). Registered globally like
+  // every other flag but only read by the trades command; other commands ignore it.
   type: { type: "string" },
   ordId: { type: "string" },
   // trade

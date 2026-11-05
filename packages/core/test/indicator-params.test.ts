@@ -133,6 +133,18 @@ describe("pass-through", () => {
   });
 });
 
+describe("alias consistency with indicator.ts", () => {
+  it("every KNOWN indicator that resolves to a spec'd API code has a spec itself", async () => {
+    const { KNOWN_INDICATORS, resolveIndicatorCode } = await import("../src/tools/indicator.js");
+    for (const { name } of KNOWN_INDICATORS) {
+      const specCodes = Object.keys(INDICATOR_DEFAULT_PARAMS).map((n) => n.toUpperCase().replace(/-/g, "_"));
+      const resolvesToSpec = specCodes.includes(resolveIndicatorCode(name));
+      // a name that resolves to a spec'd API code must itself be covered (alias or direct)
+      if (resolvesToSpec) assert.equal(hasIndicatorParamSpec(name), true, name);
+    }
+  });
+});
+
 describe("helpers", () => {
   it("formatIndicatorSignature", () => {
     assert.equal(
