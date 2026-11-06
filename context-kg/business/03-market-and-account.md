@@ -21,17 +21,13 @@ Multi-dimensional instrument screener supporting price, volume, OI, funding rate
 
 **⚠️ SPOT + quoteCcy pitfall**: When `instType=SPOT`, the OKX API returns instruments across **all** quote currencies (USDT, USDC, BTC, ETH, DAI, etc.) in a single response. This mixes heterogeneous instruments and distorts any sort-by ranking (e.g., sorting by `volUsd24h` will interleave BTC-USDT with obscure BTC-DAI pairs). Always pass `quoteCcy=USDT` as the default when querying SPOT, unless the user explicitly requests other quote currencies.
 
-## Indicator Module (`packages/core/src/tools/indicator.ts`)
+## Indicator Module (`packages/core/src/tools/indicator.ts`, `indicator-params.ts`)
 
-Built on top of the market candle data, the indicator module computes common technical analysis indicators server-side (no external TA library — computed inline):
+`market_get_indicator` does not compute anything locally: it calls the OKX AIGC indicators backend (`POST /api/v5/aigc/mcp/indicators`), which returns the values. `market_list_indicators` lists the supported names, and a name outside that list is rejected locally before any request.
 
-- **Moving averages**: SMA, EMA with configurable period
-- **RSI**: Relative Strength Index
-- **Bollinger Bands**: upper/middle/lower bands with configurable stddev multiplier
-- **MACD**: signal line, histogram
-- **Volume analysis**: average volume, volume spikes
-
-Indicators fetch candle history internally and return computed values alongside the raw data. The agent can use these to build trading signals without needing a separate TA service.
+- **Timeframes**: `3m`, `5m`, `15m`, `1H`, `4H`, `12Hutc`, `1Dutc`, `3Dutc`, `1Wutc`.
+- **Params contract** (`indicator-params.ts`, shared by CLI and MCP; 39 indicators plus the `boll` alias): omit `params` to use the indicator's default; if given they must be complete integers (periods 2-365, `bb` multiplier and `supertrend` factor 1-9, `alphatrend`/`halftrend` any int32). The result reports `appliedParams` and `paramsSource`. Other known indicators are passed through without count/range checks.
+- **Result shape**: values are strings; moving-average style indicators are keyed by the period passed.
 
 ## Account Module (`packages/core/src/tools/account.ts`)
 

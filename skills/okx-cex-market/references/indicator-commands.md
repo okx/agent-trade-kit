@@ -40,7 +40,7 @@ okx market indicator <indicator> <instId> [--bar <bar>] [--params <n1,n2,...>] [
 Two ways to call an indicator:
 
 1. **Omit `--params`** — the indicator's default is used (the CLI prints `params: <values> (default)`).
-2. **Pass `--params`** — it must be **complete**. A fixed-length indicator needs exactly the full set (too few *or* too many is an error); `ma`, `ema`, `rsi`, `wr`, `wma`, `dema`, `tema`, `zlema`, `hma`, `kama` take one or more periods. Every value is an integer: periods are 2–365; the `bb` multiplier and the `supertrend` factor are 1–9. Order matters.
+2. **Pass `--params`** — it must be **complete**. A fixed-length indicator needs exactly the full set (too few *or* too many is an error); `ma`, `ema`, `rsi`, `wr`, `wma`, `dema`, `tema`, `zlema`, `hma`, `kama` take one or more periods. Every value is an integer: periods are 2–365; the `bb` multiplier and the `supertrend` factor are 1–9; `alphatrend` and `halftrend` take any int32 integer (negative values allowed, the 2–365 period range does not apply). Order matters.
 
 | Indicator | Params (in order) | Default |
 |---|---|---|
@@ -81,9 +81,15 @@ Notes on the less obvious positions (from the backend contract):
 
 Examples: `--params 12,26,9` (macd), `--params 3,10` (supertrend: factor 3, ATR period 10), `--params 5,20,60` (ma). `--params 12,26` for macd fails with `macd requires 3 params (fast,slow,signal), got 2`.
 
-Every other indicator (including `obv`, `vwap`, `sar`, `ad` and the candlestick patterns) has no defaults or validation in the CLI: omit `--params` to let the backend use its own default, or pass values that you know the backend accepts.
+Every other indicator (including `obv`, `vwap`, `sar`, `ad` and the candlestick patterns) has no default and no count or range check: omit `--params` to let the backend use its own default, or pass values that you know the backend accepts. Malformed values (non-numeric, `null`, numbers that overflow) are still rejected before the request is sent.
 
-If explicit `--params` produce no values on any timeframe the command fails (the period may exceed the available candles).
+When no indicator values come back:
+
+| Situation | Behaviour |
+|---|---|
+| `--params` given, no timeframe returns values | Table mode fails with `No values returned for <indicator> with params [...]` (the period may exceed the available candles); exit code 1. With `--json` the raw backend data is printed and the exit code stays 0 |
+| `--params` omitted, a default was applied (the `params: … (default)` line is shown) | Prints `No indicator values returned for the default params; there may not be enough candles for this instrument and bar.` |
+| `--params` omitted, indicator has no default | Prints `No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).` |
 
 ---
 
@@ -184,19 +190,21 @@ Run `okx market indicator list` for the authoritative full list. Common indicato
 
 ## Return Fields
 
-All indicators return `ts` (Unix ms timestamp) plus indicator-specific fields:
+The CLI prints the backend's fields unchanged (no renaming, no conversion). Every value is a string, plus `ts` (Unix ms timestamp). Moving-average style indicators are keyed by the **period you passed**, one key per period:
 
 | Indicator | Return fields |
 |---|---|
-| `ma` | `ma5`, `ma20`, `ma60` (based on `--params`) |
-| `ema` | `ema5`, `ema20` (based on `--params`) |
-| `rsi` | `rsi` |
+| `ma` | one key per period, e.g. `5`, `20`, `60` |
+| `ema` | one key per period, e.g. `5`, `20` |
+| `rsi` | one key per period, e.g. `14` (`--params 14,2` returns `14` and `2`) |
 | `macd` | `dif`, `dea`, `macd` (histogram) |
 | `kdj` | `k`, `d`, `j` |
 | `bb` / `boll` | `upper`, `middle`, `lower` |
-| `supertrend` | `supertrend`, `direction` (`buy`/`sell`) |
-| `ahr999` | `ahr999` |
-| `rainbow` | `band` (valuation zone label) |
+| `supertrend` | `superTrend`, `direction` (`-1` = up trend, `1` = down trend), `trend` (`UP` / `DOWN`), `upperBand`, `lowerBand` |
+| `ahr999` | `ahr999`, `dca_cost_200`, `fitted_price`, `zone` (`1` = below 0.45, `2` = 0.45–1.2, `3` = 1.2 and above) |
+| `rainbow` | `fair_value`, `deviation`, `band` (zone number `1`–`7`) |
+
+Indicators not listed here return whatever fields the backend defines (for example `stoch-rsi` returns `stochRsi`, `k`, `d`); use `--json` to see them.
 
 ---
 
@@ -211,10 +219,12 @@ okx market indicator rsi BTC-USDT --bar 4H --params 14
 
 # EMA 5 and EMA 20 trend check on 1H
 okx market indicator ema BTC-USDT --bar 1H --params 5,20
-# ts: 3/20/2026, 10:00 AM | ema5: 87420.5 | ema20: 86910.2
+# params: 5,20 (explicit)
+# ts: 3/20/2026, 10:00 AM | 5: 87420.5 | 20: 86910.2
 
-# MACD on daily
+# MACD on daily (no --params: the default is applied and printed)
 okx market indicator macd BTC-USDT --bar 1Dutc
+# params: 12,26,9 (default)
 
 # Bollinger Bands on 1H
 okx market indicator bb ETH-USDT --bar 1H
@@ -222,18 +232,18 @@ okx market indicator bb ETH-USDT --bar 1H
 
 # SuperTrend direction signal
 okx market indicator supertrend BTC-USDT --bar 4H
-# supertrend: 84200 | direction: buy
+# superTrend: 84200 | direction: -1 | trend: UP
 
 # Historical RSI series (last 20 values)
 okx market indicator rsi ETH-USDT --bar 1H --params 14 --list --limit 20
-# → table: ts, rsi (20 rows, newest first)
+# → table: ts, 14 (20 rows)
 
 # BTC on-chain cycle check
 okx market indicator ahr999 BTC-USDT
-# ahr999: 0.87  (DCA zone: 0.45–1.2)
+# ahr999: 0.87 | zone: 2  (DCA zone: 0.45–1.2)
 
 okx market indicator rainbow BTC-USDT
-# band: "HODL"
+# fair_value: 61234 | deviation: -0.12 | band: 3
 
 # Backtesting point-in-time value
 okx market indicator rsi BTC-USDT --bar 4H --params 14 --backtest-time 1711008000000
@@ -245,7 +255,7 @@ okx market indicator rsi BTC-USDT --bar 4H --params 14 --backtest-time 171100800
 
 | Indicator | Zone / Value | Interpretation |
 |---|---|---|
-| `ahr999` | < 0.45 | Accumulate zone |
-| `ahr999` | 0.45 – 1.2 | DCA zone |
-| `ahr999` | > 1.2 | Bubble warning |
-| `rainbow` | band label | See OKX Rainbow Chart legend for zone |
+| `ahr999` | < 0.45 (`zone` 1) | Accumulate zone |
+| `ahr999` | 0.45 – 1.2 (`zone` 2) | DCA zone |
+| `ahr999` | ≥ 1.2 (`zone` 3) | Bubble warning |
+| `rainbow` | `band` 1–7 | Zone number; see the OKX Rainbow Chart legend |

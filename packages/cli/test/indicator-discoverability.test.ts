@@ -6,6 +6,9 @@
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { DEFAULT_INDICATOR_PARAMS } from "@agent-tradekit/core";
 import { CLI_REGISTRY } from "../src/cli-registry.js";
 
 function getIndicatorCommand() {
@@ -55,5 +58,36 @@ describe("indicator command discoverability - CLI registry", () => {
       mentionsDefault,
       `Expected description to mention default behavior (\"latest\" or \"default\").\nGot: "${cmd.description}"`,
     );
+  });
+});
+
+describe("indicator skill doc stays in sync with the params contract", () => {
+  const skillPath = fileURLToPath(new URL("../../../skills/okx-cex-market/references/indicator-commands.md", import.meta.url));
+  const lines = readFileSync(skillPath, "utf8").split("\n");
+
+  it("every default in the 'Supported Indicators' table equals the code default (— means none)", () => {
+    const row = /^\| \*\*[A-Za-z\- ]+\*\* \| `([a-z0-9-]+)`(?: \(or `boll`\))? \| (`[^`]*`|—) \|/;
+    let checked = 0;
+    for (const line of lines) {
+      const m = row.exec(line);
+      if (!m) continue;
+      const [, name, cell] = m;
+      const doc = cell === "—" ? undefined : cell!.replace(/`/g, "");
+      const code = DEFAULT_INDICATOR_PARAMS[name!]?.join(",");
+      assert.equal(doc, code, `${name}: skill default ${doc ?? "—"} vs code ${code ?? "none"}`);
+      checked++;
+    }
+    assert.ok(checked > 70, `expected the full indicator table, parsed ${checked} rows`);
+  });
+
+  it("every indicator with a default is listed in the '--params contract' table with that default", () => {
+    const start = lines.findIndex((l) => l.startsWith("### `--params` contract"));
+    const end = lines.findIndex((l, i) => i > start && l.startsWith("Notes on the less obvious"));
+    assert.ok(start >= 0 && end > start, "contract section not found");
+    const section = lines.slice(start, end);
+    for (const [name, defaults] of Object.entries(DEFAULT_INDICATOR_PARAMS)) {
+      const row = section.find((l) => new RegExp(`\\| [^|]*\`${name}\`[^|]*\\| [^|]*\\| \`${defaults.join(",")}\` \\|`).test(l));
+      assert.ok(row, `contract table has no row for ${name} with default ${defaults.join(",")}`);
+    }
   });
 });
