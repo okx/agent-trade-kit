@@ -96,13 +96,13 @@ okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before
 |---|---|---|---|
 | `instId` | Yes | - | Instrument ID |
 | `--bar` | No | `1m` | Time granularity (see values below) |
-| `--limit` | No | 100 | Number of candles |
+| `--limit` | No | 100 | Number of candles; max 300 per request (OKX) |
 | `--after` | No | - | Return candles **before** this timestamp (ms) — paginate backward in time |
 | `--before` | No | - | Return candles **after** this timestamp (ms) — paginate forward in time |
 
 `--bar` values: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `2D` `3D` `1W` `1M` `3M`
 
-UTC+0 variants (from 6H up only): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`. Plain bars follow UTC+8 (identical to UTC+0 up to 4H); use the `utc` variants for UTC day/week/month boundaries.
+UTC+0 bars supported by `candles` (from 6H up): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`. Plain bars follow UTC+8 (identical to UTC+0 up to 4H); use the `utc` variants for UTC day/week/month boundaries. This full list is for `candles`; `index-candles` and `indicator` support different bar sets (see their sections).
 
 > Use uppercase for hour/day/week/month — `1H` not `1h`.
 
@@ -127,15 +127,29 @@ okx market candles BTC-USDT --bar 1Dutc --limit 30            # UTC+0 daily bars
 okx market index-candles <instId> [--bar <bar>] [--limit <n>] [--history] [--json]
 ```
 
-Same params as `candles`. Use index instrument IDs: `BTC-USD` (not `BTC-USDT`).
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `instId` | Yes | - | Index ID, e.g. `BTC-USD` (not `BTC-USDT`) |
+| `--bar` | No | `1m` | Bar size; the supported set differs from `candles` (see below) |
+| `--limit` | No | - | Number of candles; max 100 per request on both the default and the `--history` endpoint (OKX) |
+| `--history` | No | false | Use the historical endpoint, for data beyond the default 1440-candle window |
 
-`--history`: return historical candles beyond the default 1440-candle window.
+`index-candles` has no `--after` / `--before` (those belong to `candles`).
 
-Returns: same columns as `candles`.
+Supported `--bar` values per OKX's index-candles docs (the CLI forwards `--bar` unchanged):
+
+| Endpoint | UTC+8 bars | UTC+0 bars |
+|---|---|---|
+| default (recent) | `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M` `3M` | `6Hutc` `12Hutc` `1Dutc` `1Wutc` `1Mutc` `3Mutc` |
+| `--history` | `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M` | `6Hutc` `12Hutc` `1Dutc` `1Wutc` `1Mutc` |
+
+Neither endpoint has `2D`, `3D`, `2Dutc` or `3Dutc` (those are `candles` only).
+
+Returns: `time` · `open` · `high` · `low` · `close` (no volume column).
 
 ```bash
 okx market index-candles BTC-USD --bar 1Dutc --limit 50
-okx market index-candles BTC-USD --bar 1Wutc --history --limit 200
+okx market index-candles BTC-USD --bar 1Wutc --history --limit 100
 ```
 
 > **Demo market data**: All commands above support `--demo` (CLI) or `demo: true` (MCP) to query OKX's simulated trading market data. Default is live data.

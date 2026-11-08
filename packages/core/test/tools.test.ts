@@ -481,7 +481,7 @@ describe("OKX_CANDLE_BARS / INDICATOR_BARS", () => {
   });
 });
 
-describe("market_get_candles - UTC bars", () => {
+describe("market_get_candles - bar validation (UTC variants)", () => {
   const tools = registerMarketTools();
   const tool = tools.find((t) => t.name === "market_get_candles")!;
   const UTC_BARS = ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"];
@@ -501,49 +501,39 @@ describe("market_get_candles - UTC bars", () => {
   }
 });
 
-describe("market_get_index_candles - bar schema is unchanged (UTC bars are candles-only)", () => {
+describe("market_get_index_candles - bar schema and description keep their existing values", () => {
   const tool = registerMarketTools().find((t) => t.name === "market_get_index_candles")!;
   const props = (tool.inputSchema as { properties: Record<string, { enum?: string[]; description?: string }> }).properties;
 
-  it("keeps the original 16 bars and description", () => {
+  it("is not touched by the candles UTC list (same 16 bars, same description)", () => {
     assert.equal(props["bar"]!.enum!.length, 16);
     assert.ok(!props["bar"]!.enum!.some((b) => b.endsWith("utc")));
     assert.equal(props["bar"]!.description, "Default 1m");
   });
 });
 
-describe("OKX_CANDLE_BARS / INDICATOR_BARS", () => {
-  it("schema enum of market_get_candles lists all 8 UTC bars (24 total)", () => {
-    const tool = registerMarketTools().find((t) => t.name === "market_get_candles")!;
-    const props = (tool.inputSchema as { properties: Record<string, { enum?: string[] }> }).properties;
-    assert.equal(props["bar"]!.enum!.length, 24);
-    for (const b of ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"]) {
-      assert.ok(props["bar"]!.enum!.includes(b), b);
-    }
-  });
-});
+// Mock-only: these prove the handler forwards `bar` unchanged. They say nothing about which bars
+// the OKX index-candles / history-index-candles endpoints accept (they support a smaller UTC set
+// than candles); the skill documents that set from OKX's own docs.
+describe("market_get_index_candles - forwards bar unchanged (mock only, not backend support)", () => {
+  const tool = registerMarketTools().find((t) => t.name === "market_get_index_candles")!;
 
-describe("market_get_candles - UTC bars", () => {
-  const tools = registerMarketTools();
-  const UTC_BARS = ["6Hutc", "12Hutc", "1Dutc", "2Dutc", "3Dutc", "1Wutc", "1Mutc", "3Mutc"];
-
-  for (const name of ["market_get_candles", "market_get_index_candles"]) {
-    const tool = tools.find((t) => t.name === name)!;
-    for (const bar of UTC_BARS) {
-      it(`${name} accepts ${bar}`, async () => {
-        const { client, getLastCall } = makeMockClient();
-        await tool.handler({ instId: "BTC-USDT", bar }, makeContext(client));
-        assert.equal(getLastCall()?.params["bar"], bar);
-      });
-    }
-    // index-candles handler does not enforce the enum (schema-only), so only candles is asserted
-    for (const bar of name === "market_get_candles" ? ["1Hutc", "4Hutc", "1h"] : []) {
-      it(`${name} rejects ${bar}`, async () => {
-        const { client } = makeMockClient();
-        await assert.rejects(() => tool.handler({ instId: "BTC-USDT", bar }, makeContext(client)), ValidationError);
-      });
-    }
+  for (const bar of ["1Dutc", "1Wutc"]) {
+    it(`forwards ${bar} to /index-candles as given`, async () => {
+      const { client, getLastCall } = makeMockClient();
+      await tool.handler({ instId: "BTC-USD", bar }, makeContext(client));
+      assert.equal(getLastCall()?.endpoint, "/api/v5/market/index-candles");
+      assert.equal(getLastCall()?.params["bar"], bar);
+      assert.equal(getLastCall()?.params["instId"], "BTC-USD");
+    });
   }
+
+  it("forwards bar to /history-index-candles as given when history=true", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ instId: "BTC-USD", bar: "1Wutc", history: true }, makeContext(client));
+    assert.equal(getLastCall()?.endpoint, "/api/v5/market/history-index-candles");
+    assert.equal(getLastCall()?.params["bar"], "1Wutc");
+  });
 });
 
 describe("market_get_open_interest", () => {

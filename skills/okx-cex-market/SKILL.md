@@ -120,6 +120,7 @@ All commands in this skill are read-only.
 - **funding-rate / price-limit**: SWAP only · mark-price: SWAP / FUTURES / OPTION only
 - **candles `--bar`**: uppercase — `1H` not `1h`; use `--after <ts>` to paginate back into historical data (back to 2021); index-candles supports `--history` for extended history
 - **⚠️ Large historical range**: before fetching with `--after`/`--before`, estimate candle count = `time_range_ms / bar_interval_ms`. If estimate > 500, tell the user the estimated count and ask for confirmation before proceeding. This prevents silently filling the context window.
+- **`--bar` sets differ by command**: `candles`, `index-candles` and `indicator` each support a different set of bars. Read the matching reference (`price-data-commands.md` / `indicator-commands.md`) and do not reuse one command's list for another.
 - **indicator `--bar`**: uses `1Dutc` not `1D`, `1Wutc` not `1W` — indicators accept only the values listed below (a subset of the candle bar values)
 - **`market filter` sortBy values**: `last` `chg24hPct` `marketCapUsd` `volUsd24h` `fundingRate` `oiUsd` `listTime` — default `volUsd24h`
 - **`market filter` ctType**: `linear` or `inverse` (SWAP/FUTURES only); omit for SPOT

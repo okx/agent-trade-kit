@@ -200,7 +200,7 @@ The CLI prints the backend's fields unchanged (no renaming, no conversion). Ever
 | `macd` | `dif`, `dea`, `macd` (histogram) |
 | `kdj` | `k`, `d`, `j` |
 | `bb` / `boll` | `upper`, `middle`, `lower` |
-| `supertrend` | `superTrend`, `direction` (`-1` = up trend, `1` = down trend), `trend` (`UP` / `DOWN`), `upperBand`, `lowerBand` |
+| `supertrend` | `superTrend`, `direction` (`-1` = `UP`, `1` = `DOWN`), `trend` (`UP` / `DOWN`), `upperBand`, `lowerBand` |
 | `ahr999` | `ahr999`, `dca_cost_200`, `fitted_price`, `zone` (`1` = below 0.45, `2` = 0.45–1.2, `3` = 1.2 and above) |
 | `rainbow` | `fair_value`, `deviation`, `band` (zone number `1`–`7`) |
 
@@ -230,7 +230,7 @@ okx market indicator macd BTC-USDT --bar 1Dutc
 okx market indicator bb ETH-USDT --bar 1H
 # upper: 2050 | middle: 2000 | lower: 1950
 
-# SuperTrend direction signal
+# SuperTrend trend state
 okx market indicator supertrend BTC-USDT --bar 4H
 # superTrend: 84200 | direction: -1 | trend: UP
 
