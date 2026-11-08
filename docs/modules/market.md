@@ -63,7 +63,7 @@ okx market price-limit BTC-USDT-SWAP
 okx market instruments --instType SPOT
 ```
 
-Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
+Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `2D` `3D` `1W` `1M` `3M`
 
 UTC+0 variants (`okx market candles` only, from 6H up): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`
 
@@ -131,6 +131,6 @@ okx market price-limit BTC-USDT-SWAP
 okx market instruments --instType SPOT
 ```
 
-K线周期：`1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
+K线周期：`1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `2D` `3D` `1W` `1M` `3M`
 
 UTC+0 周期（仅 `okx market candles`，6H 及以上）：`6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`
