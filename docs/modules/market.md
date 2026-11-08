@@ -67,7 +67,7 @@ Supported candle intervals: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H`
 
 UTC+0 bars supported by `okx market candles` (from 6H up): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`
 
-This full list applies to `candles`; `index-candles` and `indicator` have different supported bar sets. Do not reuse this full list for them.
+This full list applies to `candles`.
 
 ---
 
@@ -137,4 +137,4 @@ K线周期：`1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `2D` `3D`
 
 `okx market candles` 支持的 UTC+0 周期（6H 及以上）：`6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`
 
-这份完整列表适用于 `candles`；`index-candles` 和 `indicator` 各自支持的周期集合不同，不要照搬这份完整列表。
+这份完整列表适用于 `candles`。

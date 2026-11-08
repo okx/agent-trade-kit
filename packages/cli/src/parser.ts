@@ -673,17 +673,13 @@ export function parseCli(argv: string[]): { values: CliValues; positionals: stri
     return true;
   });
 
+  // `--type` only exists for `okx market trades`; for every other command it stays an unknown option.
+  const options = command === "market trades" ? CLI_OPTIONS : OPTIONS_WITHOUT_TYPE;
   const { values, positionals } = parseArgs({
     args: filtered,
-    options: CLI_OPTIONS,
+    options,
     allowPositionals: true,
   });
-
-  if (values.type !== undefined && command !== "market trades") {
-    // `--type` only exists for `okx market trades`; elsewhere it must stay an unknown option
-    // (this strict re-parse throws the same ERR_PARSE_ARGS_UNKNOWN_OPTION it always did).
-    parseArgs({ args: filtered, options: OPTIONS_WITHOUT_TYPE, allowPositionals: true });
-  }
 
   for (const key of negated) {
     (values as Record<string, unknown>)[key] = false;

@@ -76,7 +76,7 @@ Notes on the less obvious positions (from the backend contract):
 - `keltner`: the third value is the channel multiplier **×10** (`20` means 2.0).
 - `envelope`: the second value is the band **percent as an integer** (`2` means 2%), not a decimal such as 0.1.
 - `alphatrend`, `halftrend`, `pmax`: scaled integers — `alphatrend` coefficient×100 (`100` = 1.0), `halftrend` channelDeviation×10 (`20` = 2.0), `pmax` multiplier×10 (`30` = 3.0). The backend applies no range check to the `alphatrend` / `halftrend` values; `pmax` and `envelope` values are periods (2–365).
-- `kdj`: the second and third values are accepted but the backend uses fixed smoothing, so they do not change the result.
+- `kdj`: pass all three values (`n,kSmooth,dSmooth`) or omit `--params`.
 - All values are integers; the backend cannot take decimals in `--params`.
 
 Examples: `--params 12,26,9` (macd), `--params 3,10` (supertrend: factor 3, ATR period 10), `--params 5,20,60` (ma). `--params 12,26` for macd fails with `macd requires 3 params (fast,slow,signal), got 2`.

@@ -470,7 +470,7 @@ describe("market_get_trades", () => {
   });
 });
 
-describe("OKX_CANDLE_BARS / INDICATOR_BARS", () => {
+describe("OKX_CANDLE_BARS / OKX_CANDLE_UTC_BARS", () => {
   it("schema enum of market_get_candles lists all 8 UTC bars (24 total)", () => {
     const tool = registerMarketTools().find((t) => t.name === "market_get_candles")!;
     const props = (tool.inputSchema as { properties: Record<string, { enum?: string[] }> }).properties;

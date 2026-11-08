@@ -338,6 +338,8 @@ describe("parseCli - scope of the new flags (other commands must behave exactly 
       { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" },
     );
     assert.throws(() => parseCli(["market", "ticker", "BTC-USDT", "--type", "1"]), { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" });
+    // a missing value is reported as the unknown option too, not as a different parse error
+    assert.throws(() => parseCli(["spot", "algo", "place", "--type"]), { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" });
     assert.throws(() => parseCli(["market", "candles", "BTC-USDT", "--type", "1"]), { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" });
   });
 
@@ -350,7 +352,7 @@ describe("parseCli - scope of the new flags (other commands must behave exactly 
     // another command repeating --params is ignored as before (the flag is simply unused there)
     assert.doesNotThrow(() => parseCli(["market", "ticker", "BTC-USDT", "--params", "1", "--params", "2"]));
     // a negative value is only joined for the indicator command; elsewhere parseArgs behaves as before
-    assert.throws(() => parseCli(["market", "ticker", "BTC-USDT", "--params", "-5"]));
+    assert.throws(() => parseCli(["market", "ticker", "BTC-USDT", "--params", "-5"]), { code: "ERR_PARSE_ARGS_INVALID_OPTION_VALUE" });
     assert.equal(parseCli(["market", "indicator", "macd", "BTC-USDT", "--params", "-5"]).values.params, "-5");
   });
 
