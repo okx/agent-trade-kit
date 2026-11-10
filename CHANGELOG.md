@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1-beta.2] - 2026-11-10
+
+Beta release: Skill `metadata.version` and pinned CLI install versions remain at `1.5.0` per the stable-release-only policy.
+
 ### Added
 
 - **`market_get_trades` / `okx market trades` pagination**: new `history` switch (`--history`) pages through public trades of the last 3 months via `/api/v5/market/history-trades` (max 100 per page), with `type` (`1` tradeId / `2` timestamp), `after` and `before`. No new MCP tool (still 179). Without `history`, behavior is unchanged (latest trades, default 20, max 500).

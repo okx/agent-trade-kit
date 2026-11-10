@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.5.1-beta.2] - 2026-11-10
+
+Beta 版本：按稳定版同步策略，所有 Skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.5.0`。
+
 ### 新增
 
 - **`market_get_trades` / `okx market trades` 分页**：新增 `history` 开关（`--history`），通过 `/api/v5/market/history-trades` 分页获取最近 3 个月的公共成交（每页最多 100 条），支持 `type`（`1` 按 tradeId / `2` 按时间戳）、`after`、`before`。不新增 MCP 工具（仍为 179 个）。不传 `history` 时行为不变（最新成交，默认 20，最多 500）。
