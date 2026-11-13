@@ -29,6 +29,9 @@ export interface ParsedDecimal {
   exp: number;
 }
 
+/** Result of a three-way comparison. */
+export type Ordering = -1 | 0 | 1;
+
 // [sign] (int[.frac] | .frac) [e[sign]exp]; linear-time, no ambiguous groups.
 const DECIMAL_RE = /^([+-]?)(\d+\.?\d*|\.\d+)(?:[eE]([+-]?\d+))?$/;
 
@@ -80,7 +83,7 @@ function magnitude(d: ParsedDecimal): number {
   return d.digits.length + d.exp;
 }
 
-function compareMagnitude(a: ParsedDecimal, b: ParsedDecimal): -1 | 0 | 1 {
+function compareMagnitude(a: ParsedDecimal, b: ParsedDecimal): Ordering {
   const ma = magnitude(a);
   const mb = magnitude(b);
   if (ma !== mb) return ma > mb ? 1 : -1;
@@ -92,7 +95,7 @@ function compareMagnitude(a: ParsedDecimal, b: ParsedDecimal): -1 | 0 | 1 {
 }
 
 /** Exact three-way comparison. */
-export function compareDecimal(a: ParsedDecimal, b: ParsedDecimal): -1 | 0 | 1 {
+export function compareDecimal(a: ParsedDecimal, b: ParsedDecimal): Ordering {
   const za = isZero(a);
   const zb = isZero(b);
   if (za && zb) return 0;
@@ -100,7 +103,7 @@ export function compareDecimal(a: ParsedDecimal, b: ParsedDecimal): -1 | 0 | 1 {
   if (zb) return a.neg ? -1 : 1;
   if (a.neg !== b.neg) return a.neg ? -1 : 1;
   const c = compareMagnitude(a, b);
-  return (a.neg ? -c : c) as -1 | 0 | 1;
+  return (a.neg ? -c : c) as Ordering;
 }
 
 /** Guard for values that will be expanded or summed (bounded integer digits and scale). */
