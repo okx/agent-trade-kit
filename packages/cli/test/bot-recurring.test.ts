@@ -308,7 +308,7 @@ describe("parseCli — recurring flags", () => {
   it("parses the recurring-specific flags as strings", () => {
     const { values } = parseCli([
       "bot", "recurring", "create", "--recurringList", '[{"ccy":"BTC","ratio":"1"}]', "--recurringDay", "1",
-      "--recurringHour", "4", "--recurringTime", "0", "--recurringTimeType", "2", "--source", "1,2", "--amount", "5",
+      "--recurringHour", "4", "--recurringTime", "0", "--recurringTimeType", "2", "--source", "1,2",
     ]);
     assert.equal(values.recurringList, '[{"ccy":"BTC","ratio":"1"}]');
     assert.equal(values.recurringDay, "1");
@@ -316,7 +316,12 @@ describe("parseCli — recurring flags", () => {
     assert.equal(values.recurringTime, "0");
     assert.equal(values.recurringTimeType, "2");
     assert.equal(values.source, "1,2");
-    assert.equal(values.amount, "5");
+  });
+
+  it("parses --amount on the actions that read it (amend-amount, add-investment)", () => {
+    for (const action of ["amend-amount", "add-investment"]) {
+      assert.equal(parseCli(["bot", "recurring", action, "--algoId", "1", "--amount", "5"]).values.amount, "5", action);
+    }
   });
 });
 

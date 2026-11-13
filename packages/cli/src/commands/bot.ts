@@ -686,10 +686,68 @@ export async function cmdSmartPortfolioInstantRebalance(
   if (opts.json) return printJson(items);
   const triggered = items?.[0]?.["triggered"];
   if (triggered) {
-    outputLine(`Smart Portfolio rebalance triggered: ${opts.algoId} (OK)`);
+    outputLine(`Smart Portfolio rebalance triggered: ${opts.algoId} (OK) - triggered means the rebalance flow started, not that trades executed`);
   } else {
-    outputLine(`Smart Portfolio rebalance not triggered for ${opts.algoId} (portfolio may already be balanced)`);
+    outputLine(`Smart Portfolio rebalance not triggered for ${opts.algoId} (no trade flow was started this time; this does not mean the portfolio is balanced)`);
   }
+}
+
+// The four operation endpoints answer `code=0, data=[]` on success: there is no data[0]/sCode,
+// so they must not go through emitWriteResult (it would report an empty array as a failure).
+// "accepted" is all a successful response proves - not a new state, arrived funds or fills.
+function emitAccepted(run: string, algoId: string, note?: string): void {
+  outputLine(`Smart Portfolio ${run} request accepted: ${algoId}${note ? ` - ${note}` : ""}`);
+}
+
+export async function cmdSmartPortfolioManualPause(
+  run: ToolRunner,
+  opts: { algoId: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_manual_pause", { algoId: opts.algoId });
+  if (opts.json) return printJson(getData(result));
+  emitAccepted("manual-pause", opts.algoId, "check `details` for the resulting state");
+}
+
+export async function cmdSmartPortfolioManualResume(
+  run: ToolRunner,
+  opts: { algoId: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_manual_resume", { algoId: opts.algoId });
+  if (opts.json) return printJson(getData(result));
+  emitAccepted("manual-resume", opts.algoId, "a rebalance check was requested; it does not guarantee any trade");
+}
+
+export async function cmdSmartPortfolioAddInvestment(
+  run: ToolRunner,
+  opts: { algoId: string; addInvest: string; tradeQuoteCcy?: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_add_investment", {
+    algoId: opts.algoId,
+    addInvest: opts.addInvest,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
+  });
+  if (opts.json) return printJson(getData(result));
+  emitAccepted("add-investment", opts.algoId, "accepted does not mean the funds have arrived");
+}
+
+export async function cmdSmartPortfolioEditPortfolio(
+  run: ToolRunner,
+  opts: { algoId: string; portfolioList: string; addInvest?: string; tradeQuoteCcy?: string; json: boolean },
+): Promise<void> {
+  const result = await run("smart_portfolio_edit_portfolio", {
+    algoId: opts.algoId,
+    portfolioList: opts.portfolioList,
+    addInvest: opts.addInvest,
+    tradeQuoteCcy: opts.tradeQuoteCcy,
+  });
+  if (opts.json) return printJson(getData(result));
+  emitAccepted(
+    "edit-portfolio",
+    opts.algoId,
+    opts.addInvest
+      ? "check `details` for the new target; the top-up may still fail without rolling the edit back"
+      : "check `details` for the new target",
+  );
 }
 
 export async function cmdSmartPortfolioRecommendZones(

@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { STRICT_ONLY_OPTIONS, getStrictCommandOptions } from "./command-options.js";
 
 export interface CliValues {
   profile?: string;
@@ -251,6 +252,8 @@ export interface CliValues {
   recommendId?: string;
   assetType?: string;
   interval?: string;
+  // smart portfolio add-investment / edit-portfolio (parsed only for those commands, see command-options.ts)
+  addInvest?: string;
   // recurring buy
   recurringList?: string;
   recurringDay?: string;
@@ -612,6 +615,10 @@ export function parseTpLevel(s: string): Record<string, string> {
 }
 
 const NEGATIVE_NUMBER_RE = /^-\d+(\.\d+)?$/;
+// Amount-like values of the strict smart-portfolio commands: a negative literal must reach
+// the tool's own validation ("addInvest must not be negative") instead of parseArgs' "argument missing".
+const NEGATIVE_DECIMAL_RE = /^-(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+const NEGATIVE_AMOUNT_FLAGS = ["--addInvest", "--deltaRatio", "--initCapital"];
 // --params values may start with a negative number ("-9,3,3"); anything past the
 // first digit is validated later with a precise per-token error.
 const NEGATIVE_PARAMS_RE = /^-\d\S*$/;
@@ -619,11 +626,13 @@ const NEGATIVE_PARAMS_RE = /^-\d\S*$/;
 /**
  * parseArgs rejects `--timeZone -5` / `--params -9,3,3` (the value looks like an
  * option), so join a negative value to its flag: `--timeZone -5` -> `--timeZone=-5`.
- * `--params` is only handled for `market indicator`, the sole command that reads it.
+ * `--params` is only handled for `market indicator`, the sole command that reads it;
+ * the amount flags only for the strict smart-portfolio commands.
  */
-function joinNegativeFlagValues(argv: string[], joinParams: boolean): string[] {
+function joinNegativeFlagValues(argv: string[], joinParams: boolean, joinAmounts: boolean): string[] {
   const rules: Array<{ flag: string; pattern: RegExp }> = [{ flag: "--timeZone", pattern: NEGATIVE_NUMBER_RE }];
   if (joinParams) rules.push({ flag: "--params", pattern: NEGATIVE_PARAMS_RE });
+  if (joinAmounts) rules.push(...NEGATIVE_AMOUNT_FLAGS.map((flag) => ({ flag, pattern: NEGATIVE_DECIMAL_RE })));
   const joined: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const next = argv[i + 1];
@@ -646,26 +655,41 @@ function assertSingleParamsFlag(argv: string[]): void {
   }
 }
 
-/** The first two command words (e.g. "market indicator"), read leniently before the strict parse. */
-function leadingCommand(argv: string[]): string {
-  const { positionals } = parseArgs({ args: argv, options: CLI_OPTIONS, allowPositionals: true, strict: false });
-  return positionals.slice(0, 2).join(" ");
+const LENIENT_OPTIONS = { ...CLI_OPTIONS, ...STRICT_ONLY_OPTIONS };
+
+/** The first three command words (e.g. "bot smart-portfolio manual-pause"), read leniently before the strict parse. */
+function leadingWords(argv: string[]): string[] {
+  const { positionals } = parseArgs({ args: argv, options: LENIENT_OPTIONS, allowPositionals: true, strict: false });
+  return positionals.slice(0, 3);
 }
 
 const OPTIONS_WITHOUT_TYPE = Object.fromEntries(
   Object.entries(CLI_OPTIONS).filter(([name]) => name !== "type"),
 ) as typeof CLI_OPTIONS;
 
+/** parseArgs option table restricted to the allow-list of a strict command. */
+function strictOptionTable(allowed: ReadonlySet<string>): Record<string, { type: "string" | "boolean"; short?: string; multiple?: boolean }> {
+  const all = LENIENT_OPTIONS as Record<string, { type: "string" | "boolean"; short?: string; multiple?: boolean }>;
+  return Object.fromEntries(Object.entries(all).filter(([name]) => allowed.has(name)));
+}
+
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
   // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
   const negated = new Set<string>();
-  const command = leadingCommand(argv);
+  const words = leadingWords(argv);
+  const command = words.slice(0, 2).join(" ");
+  // bot recurring / bot smart-portfolio: only the options of the full action (see command-options.ts).
+  const strictAllowed = getStrictCommandOptions(words.join(" "));
+  const table = strictAllowed ? strictOptionTable(strictAllowed) : (CLI_OPTIONS as Record<string, { type: string }>);
   const isIndicator = command === "market indicator";
   if (isIndicator) assertSingleParamsFlag(argv);
-  const filtered = joinNegativeFlagValues(argv, isIndicator).filter((arg) => {
+  const joinAmounts = strictAllowed !== undefined && command === "bot smart-portfolio";
+  const filtered = joinNegativeFlagValues(argv, isIndicator, joinAmounts).filter((arg) => {
     if (arg.startsWith("--no-")) {
       const key = arg.slice(5);
-      if (key in CLI_OPTIONS && (CLI_OPTIONS as Record<string, { type: string }>)[key].type === "boolean") {
+      // Strict commands: a negation is only honoured for a boolean option of that action;
+      // otherwise it is left in place and parseArgs rejects it as an unknown option.
+      if (Object.hasOwn(table, key) && table[key]!.type === "boolean") {
         negated.add(key);
         return false;
       }
@@ -674,10 +698,11 @@ export function parseCli(argv: string[]): { values: CliValues; positionals: stri
   });
 
   // `--type` only exists for `okx market trades`; for every other command it stays an unknown option.
-  const options = command === "market trades" ? CLI_OPTIONS : OPTIONS_WITHOUT_TYPE;
+  let options: Record<string, unknown> = command === "market trades" ? CLI_OPTIONS : OPTIONS_WITHOUT_TYPE;
+  if (strictAllowed) options = table;
   const { values, positionals } = parseArgs({
     args: filtered,
-    options,
+    options: options as typeof CLI_OPTIONS,
     allowPositionals: true,
   });
 

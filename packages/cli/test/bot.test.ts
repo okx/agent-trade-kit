@@ -25,6 +25,10 @@ import {
   cmdSmartPortfolioStop,
   cmdSmartPortfolioAmendRebalance,
   cmdSmartPortfolioInstantRebalance,
+  cmdSmartPortfolioManualPause,
+  cmdSmartPortfolioManualResume,
+  cmdSmartPortfolioAddInvestment,
+  cmdSmartPortfolioEditPortfolio,
   cmdSmartPortfolioRecommendZones,
   cmdSmartPortfolioZonesBacktest,
 } from "../src/commands/bot.js";
@@ -1115,7 +1119,10 @@ describe("cmdSmartPortfolioInstantRebalance", () => {
   it("outputs not-triggered message when triggered=false", async () => {
     const runner: ToolRunner = async () => ({ endpoint: "POST /instant", requestTime: new Date().toISOString(), data: [{ triggered: false }] });
     await cmdSmartPortfolioInstantRebalance(runner, { algoId: "SP001", json: false });
-    assert.ok(out.join("").includes("not triggered") || out.join("").includes("already balanced"));
+    const text = out.join("");
+    assert.ok(text.includes("not triggered"));
+    assert.ok(!text.includes("may already be balanced"), "triggered=false must not be explained as 'already balanced'");
+    assert.ok(text.includes("does not mean the portfolio is balanced"));
   });
 
   it("--json outputs data array directly (not wrapped in endpoint/requestTime shell)", async () => {
@@ -1305,3 +1312,124 @@ describe("handleBotSmartPortfolioCommand routing", () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// Smart Portfolio operations: manual-pause / manual-resume / add-investment / edit-portfolio
+// ---------------------------------------------------------------------------
+
+describe("smart-portfolio operation commands — routing from named flags (not rest[N])", () => {
+  function spy(data: unknown = []) {
+    const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
+    const runner: ToolRunner = async (name, args) => {
+      calls.push({ name, args: args as Record<string, unknown> });
+      return fakeResult(data);
+    };
+    return { runner, calls };
+  }
+  const PL = '[{"ccy":"BTC","ratio":"0.5"},{"ccy":"ETH","ratio":"0.5"}]';
+
+  it("manual-pause forwards v.algoId", async () => {
+    const { runner, calls } = spy();
+    await handleBotSmartPortfolioCommand(runner, "manual-pause", { algoId: "A1" } as CliValues, false);
+    assert.deepEqual(calls, [{ name: "smart_portfolio_manual_pause", args: { algoId: "A1" } }]);
+  });
+
+  it("manual-resume forwards v.algoId", async () => {
+    const { runner, calls } = spy();
+    await handleBotSmartPortfolioCommand(runner, "manual-resume", { algoId: "A2" } as CliValues, false);
+    assert.deepEqual(calls, [{ name: "smart_portfolio_manual_resume", args: { algoId: "A2" } }]);
+  });
+
+  it("add-investment forwards v.algoId, v.addInvest, v.tradeQuoteCcy", async () => {
+    const { runner, calls } = spy();
+    await handleBotSmartPortfolioCommand(runner, "add-investment", { algoId: "A3", addInvest: "10", tradeQuoteCcy: "USDT" } as CliValues, false);
+    assert.equal(calls[0]!.name, "smart_portfolio_add_investment");
+    assert.equal(calls[0]!.args["algoId"], "A3");
+    assert.equal(calls[0]!.args["addInvest"], "10");
+    assert.equal(calls[0]!.args["tradeQuoteCcy"], "USDT");
+  });
+
+  it("edit-portfolio forwards v.algoId, v.portfolioList, v.addInvest, v.tradeQuoteCcy", async () => {
+    const { runner, calls } = spy();
+    await handleBotSmartPortfolioCommand(runner, "edit-portfolio", { algoId: "A4", portfolioList: PL, addInvest: "5", tradeQuoteCcy: "usdt" } as CliValues, false);
+    assert.equal(calls[0]!.name, "smart_portfolio_edit_portfolio");
+    assert.deepEqual(calls[0]!.args, { algoId: "A4", portfolioList: PL, addInvest: "5", tradeQuoteCcy: "usdt" });
+  });
+
+  it("edit-portfolio without a top-up leaves addInvest undefined", async () => {
+    const { runner, calls } = spy();
+    await handleBotSmartPortfolioCommand(runner, "edit-portfolio", { algoId: "A4", portfolioList: PL } as CliValues, false);
+    assert.equal(calls[0]!.args["addInvest"], undefined);
+  });
+
+  it("an unknown action lists the new actions in the hint", async () => {
+    const { runner } = spy();
+    const prev = process.exitCode;
+    await handleBotSmartPortfolioCommand(runner, "no-such", {} as CliValues, false);
+    process.exitCode = prev;
+    const text = err.join("") + out.join("");
+    for (const a of ["manual-pause", "manual-resume", "add-investment", "edit-portfolio"]) {
+      assert.ok(text.includes(a), `hint should list ${a}`);
+    }
+  });
+});
+
+describe("smart-portfolio operation commands — empty data=[] is a success", () => {
+  const empty: ToolRunner = async () => fakeResult([]);
+  const cases: Array<[string, () => Promise<void>, RegExp]> = [
+    ["manual-pause", () => cmdSmartPortfolioManualPause(empty, { algoId: "A1", json: false }), /manual-pause request accepted: A1/],
+    ["manual-resume", () => cmdSmartPortfolioManualResume(empty, { algoId: "A1", json: false }), /manual-resume request accepted: A1/],
+    ["add-investment", () => cmdSmartPortfolioAddInvestment(empty, { algoId: "A1", addInvest: "10", json: false }), /add-investment request accepted: A1/],
+    ["edit-portfolio", () => cmdSmartPortfolioEditPortfolio(empty, { algoId: "A1", portfolioList: "[]", json: false }), /edit-portfolio request accepted: A1/],
+  ];
+  for (const [name, run, re] of cases) {
+    it(`${name}: prints 'request accepted' with algoId, no failure, no data[0] access`, async () => {
+      await run();
+      assert.match(out.join(""), re);
+      assert.equal(err.join(""), "");
+      assert.ok(!/Error|undefined|sCode/.test(out.join("")), "must not print an error for an empty-data success");
+    });
+  }
+
+  it("add-investment says accepted != arrived", async () => {
+    await cmdSmartPortfolioAddInvestment(empty, { algoId: "A1", addInvest: "10", json: false });
+    assert.match(out.join(""), /does not mean the funds have arrived/);
+  });
+
+  it("edit-portfolio with a top-up warns that the top-up may fail without rollback; without one it does not", async () => {
+    await cmdSmartPortfolioEditPortfolio(empty, { algoId: "A1", portfolioList: "[]", addInvest: "5", json: false });
+    assert.match(out.join(""), /top-up may still fail without rolling the edit back/);
+    out.length = 0;
+    await cmdSmartPortfolioEditPortfolio(empty, { algoId: "A1", portfolioList: "[]", json: false });
+    assert.doesNotMatch(out.join(""), /top-up/);
+  });
+
+  it("--json prints the raw data array like the other write commands", async () => {
+    for (const run of [
+      () => cmdSmartPortfolioManualPause(empty, { algoId: "A1", json: true }),
+      () => cmdSmartPortfolioManualResume(empty, { algoId: "A1", json: true }),
+      () => cmdSmartPortfolioAddInvestment(empty, { algoId: "A1", addInvest: "1", json: true }),
+      () => cmdSmartPortfolioEditPortfolio(empty, { algoId: "A1", portfolioList: "[]", json: true }),
+    ]) {
+      out = [];
+      await run();
+      assert.deepEqual(JSON.parse(findJson(out)), []);
+    }
+  });
+});
+
+describe("smart-portfolio operations — registry", () => {
+  const commands = CLI_REGISTRY["bot"]!.subgroups!["smart-portfolio"]!.commands;
+  it("registers the four commands with their tool names", () => {
+    assert.equal(commands["manual-pause"]!.toolName, "smart_portfolio_manual_pause");
+    assert.equal(commands["manual-resume"]!.toolName, "smart_portfolio_manual_resume");
+    assert.equal(commands["add-investment"]!.toolName, "smart_portfolio_add_investment");
+    assert.equal(commands["edit-portfolio"]!.toolName, "smart_portfolio_edit_portfolio");
+  });
+
+  it("usage strings do not advertise --aiBuilderCode for the new commands", () => {
+    for (const a of ["manual-pause", "manual-resume", "add-investment", "edit-portfolio"]) {
+      assert.ok(!commands[a]!.usage.includes("--aiBuilderCode"), a);
+    }
+  });
+});

@@ -17,7 +17,7 @@ The project is a pnpm workspace monorepo containing three packages:
 
 ## MCP Tool Inventory
 
-As of the latest registry scan, the server exposes **179 MCP tools** organized into **18 modules** (authoritative count: see `docs/module-registry.md`):
+As of the latest registry scan, the server exposes **183 MCP tools** organized into **18 modules** (authoritative count: see `docs/module-registry.md`):
 
 - **market** — public market data (tickers, candles, orderbook, trades)
 - **spot** — spot trading (place/cancel/amend orders, get positions)
@@ -35,7 +35,7 @@ As of the latest registry scan, the server exposes **179 MCP tools** organized i
 - **bot.grid** — grid trading bot (create, monitor, stop)
 - **bot.dca** — DCA (Martingale) bot with safety orders (spot or contract); not a periodic fixed-amount buy — that is Recurring Buy (`bot.recurring`)
 - **bot.smartportfolio** — Smart Portfolio bot (auto-rebalancing multi-asset portfolio strategy)
-- **bot.recurring** _(CLI-only, not an MCP module — outside `MODULES`, the 179 MCP tools / 18 modules above exclude it)_ — Recurring Buy: periodic fixed-amount multi-coin buys via `okx bot recurring <sub>`; see `business/recurring-api.md`
+- **bot.recurring** _(CLI-only, not an MCP module — outside `MODULES`, the 183 MCP tools / 18 modules above exclude it)_ — Recurring Buy: periodic fixed-amount multi-coin buys via `okx bot recurring <sub>`; see `business/recurring-api.md`
 - **smartmoney** — smart-money signals, trader leaderboard, consensus/position analysis
 - **skills** — skills marketplace (search, install, manage skill packs)
 

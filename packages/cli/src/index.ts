@@ -201,6 +201,10 @@ import {
   cmdSmartPortfolioStop,
   cmdSmartPortfolioAmendRebalance,
   cmdSmartPortfolioInstantRebalance,
+  cmdSmartPortfolioManualPause,
+  cmdSmartPortfolioManualResume,
+  cmdSmartPortfolioAddInvestment,
+  cmdSmartPortfolioEditPortfolio,
   cmdSmartPortfolioRecommendZones,
   cmdSmartPortfolioZonesBacktest,
 } from "./commands/bot.js";
@@ -1422,11 +1426,19 @@ export function handleBotSmartPortfolioCommand(
     return cmdSmartPortfolioAmendRebalance(run, { algoId: v.algoId!, deltaRatio: v.deltaRatio!, interval: v.interval!, json });
   if (subAction === "instant-rebalance")
     return cmdSmartPortfolioInstantRebalance(run, { algoId: v.algoId!, json });
+  if (subAction === "manual-pause")
+    return cmdSmartPortfolioManualPause(run, { algoId: v.algoId!, json });
+  if (subAction === "manual-resume")
+    return cmdSmartPortfolioManualResume(run, { algoId: v.algoId!, json });
+  if (subAction === "add-investment")
+    return cmdSmartPortfolioAddInvestment(run, { algoId: v.algoId!, addInvest: v.addInvest!, tradeQuoteCcy: v.tradeQuoteCcy, json });
+  if (subAction === "edit-portfolio")
+    return cmdSmartPortfolioEditPortfolio(run, { algoId: v.algoId!, portfolioList: v.portfolioList!, addInvest: v.addInvest, tradeQuoteCcy: v.tradeQuoteCcy, json });
   if (subAction === "recommend-zones")
     return cmdSmartPortfolioRecommendZones(run, { recommendId: v.recommendId, assetType: v.assetType, json });
   if (subAction === "zones-backtest")
     return cmdSmartPortfolioZonesBacktest(run, { recommendId: v.recommendId!, period: v.period, json });
-  unknownSubcommand("bot smart-portfolio", subAction, ["orders", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
+  unknownSubcommand("bot smart-portfolio", subAction, ["orders", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "manual-pause", "manual-resume", "add-investment", "edit-portfolio", "recommend-zones", "zones-backtest"]);
 }
 
 export function handleBotRecurringCommand(

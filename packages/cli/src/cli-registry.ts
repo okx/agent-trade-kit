@@ -901,7 +901,7 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           create: {
             toolName: "smart_portfolio_create_order",
-            usage: "okx bot smart-portfolio create --stgyName <name> --investmentCcy <USDT|USDC|USD> --initCapital <amount>\n                         --portfolioList '<json>' --interval <minutes> --deltaRatio <n>\n                         [--tradeQuoteCcy <ccy>] [--investType <simple|complex>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to 1.0; 2–10 unique CCYs",
+            usage: "okx bot smart-portfolio create --stgyName <name> --investmentCcy <USDT|USDC|USD> --initCapital <amount>\n                         --portfolioList '<json>' --interval <minutes> --deltaRatio <n>\n                         [--tradeQuoteCcy <ccy>] [--investType <simple|complex>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         portfolioList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         ratios must sum to exactly 1; 2–10 unique CCYs",
             description: "Create a Smart Portfolio bot",
           },
           stop: {
@@ -918,6 +918,26 @@ export const CLI_REGISTRY: CliRegistry = {
             toolName: "smart_portfolio_instant_rebalance",
             usage: "okx bot smart-portfolio instant-rebalance --algoId <id>",
             description: "Trigger an immediate rebalance for a Smart Portfolio bot",
+          },
+          "manual-pause": {
+            toolName: "smart_portfolio_manual_pause",
+            usage: "okx bot smart-portfolio manual-pause --algoId <id>\n                         pauses automatic rebalancing only; the bot keeps running and no asset is sold",
+            description: "Pause automatic rebalancing of a running Smart Portfolio bot",
+          },
+          "manual-resume": {
+            toolName: "smart_portfolio_manual_resume",
+            usage: "okx bot smart-portfolio manual-resume --algoId <id>\n                         lifts the manual pause and triggers a rebalance check (a check does not guarantee a trade)",
+            description: "Resume a manually paused Smart Portfolio bot",
+          },
+          "add-investment": {
+            toolName: "smart_portfolio_add_investment",
+            usage: "okx bot smart-portfolio add-investment --algoId <id> --addInvest <amount> [--tradeQuoteCcy <ccy>]\n                         moves real funds; accepted != arrived. Omit --tradeQuoteCcy to use the bot's own settlement currency\n                         not idempotent: on an uncertain result do not retry on your own; check `details` first",
+            description: "Add funds to a running Smart Portfolio bot (target coins and weights unchanged)",
+          },
+          "edit-portfolio": {
+            toolName: "smart_portfolio_edit_portfolio",
+            usage: "okx bot smart-portfolio edit-portfolio --algoId <id> --portfolioList '<json>' [--addInvest <amount>] [--tradeQuoteCcy <ccy>]\n                         portfolioList: the COMPLETE new target, JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.6\"},{\"ccy\":\"ETH\",\"ratio\":\"0.4\"}]\n                         2–10 unique CCYs, ratios must sum to exactly 1; takes effect at once and triggers a rebalance\n                         optional top-up may fail after the edit took effect (no rollback)\n                         not idempotent: on an uncertain result do not retry on your own; check `details` first",
+            description: "Replace the target coins and weights of a running Smart Portfolio bot (optionally with a top-up)",
           },
           "recommend-zones": {
             toolName: "smart_portfolio_get_recommend_zones",
