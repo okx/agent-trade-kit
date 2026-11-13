@@ -288,3 +288,77 @@ describe("account asset-balance --valuationCcy parser integration", () => {
   });
 });
 
+describe("parseCli - indicator --params", () => {
+  const base = ["market", "indicator", "macd", "BTC-USDT"];
+
+  it("accepts a leading negative number: --params -9,3,3", () => {
+    const { values } = parseCli([...base, "--params", "-9,3,3"]);
+    assert.equal(values.params, "-9,3,3");
+  });
+
+  it("still accepts --params=-9,3,3 and plain values", () => {
+    assert.equal(parseCli([...base, "--params=-9,3,3"]).values.params, "-9,3,3");
+    assert.equal(parseCli([...base, "--params", "12,26,9"]).values.params, "12,26,9");
+  });
+
+  it("keeps the options after a joined negative value", () => {
+    const { values } = parseCli([...base, "--params", "-9,3,3", "--bar", "4H"]);
+    assert.equal(values.bar, "4H");
+  });
+
+  it("still joins negative --timeZone", () => {
+    const { values } = parseCli(["bot", "recurring", "create", "--timeZone", "-5"]);
+    assert.equal(values.timeZone, "-5");
+  });
+
+  it("rejects a repeated --params flag", () => {
+    assert.throws(
+      () => parseCli([...base, "--params", "12", "--params", "26", "--params", "9"]),
+      /specify --params once, comma-separated \(e\.g\. --params 12,26,9\)/,
+    );
+    assert.throws(() => parseCli([...base, "--params=12", "--params", "26"]), /specify --params once/);
+  });
+});
+
+describe("parseCli - market trades pagination flags", () => {
+  it("parses --history --type --after --before --limit", () => {
+    const { values } = parseCli(["market", "trades", "BTC-USDT", "--history", "--type", "2", "--after", "1", "--before", "2", "--limit", "50"]);
+    assert.equal(values.history, true);
+    assert.equal(values.type, "2");
+    assert.equal(values.after, "1");
+    assert.equal(values.before, "2");
+    assert.equal(values.limit, "50");
+  });
+});
+
+describe("parseCli - scope of the new flags (other commands must behave exactly as before)", () => {
+  it("--type is only valid for `market trades`; elsewhere it is still an unknown option", () => {
+    assert.throws(
+      () => parseCli(["spot", "algo", "place", "--instId", "BTC-USDT", "--side", "buy", "--type", "oco"]),
+      { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" },
+    );
+    assert.throws(() => parseCli(["market", "ticker", "BTC-USDT", "--type", "1"]), { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" });
+    // a missing value is reported as the unknown option too, not as a different parse error
+    assert.throws(() => parseCli(["spot", "algo", "place", "--type"]), { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" });
+    assert.throws(() => parseCli(["market", "candles", "BTC-USDT", "--type", "1"]), { code: "ERR_PARSE_ARGS_UNKNOWN_OPTION" });
+  });
+
+  it("--type still works for `market trades`, also behind global flags", () => {
+    assert.equal(parseCli(["market", "trades", "BTC-USDT", "--history", "--type", "2"]).values.type, "2");
+    assert.equal(parseCli(["--profile", "demo", "market", "trades", "BTC-USDT", "--history", "--type=1"]).values.type, "1");
+  });
+
+  it("the repeated---params check and negative --params joining apply to `market indicator` only", () => {
+    // another command repeating --params is ignored as before (the flag is simply unused there)
+    assert.doesNotThrow(() => parseCli(["market", "ticker", "BTC-USDT", "--params", "1", "--params", "2"]));
+    // a negative value is only joined for the indicator command; elsewhere parseArgs behaves as before
+    assert.throws(() => parseCli(["market", "ticker", "BTC-USDT", "--params", "-5"]), { code: "ERR_PARSE_ARGS_INVALID_OPTION_VALUE" });
+    assert.equal(parseCli(["market", "indicator", "macd", "BTC-USDT", "--params", "-5"]).values.params, "-5");
+  });
+
+  it("indicator handling still works behind global flags", () => {
+    const { values } = parseCli(["--profile", "demo", "market", "indicator", "macd", "BTC-USDT", "--params", "-9,3,3"]);
+    assert.equal(values.params, "-9,3,3");
+    assert.throws(() => parseCli(["--demo", "market", "indicator", "macd", "BTC-USDT", "--params", "1", "--params", "2"]), /specify --params once/);
+  });
+});

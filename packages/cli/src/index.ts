@@ -437,7 +437,7 @@ export function handleMarketDataCommand(
   if (action === "funding-rate")
     return cmdMarketFundingRate(run, rest[0], { history: v.history ?? false, limit, json, demo: v.demo });
   if (action === "trades")
-    return cmdMarketTrades(run, rest[0], { limit, json, demo: v.demo });
+    return cmdMarketTrades(run, rest[0], { limit, history: v.history ?? false, type: v.type, after: v.after, before: v.before, json, demo: v.demo });
   if (action === "index-candles")
     return cmdMarketIndexCandles(run, rest[0], { bar: v.bar, limit, history: v.history ?? false, json, demo: v.demo });
 }

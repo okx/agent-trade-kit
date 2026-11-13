@@ -14,6 +14,7 @@ export interface CliValues {
   sz?: string;
   instId?: string;
   history?: boolean;
+  type?: string;
   ordId?: string;
   side?: string;
   ordType?: string;
@@ -288,6 +289,9 @@ export const CLI_OPTIONS = {
   // orders
   instId: { type: "string" },
   history: { type: "boolean", default: false },
+  // `okx market trades --history` pagination type (1=tradeId, 2=timestamp). Only valid for that command:
+  // parseCli rejects it everywhere else, exactly like the unknown option it was before.
+  type: { type: "string" },
   ordId: { type: "string" },
   // trade
   side: { type: "string" },
@@ -608,17 +612,24 @@ export function parseTpLevel(s: string): Record<string, string> {
 }
 
 const NEGATIVE_NUMBER_RE = /^-\d+(\.\d+)?$/;
+// --params values may start with a negative number ("-9,3,3"); anything past the
+// first digit is validated later with a precise per-token error.
+const NEGATIVE_PARAMS_RE = /^-\d\S*$/;
 
 /**
- * parseArgs rejects `--timeZone -5` (the value looks like an option), so join a
- * negative offset to its flag: `--timeZone -5` -> `--timeZone=-5`.
+ * parseArgs rejects `--timeZone -5` / `--params -9,3,3` (the value looks like an
+ * option), so join a negative value to its flag: `--timeZone -5` -> `--timeZone=-5`.
+ * `--params` is only handled for `market indicator`, the sole command that reads it.
  */
-function joinNegativeTimeZone(argv: string[]): string[] {
+function joinNegativeFlagValues(argv: string[], joinParams: boolean): string[] {
+  const rules: Array<{ flag: string; pattern: RegExp }> = [{ flag: "--timeZone", pattern: NEGATIVE_NUMBER_RE }];
+  if (joinParams) rules.push({ flag: "--params", pattern: NEGATIVE_PARAMS_RE });
   const joined: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const next = argv[i + 1];
-    if (argv[i] === "--timeZone" && next !== undefined && NEGATIVE_NUMBER_RE.test(next)) {
-      joined.push(`--timeZone=${next}`);
+    const rule = rules.find((r) => r.flag === argv[i]);
+    if (rule && next !== undefined && rule.pattern.test(next)) {
+      joined.push(`${rule.flag}=${next}`);
       i++;
     } else {
       joined.push(argv[i]!);
@@ -627,10 +638,31 @@ function joinNegativeTimeZone(argv: string[]): string[] {
   return joined;
 }
 
+/** `okx market indicator --params` takes one comma-separated value; a repeated flag would silently keep only the last. */
+function assertSingleParamsFlag(argv: string[]): void {
+  const count = argv.filter((a) => a === "--params" || a.startsWith("--params=")).length;
+  if (count > 1) {
+    throw new Error("specify --params once, comma-separated (e.g. --params 12,26,9)");
+  }
+}
+
+/** The first two command words (e.g. "market indicator"), read leniently before the strict parse. */
+function leadingCommand(argv: string[]): string {
+  const { positionals } = parseArgs({ args: argv, options: CLI_OPTIONS, allowPositionals: true, strict: false });
+  return positionals.slice(0, 2).join(" ");
+}
+
+const OPTIONS_WITHOUT_TYPE = Object.fromEntries(
+  Object.entries(CLI_OPTIONS).filter(([name]) => name !== "type"),
+) as typeof CLI_OPTIONS;
+
 export function parseCli(argv: string[]): { values: CliValues; positionals: string[] } {
   // Pre-process --no-<flag> for boolean options (parseArgs doesn't support negation natively)
   const negated = new Set<string>();
-  const filtered = joinNegativeTimeZone(argv).filter((arg) => {
+  const command = leadingCommand(argv);
+  const isIndicator = command === "market indicator";
+  if (isIndicator) assertSingleParamsFlag(argv);
+  const filtered = joinNegativeFlagValues(argv, isIndicator).filter((arg) => {
     if (arg.startsWith("--no-")) {
       const key = arg.slice(5);
       if (key in CLI_OPTIONS && (CLI_OPTIONS as Record<string, { type: string }>)[key].type === "boolean") {
@@ -641,9 +673,11 @@ export function parseCli(argv: string[]): { values: CliValues; positionals: stri
     return true;
   });
 
+  // `--type` only exists for `okx market trades`; for every other command it stays an unknown option.
+  const options = command === "market trades" ? CLI_OPTIONS : OPTIONS_WITHOUT_TYPE;
   const { values, positionals } = parseArgs({
     args: filtered,
-    options: CLI_OPTIONS,
+    options,
     allowPositionals: true,
   });
 

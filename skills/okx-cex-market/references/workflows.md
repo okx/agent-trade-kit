@@ -103,7 +103,7 @@ okx market indicator ema BTC-USDT --bar 4H --params 5,20       → EMA5 vs EMA20
 okx market indicator macd BTC-USDT --bar 4H                    → MACD histogram + DIF/DEA cross
 okx market indicator rsi BTC-USDT --bar 4H --params 14         → RSI overbought/oversold
 okx market indicator bb BTC-USDT --bar 4H                      → Bollinger Bands position
-okx market indicator supertrend BTC-USDT --bar 4H              → direction signal (buy/sell)
+okx market indicator supertrend BTC-USDT --bar 4H              → trend state (trend: UP/DOWN; direction: -1=UP, 1=DOWN)
 ```
 
 ---
