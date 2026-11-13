@@ -7,7 +7,7 @@ import {
   sumDecimalsToScale,
   toPlainString,
   type ParsedDecimal,
-} from "./decimal.js";
+} from "./smart-portfolio-decimal.js";
 
 /**
  * Client-side validation for Smart Portfolio parameters. All numeric checks use

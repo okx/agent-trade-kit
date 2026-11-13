@@ -251,6 +251,22 @@ okx bot dca create \
 okx bot dca stop --algoId <algoId>
 ```
 
+### Smart Portfolio
+
+```bash
+okx bot smart-portfolio orders [--history] [--algoId <id>]
+okx bot smart-portfolio details --algoId <id>
+okx bot smart-portfolio create --stgyName <name> --investmentCcy USDT --initCapital <amt> \
+  --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' --interval 20 --deltaRatio 0.05
+okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio 0.05 --interval 60
+okx bot smart-portfolio instant-rebalance --algoId <id>
+okx bot smart-portfolio manual-pause|manual-resume --algoId <id>
+okx bot smart-portfolio add-investment --algoId <id> --addInvest 100 [--tradeQuoteCcy USDT]
+okx bot smart-portfolio edit-portfolio --algoId <id> --portfolioList '[...complete new target...]' [--addInvest 50 [--tradeQuoteCcy USDT]]
+```
+
+The four operation commands answer with an empty `data` on success, printed as "request accepted" (accepted ≠ funds arrived ≠ trades filled). `bot smart-portfolio` and `bot recurring` reject options an action does not read (`Unknown option`, exit code 1, no request sent); other commands are unchanged.
+
 ### Recurring Buy — CLI only, no MCP tools
 
 ```bash

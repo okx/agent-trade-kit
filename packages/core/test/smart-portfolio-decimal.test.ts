@@ -12,7 +12,7 @@ import {
   parseDecimal,
   sumDecimalsToScale,
   toPlainString,
-} from "../src/tools/bot/decimal.js";
+} from "../src/tools/bot/smart-portfolio-decimal.js";
 import { ValidationError } from "../src/utils/errors.js";
 
 const p = (s: string) => parseDecimal(s, "x");

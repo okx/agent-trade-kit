@@ -1,6 +1,6 @@
 ---
 name: okx-cex-bot
-description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), Smart Portfolio bots (智能组合, auto-rebalancing multi-asset portfolio), and Recurring Buy strategies (定投, periodic fixed-amount multi-coin buys) on OKX. Covers create, stop, pause, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
+description: Manage Grid bots (spot/contract/coin-margined), DCA Martingale bots (Spot DCA 现货马丁 / Contract DCA 合约马丁), Smart Portfolio bots (智能组合, auto-rebalancing multi-asset portfolio; pause/resume rebalancing, add funds, edit coins and weights), and Recurring Buy strategies (定投, periodic fixed-amount multi-coin buys) on OKX. Covers create, stop, pause, amend, monitor P&L, TP/SL, margin/investment adjustment, AI-recommended parameters, and recommended zone backtest. Requires API credentials. Not for regular orders (okx-cex-trade), market data (okx-cex-market), or account info (okx-cex-portfolio).
 license: MIT
 metadata:
   author: okx
@@ -127,12 +127,16 @@ Resolution:
 
 | Command | Type | Description |
 |---|---|---|
-| `okx bot smart-portfolio create` | WRITE | Create a Smart Portfolio bot (2–10 assets, ratios summing to 1.0, deltaRatio threshold) |
+| `okx bot smart-portfolio create` | WRITE | Create a Smart Portfolio bot (2–10 assets, ratios summing to exactly 1, deltaRatio threshold) |
 | `okx bot smart-portfolio stop` | WRITE | Stop a running Smart Portfolio bot |
 | `okx bot smart-portfolio orders` | READ | List Smart Portfolio bots (default: running; add --history for stopped) |
 | `okx bot smart-portfolio details` | READ | Get Smart Portfolio bot details and current allocation |
 | `okx bot smart-portfolio amend-rebalance` | WRITE | Update rebalance threshold and interval (both --deltaRatio and --interval required) |
-| `okx bot smart-portfolio instant-rebalance` | WRITE | Trigger an immediate rebalance |
+| `okx bot smart-portfolio instant-rebalance` | WRITE | Trigger an immediate rebalance (`triggered` ≠ trades executed) |
+| `okx bot smart-portfolio manual-pause` | WRITE | Pause automatic rebalancing (bot keeps running, nothing is sold) |
+| `okx bot smart-portfolio manual-resume` | WRITE | Lift the manual pause and trigger a rebalance check |
+| `okx bot smart-portfolio add-investment` | WRITE | Add funds, target coins and weights unchanged (real funds; trading-account balance pre-check) |
+| `okx bot smart-portfolio edit-portfolio` | WRITE | Replace the COMPLETE target coins and weights, optionally with a top-up (takes effect immediately) |
 | `okx bot smart-portfolio recommend-zones` | READ | Browse OKX-recommended portfolio zone configurations |
 | `okx bot smart-portfolio zones-backtest` | READ | Get historical backtest results for a recommended zone |
 
@@ -170,7 +174,13 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
 
 **READ commands** (orders, details, sub-orders): run immediately after profile confirmation.
 
-**WRITE commands** (create, amend, stop; for Recurring Buy also pause, restart, add-investment): confirm key parameters with user once before executing.
+**WRITE commands** (create, amend, stop; for Recurring Buy also pause, restart, add-investment; for Smart Portfolio also manual-pause, manual-resume, add-investment, edit-portfolio): confirm key parameters with user once before executing.
+
+**Write-operation checklist — Smart Portfolio operations** (details and wording: `{baseDir}/references/smart-portfolio-commands.md`):
+- **Never recommend.** Coins, the full set of weights and top-up amounts come from the user. Missing → ask; do not suggest, fill in, split evenly, rescale or "normalize" weights, and do not adjust an amount. (Recommended zones stay a separate, read-only browse the user asks for explicitly; never turn them into an edit or top-up suggestion.)
+- Resolve the strategy first: exact `algoId` from the user, otherwise `smart-portfolio orders` and let the user pick; never guess. Read `details --json` (state, `portfolioList`, `tradeQuoteCcy`, `quote`, total investment) before any write.
+- `add-investment`, and `edit-portfolio` with `--addInvest`: check the **trading-account** available balance of the strategy currency (`okx account balance <ccy> --json`, `availBal`). Never use the funding account (`asset-balance`), `balance-all` totals or valuations; never transfer funds for the user. Insufficient or unknown balance is a risk to state in the summary ("the transfer may fail"), not a block: the user may still confirm.
+- Show one summary and wait for an explicit yes: pause/resume — algoId, name, effect; add-investment — algoId, name, amount, currency (or "omitted: the bot's own settlement currency"), balance result; edit-portfolio — current target, the complete new target, top-up and currency, balance result. For edit + top-up add: "the edit can take effect even if the top-up transfer fails; it is not rolled back". Any change to an amount, currency, strategy or weight needs a new confirmation.
 
 **Write-operation confirmation checklist — Recurring Buy**:
 - `recurring create`: confirm coins and ratios, period + day/hour + time + `--timeZone`, `--amt`, `--investmentCcy` and `--tdMode`. Run `okx account config` first, read `acctLv` and follow `{baseDir}/references/recurring-commands.md`: `1` → `cash`; `2` → **ask the user** `cash` (spot) or `cross` (real leverage — state the risk), `cash` if no preference; `3` and `4` → `cross` only (executed as spot), never `cash` (on `4` the server answers success but does not trade). State the choice in the summary, never guess `acctLv` (ask if unreadable or not `1`–`4`), and always pass `--tdMode`.
@@ -184,6 +194,7 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
 - After amend → run `details --algoId <id>` to confirm updated config (Recurring Buy `amend-time` type 2: also `recurring sub-orders`)
 - After Grid/DCA stop → run `orders --history` to confirm stopped
 - After Smart Portfolio stop → run `smart-portfolio orders --history` to confirm stopped
+- After Smart Portfolio manual-pause / manual-resume / edit-portfolio / add-investment → run `smart-portfolio details --algoId <id> --json` once and report what it shows. The write response only means the request was **accepted**: it is not proof of a new state, of funds having arrived, or of any trade. Do not poll repeatedly and do not quote fields that do not exist (no cumulative top-up total, no per-top-up status)
 - After Recurring Buy stop → run `recurring orders --history` to confirm stopped; after pause/restart/amend → run `recurring details --algoId <id>`
 - After Recurring Buy add-investment → run `recurring sub-orders --algoId <id>` for the new buy order (normally `ordType` `manual_add_order`) and compare `investmentAmt` in `details` with the value read before (if it did not rise, rely on `sub-orders`; `(OK)` alone is not proof)
 
@@ -191,6 +202,7 @@ Parse user request → determine module (Grid / DCA / Smart Portfolio / Recurrin
 
 - **Never auto-transfer funds.** If balance is insufficient for bot creation, report the shortfall (current available vs required) and ask the user how to proceed: (1) transfer funds manually, (2) reduce size, or (3) cancel.
 - **Never retry a failed or uncertain Recurring Buy write yourself; the user decides.** After an error — especially a timeout, a dropped connection, a 5xx, or a `create` that fails with "returned no algoId" — the write may still have happened, and the lists can lag, so finding nothing is not proof either. Do not act on a "retry later" hint. Check (`orders` and `--history` for `create`; `sub-orders` and `details` for `add-investment` and `amend-time --recurringTimeType 2`; `details` otherwise), wait a moment and check once more, tell the user what you found, and re-run only after they explicitly ask or agree. For `create`, `add-investment` and `amend-time --recurringTimeType 2`, warn that a retry may duplicate the strategy or buy again.
+- **Never retry or alter a failed or uncertain Smart Portfolio write yourself** (`add-investment`, `edit-portfolio`, `manual-pause`, `manual-resume`). After a timeout, dropped connection, 5xx or rate-limit error, the write may or may not have happened: check `details` (and the trading-account balance for a top-up), tell the user what you found, and re-run only if they explicitly ask. Never swap the currency or amount to "make it work"; explain backend errors instead (see the error table in `{baseDir}/references/smart-portfolio-commands.md`).
 - **`algoId`** is the bot's algo order ID (from create or list output). It is NOT a normal `ordId`. Never fabricate — always obtain from a prior command.
 - **`algoOrdType`** for grid must match the bot's actual type. Always use the value from `bot grid orders` — do not infer from user description alone. Mismatch causes error `50016`.
 - When operating on existing bots, **always list first** to get correct IDs, unless the user provides them explicitly.

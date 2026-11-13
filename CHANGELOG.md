@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Smart Portfolio operation tools** (`bot.smartportfolio`: 8 → 12 MCP tools, write tools 4 → 8) with matching CLI subcommands: `smart_portfolio_manual_pause` / `okx bot smart-portfolio manual-pause`, `smart_portfolio_manual_resume` / `manual-resume`, `smart_portfolio_add_investment` / `add-investment`, `smart_portfolio_edit_portfolio` / `edit-portfolio` (`POST /api/v5/tradingBot/smart-portfolio/{manual-pause,manual-resume,add-investment,edit-portfolio}`). A successful response is `code=0` with empty `data` and means the request was **accepted** — not that the new state is in effect, that funds have arrived, or that any trade was filled. The tools are never retried on network errors (a top-up/edit is not idempotent) and use the module's client-side default rate limit, which is not a verified server-side quota.
+  - `tradeQuoteCcy` (add-investment / edit-portfolio) is optional: the MCP/CLI layer trims it, keeps its case, and omits it when blank so the backend uses the bot's own settlement currency (backend MR !3272 is assumed deployed). `edit-portfolio` without a positive `addInvest` sends neither `addInvest` nor `tradeQuoteCcy`.
+- CLI: `bot recurring` and `bot smart-portfolio` validate options per full action (`packages/cli/src/command-options.ts`).
+- `okx-cex-bot` skill: Smart Portfolio operations — resolve the strategy first, no investment recommendations (coins, full weights and amounts come from the user; nothing is split evenly, rescaled or normalised), trading-account available-balance pre-check for top-ups (insufficient balance is a stated risk, never an automatic transfer), one confirmation summary per write, "accepted ≠ in effect ≠ arrived ≠ filled" wording, backend error-code explanations (incl. `51320`) and a no-blind-retry rule.
+
+### Changed
+
+- **Behavior change (CLI)**: `okx bot recurring <action>` and `okx bot smart-portfolio <action>` now reject options the action does not read (`Unknown option '--x'`, exit code 1, no request sent) instead of silently accepting and ignoring them — e.g. `bot recurring pause --amt 10`, `bot smart-portfolio manual-pause --addInvest 1`, `bot recurring create --amount 5` (`create` reads `--amt`). Global options (`--profile --demo --live --site --json --env --verbose --help`), `--flag=value`, `--no-demo` and negative values (`--timeZone -5`) keep working; `--aiBuilderCode` stays limited to the `create` actions; no aliases were added. All other commands keep the shared option table (this is a scoped fix, not a CLI-wide one).
+- **Behavior change (validation)**: `portfolioList` weights must now be positive exact decimals that sum to **exactly** 1; the former `0.0001` floating-point tolerance is removed, so requests the backend would reject now fail locally with a different error source. Null / non-object `portfolioList` items raise a `ValidationError` instead of a `TypeError`. Weights are never rescaled.
+- Smart Portfolio descriptions: the details tool names the real field `investmentCcy` (not `investCcy`); `tradeQuoteCcy` (debit currency) is separated from `investmentCcy` (valuation currency); `instant_rebalance` / `triggered` no longer reads as "executed" or "already balanced".
+- `docs/designs/smart-portfolio.md` and `context-kg`: details path is `/orders-algo-details` (was `/order-algo`).
+
+### Fixed
+
+- **`deltaRatio` precision** (`smart_portfolio_create_order`, `smart_portfolio_amend_rebalance`, CLI): the two-decimal truncation now works on the exact decimal text instead of `Math.floor(Number(x) * 100) / 100`, so legal values are no longer shaved down (`0.29` → previously `0.28`, now `0.29`; `0.58`, `0.57` likewise). Scientific notation (`5e-2`) and surrounding whitespace are accepted, hex / `Infinity` / `NaN` are rejected, and pathological inputs (huge exponents, thousands of digits) fail fast without large allocations.
+- CLI `bot smart-portfolio instant-rebalance` no longer explains `triggered: false` as "portfolio may already be balanced".
+
 ## [1.5.1] - 2026-11-13
 
 ### Added

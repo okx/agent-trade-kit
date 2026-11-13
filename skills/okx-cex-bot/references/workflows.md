@@ -99,6 +99,55 @@ Note: `--stgyName` / display name in user message is NOT `algoId`. Always run `o
 6. okx-cex-bot       okx bot smart-portfolio details --algoId <id>    → monitor allocation
 ```
 
+## Smart Portfolio Bot — 暂停 / 重启自动再平衡
+> User: "先暂停囤币策略的自动再平衡" / "恢复再平衡"
+> 适用场景：只想停止/恢复自动调仓，不停止策略、不卖出资产
+
+```
+1. okx-cex-bot       okx bot smart-portfolio orders                   → find algoId (name is NOT algoId); several candidates → user picks
+2. okx-cex-bot       okx bot smart-portfolio details --algoId <id> --json → confirm state
+        ↓ summary (algoId, name, effect) + explicit yes
+3. okx-cex-bot       okx bot smart-portfolio manual-pause --algoId <id>
+                     (or: manual-resume — lifts the pause and triggers one rebalance check; trades are possible, not guaranteed)
+4. okx-cex-bot       okx bot smart-portfolio details --algoId <id> --json → report what is shown; "accepted" is not proof of the new state
+```
+
+## Smart Portfolio Bot — 追加资金（仅追加，不改目标）
+> User: "给囤币策略追加 100 USDT"
+> 适用场景：目标币种和权重不变；金额由用户给出，不推荐、不调整金额
+
+```
+1. okx-cex-bot       okx bot smart-portfolio details --algoId <id> --json → state, tradeQuoteCcy (may be empty), quote
+2. okx-cex-portfolio okx account balance <ccy> --json                → TRADING-account availBal, same profile / site / live-or-demo
+                                                                       (never asset-balance / balance-all; never transfer for the user)
+        ↓ summary: algoId, name, amount, currency (or "omitted → the bot's own settlement currency"), balance result
+        ↓ insufficient/unknown balance = stated risk ("transfer may fail"), user may still confirm
+3. okx-cex-bot       okx bot smart-portfolio add-investment --algoId <id> --addInvest 100 [--tradeQuoteCcy <ccy>]
+4. okx-cex-bot       okx bot smart-portfolio details --algoId <id> --json → one check; unchanged total investment ≠ failed, changed ≠ this top-up arrived
+```
+
+Amount errors (51318 / 51360 / 51361): explain only; no suggested amount, no automatic retry.
+
+## Smart Portfolio Bot — 编辑币种与权重（可附带追加）
+> User: "把 ETH 去掉，加 SOL" — 只说了增删，没说完整比例
+> 适用场景：用户必须给出**完整**新目标；缺失就补问，不建议、不均分、不缩放
+
+```
+1. okx-cex-bot       okx bot smart-portfolio details --algoId <id> --json → current target (read the real portfolioList structure; ignore non-target rows)
+2. (ask)             "Please give every coin and its weight in the new target; weights must sum to exactly 1."
+        ↓ full allocation from the user (+ optional top-up amount)
+3. okx-cex-portfolio okx account balance <ccy> --json                → only when a top-up is requested (trading account, availBal)
+        ↓ summary: current target → complete new target, top-up + currency, balance result,
+          "takes effect immediately and triggers a rebalance; if the top-up transfer fails the edit stays in effect (no rollback)"
+4. okx-cex-bot       okx bot smart-portfolio edit-portfolio --algoId <id> \
+                       --portfolioList '[{"ccy":"BTC","ratio":"0.4"},{"ccy":"SOL","ratio":"0.6"}]' [--addInvest <amount> [--tradeQuoteCcy <ccy>]]
+5. okx-cex-bot       okx bot smart-portfolio details --algoId <id> --json → report configuration result and top-up result separately
+```
+
+`51320` = a weight is out of range or the weights do not meet the sum requirement (not a top-up error). A write that hits a rate limit, timeout or 5xx is not retried automatically.
+
+Note: the "OKX 推荐组合建仓" workflow above is for **create** and only when the user asks to browse recommendations; edit / top-up flows never call `recommend-zones` to propose a configuration.
+
 ## Recurring Buy (定投) — 创建定投策略
 > User: "帮我每月 1 号定投 100 USDT，BTC 20% / ETH 80%"
 > 适用场景：用户想建立周期性定投；`--tdMode` 由账户模式引导：acctLv 1 固定 `cash`；acctLv 2 询问用户（`cash` 现货 / `cross` 真实杠杆，无偏好用 `cash`）；acctLv 3 和 4 固定 `cross`（acctLv 4 不能用 `cash`：服务端会返回成功但不会真实成交）。选择并入同一次参数确认

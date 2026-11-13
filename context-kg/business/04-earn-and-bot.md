@@ -84,7 +84,7 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 ### smart-portfolio (`bot/smart-portfolio.ts`)
 - Smart Portfolio bots: auto-rebalancing multi-asset portfolio strategy
 - Allocate across 2–10 assets; bot rebalances when actual allocation drifts beyond `deltaRatio`
-- `smart_portfolio_create_order` — create a Smart Portfolio bot (write); `portfolioList` CCYs normalized to uppercase, dedup-checked, ratio sum must equal 1.0; `deltaRatio` validated as `floor(x*100)/100 ∈ [0.01, 1)`
+- `smart_portfolio_create_order` — create a Smart Portfolio bot (write); `portfolioList` CCYs normalized to uppercase, dedup-checked, ratio sum must equal exactly 1 (exact decimals, no tolerance); `deltaRatio` truncated toward zero to two decimals from the raw string, result `∈ [0.01, 1)`
 - `smart_portfolio_get_orders` — list running Smart Portfolio bots
 - `smart_portfolio_get_orders` — list Smart Portfolio bots; `status=active` (default) returns running bots via `/orders-algo-pending`; `status=history` returns stopped bots via `/orders-algo-history` with optional `instType`/`state` filters
 - `smart_portfolio_get_order_details` — get details for a specific bot by `algoId`
@@ -93,6 +93,10 @@ Source: verified via OKX demo API (`/api/v5/tradingBot/grid/orders-algo-details`
 - `smart_portfolio_instant_rebalance` — trigger an immediate rebalance (write); returns `triggered: boolean`
 - `smart_portfolio_get_recommend_zones` — browse OKX-recommended portfolio configurations; `profitHistory` is stripped from response to limit context size
 - `smart_portfolio_get_zones_backtest` — get historical backtest for a recommended zone
+- `smart_portfolio_manual_pause` / `smart_portfolio_manual_resume` — pause / resume automatic rebalancing (write); body `{algoId}`; success is `code=0, data=[]` (accepted only)
+- `smart_portfolio_add_investment` — add funds without changing the target (write); `addInvest` must be a positive exact decimal, `tradeQuoteCcy` optional (trim, case kept, blank → omitted); no network retry
+- `smart_portfolio_edit_portfolio` — replace the complete target coins/weights, optionally with a top-up (write); no top-up → neither `addInvest` nor `tradeQuoteCcy` is sent; edit is not rolled back if the top-up fails
+- Implementation split: validation in `bot/smart-portfolio-validation.ts` (+ exact decimals in `bot/smart-portfolio-decimal.ts`), operation tools in `bot/smart-portfolio-operations.ts`; CLI allow-lists for `bot recurring` / `bot smart-portfolio` in `packages/cli/src/command-options.ts`. See [13-smart-portfolio-api.md](13-smart-portfolio-api.md)
 
 ### recurring (`bot/recurring.ts`) — CLI-only
 - Recurring Buy strategies; module `bot.recurring` is in `CLI_ONLY_MODULE_IDS`, **not** in `MODULES`, so no `recurring_*` tool is ever served over MCP. Reachable only as `okx bot recurring <sub>`. Full endpoint/validation notes: [recurring-api.md](recurring-api.md)

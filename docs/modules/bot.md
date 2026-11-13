@@ -10,7 +10,7 @@ Strategy trading bot tools with sub-module filtering. Requires API key with **Re
 |------------|-------|-------------|
 | `bot.grid` | 9 | Spot Grid, Contract Grid, Moon Grid strategies |
 | `bot.dca` | 9 | DCA (Martingale) strategies |
-| `bot.smartportfolio` | 8 | Smart Portfolio strategies (auto-rebalancing multi-asset portfolio) |
+| `bot.smartportfolio` | 12 | Smart Portfolio strategies (auto-rebalancing multi-asset portfolio) |
 | `bot.recurring` | 12 (CLI only) | Recurring Buy strategies (periodic fixed-amount buys of a coin basket) |
 
 **Module aliases:**
@@ -71,12 +71,16 @@ When creating a contract grid, `basePos` (whether to open a base position at cre
 
 | Tool | Description |
 |------|-------------|
-| `smart_portfolio_create_order` | Create a Smart Portfolio bot (2–10 assets with ratios summing to 1.0, auto-rebalanced) |
+| `smart_portfolio_create_order` | Create a Smart Portfolio bot (2–10 assets with ratios summing to exactly 1, auto-rebalanced) |
 | `smart_portfolio_get_orders` | List running Smart Portfolio bots, or stopped ones with `status='history'` |
 | `smart_portfolio_get_order_details` | Get one bot with its current allocation, PnL, rebalance interval and `deltaRatio` |
 | `smart_portfolio_stop_order` | Stop a running bot (`stopType` required: `1` sell all assets, `2` keep assets) |
 | `smart_portfolio_amend_rebalance` | Change the rebalance parameters (`deltaRatio` and `interval`, both required) |
-| `smart_portfolio_instant_rebalance` | Trigger an immediate rebalance (accepted, not necessarily executed) |
+| `smart_portfolio_instant_rebalance` | Trigger an immediate rebalance (`triggered` means the flow started, not that trades executed; `false` does not mean "already balanced") |
+| `smart_portfolio_manual_pause` | Pause automatic rebalancing of a running bot (bot keeps running, nothing is sold) |
+| `smart_portfolio_manual_resume` | Lift a manual pause and trigger a rebalance check (a check does not guarantee a trade) |
+| `smart_portfolio_add_investment` | Add funds without changing coins or weights (`addInvest` > 0; `tradeQuoteCcy` optional, omit to use the bot's own settlement currency). Accepted does not mean the funds have arrived |
+| `smart_portfolio_edit_portfolio` | Replace the **complete** target coins and weights (optionally with a top-up). Takes effect immediately; a failed top-up does not roll the edit back |
 | `smart_portfolio_get_recommend_zones` | Browse OKX-recommended Smart Portfolio configurations |
 | `smart_portfolio_get_zones_backtest` | Get the backtest result of a recommended zone by `recommendId` |
 
@@ -123,6 +127,9 @@ These are core tool specs behind the `okx bot recurring <sub>` commands. The mod
 - "Create a Smart Portfolio with 60% BTC and 40% ETH, 5000 USDT"
 - "Show my running Smart Portfolio bots"
 - "Change the rebalance threshold of Smart Portfolio algoId 12345 to 5%"
+- "Pause automatic rebalancing of Smart Portfolio algoId 12345" / "Resume it"
+- "Add 100 USDT to Smart Portfolio algoId 12345"
+- "Change Smart Portfolio algoId 12345 to 50% BTC, 30% ETH, 20% SOL" (the full target must come from you; the assistant does not recommend coins, weights or amounts)
 
 **Recurring Buy:**
 - "Buy 100 USDT of BTC (20%) and ETH (80%) every month on day 1 at 00:00"
@@ -204,6 +211,12 @@ okx bot smart-portfolio create --stgyName "My Portfolio" --investmentCcy USDT --
 
 okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio 0.05 --interval 60
 okx bot smart-portfolio instant-rebalance --algoId <id>
+okx bot smart-portfolio manual-pause --algoId <id>
+okx bot smart-portfolio manual-resume --algoId <id>
+okx bot smart-portfolio add-investment --algoId <id> --addInvest 100 [--tradeQuoteCcy USDT]
+okx bot smart-portfolio edit-portfolio --algoId <id> \
+  --portfolioList '[{"ccy":"BTC","ratio":"0.5"},{"ccy":"ETH","ratio":"0.3"},{"ccy":"SOL","ratio":"0.2"}]' \
+  [--addInvest 50 [--tradeQuoteCcy USDT]]
 okx bot smart-portfolio stop --algoId <id> --stopType 1
 
 # ── Recurring Buy (CLI only) ──────────────────────────────────────────────────
@@ -240,7 +253,7 @@ okx bot recurring add-investment --algoId <id> --amount 20
 |--------|--------|------|
 | `bot.grid` | 9 | 现货网格、合约网格、Moon Grid 策略 |
 | `bot.dca` | 9 | DCA（马丁格尔）策略 |
-| `bot.smartportfolio` | 8 | 智能组合策略（自动再平衡的多资产组合） |
+| `bot.smartportfolio` | 12 | 智能组合策略（自动再平衡的多资产组合） |
 | `bot.recurring` | 12（仅 CLI） | 定投策略（按周期定额买入一篮子币） |
 
 **模块别名：**
@@ -301,12 +314,16 @@ okx bot recurring add-investment --algoId <id> --amount 20
 
 | 工具 | 说明 |
 |------|------|
-| `smart_portfolio_create_order` | 创建智能组合机器人（2 到 10 个资产，比例之和为 1.0，自动再平衡） |
+| `smart_portfolio_create_order` | 创建智能组合机器人（2 到 10 个资产，比例之和须恰好为 1，自动再平衡） |
 | `smart_portfolio_get_orders` | 列出运行中的智能组合机器人，`status='history'` 列出已停止的 |
 | `smart_portfolio_get_order_details` | 查询单个机器人的当前配比、盈亏、再平衡间隔和 `deltaRatio` |
 | `smart_portfolio_stop_order` | 停止运行中的机器人（`stopType` 必填：`1` 卖出全部资产，`2` 保留资产） |
 | `smart_portfolio_amend_rebalance` | 修改再平衡参数（`deltaRatio` 和 `interval` 均必填） |
-| `smart_portfolio_instant_rebalance` | 立即触发一次再平衡（请求被接受，不代表已成交） |
+| `smart_portfolio_instant_rebalance` | 立即触发一次再平衡（`triggered` 仅表示流程已触发，不代表已成交；`false` 不能解释为“已平衡”） |
+| `smart_portfolio_manual_pause` | 暂停运行中机器人的自动再平衡（机器人继续运行，不卖出资产） |
+| `smart_portfolio_manual_resume` | 解除手动暂停并触发一次再平衡检查（检查不保证产生交易） |
+| `smart_portfolio_add_investment` | 追加资金，不改变币种和权重（`addInvest` 须为正数；`tradeQuoteCcy` 可选，省略则使用机器人自身的结算币种）。受理不代表资金已到账 |
+| `smart_portfolio_edit_portfolio` | 替换**完整**目标币种及权重（可同时追加资金）。立即生效；追加失败不会回滚编辑 |
 | `smart_portfolio_get_recommend_zones` | 浏览 OKX 推荐的智能组合配置 |
 | `smart_portfolio_get_zones_backtest` | 按 `recommendId` 查询推荐配置的回测结果 |
 
@@ -353,6 +370,9 @@ okx bot recurring add-investment --algoId <id> --amount 20
 - "创建一个智能组合：60% BTC、40% ETH，投入 5000 USDT"
 - "显示我运行中的智能组合机器人"
 - "把智能组合 algoId 12345 的再平衡阈值改成 5%"
+- "暂停智能组合 algoId 12345 的自动再平衡" / "恢复它"
+- "给智能组合 algoId 12345 追加 100 USDT"
+- "把智能组合 algoId 12345 改成 50% BTC、30% ETH、20% SOL"（完整目标须由你给出，助手不会推荐币种、权重或金额）
 
 **定投：**
 - "每月 1 号 00:00 定投 100 USDT，BTC 占 20%、ETH 占 80%"
@@ -433,6 +453,12 @@ okx bot smart-portfolio create --stgyName "My Portfolio" --investmentCcy USDT --
 
 okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio 0.05 --interval 60
 okx bot smart-portfolio instant-rebalance --algoId <id>
+okx bot smart-portfolio manual-pause --algoId <id>
+okx bot smart-portfolio manual-resume --algoId <id>
+okx bot smart-portfolio add-investment --algoId <id> --addInvest 100 [--tradeQuoteCcy USDT]
+okx bot smart-portfolio edit-portfolio --algoId <id> \
+  --portfolioList '[{"ccy":"BTC","ratio":"0.5"},{"ccy":"ETH","ratio":"0.3"},{"ccy":"SOL","ratio":"0.2"}]' \
+  [--addInvest 50 [--tradeQuoteCcy USDT]]
 okx bot smart-portfolio stop --algoId <id> --stopType 1
 
 # ── 定投（仅 CLI）──────────────────────────────────────────────────────────────

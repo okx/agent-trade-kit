@@ -11,6 +11,25 @@
 
 ## [Unreleased]
 
+### 新增
+
+- **智能组合操作工具**（`bot.smartportfolio`：MCP 工具 8 → 12，写工具 4 → 8）及对应 CLI 子命令：`smart_portfolio_manual_pause` / `okx bot smart-portfolio manual-pause`、`smart_portfolio_manual_resume` / `manual-resume`、`smart_portfolio_add_investment` / `add-investment`、`smart_portfolio_edit_portfolio` / `edit-portfolio`（`POST /api/v5/tradingBot/smart-portfolio/{manual-pause,manual-resume,add-investment,edit-portfolio}`）。成功响应为 `code=0` 且 `data` 为空，仅表示请求**已受理**，不代表新状态已生效、资金已到账或交易已成交。这些工具不会因网络错误自动重试（追加/编辑非幂等），限流沿用模块的客户端默认值，该值并非经核实的服务端限频。
+  - `tradeQuoteCcy`（add-investment / edit-portfolio）为可选：MCP/CLI 层只做 trim、保留大小写，为空时省略，由后端使用机器人自身的结算币种（假定后端 MR !3272 已部署）。`edit-portfolio` 未携带正数 `addInvest` 时，既不发送 `addInvest` 也不发送 `tradeQuoteCcy`。
+- CLI：`bot recurring` 与 `bot smart-portfolio` 按完整 action 校验选项（`packages/cli/src/command-options.ts`）。
+- `okx-cex-bot` Skill：智能组合操作——先确定策略、不做投资推荐（币种、全量权重和金额均由用户给出，不均分、不缩放、不归一化）、追加前查询交易账户可用余额（余额不足仅作风险提示，绝不自动划转）、每次写操作一次确认摘要、“受理 ≠ 生效 ≠ 到账 ≠ 成交”表述、后端错误码解释（含 `51320`）以及禁止盲目重试规则。
+
+### 变更
+
+- **行为变更（CLI）**：`okx bot recurring <action>` 与 `okx bot smart-portfolio <action>` 现在会拒绝该 action 不读取的选项（`Unknown option '--x'`，退出码 1，不发送请求），此前这些选项会被静默接受并忽略——例如 `bot recurring pause --amt 10`、`bot smart-portfolio manual-pause --addInvest 1`、`bot recurring create --amount 5`（`create` 读取的是 `--amt`）。全局选项（`--profile --demo --live --site --json --env --verbose --help`）、`--flag=value`、`--no-demo` 及负数值（`--timeZone -5`）保持可用；`--aiBuilderCode` 仍仅限 `create`；未新增任何别名。其他命令继续使用共享选项表（仅为局部治理，并非全局修复）。
+- **行为变更（校验）**：`portfolioList` 权重必须是正的精确十进制数且合计**恰好**为 1；原先 `0.0001` 的浮点容差已移除，后端本会拒绝的请求现在会在本地提前报错（错误来源变化）。`portfolioList` 中的 null / 非对象元素现在抛出 `ValidationError` 而非 `TypeError`。权重不会被自动缩放。
+- 智能组合描述修正：详情工具使用真实字段 `investmentCcy`（原写作 `investCcy`）；区分 `tradeQuoteCcy`（扣款币种）与 `investmentCcy`（计价币种）；`instant_rebalance` / `triggered` 不再被表述为“已执行”或“已平衡”。
+- `docs/designs/smart-portfolio.md` 与 `context-kg`：详情路径更正为 `/orders-algo-details`（原为 `/order-algo`）。
+
+### 修复
+
+- **`deltaRatio` 精度**（`smart_portfolio_create_order`、`smart_portfolio_amend_rebalance`、CLI）：两位小数截断改为基于精确十进制文本，不再使用 `Math.floor(Number(x) * 100) / 100`，合法值不会被误下调（`0.29` 此前变成 `0.28`，现保持 `0.29`；`0.58`、`0.57` 同理）。支持科学计数法（`5e-2`）与首尾空白，拒绝十六进制 / `Infinity` / `NaN`；超大指数、数千位等极端输入会快速失败，不会产生大量内存分配。
+- CLI `bot smart-portfolio instant-rebalance` 不再把 `triggered: false` 解释为“组合可能已平衡”。
+
 ## [1.5.1] - 2026-11-13
 
 ### 新增
