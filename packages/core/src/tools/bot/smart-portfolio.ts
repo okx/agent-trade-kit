@@ -7,82 +7,15 @@ import {
   requireString,
 } from "../helpers.js";
 import { privateRateLimit } from "../common.js";
-import { OkxApiError, ValidationError } from "../../utils/errors.js";
+import { OkxApiError } from "../../utils/errors.js";
+import {
+  normalizeDeltaRatio,
+  parsePortfolioListJson,
+  validateAndNormalizePortfolioList,
+} from "./smart-portfolio-validation.js";
+import { registerSmartPortfolioOperationTools } from "./smart-portfolio-operations.js";
 
 const BASE = "/api/v5/tradingBot/smart-portfolio";
-
-/** Validate and truncate deltaRatio: floor(x*100)/100 must be in [0.01, 1). */
-function validateDeltaRatio(raw: string): string {
-  const n = Number(raw);
-  if (isNaN(n)) {
-    throw new ValidationError(`deltaRatio must be a number, got: ${raw}`);
-  }
-  const truncated = Math.floor(n * 100) / 100;
-  if (truncated < 0.01) {
-    throw new ValidationError(
-      `deltaRatio too small: ${raw} truncates to ${truncated.toFixed(2)}, minimum is 0.01`,
-      `Use a deltaRatio >= 0.01 (e.g. "0.05" for 5%)`,
-    );
-  }
-  if (truncated >= 1) {
-    throw new ValidationError(
-      `deltaRatio too large: ${raw} truncates to ${truncated.toFixed(2)}, must be < 1`,
-      `Use a deltaRatio < 1 (e.g. "0.05" for 5%)`,
-    );
-  }
-  return truncated.toFixed(2);
-}
-
-interface PortfolioItem {
-  ccy: string;
-  ratio: string;
-}
-
-/** Validate and normalize portfolioList: trim/uppercase CCY, check dedup, check ratio sum = 1. */
-function validateAndNormalizePortfolioList(raw: unknown): PortfolioItem[] {
-  if (!Array.isArray(raw) || raw.length < 2) {
-    throw new ValidationError(
-      `portfolioList must have at least 2 items, got ${Array.isArray(raw) ? raw.length : "non-array"}`,
-    );
-  }
-  if (raw.length > 10) {
-    throw new ValidationError(
-      `portfolioList must have at most 10 items, got ${raw.length}`,
-      `Provide 2–10 unique assets in portfolioList`,
-    );
-  }
-
-  const normalized: PortfolioItem[] = (raw as Record<string, unknown>[]).map((item) => {
-    const ccy = String(item["ccy"] ?? "").trim().toUpperCase();
-    const ratio = String(item["ratio"] ?? "");
-    if (!ccy) throw new ValidationError("Each portfolioList item must have a non-empty ccy");
-    if (!ratio) throw new ValidationError("Each portfolioList item must have a non-empty ratio");
-    if (isNaN(Number(ratio))) {
-      throw new ValidationError(`portfolioList ratio "${ratio}" is not a valid number`);
-    }
-    return { ccy, ratio };
-  });
-
-  // Check for duplicate CCYs
-  const seen = new Set<string>();
-  for (const item of normalized) {
-    if (seen.has(item.ccy)) {
-      throw new ValidationError(`Duplicate CCY in portfolioList after normalization: ${item.ccy}`);
-    }
-    seen.add(item.ccy);
-  }
-
-  // Check ratio sum == 1.0 (allow small floating point tolerance)
-  const sum = normalized.reduce((acc, item) => acc + Number(item.ratio), 0);
-  if (Math.abs(sum - 1.0) > 0.0001) {
-    throw new ValidationError(
-      `portfolioList ratio values must sum to 1.0, got ${sum.toFixed(6)}`,
-      `Ensure the ratio values in portfolioList add up to exactly 1.0`,
-    );
-  }
-
-  return normalized;
-}
 
 /** For write operations that return sCode per item (tools 1 and 5). */
 function normalizeWriteScode(response: {
@@ -146,7 +79,8 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       description:
         "Create a Smart Portfolio bot. [CAUTION] Real trades. " +
         "Allocate across 2–10 assets with specified ratios summing to 1.0. " +
-        "investmentCcy is the quote/valuation currency (USDT, USDC, or USD). " +
+        "investmentCcy is the quote/valuation currency (USDT, USDC, or USD); the funds are debited in tradeQuoteCcy, " +
+        "which defaults to investmentCcy only when omitted. " +
         "portfolioList items: {ccy, ratio} — CCY is case-insensitive, must be unique.",
       isWrite: true,
       destructiveHint: false,
@@ -182,7 +116,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
           },
           tradeQuoteCcy: {
             type: "string",
-            description: "Actual debit currency; defaults to investmentCcy if omitted.",
+            description: "Currency actually debited for the investment (not the valuation currency); defaults to investmentCcy if omitted.",
           },
           investType: {
             type: "string",
@@ -205,18 +139,8 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         const interval = requireString(args, "interval");
         const deltaRatioRaw = requireString(args, "deltaRatio");
 
-        let portfolioListParsed: unknown;
-        try {
-          portfolioListParsed = JSON.parse(portfolioListRaw);
-        } catch {
-          throw new ValidationError(
-            `portfolioList is not valid JSON: ${portfolioListRaw}`,
-            `Provide portfolioList as a JSON array, e.g. [{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]`,
-          );
-        }
-
-        const portfolioList = validateAndNormalizePortfolioList(portfolioListParsed);
-        const deltaRatio = validateDeltaRatio(deltaRatioRaw);
+        const portfolioList = validateAndNormalizePortfolioList(parsePortfolioListJson(portfolioListRaw));
+        const deltaRatio = normalizeDeltaRatio(deltaRatioRaw);
 
         const response = await context.client.privatePost(
           `${BASE}/order-algo`,
@@ -296,7 +220,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "Get details of a Smart Portfolio bot by algoId. " +
-        "Returns current allocation (portfolioList), investCcy, totalPnl, pnlRatio, interval, deltaRatio, and state. " +
+        "Returns current allocation (portfolioList), investmentCcy, totalPnl, pnlRatio, interval, deltaRatio, and state. " +
         "Returns a 'not found' result when the strategy does not exist, does not belong to the caller, or is a different type.",
       isWrite: false,
       inputSchema: {
@@ -387,7 +311,7 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         const algoId = requireString(args, "algoId");
 
         const deltaRatioRaw = requireString(args, "deltaRatio");
-        const deltaRatio = validateDeltaRatio(deltaRatioRaw);
+        const deltaRatio = normalizeDeltaRatio(deltaRatioRaw);
 
         const interval = requireString(args, "interval");
 
@@ -408,7 +332,9 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
       module: "bot.smartportfolio",
       description:
         "Trigger an immediate rebalance for a running Smart Portfolio bot. " +
-        "Returns triggered: true if the rebalance event was accepted — this does NOT mean trades have executed. " +
+        "triggered: true means the rebalance flow was started — it does NOT mean trades have executed. " +
+        "triggered: false only means no trade flow was started this time (market conditions may also apply); " +
+        "it must not be read as 'already balanced'. " +
         "Do not update position knowledge based solely on this result.",
       isWrite: true,
       destructiveHint: false,
@@ -520,5 +446,8 @@ export function registerSmartPortfolioTools(): ToolSpec[] {
         return normalizeResponse(response);
       },
     },
+
+    // ── Tools 10-13: operations on a running bot (pause / resume / add funds / edit) ──
+    ...registerSmartPortfolioOperationTools(),
   ];
 }

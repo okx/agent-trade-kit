@@ -7640,8 +7640,8 @@ describe("toMcpTool title & annotation overrides", () => {
 describe("smart_portfolio tools — module registration", () => {
   const tools = registerSmartPortfolioTools();
 
-  it("registers exactly 8 tools", () => {
-    assert.equal(tools.length, 8);
+  it("registers exactly 12 tools", () => {
+    assert.equal(tools.length, 12);
   });
 
   it("all tools have module=bot.smartportfolio", () => {
@@ -7668,10 +7668,17 @@ describe("smart_portfolio tools — module registration", () => {
     assert.ok(names.includes("smart_portfolio_instant_rebalance"));
     assert.ok(names.includes("smart_portfolio_get_recommend_zones"));
     assert.ok(names.includes("smart_portfolio_get_zones_backtest"));
+    assert.ok(names.includes("smart_portfolio_manual_pause"));
+    assert.ok(names.includes("smart_portfolio_manual_resume"));
+    assert.ok(names.includes("smart_portfolio_add_investment"));
+    assert.ok(names.includes("smart_portfolio_edit_portfolio"));
   });
 
   it("isWrite is true for write tools only", () => {
-    const writes = ["smart_portfolio_create_order", "smart_portfolio_stop_order", "smart_portfolio_amend_rebalance", "smart_portfolio_instant_rebalance"];
+    const writes = [
+      "smart_portfolio_create_order", "smart_portfolio_stop_order", "smart_portfolio_amend_rebalance", "smart_portfolio_instant_rebalance",
+      "smart_portfolio_manual_pause", "smart_portfolio_manual_resume", "smart_portfolio_add_investment", "smart_portfolio_edit_portfolio",
+    ];
     const reads = ["smart_portfolio_get_orders", "smart_portfolio_get_order_details", "smart_portfolio_get_recommend_zones", "smart_portfolio_get_zones_backtest"];
     for (const t of tools) {
       if (writes.includes(t.name)) assert.equal(t.isWrite, true, `${t.name} should be isWrite=true`);
@@ -7783,6 +7790,31 @@ describe("smart_portfolio_create_order", () => {
     );
   });
 
+  it("deltaRatio keeps exact decimals that binary floating point would shrink (0.29, 0.58, 0.57)", async () => {
+    for (const [input, expected] of [["0.29", "0.29"], ["0.58", "0.58"], ["0.57", "0.57"]]) {
+      const { client, getLastCall } = makeMockClient();
+      await tool.handler({ ...validCreateArgs(), deltaRatio: input }, makeContext(client));
+      assert.equal((getLastCall()?.params as Record<string, unknown>)["deltaRatio"], expected);
+    }
+  });
+
+  it("no longer accepts weights that miss 1 by less than the old 0.0001 tolerance", async () => {
+    const { client, calls } = (() => { const m = makeMockClient(); return { client: m.client, calls: m.getCalls() }; })();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: JSON.stringify([{ ccy: "BTC", ratio: "0.6" }, { ccy: "ETH", ratio: "0.40005" }]) }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof ValidationError); return true; },
+    );
+    assert.equal(calls.length, 0);
+  });
+
+  it("null portfolioList items raise ValidationError, not TypeError", async () => {
+    const { client } = makeMockClient();
+    await assert.rejects(
+      () => tool.handler({ ...validCreateArgs(), portfolioList: "[null,null]" }, makeContext(client)),
+      (err: unknown) => { assert.ok(err instanceof ValidationError); return true; },
+    );
+  });
+
   it("deltaRatio is sent as toFixed(2) string (not floating-point)", async () => {
     const { client, getLastCall } = makeMockClient();
     await tool.handler({ ...validCreateArgs(), deltaRatio: "0.05" }, makeContext(client));
@@ -7874,6 +7906,12 @@ describe("smart_portfolio_amend_rebalance", () => {
     assert.equal(params["deltaRatio"], "0.10");
     assert.equal(params["interval"], "60");
     assert.ok(!("portfolioList" in params));
+  });
+
+  it("shares the create path's exact deltaRatio rule (0.29 stays 0.29)", async () => {
+    const { client, getLastCall } = makeMockClient();
+    await tool.handler({ algoId: "1", deltaRatio: "0.29", interval: "60" }, makeContext(client));
+    assert.equal((getLastCall()?.params as Record<string, unknown>)["deltaRatio"], "0.29");
   });
 
   it("throws when deltaRatio is missing", async () => {
@@ -8061,3 +8099,28 @@ describe("smart_portfolio_get_orders — no instType or algoOrdType for active",
   });
 });
 
+
+describe("smart_portfolio tool descriptions — field and result semantics", () => {
+  const tools = registerSmartPortfolioTools();
+  const desc = (name: string) => tools.find((t) => t.name === name)!.description;
+
+  it("details description names the real field investmentCcy, not investCcy", () => {
+    const d = desc("smart_portfolio_get_order_details");
+    assert.ok(d.includes("investmentCcy"));
+    assert.ok(!d.includes("investCcy"));
+  });
+
+  it("create description separates investmentCcy (valuation) from tradeQuoteCcy (debit)", () => {
+    const d = desc("smart_portfolio_create_order");
+    assert.ok(d.includes("tradeQuoteCcy"));
+    const props = (tools.find((t) => t.name === "smart_portfolio_create_order")!.inputSchema as { properties: Record<string, { description: string }> }).properties;
+    assert.match(props["tradeQuoteCcy"]!.description, /debited/);
+    assert.match(props["investmentCcy"]!.description, /Valuation/);
+  });
+
+  it("instant_rebalance does not describe triggered as executed or as 'balanced'", () => {
+    const d = desc("smart_portfolio_instant_rebalance");
+    assert.match(d, /does NOT mean trades have executed/);
+    assert.match(d, /must not be read as 'already balanced'/);
+  });
+});

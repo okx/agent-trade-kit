@@ -95,7 +95,7 @@ const VALID_CREATE = {
   tdMode: "cross",
 };
 
-const MCP_TOOL_COUNT = 179;
+const MCP_TOOL_COUNT = 183;
 
 // ---------------------------------------------------------------------------
 // 1. Registration
