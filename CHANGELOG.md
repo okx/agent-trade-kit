@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-13
+
+### Added
+
+- **Recurring Buy CLI commands** (`okx bot recurring <sub>`, CLI-only — **no MCP tools**): `create`, `orders [--history]`, `details`, `sub-orders`, `pause`, `restart`, `stop`, `amend-name`, `amend-price-range`, `amend-amount`, `amend-time`, `add-investment`, backed by 12 core `recurring_*` tool specs in the new CLI-only module `bot.recurring`. The module is deliberately not part of `MODULES`, so the MCP tool list (179 tools) and `--modules` are unchanged. `--tdMode` is required (no default and no per-account check in code; the skill guides the choice by `acctLv`: 1 → `cash`, 2 → ask the user to choose `cash` (spot) or `cross` (real leverage), 3 and 4 → `cross` only); `--aiBuilderCode` is accepted on `create`.
+- `CLI_ONLY_MODULE_IDS` / `CliOnlyModuleId` exports in `@agent-tradekit/core`; `ToolSpec.module` may now be a CLI-only module.
+- CLI: a negative `--timeZone` (e.g. `--timeZone -5`) is now parsed correctly.
+- `okx-cex-bot` skill: Recurring Buy command index, write-confirmation checklist (including pause / restart), post-write verification for `add-investment`, a "never retry a failed write on your own; the user decides" rule, DCA vs Recurring Buy routing and `references/recurring-commands.md`.
+
+- **`market_get_trades` / `okx market trades` pagination**: new `history` switch (`--history`) pages through public trades of the last 3 months via `/api/v5/market/history-trades` (max 100 per page), with `type` (`1` tradeId / `2` timestamp), `after` and `before`. No new MCP tool (still 179). Without `history`, behavior is unchanged (latest trades, default 20, max 500).
+- **UTC+0 candle bars**: `market_get_candles` (and `okx market candles --bar`) accepts `6Hutc`, `12Hutc`, `1Dutc`, `2Dutc`, `3Dutc`, `1Wutc`, `1Mutc`, `3Mutc`.
+- **`market_get_indicator` params contract** (CLI and MCP, 39 indicators + the `boll` alias): omit `params` to use the indicator default (the result reports `appliedParams` / `paramsSource`, the CLI prints `params: … (default)`); if `params` is given it must be complete — fixed-length indicators need exactly the full set (`macd` 3, `kdj` 3, `bb` 2, `supertrend` 2 as `[factor, atrPeriod]`, `stoch-rsi` 4, …), `ma`/`ema`/`rsi`/`wr`/`wma`/`dema`/`tema`/`zlema`/`hma`/`kama` take one or more periods; values are integers (periods 2–365, `bb` multiplier and `supertrend` factor 1–9; `alphatrend` / `halftrend` take any int32 integer). The error carries the signature, default and an example. Other known indicators get no default and no count/range check (malformed values — non-numeric, `null`, overflow — are still rejected); unknown names are still rejected as before. The MCP tool description lists every default.
+- CLI: `--params -9,3,3` (leading negative value) is now parsed correctly.
+
+### Changed
+
+- **BREAKING**: `market_get_indicator` / `okx market indicator --params` is stricter. Non-numeric tokens (`[20]`, `12,,9`, `abc`) and a repeated `--params` flag fail instead of silently falling back to defaults; for the 39 indicators of the params contract an incomplete or surplus `params` (e.g. `macd` with 2 values) or an out-of-range value is rejected, and in table mode explicit `--params` that return no values on any timeframe now fail (exit code 1) instead of printing a hint (`--json` is unchanged). When a default was applied and nothing comes back, the hint now says there may not be enough candles. Omitting `params` now applies the indicator default for both CLI and MCP (MCP previously sent no `paramList`, so `ma`/`ema`/`wma`… returned empty). CLI defaults corrected to match the backend: `supertrend` `3,10` (was `10,3`, wrong order), `stoch-rsi` `14,14,3,3`, `keltner` `20,10,20`, `mvwap` `14,14`, `stoch` `14,3`, `aroon` `25`, `trix` `18`; `ma` `5,20,60`, `ema` `5,20`.
+- Library: the exported `DEFAULT_INDICATOR_PARAMS` / `getDefaultIndicatorParams` of `@agent-tradekit/core` keep their names but several values changed (see above, e.g. `ma` `[5,20,60]`, `ema` `[5,20]`, `supertrend` `[3,10]`); `params` that is not an array of numbers (a string, a bare number, `null`/`true` items) is now rejected instead of being ignored or coerced.
+- **BREAKING**: `market_get_trades` rejects `type`/`after`/`before` unless `history=true` (the recent-trades endpoint does not support pagination), and `limit` above 100 when `history=true`.
+- CLI help: `--params` is documented as comma-separated numbers (was `<json>`).
+
+- Synced all skill-pack `metadata.version` fields and pinned `@okx_ai/okx-trade-cli` versions to `1.5.1` for the stable release.
+
 ## [1.5.1-beta.2] - 2026-11-10
 
 Beta release: Skill `metadata.version` and pinned CLI install versions remain at `1.5.0` per the stable-release-only policy.
