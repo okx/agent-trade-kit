@@ -205,6 +205,20 @@ import {
   cmdSmartPortfolioZonesBacktest,
 } from "./commands/bot.js";
 import {
+  cmdRecurringCreate,
+  cmdRecurringOrders,
+  cmdRecurringDetails,
+  cmdRecurringSubOrders,
+  cmdRecurringPause,
+  cmdRecurringRestart,
+  cmdRecurringStop,
+  cmdRecurringAmendName,
+  cmdRecurringAmendPriceRange,
+  cmdRecurringAmendAmount,
+  cmdRecurringAmendTime,
+  cmdRecurringAddInvestment,
+} from "./commands/bot-recurring.js";
+import {
   cmdOnchainEarnOffers,
   cmdOnchainEarnPurchase,
   cmdOnchainEarnRedeem,
@@ -423,7 +437,7 @@ export function handleMarketDataCommand(
   if (action === "funding-rate")
     return cmdMarketFundingRate(run, rest[0], { history: v.history ?? false, limit, json, demo: v.demo });
   if (action === "trades")
-    return cmdMarketTrades(run, rest[0], { limit, json, demo: v.demo });
+    return cmdMarketTrades(run, rest[0], { limit, history: v.history ?? false, type: v.type, after: v.after, before: v.before, json, demo: v.demo });
   if (action === "index-candles")
     return cmdMarketIndexCandles(run, rest[0], { bar: v.bar, limit, history: v.history ?? false, json, demo: v.demo });
 }
@@ -1415,6 +1429,39 @@ export function handleBotSmartPortfolioCommand(
   unknownSubcommand("bot smart-portfolio", subAction, ["orders", "details", "create", "stop", "amend-rebalance", "instant-rebalance", "recommend-zones", "zones-backtest"]);
 }
 
+export function handleBotRecurringCommand(
+  run: ToolRunner,
+  subAction: string,
+  v: CliValues,
+  json: boolean,
+): Promise<void> | void {
+  if (subAction === "create")
+    return cmdRecurringCreate(run, { stgyName: v.stgyName!, recurringList: v.recurringList!, period: v.period!, recurringDay: v.recurringDay, recurringHour: v.recurringHour, recurringTime: v.recurringTime!, timeZone: v.timeZone!, amt: v.amt!, investmentCcy: v.investmentCcy!, tdMode: v.tdMode, algoClOrdId: v.algoClOrdId, tradeQuoteCcy: v.tradeQuoteCcy, source: v.source, recurringTimeType: v.recurringTimeType, aiBuilderCode: v.aiBuilderCode, json });
+  if (subAction === "orders")
+    return cmdRecurringOrders(run, { history: !!v.history, algoId: v.algoId, after: v.after, before: v.before, limit: v.limit, json });
+  if (subAction === "details")
+    return cmdRecurringDetails(run, { algoId: v.algoId!, json });
+  if (subAction === "sub-orders")
+    return cmdRecurringSubOrders(run, { algoId: v.algoId!, ordId: v.ordId, after: v.after, before: v.before, limit: v.limit, json });
+  if (subAction === "pause")
+    return cmdRecurringPause(run, { algoId: v.algoId!, json });
+  if (subAction === "restart")
+    return cmdRecurringRestart(run, { algoId: v.algoId!, json });
+  if (subAction === "stop")
+    return cmdRecurringStop(run, { algoId: v.algoId!, json });
+  if (subAction === "amend-name")
+    return cmdRecurringAmendName(run, { algoId: v.algoId!, stgyName: v.stgyName!, json });
+  if (subAction === "amend-price-range")
+    return cmdRecurringAmendPriceRange(run, { algoId: v.algoId!, recurringList: v.recurringList!, json });
+  if (subAction === "amend-amount")
+    return cmdRecurringAmendAmount(run, { algoId: v.algoId!, amount: (v.amount ?? v.amt)!, json });
+  if (subAction === "amend-time")
+    return cmdRecurringAmendTime(run, { algoId: v.algoId!, recurringTimeType: v.recurringTimeType!, period: v.period!, timeZone: v.timeZone!, recurringDay: v.recurringDay, recurringHour: v.recurringHour, recurringTime: v.recurringTime, json });
+  if (subAction === "add-investment")
+    return cmdRecurringAddInvestment(run, { algoId: v.algoId!, amount: (v.amount ?? v.amt)!, json });
+  unknownSubcommand("bot recurring", subAction, ["create", "orders", "details", "sub-orders", "pause", "restart", "stop", "amend-name", "amend-price-range", "amend-amount", "amend-time", "add-investment"]);
+}
+
 export function handleBotCommand(
   run: ToolRunner,
   action: string,
@@ -1425,7 +1472,8 @@ export function handleBotCommand(
   if (action === "grid") return handleBotGridCommand(run, v, rest, json);
   if (action === "dca") return handleBotDcaCommand(run, rest[0], v, json);
   if (action === "smart-portfolio") return handleBotSmartPortfolioCommand(run, rest[0], v, json);
-  unknownSubcommand("bot", action, ["grid", "dca", "smart-portfolio"]);
+  if (action === "recurring") return handleBotRecurringCommand(run, rest[0], v, json);
+  unknownSubcommand("bot", action, ["grid", "dca", "smart-portfolio", "recurring"]);
 }
 
 export function handleEarnCommand(

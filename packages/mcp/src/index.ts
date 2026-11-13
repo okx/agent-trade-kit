@@ -23,8 +23,9 @@ Options:
                        Available: market, spot, swap, futures, option, account,
                                   event, news, smartmoney, skills,
                                   earn.savings, earn.onchain, earn.dcd, earn.autoearn, earn.flash,
-                                  bot.grid, bot.dca
-                       Alias: "bot" = bot.grid + bot.dca
+                                  bot.grid, bot.dca, bot.smartportfolio
+                       Alias: "bot" = bot.grid
+                              "bot.all" = bot.grid + bot.dca + bot.smartportfolio
                               "earn" / "earn.all" = all earn sub-modules
                        Special: "all" loads all modules
                        Default: spot,swap,option,account,bot.grid,skills

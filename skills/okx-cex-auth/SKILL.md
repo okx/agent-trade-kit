@@ -4,7 +4,7 @@ description: "Use this skill when the user wants to 'login/log in/sign in', 'aut
 license: MIT
 metadata:
   author: okx
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.5.0"
+        package: "@okx_ai/okx-trade-cli@1.5.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -326,5 +326,5 @@ If any `okx auth` command (`login`, `logout`, `status`) fails with "Failed to sp
 | Place / cancel / amend orders             | `okx-cex-trade`                     |
 | Check balance, positions, P&L             | `okx-cex-portfolio`                 |
 | Simple Earn, On-chain Earn, DCD, AutoEarn | `okx-cex-earn`                      |
-| Grid / DCA bots                           | `okx-cex-bot`                       |
+| Grid / DCA / Smart Portfolio / Recurring Buy bots | `okx-cex-bot`                       |
 | Market prices, candles, indicators        | `okx-cex-market` (no auth required) |

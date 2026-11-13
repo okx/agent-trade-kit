@@ -12,6 +12,14 @@ import {
 import { ValidationError } from "../utils/errors.js";
 import { publicRateLimit } from "./common.js";
 import { withAigcErrors } from "./aigc-errors.js";
+import {
+  INDICATOR_DEFAULT_PARAMS,
+  describeIndicatorDefaults,
+  formatIndicatorSignature,
+  getSpecDefaultParams,
+  hasIndicatorParamSpec,
+  validateIndicatorParams,
+} from "./indicator-params.js";
 
 // Valid timeframes accepted by the indicator API
 export const INDICATOR_BARS = [
@@ -150,64 +158,15 @@ export function resolveIndicatorCode(name: string): string {
 }
 
 /**
- * Default `paramList` for period-based indicators, keyed by the lowercase
- * indicator name (matching `KNOWN_INDICATORS[].name`).
- *
- * Single source of truth (repo CLAUDE.md: shared business logic lives in
- * `packages/core`). The CLI imports this when `--params` is omitted so the
- * server returns values instead of an empty `indicators.<CODE> = []`.
- *
- * Values: PRD-authoritative examples (EMA/MA/WMA/RSI `[14]`, MACD `[12,26,9]`,
- * BB `[20,2]`) plus conventional TA defaults for the remaining period-based
- * indicators. Non-period indicators (e.g. obv, vwap, sar, ad) intentionally
- * have NO entry — the Plan A visible hint covers them at the CLI layer.
- *
- * NOTE: this table is applied CLI-render-only. The MCP raw-data path
- * (`indicator.ts` param-assembly below) is intentionally NOT changed.
+ * Default `paramList` per indicator, keyed by the lowercase indicator name
+ * (matching `KNOWN_INDICATORS[].name`). Derived from the specs in
+ * `indicator-params.ts` (single source of truth, shared by CLI and MCP): when
+ * `params` is omitted the handler applies the default for these indicators.
+ * Indicators without an entry are sent without a `paramList`.
  */
-export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = {
-  // Moving Averages — PRD example default is [14]
-  ma: [14],
-  ema: [14],
-  wma: [14],
-  dema: [14],
-  tema: [14],
-  zlema: [14],
-  hma: [14],
-  kama: [14],
-  // Trend
-  macd: [12, 26, 9],
-  adx: [14],
-  aroon: [14],
-  cci: [20],
-  dpo: [20],
-  // Momentum
-  rsi: [14],
-  "stoch-rsi": [14],
-  stoch: [14, 3, 3],
-  roc: [12],
-  mom: [10],
-  ppo: [12, 26, 9],
-  trix: [15],
-  uo: [7, 14, 28],
-  wr: [14],
-  // Volatility
-  bb: [20, 2],
-  bbwidth: [20, 2],
-  bbpct: [20, 2],
-  atr: [14],
-  keltner: [20, 2],
-  donchian: [20],
-  hv: [20],
-  stddev: [20],
-  // Volume
-  mvwap: [20],
-  cmf: [20],
-  mfi: [14],
-  // Custom
-  kdj: [9, 3, 3],
-  supertrend: [10, 3],
-};
+export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = Object.fromEntries(
+  Object.entries(INDICATOR_DEFAULT_PARAMS).map(([name, defaults]) => [name, [...defaults]]),
+);
 
 /**
  * Resolve the default `paramList` for an indicator, case-insensitively and
@@ -217,12 +176,7 @@ export const DEFAULT_INDICATOR_PARAMS: Record<string, number[]> = {
  * Returns `undefined` for non-period indicators and unknown names.
  */
 export function getDefaultIndicatorParams(name: string): number[] | undefined {
-  const lower = name.toLowerCase();
-  const direct = DEFAULT_INDICATOR_PARAMS[lower];
-  if (direct !== undefined) return direct;
-  // Resolve aliases (e.g. boll -> BB) back to a default-table key.
-  const code = resolveIndicatorCode(lower);
-  return DEFAULT_INDICATOR_PARAMS[code.toLowerCase()];
+  return getSpecDefaultParams(name);
 }
 
 /**
@@ -248,14 +202,42 @@ function validateIndicatorName(name: string): void {
   );
 }
 
+const NUMERIC_STRING_RE = /^-?\d+(\.\d+)?$/;
+
+/** Accept finite numbers and numeric strings (LLMs sometimes send "14"); reject everything else. */
+function toNumberItem(key: string, item: unknown, index: number): number {
+  if (typeof item === "number" && Number.isFinite(item)) return item;
+  if (typeof item === "string" && NUMERIC_STRING_RE.test(item.trim())) {
+    const parsed = Number(item);
+    // a very long digit string overflows to Infinity, which JSON would serialise as null
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const shown = typeof item === "string" ? JSON.stringify(item.slice(0, 40)) : JSON.stringify(item) ?? String(item);
+  throw new ValidationError(`Parameter "${key}"[${index}] must be a finite number, got ${shown}.`);
+}
+
 function readNumberArray(
   args: Record<string, unknown>,
   key: string,
 ): number[] | undefined {
   const value = args[key];
   if (value === undefined || value === null) return undefined;
-  if (!Array.isArray(value)) return undefined;
-  return value.map((item) => Number(item));
+  if (!Array.isArray(value)) {
+    throw new ValidationError(`Parameter "${key}" must be an array of numbers, e.g. [12,26,9].`);
+  }
+  return value.map((item, index) => toNumberItem(key, item, index));
+}
+
+/** Read `params`; a malformed value for an indicator with a params contract also reports its signature. */
+function readParams(args: Record<string, unknown>, indicator: string): number[] | undefined {
+  try {
+    return readNumberArray(args, "params");
+  } catch (error) {
+    if (error instanceof ValidationError && hasIndicatorParamSpec(indicator)) {
+      throw new ValidationError(`${error.message} ${formatIndicatorSignature(indicator)}`);
+    }
+    throw error;
+  }
 }
 
 export function registerIndicatorTools(): ToolSpec[] {
@@ -286,8 +268,8 @@ export function registerIndicatorTools(): ToolSpec[] {
           },
           params: {
             type: "array",
-            items: { type: "number" },
-            description: "Indicator-specific parameters as a number array. Examples: MA/EMA [14] (period), MACD [12,26,9] (fast,slow,signal), BB [20,2] (period,stdDev), RSI [14] (period). For period-based indicators a parameter is required; the CLI applies a sensible default when omitted.",
+            items: { type: "integer" },
+            description: `Optional. Omit to use the indicator's default. If given it must be complete: fixed-length indicators need exactly the full set (too few or too many is an error), ma/ema/rsi/wr/wma/dema/tema/zlema/hma/kama take one or more periods; values are integers (periods 2-365; bb multiplier and supertrend factor 1-9; alphatrend and halftrend take any int32 integers). Indicators not listed under Defaults are not validated. Order matters, e.g. macd [fast,slow,signal], bb [period,multiplier], supertrend [factor,atrPeriod]. Defaults: ${describeIndicatorDefaults()}. The result reports appliedParams and paramsSource (default|explicit).`,
           },
           returnList: {
             type: "boolean",
@@ -313,14 +295,18 @@ export function registerIndicatorTools(): ToolSpec[] {
         validateIndicatorName(indicator);
         const bar = readString(args, "bar") ?? "1H";
         assertEnum(bar, "bar", INDICATOR_BARS, { caseInsensitive: true });
-        const params = readNumberArray(args, "params");
+        const rawParams = readParams(args, indicator);
+        const explicit = rawParams && rawParams.length > 0 ? rawParams : undefined;
+        if (explicit) validateIndicatorParams(indicator, explicit);
+        // Omitted params -> apply the indicator's default (CLI and MCP alike).
+        const paramList = explicit ?? getDefaultIndicatorParams(indicator);
         const returnList = readBoolean(args, "returnList") ?? false;
         const limit = readNumber(args, "limit") ?? 10;
         const backtestTime = readNumber(args, "backtestTime");
 
         const apiCode = resolveIndicatorCode(indicator);
         const indicatorConfig = compactObject({
-          paramList: params && params.length > 0 ? params : undefined,
+          paramList,
           returnList,
           limit: returnList ? limit : undefined,
         });
@@ -338,7 +324,9 @@ export function registerIndicatorTools(): ToolSpec[] {
             body,
             publicRateLimit("market_get_indicator", 5),
           );
-          return normalizeResponse(response);
+          const result = normalizeResponse(response);
+          if (!paramList || !hasIndicatorParamSpec(indicator)) return result;
+          return { ...result, appliedParams: paramList, paramsSource: explicit ? "explicit" : "default" };
         });
       },
     },

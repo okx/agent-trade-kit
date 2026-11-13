@@ -1,10 +1,13 @@
 import type { ToolRunner } from "@agent-tradekit/core";
 import { output, outputLine, printJson, printKv, printTable } from "../formatter.js";
-import { resolveIndicatorCode, getDefaultIndicatorParams, KNOWN_INDICATORS } from "@agent-tradekit/core";
+import { resolveIndicatorCode, getDefaultIndicatorParams, formatIndicatorSignature, KNOWN_INDICATORS } from "@agent-tradekit/core";
 
 /** Verbatim safety-net hint (spec §8.2) shown when the indicator render loop prints nothing. */
 const NO_INDICATOR_VALUES_HINT =
   "No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).";
+
+const NO_VALUES_WITH_DEFAULT_HINT =
+  "No indicator values returned for the default params; there may not be enough candles for this instrument and bar.";
 
 function getData(result: unknown): unknown {
   return (result as Record<string, unknown>).data;
@@ -79,9 +82,17 @@ export async function cmdMarketMarkPrice(
 export async function cmdMarketTrades(
   run: ToolRunner,
   instId: string,
-  opts: { limit?: number; json: boolean; demo?: boolean },
+  opts: { limit?: number; history?: boolean; type?: string; after?: string; before?: string; json: boolean; demo?: boolean },
 ): Promise<void> {
-  const result = await run("market_get_trades", { instId, limit: opts.limit, demo: opts.demo ?? false });
+  const result = await run("market_get_trades", {
+    instId,
+    limit: opts.limit,
+    history: opts.history ?? false,
+    type: opts.type,
+    after: opts.after,
+    before: opts.before,
+    demo: opts.demo ?? false,
+  });
   const items = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(items);
   printTable(
@@ -254,6 +265,41 @@ export function cmdMarketIndicatorList(json: boolean): void {
   printTable(KNOWN_INDICATORS.map(({ name, description }) => ({ name, description })));
 }
 
+const PARAMS_FORMAT_HINT = "expected comma-separated numbers, e.g. --params 14,20";
+
+/** Format hint for a bad --params: the indicator's own signature/default/example when it has a params contract. */
+function paramsFormatHint(indicator: string): string {
+  return getDefaultIndicatorParams(indicator) !== undefined ? formatIndicatorSignature(indicator) : PARAMS_FORMAT_HINT;
+}
+const PARAM_TOKEN_RE = /^-?\d+(\.\d+)?$/;
+
+/** Strict `--params` parsing: every token must be a number, nothing is silently dropped. */
+function parseIndicatorParams(raw: string, indicator: string): number[] {
+  return raw.split(",").map((token) => {
+    const trimmed = token.trim();
+    const value = PARAM_TOKEN_RE.test(trimmed) ? Number(trimmed) : Number.NaN;
+    // a very long digit string overflows to Infinity, which JSON would serialise as null
+    if (!Number.isFinite(value)) {
+      throw new Error(`Invalid --params "${raw}": "${token.slice(0, 40)}" is not a finite number. ${paramsFormatHint(indicator)}`);
+    }
+    return value;
+  });
+}
+
+function noValuesError(indicator: string, explicit: number[]): Error {
+  return new Error(
+    `No values returned for ${indicator} with params [${explicit.join(",")}]: the period may exceed the available candles, or the params are not valid for this indicator.`,
+  );
+}
+
+/** `params: 12,26,9 (default)` line from the tool result; undefined when the indicator has no params contract. */
+function formatAppliedParams(result: unknown): string | undefined {
+  const r = result as unknown as { appliedParams?: unknown; paramsSource?: unknown };
+  if (!Array.isArray(r.appliedParams)) return undefined;
+  const source = r.paramsSource === "default" ? "default" : "explicit";
+  return `params: ${r.appliedParams.join(",")} (${source})`;
+}
+
 export async function cmdMarketIndicator(
   run: ToolRunner,
   indicator: string,
@@ -267,21 +313,16 @@ export async function cmdMarketIndicator(
     json: boolean;
   },
 ): Promise<void> {
-  const params = opts.params
-    ? opts.params.split(",").map((p) => Number(p.trim())).filter((n) => !Number.isNaN(n))
-    : undefined;
+  const params = opts.params ? parseIndicatorParams(opts.params, indicator) : undefined;
 
-  // Plan B (CLI-layer only): when --params is omitted, substitute the core
-  // default paramList for period-based indicators so the server returns values.
-  // Explicit --params always wins. MCP raw-data path is intentionally unchanged.
+  // Omitted --params: core applies the indicator's default (shared with MCP).
   const explicit = params && params.length > 0 ? params : undefined;
-  const effectiveParams = explicit ?? getDefaultIndicatorParams(indicator);
 
   const result = await run("market_get_indicator", {
     instId,
     indicator,
     bar: opts.bar,
-    params: effectiveParams,
+    params: explicit,
     returnList: opts.list ?? false,
     limit: opts.limit,
     backtestTime: opts.backtestTime,
@@ -291,7 +332,11 @@ export async function cmdMarketIndicator(
   const outerArray = getData(result) as Record<string, unknown>[];
   if (opts.json) return printJson(outerArray);
 
-  if (!outerArray?.length) { outputLine("No data"); return; }
+  if (!outerArray?.length) {
+    if (explicit) throw noValuesError(indicator, explicit);
+    outputLine("No data");
+    return;
+  }
 
   const apiCode = resolveIndicatorCode(indicator);
   const response = outerArray[0];
@@ -300,9 +345,13 @@ export async function cmdMarketIndicator(
   const timeframes = instData?.["timeframes"] as Record<string, unknown> | undefined;
 
   if (!timeframes) {
+    if (explicit) throw noValuesError(indicator, explicit);
     output(JSON.stringify(outerArray, null, 2) + "\n");
     return;
   }
+
+  const applied = formatAppliedParams(result);
+  if (applied) outputLine(applied);
 
   // Plan A (safety net): track whether anything rendered; if not, emit a hint
   // so the command is never silent (non-period indicators or empty results).
@@ -331,7 +380,10 @@ export async function cmdMarketIndicator(
     }
   }
 
-  if (!printed) outputLine(NO_INDICATOR_VALUES_HINT);
+  if (printed) return;
+  if (explicit) throw noValuesError(indicator, explicit);
+  // a default was already applied: a longer period is not the fix, there are simply too few candles
+  outputLine(applied ? NO_VALUES_WITH_DEFAULT_HINT : NO_INDICATOR_VALUES_HINT);
 }
 
 export async function cmdMarketInstrumentsByCategory(

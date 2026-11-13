@@ -4,7 +4,7 @@ description: "Use this skill when the user asks for: price of any asset, ticker,
 license: MIT
 metadata:
   author: okx
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.5.0"
+        package: "@okx_ai/okx-trade-cli@1.5.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -29,7 +29,7 @@ Public market data for OKX: prices, order books, candles, funding rates, open in
 - Place / cancel orders → `okx-cex-trade`
 - **Trading a directional view as an event contract** → `okx-cex-trade`
 - Market sentiment / most bullish-bearish coins → `okx-sentiment-tracker`
-- Grid / DCA bots → `okx-cex-bot`
+- Grid / DCA / Smart Portfolio / Recurring Buy bots → `okx-cex-bot`
 
 ## Preflight
 
@@ -55,10 +55,10 @@ Market data commands return the same public data regardless of demo/live mode �
 | 2 | `okx market tickers <instType>` | All tickers for SPOT / SWAP / FUTURES / OPTION |
 | 3 | `okx market instruments --instType <type> [--instId <id>] [--uly <uly>] [--instFamily <fam>] [--seriesId <id>]` | List instruments (instId, ctVal, lotSz, minSz, tickSz, state); OPTION requires `--uly` or `--instFamily`; EVENTS requires `--seriesId` |
 | 4 | `okx market orderbook <instId> [--sz <n>]` | Order book asks/bids (default top 5 per side, max 400) |
-| 5 | `okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before <ts>]` | OHLCV candles (default `--bar 1m`); auto-routes to historical endpoint for data back to 2021; `--after` paginates back in time, `--before` paginates forward |
+| 5 | `okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before <ts>]` | OHLCV candles (default `--bar 1m`; UTC+0 bars `6Hutc`…`3Mutc` available from 6H up); auto-routes to historical endpoint for data back to 2021; `--after` paginates back in time, `--before` paginates forward |
 | 6 | `okx market index-candles <instId> [--bar <bar>] [--limit <n>] [--history]` | Index OHLCV (use `BTC-USD` not `BTC-USDT`) |
 | 7 | `okx market funding-rate <instId> [--history] [--limit <n>]` | Current or historical funding rate (SWAP only) |
-| 8 | `okx market trades <instId> [--limit <n>]` | Recent public trades |
+| 8 | `okx market trades <instId> [--limit <n>] [--history [--type <1\|2>] [--after <id\|ts>] [--before <id>]]` | Recent public trades (default 20, max 500). `--history` pages through the last 3 months (max 100 per page); `--type`/`--after`/`--before` **require** `--history` and are rejected otherwise |
 | 9 | `okx market mark-price --instType <type> [--instId <id>]` | Mark price (SWAP / FUTURES / OPTION) |
 | 10 | `okx market index-ticker [--instId <id>] [--quoteCcy <ccy>]` | Index price (e.g., BTC-USD) |
 | 11 | `okx market price-limit <instId>` | Upper/lower price limits (SWAP / FUTURES only) |
@@ -69,7 +69,7 @@ Market data commands return the same public data regardless of demo/live mode �
 | 15 | `okx market oi-history <instId> [--bar <5m\|15m\|1H\|4H\|1D>] [--limit <n>] [--ts <ms>]` | OI history time series with bar-over-bar delta for a single instrument |
 | 16 | `okx market oi-change --instType <SWAP\|FUTURES> [--bar <5m\|15m\|1H\|4H\|1D>] [--sortBy <field>] [--sortOrder <asc\|desc>] [--limit <n>] [--minOiUsd <n>] [--minVolUsd24h <n>] [--minAbsOiDeltaPct <n>]` | Find instruments with largest OI changes (accumulation/distribution scanner) |
 | 17 | `okx market indicator list` | List all supported indicator names and descriptions |
-| 18 | `okx market indicator <indicator> <instId> [--bar] [--params] [--list] [--limit] [--backtest-time]` | Technical indicator values. For period-based indicators (ema/ma/wma/rsi/macd/bb/…) the CLI applies a sensible default period when `--params` is omitted (e.g. EMA/RSI → `14`, MACD → `12,26,9`, BB → `20,2`) so values render without you specifying params; explicit `--params` always wins. If no values come back, the CLI prints a visible hint (`try --params …`) — never silent. |
+| 18 | `okx market indicator <indicator> <instId> [--bar] [--params] [--list] [--limit] [--backtest-time]` | Technical indicator values. **Omit `--params`** to use the indicator's default (e.g. MACD `12,26,9`, BB `20,2`, RSI `14`, MA `5,20,60`, EMA `5,20`, Supertrend `3,10`); the CLI prints `params: … (default)`. **If you pass `--params` it must be complete** — too few or too many values is an error (e.g. `--params 12,26` for macd). Full list of params and defaults: `references/indicator-commands.md`. Unknown indicator names are rejected. |
 | 19 | `okx market pair-spread <instIdA> <instIdB> [--bar <5m\|15m>] [--window <window>] [--backtest-time <ms>]` | Spread statistics (abs + ratio: mean/stdDev/median/min/max) over a lookback window; supports backtest mode |
 
 ---
@@ -120,7 +120,8 @@ All commands in this skill are read-only.
 - **funding-rate / price-limit**: SWAP only · mark-price: SWAP / FUTURES / OPTION only
 - **candles `--bar`**: uppercase — `1H` not `1h`; use `--after <ts>` to paginate back into historical data (back to 2021); index-candles supports `--history` for extended history
 - **⚠️ Large historical range**: before fetching with `--after`/`--before`, estimate candle count = `time_range_ms / bar_interval_ms`. If estimate > 500, tell the user the estimated count and ask for confirmation before proceeding. This prevents silently filling the context window.
-- **indicator `--bar`**: uses `1Dutc` not `1D`, `1Wutc` not `1W` — different from candle bar values
+- **`--bar` sets differ by command**: the `candles` list is not the `indicator` list. Read the matching reference (`price-data-commands.md` / `indicator-commands.md`) for each command's bars.
+- **indicator `--bar`**: uses `1Dutc` not `1D`, `1Wutc` not `1W` — indicators accept only the values listed below (a subset of the candle bar values)
 - **`market filter` sortBy values**: `last` `chg24hPct` `marketCapUsd` `volUsd24h` `fundingRate` `oiUsd` `listTime` — default `volUsd24h`
 - **`market filter` ctType**: `linear` or `inverse` (SWAP/FUTURES only); omit for SPOT
 - **`market filter` quoteCcy**: comma-separated list supported, e.g. `--quoteCcy USDT,USDC`
@@ -136,8 +137,8 @@ All commands in this skill are read-only.
 - **indicator `--bar` valid values**: `3m` `5m` `15m` `1H` `4H` `12Hutc` `1Dutc` `3Dutc` `1Wutc` — `1m` is **not supported** for indicators (use `candles` for 1-minute data)
 - **indicator `--limit`**: 1–100 (only used with `returnList`, i.e. when a historical series is requested)
 - **indicator arg order**: indicator name before instId — `okx market indicator rsi BTC-USDT`
-- **indicator `--params`**: comma-separated, no spaces — `--params 5,20`. For period-based indicators (ema/ma/wma/rsi/macd/bb/…) omitting `--params` makes the CLI substitute a default period (EMA/MA/WMA/RSI → `14`, MACD → `12,26,9`, BB → `20,2`) so the table is populated instead of empty; pass `--params` explicitly to override the default. (CLI-only convenience — the MCP `market_get_indicator` raw-data path still requires an explicit `paramList`.)
-- **indicator no values returned**: the CLI never prints nothing — if a query yields no values (e.g. a non-period indicator, or a period indicator with no default), it prints a visible hint: `No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`
+- **indicator `--params`**: either omit it (default used) or pass the complete set — comma-separated integers, no spaces, given **once**: `--params 12,26,9`. Fixed-length indicators need exactly the full set (macd 3, kdj 3, bb 2, supertrend 2 as `factor,atrPeriod`, stoch-rsi 4, …); ma/ema/rsi/wr/wma/dema/tema/zlema/hma/kama take one or more periods. Periods are 2–365; the bb multiplier and supertrend factor are 1–9; alphatrend and halftrend take any int32 integer (negative allowed, no 2–365 range). A leading negative value parses (`--params -9,3,3`) but is rejected as out of range where the slot is a period or factor. Non-numeric tokens, a wrong count or an out-of-range value fail with an error that shows the expected signature, default and example; a repeated `--params` fails with `specify --params once, comma-separated`. Indicators not covered by the params contract (obv, vwap, sar, …) have no default and no count or range check, but malformed values (non-numeric, `null`, overflow) are still rejected.
+- **indicator no values returned**: (1) explicit `--params` and no timeframe returns values → table mode fails with `No values returned for <indicator> with params [...]` (the period may exceed the available candles), exit code 1; `--json` prints the raw backend data and exits 0 as before. (2) `--params` omitted and a default was applied (the `params: … (default)` line is shown) → prints `No indicator values returned for the default params; there may not be enough candles for this instrument and bar.` (3) `--params` omitted for an indicator without a default → prints `No indicator values returned. This indicator may require a period — try --params (e.g. --params 14).`
 - **BTC-only indicators**: `ahr999`, `rainbow` — BTC-USDT only
 - **Unknown indicator name**: returns a `ValidationError` with similar-name suggestions before the API is called — use `market_list_indicators` / `okx market indicator list` to see all valid names
 - **Stock token hours**: US stocks trade Mon–Fri ~09:30–16:00 ET; verify live price before acting

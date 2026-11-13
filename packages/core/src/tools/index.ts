@@ -27,6 +27,10 @@ import type { ToolSpec, ToolArgs } from "./types.js";
  * that need to enumerate tool names, schemas, or module membership without
  * instantiating a full client.  Not all callers use every spec - consumers
  * should filter as needed.
+ *
+ * NOTE: this includes CLI-only modules (see CLI_ONLY_MODULE_IDS). A custom
+ * MCP server must build its tool list through `buildTools(config)` rather than
+ * exposing these specs directly.
  */
 export function allToolSpecs(): ToolSpec[] {
   return [
@@ -52,7 +56,7 @@ export function allToolSpecs(): ToolSpec[] {
 }
 
 export function buildTools(config: OkxConfig): ToolSpec[] {
-  const enabledModules = new Set(config.modules);
+  const enabledModules = new Set<string>(config.modules);
   const tools = allToolSpecs().filter((tool) => enabledModules.has(tool.module));
   if (!config.readOnly) {
     return tools;

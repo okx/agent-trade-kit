@@ -1,7 +1,7 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import type { OkxRestClient } from "../client/rest-client.js";
 import type { OkxConfig } from "../config.js";
-import type { ModuleId } from "../constants.js";
+import type { CliOnlyModuleId, ModuleId } from "../constants.js";
 
 export type ToolArgs = Record<string, unknown>;
 
@@ -17,7 +17,11 @@ export interface ToolSpec {
   name: string;
   /** Human-readable label shown by MCP clients (e.g. inspector tool list, Claude tool catalog). */
   title: string;
-  module: ModuleId;
+  /**
+   * Owning module. A CliOnlyModuleId is never loadable via MCP `--modules`, so
+   * `buildTools` never returns such a tool; only the CLI runner reaches it.
+   */
+  module: ModuleId | CliOnlyModuleId;
   description: string;
   inputSchema: JsonSchema;
   outputSchema?: OutputSchema;

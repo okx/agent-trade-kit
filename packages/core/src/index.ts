@@ -2,14 +2,15 @@ import "./runtime/undici-proxy-bootstrap.js"; // registers EnvHttpProxyAgent as 
 export { OkxRestClient } from "./client/rest-client.js";
 export { resolveIndicatorCode, INDICATOR_BARS, KNOWN_INDICATORS, DEFAULT_INDICATOR_PARAMS, getDefaultIndicatorParams } from "./tools/indicator.js";
 export type { IndicatorBar } from "./tools/indicator.js";
+export { formatIndicatorSignature } from "./tools/indicator-params.js";
 export { buildTools, createToolRunner, allToolSpecs } from "./tools/index.js";
 export type { ToolResult, ToolRunner } from "./tools/index.js";
 export { toMcpTool } from "./tools/types.js";
 export { loadConfig } from "./config.js";
-export { MODULES, DEFAULT_MODULES, BOT_SUB_MODULE_IDS, BOT_DEFAULT_SUB_MODULES, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, MODULE_DESCRIPTIONS } from "./constants.js";
+export { MODULES, DEFAULT_MODULES, BOT_SUB_MODULE_IDS, BOT_DEFAULT_SUB_MODULES, CLI_ONLY_MODULE_IDS, OKX_API_BASE_URL, OKX_SITES, SITE_IDS, MODULE_DESCRIPTIONS } from "./constants.js";
 export { OkxApiError, ConfigError, NotLoggedInError, toToolErrorPayload } from "./utils/errors.js";
 export type { OkxConfig, CliOptions } from "./config.js";
-export type { ModuleId, BotSubModuleId, SiteId, OkxSite, CliModuleKey } from "./constants.js";
+export type { ModuleId, BotSubModuleId, CliOnlyModuleId, SiteId, OkxSite, CliModuleKey } from "./constants.js";
 export type { ToolSpec, ToolContext, ToolArgs } from "./tools/types.js";
 export type { RequestResult } from "./client/types.js";
 export { readTomlProfile, readFullConfig, writeFullConfig, configFilePath, tomlStringify } from "./config/toml.js";

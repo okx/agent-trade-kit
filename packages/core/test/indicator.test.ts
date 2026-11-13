@@ -182,11 +182,25 @@ describe("KNOWN_INDICATORS", () => {
 // ---------------------------------------------------------------------------
 
 describe("DEFAULT_INDICATOR_PARAMS", () => {
-  it("ema/ma/wma/rsi default to [14] (PRD example)", () => {
-    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ema"], [14]);
-    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ma"], [14]);
+  it("ma/ema follow the skill (5,20,60 / 5,20); wma/rsi default to [14]", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ma"], [5, 20, 60]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["ema"], [5, 20]);
     assert.deepEqual(DEFAULT_INDICATOR_PARAMS["wma"], [14]);
     assert.deepEqual(DEFAULT_INDICATOR_PARAMS["rsi"], [14]);
+  });
+
+  it("matches the backend defaults that used to differ", () => {
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["supertrend"], [3, 10]); // [factor, atrPeriod]
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["stoch-rsi"], [14, 14, 3, 3]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["keltner"], [20, 10, 20]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["mvwap"], [14, 14]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["stoch"], [14, 3]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["aroon"], [25]);
+    assert.deepEqual(DEFAULT_INDICATOR_PARAMS["trix"], [18]);
+  });
+
+  it("covers exactly the 39 indicators of the params contract", () => {
+    assert.equal(Object.keys(DEFAULT_INDICATOR_PARAMS).length, 39);
   });
 
   it("macd defaults to [12, 26, 9] (PRD example)", () => {
@@ -227,13 +241,13 @@ describe("DEFAULT_INDICATOR_PARAMS", () => {
 
 describe("getDefaultIndicatorParams", () => {
   it("resolves lowercase period indicators", () => {
-    assert.deepEqual(getDefaultIndicatorParams("ema"), [14]);
+    assert.deepEqual(getDefaultIndicatorParams("ema"), [5, 20]);
     assert.deepEqual(getDefaultIndicatorParams("macd"), [12, 26, 9]);
     assert.deepEqual(getDefaultIndicatorParams("bb"), [20, 2]);
   });
 
   it("is case-insensitive (uppercase input)", () => {
-    assert.deepEqual(getDefaultIndicatorParams("EMA"), [14]);
+    assert.deepEqual(getDefaultIndicatorParams("EMA"), [5, 20]);
     assert.deepEqual(getDefaultIndicatorParams("RSI"), [14]);
   });
 
@@ -407,7 +421,7 @@ describe("market_get_indicator handler - request body", () => {
     assert.deepEqual(ma["paramList"], [5, 20]);
   });
 
-  it("omits paramList when params is empty array", async () => {
+  it("treats an empty params array as omitted and applies the default", async () => {
     let captured: unknown;
     await withFetch(async (_url, init) => {
       captured = JSON.parse((init as RequestInit).body as string);
@@ -418,7 +432,7 @@ describe("market_get_indicator handler - request body", () => {
     });
     const indicators = (captured as Record<string, unknown>)["indicators"] as Record<string, unknown>;
     const rsi = indicators["RSI"] as Record<string, unknown>;
-    assert.equal(rsi["paramList"], undefined);
+    assert.deepEqual(rsi["paramList"], [14]);
   });
 
   it("includes limit when returnList=true", async () => {
@@ -709,5 +723,217 @@ describe("market_get_indicator - indicator name validation", () => {
         },
       );
     });
+  });
+});
+
+describe("market_get_indicator - params validation (handler level)", () => {
+  const tool = registerIndicatorTools()[0]!;
+
+  it("rejects wrong param count before any HTTP call", async () => {
+    let called = false;
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await withFetch(async () => {
+      called = true;
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "macd", params: [12] }, { config: BASE_CONFIG, client }),
+        (err) => err instanceof ValidationError && /macd requires 3 params \(fast,slow,signal\), got 1: \[12\]/.test((err as Error).message),
+      );
+    });
+    assert.equal(called, false);
+  });
+
+  it("rejects non-numeric params", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await assert.rejects(
+        () => tool.handler({ instId: "BTC-USDT", indicator: "rsi", params: ["abc"] }, { config: BASE_CONFIG, client }),
+        ValidationError,
+      );
+    });
+  });
+
+  it("accepts valid params and omitted params", async () => {
+    await withFetch(jsonFetch(MOCK_RESPONSE), async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      await tool.handler({ instId: "BTC-USDT", indicator: "macd", params: [12, 26, 9] }, { config: BASE_CONFIG, client });
+      await tool.handler({ instId: "BTC-USDT", indicator: "macd" }, { config: BASE_CONFIG, client });
+    });
+  });
+
+  async function send(args: Record<string, unknown>): Promise<{ body: Record<string, unknown>; result: Record<string, unknown> }> {
+    let body: Record<string, unknown> = {};
+    let result: Record<string, unknown> = {};
+    await withFetch(async (_url, init) => {
+      body = JSON.parse((init as RequestInit).body as string);
+      return new Response(JSON.stringify(MOCK_RESPONSE), { status: 200, headers: { "Content-Type": "application/json" } });
+    }, async (mock) => {
+      const client = new OkxRestClient(BASE_CONFIG, mock);
+      result = await tool.handler({ instId: "BTC-USDT", ...args }, { config: BASE_CONFIG, client }) as Record<string, unknown>;
+    });
+    return { body, result };
+  }
+
+  const paramListOf = (body: Record<string, unknown>, code: string): unknown =>
+    ((body["indicators"] as Record<string, Record<string, unknown>>)[code])!["paramList"];
+
+  it("applies the default paramList when params is omitted and reports it", async () => {
+    const { body, result } = await send({ indicator: "macd" });
+    assert.deepEqual(paramListOf(body, "MACD"), [12, 26, 9]);
+    assert.deepEqual(result["appliedParams"], [12, 26, 9]);
+    assert.equal(result["paramsSource"], "default");
+  });
+
+  it("applies the corrected supertrend default [factor, atrPeriod] = [3, 10]", async () => {
+    const { body } = await send({ indicator: "supertrend" });
+    assert.deepEqual(paramListOf(body, "SUPERTREND"), [3, 10]);
+  });
+
+  it("resolves the boll alias to bb's default", async () => {
+    const { body } = await send({ indicator: "boll" });
+    assert.deepEqual(paramListOf(body, "BB"), [20, 2]);
+  });
+
+  it("sends explicit params as-is and reports paramsSource=explicit", async () => {
+    const { body, result } = await send({ indicator: "ma", params: [5, 10] });
+    assert.deepEqual(paramListOf(body, "MA"), [5, 10]);
+    assert.deepEqual(result["appliedParams"], [5, 10]);
+    assert.equal(result["paramsSource"], "explicit");
+  });
+
+  it("indicators without a params contract are passed through untouched", async () => {
+    const omitted = await send({ indicator: "obv" });
+    assert.equal(paramListOf(omitted.body, "OBV"), undefined);
+    assert.equal(omitted.result["appliedParams"], undefined);
+
+    const explicit = await send({ indicator: "obv", params: [1, 2, 3] });
+    assert.deepEqual(paramListOf(explicit.body, "OBV"), [1, 2, 3]);
+    assert.equal(explicit.result["appliedParams"], undefined);
+    assert.equal(explicit.result["paramsSource"], undefined);
+  });
+
+  it("envelope / alphatrend / halftrend / pmax: default applied when omitted, explicit params sent as-is", async () => {
+    const defaults: Record<string, number[]> = { envelope: [20, 2], alphatrend: [14, 100], halftrend: [2, 20], pmax: [10, 30, 10] };
+    for (const [indicator, def] of Object.entries(defaults)) {
+      const omitted = await send({ indicator });
+      assert.deepEqual(paramListOf(omitted.body, indicator.toUpperCase()), def, indicator);
+      assert.equal(omitted.result["paramsSource"], "default");
+      const explicit = await send({ indicator, params: def });
+      assert.deepEqual(explicit.result["appliedParams"], def);
+      assert.equal(explicit.result["paramsSource"], "explicit");
+    }
+  });
+
+  it("envelope rejects the old documented example 20,0.1 and incomplete params", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(() => send({ indicator: "envelope", params: [20, 0.1] }), ValidationError);
+    await assert.rejects(() => send({ indicator: "pmax", params: [10, 30] }), ValidationError);
+  });
+
+  it("rejects incomplete and surplus fixed-length params", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const params of [[12, 26], [12, 26, 9, 1]]) {
+      await assert.rejects(
+        () => send({ indicator: "macd", params }),
+        (err) => err instanceof ValidationError && /macd requires 3 params/.test((err as Error).message),
+      );
+    }
+  });
+
+  it("params description states the int32 exception and that unlisted indicators are not validated", () => {
+    const schema = tool.inputSchema as { properties: { params: { description: string } } };
+    const text = schema.properties.params.description;
+    assert.match(text, /alphatrend and halftrend take any int32 integers/);
+    assert.match(text, /Indicators not listed under Defaults are not validated/);
+  });
+
+  it("describes defaults in the params schema", () => {
+    const schema = tool.inputSchema as { properties: { params: { description: string; items: { type: string } } } };
+    assert.match(schema.properties.params.description, /Defaults:.*supertrend 3,10/);
+    assert.equal(schema.properties.params.items.type, "integer");
+  });
+
+  it("rejects params that are not an array (no silent fallback to the default)", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const params of ["12,26,9", 14, { a: 1 }, true]) {
+      await assert.rejects(
+        () => send({ indicator: "macd", params }),
+        (err) => err instanceof ValidationError && /must be an array of numbers/.test((err as Error).message),
+      );
+    }
+  });
+
+  it("rejects array items that are not numbers (null, boolean, empty string, nested)", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const item of [null, true, "", "abc", [26], Number.NaN]) {
+      await assert.rejects(
+        () => send({ indicator: "bb", params: [20, item] }),
+        (err) => err instanceof ValidationError && /must be a finite number/.test((err as Error).message),
+        String(item),
+      );
+    }
+    // also for indicators without a params contract (previously NaN was sent as null)
+    await assert.rejects(() => send({ indicator: "obv", params: [null] }), ValidationError);
+  });
+
+  it("accepts numeric strings (LLMs sometimes send \"14\")", async () => {
+    const { body } = await send({ indicator: "rsi", params: ["14"] });
+    assert.deepEqual(paramListOf(body, "RSI"), [14]);
+  });
+
+  it("an empty params array reports paramsSource=default", async () => {
+    const { result } = await send({ indicator: "macd", params: [] });
+    assert.equal(result["paramsSource"], "default");
+    assert.deepEqual(result["appliedParams"], [12, 26, 9]);
+  });
+
+  it("validates with a mixed-case name and the boll alias", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(
+      () => send({ indicator: "MACD", params: [12, 26] }),
+      (err) => err instanceof ValidationError && /macd requires 3 params/.test((err as Error).message),
+    );
+    await assert.rejects(
+      () => send({ indicator: "boll", params: [20, 10] }),
+      (err) => err instanceof ValidationError && /bb param #2 \(multiplier\)/.test((err as Error).message),
+    );
+  });
+
+  it("type errors on an indicator with a params contract also carry its signature and default", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(
+      () => send({ indicator: "macd", params: [12, "abc", 9] }),
+      (err) => err instanceof ValidationError
+        && /params"\[1\] must be a finite number/.test((err as Error).message)
+        && /macd requires 3 params \(fast,slow,signal\)\. Default: 12,26,9\. Example: params \[12,26,9\]/.test((err as Error).message),
+    );
+    await assert.rejects(
+      () => send({ indicator: "ema", params: "5,20" }),
+      (err) => err instanceof ValidationError
+        && /must be an array of numbers/.test((err as Error).message)
+        && /ema requires one or more periods/.test((err as Error).message),
+    );
+  });
+
+  it("type errors on an indicator without a params contract stay generic", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    await assert.rejects(
+      () => send({ indicator: "obv", params: ["x"] }),
+      (err) => err instanceof ValidationError && !/requires/.test((err as Error).message),
+    );
+  });
+
+  it("a very long digit string (overflows to Infinity) is rejected instead of being sent as null", async () => {
+    const { ValidationError } = await import("../src/utils/errors.js");
+    for (const indicator of ["obv", "macd"]) {
+      await assert.rejects(
+        () => send({ indicator, params: ["9".repeat(400)] }),
+        (err) => err instanceof ValidationError && /must be a finite number/.test((err as Error).message),
+        indicator,
+      );
+    }
   });
 });

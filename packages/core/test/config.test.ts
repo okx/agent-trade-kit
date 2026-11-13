@@ -298,16 +298,18 @@ describe("loadConfig - bot sub-modules", () => {
     assert.ok(!config.modules.includes("bot.dca" as never));
   });
 
-  it('"bot.all" expands to all bot sub-modules (bot.grid + bot.dca)', async () => {
+  it('"bot.all" expands to all bot sub-modules (bot.grid + bot.dca + bot.smartportfolio)', async () => {
     const config = await loadConfig({ ...BASE_CLI, modules: "bot.all" });
     assert.ok(config.modules.includes("bot.grid" as never));
     assert.ok(config.modules.includes("bot.dca" as never));
+    assert.ok(config.modules.includes("bot.smartportfolio" as never));
   });
 
-  it('"all" includes all bot sub-modules (bot.grid + bot.dca)', async () => {
+  it('"all" includes all bot sub-modules (bot.grid + bot.dca + bot.smartportfolio)', async () => {
     const config = await loadConfig({ ...BASE_CLI, modules: "all" });
     assert.ok(config.modules.includes("bot.grid" as never));
     assert.ok(config.modules.includes("bot.dca" as never));
+    assert.ok(config.modules.includes("bot.smartportfolio" as never));
     assert.ok(config.modules.includes("market" as never));
   });
 

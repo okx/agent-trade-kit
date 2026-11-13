@@ -62,18 +62,26 @@ okx market orderbook BTC-USDT-SWAP --sz 20
 ## trades — Recent Public Trades
 
 ```bash
-okx market trades <instId> [--limit <n>] [--json]
+okx market trades <instId> [--limit <n>] [--history [--type <1|2>] [--after <id|ts>] [--before <id>]] [--json]
 ```
 
-| Param | Required | Default |
-|---|---|---|
-| `instId` | Yes | - |
-| `--limit` | No | 100 |
+| Param | Required | Default | Description |
+|---|---|---|---|
+| `instId` | Yes | - | Instrument ID |
+| `--limit` | No | 20 | Max 500; max 100 with `--history` |
+| `--history` | No | false | Page through trades of the **last 3 months** (`/market/history-trades`) instead of only the latest |
+| `--type` | No | `1` | With `--history` only. `1` = paginate by tradeId, `2` = paginate by timestamp |
+| `--after` | No | - | With `--history` only. Trades **older** than this tradeId (`--type 1`) or timestamp in ms (`--type 2`) |
+| `--before` | No | - | With `--history` only. Trades **newer** than this tradeId. Not supported with `--type 2` |
+
+> `--type`, `--after` and `--before` are rejected without `--history` — the latest-trades endpoint has no pagination.
 
 Returns: `tradeId` · `px` · `sz` · `side` (`buy`/`sell`) · `ts`
 
 ```bash
 okx market trades BTC-USDT --limit 20
+okx market trades BTC-USDT --history --limit 100                  # last 3 months, newest page
+okx market trades BTC-USDT --history --after 242720720 --limit 100 # next page: trades older than that tradeId
 ```
 
 ---
@@ -88,11 +96,13 @@ okx market candles <instId> [--bar <bar>] [--limit <n>] [--after <ts>] [--before
 |---|---|---|---|
 | `instId` | Yes | - | Instrument ID |
 | `--bar` | No | `1m` | Time granularity (see values below) |
-| `--limit` | No | 100 | Number of candles |
+| `--limit` | No | 100 | Number of candles; max 300 per request (OKX) |
 | `--after` | No | - | Return candles **before** this timestamp (ms) — paginate backward in time |
 | `--before` | No | - | Return candles **after** this timestamp (ms) — paginate forward in time |
 
-`--bar` values: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `1W` `1M`
+`--bar` values: `1m` `3m` `5m` `15m` `30m` `1H` `2H` `4H` `6H` `12H` `1D` `2D` `3D` `1W` `1M` `3M`
+
+UTC+0 bars supported by `candles` (from 6H up): `6Hutc` `12Hutc` `1Dutc` `2Dutc` `3Dutc` `1Wutc` `1Mutc` `3Mutc`. Plain bars follow UTC+8 (identical to UTC+0 up to 4H); use the `utc` variants for UTC day/week/month boundaries. This full list is for `candles`.
 
 > Use uppercase for hour/day/week/month — `1H` not `1h`.
 
@@ -106,6 +116,7 @@ Returns columns: `time` · `open` · `high` · `low` · `close` · `vol` (base c
 okx market candles BTC-USDT --bar 4H --limit 30
 okx market candles ETH-USDT-SWAP --bar 1H --limit 100
 okx market candles BTC-USDT --bar 1D --after 1672531200000   # candles before 2023-01-01
+okx market candles BTC-USDT --bar 1Dutc --limit 30            # UTC+0 daily bars
 ```
 
 ---

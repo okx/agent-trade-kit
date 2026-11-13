@@ -4,7 +4,7 @@ description: "Use this skill when the user asks to: 'find a trading skill', 'sea
 license: MIT
 metadata:
   author: okx
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.5.0"
+        package: "@okx_ai/okx-trade-cli@1.5.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -30,7 +30,7 @@ Browse, search, install, and manage AI trading skills from the OKX Skills Market
 - Market data / indicators → `okx-cex-market`
 - Account balance / positions → `okx-cex-portfolio`
 - Place / cancel orders → `okx-cex-trade`
-- Grid / DCA bots → `okx-cex-bot`
+- Grid / DCA / Smart Portfolio / Recurring Buy bots → `okx-cex-bot`
 
 ## Prerequisites
 

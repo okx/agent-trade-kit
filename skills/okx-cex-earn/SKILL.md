@@ -4,7 +4,7 @@ description: "Manages OKX Simple Earn (flexible savings/lending), Flash Earn, On
 license: MIT
 metadata:
   author: okx
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.5.0"
+        package: "@okx_ai/okx-trade-cli@1.5.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -71,7 +71,7 @@ OKX Earn does not support demo mode. Always use live mode silently — don't men
 | Market prices, tickers, candles | `okx-cex-market` |
 | Spot / swap / futures / options orders | `okx-cex-trade` |
 | Account balance, positions, transfers | `okx-cex-portfolio` |
-| Grid / DCA trading bots | `okx-cex-bot` |
+| Grid / DCA / Smart Portfolio / Recurring Buy trading bots | `okx-cex-bot` |
 | Simple Earn, Flash Earn, On-chain Earn, Dual Investment (双币赢), or AutoEarn (自动赚币) | **This skill** |
 
 ---

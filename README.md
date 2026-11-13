@@ -49,7 +49,7 @@ It runs as a **local process** with your API keys stored only on your machine. N
 | `account` | 14 | Balance, bills (+archive), positions, positions history, fee rates, config, position mode, max withdrawal, max avail size, audit log | [→](docs/modules/account.md) |
 | `event` | 9 | Event contract trading: browse, series, events, markets (query); place, amend, cancel, orders, fills (private). Semantic outcome values: UP/YES/DOWN/NO | [→](docs/modules/event.md) |
 | `earn` | 24 | Simple Earn: balance, purchase, redeem, lending rate, **fixed-term products query**, **fixed-term orders** (10). On-chain staking/DeFi (6). Dual Currency Deposit/双币赢 (6). **Flash Earn** (1). Sub-modules: `earn.savings`, `earn.onchain`, `earn.dcd`, `earn.flash`. Included in `all`. | [→](docs/modules/earn.md) |
-| `bot` | 18 | Trading bots: Grid (9) and DCA — Spot & Contract (9). Sub-modules: `bot.grid`, `bot.dca` | [→](docs/modules/bot.md) |
+| `bot` | 26 | Trading bots: Grid (9), DCA — Spot & Contract (9) and Smart Portfolio (8). Sub-modules: `bot.grid`, `bot.dca`, `bot.smartportfolio`. Recurring Buy is available as CLI-only `okx bot recurring` commands (no MCP tools) | [→](docs/modules/bot.md) |
 | `news` | 7 | Crypto news: latest news, by-coin filter, full-text search, article detail, news sources, coin sentiment (snapshot + trend) | [→](docs/modules/news.md) |
 | `smartmoney` | 10 | Smart money analytics: leaderboard ranking, trader performance / positions / position history / order history, top-coin signals, single-asset signal (by coin / by traders), signal history (by coin / by traders) — all read-only, split by entry mode for AI-agent disambiguation | [→](docs/modules/smartmoney.md) |
 
@@ -116,7 +116,7 @@ Pre-built skill files for AI agent frameworks are included in the [`skills/`](sk
 | [`okx-cex-market`](skills/okx-cex-market/SKILL.md) | Market data: prices, candles, order books, funding rates, technical indicators | No |
 | [`okx-cex-trade`](skills/okx-cex-trade/SKILL.md) | Order management: spot, swap, futures, options, algo orders | Yes |
 | [`okx-cex-portfolio`](skills/okx-cex-portfolio/SKILL.md) | Account: balances, positions, P&L, transfers | Yes |
-| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | Trading bots: grid and DCA (spot & contract) | Yes |
+| [`okx-cex-bot`](skills/okx-cex-bot/SKILL.md) | Trading bots: grid, DCA (spot & contract), Smart Portfolio and Recurring Buy | Yes |
 | [`okx-cex-earn`](skills/okx-cex-earn/SKILL.md) | Earn: Simple Earn, On-chain staking, Dual Investment, AutoEarn | Yes |
 | [`okx-cex-smartmoney`](skills/okx-cex-smartmoney/SKILL.md) | Smart Money: trader leaderboard, consensus signals, position analysis | Yes |
 

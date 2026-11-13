@@ -4,7 +4,7 @@ description: "Use when the user asks to 'buy BTC', 'sell ETH', 'place a limit or
 license: MIT
 metadata:
   author: okx
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.5.0"
+        package: "@okx_ai/okx-trade-cli@1.5.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -109,7 +109,7 @@ Apply **in this order** — first match wins:
 - For regular spot/swap/futures/options/algo orders → use `okx-cex-trade` (this skill)
 - For **browsing/discovering** event contracts (what's available, how many, list active) → use `okx-cex-trade` with `okx event browse` / `okx event series`
 - For **trading** event contracts (place/cancel/amend prediction market orders) → use `okx-cex-trade` with `okx event place` / `okx event cancel` / `okx event amend`
-- For grid and DCA trading bots → use `okx-cex-bot`
+- For grid, DCA, Smart Portfolio and Recurring Buy bots → use `okx-cex-bot`
 
 > **Important**: When user asks about "contracts" in the context of event contracts or prediction markets, route to this skill — NOT to `okx-cex-portfolio`. Portfolio does not handle event contracts — it covers account balance, positions, P&L, and transfers only.
 

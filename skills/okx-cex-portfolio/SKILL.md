@@ -4,7 +4,7 @@ description: "This skill should be used when the user asks about 'account balanc
 license: MIT
 metadata:
   author: okx
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://www.okx.com"
   agent:
     requires:
@@ -12,7 +12,7 @@ metadata:
     install:
       - id: npm
         kind: node
-        package: "@okx_ai/okx-trade-cli@1.5.0"
+        package: "@okx_ai/okx-trade-cli@1.5.1"
         bins: ["okx"]
         label: "Install okx CLI (npm)"
 ---
@@ -116,7 +116,7 @@ okx --demo account balance                   # 模拟盘
 - For market data (prices, charts, depth, funding rates) → use `okx-cex-market`
 - For account balance, P&L, positions, fees, transfers → use `okx-cex-portfolio` (this skill)
 - For regular spot/swap/futures/algo orders → use `okx-cex-trade`
-- For grid and DCA trading bots → use `okx-cex-bot`
+- For grid, DCA, Smart Portfolio and Recurring Buy bots → use `okx-cex-bot`
 
 ## Quickstart
 

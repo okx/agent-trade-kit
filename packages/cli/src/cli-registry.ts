@@ -75,7 +75,7 @@ export const CLI_REGISTRY: CliRegistry = {
       candles: {
         toolName: "market_get_candles",
         usage: "okx market candles <instId> [--bar <bar>] [--limit <n>]",
-        description: "Get candlestick (OHLCV) data",
+        description: "Get candlestick (OHLCV) data. Default bars follow UTC+8; from 6H up the UTC+0 variants 6Hutc,12Hutc,1Dutc,2Dutc,3Dutc,1Wutc,1Mutc,3Mutc are also accepted",
       },
       instruments: {
         toolName: "market_get_instruments",
@@ -94,8 +94,8 @@ export const CLI_REGISTRY: CliRegistry = {
       },
       trades: {
         toolName: "market_get_trades",
-        usage: "okx market trades <instId> [--limit <n>]",
-        description: "Get recent trades for an instrument",
+        usage: "okx market trades <instId> [--limit <n>] [--history [--type <1|2>] [--after <id|ts>] [--before <id>]]",
+        description: "Get recent trades for an instrument (default 20, max 500). --history pages through the last 3 months (max 100 per page); --type/--after/--before require --history. --type 1=tradeId (default), 2=timestamp; --before is not supported with --type 2",
       },
       "index-ticker": {
         toolName: "market_get_index_ticker",
@@ -159,8 +159,8 @@ export const CLI_REGISTRY: CliRegistry = {
           },
           "<indicator> <instId>": {
             toolName: "market_get_indicator",
-            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--list] [--limit <1-100>] [--backtest-time <ts>] [--params <json>]",
-            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators.",
+            usage: "okx market indicator <indicator> <instId> [--bar <3m|5m|15m|1H|4H|12Hutc|1Dutc|3Dutc|1Wutc>] [--list] [--limit <1-100>] [--backtest-time <ts>] [--params <comma-separated numbers, e.g. 12,26,9>]",
+            description: "Get indicator values for an instrument (e.g. okx market indicator rsi BTC-USDT-SWAP). Returns latest value by default; use --list + --limit <1-100> for a historical series. NOTE: 1m is not supported for indicators. Omit --params to use the indicator default (shown as `params: ... (default)`); if given, --params must be complete integers, comma-separated and written once (e.g. macd --params 12,26,9; supertrend is factor,atrPeriod = 3,10; ma/ema/rsi accept one or more periods) — too few or too many values is an error. Defaults and params per indicator: see the okx-cex-market skill.",
           },
         },
       },
@@ -769,7 +769,7 @@ export const CLI_REGISTRY: CliRegistry = {
 
   // ── bot ────────────────────────────────────────────────────────────────────
   bot: {
-    description: "Trading bot strategies (grid, dca)",
+    description: "Trading bot strategies (grid, dca, smart-portfolio, recurring)",
     subgroups: {
       grid: {
         description: "Grid trading bot - create, monitor, and stop grid orders",
@@ -821,6 +821,71 @@ export const CLI_REGISTRY: CliRegistry = {
           },
         },
       },
+      recurring: {
+        description: "Recurring Buy bot - periodically buy a basket of coins with a fixed amount (CLI only)",
+        commands: {
+          create: {
+            toolName: "recurring_create_order",
+            usage: "okx bot recurring create --stgyName <name> --recurringList '<json>' --period <monthly|weekly|daily|hourly>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] --recurringTime <0-23> --timeZone <-12..14>\n                         --amt <amount> --investmentCcy <USDT|USDC> --tdMode <cash|cross>\n                         [--source <1,2,3>] [--recurringTimeType <1|2>] [--tradeQuoteCcy <ccy>] [--algoClOrdId <id>]\n                         [--aiBuilderCode <code>]\n                         recurringList: JSON array [{\"ccy\":\"BTC\",\"ratio\":\"0.2\"},{\"ccy\":\"ETH\",\"ratio\":\"0.8\",\"minPx\":\"1000\",\"maxPx\":\"\"}]\n                         tdMode: required, no default; accepted values depend on acctLv: 1 cash, 2 cash or cross (cross = real leverage), 3 and 4 cross only; see `okx account config`\n                         negative zone: use --timeZone=-5\n                         not idempotent: on an uncertain result do not retry on your own; check `okx bot recurring orders` first",
+            description: "Create a Recurring Buy strategy",
+          },
+          orders: {
+            toolName: "recurring_get_orders",
+            usage: "okx bot recurring orders [--history] [--algoId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List Recurring Buy strategies (default: running/paused; --history for stopped)",
+          },
+          details: {
+            toolName: "recurring_get_order_details",
+            usage: "okx bot recurring details --algoId <id>",
+            description: "Get Recurring Buy strategy details with per-coin holdings and PnL",
+          },
+          "sub-orders": {
+            toolName: "recurring_get_sub_orders",
+            usage: "okx bot recurring sub-orders --algoId <id> [--ordId <id>] [--after <id>] [--before <id>] [--limit <n>]",
+            description: "List buy orders executed by a Recurring Buy strategy",
+          },
+          pause: {
+            toolName: "recurring_pause",
+            usage: "okx bot recurring pause --algoId <id>",
+            description: "Pause a Recurring Buy strategy",
+          },
+          restart: {
+            toolName: "recurring_restart",
+            usage: "okx bot recurring restart --algoId <id>",
+            description: "Restart a paused Recurring Buy strategy",
+          },
+          stop: {
+            toolName: "recurring_stop_order",
+            usage: "okx bot recurring stop --algoId <id>",
+            description: "Stop a Recurring Buy strategy",
+          },
+          "amend-name": {
+            toolName: "recurring_amend_name",
+            usage: "okx bot recurring amend-name --algoId <id> --stgyName <name>",
+            description: "Rename a Recurring Buy strategy (max 40 characters)",
+          },
+          "amend-price-range": {
+            toolName: "recurring_amend_price_range",
+            usage: "okx bot recurring amend-price-range --algoId <id> --recurringList '<json>'\n                         recurringList: JSON array [{\"ccy\":\"BTC\",\"minPx\":\"80000\",\"maxPx\":\"120000\"}]; \"\" = no limit",
+            description: "Amend the per-coin buy price range of a Recurring Buy strategy",
+          },
+          "amend-amount": {
+            toolName: "recurring_amend_amount",
+            usage: "okx bot recurring amend-amount --algoId <id> --amount <amount>   (--amt is accepted as an alias)",
+            description: "Amend the amount invested per cycle",
+          },
+          "amend-time": {
+            toolName: "recurring_amend_time",
+            usage: "okx bot recurring amend-time --algoId <id> --recurringTimeType <1|2> --period <monthly|weekly|daily|hourly> --timeZone <-12..14>\n                         [--recurringDay <1-28|1-7>] [--recurringHour <1|4|8|12>] [--recurringTime <0-23>]\n                         type 1 = custom time (needs --recurringTime, plus --recurringDay for monthly/weekly); type 2 = trigger NOW (buys immediately, every call buys again; do not retry on your own)\n                         negative zone: use --timeZone=-5",
+            description: "Amend the schedule of a Recurring Buy strategy",
+          },
+          "add-investment": {
+            toolName: "recurring_add_investment",
+            usage: "okx bot recurring add-investment --algoId <id> --amount <amount>   (--amt is accepted as an alias)\n                         buys right away and is not idempotent: on an uncertain result do not retry on your own; check `sub-orders` first",
+            description: "Add an extra one-off investment to a Recurring Buy strategy",
+          },
+        },
+      },
       "smart-portfolio": {
         description: "Smart Portfolio bot - auto-rebalancing multi-asset portfolio strategy",
         commands: {
@@ -867,7 +932,7 @@ export const CLI_REGISTRY: CliRegistry = {
         },
       },
       dca: {
-        description: "DCA (Martingale) bot - spot or contract recurring buys",
+        description: "DCA (Martingale) bot with safety orders - spot or contract",
         commands: {
           orders: {
             toolName: "dca_get_orders",

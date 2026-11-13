@@ -26,12 +26,15 @@ Unregistered modules will be rejected during review.
 | earn.savings | ✅ approved | 10 | 5 | 5 | ~2,300 | _(founding module)_ | @Jasmine.Li | — |
 | bot.dca | ✅ approved | 9 | 4 | 5 | ~1,783 | _(founding module)_ | @Jasmine.Li | — |
 | bot.smartportfolio | ✅ approved | 8 | 4 | 4 | ~2,800 | [smart-portfolio](designs/smart-portfolio.md) | — | 2026-10-04 |
+| bot.recurring | ✅ approved | 0 MCP _(12 CLI-only)_ | 3 | 9 | 0 _(CLI-only)_ | [recurring](designs/recurring.md) | TL (issue #223) | 2026-10-22 |
 | earn.dcd | ✅ approved | 6 | 4 | 2 | ~1,183 | _(founding module)_ | @Jasmine.Li | — |
 | earn.onchain | ✅ approved | 6 | 3 | 3 | ~993 | _(founding module)_ | @Jasmine.Li | — |
 | skills | ✅ approved | 3 | 2 | 1 | ~614 | [doc](modules/skills.md) | @Jasmine.Li | 2026-03-28 |
 | earn.autoearn | ✅ approved | 1 | 0 | 1 | ~223 | [auto-earn](designs/auto-earn.md) | @Jasmine.Li | 2026-03-24 |
 | earn.flash | ✅ approved | 1 | 1 | 0 | ~148 | [flash-earn](designs/flash-earn.md) | @Jasmine.Li | 2026-04-09 |
 | **Total** | | **179** | **108** | **71** | **~52,947** | | | |
+
+> **CLI-only modules** (`bot.recurring`, see `CLI_ONLY_MODULE_IDS` in `packages/core/src/constants.ts`) are registered here for governance but expose **no MCP tools**: they are outside `MODULES`, so the MCP tool count, token budget and the "authoritative count" above (179 tools / 18 modules) are unchanged. The Tools/Read/Write columns of such rows show the 12 CLI-backing specs (3 read / 9 write).
 
 ## Status Legend
 
