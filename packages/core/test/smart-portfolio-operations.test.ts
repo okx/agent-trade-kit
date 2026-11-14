@@ -241,6 +241,22 @@ describe("edit_portfolio", () => {
     }
   });
 
+  it("ignores an invalid tradeQuoteCcy when no top-up is requested, but still validates addInvest first", async () => {
+    const { body } = await run(name, { algoId: "9", portfolioList: PORTFOLIO, tradeQuoteCcy: 5 });
+    assert.ok(!("addInvest" in body!));
+    assert.ok(!("tradeQuoteCcy" in body!));
+    await assertRejectsLocally(name, { algoId: "9", portfolioList: PORTFOLIO, addInvest: "-1", tradeQuoteCcy: 5 }, /addInvest/);
+    await assertRejectsLocally(name, { algoId: "9", portfolioList: PORTFOLIO, addInvest: "5", tradeQuoteCcy: 5 }, /tradeQuoteCcy/);
+  });
+
+  it("rejects a numeric-weight list whose exact sum is not 1 without any HTTP call", async () => {
+    await assertRejectsLocally(
+      name,
+      { algoId: "9", portfolioList: '[{"ccy":"BTC","ratio":0.50000000000000001},{"ccy":"ETH","ratio":0.5}]' },
+      /sum to 1\.0/,
+    );
+  });
+
   it("keeps the amount for a positive top-up even when tradeQuoteCcy is blank", async () => {
     for (const ccy of [undefined, null, "", "   "]) {
       const { body } = await run(name, { algoId: "9", portfolioList: PORTFOLIO, addInvest: "50", tradeQuoteCcy: ccy });

@@ -161,16 +161,11 @@ export function registerSmartPortfolioOperationTools(): ToolSpec[] {
           parsePortfolioListJson(requireString(args, "portfolioList")),
         );
         const addInvest = normalizeAddInvest(args["addInvest"], "optional");
-        const tradeQuoteCcy = normalizeTradeQuoteCcy(args["tradeQuoteCcy"]);
+        // Without a top-up tradeQuoteCcy is ignored (not even validated) and neither field is sent.
+        const tradeQuoteCcy = addInvest === undefined ? undefined : normalizeTradeQuoteCcy(args["tradeQuoteCcy"]);
         const response = await context.client.privatePost(
           `${BASE}/edit-portfolio`,
-          // Without a top-up neither addInvest nor tradeQuoteCcy is sent.
-          compactObject({
-            algoId,
-            portfolioList,
-            addInvest,
-            tradeQuoteCcy: addInvest === undefined ? undefined : tradeQuoteCcy,
-          }),
+          compactObject({ algoId, portfolioList, addInvest, tradeQuoteCcy }),
           privateRateLimit("smart_portfolio_edit_portfolio", RATE_LIMIT_RPS),
         );
         return normalizeResponse(response);

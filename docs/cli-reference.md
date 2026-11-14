@@ -618,6 +618,22 @@ okx bot dca create \
 okx bot dca stop --algoId <algoId>
 ```
 
+### Smart Portfolio（智能组合）
+
+```bash
+okx bot smart-portfolio orders [--history] [--algoId <id>]
+okx bot smart-portfolio details --algoId <id>
+okx bot smart-portfolio create --stgyName <name> --investmentCcy USDT --initCapital <amt> \
+  --portfolioList '[{"ccy":"BTC","ratio":"0.6"},{"ccy":"ETH","ratio":"0.4"}]' --interval 20 --deltaRatio 0.05
+okx bot smart-portfolio amend-rebalance --algoId <id> --deltaRatio 0.05 --interval 60
+okx bot smart-portfolio instant-rebalance --algoId <id>
+okx bot smart-portfolio manual-pause|manual-resume --algoId <id>
+okx bot smart-portfolio add-investment --algoId <id> --addInvest 100 [--tradeQuoteCcy USDT]
+okx bot smart-portfolio edit-portfolio --algoId <id> --portfolioList '[...完整的新目标...]' [--addInvest 50 [--tradeQuoteCcy USDT]]
+```
+
+四个操作类命令成功时返回空 `data`，显示为 "request accepted"（已受理 ≠ 资金到账 ≠ 已成交）。`bot smart-portfolio` 与 `bot recurring` 会拒绝该子命令不读取的选项（`Unknown option`，退出码 1，不发送请求）；其他命令不受影响。
+
 ### Recurring Buy（定投）— 仅 CLI，无 MCP 工具
 
 ```bash

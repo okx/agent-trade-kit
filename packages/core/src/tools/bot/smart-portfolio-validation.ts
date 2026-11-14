@@ -23,6 +23,7 @@ const PLAIN_DECIMAL_RE = /^\d+(\.\d+)?$/;
 
 /** Plain decimals are sent exactly as the user wrote them; other formats (e.g. 5e-1) are expanded. */
 function toWireString(trimmed: string, d: ParsedDecimal): string {
+  assertExpandable(d, "value");
   return PLAIN_DECIMAL_RE.test(trimmed) ? trimmed : toPlainString(d);
 }
 
@@ -55,10 +56,45 @@ export interface PortfolioItem {
   ratio: string;
 }
 
-/** Parse the portfolioList JSON string accepted by the create / edit tools. */
+const JSON_NUMBER_RE = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/;
+
+/**
+ * Wrap every bare JSON number token in quotes so JSON.parse keeps its original
+ * text. Otherwise a numeric ratio such as 0.60000000000000001 is rounded to a
+ * double before the exact-decimal checks can see it. Strings are left untouched
+ * and malformed numbers (e.g. 01) still fail JSON.parse.
+ */
+function quoteBareNumbers(raw: string): string {
+  let out = "";
+  let i = 0;
+  while (i < raw.length) {
+    const ch = raw[i] as string;
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < raw.length && raw[j] !== '"') j += raw[j] === "\\" ? 2 : 1;
+      out += raw.slice(i, j + 1);
+      i = j + 1;
+    } else if (ch === "-" || (ch >= "0" && ch <= "9")) {
+      const m = JSON_NUMBER_RE.exec(raw.slice(i));
+      if (m) {
+        out += `"${m[0]}"`;
+        i += m[0].length;
+      } else {
+        out += ch;
+        i += 1;
+      }
+    } else {
+      out += ch;
+      i += 1;
+    }
+  }
+  return out;
+}
+
+/** Parse the portfolioList JSON string accepted by the create / edit tools (numbers keep their exact text). */
 export function parsePortfolioListJson(raw: string): unknown {
   try {
-    return JSON.parse(raw);
+    return JSON.parse(quoteBareNumbers(raw));
   } catch {
     throw new ValidationError(
       `portfolioList is not valid JSON: ${raw.slice(0, 200)}`,

@@ -71,6 +71,13 @@ describe("normalizeDeltaRatio — decimal precision", () => {
     }
   });
 
+  it("applies the same size limits to plain decimals as to exponent notation", () => {
+    rejects(() => normalizeAddInvest("1" + "0".repeat(101), "required"), /outside the supported size/);
+    rejects(() => normalizeAddInvest("0." + "0".repeat(100) + "1", "optional"), /outside the supported size/);
+    rejects(() => normalizeAddInvest("1e101", "required"), /outside the supported size/);
+    assert.equal(normalizeAddInvest("1" + "0".repeat(99), "required"), "1" + "0".repeat(99));
+  });
+
   it("is bounded for pathological input", () => {
     const start = Date.now();
     rejects(() => normalizeDeltaRatio("9".repeat(5000)), /too long/);
@@ -169,6 +176,26 @@ describe("parsePortfolioListJson", () => {
 
   it("throws ValidationError for invalid JSON", () => {
     rejects(() => parsePortfolioListJson("not json"), /not valid JSON/);
+  });
+
+  it("keeps the original text of numeric ratios instead of rounding to a double", () => {
+    const parsed = parsePortfolioListJson('[{"ccy":"BTC","ratio":0.50000000000000001},{"ccy":"ETH","ratio":5e-1}]');
+    assert.deepEqual(parsed, [
+      { ccy: "BTC", ratio: "0.50000000000000001" },
+      { ccy: "ETH", ratio: "5e-1" },
+    ]);
+  });
+
+  it("does not touch digits inside strings and still rejects malformed numbers", () => {
+    assert.deepEqual(parsePortfolioListJson('[{"ccy":"B1\\"2","ratio":"0.5"}]'), [{ ccy: 'B1"2', ratio: "0.5" }]);
+    rejects(() => parsePortfolioListJson('[{"ccy":"BTC","ratio":01}]'), /not valid JSON/);
+  });
+
+  it("rejects numeric weights whose exact sum is not 1 (no silent double rounding)", () => {
+    const raw = '[{"ccy":"BTC","ratio":0.50000000000000001},{"ccy":"ETH","ratio":0.5}]';
+    rejects(() => validateAndNormalizePortfolioList(parsePortfolioListJson(raw)), /sum to 1\.0/);
+    const ok = '[{"ccy":"BTC","ratio":0.6},{"ccy":"ETH","ratio":0.4}]';
+    assert.deepEqual(validateAndNormalizePortfolioList(parsePortfolioListJson(ok)), list(["BTC", "0.6"], ["ETH", "0.4"]));
   });
 });
 

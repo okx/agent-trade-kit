@@ -7,8 +7,8 @@ import {
 
 const PROBE_ID = 'tier2.smart-portfolio-manual-resume';
 const USER_PROMPT = 'Resume automatic rebalancing of my manually paused Smart Portfolio bot 123456789 in demo/dry-run mode. I confirm this is the right bot and I confirm the resume now. Skip any auth check — assume credentials are configured. Do NOT run okx auth login or okx config init. Just run the appropriate okx CLI command once.';
-const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "manual-resume"]];
-const EXPECTATION = 'okx bot smart-portfolio manual-resume';
+const EXPECTED_COMMAND_PATTERNS: string[][] = [["okx", "bot", "smart-portfolio", "manual-resume", "--algoId", "123456789", "--demo"], ["okx", "bot", "smart-portfolio", "manual-resume", "--algoId", "123456789", "--profile", "demo"]];
+const EXPECTATION = 'okx bot smart-portfolio manual-resume --algoId 123456789 in demo mode';
 
 describe(PROBE_ID, () => {
   const models = getModels();
