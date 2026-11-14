@@ -56,8 +56,8 @@ export interface PortfolioItem {
   ratio: string;
 }
 
-// A numeric value of a "ratio" key; the text is already known to be valid JSON (see parsePortfolioListJson).
-const RATIO_NUMBER_RE = /("ratio"\s*:\s*)(-?\d[\d.eE+-]*)/g;
+// An object key followed by a number value; the text is already known to be valid JSON (see parsePortfolioListJson).
+const KEY_NUMBER_RE = /("(?:[^"\\]|\\.)*")(\s*:\s*)(-?\d[\d.eE+-]*)/g;
 
 /**
  * Parse the portfolioList JSON string accepted by the create / edit tools.
@@ -69,7 +69,12 @@ const RATIO_NUMBER_RE = /("ratio"\s*:\s*)(-?\d[\d.eE+-]*)/g;
 export function parsePortfolioListJson(raw: string): unknown {
   try {
     JSON.parse(raw);
-    return JSON.parse(raw.replace(RATIO_NUMBER_RE, '$1"$2"'));
+    // Decode the key (it may use escapes such as "\u0072atio") before comparing it with "ratio".
+    return JSON.parse(
+      raw.replace(KEY_NUMBER_RE, (match, key: string, colon: string, num: string) =>
+        JSON.parse(key) === "ratio" ? `${key}${colon}"${num}"` : match,
+      ),
+    );
   } catch {
     throw new ValidationError(
       `portfolioList is not valid JSON: ${raw.slice(0, 200)}`,

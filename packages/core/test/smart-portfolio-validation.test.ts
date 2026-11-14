@@ -197,6 +197,15 @@ describe("parsePortfolioListJson", () => {
     rejects(() => validateAndNormalizePortfolioList(parsed), /ccy must be a string/);
   });
 
+  it("recognises an escaped ratio key and still keeps the number text", () => {
+    const raw = '[{"ccy":"BTC","\\u0072atio":0.60000000000000001},{"ccy":"ETH","ratio":0.4}]';
+    assert.deepEqual(parsePortfolioListJson(raw), [
+      { ccy: "BTC", ratio: "0.60000000000000001" },
+      { ccy: "ETH", ratio: "0.4" },
+    ]);
+    rejects(() => validateAndNormalizePortfolioList(parsePortfolioListJson(raw)), /sum to 1\.0/);
+  });
+
   it("rejects text that is not valid JSON as written instead of repairing it", () => {
     rejects(() => parsePortfolioListJson('[{123:1,"ratio":0.5},{"ccy":"ETH","ratio":0.5}]'), /not valid JSON/);
     rejects(() => parsePortfolioListJson('[{"ccy":"BTC","ratio":+1}]'), /not valid JSON/);
