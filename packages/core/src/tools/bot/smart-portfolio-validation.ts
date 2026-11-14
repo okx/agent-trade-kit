@@ -56,8 +56,8 @@ export interface PortfolioItem {
   ratio: string;
 }
 
-// A numeric value of a "ratio" key; only valid JSON ever reaches this (see parsePortfolioListJson).
-const RATIO_NUMBER_RE = /("ratio"\s*:\s*)(-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)(?=\s*[,}])/g;
+// A numeric value of a "ratio" key; the text is already known to be valid JSON (see parsePortfolioListJson).
+const RATIO_NUMBER_RE = /("ratio"\s*:\s*)(-?\d[\d.eE+-]*)/g;
 
 /**
  * Parse the portfolioList JSON string accepted by the create / edit tools.
