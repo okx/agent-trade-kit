@@ -56,17 +56,19 @@ export interface PortfolioItem {
   ratio: string;
 }
 
-// A JSON string literal, or a JSON number token (the string alternative comes first so digits inside strings stay untouched).
-const JSON_STRING_OR_NUMBER_RE = /"(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+// A JSON string literal (matched first so its contents stay untouched) or a run of number-like characters.
+const JSON_STRING_OR_WORD_RE = /"(?:[^"\\]|\\.)*"|[-+.\w]+/g;
+const JSON_NUMBER_RE = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
 /**
  * Wrap every bare JSON number token in quotes so JSON.parse keeps its original
  * text. Otherwise a numeric ratio such as 0.60000000000000001 is rounded to a
  * double before the exact-decimal checks can see it. Strings are left untouched
- * and malformed numbers (e.g. 01) still fail JSON.parse.
+ * and malformed numbers (e.g. 01) or words (true, null) stay as-is, so JSON.parse
+ * still rejects the former and keeps the latter.
  */
 function quoteBareNumbers(raw: string): string {
-  return raw.replace(JSON_STRING_OR_NUMBER_RE, (token) => (token.startsWith('"') ? token : `"${token}"`));
+  return raw.replace(JSON_STRING_OR_WORD_RE, (token) => (JSON_NUMBER_RE.test(token) ? `"${token}"` : token));
 }
 
 /** Parse the portfolioList JSON string accepted by the create / edit tools (numbers keep their exact text). */
