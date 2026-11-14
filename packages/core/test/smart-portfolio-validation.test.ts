@@ -191,6 +191,17 @@ describe("parsePortfolioListJson", () => {
     rejects(() => parsePortfolioListJson('[{"ccy":"BTC","ratio":01}]'), /not valid JSON/);
   });
 
+  it("only preserves ratio numbers: other numeric fields keep their type and are still rejected", () => {
+    const parsed = parsePortfolioListJson('[{"ccy":123,"ratio":0.5},{"ccy":"ETH","ratio":0.5}]');
+    assert.deepEqual(parsed, [{ ccy: 123, ratio: "0.5" }, { ccy: "ETH", ratio: "0.5" }]);
+    rejects(() => validateAndNormalizePortfolioList(parsed), /ccy must be a string/);
+  });
+
+  it("rejects text that is not valid JSON as written instead of repairing it", () => {
+    rejects(() => parsePortfolioListJson('[{123:1,"ratio":0.5},{"ccy":"ETH","ratio":0.5}]'), /not valid JSON/);
+    rejects(() => parsePortfolioListJson('[{"ccy":"BTC","ratio":+1}]'), /not valid JSON/);
+  });
+
   it("rejects numeric weights whose exact sum is not 1 (no silent double rounding)", () => {
     const raw = '[{"ccy":"BTC","ratio":0.50000000000000001},{"ccy":"ETH","ratio":0.5}]';
     rejects(() => validateAndNormalizePortfolioList(parsePortfolioListJson(raw)), /sum to 1\.0/);

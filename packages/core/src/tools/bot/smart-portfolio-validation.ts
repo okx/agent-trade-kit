@@ -56,25 +56,20 @@ export interface PortfolioItem {
   ratio: string;
 }
 
-// A JSON string literal (matched first so its contents stay untouched) or a run of number-like characters.
-const JSON_STRING_OR_WORD_RE = /"(?:[^"\\]|\\.)*"|[-+.\w]+/g;
-const JSON_NUMBER_RE = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+// A numeric value of a "ratio" key; only valid JSON ever reaches this (see parsePortfolioListJson).
+const RATIO_NUMBER_RE = /("ratio"\s*:\s*)(-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)(?=\s*[,}])/g;
 
 /**
- * Wrap every bare JSON number token in quotes so JSON.parse keeps its original
- * text. Otherwise a numeric ratio such as 0.60000000000000001 is rounded to a
- * double before the exact-decimal checks can see it. Strings are left untouched
- * and malformed numbers (e.g. 01) or words (true, null) stay as-is, so JSON.parse
- * still rejects the former and keeps the latter.
+ * Parse the portfolioList JSON string accepted by the create / edit tools.
+ * The text must be valid JSON as written. Only numeric "ratio" values then keep
+ * their original text (quoted), because JSON.parse would round e.g.
+ * 0.60000000000000001 to a double before the exact-decimal checks see it; every
+ * other field keeps its JSON type and is validated as such.
  */
-function quoteBareNumbers(raw: string): string {
-  return raw.replace(JSON_STRING_OR_WORD_RE, (token) => (JSON_NUMBER_RE.test(token) ? `"${token}"` : token));
-}
-
-/** Parse the portfolioList JSON string accepted by the create / edit tools (numbers keep their exact text). */
 export function parsePortfolioListJson(raw: string): unknown {
   try {
-    return JSON.parse(quoteBareNumbers(raw));
+    JSON.parse(raw);
+    return JSON.parse(raw.replace(RATIO_NUMBER_RE, '$1"$2"'));
   } catch {
     throw new ValidationError(
       `portfolioList is not valid JSON: ${raw.slice(0, 200)}`,
