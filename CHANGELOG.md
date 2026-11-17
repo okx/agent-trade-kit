@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2-beta.1] - 2026-11-17
+
+Beta release: Skill `metadata.version` and pinned CLI install versions remain at `1.5.1` per the stable-release-only policy.
+
 ### Added
 
 - **Smart Portfolio operation tools** (`bot.smartportfolio`: 8 → 12 MCP tools, write tools 4 → 8) with matching CLI subcommands: `smart_portfolio_manual_pause` / `okx bot smart-portfolio manual-pause`, `smart_portfolio_manual_resume` / `manual-resume`, `smart_portfolio_add_investment` / `add-investment`, `smart_portfolio_edit_portfolio` / `edit-portfolio` (`POST /api/v5/tradingBot/smart-portfolio/{manual-pause,manual-resume,add-investment,edit-portfolio}`). A successful response is `code=0` with empty `data` and means the request was **accepted** — not that the new state is in effect, that funds have arrived, or that any trade was filled. The tools are never retried on network errors (a top-up/edit is not idempotent) and use the module's client-side default rate limit, which is not a verified server-side quota.

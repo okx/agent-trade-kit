@@ -11,6 +11,10 @@
 
 ## [Unreleased]
 
+## [1.5.2-beta.1] - 2026-11-17
+
+Beta 版本：按稳定版同步策略，所有 Skill 的 `metadata.version` 及锁定的 CLI 安装版本保持 `1.5.1`。
+
 ### 新增
 
 - **智能组合操作工具**（`bot.smartportfolio`：MCP 工具 8 → 12，写工具 4 → 8）及对应 CLI 子命令：`smart_portfolio_manual_pause` / `okx bot smart-portfolio manual-pause`、`smart_portfolio_manual_resume` / `manual-resume`、`smart_portfolio_add_investment` / `add-investment`、`smart_portfolio_edit_portfolio` / `edit-portfolio`（`POST /api/v5/tradingBot/smart-portfolio/{manual-pause,manual-resume,add-investment,edit-portfolio}`）。成功响应为 `code=0` 且 `data` 为空，仅表示请求**已受理**，不代表新状态已生效、资金已到账或交易已成交。这些工具不会因网络错误自动重试（追加/编辑非幂等），限流沿用模块的客户端默认值，该值并非经核实的服务端限频。
